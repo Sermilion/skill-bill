@@ -23,9 +23,15 @@ internal fun telemetrySettingsOrNull(
   throw error
 } catch (error: InterruptedException) {
   throw error
-} catch (error: Exception) {
+} catch (error: IllegalStateException) {
+  telemetrySettingsLoadFailure(diagnostics, error)
+} catch (error: IllegalArgumentException) {
+  telemetrySettingsLoadFailure(diagnostics, error)
+}
+
+private fun telemetrySettingsLoadFailure(diagnostics: RuntimeDiagnostics, error: RuntimeException): Nothing? {
   diagnostics.error(TELEMETRY_SETTINGS_LOAD_FAILURE_MESSAGE, error)
-  null
+  return null
 }
 
 internal fun feedbackTelemetryOptions(

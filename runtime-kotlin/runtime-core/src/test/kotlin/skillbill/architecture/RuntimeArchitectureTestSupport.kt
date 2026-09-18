@@ -285,6 +285,12 @@ private val rawMapTypeAliasDeclPattern =
     """^(?:(?:public|private|protected|internal)\s+)*typealias\s+([A-Za-z0-9_]+)\s*=\s*(.+)$""",
   )
 
+private val rawMapDelegatingClassDeclPattern =
+  Regex(
+    """^(?:(?:public|private|protected|internal|abstract|open|sealed|data)\s+)*""" +
+      """class\s+([A-Za-z0-9_]+)\b""",
+  )
+
 private fun rawMapDeclarationName(trimmed: String): String? {
   val funMatch = rawMapFunDeclPattern.find(trimmed)
   val valMatch = rawMapValDeclPattern.find(trimmed)
@@ -345,9 +351,13 @@ private data class RawMapDeclarationContext(
   val trimmed: String,
   val tracker: ScopeTracker,
   val source: String,
+  val relativePath: String,
 )
 
 private fun isBoundaryCarrierRawMapDeclaration(context: RawMapDeclarationContext): Boolean {
+  if (context.relativePath.contains("runtime-ports/src/main/kotlin/")) {
+    return false
+  }
   if (
     rawMapDeclarationModifiers(context.trimmed)
       .any { modifier -> modifier in setOf("private", "protected", "internal") } ||
@@ -363,8 +373,7 @@ private fun isBoundaryCarrierRawMapDeclaration(context: RawMapDeclarationContext
     enclosingName.endsWith("Arguments") ||
     enclosingName.endsWith("Patch") ||
     enclosingName == "WorkflowStepUpdates" ||
-    enclosingName == "DurableWorkflowArtifacts" ||
-    enclosingName == "IdeStatusProblemDetails"
+    enclosingName == "DurableWorkflowArtifacts"
   if (!namedCarrier) return false
   return Regex(
     """(?s)(?:class|data\s+class)\s+$enclosingName\b[^{}]*?\bprivate\s+(?:val|var)\s+\w+\s*:\s*""" +
@@ -388,39 +397,73 @@ internal fun findRawMapViolations(file: SourceFile): List<String> {
   val tracker = ScopeTracker()
   lines.forEachIndexed { index, line ->
     tracker.consume(line)
-    val trimmed = line.trim()
-    val typeAliasMatch = rawMapTypeAliasDeclPattern.find(trimmed)
-    if (typeAliasMatch != null && typeAliasMatch.groupValues[1] in bannedTypeAliases) {
-      if (!isBoundaryCarrierRawMapDeclaration(RawMapDeclarationContext(trimmed, tracker, file.source))) {
-        violations +=
-          "${file.relativePath}:${index + 1} public `${typeAliasMatch.groupValues[1]}` exposes raw map shape"
-      }
-      return@forEachIndexed
-    }
-    val declName = rawMapDeclarationName(trimmed) ?: return@forEachIndexed
-    val sigText = collectRawMapDeclarationSignature(
-      lines,
-      index,
-      rawMapValDeclPattern.find(trimmed) != null,
-    )
-    if (!signatureUsesBannedRawMap(sigText, rawMapBannedShapes, bannedTypeAliases)) return@forEachIndexed
-    if (isBoundaryCarrierRawMapDeclaration(
-        RawMapDeclarationContext(
-          trimmed = trimmed,
-          tracker = tracker,
-          source = file.source,
-        ),
-      )
-    ) {
-      return@forEachIndexed
-    }
-    val enclosingPrefix = tracker.enclosingStack.joinToString(".").let { if (it.isEmpty()) "" else "$it." }
-    val fqn = listOf(file.packageName, "$enclosingPrefix$declName")
-      .filter(String::isNotBlank)
-      .joinToString(".")
-    violations += "${file.relativePath}:${index + 1} public `$declName` exposes raw map shape (fqn=$fqn)"
+    rawMapViolationForLine(file, lines, index, tracker, bannedTypeAliases)?.let(violations::add)
   }
   return violations
+}
+
+private fun rawMapViolationForLine(
+  file: SourceFile,
+  lines: List<String>,
+  index: Int,
+  tracker: ScopeTracker,
+  bannedTypeAliases: Set<String>,
+): String? {
+  val trimmed = lines[index].trim()
+  val directViolation = rawMapDelegatingClassViolation(trimmed, index, tracker, file)
+    ?: rawMapTypeAliasViolation(trimmed, index, tracker, file, bannedTypeAliases)
+  if (directViolation != null) return directViolation
+  val declName = rawMapDeclarationName(trimmed) ?: return null
+  val signature = collectRawMapDeclarationSignature(
+    lines,
+    index,
+    rawMapValDeclPattern.find(trimmed) != null,
+  )
+  val context = RawMapDeclarationContext(trimmed, tracker, file.source, file.relativePath)
+  val enclosingPrefix = tracker.enclosingStack.joinToString(".").let { if (it.isEmpty()) "" else "$it." }
+  val fqn = listOf(file.packageName, "$enclosingPrefix$declName")
+    .filter(String::isNotBlank)
+    .joinToString(".")
+  return when {
+    !signatureUsesBannedRawMap(signature, rawMapBannedShapes, bannedTypeAliases) -> null
+    isBoundaryCarrierRawMapDeclaration(context) -> null
+    else -> "${file.relativePath}:${index + 1} public `$declName` exposes raw map shape (fqn=$fqn)"
+  }
+}
+
+private fun rawMapDelegatingClassViolation(
+  trimmed: String,
+  index: Int,
+  tracker: ScopeTracker,
+  file: SourceFile,
+): String? {
+  val match = rawMapDelegatingClassDeclPattern.find(trimmed) ?: return null
+  if (!isPublicRawMapDelegation(trimmed, tracker)) return null
+  return "${file.relativePath}:${index + 1}: public `${match.groupValues[1]}` exposes raw map shape"
+}
+
+private fun isPublicRawMapDelegation(trimmed: String, tracker: ScopeTracker): Boolean {
+  if (tracker.insideNonPublicScope) return false
+  if (rawMapDeclarationModifiers(trimmed).any { it in setOf("private", "protected", "internal") }) return false
+  if (trimmed.startsWith("private ") || trimmed.startsWith("protected ") || trimmed.startsWith("internal ")) {
+    return false
+  }
+  return rawMapBannedShapes.any { shape -> "$shape by" in trimmed }
+}
+
+private fun rawMapTypeAliasViolation(
+  trimmed: String,
+  index: Int,
+  tracker: ScopeTracker,
+  file: SourceFile,
+  bannedTypeAliases: Set<String>,
+): String? {
+  val match = rawMapTypeAliasDeclPattern.find(trimmed) ?: return null
+  if (match.groupValues[1] !in bannedTypeAliases) return null
+  val context = RawMapDeclarationContext(trimmed, tracker, file.source, file.relativePath)
+  if (isBoundaryCarrierRawMapDeclaration(context)) return null
+  return "${file.relativePath}:${index + 1} " +
+    "public `${match.groupValues[1]}` exposes raw map shape"
 }
 
 internal fun rawMapTypeAliases(source: String, bannedShapes: List<String>): Set<String> {

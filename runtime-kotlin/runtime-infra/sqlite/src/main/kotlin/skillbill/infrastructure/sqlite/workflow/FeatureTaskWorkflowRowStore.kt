@@ -2,8 +2,8 @@ package skillbill.infrastructure.sqlite.workflow
 
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.ProseFeatureTaskWorkflowWriteRefusedError
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
 import java.time.Clock
 

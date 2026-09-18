@@ -1,3 +1,10 @@
+## [2026-09-18] SKILL-358 subtask 2 — One owner for every wire token
+Areas: runtime-kotlin/{runtime-ports,runtime-domain,runtime-contracts,runtime-application,runtime-engine,runtime-infra,runtime-core}, ARCHITECTURE.md
+- Centralized payload keys in `runtime-contracts`, status tokens in their owning enum, and replaced port raw-map carriers with typed models.
+- Kept serialization and wire-map projection at infrastructure seams while preserving SQLite and artifact output; added parity and architecture guards. reusable
+- Known limitation: schema content and persisted/artifact wire shapes remain unchanged; feature flag: N/A.
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-18] SKILL-358 subtask 1 — Ports hold interfaces and DTOs
 Areas: runtime-kotlin/{runtime-ports,runtime-domain,runtime-contracts,runtime-application,runtime-engine,runtime-infra,runtime-mcp,runtime-cli,runtime-core}, ARCHITECTURE.md
 - Reduced `runtime-ports` to interface and DTO declarations: moved implementation-only codecs and lease logic outward, made honest seams abstract, and relocated execution identity policy to the domain.

@@ -23,11 +23,10 @@ data class WorkflowStateRecord(
   val stateEnteredAtEstimated: Boolean = false,
 ) {
   companion object {
-    internal fun requiredWorkflowStatus(value: String): WorkflowStatus =
-      WorkflowStatus.fromWire(value)
-        ?: throw InvalidWorkflowStateSchemaError(
-          "Workflow state workflow_status has unsupported value '$value'.",
-        )
+    internal fun requiredWorkflowStatus(value: String): WorkflowStatus = WorkflowStatus.fromWire(value)
+      ?: throw InvalidWorkflowStateSchemaError(
+        "Workflow state workflow_status has unsupported value '$value'.",
+      )
   }
 }
 

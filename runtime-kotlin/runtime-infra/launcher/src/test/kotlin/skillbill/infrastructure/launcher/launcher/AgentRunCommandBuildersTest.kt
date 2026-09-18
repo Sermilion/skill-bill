@@ -1,6 +1,7 @@
 package skillbill.infrastructure.launcher.launcher
 
 import skillbill.config.model.PhaseCompactionDirective
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.GovernedReviewLaunchCapabilityError
 import skillbill.infrastructure.launcher.agentrun.AgentRunOutputDecoder
 import skillbill.infrastructure.launcher.agentrun.ClaudeAgentRunCommandBuilder
@@ -12,9 +13,8 @@ import skillbill.infrastructure.launcher.process.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpConfigFormat
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.MODEL_DIRECTIVE_CAPABLE_AGENTS
-import skillbill.review.context.model.ReviewConversationIsolation
-import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
+import skillbill.review.context.model.ReviewConversationIsolation
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains

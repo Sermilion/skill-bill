@@ -2,9 +2,10 @@ package skillbill.cli.featuretask
 
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
-import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
+import skillbill.ports.diagnostics.model.ProducerOutputEvidence
+import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import java.time.Clock
@@ -73,4 +74,16 @@ private class CliDiagnosticRepository : RejectedOutputDiagnosticRepository {
     identities.forEach(records::remove)
     return identities.size
   }
+
+  override fun retainProducerOutput(evidence: ProducerOutputEvidence) = Unit
+
+  override fun readProducerOutput(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+    agentId: String,
+    generation: Int,
+  ): ProducerOutputEvidence? = null
+
+  override fun deleteProducerOutputsBefore(before: Instant): Int = 0
 }

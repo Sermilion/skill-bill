@@ -5,8 +5,8 @@ import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.workflow.FeatureTaskExecutionLookupRepository
-import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import java.sql.Connection
 
 internal class FeatureTaskExecutionLookupStore(

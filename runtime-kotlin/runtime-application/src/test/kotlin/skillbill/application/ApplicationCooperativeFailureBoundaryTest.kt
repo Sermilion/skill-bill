@@ -304,13 +304,12 @@ private class RecordingDiagnostics : RuntimeDiagnostics {
   }
 }
 
-private fun versionedSystemService(version: String): SystemService =
-  SystemService(
-    UpdateCheckTestDatabaseSessionFactory(),
-    UpdateCheckTestTelemetrySettingsProvider,
-    NoopRuntimeDiagnostics,
-    version,
-  )
+private fun versionedSystemService(version: String): SystemService = SystemService(
+  UpdateCheckTestDatabaseSessionFactory(),
+  UpdateCheckTestTelemetrySettingsProvider,
+  NoopRuntimeDiagnostics,
+  version,
+)
 
 private class UpdateCheckTestDatabaseSessionFactory : DatabaseSessionFactory {
   private val dbPath = Files.createTempDirectory("cooperative-failure-db").resolve("metrics.db")

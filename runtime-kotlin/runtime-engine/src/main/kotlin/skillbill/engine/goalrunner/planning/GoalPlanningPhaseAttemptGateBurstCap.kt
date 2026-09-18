@@ -5,9 +5,9 @@ import skillbill.engine.featuretask.boundedSchemaGateDetail
 import skillbill.engine.goalrunner.EmptyOrStoppedArgs
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.engine.planningprojection.producerProjectionGateReason
+import skillbill.error.GoalRunnerLaunchAuthorizationDeniedException
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
-import skillbill.error.GoalRunnerLaunchAuthorizationDeniedException
 
 fun DefaultGoalPlanningSweep.projectionGateReason(payload: String, phaseId: String): String? {
   val envelope = JsonCodec.parseObjectOrNull(payload)

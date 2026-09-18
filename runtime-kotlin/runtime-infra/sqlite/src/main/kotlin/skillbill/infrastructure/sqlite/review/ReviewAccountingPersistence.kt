@@ -4,7 +4,6 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
-import skillbill.ports.review.model.ReviewAccountingBoundedPayload
 import skillbill.ports.review.model.ReviewAccountingRecord
 import skillbill.review.model.ImportedFinding
 import skillbill.review.model.ImportedReview
@@ -29,7 +28,7 @@ internal fun upsertReviewAccounting(connection: Connection, record: ReviewAccoun
       record.reviewId,
       record.packetDigest,
       JsonCodec.mapToJsonString(
-        record.boundedPayload.asMap(),
+        encodeReviewAccountingBoundedPayload(record.summary),
       ),
     )
     statement.executeUpdate()
@@ -61,7 +60,7 @@ internal fun loadReviewAccounting(connection: Connection, reviewId: String): Rev
       ReviewAccountingRecord(
         reviewId,
         rows.getString("packet_digest"),
-        ReviewAccountingBoundedPayload.from(payload),
+        decodeReviewAccountingSummary(payload),
       )
     }
   }

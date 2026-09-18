@@ -26,9 +26,9 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.WorkflowArtifactKeys
-import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.FeatureTaskRouteScope
 
 private val VERIFY_KIND = WorkflowFamilyKind.VERIFY
 

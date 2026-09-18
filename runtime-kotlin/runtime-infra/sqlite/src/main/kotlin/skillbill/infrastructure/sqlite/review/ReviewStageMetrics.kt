@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.context.model.ReviewClaimVerdictAdmission
@@ -71,23 +72,29 @@ internal fun resolvedTier(executionMode: ReviewExecutionMode?): String = when (e
 
 internal fun fetchReviewExecutionMode(connection: Connection, reviewRunId: String): ReviewExecutionMode? =
   connection.prepareStatement(
-    "SELECT execution_mode FROM review_runs WHERE review_run_id = ?",
+    "SELECT ${ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE} FROM review_runs WHERE review_run_id = ?",
   ).use { statement ->
     statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
-      if (resultSet.next()) resultSet.getString("execution_mode")?.let(ReviewExecutionMode::fromWire) else null
+      if (resultSet.next()) {
+        resultSet.getString(ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE)?.let(ReviewExecutionMode::fromWire)
+      } else {
+        null
+      }
     }
   }
 
 internal fun loadReviewRunTiers(connection: Connection): Map<String, String> = connection.prepareStatement(
-  "SELECT review_run_id, execution_mode FROM review_runs",
+  "SELECT review_run_id, ${ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE} FROM review_runs",
 ).use { statement ->
   statement.executeQuery().use { resultSet ->
     buildMap {
       while (resultSet.next()) {
         put(
           resultSet.getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
-          resolvedTier(resultSet.getString("execution_mode")?.let(ReviewExecutionMode::fromWire)),
+          resolvedTier(
+            resultSet.getString(ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE)?.let(ReviewExecutionMode::fromWire),
+          ),
         )
       }
     }

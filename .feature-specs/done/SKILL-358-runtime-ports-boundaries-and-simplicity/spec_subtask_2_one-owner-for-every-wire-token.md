@@ -1,6 +1,6 @@
 # SKILL-358 Subtask 2 - One owner for every wire token
 
-Parent spec: [.feature-specs/SKILL-358-runtime-ports-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-358-runtime-ports-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-358
 
 ## Scope
@@ -22,7 +22,7 @@ keys; in `runtime-domain`: `skillbill.idestatus.model` for a typed IDE status sn
 `IdeStatusValidatorAdapter.kt`, the moved codec payload builders; in `runtime-engine`:
 `FeatureTaskRuntimeGoalReviewPassRecorder.kt`, `FeatureTaskRuntimeGoalReviewInputBuilder.kt`; in `runtime-core`
 tests: `RuntimeArchitectureTestSupport.isBoundaryCarrierRawMapDeclaration`, `RuntimeRawMapArchitectureTest`,
-`WireVocabularyGovernedSeamInventory`; a new repo-contract parity test; `runtime-kotlin/ARCHITECTURE.md` (boundary
+`WireVocabularyGovernedSeamInventory`; a new repo-contract parity test; `../../../runtime-kotlin/ARCHITECTURE.md` (boundary
 rule 11 paragraph and the closed status-family inventory); and `runtime-kotlin/agent/decisions.md`.
 
 **Tokens.** `GoalChildWorkflowDeletionScope` carries `List<WorkflowStatus>`; `GoalChildWorkflowStore` binds
@@ -36,7 +36,7 @@ and derive `wireValue` from it; the `"ok"`/`"error"` literals appear only in `Wo
 `GovernedReviewEvidencePayloadKeys` entries; and a `GoalSubtaskReviewInputPayloadKeys` object for the four review
 input keys. Add one repo-contract test that pins `ReviewAccountingPayloadKeys` to the `accounting_summary`,
 `accounting_counters`, and `evidence_delivery` `required` and `properties` lists in
-`orchestration/contracts/review-context-schema.yaml`, and `ReviewFinishedTelemetryPayloadKeys` to the
+`../../../orchestration/contracts/review-context-schema.yaml`, and `ReviewFinishedTelemetryPayloadKeys` to the
 `skillbill_review_finished` branch of `telemetry-event-schema.yaml`.
 
 **Typed carriers.** `ReviewAccountingRecord` carries `summary: ReviewAccountingSummary` from `runtime-domain`

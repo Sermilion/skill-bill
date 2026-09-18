@@ -5,7 +5,6 @@ import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.telemetry.model.TelemetrySettings
-import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertEquals

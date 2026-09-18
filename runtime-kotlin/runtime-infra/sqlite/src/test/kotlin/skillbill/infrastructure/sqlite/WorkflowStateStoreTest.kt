@@ -9,6 +9,7 @@ import skillbill.infrastructure.sqlite.workflow.FEATURE_IMPLEMENT_WORKFLOW_CONTR
 import skillbill.infrastructure.sqlite.workflow.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateRow
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
+import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
@@ -93,6 +94,34 @@ class WorkflowStateStoreTest {
       assertEquals(null, store.getFeatureTaskRuntimeWorkflow(target.workflowId))
       assertNotNull(store.getFeatureTaskRuntimeWorkflow(siblingGoal.workflowId))
       assertNotNull(store.getFeatureTaskRuntimeWorkflow(standalone.workflowId))
+    }
+  }
+
+  @Test
+  fun `scoped child deletion binds workflow status wire values`() {
+    val dbPath = Files.createTempDirectory("goal-child-scoped-delete").resolve("metrics.db")
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val store = WorkflowStateStore(connection, Clock.systemUTC())
+      val completed = goalChildWorkflow("wftr-completed", "wftr-parent")
+        .copy(workflowStatus = WorkflowStatus.COMPLETED.wireValue)
+      val pending = goalChildWorkflow("wftr-pending", "wftr-parent")
+        .copy(workflowStatus = WorkflowStatus.PENDING.wireValue)
+      listOf(completed, pending).forEach { workflow ->
+        store.saveFeatureTaskRuntimeWorkflow(workflow)
+        store.saveFeatureTaskExecutionIdentity(goalChildIdentity(workflow))
+      }
+
+      assertEquals(
+        1,
+        store.deleteGoalChildWorkflow(
+          parentWorkflowId = "wftr-parent",
+          subtaskId = 1,
+          workflowId = completed.workflowId,
+          scope = GoalChildWorkflowDeletionScope.TERMINAL_ONLY,
+        ),
+      )
+      assertEquals(null, store.getFeatureTaskRuntimeWorkflow(completed.workflowId))
+      assertNotNull(store.getFeatureTaskRuntimeWorkflow(pending.workflowId))
     }
   }
 

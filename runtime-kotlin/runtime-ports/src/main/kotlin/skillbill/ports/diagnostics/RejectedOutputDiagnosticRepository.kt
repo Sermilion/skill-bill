@@ -4,7 +4,6 @@ import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
-import skillbill.ports.diagnostics.model.RejectedOutputLifecycle
 import java.time.Instant
 
 interface RejectedOutputDiagnosticRepository {

@@ -82,7 +82,7 @@ class ParallelCodeReviewRunner(
       expected = "runtime-owned review accounting",
     ) { unitOfWork ->
       unitOfWork.reviews.saveAccounting(
-        ReviewAccountingRecord(summary.reviewId, summary.packetDigest, summary.toBoundedPayload()),
+        ReviewAccountingRecord(summary.reviewId, summary.packetDigest, summary),
       )
     }
   }

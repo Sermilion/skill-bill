@@ -1,15 +1,15 @@
 package skillbill.infrastructure.launcher.agentrun
 
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.infrastructure.launcher.mcp.GovernedReviewMcpConfigWriter
 import skillbill.infrastructure.launcher.process.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
 import skillbill.install.model.AGENT_LAUNCHER_CLIS
 import skillbill.install.model.AgentLauncherCli
 import skillbill.install.model.InstallAgent
-import skillbill.review.context.model.ReviewConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunRequest
-import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
+import skillbill.review.context.model.ReviewConversationIsolation
 import java.nio.file.Path
 import kotlin.time.Duration
 

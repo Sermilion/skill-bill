@@ -18,13 +18,13 @@ import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.review.model.ReviewFindingVerdict
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import java.lang.reflect.Proxy
 import java.nio.file.Path
@@ -186,6 +186,13 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
     }
   }
 
+  override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
+      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
+    }
+  }
+
   override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
     taskRuntime[workflowId] ?: implement[workflowId]
   override fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? {
@@ -198,6 +205,16 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
     }
     return row
   }
+
+  override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
+      FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
+    }
+
+  override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    listFeatureTaskWorkflows(mode, Int.MAX_VALUE).lastOrNull()
+
   override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
     if (failSaveWhen?.invoke(row) == true) {
       error("simulated process kill during the feature-task-runtime save")

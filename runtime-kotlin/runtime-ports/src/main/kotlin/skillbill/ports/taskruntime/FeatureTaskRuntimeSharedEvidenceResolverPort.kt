@@ -36,4 +36,3 @@ fun interface FeatureTaskRuntimeSharedEvidenceResolverPort {
     private const val UNPERSISTED_PAYLOAD_NAME = "unpersisted.patch"
   }
 }
-

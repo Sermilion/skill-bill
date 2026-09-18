@@ -68,7 +68,7 @@ guard fails on the next object, cast, or throwing default that lands in the modu
 
 ## Constraints
 
-- Follow `runtime-kotlin/ARCHITECTURE.md` design principles, `docs/code-principles.md`,
+- Follow `../../../runtime-kotlin/ARCHITECTURE.md` design principles, `docs/code-principles.md`,
   `docs/observability-policy.md`, and AGENTS.md. No `//` comments, KDoc only on interfaces.
 - Keep the recorded decisions: `GoalRunnerManifestStore` stays five seams; `WorkflowFamily` extensions stay
   beside `WorkflowStateRepository`; `Path` stays an inert value in DTOs and the `FileLocation` migration stays

@@ -2,7 +2,6 @@ package skillbill.application.review
 
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
-import skillbill.review.context.model.ReviewConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher

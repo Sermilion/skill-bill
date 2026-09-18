@@ -1,7 +1,5 @@
 package skillbill.ports.concurrency
 
-import kotlin.coroutines.cancellation.CancellationException
-
 /**
  * Runs independent work units with a bounded number of them in flight, and serialises access to
  * whatever sinks those units share.

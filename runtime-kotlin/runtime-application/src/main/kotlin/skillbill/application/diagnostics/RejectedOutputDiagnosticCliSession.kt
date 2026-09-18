@@ -2,10 +2,10 @@ package skillbill.application.diagnostics
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticCliResult
+import skillbill.error.RejectedOutputDiagnosticError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
-import skillbill.error.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import skillbill.ports.persistence.UnitOfWork
 import java.time.Clock

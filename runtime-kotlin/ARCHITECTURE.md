@@ -801,9 +801,10 @@ silently bypass the journal boundary.
     Contain wire maps in `private` or `internal` adapter serializers, or
     replace them with typed models at the port or application boundary.
     The scanner treats declarations inside non-public scopes and certain
-    adapter-local enclosing types (`*Map`, `*Payload`, `*Artifacts`,
-    `*Patch`, and related workflow patch carriers) as implementation
-    detail when they stay non-public.
+    adapter-local enclosing types (`*Payload`, `*Artifacts`, `*Patch`, and
+    related workflow patch carriers) as implementation detail when they stay
+    non-public. `runtime-ports/src/main` has no name-suffix exemption: a
+    public `*Map` wrapper there is still a raw-map violation.
 
     Inner-layer test sources in `runtime-application`, `runtime-domain`, and
     `runtime-ports` are also part of this boundary: their `src/test/kotlin`,
@@ -1822,6 +1823,8 @@ or a versioned durable payload whose vocabulary is intentionally owned by that b
 - `skillbill.workflow.engine.model.WorkflowStepState.status`, `WorkflowStateSnapshot.workflowStatus`,
   and `Workflow*View.workflowStatus`: workflow definitions are pack-owned and may add statuses;
   typed branches use the shared vocabulary where the runtime makes a closed decision.
+- `skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope.deletableStatuses` uses
+  `WorkflowStatus`; SQL and store seams bind `wireValue` at persistence time.
 - `skillbill.ports.workflow.model.WorkflowStateRecord.workflowStatus`: this is the persisted port
   record crossing the SQLite and workflow-engine compatibility seam, so it preserves unknown
   definition values; consumers convert it with `workflowStatus()` before making closed decisions.

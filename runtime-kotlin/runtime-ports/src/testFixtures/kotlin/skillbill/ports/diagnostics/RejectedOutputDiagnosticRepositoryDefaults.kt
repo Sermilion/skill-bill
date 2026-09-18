@@ -2,9 +2,6 @@ package skillbill.ports.diagnostics
 
 import skillbill.error.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import java.time.Instant
 
 abstract class RejectedOutputDiagnosticRepositoryDefaults : RejectedOutputDiagnosticRepository {

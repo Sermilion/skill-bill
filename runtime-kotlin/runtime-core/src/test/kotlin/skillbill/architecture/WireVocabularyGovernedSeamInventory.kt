@@ -5,6 +5,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.contracts.review.ReviewFindingPayloadKeys
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
+import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
@@ -83,6 +85,7 @@ internal object WireVocabularyGovernedSeamInventory {
       schemaRepoRelativePath = SQLITE_REVIEW_TELEMETRY_AUTHORITY,
       governedRelativePathMarkers = listOf(
         "infrastructure/sqlite/review/",
+        "ports/telemetry/model/ReviewFinishedTelemetryPayload",
       ),
     ),
   )
@@ -123,6 +126,8 @@ internal object WireVocabularyGovernedSeamInventory {
     SharedPayloadKeys::class.java,
     SqliteReviewTelemetryPayloadKeys::class.java,
     ReviewFindingPayloadKeys::class.java,
+    ReviewFinishedTelemetryPayloadKeys::class.java,
+    ReviewVerificationSignalKeys::class.java,
   )
 
   private fun payloadKeyValues(vararg owners: Class<*>): Set<String> = owners.flatMap { owner ->

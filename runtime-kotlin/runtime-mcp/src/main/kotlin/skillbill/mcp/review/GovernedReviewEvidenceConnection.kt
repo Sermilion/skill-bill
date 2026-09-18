@@ -1,9 +1,9 @@
 package skillbill.mcp.review
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.mcp.shared.McpProtocolFramer
-import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.IOException

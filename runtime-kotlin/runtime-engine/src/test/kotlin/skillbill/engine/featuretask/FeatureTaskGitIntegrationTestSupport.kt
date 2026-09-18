@@ -14,13 +14,14 @@ import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.TelemetryReconciliationRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import java.lang.Boolean.TYPE
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -33,7 +34,7 @@ internal val featureTaskGitIntegrationSnapshotValidator: WorkflowSnapshotValidat
     override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
   }
 
-internal class FeatureTaskGitIntegrationWorkflowRepository : WorkflowStateRepository {
+internal class FeatureTaskGitIntegrationWorkflowRepository : WorkflowStateRepositoryDefaults() {
   private val taskRuntimeRows = linkedMapOf<String, WorkflowStateRecord>()
 
   fun taskRuntimeArtifacts(workflowId: String): Map<String, Any?> {

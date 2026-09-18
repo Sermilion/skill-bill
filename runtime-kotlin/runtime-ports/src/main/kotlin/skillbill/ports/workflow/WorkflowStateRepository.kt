@@ -2,9 +2,7 @@ package skillbill.ports.workflow
 
 import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.ports.workflow.model.WorkflowFamily
@@ -12,6 +10,8 @@ import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toContinueSessionSummary
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 /**
  * Durable workflow-state persistence, split into one capability interface per

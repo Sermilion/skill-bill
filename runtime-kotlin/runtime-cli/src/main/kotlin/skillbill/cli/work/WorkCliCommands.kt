@@ -73,7 +73,11 @@ class WorkStatusCommand(
         repoRoot = repoRoot,
       ),
     )
-    state.complete(result.snapshot.toStatusWireMap(), CliFormat.JSON, exitCode = result.exitCode)
+    state.complete(
+      service.toWireMap(result.snapshot),
+      CliFormat.JSON,
+      exitCode = result.exitCode,
+    )
   }
 }
 

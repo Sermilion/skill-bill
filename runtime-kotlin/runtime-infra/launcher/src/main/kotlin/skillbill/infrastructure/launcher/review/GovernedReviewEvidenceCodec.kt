@@ -98,7 +98,7 @@ internal object GovernedReviewEvidenceCodec {
   private fun requestMetadata(arguments: Map<String, Any?>) {
     if (
       JsonCodec.mapToJsonString(arguments).toByteArray(Charsets.UTF_8).size >
-        GovernedReviewEvidenceContracts.REQUEST_BYTES
+      GovernedReviewEvidenceContracts.REQUEST_BYTES
     ) {
       throw InvalidGovernedReviewEvidenceRequestError("review-evidence", "Request metadata exceeds its byte limit.")
     }

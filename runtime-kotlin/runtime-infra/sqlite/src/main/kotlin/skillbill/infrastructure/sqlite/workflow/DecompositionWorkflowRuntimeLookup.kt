@@ -3,7 +3,6 @@ import skillbill.error.LegacyProseWorkflowError
 import skillbill.infrastructure.sqlite.decomposition.asStringAnyMapOrNull
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.DecompositionManifestValidator
@@ -13,6 +12,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.runtime.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 

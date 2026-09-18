@@ -1,5 +1,5 @@
 package skillbill.application.work
-
+import skillbill.application.idestatus.toStatusWireMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
 import skillbill.engine.work.model.IdeStatusCurrentSubtask

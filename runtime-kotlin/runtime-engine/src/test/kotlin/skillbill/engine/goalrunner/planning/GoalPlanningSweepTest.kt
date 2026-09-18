@@ -2486,9 +2486,16 @@ private class CountingManifestFileStore : DecompositionManifestStore {
     }
   }
 
+  override fun readTextWithoutRecovery(path: Path): String = readText(path)
+
   override fun isRegularFile(path: Path): Boolean = path.fileName.toString() !in removedFileNames
 
+  override fun isRegularFileWithoutRecovery(path: Path): Boolean = isRegularFile(path)
+
   override fun findDecompositionManifestFiles(repoRoot: Path): List<Path> = emptyList()
+
+  override fun findDecompositionManifestFilesWithoutRecovery(repoRoot: Path): List<Path> =
+    findDecompositionManifestFiles(repoRoot)
 
   override fun listDirectChildDirectories(directory: Path): List<Path> = emptyList()
 
@@ -2496,6 +2503,9 @@ private class CountingManifestFileStore : DecompositionManifestStore {
     error("CountingManifestFileStore is read-only in goal planning sweep tests.")
 
   override fun writeTextAtomically(target: Path, content: String): Unit =
+    error("CountingManifestFileStore is read-only in goal planning sweep tests.")
+
+  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T =
     error("CountingManifestFileStore is read-only in goal planning sweep tests.")
 
   override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
@@ -2519,9 +2529,16 @@ private class CountingManifestFileStore : DecompositionManifestStore {
 private class ThrowingManifestFileStore : DecompositionManifestStore {
   override fun readText(path: Path): String = error("simulated unreadable governed spec at ${path.fileName}")
 
+  override fun readTextWithoutRecovery(path: Path): String = readText(path)
+
   override fun isRegularFile(path: Path): Boolean = true
 
+  override fun isRegularFileWithoutRecovery(path: Path): Boolean = isRegularFile(path)
+
   override fun findDecompositionManifestFiles(repoRoot: Path): List<Path> = emptyList()
+
+  override fun findDecompositionManifestFilesWithoutRecovery(repoRoot: Path): List<Path> =
+    findDecompositionManifestFiles(repoRoot)
 
   override fun listDirectChildDirectories(directory: Path): List<Path> = emptyList()
 
@@ -2529,6 +2546,9 @@ private class ThrowingManifestFileStore : DecompositionManifestStore {
     error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 
   override fun writeTextAtomically(target: Path, content: String): Unit =
+    error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
+
+  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T =
     error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 
   override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =

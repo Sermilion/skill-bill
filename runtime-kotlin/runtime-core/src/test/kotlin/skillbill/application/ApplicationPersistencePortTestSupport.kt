@@ -22,6 +22,7 @@ import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.MissingCompositionLayerError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator
@@ -37,7 +38,6 @@ import skillbill.model.EnvironmentContext
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.learning.LearningRepository
@@ -105,6 +105,7 @@ import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -1091,6 +1092,33 @@ internal class InMemoryWorkflowStateRepository(
 
   override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? =
     verifySessionSummary?.takeIf { it.sessionId == sessionId }
+
+  override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
+      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
+    }
+  }
+
+  override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
+    taskRuntimeRows[workflowId] ?: implementRows[workflowId]
+
+  override fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    getFeatureTaskWorkflow(workflowId)?.also { row ->
+      val actualMode = row.mode ?: FeatureTaskWorkflowMode.PROSE
+      if (actualMode != mode) {
+        throw InvalidWorkflowStateSchemaError("Unexpected feature-task workflow mode.")
+      }
+    }
+
+  override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
+      FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
+    }
+
+  override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    listFeatureTaskWorkflows(mode, Int.MAX_VALUE).firstOrNull()
 
   override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
     if (failNextRuntimeSave) {

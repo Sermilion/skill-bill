@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.GovernedReviewLaunchCapabilityError
 import skillbill.install.model.InstallAgent
-import skillbill.review.context.model.ReviewConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
+import skillbill.review.context.model.ReviewConversationIsolation
 import java.nio.file.Path
 
 internal fun launchPrompt(request: SkillRunRequest): String = requireNotNull(request.promptOverride) {

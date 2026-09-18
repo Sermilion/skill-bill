@@ -4,7 +4,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.FeatureTaskRuntimeBranchSetup
 import skillbill.engine.goalrunner.goalRepositoryIdentity
 import skillbill.engine.work.model.IdeStatusCandidate
-import skillbill.engine.work.model.IdeStatusRepositoryResolution
 import skillbill.engine.work.model.IdeStatusRequest
 import skillbill.engine.work.model.IdeStatusResult
 import skillbill.engine.work.model.IdeStatusSnapshot
@@ -13,6 +12,7 @@ import skillbill.error.InvalidWorkListRowError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.idestatus.IdeStatusValidator
+import skillbill.ports.idestatus.model.IdeStatusRepositoryResolution
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.system.CheckedOutBranchSource
@@ -84,6 +84,8 @@ class IdeStatusService(
     }
   }
 
+  fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = ideStatusValidator.toWireMap(snapshot)
+
   private fun scopeToBranch(candidates: List<IdeStatusCandidate>, branch: String?): List<IdeStatusCandidate> {
     if (branch == null) return candidates
     if (FeatureTaskRuntimeBranchSetup.protectedBranchName(branch) != null) return candidates
@@ -153,8 +155,7 @@ class IdeStatusService(
   ): Boolean = routeScope == FeatureTaskRouteScope.GOAL_CHILD && issueKey?.uppercase() in issueKeysWithGoals
 
   private fun emit(snapshot: IdeStatusSnapshot): IdeStatusResult {
-    val wire = snapshot.toStatusWireMap()
-    ideStatusValidator.validate(wire, sourceLabel = "ide-status")
+    ideStatusValidator.validate(snapshot, sourceLabel = "ide-status")
     return IdeStatusResult(snapshot = snapshot, exitCode = snapshot.exitCode())
   }
 }

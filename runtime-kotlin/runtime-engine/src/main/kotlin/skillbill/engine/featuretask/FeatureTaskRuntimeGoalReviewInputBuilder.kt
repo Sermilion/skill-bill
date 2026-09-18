@@ -163,7 +163,7 @@ class FeatureTaskRuntimeGoalReviewInputBuilder(
       unitOfWork.workflowStates,
       mapOf(
         GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to replaced.toPersistenceWire(),
-        GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY to input.toArtifactMap(),
+        GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY to goalReviewInputArtifactMap(input),
         GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY to priorEvidence + evidenceEntry,
       ),
     )

@@ -42,7 +42,6 @@ import skillbill.ports.review.model.ReviewEvidenceRequest
 import skillbill.ports.review.model.ReviewIntegrationPassRecord
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewOwnedFileEvidence
-import skillbill.application.review.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.scaffold.model.PilotedPlatformPackProjection

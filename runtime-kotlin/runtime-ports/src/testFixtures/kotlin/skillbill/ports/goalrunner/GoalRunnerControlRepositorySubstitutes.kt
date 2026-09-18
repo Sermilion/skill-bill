@@ -38,8 +38,7 @@ object EmptyGoalRunnerControlRepository : GoalRunnerControlRepository {
   override fun clearOutOfBandAcceptances(parentWorkflowId: String) {
   }
 
-  override fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState =
-    GoalRunnerControlState()
+  override fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState = GoalRunnerControlState()
 }
 
 object UnavailableGoalRunnerControlRepository : GoalRunnerControlRepository {

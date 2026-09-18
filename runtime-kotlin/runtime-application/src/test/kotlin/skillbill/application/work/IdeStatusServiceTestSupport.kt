@@ -1,6 +1,7 @@
 package skillbill.application.work
 
 import skillbill.application.TestRepositoryEnclosingRoot
+import skillbill.application.idestatus.toStatusWireMap
 import skillbill.application.testHarnessClock
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
@@ -41,8 +42,8 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequ
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.idestatus.IdeStatusValidator
-import skillbill.ports.idestatus.model.IdeStatusWireMap
 import skillbill.ports.idestatus.NoopIdeStatusValidator
+import skillbill.ports.idestatus.model.IdeStatusSnapshot
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
@@ -57,10 +58,7 @@ import skillbill.ports.work.model.WorkItemKind
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
@@ -71,6 +69,9 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -256,10 +257,11 @@ internal fun fixtureCheckedOutBranch(repoRoot: Path): String? =
     ?.removePrefix("ref: refs/heads/")
 
 internal object EmitShapeValidator : IdeStatusValidator by NoopIdeStatusValidator {
-  override fun validate(snapshot: IdeStatusWireMap, sourceLabel: String) {
-    require(snapshot["contract_version"] == IDE_STATUS_CONTRACT_VERSION)
-    require(snapshot["repository_identity"] is String)
-    require(snapshot["lifecycle_state"] is String)
+  override fun validate(snapshot: IdeStatusSnapshot, sourceLabel: String) {
+    val wire = snapshot.toStatusWireMap()
+    require(wire["contract_version"] == IDE_STATUS_CONTRACT_VERSION)
+    require(wire["repository_identity"] is String)
+    require(wire["lifecycle_state"] is String)
   }
 }
 
@@ -496,6 +498,29 @@ internal class IdeStatusWorkflowStates : WorkflowStateRepositoryDefaults() {
   override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
     implement[row.workflowId] = row
   }
+
+  override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
+      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
+    }
+  }
+
+  override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? = implement[workflowId]
+
+  override fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    getFeatureTaskWorkflow(workflowId)?.also { row ->
+      val actualMode = row.mode ?: FeatureTaskWorkflowMode.PROSE
+      require(actualMode == mode) { "Unexpected feature-task workflow mode." }
+    }
+
+  override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
+    implement.values
+      .filter { row -> (row.mode ?: FeatureTaskWorkflowMode.PROSE) == mode }
+      .take(limit)
+
+  override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    listFeatureTaskWorkflows(mode, Int.MAX_VALUE).lastOrNull()
 
   override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = implement[workflowId]
 

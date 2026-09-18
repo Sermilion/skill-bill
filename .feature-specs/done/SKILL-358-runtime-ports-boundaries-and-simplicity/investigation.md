@@ -1,6 +1,6 @@
 # SKILL-358 investigation: `runtime-ports`
 
-Module on disk: `runtime-kotlin/runtime-ports` (packages `skillbill.ports.*` and `skillbill.model`). There is no
+Module on disk: `../../../runtime-kotlin/runtime-ports` (packages `skillbill.ports.*` and `skillbill.model`). There is no
 `runtime-infra-ports` module; `settings.gradle.kts` L34 registers `runtime-ports`. Baseline: `main` at
 `d8a103a1e`, `./gradlew :runtime-ports:test` runs 21 tests with 0 failures, and all four `runtime-ports-*`
 architecture baselines under `runtime-core/src/test/kotlin/skillbill/architecture/baselines/` are empty.
@@ -11,7 +11,7 @@ architecture baselines under `runtime-core/src/test/kotlin/skillbill/architectur
 `runtime-infra-fs`, `runtime-infra-http`, and `runtime-infra-sqlite` implement. Its dependency direction is right.
 It depends only on `runtime-contracts` and `runtime-domain` (`build.gradle.kts` L9-11), eight modules depend on
 it, and the recorded rule for the layer is explicit: the module "declares interfaces and DTOs and imports no
-adapter machinery" (`ARCHITECTURE.md` L1460-1462; `agent/decisions.md` L133-139, "now that `runtime-ports` is
+adapter machinery" (`ARCHITECTURE.md` L1460-1462; `../../../agent/decisions.md` L133-139, "now that `runtime-ports` is
 interface-and-DTO only").
 
 The module does not match that rule in shape. Beside 182 interfaces and 237 data classes it declares 10 top-level
@@ -124,7 +124,7 @@ The recorded rule is that ports hold interfaces and DTOs. The module holds:
 - **Parsing in a DTO.** `RepoValidationIssue.fromRawIssue` (`RepoValidationGatewayModels.kt` L35-52) parses
   `"path: message"` strings by `indexOf`.
 
-The 2026-09-06 entry in `agent/decisions.md` (L133-139) moved 1,541 lines of such behaviour out and stated the
+The 2026-09-06 entry in `../../../agent/decisions.md` (L133-139) moved 1,541 lines of such behaviour out and stated the
 rule; the guard that followed (`RuntimeContractModuleImportRulesTest`) checks only imports, so declarations drifted
 back without a failing test. One recorded exception stands and is honoured here: the `WorkflowFamily` receiver
 extensions beside `WorkflowStateRepository` (decisions L115-131, "Behaviour that is not a DTO extension leaves
@@ -178,7 +178,7 @@ Four defaults in `WorkflowGitRemoteOperations` (L11-24) return success without a
 pushed. `TelemetrySettingsProvider.loadOrNull` (L9-17) catches `Exception` and returns `null` with no record; its
 one caller is `TelemetrySettingsLoading.kt` L13. `DiffResolverPort.readDiff` defaults to `null`,
 `FeatureTaskRuntimeWorkerSupervisor.inspect` to `Unsupported`, `RejectedOutputDiagnosticRepository.readProducerOutput`
-to `null` and `deleteProducerOutputsBefore` to `0`. `docs/observability-policy.md` requires a record for every
+to `null` and `deleteProducerOutputsBefore` to `0`. `../../../docs/observability-policy.md` requires a record for every
 fallback.
 
 The evidence broker's `discover` operation is a special case. `ReviewEvidenceBroker.discover` defaults to
@@ -200,7 +200,7 @@ The evidence broker's `discover` operation is a special case. `ReviewEvidenceBro
   `invoke` have no production caller; the six uses are in the module's own test.
 - `ReviewAccountingRecord.kt` L18-137 is a 120-line hand-rolled validator with about 45 inline keys
   (`"contract_version"`, `"aggregate_counters"`, `"launch_bytes"`, `"evidence_delivery"`, …) that mirrors the
-  `accounting_summary` branch of `orchestration/contracts/review-context-schema.yaml` (L659-680). The record's
+  `accounting_summary` branch of `../../../orchestration/contracts/review-context-schema.yaml` (L659-680). The record's
   payload is a `ReviewAccountingBoundedPayload`, a `Map<String, Any?> by delegate` wrapper, although the typed
   `ReviewAccountingSummary` already exists in `runtime-domain` (`ReviewAccountingModels.kt` L126) and
   `ReviewAccountingProjection.kt` L14 converts it to the map to fit the port.

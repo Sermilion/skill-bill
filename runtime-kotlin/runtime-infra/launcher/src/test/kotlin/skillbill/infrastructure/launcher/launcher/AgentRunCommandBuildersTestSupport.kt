@@ -1,15 +1,14 @@
 package skillbill.infrastructure.launcher.launcher
 
 import skillbill.config.model.PhaseCompactionDirective
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.GovernedReviewLaunchCapabilityError
 import skillbill.infrastructure.launcher.agentrun.AgentRunCommand
 import skillbill.infrastructure.launcher.agentrun.AgentRunCommandBuilder
 import skillbill.install.model.InstallAgent
-import skillbill.review.context.model.ReviewConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.ReviewEvidenceBroker
-import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
@@ -124,8 +123,7 @@ internal object StubReviewEvidenceEndpoint : GovernedReviewEvidenceEndpointHandl
 }
 
 internal object NoOpReviewEvidenceBroker : ReviewEvidenceBroker {
-  override fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord =
-    error("unused")
+  override fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord = error("unused")
 
   override fun readBatch(request: ReviewEvidenceBatchRequest) = error("unused")
   override fun recordToolCall(call: ReviewToolCall) = error("unused")

@@ -6,6 +6,7 @@ import skillbill.application.reviewevidence.SharedReviewEvidenceCodec
 import skillbill.application.reviewevidence.SharedReviewEvidenceCommits
 import skillbill.application.reviewevidence.SharedReviewEvidenceRecord
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
+import skillbill.error.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
 import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.error.REVIEW_HUNK_EVIDENCE_INTEGRITY
 import skillbill.error.ReviewHunkEvidenceIntegrityError
@@ -21,7 +22,6 @@ import skillbill.ports.review.model.ReviewFactPorts
 import skillbill.ports.review.model.ReviewLaneSelection
 import skillbill.ports.review.model.ReviewScopeFacts
 import skillbill.ports.review.model.ReviewStackRoutingFacts
-import skillbill.error.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceLocatorReadRequest
 import skillbill.review.context.ReviewContextEnvelopeValidator

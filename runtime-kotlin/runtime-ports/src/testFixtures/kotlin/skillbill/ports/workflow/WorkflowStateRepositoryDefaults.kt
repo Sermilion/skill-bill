@@ -3,12 +3,12 @@ package skillbill.ports.workflow
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeCrashReconciliationCandidate
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 abstract class WorkflowStateRepositoryDefaults : WorkflowStateRepository {
   open override fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity) = Unit
@@ -31,17 +31,32 @@ abstract class WorkflowStateRepositoryDefaults : WorkflowStateRepository {
 
   open override fun terminalizeLegacyProseFeatureTaskWorkflow(row: WorkflowStateRecord) = Unit
 
-  open override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) = Unit
+  open override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
+      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
+    }
+  }
 
-  open override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? = null
+  open override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
+    getFeatureTaskRuntimeWorkflow(workflowId) ?: getFeatureImplementWorkflow(workflowId)
 
-  open override fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
-    null
+  open override fun getFeatureTaskWorkflowAsMode(
+    workflowId: String,
+    mode: FeatureTaskWorkflowMode,
+  ): WorkflowStateRecord? = when (mode) {
+    FeatureTaskWorkflowMode.RUNTIME -> getFeatureTaskRuntimeWorkflow(workflowId)
+    FeatureTaskWorkflowMode.PROSE -> getFeatureImplementWorkflow(workflowId)
+  }
 
   open override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
-    emptyList()
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
+      FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
+    }
 
-  open override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? = null
+  open override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    listFeatureTaskWorkflows(mode, Int.MAX_VALUE).lastOrNull()
 
   open override fun listGoalChildWorkflowIdsByParent(parentWorkflowId: String): List<String> = emptyList()
 

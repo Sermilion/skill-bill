@@ -1,6 +1,6 @@
 # SKILL-358 Subtask 1 - Ports hold interfaces and DTOs
 
-Parent spec: [.feature-specs/SKILL-358-runtime-ports-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-358-runtime-ports-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-358
 
 ## Scope
@@ -8,7 +8,7 @@ Issue key: SKILL-358
 Resolve F-001, F-002, F-003, F-004, F-006, F-007, F-008, F-009, and the module-owned part of F-010 in
 [investigation.md](investigation.md).
 
-Own every file under `runtime-kotlin/runtime-ports/src/main`, `src/test`, and `src/testFixtures`; in
+Own every file under `../../../runtime-kotlin/runtime-ports/src/main`, `src/test`, and `src/testFixtures`; in
 `runtime-infra-fs`: `GovernedReviewEvidenceEndpoint.kt`, `GovernedReviewEvidenceEndpointResponses.kt`,
 `FileSystemReviewEvidenceBroker.kt`, `FileSystemDecompositionManifestFileStore.kt`,
 `GitStandardWorkflowGitRemoteOperations.kt`, `AgentRunProcessRequestFields.kt`, `AgentRunAdapters.kt`,

@@ -68,8 +68,26 @@ object TestDecompositionManifestStore : DecompositionManifestStore {
     findDecompositionManifestFiles(repoRoot)
 
   override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T {
-    writes.forEach { (path, content) -> writeTextAtomically(path, content) }
-    return verify()
+    val snapshots = writes.distinctBy { (path, _) -> path.toAbsolutePath().normalize() }.map { (path, _) ->
+      val normalized = path.toAbsolutePath().normalize()
+      val existed = Files.isRegularFile(normalized)
+      normalized to (existed to if (existed) Files.readString(normalized) else null)
+    }
+    return runCatching {
+      writes.forEach { (path, content) -> writeTextAtomically(path, content) }
+      verify()
+    }.getOrElse { failure ->
+      snapshots.asReversed().forEach { (path, snapshot) ->
+        runCatching {
+          if (snapshot.first) {
+            writeTextAtomically(path, requireNotNull(snapshot.second))
+          } else {
+            deleteIfExists(path)
+          }
+        }.onFailure(failure::addSuppressed)
+      }
+      throw failure
+    }
   }
 }
 

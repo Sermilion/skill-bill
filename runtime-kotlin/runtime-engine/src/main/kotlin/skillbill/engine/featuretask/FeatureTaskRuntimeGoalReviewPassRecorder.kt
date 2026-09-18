@@ -71,7 +71,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
         unitOfWork.workflowStates,
         mapOf(
           GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire(),
-          GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY to input.toArtifactMap(),
+          GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY to goalReviewInputArtifactMap(input),
         ),
       )
       updated

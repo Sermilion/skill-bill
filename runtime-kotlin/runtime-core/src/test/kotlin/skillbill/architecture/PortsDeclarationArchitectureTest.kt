@@ -5,7 +5,6 @@ import java.nio.file.Path
 import kotlin.io.path.extension
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class PortsDeclarationArchitectureTest {
   private val runtimeRoot: Path =
@@ -85,40 +84,37 @@ class PortsDeclarationArchitectureTest {
     }
   }.sorted()
 
-  private fun topLevelObjectViolations(fileName: String, source: String): List<String> =
-    source.lineSequence()
-      .map { it.trim() }
-      .filter { line -> line.startsWith("object ") || line.startsWith("internal object ") }
-      .map { line -> "$fileName: $line" }
-      .toList()
+  private fun topLevelObjectViolations(fileName: String, source: String): List<String> = source.lineSequence()
+    .map { it.trim() }
+    .filter { line -> line.startsWith("object ") || line.startsWith("internal object ") }
+    .map { line -> "$fileName: $line" }
+    .toList()
 
-  private fun forbiddenTopLevelClassViolations(fileName: String, source: String): List<String> =
-    source.lineSequence()
-      .map { it.trim() }
-      .filter { line ->
-        line.startsWith("class ") ||
-          line.startsWith("internal class ") ||
-          line.startsWith("abstract class ") ||
-          line.startsWith("open class ")
-      }
-      .filterNot { line ->
-        line.startsWith("data class ") ||
-          line.startsWith("enum class ") ||
-          line.startsWith("sealed class ") ||
-          line.startsWith("value class ") ||
-          line.startsWith("internal data class ") ||
-          line.startsWith("internal enum class ") ||
-          line.startsWith("internal sealed class ") ||
-          line.startsWith("internal value class ")
-      }
-      .map { line -> "$fileName: $line" }
-      .toList()
+  private fun forbiddenTopLevelClassViolations(fileName: String, source: String): List<String> = source.lineSequence()
+    .map { it.trim() }
+    .filter { line ->
+      line.startsWith("class ") ||
+        line.startsWith("internal class ") ||
+        line.startsWith("abstract class ") ||
+        line.startsWith("open class ")
+    }
+    .filterNot { line ->
+      line.startsWith("data class ") ||
+        line.startsWith("enum class ") ||
+        line.startsWith("sealed class ") ||
+        line.startsWith("value class ") ||
+        line.startsWith("internal data class ") ||
+        line.startsWith("internal enum class ") ||
+        line.startsWith("internal sealed class ") ||
+        line.startsWith("internal value class ")
+    }
+    .map { line -> "$fileName: $line" }
+    .toList()
 
-  private fun thisAsCastViolations(fileName: String, source: String): List<String> =
-    source.lineSequence()
-      .filter { line -> "(this as" in line }
-      .map { line -> "$fileName: ${line.trim()}" }
-      .toList()
+  private fun thisAsCastViolations(fileName: String, source: String): List<String> = source.lineSequence()
+    .filter { line -> "(this as" in line }
+    .map { line -> "$fileName: ${line.trim()}" }
+    .toList()
 
   private fun interfaceDefaultBodyViolations(fileName: String, source: String): List<String> {
     val sourceWithoutCompanionBodies = removeCompanionBodies(source)

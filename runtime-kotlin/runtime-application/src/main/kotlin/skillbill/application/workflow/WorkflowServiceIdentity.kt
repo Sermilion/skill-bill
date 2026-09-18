@@ -2,8 +2,8 @@ package skillbill.application.workflow
 
 import skillbill.application.workflow.model.BuildFeatureTaskExecutionIdentityArgs
 import skillbill.application.workflow.model.WorkflowFamilyKind
-import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 fun hasIncompleteFeatureTaskIdentity(

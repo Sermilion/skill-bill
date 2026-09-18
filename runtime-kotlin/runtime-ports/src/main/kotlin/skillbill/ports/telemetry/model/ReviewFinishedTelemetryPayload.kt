@@ -2,6 +2,7 @@ package skillbill.ports.telemetry.model
 
 import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.review.ReviewFindingPayloadKeys
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.review.model.ReviewFindingDetail
 import skillbill.review.model.ReviewFinishedFindingStats
@@ -19,93 +20,97 @@ private class ReviewFinishedTelemetryPayloadContract(
   override fun toPayload(): Map<String, Any?> = LinkedHashMap<String, Any?>().apply {
     putAll(telemetry.findingStats.toPayload())
     put(ReviewVerificationSignalKeys.REVIEW_RUN_ID, telemetry.reviewRunId)
-    put("review_session_id", telemetry.reviewSessionId)
-    put("routed_skill", telemetry.routedSkill)
-    put("review_subskills", telemetry.reviewSubskills)
-    put("review_scope", telemetry.reviewScope)
-    put("review_platform", telemetry.reviewPlatform)
-    put("detected_stack", telemetry.detectedStack)
-    telemetry.detectedStackDetail?.let { put("detected_stack_detail", it) }
-    put("fallback", telemetry.fallback)
-    telemetry.fallbackReason?.let { put("fallback_reason", it) }
-    put("platform_slug", telemetry.platformSlug)
-    put("scope_type", telemetry.scopeType)
-    put("execution_mode", telemetry.executionMode?.wireValue)
-    put("review_finished_at", telemetry.reviewFinishedAt)
-    put("learnings", telemetry.learnings.toPayload())
+    put(ReviewFinishedTelemetryPayloadKeys.REVIEW_SESSION_ID, telemetry.reviewSessionId)
+    put(ReviewFinishedTelemetryPayloadKeys.ROUTED_SKILL, telemetry.routedSkill)
+    put(ReviewFinishedTelemetryPayloadKeys.REVIEW_SUBSKILLS, telemetry.reviewSubskills)
+    put(ReviewFinishedTelemetryPayloadKeys.REVIEW_SCOPE, telemetry.reviewScope)
+    put(ReviewFinishedTelemetryPayloadKeys.REVIEW_PLATFORM, telemetry.reviewPlatform)
+    put(ReviewFinishedTelemetryPayloadKeys.DETECTED_STACK, telemetry.detectedStack)
+    telemetry.detectedStackDetail?.let { put(ReviewFinishedTelemetryPayloadKeys.DETECTED_STACK_DETAIL, it) }
+    put(ReviewFinishedTelemetryPayloadKeys.FALLBACK, telemetry.fallback)
+    telemetry.fallbackReason?.let { put(ReviewFinishedTelemetryPayloadKeys.FALLBACK_REASON, it) }
+    put(ReviewFinishedTelemetryPayloadKeys.PLATFORM_SLUG, telemetry.platformSlug)
+    put(ReviewFinishedTelemetryPayloadKeys.SCOPE_TYPE, telemetry.scopeType)
+    put(ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE, telemetry.executionMode?.wireValue)
+    put(ReviewFinishedTelemetryPayloadKeys.REVIEW_FINISHED_AT, telemetry.reviewFinishedAt)
+    put(ReviewFinishedTelemetryPayloadKeys.LEARNINGS, telemetry.learnings.toPayload())
     putAll(telemetry.stageMetrics.toStageMetricsPayload())
   }
 }
 
 private fun ReviewFinishedFindingStats.toPayload(): Map<String, Any?> = linkedMapOf(
-  "total_findings" to totalFindings,
-  "accepted_findings" to acceptedFindings,
-  "rejected_findings" to rejectedFindings,
-  "unresolved_findings" to unresolvedFindings,
-  "accepted_rate" to acceptedRate,
-  "rejected_rate" to rejectedRate,
-  "accepted_finding_details" to acceptedFindingDetails.map(ReviewFindingDetail::toReviewFinishedPayload),
-  "rejected_finding_details" to rejectedFindingDetails.map(ReviewFindingDetail::toReviewFinishedPayload),
+  ReviewFinishedTelemetryPayloadKeys.TOTAL_FINDINGS to totalFindings,
+  ReviewFinishedTelemetryPayloadKeys.ACCEPTED_FINDINGS to acceptedFindings,
+  ReviewFinishedTelemetryPayloadKeys.REJECTED_FINDINGS to rejectedFindings,
+  ReviewFinishedTelemetryPayloadKeys.UNRESOLVED_FINDINGS to unresolvedFindings,
+  ReviewFinishedTelemetryPayloadKeys.ACCEPTED_RATE to acceptedRate,
+  ReviewFinishedTelemetryPayloadKeys.REJECTED_RATE to rejectedRate,
+  ReviewFinishedTelemetryPayloadKeys.ACCEPTED_FINDING_DETAILS to acceptedFindingDetails.map(
+    ReviewFindingDetail::toReviewFinishedPayload,
+  ),
+  ReviewFinishedTelemetryPayloadKeys.REJECTED_FINDING_DETAILS to rejectedFindingDetails.map(
+    ReviewFindingDetail::toReviewFinishedPayload,
+  ),
 )
 
 private fun ReviewFindingDetail.toReviewFinishedPayload(): Map<String, Any?> = linkedMapOf<String, Any?>(
   ReviewFindingPayloadKeys.FINDING_ID to findingId,
   ReviewFindingPayloadKeys.ISSUE_CATEGORY to issueCategory,
-  "severity" to severity,
-  "confidence" to confidence,
-  "outcome_type" to outcomeType,
+  ReviewFinishedTelemetryPayloadKeys.SEVERITY to severity,
+  ReviewFinishedTelemetryPayloadKeys.CONFIDENCE to confidence,
+  ReviewFinishedTelemetryPayloadKeys.OUTCOME_TYPE to outcomeType,
 ).apply {
-  if (location.isNotEmpty()) put("location", location)
-  if (description.isNotEmpty()) put("description", description)
-  if (note.isNotEmpty()) put("note", note)
+  if (location.isNotEmpty()) put(ReviewFinishedTelemetryPayloadKeys.LOCATION, location)
+  if (description.isNotEmpty()) put(ReviewFinishedTelemetryPayloadKeys.DESCRIPTION, description)
+  if (note.isNotEmpty()) put(ReviewFinishedTelemetryPayloadKeys.NOTE, note)
 }
 
 private fun ReviewLearningsSummary.toPayload(): Map<String, Any?> = linkedMapOf(
-  "applied_count" to appliedCount,
-  "applied_references" to appliedReferences,
-  "applied_summary" to appliedSummary,
-  "scope_counts" to scopeCounts,
-  "entries" to entries.map { entry ->
+  ReviewFinishedTelemetryPayloadKeys.APPLIED_COUNT to appliedCount,
+  ReviewFinishedTelemetryPayloadKeys.APPLIED_REFERENCES to appliedReferences,
+  ReviewFinishedTelemetryPayloadKeys.APPLIED_SUMMARY to appliedSummary,
+  ReviewFinishedTelemetryPayloadKeys.SCOPE_COUNTS to scopeCounts,
+  ReviewFinishedTelemetryPayloadKeys.ENTRIES to entries.map { entry ->
     linkedMapOf<String, Any?>(
-      "reference" to entry.reference,
-      "scope" to entry.scope,
+      ReviewFinishedTelemetryPayloadKeys.REFERENCE to entry.reference,
+      ReviewFinishedTelemetryPayloadKeys.SCOPE to entry.scope,
     ).apply {
-      entry.title?.let { put("title", it) }
-      entry.ruleText?.let { put("rule_text", it) }
+      entry.title?.let { put(ReviewFinishedTelemetryPayloadKeys.TITLE, it) }
+      entry.ruleText?.let { put(ReviewFinishedTelemetryPayloadKeys.RULE_TEXT, it) }
     }.filterValues { it != null }
   },
 )
 
 private fun ReviewStageMetrics.toStageMetricsPayload(): Map<String, Any?> = linkedMapOf(
-  "verification" to verification.toStageMetricsPayload(),
-  "adjudication" to adjudication.toStageMetricsPayload(),
-  "refutation_rate_by_stage" to linkedMapOf(
-    "verification" to verificationRefutationRate,
-    "adjudication" to adjudicationRefutationRate,
+  ReviewFinishedTelemetryPayloadKeys.VERIFICATION to verification.toStageMetricsPayload(),
+  ReviewFinishedTelemetryPayloadKeys.ADJUDICATION to adjudication.toStageMetricsPayload(),
+  ReviewFinishedTelemetryPayloadKeys.REFUTATION_RATE_BY_STAGE to linkedMapOf(
+    ReviewFinishedTelemetryPayloadKeys.VERIFICATION to verificationRefutationRate,
+    ReviewFinishedTelemetryPayloadKeys.ADJUDICATION to adjudicationRefutationRate,
   ),
-  "rejected_verdict_counts" to linkedMapOf(
-    "uncited_refutations" to rejectedVerdictCounts.uncitedRefutations,
-    "uncited_downgrades" to rejectedVerdictCounts.uncitedDowngrades,
-    "finding_mutations" to rejectedVerdictCounts.findingMutations,
+  ReviewFinishedTelemetryPayloadKeys.REJECTED_VERDICT_COUNTS to linkedMapOf(
+    ReviewFinishedTelemetryPayloadKeys.UNCITED_REFUTATIONS to rejectedVerdictCounts.uncitedRefutations,
+    ReviewFinishedTelemetryPayloadKeys.UNCITED_DOWNGRADES to rejectedVerdictCounts.uncitedDowngrades,
+    ReviewFinishedTelemetryPayloadKeys.FINDING_MUTATIONS to rejectedVerdictCounts.findingMutations,
   ),
-  "severity_adjustment_counts" to linkedMapOf(
-    "raised" to severityAdjustmentCounts.raised,
-    "lowered" to severityAdjustmentCounts.lowered,
+  ReviewFinishedTelemetryPayloadKeys.SEVERITY_ADJUSTMENT_COUNTS to linkedMapOf(
+    ReviewFinishedTelemetryPayloadKeys.RAISED to severityAdjustmentCounts.raised,
+    ReviewFinishedTelemetryPayloadKeys.LOWERED to severityAdjustmentCounts.lowered,
   ),
-  "resolved_tier" to resolvedTier,
+  ReviewFinishedTelemetryPayloadKeys.RESOLVED_TIER to resolvedTier,
 )
 
 private fun ReviewStageVerdictDistribution.toStageMetricsPayload(): Map<String, Any?> = linkedMapOf(
   ReviewFindingPayloadKeys.CLAIM_VERDICT to linkedMapOf(
-    "confirmed" to confirmed,
-    "refuted" to refuted,
-    "unresolved" to unresolved,
+    ReviewFinishedTelemetryPayloadKeys.CONFIRMED to confirmed,
+    ReviewFinishedTelemetryPayloadKeys.REFUTED to refuted,
+    ReviewFinishedTelemetryPayloadKeys.UNRESOLVED to unresolved,
   ),
   ReviewFindingPayloadKeys.SCOPE_DISPOSITION to linkedMapOf(
-    "in_scope" to inScope,
-    "out_of_scope_preexisting" to outOfScopePreexisting,
-    "spec_deviation" to specDeviation,
-    "spec_accepted_tradeoff" to specAcceptedTradeoff,
+    ReviewFinishedTelemetryPayloadKeys.IN_SCOPE to inScope,
+    ReviewFinishedTelemetryPayloadKeys.OUT_OF_SCOPE_PREEXISTING to outOfScopePreexisting,
+    ReviewFinishedTelemetryPayloadKeys.SPEC_DEVIATION to specDeviation,
+    ReviewFinishedTelemetryPayloadKeys.SPEC_ACCEPTED_TRADEOFF to specAcceptedTradeoff,
   ),
-  "finding_count" to findingCount,
+  ReviewFinishedTelemetryPayloadKeys.FINDING_COUNT to findingCount,
 )

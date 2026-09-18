@@ -17,7 +17,7 @@ import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
-import skillbill.application.review.toBoundedPayload
+import skillbill.application.review.toReviewAccountingPayload
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
@@ -237,7 +237,7 @@ private fun writeParallelReviewResult(state: CliRunState, result: ParallelCodeRe
     result.accountingSummary?.let { summary ->
       appendLine()
       append("# Review accounting — ")
-      append(JsonCodec.mapToJsonString(summary.toBoundedPayload()))
+      append(JsonCodec.mapToJsonString(summary.toReviewAccountingPayload()))
     }
   }
   state.completeText(output, emptyMap(), exitCode = exitCode)

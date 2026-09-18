@@ -1,10 +1,10 @@
 package skillbill.nativeagent
 
+import skillbill.contracts.review.GovernedReviewEvidenceContracts.OPERATIONS
 import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_BUNDLE_FILE
 import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_SOURCE_DIR
 import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentBundle
 import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentSourceFile
-import skillbill.contracts.review.GovernedReviewEvidenceContracts.OPERATIONS
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import java.nio.file.Path

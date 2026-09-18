@@ -5,8 +5,8 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.ShellContentContractException
 import skillbill.infrastructure.sqlite.core.bindAll
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
 import java.sql.ResultSet
 

@@ -1,5 +1,6 @@
 package skillbill.infrastructure.launcher.review
 
+import skillbill.contracts.review.GovernedReviewEvidencePayloadKeys
 import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.review.context.model.ForbiddenReviewOperation
 import skillbill.review.context.model.ReviewBudgetOutcome
@@ -7,34 +8,34 @@ import skillbill.review.context.model.ReviewExpansionRecord
 
 internal object GovernedReviewEvidenceCodecWirePayloads {
   fun expansionPayload(record: ReviewExpansionRecord): Map<String, Any?> = linkedMapOf(
-    "expansion_id" to record.expansionId,
-    "assignment_digest" to record.assignmentDigest,
-    "requested_path" to record.requestedPath,
-    "reachability_reason" to record.reachabilityReason,
-    "authorized" to record.authorized,
-    "sequence" to record.sequence,
+    GovernedReviewEvidencePayloadKeys.EXPANSION_ID to record.expansionId,
+    GovernedReviewEvidencePayloadKeys.ASSIGNMENT_DIGEST to record.assignmentDigest,
+    GovernedReviewEvidencePayloadKeys.REQUESTED_PATH to record.requestedPath,
+    GovernedReviewEvidencePayloadKeys.REACHABILITY_REASON to record.reachabilityReason,
+    GovernedReviewEvidencePayloadKeys.AUTHORIZED to record.authorized,
+    GovernedReviewEvidencePayloadKeys.SEQUENCE to record.sequence,
   )
 
   fun resultPayload(result: ReviewEvidenceResult): Map<String, Any?> {
     val refusal = refusal(result)
     if (refusal != null && (result.forbidden != null || result.content == null)) return refusal
     return linkedMapOf(
-      "refused" to false,
-      "terminal_outcome" to refusal,
-      "content" to result.content,
-      "bytes" to result.bytes,
-      "cumulative_bytes" to result.cumulativeBytes,
-      "expansion_count" to result.expansionCount,
+      GovernedReviewEvidencePayloadKeys.REFUSED to false,
+      GovernedReviewEvidencePayloadKeys.TERMINAL_OUTCOME to refusal,
+      GovernedReviewEvidencePayloadKeys.CONTENT to result.content,
+      GovernedReviewEvidencePayloadKeys.BYTES to result.bytes,
+      GovernedReviewEvidencePayloadKeys.CUMULATIVE_BYTES to result.cumulativeBytes,
+      GovernedReviewEvidencePayloadKeys.EXPANSION_COUNT to result.expansionCount,
     )
   }
 
   fun budgetPayload(outcome: ReviewBudgetOutcome): Map<String, Any?> = linkedMapOf(
-    "refused" to true,
-    "refusal_kind" to "budget_exceeded",
-    "reason" to outcome.type,
-    "budget_kind" to outcome.budgetKind,
-    "configured_limit" to outcome.configuredLimit,
-    "observed_value" to outcome.observedValue,
+    GovernedReviewEvidencePayloadKeys.REFUSED to true,
+    GovernedReviewEvidencePayloadKeys.REFUSAL_KIND to "budget_exceeded",
+    GovernedReviewEvidencePayloadKeys.REASON to outcome.type,
+    GovernedReviewEvidencePayloadKeys.BUDGET_KIND to outcome.budgetKind,
+    GovernedReviewEvidencePayloadKeys.CONFIGURED_LIMIT to outcome.configuredLimit,
+    GovernedReviewEvidencePayloadKeys.OBSERVED_VALUE to outcome.observedValue,
   )
 
   private fun refusal(result: ReviewEvidenceResult): Map<String, Any?>? {
@@ -44,10 +45,10 @@ internal object GovernedReviewEvidenceCodecWirePayloads {
   }
 
   private fun forbiddenPayload(forbidden: ForbiddenReviewOperation): Map<String, Any?> = linkedMapOf(
-    "refused" to true,
-    "refusal_kind" to "forbidden",
-    "reason" to forbidden.reason,
-    "category" to forbidden.category,
-    "target" to forbidden.target,
+    GovernedReviewEvidencePayloadKeys.REFUSED to true,
+    GovernedReviewEvidencePayloadKeys.REFUSAL_KIND to "forbidden",
+    GovernedReviewEvidencePayloadKeys.REASON to forbidden.reason,
+    GovernedReviewEvidencePayloadKeys.CATEGORY to forbidden.category,
+    GovernedReviewEvidencePayloadKeys.TARGET to forbidden.target,
   )
 }

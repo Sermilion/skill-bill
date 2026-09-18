@@ -94,9 +94,7 @@ private fun advanceAccumulator(accumulatedMs: Long, asOf: String?, heartbeatAt: 
   return accumulatedMs + counted to heartbeatAt
 }
 
-fun GoalRunnerControlRepository.clearRunnerInterruptedPauseState(
-  parentWorkflowId: String,
-): GoalRunnerControlState {
+fun GoalRunnerControlRepository.clearRunnerInterruptedPauseState(parentWorkflowId: String): GoalRunnerControlState {
   val state = controlState(parentWorkflowId)
   if (state.pauseReason != GOAL_PAUSE_REASON_RUNNER_INTERRUPTED) return state
   return persistControlState(

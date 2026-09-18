@@ -23,6 +23,7 @@ import skillbill.application.review.model.UsageValidationException
 import skillbill.application.review.reviewHarness
 import skillbill.application.review.simulateGovernedEvidenceReads
 import skillbill.application.review.sparseReviewPack
+import skillbill.application.review.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.config.model.RepoLocalConfig
@@ -58,7 +59,6 @@ import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewLaunchAgentStagingRequest
 import skillbill.ports.review.model.ReviewToolCall
 import skillbill.ports.review.model.ReviewToolCallResult
-import skillbill.application.review.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.scaffold.model.PilotedPlatformPackProjection
@@ -1758,7 +1758,8 @@ internal class RecordingDiffResolver(
     return if (responses.containsKey(args)) responses[args] else default
   }
 
-  override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) = emptyMap<String, ReviewCheckpointFileIdentity>()
+  override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
+    emptyMap<String, ReviewCheckpointFileIdentity>()
 
   override fun readDiff(path: Path, maxBytes: Long): String? = null
 }
@@ -1779,7 +1780,8 @@ private class RealProcessDiffResolver : DiffResolverPort {
     null
   }
 
-  override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) = emptyMap<String, ReviewCheckpointFileIdentity>()
+  override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
+    emptyMap<String, ReviewCheckpointFileIdentity>()
 
   override fun readDiff(path: Path, maxBytes: Long): String? = null
 }

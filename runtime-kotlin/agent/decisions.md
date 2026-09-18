@@ -4,6 +4,16 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-18] SKILL-358 subtask 2: typed accounting, wire-key owners, ports raw-map scanner
+
+`ReviewAccountingRecord` carries `ReviewAccountingSummary`; SQLite encode/decode lives in
+`runtime-infra/sqlite/review`. Wire keys are owned in `runtime-contracts` (`ReviewAccountingPayloadKeys`,
+`ReviewFinishedTelemetryPayloadKeys`, `GoalSubtaskReviewInputPayloadKeys`, extended
+`GovernedReviewEvidencePayloadKeys`). Goal review input artifacts are projected in the engine via
+`goalReviewInputArtifactMap`. IDE status validation accepts `IdeStatusSnapshot`; schema wire projection is
+private to `IdeStatusSchemaValidator`. `isBoundaryCarrierRawMapDeclaration` does not exempt public
+`*Map` shapes under `runtime-ports/src/main`.
+
 ## [2026-09-18] SKILL-358: runtime-ports hold interfaces; errors and test defaults leave main
 
 Port interfaces no longer ship `error`/`throw` default bodies; `WorkflowStateRepositoryDefaults`,

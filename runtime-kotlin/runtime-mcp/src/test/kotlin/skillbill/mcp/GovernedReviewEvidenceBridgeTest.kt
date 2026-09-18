@@ -1,10 +1,10 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.mcp.review.GovernedReviewEvidenceBridge
 import skillbill.mcp.review.GovernedReviewEvidenceConnection
-import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
 import java.nio.channels.Channels

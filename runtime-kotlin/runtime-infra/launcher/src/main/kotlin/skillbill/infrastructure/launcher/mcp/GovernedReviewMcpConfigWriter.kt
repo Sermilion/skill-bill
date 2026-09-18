@@ -1,11 +1,11 @@
 package skillbill.infrastructure.launcher.mcp
 
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.infrastructure.skills.install.mcp.McpTomlConfig
 import skillbill.infrastructure.skills.install.mcp.mutableStringAnyMap
 import skillbill.infrastructure.skills.install.mcp.readJsonObject
 import skillbill.infrastructure.skills.install.mcp.writeJson
-import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
