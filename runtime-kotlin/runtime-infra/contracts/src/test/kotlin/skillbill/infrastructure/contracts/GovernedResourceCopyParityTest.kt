@@ -41,6 +41,7 @@ class GovernedResourceCopyParityTest {
         }
     }
     git(fixtureRoot, "init", "--initial-branch=main")
+    git(fixtureRoot, "config", "commit.gpgsign", "false")
     git(
       fixtureRoot,
       "-c",
