@@ -55,9 +55,9 @@ import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.UnsupportedScaffoldGateway
 import skillbill.ports.system.UninstallPathsPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
+import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
-import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.validation.RepoValidationGateway
 import java.time.Clock
 

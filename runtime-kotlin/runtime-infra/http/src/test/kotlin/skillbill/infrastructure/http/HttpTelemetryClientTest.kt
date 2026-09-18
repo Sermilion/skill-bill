@@ -6,6 +6,7 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetrySettings
@@ -45,6 +46,39 @@ class HttpTelemetryClientTest {
     assertEquals("GET", requests[0].first)
     assertEquals("POST", requests[1].first)
     assertNotNull(payload.capabilities)
+  }
+
+  @Test
+  fun `sendBatch preserves proxy request body bytes`() {
+    var capturedBody: String? = null
+    val requester =
+      RemoteTransportPort { _, _, bodyJson, _ ->
+        capturedBody = bodyJson
+        RemoteTransportResponse(statusCode = 200, body = "")
+      }
+
+    client(requester).sendBatch(
+      settings = telemetrySettings(Files.createTempFile("telemetry-batch-body", ".json")),
+      rows =
+      listOf(
+        TelemetryOutboxRecord(
+          id = 1,
+          eventName = "skillbill_goal_finished",
+          payloadJson = """{"name":"ok"}""",
+          createdAt = "2026-04-23 00:00:00",
+          syncedAt = null,
+          lastError = "",
+          skillBillVersion = null,
+          eventUuid = "",
+        ),
+      ),
+    )
+
+    val expectedBody =
+      "{\"batch\":[{\"event\":\"skillbill_goal_finished\",\"distinct_id\":\"test-install-id\"," +
+        "\"properties\":{\"name\":\"ok\",\"install_id\":\"test-install-id\"," +
+        "\"${'$'}process_person_profile\":false},\"timestamp\":\"2026-04-23 00:00:00\"}]}"
+    assertEquals(expectedBody, capturedBody)
   }
 
   @Test
@@ -129,13 +163,12 @@ private fun client(
   requester: RemoteTransportPort,
   environment: Map<String, String> = emptyMap(),
   diagnostics: RuntimeDiagnostics = SilentTelemetryDiagnostics,
-): HttpTelemetryClient =
-  HttpTelemetryClient(
-    requester = requester,
-    environmentContext = EnvironmentContext(environment = environment),
-    clock = JvmSystemClock,
-    diagnostics = diagnostics,
-  )
+): HttpTelemetryClient = HttpTelemetryClient(
+  requester = requester,
+  environmentContext = EnvironmentContext(environment = environment),
+  clock = JvmSystemClock,
+  diagnostics = diagnostics,
+)
 
 private class TelemetryRecordingDiagnostics : RuntimeDiagnostics {
   val warnings = mutableListOf<String>()

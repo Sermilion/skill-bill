@@ -27,10 +27,10 @@ private fun telemetryProperties(row: TelemetryOutboxRecord, installId: String): 
     JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
   } ?: emptyMap()
   ).toMutableMap().apply {
-  this["install_id"] = installId
-  this["\$process_person_profile"] = false
+  this[TelemetryProxyPayloadKeys.INSTALL_ID] = installId
+  this[TelemetryProxyPayloadKeys.PROCESS_PERSON_PROFILE] = false
   if (!row.skillBillVersion.isNullOrBlank()) {
-    this["skill_bill_version"] = row.skillBillVersion
+    this[TelemetryProxyPayloadKeys.SKILL_BILL_VERSION] = row.skillBillVersion
   }
   if (row.eventUuid.isNotBlank()) {
     this[TelemetryProxyPayloadKeys.EVENT_DEDUPLICATION_ID] = row.eventUuid

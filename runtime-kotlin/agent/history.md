@@ -1,3 +1,11 @@
+## [2026-09-18] SKILL-359 subtask 2 — Own telemetry proxy wire vocabulary
+Areas: runtime-kotlin/{runtime-contracts,runtime-domain,runtime-infra-http,runtime-cli,runtime-core}, ARCHITECTURE.md
+- Centralized telemetry proxy capabilities, stats, batch, and property keys while retaining `contract_version` under shared payload keys.
+- Registered HTTP and CLI telemetry proxy seams in the wire-vocabulary guard and preserved open proxy fields, including `stats_auth_required` in `additionalFields`.
+- Pattern: declare each wire token once in contracts and register every governed path as an architectural seam. reusable
+- Known limitation: no behavior or schema changes; feature flag: N/A.
+Acceptance criteria: 4/4 implemented
+
 ## [2026-09-18] SKILL-359 subtask 1 — Resolved dependencies, typed results, one transport, and adapter tests
 Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-infra-http,runtime-core,runtime-cli,runtime-mcp}, ARCHITECTURE.md
 - Resolved remote transport once at bootstrap, injected typed transport/results, and removed duplicate HTTP resolution and dead forwarders.

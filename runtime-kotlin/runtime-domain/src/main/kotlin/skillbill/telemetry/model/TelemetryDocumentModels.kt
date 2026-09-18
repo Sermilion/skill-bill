@@ -1,5 +1,7 @@
 package skillbill.telemetry.model
 
+import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
+
 data class TelemetryConfigDocument(
   val payload: TelemetryOpenDocument,
 )
@@ -17,18 +19,16 @@ data class TelemetryProxyCapabilities(
   val additionalFields: CustomFieldMap = CustomFieldMap.EMPTY,
 ) {
   companion object {
-    fun defaultProxyCapabilities(
-      proxyUrl: String,
-      capabilitiesUrl: String,
-    ): TelemetryProxyCapabilities = TelemetryProxyCapabilities(
-      contractVersion = "0",
-      source = "remote_proxy",
-      proxyUrl = proxyUrl,
-      capabilitiesUrl = capabilitiesUrl,
-      supportsIngest = true,
-      supportsStats = false,
-      supportedWorkflows = emptyList(),
-    )
+    fun defaultProxyCapabilities(proxyUrl: String, capabilitiesUrl: String): TelemetryProxyCapabilities =
+      TelemetryProxyCapabilities(
+        contractVersion = "0",
+        source = TelemetryProxyPayloadKeys.REMOTE_PROXY,
+        proxyUrl = proxyUrl,
+        capabilitiesUrl = capabilitiesUrl,
+        supportsIngest = true,
+        supportsStats = false,
+        supportedWorkflows = emptyList(),
+      )
   }
 }
 

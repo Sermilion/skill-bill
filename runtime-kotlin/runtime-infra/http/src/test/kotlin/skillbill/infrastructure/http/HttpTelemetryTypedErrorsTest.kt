@@ -6,8 +6,8 @@ import skillbill.error.TelemetryProxyInvalidResponseError
 import skillbill.error.TelemetryProxyRequestFailureError
 import skillbill.error.TelemetryRelayUrlUnconfiguredError
 import skillbill.model.EnvironmentContext
-import skillbill.ports.repository.toFileLocation
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.telemetry.model.RemoteStatsRequest
@@ -82,7 +82,7 @@ class HttpTelemetryTypedErrorsTest {
 
     val error =
       assertFailsWith<TelemetryRelayUrlUnconfiguredError> {
-    client(RemoteTransportPort { _, _, _, _ -> RemoteTransportResponse(200, "{}") })
+        client(RemoteTransportPort { _, _, _, _ -> RemoteTransportResponse(200, "{}") })
           .fetchProxyCapabilities(settings)
       }
 
@@ -133,34 +133,31 @@ class HttpTelemetryTypedErrorsTest {
   }
 }
 
-private fun settingsWithProxy(proxyUrl: String): TelemetrySettings =
-  TelemetrySettings(
-    configPath = Files.createTempFile("telemetry-typed-errors", ".json").toFileLocation(),
-    level = "anonymous",
-    enabled = true,
-    installId = "test-install-id",
-    proxyUrl = proxyUrl,
-    customProxyUrl = proxyUrl.ifBlank { null },
-    batchSize = 50,
-  )
+private fun settingsWithProxy(proxyUrl: String): TelemetrySettings = TelemetrySettings(
+  configPath = Files.createTempFile("telemetry-typed-errors", ".json").toFileLocation(),
+  level = "anonymous",
+  enabled = true,
+  installId = "test-install-id",
+  proxyUrl = proxyUrl,
+  customProxyUrl = proxyUrl.ifBlank { null },
+  batchSize = 50,
+)
 
-private fun capabilitiesBody(): String =
-  """
+private fun capabilitiesBody(): String = """
   {
     "contract_version": "2",
     "supports_ingest": true,
     "supports_stats": true,
     "supports_event_deduplication": true
   }
-  """.trimIndent()
+""".trimIndent()
 
-private fun client(requester: RemoteTransportPort): HttpTelemetryClient =
-  HttpTelemetryClient(
-    requester = requester,
-    environmentContext = EnvironmentContext(environment = emptyMap()),
-    clock = Clock.systemUTC(),
-    diagnostics = SilentTypedErrorsDiagnostics,
-  )
+private fun client(requester: RemoteTransportPort): HttpTelemetryClient = HttpTelemetryClient(
+  requester = requester,
+  environmentContext = EnvironmentContext(environment = emptyMap()),
+  clock = Clock.systemUTC(),
+  diagnostics = SilentTypedErrorsDiagnostics,
+)
 
 private object SilentTypedErrorsDiagnostics : RuntimeDiagnostics {
   override fun warning(message: String, error: Throwable?) = Unit

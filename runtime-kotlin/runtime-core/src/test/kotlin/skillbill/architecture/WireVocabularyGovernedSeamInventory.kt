@@ -11,6 +11,7 @@ import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
 import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
@@ -88,6 +89,15 @@ internal object WireVocabularyGovernedSeamInventory {
         "ports/telemetry/model/ReviewFinishedTelemetryPayload",
       ),
     ),
+    GovernedPayloadSeam(
+      seamId = "telemetry-proxy",
+      schemaRepoRelativePath = TELEMETRY_PROXY_AUTHORITY,
+      governedRelativePathMarkers = listOf(
+        "contracts/telemetry/TelemetryProxyContracts",
+        "infrastructure/http/",
+        "cli/telemetry/TelemetryCliResultMappers",
+      ),
+    ),
   )
 
   const val GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY: String =
@@ -98,6 +108,9 @@ internal object WireVocabularyGovernedSeamInventory {
 
   const val SQLITE_REVIEW_TELEMETRY_AUTHORITY: String =
     "internal/sqlite-review-telemetry"
+
+  const val TELEMETRY_PROXY_AUTHORITY: String =
+    "internal/telemetry-proxy"
 
   fun closedSchemaPropertyKeys(schemaRepoRelativePath: String): Set<String> = when (schemaRepoRelativePath) {
     DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH -> decompositionManifestGovernedKeys(
@@ -112,8 +125,12 @@ internal object WireVocabularyGovernedSeamInventory {
     GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY -> goalContinuationArtifactGovernedKeys()
     SQLITE_TELEMETRY_MATERIALIZATION_AUTHORITY -> sqliteTelemetryMaterializationGovernedKeys()
     SQLITE_REVIEW_TELEMETRY_AUTHORITY -> sqliteReviewTelemetryGovernedKeys()
+    TELEMETRY_PROXY_AUTHORITY -> telemetryProxyGovernedKeys()
     else -> emptySet()
   }
+
+  private fun telemetryProxyGovernedKeys(): Set<String> =
+    payloadKeyValues(TelemetryProxyPayloadKeys::class.java) + SharedPayloadKeys.CONTRACT_VERSION
 
   private fun sqliteTelemetryMaterializationGovernedKeys(): Set<String> = payloadKeyValues(
     SharedPayloadKeys::class.java,

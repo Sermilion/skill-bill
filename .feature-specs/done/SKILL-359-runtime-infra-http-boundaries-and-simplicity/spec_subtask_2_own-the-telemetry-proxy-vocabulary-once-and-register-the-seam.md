@@ -1,6 +1,6 @@
 # SKILL-359 Subtask 2 - Own the telemetry proxy vocabulary once and register the seam
 
-Parent spec: [.feature-specs/SKILL-359-runtime-infra-http-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-359-runtime-infra-http-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-359
 
 ## Scope

@@ -52,5 +52,4 @@ class TelemetryReleaseAttributionTest {
     val dbPath = Files.createTempDirectory("telemetry-release-attribution").resolve("metrics.db")
     ensureTestDatabase(dbPath).use(block)
   }
-
 }

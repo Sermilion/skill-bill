@@ -33,7 +33,7 @@ class HttpInstallerScriptFetchAdapter(
         method = "GET",
         url = request.url,
         bodyJson = null,
-        headers = mapOf(HttpHeaderNames.USER_AGENT to INSTALLER_USER_AGENT),
+        headers = mapOf(HttpHeaders.USER_AGENT to INSTALLER_USER_AGENT),
       )
       result =
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {
