@@ -1,22 +1,32 @@
 package skillbill.mcp.shared
 
 import me.tatarka.inject.annotations.Component
+import skillbill.application.learning.LearningService
+import skillbill.application.review.ReviewService
+import skillbill.application.system.SystemService
+import skillbill.application.telemetry.LifecycleTelemetryService
+import skillbill.application.telemetry.TelemetryService
+import skillbill.application.updatecheck.UpdateCheckService
+import skillbill.application.workflow.WorkflowService
 import skillbill.di.RuntimeComponent
-import skillbill.di.create
+import skillbill.engine.featuretask.FeatureTaskPhaseSettlementService
+import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.time.Clock
 
 @Component
-abstract class McpComponent(
+internal abstract class McpComponent(
   @Component val runtimeComponent: RuntimeComponent,
 ) {
+  abstract val learningService: LearningService
+  abstract val lifecycleTelemetryService: LifecycleTelemetryService
+  abstract val telemetryService: TelemetryService
+  abstract val reviewService: ReviewService
+  abstract val systemService: SystemService
+  abstract val workflowService: WorkflowService
+  abstract val updateCheckService: UpdateCheckService
+  abstract val featureTaskPhaseSettlementService: FeatureTaskPhaseSettlementService
   abstract val clock: Clock
-
-  abstract val services: McpRuntimeServices
-}
-
-fun mcpClock(runtimeComponent: RuntimeComponent): Clock = McpComponent::class.create(runtimeComponent).clock
-
-fun services(context: McpRuntimeContext, stdinText: String? = null): McpRuntimeServices {
-  val runtimeComponent = RuntimeComponent::class.create(context.toRuntimeContext(stdinText))
-  return McpComponent::class.create(runtimeComponent).services
+  abstract val runtimeDiagnostics: RuntimeDiagnostics
+  abstract val databaseSessionFactory: DatabaseSessionFactory
 }

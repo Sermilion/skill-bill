@@ -4,6 +4,14 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-18] SKILL-357: MCP input schemas project from telemetry YAML
+
+`orchestration/contracts/telemetry-event-schema.yaml` is the single source for
+MCP argument validation and `tools/list` advertisement. `McpInputSchemaProjection`
+strips envelope keys and inlines local `$ref`s; the hand-written
+`McpInputSchemas.kt` table and `validateStrictArguments` walker are removed so
+networknt `additionalProperties: false` is the one unknown-argument seam.
+
 ## [2026-09-18] SKILL-355: observed worktree edits are runtime-owned
 
 The worktree edit journal is written only from the wait-loop
@@ -1965,3 +1973,8 @@ Context: Review and telemetry persistence tests in `runtime-cli`, `runtime-core`
 Decision: Sanction `:runtime-infra:sqlite` `testFixtures` as the only cross-module SQLite test entry: `establishTemporarySchemaReadiness`, `ensureTestDatabase`, `sqliteSessionFactoryForTests`, `withLifecycleTelemetryStore`, `withTelemetryOutboxStore`, and `TelemetryOutboxTestHandle` / `telemetryOutboxOnConnection` for outbox assertions that need `listPending`. Consumer modules add `testImplementation(testFixtures(project(":runtime-infra:sqlite")))`.
 Reason: Keeps schema readiness and session-factory behaviour aligned with production while exposing only port types or fixture handles at module boundaries.
 Alternatives considered: Keeping stores public for tests (rejected: widens the DI surface). Duplicating fixture helpers per consumer module (rejected: drift from production readiness).
+
+## [2026-09-18] Omit unmeasured scaffold duration (SKILL-357)
+
+Scaffold telemetry omits `duration_seconds` because this adapter does not measure
+elapsed time. Reporting zero would present an unmeasured value as a measurement.

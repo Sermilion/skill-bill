@@ -1,4 +1,4 @@
-package skillbill
+package skillbill.mcp
 
 const val SAMPLE_REVIEW: String =
   """

@@ -429,6 +429,7 @@ object PrincipleEnforcementInventory {
     "externalAgentAddonSourceConfigPort",
     "featureSpecPathResolverPort",
     "featureTaskContinuationLookupService",
+    "featureTaskPhaseSettlementService",
     "featureTaskRuntimePhaseRecorder",
     "featureTaskRuntimeRunInvariantsSource",
     "featureTaskRuntimeRunner",

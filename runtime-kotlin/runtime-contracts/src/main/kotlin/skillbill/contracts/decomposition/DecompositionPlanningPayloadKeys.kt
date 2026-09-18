@@ -22,4 +22,10 @@ object DecompositionPlanningPayloadKeys {
   const val OPTIONAL: String = "optional"
   const val SKIPPED: String = "skipped"
   const val SCOPE: String = "scope"
+  const val STATE: String = "state"
+  const val SHARED_PREPLAN_PREPARED: String = "shared_preplan_prepared"
+  const val PLANNED_SUBTASK_COUNT: String = "planned_subtask_count"
+  const val TOTAL_SUBTASK_COUNT: String = "total_subtask_count"
+  const val CURRENT_PLANNING_SUBTASK: String = "current_planning_subtask"
+  const val PLANNING_WAVE_SUBTASKS: String = "planning_wave_subtasks"
 }

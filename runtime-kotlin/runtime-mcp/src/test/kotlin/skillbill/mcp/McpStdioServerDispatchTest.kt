@@ -1,6 +1,5 @@
 package skillbill.mcp
 
-import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonCodec
 import skillbill.di.SkillBillVersion
 import skillbill.mcp.core.McpStdioServer
@@ -59,7 +58,10 @@ class McpStdioServerDispatchTest {
       val textContent = requireNotNull(JsonCodec.anyToStringAnyMap(content.first()))
 
       assertEquals(true, result["isError"], removed)
-      assertContains(textContent["text"].toString(), "Unknown MCP tool '$removed'")
+      assertContains(
+        textContent["text"].toString(),
+        "MCP tool '$removed' argument 'tool': unknown tool",
+      )
     }
   }
 
@@ -69,6 +71,7 @@ class McpStdioServerDispatchTest {
       decodeResponse(
         McpStdioServer.handleLine(
           """{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"doctor","arguments":{}}}""",
+          McpRuntimeContext(),
         ),
       )
     val result = response.fieldMap("result")

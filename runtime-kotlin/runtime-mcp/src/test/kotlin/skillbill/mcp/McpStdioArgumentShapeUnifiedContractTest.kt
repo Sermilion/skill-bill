@@ -1,10 +1,14 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
+import skillbill.error.InvalidTelemetryEventSchemaError
 import skillbill.mcp.core.McpStdioServer
+import skillbill.mcp.core.McpToolDispatcher
+import skillbill.mcp.shared.McpRuntimeContext
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -31,7 +35,33 @@ class McpStdioArgumentShapeUnifiedContractTest {
     val payload = decodeFirstTextContent(result)
     assertEquals("error", payload["status"])
     assertEquals("resolve_learnings", payload["tool"])
-    assertContains(payload["error"].toString(), "Unknown argument(s) for resolve_learnings: unexpected")
+    assertContains(payload["error"].toString(), "unexpected")
+  }
+
+  @Test
+  fun `dispatcher rejects the same unknown property through the canonical schema validator`() {
+    val error = assertFailsWith<InvalidTelemetryEventSchemaError> {
+      McpToolDispatcher.call(
+        toolName = "resolve_learnings",
+        arguments = mapOf("repo" to "skill-bill", "unexpected" to true),
+        context = McpRuntimeContext(),
+      )
+    }
+
+    assertContains(error.message.orEmpty(), "unexpected")
+    val response = decodeStdioObject(
+      McpStdioServer.handleLine(
+        stdioToolCallRequest(
+          id = 403,
+          name = "resolve_learnings",
+          arguments = mapOf("repo" to "skill-bill", "unexpected" to true),
+        ),
+      ),
+    )
+    val result = requireNotNull(JsonCodec.anyToStringAnyMap(response["result"]))
+    assertEquals(true, result["isError"])
+    val payload = decodeFirstTextContent(result)
+    assertEquals(error.message, payload["error"])
   }
 
   @Test

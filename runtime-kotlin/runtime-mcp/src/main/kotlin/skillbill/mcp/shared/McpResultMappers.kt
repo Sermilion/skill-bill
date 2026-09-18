@@ -1,4 +1,4 @@
-package skillbill.mcp.review
+package skillbill.mcp.shared
 
 import skillbill.application.review.model.FeatureVerifyStatsResult
 import skillbill.application.review.model.GoalStatsResult

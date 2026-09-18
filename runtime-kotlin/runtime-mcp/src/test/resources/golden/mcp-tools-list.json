@@ -1,0 +1,867 @@
+{
+  "tools": [
+    {
+      "name": "doctor",
+      "description": "Check skill-bill installation health.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {}
+      }
+    },
+    {
+      "name": "feature_task_phase_block",
+      "description": "Durable-block a prose feature-task phase (preplan|plan|implement|audit).",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workflow_id",
+          "phase_id",
+          "attempt",
+          "reason"
+        ],
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "phase_id": {
+            "type": "string",
+            "enum": [
+              "preplan",
+              "plan",
+              "implement",
+              "audit"
+            ]
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "failure_disposition": {
+            "type": "string",
+            "enum": [
+              "retryable",
+              "non_retryable_policy_conflict",
+              "needs_user_action",
+              "process_failure",
+              "invalid_output"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "feature_task_phase_complete",
+      "description": "Complete a prose feature-task phase (preplan|plan|implement|audit) via durable settlement.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workflow_id",
+          "phase_id",
+          "attempt",
+          "value"
+        ],
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "phase_id": {
+            "type": "string",
+            "enum": [
+              "preplan",
+              "plan",
+              "implement"
+            ]
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "feature_verify_finished",
+      "description": "Record completion of a feature-verify session.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "feature_flag_audit_performed",
+          "review_iterations",
+          "audit_result",
+          "completion_status",
+          "session_id",
+          "gaps_found",
+          "orchestrated",
+          "acceptance_criteria_count",
+          "rollout_relevant",
+          "spec_summary",
+          "duration_seconds"
+        ],
+        "properties": {
+          "feature_flag_audit_performed": {
+            "type": "boolean"
+          },
+          "review_iterations": {
+            "type": "integer"
+          },
+          "audit_result": {
+            "type": "string",
+            "enum": [
+              "all_pass",
+              "had_gaps",
+              "skipped"
+            ]
+          },
+          "completion_status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "abandoned_at_review",
+              "abandoned_at_audit",
+              "error"
+            ]
+          },
+          "history_relevance": {
+            "type": "string",
+            "enum": [
+              "none",
+              "irrelevant",
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "history_helpfulness": {
+            "type": "string",
+            "enum": [
+              "none",
+              "irrelevant",
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "gaps_found": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "orchestrated": {
+            "type": "boolean"
+          },
+          "acceptance_criteria_count": {
+            "type": "integer"
+          },
+          "rollout_relevant": {
+            "type": "boolean"
+          },
+          "spec_summary": {
+            "type": "string"
+          },
+          "duration_seconds": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "name": "feature_verify_stats",
+      "description": "Show aggregate bill-feature-verify metrics.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {}
+      }
+    },
+    {
+      "name": "feature_verify_started",
+      "description": "Record start of a feature-verify session.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "acceptance_criteria_count",
+          "rollout_relevant",
+          "spec_summary"
+        ],
+        "properties": {
+          "acceptance_criteria_count": {
+            "type": "integer"
+          },
+          "rollout_relevant": {
+            "type": "boolean"
+          },
+          "spec_summary": {
+            "type": "string"
+          },
+          "orchestrated": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "name": "feature_verify_workflow_get",
+      "description": "Fetch read-only full durable bill-feature-verify workflow state.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workflow_id"
+        ],
+        "properties": {
+          "workflow_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "feature_verify_workflow_latest",
+      "description": "Fetch the latest bill-feature-verify workflow.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {}
+      }
+    },
+    {
+      "name": "feature_verify_workflow_list",
+      "description": "List bill-feature-verify workflows.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "name": "feature_verify_workflow_continue",
+      "description": "Continue durable bill-feature-verify workflow state.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workflow_id"
+        ],
+        "properties": {
+          "workflow_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "feature_verify_workflow_open",
+      "description": "Open durable bill-feature-verify workflow state.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "current_step_id": {
+            "type": "string"
+          },
+          "issue_key": {
+            "type": "string"
+          },
+          "repository_identity": {
+            "type": "string",
+            "description": "Canonical repository identity: the literal prefix 'repo-root-realpath-v1:' followed by the absolute real path of the Git top-level directory. Example: repo-root-realpath-v1:/home/me/projects/app\n",
+            "pattern": "^repo-root-realpath-v1:/"
+          },
+          "governed_spec_path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "feature_verify_workflow_resume",
+      "description": "Summarize bill-feature-verify workflow resume state.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workflow_id"
+        ],
+        "properties": {
+          "workflow_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "feature_verify_workflow_update",
+      "description": "Update durable bill-feature-verify workflow state and return a compact acknowledgement.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workflow_id",
+          "workflow_status",
+          "current_step_id"
+        ],
+        "properties": {
+          "workflow_id": {
+            "type": "string"
+          },
+          "workflow_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "abandoned"
+            ]
+          },
+          "current_step_id": {
+            "type": "string",
+            "enum": [
+              "collect_inputs",
+              "extract_criteria",
+              "gather_diff",
+              "feature_flag_audit",
+              "code_review",
+              "unit_test_value_check",
+              "completeness_audit",
+              "verdict",
+              "finish"
+            ]
+          },
+          "step_updates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "step_id",
+                "status",
+                "attempt_count"
+              ],
+              "properties": {
+                "step_id": {
+                  "type": "string",
+                  "enum": [
+                    "collect_inputs",
+                    "extract_criteria",
+                    "gather_diff",
+                    "feature_flag_audit",
+                    "code_review",
+                    "unit_test_value_check",
+                    "completeness_audit",
+                    "verdict",
+                    "finish"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "running",
+                    "completed",
+                    "failed",
+                    "blocked",
+                    "skipped",
+                    "paused"
+                  ]
+                },
+                "attempt_count": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "artifacts_patch": {
+            "type": "object"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "goal_stats",
+      "description": "Show aggregate decomposed-goal runtime metrics.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "since": {
+            "type": "string"
+          },
+          "date_from": {
+            "type": "string"
+          },
+          "date_to": {
+            "type": "string"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "",
+              "day",
+              "week"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "import_review",
+      "description": "Import code review output into the local telemetry store.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "review_text"
+        ],
+        "properties": {
+          "review_text": {
+            "type": "string"
+          },
+          "orchestrated": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "name": "new_skill_scaffold",
+      "description": "Scaffold a new skill from a validated payload.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "payload"
+        ],
+        "properties": {
+          "payload": {
+            "type": "object"
+          },
+          "dry_run": {
+            "type": "boolean"
+          },
+          "orchestrated": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "name": "pr_description_generated",
+      "description": "Record PR description generation telemetry.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "commit_count",
+          "files_changed_count",
+          "was_edited_by_user",
+          "pr_created",
+          "pr_title",
+          "orchestrated"
+        ],
+        "properties": {
+          "commit_count": {
+            "type": "integer"
+          },
+          "files_changed_count": {
+            "type": "integer"
+          },
+          "was_edited_by_user": {
+            "type": "boolean"
+          },
+          "pr_created": {
+            "type": "boolean"
+          },
+          "pr_title": {
+            "type": "string"
+          },
+          "orchestrated": {
+            "type": "boolean"
+          },
+          "generated_description": {
+            "type": "string"
+          },
+          "final_pr_body": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "quality_check_finished",
+      "description": "Record completion of a quality-check session.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "final_failure_count",
+          "iterations",
+          "result",
+          "session_id",
+          "failing_check_names",
+          "unsupported_reason",
+          "orchestrated",
+          "routed_skill",
+          "detected_stack",
+          "fallback",
+          "scope_type",
+          "initial_failure_count",
+          "duration_seconds"
+        ],
+        "properties": {
+          "final_failure_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "iterations": {
+            "type": "integer"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "skipped",
+              "unsupported_stack"
+            ]
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "failing_check_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unsupported_reason": {
+            "type": "string"
+          },
+          "orchestrated": {
+            "type": "boolean"
+          },
+          "routed_skill": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detected_stack": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fallback": {
+            "type": "boolean"
+          },
+          "fallback_reason": {
+            "type": "string"
+          },
+          "scope_type": {
+            "type": "string",
+            "enum": [
+              "files",
+              "working_tree",
+              "branch_diff",
+              "repo"
+            ]
+          },
+          "initial_failure_count": {
+            "type": "integer"
+          },
+          "duration_seconds": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "name": "quality_check_started",
+      "description": "Record start of a quality-check session.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "routed_skill",
+          "detected_stack",
+          "fallback",
+          "scope_type",
+          "initial_failure_count",
+          "orchestrated"
+        ],
+        "properties": {
+          "routed_skill": {
+            "type": "string"
+          },
+          "detected_stack": {
+            "type": "string"
+          },
+          "fallback": {
+            "type": "boolean"
+          },
+          "fallback_reason": {
+            "type": "string"
+          },
+          "scope_type": {
+            "type": "string",
+            "enum": [
+              "files",
+              "working_tree",
+              "branch_diff",
+              "repo"
+            ]
+          },
+          "initial_failure_count": {
+            "type": "integer"
+          },
+          "orchestrated": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "name": "resolve_learnings",
+      "description": "Resolve active learnings for a review context.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "repo": {
+            "type": "string"
+          },
+          "skill": {
+            "type": "string"
+          },
+          "review_session_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "review_stats",
+      "description": "Show review acceptance metrics.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "commit_sequence_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "routing_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "commit_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lane_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "focused_commit_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "skipped_commit_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "focused_pair_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "skipped_pair_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lane_bundle_sizes": {
+            "description": "Per-lane assembled bundle size in bytes, keyed by lane skill name.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "lane_segment_counts": {
+            "description": "Per-lane bundle segment count, keyed by lane skill name.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "incomplete_lanes": {
+            "description": "Lanes that ended incomplete \u2014 budget exhaustion, or a lane run that did not succeed. These are non-clean coverage; the integration pass never compensates for them.\n",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "parent_analysis_pairs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parent_analysis_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "integration_terminal_outcome": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "skipped_not_applicable",
+              "review_context_budget_exceeded",
+              "failed",
+              "timeout",
+              "interrupted",
+              "spawn_failure",
+              "process_failure",
+              "unsupported_provider",
+              "no_op_resume"
+            ]
+          },
+          "integration_commit_sequence_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "integration_finding_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "telemetry_proxy_capabilities",
+      "description": "Show configured telemetry proxy capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {}
+      }
+    },
+    {
+      "name": "telemetry_remote_stats",
+      "description": "Fetch aggregate org-wide workflow metrics.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workflow"
+        ],
+        "properties": {
+          "workflow": {
+            "type": "string",
+            "enum": [
+              "verify",
+              "bill-feature-verify",
+              "feature-task-runtime"
+            ]
+          },
+          "since": {
+            "type": "string"
+          },
+          "date_from": {
+            "type": "string"
+          },
+          "date_to": {
+            "type": "string"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "",
+              "day",
+              "week"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "triage_findings",
+      "description": "Record triage decisions for imported review findings.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "review_run_id",
+          "decisions"
+        ],
+        "properties": {
+          "review_run_id": {
+            "type": "string"
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "orchestrated": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "name": "update_check",
+      "description": "Check whether the installed skill-bill runtime is up to date.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {}
+      }
+    }
+  ]
+}

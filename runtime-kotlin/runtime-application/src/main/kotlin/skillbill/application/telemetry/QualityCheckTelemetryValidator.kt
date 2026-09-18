@@ -3,8 +3,8 @@ package skillbill.application.telemetry
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
 
-private val qualityCheckScopeTypes = listOf("files", "working_tree", "branch_diff", "repo")
-private val qualityCheckResults = listOf("pass", "fail", "skipped", "unsupported_stack")
+val qualityCheckScopeTypes = listOf("files", "working_tree", "branch_diff", "repo")
+val qualityCheckResults = listOf("pass", "fail", "skipped", "unsupported_stack")
 
 fun validateQualityCheckStarted(request: QualityCheckStartedRequest): String? =
   validateEnum(request.scopeType, qualityCheckScopeTypes, "scope_type")

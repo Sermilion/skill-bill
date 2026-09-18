@@ -865,8 +865,12 @@ skillbill.workflow.verify
 
 - Runtime contract schemas live in `orchestration/contracts/`. The
   `*SchemaPaths` constants and `*_CONTRACT_VERSION` constants stay in
-  `runtime-contracts`. The JVM JSON-Schema validators, their typed schema
-  errors, and their classpath-resource copy tasks live in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`,
+  `runtime-contracts`. For MCP tool seams, each `telemetry-event-schema.yaml`
+  `$defs` branch is both the validating envelope and the advertised
+  `inputSchema` (`McpInputSchemaProjection` strips `event_name`,
+  `contract_version`, and runtime-owned quality-check keys). The JVM
+  JSON-Schema validators, their typed schema errors, and their
+  classpath-resource copy tasks live in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`,
   reached only through the domain-neutral ports `InstallPlanWireValidator`,
   `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`. Validator modules
   load schema resources from the `runtime-infra/contracts` classpath copy tasks, not from `runtime-contracts`.

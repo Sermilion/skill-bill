@@ -1,6 +1,7 @@
 package skillbill.contracts.system
 
 import skillbill.contracts.JsonPayloadContract
+import skillbill.contracts.SharedPayloadKeys
 
 data class VersionContract(
   val version: String,
@@ -34,6 +35,24 @@ data class DoctorContract(
     "telemetry_enabled" to telemetryEnabled,
     "telemetry_level" to telemetryLevel,
   )
+}
+
+data class UpdateCheckContract(
+  val status: String,
+  val installedVersion: String? = null,
+  val latestVersion: String? = null,
+  val recommendedInstallCommand: String? = null,
+  val reason: String? = null,
+  val releaseNotes: String? = null,
+) : JsonPayloadContract {
+  override fun toPayload(): Map<String, Any?> = buildMap {
+    put(SharedPayloadKeys.STATUS, status)
+    put(UpdateCheckPayloadKeys.INSTALLED_VERSION, installedVersion)
+    put(UpdateCheckPayloadKeys.LATEST_VERSION, latestVersion)
+    put(UpdateCheckPayloadKeys.RECOMMENDED_INSTALL_COMMAND, recommendedInstallCommand)
+    put(UpdateCheckPayloadKeys.REASON, reason)
+    put(UpdateCheckPayloadKeys.RELEASE_NOTES, releaseNotes)
+  }
 }
 
 fun VersionContract.toRuntimeProvenance(executablePath: String, buildId: String = version): RuntimeProvenanceContract =

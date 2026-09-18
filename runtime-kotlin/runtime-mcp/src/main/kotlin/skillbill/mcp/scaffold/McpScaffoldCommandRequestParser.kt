@@ -17,7 +17,7 @@ import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import skillbill.scaffold.model.command.isRetiredPartialScaffoldCommandKindAlias
 import skillbill.scaffold.model.command.rejectRetiredPartialScaffoldCommandKind
 
-fun parseMcpScaffoldCommandRequest(args: Map<String, Any?>): ScaffoldCommandRequest {
+internal fun parseMcpScaffoldCommandRequest(args: Map<String, Any?>): ScaffoldCommandRequest {
   val (version, kind) = validateVersionAndKind(args)
   val repoRoot = requireOptionalNonBlank(args, "repo_root")
   return when (kind) {

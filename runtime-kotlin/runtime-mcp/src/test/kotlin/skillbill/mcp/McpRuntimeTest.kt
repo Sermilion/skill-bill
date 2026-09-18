@@ -1,7 +1,5 @@
 package skillbill.mcp
 
-import skillbill.SAMPLE_REVIEW
-import skillbill.ZERO_FINDING_REVIEW
 import skillbill.application.review.toFeatureTaskRuntimeStatsPayload
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFinishedRequest
 import skillbill.application.telemetry.model.FeatureTaskRuntimeStartedRequest

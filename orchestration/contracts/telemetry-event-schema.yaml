@@ -12,10 +12,9 @@
 # - This file defines, for every event, its `event_name` (a const),
 #   the pinned `contract_version`, and the typed payload fields the
 #   event carries on the wire. The payload shape mirrors
-#   `McpToolRegistry.inputSchemas[<event>]` structurally —
-#   `TelemetryEventInputSchemaParityTest` walks every name in
-#   `McpToolRegistry.toolNames` and fails the build if the two ever
-#   diverge.
+#   `McpInputSchemaProjection` for `tools/list` advertisement.
+#   `McpTelemetrySchemaEnumParityTest` pins YAML enum constraints to
+#   their Kotlin owners and keeps every tool branch registered.
 # - Cross-field "coherence" rules that JSON Schema cannot express
 #   cleanly stay in Kotlin (`McpToolDispatcher` and surrounding parse
 #   seams). Every such rule is named below under
@@ -71,9 +70,9 @@ properties:
       `McpToolRegistry.toolNames`.
   contract_version:
     type: string
-    const: "1.11.0"
+    const: "1.12.0"
     description: >
-      Pinned to `TELEMETRY_EVENT_CONTRACT_VERSION` (currently "1.11.0").
+      Pinned to `TELEMETRY_EVENT_CONTRACT_VERSION` (currently "1.12.0").
       The parity test `TelemetryEventSchemaContractVersionTest` keeps
       the two in lockstep.
 
@@ -84,15 +83,10 @@ discriminator:
 # - pins `event_name` as a const (matching the `McpToolRegistry.toolNames` value).
 # - re-states `contract_version` as a const so the branch is
 #   self-contained when a tool reads a single branch in isolation.
-# - declares the payload fields that mirror
-#   `McpToolRegistry.inputSchemas[<event>]`. Events without an explicit
-#   `inputSchemas` entry fall through to `McpToolSpec.openObjectSchema()`
-#   in Kotlin (`{type: object, additionalProperties: true}`); the
-#   corresponding branch here is an open-object envelope with
-#   `additionalProperties: true` and no extra `properties`. The parity
-#   test asserts that open-object shape so future code that adds a
-#   strict `inputSchemas` entry without authoring the YAML branch fails
-#   loudly.
+# - declares the payload fields that `McpInputSchemaProjection` copies
+#   into the advertised `inputSchema` (minus `event_name`,
+#   `contract_version`, and the quality-check runtime-owned keys).
+#   Open-object tools use `additionalProperties: true` on the branch.
 oneOf:
   - $ref: "#/$defs/doctorEvent"
   - $ref: "#/$defs/featureTaskPhaseBlockEvent"
@@ -129,9 +123,16 @@ oneOf:
 
 $defs:
   # ---------------------------------------------------------------------
-  # Shared enum/shape table. Mirrors
-  # `runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/McpInputSchemas.kt`.
+  # Shared enum/shape table for branches and projection inlining.
   # ---------------------------------------------------------------------
+  featureTaskRuntimeFailureDispositionEnum:
+    type: string
+    enum:
+      - retryable
+      - non_retryable_policy_conflict
+      - needs_user_action
+      - process_failure
+      - invalid_output
   historySignalEnum:
     type: string
     enum:
@@ -224,6 +225,7 @@ $defs:
       - failed
       - blocked
       - skipped
+      - paused
   # SKILL-66 Subtask 1: terminal-status enums for the decomposed-goal
   # telemetry family. Deliberately NOT reusing `workflowStepStatusEnum`:
   # the goal subtask terminal set is `complete` (not `completed`),
@@ -421,7 +423,7 @@ $defs:
       event_name:
         const: doctor
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
 
   featureTaskPhaseCompleteEvent:
     type: object
@@ -437,7 +439,7 @@ $defs:
       event_name:
         const: feature_task_phase_complete
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       workflow_id:
         type: string
         minLength: 1
@@ -471,7 +473,7 @@ $defs:
       event_name:
         const: feature_task_phase_block
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       workflow_id:
         type: string
         minLength: 1
@@ -485,8 +487,7 @@ $defs:
         type: string
         minLength: 1
       failure_disposition:
-        type: string
-        minLength: 1
+        $ref: "#/$defs/featureTaskRuntimeFailureDispositionEnum"
 
   updateCheckEvent:
     type: object
@@ -498,7 +499,7 @@ $defs:
       event_name:
         const: update_check
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
 
   featureVerifyStatsEvent:
     type: object
@@ -510,7 +511,7 @@ $defs:
       event_name:
         const: feature_verify_stats
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
 
   reviewStatsEvent:
     type: object
@@ -522,7 +523,7 @@ $defs:
       event_name:
         const: review_stats
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       # Commit-focused sparse specialist accounting. Every field is an identity, a count, or a lane
       # name: no commit subject, path, diff text, or company identifier reaches telemetry.
       commit_sequence_digest:
@@ -605,7 +606,7 @@ $defs:
       event_name:
         const: telemetry_proxy_capabilities
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
 
   telemetryRemoteStatsEvent:
     type: object
@@ -618,7 +619,7 @@ $defs:
       event_name:
         const: telemetry_remote_stats
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       workflow:
         type: string
         enum:
@@ -653,7 +654,7 @@ $defs:
       event_name:
         const: feature_verify_started
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       acceptance_criteria_count:
         type: integer
       rollout_relevant:
@@ -684,7 +685,7 @@ $defs:
       event_name:
         const: feature_verify_finished
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       feature_flag_audit_performed:
         type: boolean
       review_iterations:
@@ -735,7 +736,7 @@ $defs:
       event_name:
         const: feature_verify_workflow_continue
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       workflow_id:
         type: string
 
@@ -750,7 +751,7 @@ $defs:
       event_name:
         const: feature_verify_workflow_get
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       workflow_id:
         type: string
 
@@ -764,7 +765,7 @@ $defs:
       event_name:
         const: feature_verify_workflow_latest
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
 
   featureVerifyWorkflowListEvent:
     type: object
@@ -776,7 +777,7 @@ $defs:
       event_name:
         const: feature_verify_workflow_list
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       limit:
         type: integer
 
@@ -790,7 +791,7 @@ $defs:
       event_name:
         const: feature_verify_workflow_open
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       session_id:
         type: string
       current_step_id:
@@ -799,6 +800,9 @@ $defs:
         type: string
       repository_identity:
         type: string
+        description: >
+          Canonical repository identity: the literal prefix 'repo-root-realpath-v1:' followed by the absolute real path of the Git top-level directory. Example: repo-root-realpath-v1:/home/me/projects/app
+        pattern: "^repo-root-realpath-v1:/"
       governed_spec_path:
         type: string
 
@@ -813,7 +817,7 @@ $defs:
       event_name:
         const: feature_verify_workflow_resume
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       workflow_id:
         type: string
 
@@ -830,7 +834,7 @@ $defs:
       event_name:
         const: feature_verify_workflow_update
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       workflow_id:
         type: string
       workflow_status:
@@ -866,7 +870,7 @@ $defs:
       event_name:
         const: goal_started
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       issue_key:
         type: string
       feature_name:
@@ -913,7 +917,7 @@ $defs:
       event_name:
         const: goal_subtask_finished
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       issue_key:
         type: string
       workflow_id:
@@ -999,7 +1003,7 @@ $defs:
       event_name:
         const: goal_finished
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       issue_key:
         type: string
       workflow_id:
@@ -1062,7 +1066,7 @@ $defs:
       event_name:
         const: goal_issue_finished
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       issue_key:
         type: string
       parent_workflow_id:
@@ -1118,7 +1122,7 @@ $defs:
       event_name:
         const: goal_stats
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       since:
         type: string
       date_from:
@@ -1143,7 +1147,7 @@ $defs:
       event_name:
         const: import_review
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       review_text:
         type: string
       orchestrated:
@@ -1160,7 +1164,7 @@ $defs:
       event_name:
         const: new_skill_scaffold
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       payload:
         $ref: "#/$defs/freeObjectShape"
       dry_run:
@@ -1184,7 +1188,7 @@ $defs:
       event_name:
         const: pr_description_generated
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       commit_count:
         type: integer
       files_changed_count:
@@ -1225,7 +1229,7 @@ $defs:
       event_name:
         const: quality_check_finished
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       # Null on a reconciler-marked stale terminal: that check never reported back, so it has no final
       # count. Read `final_failure_count_availability` before this value.
       final_failure_count:
@@ -1291,7 +1295,7 @@ $defs:
       event_name:
         const: quality_check_started
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       routed_skill:
         type: string
       detected_stack:
@@ -1388,7 +1392,7 @@ $defs:
       event_name:
         const: skillbill_review_finished
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       total_findings:
         type: integer
       accepted_findings:
@@ -1541,7 +1545,7 @@ $defs:
       event_name:
         const: skillbill_review_stage_degradation
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       review_run_id:
         type: string
         minLength: 1
@@ -1585,7 +1589,7 @@ $defs:
       event_name:
         const: skillbill_review_finished_legacy_regenerated
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       review_run_id:
         type: string
         minLength: 1
@@ -1606,7 +1610,7 @@ $defs:
       event_name:
         const: resolve_learnings
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       repo:
         type: string
       skill:
@@ -1626,7 +1630,7 @@ $defs:
       event_name:
         const: triage_findings
       contract_version:
-        const: "1.11.0"
+        const: "1.12.0"
       review_run_id:
         type: string
       decisions:

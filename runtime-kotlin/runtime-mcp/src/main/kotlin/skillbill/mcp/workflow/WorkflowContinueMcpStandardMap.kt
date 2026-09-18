@@ -13,11 +13,8 @@ internal fun standardMcpContinueMap(
 ): Map<String, Any?> {
   val map = LinkedHashMap(WorkflowWireProjections.compactContinueMap(view.compact).toPayload())
   map[WorkflowWirePayloadKeys.SESSION_SUMMARY] = view.sessionSummary.toPayload()
-  val workflowCommand = if (view.skillName == "bill-feature-verify") "verify-workflow" else "workflow"
-  val quotedDbPath = "'${dbPath.replace("'", "'\"'\"'")}'"
-  val quotedWorkflowId = "'${view.resume.snapshot.workflowId.replace("'", "'\"'\"'")}'"
   map["read_only_full_state_command"] =
-    "skill-bill --db $quotedDbPath $workflowCommand show $quotedWorkflowId --format json"
+    readOnlyFullStateCommand(dbPath, view.resume.snapshot.workflowId, view.skillName)
   decompositionExtras.forEach { (key, value) -> map[key] = value }
   map["db_path"] = dbPath
   if (view.continueStatus == WorkflowContinueStatus.BLOCKED) {

@@ -14,5 +14,6 @@ object SharedPayloadKeys {
   const val PROMPT = "prompt"
   const val VERDICT = "verdict"
   const val FAILURE_DISPOSITION = "failure_disposition"
+  const val ATTEMPT = "attempt"
   const val DERIVED_NOTES = "derived_notes"
 }

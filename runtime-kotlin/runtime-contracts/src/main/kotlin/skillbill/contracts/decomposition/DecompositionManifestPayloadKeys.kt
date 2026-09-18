@@ -10,4 +10,7 @@ object DecompositionManifestPayloadKeys {
   const val FINALIZING_AGENT_ID: String = "finalizing_agent_id"
   const val PARTICIPATING_AGENT_IDS: String = "participating_agent_ids"
   const val ACTION: String = "action"
+  const val DECOMPOSITION_STATUS: String = "decomposition_status"
+  const val DECOMPOSITION_SUBTASK_ID: String = "decomposition_subtask_id"
+  const val DECOMPOSITION_SUBTASK_SPEC_PATH: String = "decomposition_subtask_spec_path"
 }

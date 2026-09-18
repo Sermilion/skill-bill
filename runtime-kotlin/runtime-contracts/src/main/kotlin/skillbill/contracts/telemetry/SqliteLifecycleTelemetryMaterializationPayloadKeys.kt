@@ -3,6 +3,7 @@ package skillbill.contracts.telemetry
 object SqliteLifecycleTelemetryMaterializationPayloadKeys {
   const val FEATURE_SIZE: String = "feature_size"
   const val ORCHESTRATED: String = "orchestrated"
+  const val DRY_RUN: String = "dry_run"
   const val PHASE_OUTCOMES: String = "phase_outcomes"
   const val REVIEW_FIX_ITERATION_COUNT: String = "review_fix_iteration_count"
   const val FINDING_VERIFICATION_VERIFIED_COUNT: String = "finding_verification_verified_count"
@@ -86,5 +87,7 @@ object SqliteLifecycleTelemetryMaterializationPayloadKeys {
   const val TOTAL_RESUMES: String = "total_resumes"
   const val UNSUPPORTED_REASON: String = "unsupported_reason"
   const val WAS_EDITED_BY_USER: String = "was_edited_by_user"
+  const val FINAL_PR_BODY: String = "final_pr_body"
+  const val GENERATED_DESCRIPTION: String = "generated_description"
   const val WORKFLOW_ID: String = "workflow_id"
 }

@@ -1,35 +1,40 @@
 package skillbill.mcp.featuretask
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementAcknowledgment
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementBlockRequest
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequest
-import skillbill.mcp.shared.McpRuntimeContext
+import skillbill.error.InvalidMcpToolArgumentError
+import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.optionalInt
 import skillbill.mcp.shared.optionalString
-import skillbill.mcp.shared.services
 import skillbill.mcp.shared.string
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 
-internal fun featureTaskPhaseComplete(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
-  services(context).featureTaskPhaseSettlementService.complete(
+internal fun featureTaskPhaseComplete(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
+  component.featureTaskPhaseSettlementService.complete(
     FeatureTaskPhaseSettlementCompleteRequest(
       workflowId = arguments.string(SharedPayloadKeys.WORKFLOW_ID),
       phaseId = arguments.string(SharedPayloadKeys.PHASE_ID),
-      attempt = requireNotNull(arguments.optionalInt("attempt")) { "attempt is required." },
+      attempt = arguments.optionalInt(McpToolPayloadKeys.ATTEMPT)
+        ?: throw InvalidMcpToolArgumentError("feature_task_phase_complete", "attempt", "is required"),
       value = arguments.string(SharedPayloadKeys.VALUE),
       prompt = arguments.optionalString(SharedPayloadKeys.PROMPT),
       summary = arguments.optionalString(SharedPayloadKeys.SUMMARY),
     ),
   ).toWireMap()
 
-internal fun featureTaskPhaseBlock(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
-  services(context).featureTaskPhaseSettlementService.block(
+internal fun featureTaskPhaseBlock(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
+  component.featureTaskPhaseSettlementService.block(
     FeatureTaskPhaseSettlementBlockRequest(
       workflowId = arguments.string(SharedPayloadKeys.WORKFLOW_ID),
       phaseId = arguments.string(SharedPayloadKeys.PHASE_ID),
-      attempt = requireNotNull(arguments.optionalInt("attempt")) { "attempt is required." },
-      reason = arguments.string("reason"),
-      failureDisposition = arguments.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION) ?: "needs_user_action",
+      attempt = arguments.optionalInt(McpToolPayloadKeys.ATTEMPT)
+        ?: throw InvalidMcpToolArgumentError("feature_task_phase_block", "attempt", "is required"),
+      reason = arguments.string(McpToolPayloadKeys.REASON),
+      failureDisposition = arguments.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)
+        ?: FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION.wireValue,
     ),
   ).toWireMap()
 

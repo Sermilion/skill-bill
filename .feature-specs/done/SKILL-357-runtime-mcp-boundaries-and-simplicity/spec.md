@@ -34,13 +34,13 @@ Investigation: [investigation.md](investigation.md)
 7. A missing or mistyped argument for a key the tool declares raises a typed error under `ShellContentContractException` naming the tool and key; no argument is silently defaulted or silently discarded; the `quality_check_finished` input schema does not advertise keys the runtime owns; a failed exception capture emits one `RuntimeDiagnostics` record; `src/main` contains no `java.util.logging` import.
 8. Scaffold telemetry payloads carry no fabricated duration; the adapter injects no policy default that an owning enum or definition already provides.
 9. Every top-level declaration in `src/main` except `main` is `internal` or `private`.
-10. The advertised `inputSchema` of every tool is projected from that tool's branch in `orchestration/contracts/telemetry-event-schema.yaml`; `McpInputSchemas.kt`, `McpInputSchemaPrimitives.kt`, the Kotlin `inputSchemas` table, the unknown-argument walker, `TelemetryEventInputSchemaParityTest`, and `FailureDispositionSchemaAdvertisementTest` are deleted; a golden `tools/list` fixture pins the advertised surface.
+10. The advertised `inputSchema` of every tool is projected from that tool's branch in `../../../orchestration/contracts/telemetry-event-schema.yaml`; `McpInputSchemas.kt`, `McpInputSchemaPrimitives.kt`, the Kotlin `inputSchemas` table, the unknown-argument walker, `TelemetryEventInputSchemaParityTest`, and `FailureDispositionSchemaAdvertisementTest` are deleted; a golden `tools/list` fixture pins the advertised surface.
 11. Every enum the Kotlin schemas carried is a constraint in the YAML branch, and a repo-contract test pins each YAML enum to the owning Kotlin `wireValue` list or definition; no production file in `runtime-mcp` restates an enum token.
 12. `./gradlew :runtime-mcp:test :runtime-mcp:repoTest` and `./gradlew check` on `runtime-kotlin` pass; the four `runtime-mcp` architecture baselines stay empty.
 
 ## Constraints
 
-- Follow `runtime-kotlin/ARCHITECTURE.md` design principles, `docs/code-principles.md`, `docs/observability-policy.md`, and AGENTS.md. No `//` comments, KDoc only on interfaces.
+- Follow `../../../runtime-kotlin/ARCHITECTURE.md` design principles, `docs/code-principles.md`, `docs/observability-policy.md`, and AGENTS.md. No `//` comments, KDoc only on interfaces.
 - Keep the recorded decisions: `Main.kt` is the one ambient environment read (2026-09-03); CLI/MCP mapper pairs stay distinct (2026-09-03); the telemetry-event validator and its Gradle copy task stay in this module (history L2531-2540, ARCHITECTURE.md L867-869).
 - No new runtime dependency. No MCP SDK, JSON-RPC library, or code generator.
 - Tool result payloads for well-formed input are byte-identical to today, proven by the existing golden fixtures and stdio tests; the advertised `tools/list` may gain constraints and descriptions the YAML already carries and loses nothing.

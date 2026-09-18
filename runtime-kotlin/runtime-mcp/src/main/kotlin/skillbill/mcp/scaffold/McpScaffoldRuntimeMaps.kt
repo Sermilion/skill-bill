@@ -3,8 +3,6 @@ package skillbill.mcp.scaffold
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.scaffold.model.ScaffoldResult
 
-private const val SCAFFOLD_TELEMETRY_DURATION_SECONDS = 0
-
 internal fun scaffoldSuccessMap(
   sessionId: String,
   payload: Map<String, Any?>,
@@ -15,20 +13,18 @@ internal fun scaffoldSuccessMap(
   val outcome = if (dryRun) "dry-run" else "success"
   val baseTelemetryPayload =
     mapOf(
-      "session_id" to sessionId,
       "kind" to result.kind,
       "skill_name" to result.skillName,
       "platform" to payload["platform"].orEmpty(),
       "family" to payload["family"].orEmpty(),
       "area" to payload["area"].orEmpty(),
       "result" to outcome,
-      "duration_seconds" to SCAFFOLD_TELEMETRY_DURATION_SECONDS,
       "skill" to "skill-bill-scaffold",
     )
   return if (orchestrated) {
     mapOf(
       "mode" to "orchestrated",
-      "telemetry_payload" to baseTelemetryPayload - "session_id",
+      "telemetry_payload" to baseTelemetryPayload,
       "skill_path" to result.skillPath.toString(),
       "notes" to result.notes,
     )
@@ -52,17 +48,15 @@ internal fun scaffoldFailureMap(
     "mode" to "orchestrated",
     "telemetry_payload" to
       mapOf(
-        "session_id" to sessionId,
         "kind" to payload["kind"].orEmpty(),
         "skill_name" to payload["name"].orEmpty(),
         "platform" to payload["platform"].orEmpty(),
         "family" to payload["family"].orEmpty(),
         "area" to payload["area"].orEmpty(),
         "result" to "failed",
-        "duration_seconds" to SCAFFOLD_TELEMETRY_DURATION_SECONDS,
         "skill" to "skill-bill-scaffold",
         "error" to error.message.orEmpty(),
-      ) - "session_id",
+      ),
     "error" to error.message.orEmpty(),
   )
 } else {

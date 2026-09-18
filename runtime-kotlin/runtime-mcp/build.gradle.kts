@@ -58,7 +58,7 @@ val copyTelemetryEventSchema =
     from(schemaPath)
     into(
       layout.buildDirectory.dir(
-        "generated/skillbill-contracts/skillbill/infrastructure/contracts",
+        "generated/skillbill-contracts/skillbill/mcp/contracts",
       ),
     )
     inputs.file(schemaPath)

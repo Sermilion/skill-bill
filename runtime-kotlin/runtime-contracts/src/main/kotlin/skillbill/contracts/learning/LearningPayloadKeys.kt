@@ -23,4 +23,5 @@ object LearningPayloadKeys {
   const val APPLIED_LEARNING_COUNT: String = "applied_learning_count"
   const val APPLIED_LEARNING_REFERENCES: String = "applied_learning_references"
   const val SCOPE_COUNTS: String = "scope_counts"
+  const val REPO: String = "repo"
 }
