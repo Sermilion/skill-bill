@@ -1,3 +1,12 @@
+## [2026-09-18] SKILL-356 subtask 2 — goal-runner stores implement their ports directly
+Areas: runtime-kotlin/runtime-infra/sqlite/goalrunner, runtime-kotlin/runtime-core/di, runtime-kotlin/runtime-engine goalrunner fixtures
+- `WorkflowGoalRunnerManifestStore` now implements `GoalRunnerManifestStore` directly; the internal delegate, context bag, and regrouped ops lattice were removed while persistence behavior and SQL stayed unchanged.
+- `WorkflowGoalRunnerOutcomeStore` now has one injected construction path and implements the workflow outcome port directly; behavior-owning collaborators remain internal, and child-wedge repair always rewrites the projection.
+- DI exposes only the manifest and outcome stores for goal-runner ports; fixtures supply the store dependencies explicitly. The goal-runner production surface is 27 files versus 31 in the baseline, with a net reduction of 504 lines. reusable
+- Known limitation: goal-runner migration and schema consolidation remain in subtask 3.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-18] SKILL-356 runtime-infra-sqlite boundaries and simplicity
 Areas: runtime-kotlin/runtime-infra/sqlite core/review/telemetry/workflow, runtime-kotlin/runtime-core DI/architecture, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-cli/engine/mcp tests
 - One transaction path now owns read, write, and migration boundaries with typed database failures and rollback behavior; reusable

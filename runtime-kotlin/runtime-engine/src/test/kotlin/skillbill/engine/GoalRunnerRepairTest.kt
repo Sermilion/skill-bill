@@ -694,9 +694,38 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     assertEquals("completed_upstream_missing_output", evidence["wedge_class"])
     assertEquals("verify_findings", evidence["field"])
   }
+
 }
 
 internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
+  @Test
+  fun `repairing completed upstream missing output writes the parent manifest projection`() {
+    val workflows = InMemoryWorkflowStates()
+    val workflowId = "wftr-repair-apply-unsettled-upstream-projection"
+    seedRepairParent(workflows, workflowId)
+    saveBlockedUnsettledUpstreamChild(workflows, workflowId)
+    val manifestStore = InMemoryRepairManifestFileStore()
+    val store = testWorkflowGoalRunnerOutcomeStore(
+      FakeDatabaseSessionFactory(workflows),
+      artifactPorts = OutcomeStoreTestArtifactPorts(
+        decompositionManifestStore = manifestStore,
+      ),
+    )
+
+    val applied = store.applyChildWedgeRepairs(
+      GoalRunnerChildWedgeRepairRequest(
+        workflowId = workflowId,
+        issueKey = ISSUE_KEY,
+        subtaskId = 1,
+        wedgeClasses = listOf(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT),
+        repoRoot = Path.of("."),
+      ),
+    )
+
+    assertEquals(1, applied.repairs.size)
+    assertEquals(1, manifestStore.writeCount)
+  }
+
   @Test
   fun `repairing completed upstream missing output with another wedge applies both repairs`() {
     val workflows = InMemoryWorkflowStates()
@@ -1489,8 +1518,11 @@ internal abstract class GoalRunnerRepairFixtures {
   protected class InMemoryRepairManifestFileStore :
     DecompositionManifestStore by TestDecompositionManifestStore {
     private val files = linkedMapOf<Path, String>()
+    var writeCount: Int = 0
+      private set
 
     override fun writeTextAtomically(target: Path, content: String) {
+      writeCount += 1
       files[target.toAbsolutePath().normalize()] = content
     }
 

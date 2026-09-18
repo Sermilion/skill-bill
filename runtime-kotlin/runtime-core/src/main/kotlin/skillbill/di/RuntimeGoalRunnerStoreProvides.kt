@@ -7,8 +7,6 @@ import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerManifestStor
 import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerOutcomeStore
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
-import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairStore
-import skillbill.ports.goalrunner.runner.GoalRunnerAttemptLedgerStore
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 
@@ -18,12 +16,6 @@ internal interface RuntimeGoalRunnerStoreProvides {
 
   @Provides @JvmSynthetic
   fun goalRunnerWorkflowOutcomeStore(adapter: WorkflowGoalRunnerOutcomeStore): GoalRunnerWorkflowOutcomeStore = adapter
-
-  @Provides @JvmSynthetic
-  fun goalRunnerAttemptLedgerStore(adapter: WorkflowGoalRunnerOutcomeStore): GoalRunnerAttemptLedgerStore = adapter
-
-  @Provides @JvmSynthetic
-  fun goalRunnerChildRepairStore(adapter: WorkflowGoalRunnerOutcomeStore): GoalRunnerChildRepairStore = adapter
 
   @Provides @JvmSynthetic
   fun goalRunnerChildRepairExecutorPort(operations: GoalRunnerChildRepairOperations): GoalRunnerChildRepairRunnerPort =
