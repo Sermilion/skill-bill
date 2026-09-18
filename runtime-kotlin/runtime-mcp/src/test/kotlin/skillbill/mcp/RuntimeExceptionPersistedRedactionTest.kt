@@ -1,8 +1,8 @@
 package skillbill.mcp
 
 import skillbill.application.telemetry.enqueueRuntimeException
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.ensureTestDatabase
+import skillbill.infrastructure.sqlite.telemetryOutboxOnConnection
 import java.nio.file.Files
 import java.sql.Connection
 import kotlin.test.Test
@@ -16,7 +16,7 @@ class RuntimeExceptionPersistedRedactionTest {
   fun `persisted payload_json holds no caller supplied exception message at anonymous`() {
     withConnection { connection ->
       enqueueRuntimeException(
-        TelemetryOutboxStore(connection),
+        telemetryOutboxOnConnection(connection),
         "goal_workflow_open",
         IllegalStateException(callerMessage),
         "anonymous",
@@ -35,7 +35,7 @@ class RuntimeExceptionPersistedRedactionTest {
   fun `persisted payload_json holds the caller supplied exception message at full`() {
     withConnection { connection ->
       enqueueRuntimeException(
-        TelemetryOutboxStore(connection),
+        telemetryOutboxOnConnection(connection),
         "goal_workflow_open",
         IllegalStateException(callerMessage),
         "full",
@@ -54,6 +54,6 @@ class RuntimeExceptionPersistedRedactionTest {
 
   private fun withConnection(block: (Connection) -> Unit) {
     val dbPath = Files.createTempDirectory("skillbill-exception-redaction").resolve("metrics.db")
-    DatabaseRuntime.ensureDatabase(dbPath).use(block)
+    ensureTestDatabase(dbPath).use(block)
   }
 }

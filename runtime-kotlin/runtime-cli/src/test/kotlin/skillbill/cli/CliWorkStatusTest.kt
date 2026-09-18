@@ -11,7 +11,7 @@ import skillbill.engine.work.model.IdeStatusStep
 import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.goalrunner.model.GoalPlanningStatusState
 import skillbill.infrastructure.contracts.workflow.IdeStatusSchemaValidator
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
@@ -25,7 +25,7 @@ class CliWorkStatusTest {
   fun `work status emits schema-valid idle json for a git repo with empty database`() {
     val fixture = gitRepoFixture("skillbill-cli-work-status-idle")
     val dbPath = fixture.resolve("metrics.db")
-    DatabaseRuntime.ensureDatabase(dbPath).close()
+    ensureTestDatabase(dbPath).close()
 
     val result = CliRuntime.run(
       listOf("--db", dbPath.toString(), "work", "status", "--repo-root", fixture.toString(), "--format", "json"),
@@ -67,7 +67,7 @@ class CliWorkStatusTest {
   fun `work status rejects invalid repository root with typed problem json`() {
     val missing = Files.createTempDirectory("skillbill-cli-work-status-missing").resolve("no-such-repo")
     val dbPath = Files.createTempDirectory("skillbill-cli-work-status-invalid-db").resolve("metrics.db")
-    DatabaseRuntime.ensureDatabase(dbPath).close()
+    ensureTestDatabase(dbPath).close()
 
     val result = CliRuntime.run(
       listOf("--db", dbPath.toString(), "work", "status", "--repo-root", missing.toString(), "--format", "json"),
@@ -84,7 +84,7 @@ class CliWorkStatusTest {
   fun `work status performs no database writes`() {
     val fixture = gitRepoFixture("skillbill-cli-work-status-readonly")
     val dbPath = fixture.resolve("metrics.db")
-    DatabaseRuntime.ensureDatabase(dbPath).close()
+    ensureTestDatabase(dbPath).close()
     val before = Files.readAllBytes(dbPath)
 
     val result = CliRuntime.run(

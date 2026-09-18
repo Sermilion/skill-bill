@@ -106,6 +106,67 @@ class RuntimeApplicationAmbientClockArchitectureTest {
   }
 
   @Test
+  fun `ambient clock scanner fires on unlisted OffsetDateTime now site`() {
+    val source = """
+      package skillbill.example
+
+      import java.time.OffsetDateTime
+      import java.time.ZoneOffset
+
+      fun nowMarker() = OffsetDateTime.now(ZoneOffset.UTC)
+    """.trimIndent()
+    val violations = ArchitectureScanSupport.ambientClockViolationsInSource(
+      relativePath = EXAMPLE_PATH,
+      source = source,
+      baseline = emptySet(),
+    )
+    assertEquals(
+      listOf("$EXAMPLE_PATH:6:OffsetDateTime.now() is not listed in the ambient-clock baseline."),
+      violations,
+    )
+  }
+
+  @Test
+  fun `ambient clock scanner fires on unlisted ZonedDateTime now site`() {
+    val source = """
+      package skillbill.example
+
+      import java.time.ZonedDateTime
+
+      fun nowMarker() = ZonedDateTime.now()
+    """.trimIndent()
+    val violations = ArchitectureScanSupport.ambientClockViolationsInSource(
+      relativePath = EXAMPLE_PATH,
+      source = source,
+      baseline = emptySet(),
+    )
+    assertEquals(
+      listOf("$EXAMPLE_PATH:5:ZonedDateTime.now() is not listed in the ambient-clock baseline."),
+      violations,
+    )
+  }
+
+  @Test
+  fun `ambient clock scanner fires on unlisted JvmSystemClock instant site`() {
+    val source = """
+      package skillbill.example
+
+      import skillbill.contracts.time.JvmSystemClock
+
+      fun nowMarker() = JvmSystemClock.instant()
+    """.trimIndent()
+    val violations = ArchitectureScanSupport.ambientClockViolationsInSource(
+      relativePath = EXAMPLE_PATH,
+      source = source,
+      baseline = emptySet(),
+    )
+    assertEquals(
+      listOf("$EXAMPLE_PATH:5:JvmSystemClock.instant() is not listed in the ambient-clock baseline."),
+      violations,
+    )
+  }
+
+  @Test
   fun `ambient clock scanner fires on unlisted LocalDate now site`() {
     val source = """
       package skillbill.example

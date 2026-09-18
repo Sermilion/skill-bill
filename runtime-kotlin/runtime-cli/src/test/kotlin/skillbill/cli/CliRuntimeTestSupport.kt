@@ -5,9 +5,8 @@ import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.di.SkillBillVersion
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.withLifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.process.InstallerProcessPort
 import skillbill.ports.process.InstallerScriptFetchPort
 import skillbill.ports.process.model.InstallerProcessRequest
@@ -153,8 +152,8 @@ internal fun assertFeatureStatsAliases(dbPath: Path, context: CliRuntimeContext)
 }
 
 internal fun seedGoalStatsDb(dbPath: Path) {
-  DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-    val store = LifecycleTelemetryStore(connection)
+  val userHome = dbPath.parent
+  withLifecycleTelemetryStore(userHome, dbPath) { store ->
     store.goalStarted(
       GoalStartedRecord(
         issueKey = "SKILL-66",
@@ -216,8 +215,7 @@ internal fun telemetryStatusStdout(level: String, pendingEvents: Int, priorSync:
   val tempDir = Files.createTempDirectory("skillbill-cli-telemetry-status")
   val dbPath = tempDir.resolve("metrics.db")
   writeTelemetryConfig(tempDir, level = level, proxyUrl = TELEMETRY_FIXTURE_PROXY_URL)
-  DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-    val store = TelemetryOutboxStore(connection)
+  withTelemetryOutboxStore(tempDir, dbPath) { store ->
     if (priorSync) {
       val syncedId = store.enqueue("skillbill_goal_finished", """{"seed":"delivered"}""")
       store.markSynced(id = syncedId, syncedAt = "2026-09-01 00:00:00")

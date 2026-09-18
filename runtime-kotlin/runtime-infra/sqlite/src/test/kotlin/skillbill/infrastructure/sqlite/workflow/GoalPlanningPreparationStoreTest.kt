@@ -3,10 +3,9 @@ package skillbill.infrastructure.sqlite.workflow
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.goalrunner.model.GoalPlanningStatusState
-import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.core.inImmediateTransaction
-import skillbill.model.EnvironmentContext
+import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
 import java.nio.file.Files
@@ -97,9 +96,8 @@ class GoalPlanningPreparationStoreTest {
   fun `bounded status reads while another connection holds the writer lock`() {
     val tempDir = Files.createTempDirectory("skillbill-planning-status-contention")
     val dbPath = tempDir.resolve("metrics.db")
-    val database = SQLiteDatabaseSessionFactory(
-      EnvironmentContext(dbPathOverride = dbPath.toString(), environment = emptyMap(), userHome = tempDir),
-    )
+    val database =
+      sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
     database.read { Unit }
 
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { writer ->
@@ -186,7 +184,7 @@ class GoalPlanningPreparationStoreTest {
       store.checkpointSubtaskPlan(planCheckpoint(1, 0))
 
       assertFailsWith<IllegalStateException> {
-        connection.inImmediateTransaction {
+        connection.inNestedWriteTransaction {
           store.deleteByGoal("goal-1")
           error("injected reset manifest failure")
         }
@@ -194,7 +192,7 @@ class GoalPlanningPreparationStoreTest {
       assertNotNull(store.findSharedPreplan(identity()))
       assertNotNull(store.findSubtaskPlan(identity(), 1, descriptor(1, 0).governedSubSpecPath))
 
-      connection.inImmediateTransaction { store.deleteByGoal("goal-1") }
+      connection.inNestedWriteTransaction { store.deleteByGoal("goal-1") }
     }
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalPlanningPreparationStore(connection)

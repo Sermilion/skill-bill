@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.review
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.ShellContentContractException
 
 internal fun embeddedReviewPayloads(row: Map<String, Any?>): List<ReviewHealthPayload> {
@@ -27,6 +28,6 @@ private fun childStepToReviewPayload(childStep: Any?): ReviewHealthPayload? {
 }
 
 private fun isReviewChildStep(payload: Map<String, Any?>): Boolean {
-  val skill = payload.stringHealthValue("skill")
+  val skill = payload.stringHealthValue(LifecycleTelemetryPayloadKeys.SKILL)
   return skill.endsWith("code-review") || "-code-review-" in skill
 }

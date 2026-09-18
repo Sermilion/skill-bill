@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite.telemetry
 
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 
-fun featureVerifyFinishedValues(
+internal fun featureVerifyFinishedValues(
   record: FeatureVerifyFinishedRecord,
   gapsFoundJson: String,
   includeSessionFirst: Boolean,

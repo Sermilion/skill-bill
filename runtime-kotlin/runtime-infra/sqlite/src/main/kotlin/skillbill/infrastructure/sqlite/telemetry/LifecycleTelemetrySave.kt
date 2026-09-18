@@ -1,10 +1,10 @@
 package skillbill.infrastructure.sqlite.telemetry
-
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 import skillbill.telemetry.model.FeatureVerifyStartedRecord
 import java.sql.Connection
 
-fun saveFeatureVerifyStarted(connection: Connection, record: FeatureVerifyStartedRecord) {
+internal fun saveFeatureVerifyStarted(connection: Connection, record: FeatureVerifyStartedRecord) {
   connection.prepareStatement(
     """
     INSERT INTO feature_verify_sessions (
@@ -12,7 +12,7 @@ fun saveFeatureVerifyStarted(connection: Connection, record: FeatureVerifyStarte
     ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.sessionId,
       record.acceptanceCriteriaCount,
       record.rolloutRelevant.toSqlInt(),
@@ -22,7 +22,12 @@ fun saveFeatureVerifyStarted(connection: Connection, record: FeatureVerifyStarte
   }
 }
 
-fun saveFeatureVerifyFinished(connection: Connection, record: FeatureVerifyFinishedRecord): TerminalSaveOutcome {
+internal enum class TerminalSaveOutcome { FIRST_TERMINAL, DUPLICATE }
+
+internal fun saveFeatureVerifyFinished(
+  connection: Connection,
+  record: FeatureVerifyFinishedRecord,
+): TerminalSaveOutcome {
   val gapsFoundJson = listJson(record.gapsFound)
   if (rowExists(connection, "feature_verify_sessions", record.sessionId)) {
     if (lifecycleAlreadyFinished(connection, "feature_verify_sessions", record.sessionId)) {
@@ -56,9 +61,7 @@ private fun updateFeatureVerifyFinished(
       AND (finished_event_emitted_at IS NULL OR completion_status = 'stale')
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
-      featureVerifyFinishedValues(record, gapsFoundJson, includeSessionFirst = false),
-    )
+    statement.bindAll(featureVerifyFinishedValues(record, gapsFoundJson, includeSessionFirst = false))
     statement.executeUpdate()
   }
 }
@@ -77,7 +80,7 @@ private fun insertFeatureVerifyFinished(
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(featureVerifyFinishedValues(record, gapsFoundJson, includeSessionFirst = true))
+    statement.bindAll(featureVerifyFinishedValues(record, gapsFoundJson, includeSessionFirst = true))
     statement.executeUpdate()
   }
 }

@@ -1,7 +1,4 @@
 package skillbill.infrastructure.sqlite.core
-
-import skillbill.contracts.time.JvmSystemClock
-import skillbill.infrastructure.sqlite.telemetry.bind
 import skillbill.infrastructure.sqlite.telemetry.emitFeatureTaskRuntimeFinished
 import skillbill.infrastructure.sqlite.telemetry.emitFeatureVerifyFinished
 import skillbill.infrastructure.sqlite.telemetry.emitGoalIssueFinished
@@ -10,26 +7,27 @@ import skillbill.infrastructure.sqlite.telemetry.nextGoalStateEnteredAtSql
 import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.ports.telemetry.model.TelemetryReconciliationResult
 import java.sql.Connection
+import java.time.Clock
 import java.time.temporal.ChronoUnit
 
-const val STALE_SESSION_THRESHOLD_SECONDS: Long = 28_800L
-const val STALE_GOAL_ISSUE_ABANDONMENT_DAYS: Long = 14L
-const val TELEMETRY_RECONCILIATION_CADENCE_SECONDS: Long = 300L
-const val TELEMETRY_RECONCILIATION_MAXIMUM_BATCH_SIZE: Int = 100
+internal const val STALE_SESSION_THRESHOLD_SECONDS: Long = 28_800L
+internal const val STALE_GOAL_ISSUE_ABANDONMENT_DAYS: Long = 14L
+internal const val TELEMETRY_RECONCILIATION_CADENCE_SECONDS: Long = 300L
+internal const val TELEMETRY_RECONCILIATION_MAXIMUM_BATCH_SIZE: Int = 100
 
 private data class LifecycleReconciliationTarget(
-  val family: String,
-  val tableName: String,
-  val terminalColumn: String,
-  val terminalValue: String,
-  val workflowTableName: String? = null,
-  val emitFinished: (Connection, String, String) -> Unit,
+  internal val family: String,
+  internal val tableName: String,
+  internal val terminalColumn: String,
+  internal val terminalValue: String,
+  internal val workflowTableName: String? = null,
+  internal val emitFinished: (Connection, String, String) -> Unit,
 )
 
 internal data class ReconciliationCandidate(
-  val family: String,
-  val primaryIdentity: String,
-  val secondaryIdentity: String?,
+  internal val family: String,
+  internal val primaryIdentity: String,
+  internal val secondaryIdentity: String?,
 )
 
 private val lifecycleTargets = listOf(
@@ -55,8 +53,9 @@ private val lifecycleTargets = listOf(
   ) { connection, sessionId, level -> emitQualityCheckFinished(connection, sessionId, level) },
 )
 
-fun reconcileStaleTelemetrySessions(
+internal fun reconcileStaleTelemetrySessions(
   connection: Connection,
+  clock: Clock,
   level: String,
   sessionThresholdSeconds: Long = STALE_SESSION_THRESHOLD_SECONDS,
   goalIssueAbandonmentDays: Long = STALE_GOAL_ISSUE_ABANDONMENT_DAYS,
@@ -68,11 +67,11 @@ fun reconcileStaleTelemetrySessions(
     maximumBatchSize = Int.MAX_VALUE,
     sessionThresholdSeconds = sessionThresholdSeconds,
     goalIssueAbandonmentDays = goalIssueAbandonmentDays,
-    now = JvmSystemClock.instant(),
+    now = clock.instant(),
   ),
 )
 
-fun reconcileStaleTelemetrySessions(
+internal fun reconcileStaleTelemetrySessions(
   connection: Connection,
   request: TelemetryReconciliationRequest,
 ): TelemetryReconciliationResult {
@@ -111,7 +110,7 @@ fun reconcileStaleTelemetrySessions(
   )
 }
 
-fun reconcileStaleFeatureTaskRuntimeSessions(
+internal fun reconcileStaleFeatureTaskRuntimeSessions(
   connection: Connection,
   thresholdSeconds: Long = STALE_SESSION_THRESHOLD_SECONDS,
 ): Int = reconcileLifecycleTable(connection, lifecycleTargets[0], thresholdSeconds, "anonymous")
@@ -127,7 +126,7 @@ private fun claimReconciliationCadence(connection: Connection, request: Telemetr
     WHERE datetime(telemetry_reconciliation_state.last_completed_at) <= datetime(?)
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(RECONCILIATION_STATE_KEY, completedAt, eligibleBefore)
+    statement.bindAll(RECONCILIATION_STATE_KEY, completedAt, eligibleBefore)
     statement.executeUpdate() > 0
   }
 }
@@ -175,7 +174,7 @@ private fun staleSessionIds(
     ORDER BY started_at, session_id
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(parameters)
+    statement.bindAll(parameters)
     statement.executeQuery().use { resultSet ->
       buildList { while (resultSet.next()) add(resultSet.getString("session_id")) }
     }
@@ -193,11 +192,11 @@ private fun markLifecycleSessionStale(
   WHERE session_id = ? AND finished_at IS NULL AND finished_event_emitted_at IS NULL
   """.trimIndent(),
 ).use { statement ->
-  statement.bind(target.terminalValue, LifecycleStaleReason.NO_TERMINAL_BEFORE_THRESHOLD.wireValue, sessionId)
+  statement.bindAll(target.terminalValue, LifecycleStaleReason.NO_TERMINAL_BEFORE_THRESHOLD.wireValue, sessionId)
   statement.executeUpdate() > 0
 }
 
-enum class LifecycleStaleReason(val wireValue: String) {
+internal enum class LifecycleStaleReason(val wireValue: String) {
   NO_TERMINAL_BEFORE_THRESHOLD("no_terminal_before_threshold"),
 }
 
@@ -218,7 +217,7 @@ private fun markGoalIssueAbandoned(connection: Connection, goal: GoalIssueIdenti
       AND COALESCE(status, '') != 'abandoned'
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(goal.parentWorkflowId, goal.issueKey)
+    statement.bindAll(goal.parentWorkflowId, goal.issueKey)
     statement.executeUpdate() > 0
   }
 

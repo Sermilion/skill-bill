@@ -16,29 +16,31 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceMeas
 import skillbill.workflow.taskruntime.phaseLedgerFromWorkflowArtifacts
 import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
 
-fun FeatureTaskRuntimePhaseRecord.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
+internal fun FeatureTaskRuntimePhaseRecord.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
 
-fun FeatureTaskRuntimePhaseLedgerEntry.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
+internal fun FeatureTaskRuntimePhaseLedgerEntry.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
 
-fun FeatureTaskRuntimeGoalContinuationArtifact.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
+internal fun FeatureTaskRuntimeGoalContinuationArtifact.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
 
-fun FeatureTaskRuntimePhaseOutputRepairEvidence.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
+internal fun FeatureTaskRuntimePhaseOutputRepairEvidence.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
 
-fun decodePhaseRecords(artifacts: Any?) = phaseRecordsFromWorkflowArtifacts(artifacts)
+internal fun decodePhaseRecords(artifacts: Any?) = phaseRecordsFromWorkflowArtifacts(artifacts)
 
-fun decodePhaseLedger(artifacts: Any?) = phaseLedgerFromWorkflowArtifacts(artifacts)
+internal fun decodePhaseLedger(artifacts: Any?) = phaseLedgerFromWorkflowArtifacts(artifacts)
 
-fun decodeGoalContinuationFieldAdoption(artifacts: Any?) = goalContinuationFieldAdoptionFromWorkflowArtifacts(artifacts)
+internal fun decodeGoalContinuationFieldAdoption(artifacts: Any?) = goalContinuationFieldAdoptionFromWorkflowArtifacts(
+  artifacts,
+)
 
-fun decodePhaseOutputRepairEvidence(json: String): FeatureTaskRuntimePhaseOutputRepairEvidence? =
+internal fun decodePhaseOutputRepairEvidence(json: String): FeatureTaskRuntimePhaseOutputRepairEvidence? =
   decodePhaseOutputRepairEvidenceFromArtifact(
     JsonCodec.parseObjectOrNull(json)?.let(JsonCodec::jsonElementToValue),
   )
 
-fun FeatureTaskRuntimeProjectionMeasurement.encodeTelemetry(): Any = asTelemetryPayload()
+internal fun FeatureTaskRuntimeProjectionMeasurement.encodeTelemetry(): Any = asTelemetryPayload()
 
-fun FeatureTaskRuntimeSharedEvidenceMeasurement.encodeTelemetry(): Any = asTelemetryPayload()
+internal fun FeatureTaskRuntimeSharedEvidenceMeasurement.encodeTelemetry(): Any = asTelemetryPayload()
 
-fun FeatureTaskRuntimeRejectionMeasurement.encodeTelemetry(): Any = asTelemetryPayload()
+internal fun FeatureTaskRuntimeRejectionMeasurement.encodeTelemetry(): Any = asTelemetryPayload()
 
-fun FeatureTaskRuntimeDiagnosticDegradationMeasurement.encodeTelemetry(): Any = asTelemetryPayload()
+internal fun FeatureTaskRuntimeDiagnosticDegradationMeasurement.encodeTelemetry(): Any = asTelemetryPayload()

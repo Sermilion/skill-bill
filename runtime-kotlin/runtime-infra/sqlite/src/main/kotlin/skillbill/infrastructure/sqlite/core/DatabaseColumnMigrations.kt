@@ -21,7 +21,7 @@ internal object DatabaseColumnMigrations {
   }
 
   fun healDiagnosticEvidenceKeys(connection: Connection) {
-    connection.inImmediateTransaction { rekeyDiagnosticEvidenceByRepairTurn(this) }
+    rekeyDiagnosticEvidenceByRepairTurn(connection)
   }
 
   fun applyWorkListMetadata(connection: Connection) {
@@ -44,7 +44,7 @@ internal object DatabaseColumnMigrations {
   internal fun tableExists(connection: Connection, tableName: String): Boolean = connection.prepareStatement(
     "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
   ).use { statement ->
-    statement.setString(1, tableName)
+    statement.bindAll(tableName)
     statement.executeQuery().use { resultSet -> resultSet.next() }
   }
 

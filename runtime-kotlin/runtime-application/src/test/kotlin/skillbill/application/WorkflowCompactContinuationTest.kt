@@ -14,6 +14,7 @@ import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.model.WorkflowStatus
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -196,6 +197,7 @@ private fun newService(): WorkflowService = WorkflowService(
   repositoryRoot = testRepositoryRoot,
   goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
   runtimeDiagnostics = NoopRuntimeDiagnostics,
+  clock = Clock.systemUTC(),
 )
 
 private fun newBlockedImplementService(

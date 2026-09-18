@@ -1,16 +1,16 @@
 package skillbill.infrastructure.sqlite.goalrunner
 
-import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.goalChildIdentity
 import skillbill.infrastructure.sqlite.goalChildWorkflow
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
 import skillbill.infrastructure.sqlite.workflowRow
-import skillbill.model.EnvironmentContext
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import java.nio.file.Files
 import java.sql.Connection
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -26,18 +26,18 @@ private data class GoalPurgeFixture(
 class GoalRunnerPurgePersistenceTest {
   @Test
   fun `purge removes parent goal children and satellites but keeps standalone sibling and telemetry outbox`() {
-    val dbPath = Files.createTempDirectory("goal-purge").resolve("metrics.db")
+    val tempDir = Files.createTempDirectory("goal-purge")
+    val dbPath = tempDir.resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val store = WorkflowStateStore(connection)
+      val store = WorkflowStateStore(connection, Clock.systemUTC())
       val fixture = seedGoalPurgeFixture(connection, store)
       val outboxBefore = connection.prepareStatement("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->
         rows.executeQuery().use { it.getInt(1) }
       }
-      val factory = SQLiteDatabaseSessionFactory(
-        EnvironmentContext(dbPathOverride = dbPath.toString(), environment = emptyMap()),
-      )
+      val factory =
+        sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
       factory.transaction { unitOfWork ->
-        goalRunnerPurgePersistence(unitOfWork).purgeDecomposedGoal(unitOfWork, fixture.parentId)
+        goalRunnerPurgePersistence().purgeDecomposedGoal(unitOfWork, fixture.parentId)
       }
       assertPurgedGoalState(connection, store, fixture, outboxBefore)
     }

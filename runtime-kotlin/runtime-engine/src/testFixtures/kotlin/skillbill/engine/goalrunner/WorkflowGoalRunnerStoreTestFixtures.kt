@@ -3,7 +3,7 @@ package skillbill.engine.goalrunner
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerManifestStore
 import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerOutcomeStore
-import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerOutcomeStoreBridgeBuilder
+import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerOutcomeStoreDependencies
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
@@ -60,8 +60,8 @@ fun sqliteWorkflowGoalRunnerOutcomeStore(
   decompositionManifestWriter: DecompositionManifestProjectionWriter,
   childRepairExecutor: GoalRunnerChildRepairOperations,
 ): WorkflowGoalRunnerOutcomeStore = WorkflowGoalRunnerOutcomeStore(
-  bridgeBuilder = WorkflowGoalRunnerOutcomeStoreBridgeBuilder(
-    database = database,
+  database = database,
+  dependencies = WorkflowGoalRunnerOutcomeStoreDependencies(
     workflowSnapshotValidator = workflowSnapshotValidator,
     goalObservabilityEventValidator = artifactPorts.goalObservabilityEventValidator,
     goalProgressEventValidator = artifactPorts.goalProgressEventValidator,
@@ -69,9 +69,9 @@ fun sqliteWorkflowGoalRunnerOutcomeStore(
     phaseOutputValidator = artifactPorts.phaseOutputValidator,
     workerSupervisor = workerSupervisor,
     clock = clock,
+    decompositionManifestValidator = decompositionManifestValidator,
+    decompositionManifestStore = artifactPorts.decompositionManifestStore,
+    decompositionManifestWriter = decompositionManifestWriter,
+    childRepairExecutor = childRepairExecutor,
   ),
-  decompositionManifestValidator = decompositionManifestValidator,
-  decompositionManifestStore = artifactPorts.decompositionManifestStore,
-  decompositionManifestWriter = decompositionManifestWriter,
-  childRepairExecutor = childRepairExecutor,
 )

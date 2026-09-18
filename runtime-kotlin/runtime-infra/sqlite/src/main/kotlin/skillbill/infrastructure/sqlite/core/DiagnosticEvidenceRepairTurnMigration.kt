@@ -48,7 +48,7 @@ private fun tableDdlMentions(connection: Connection, table: String, column: Stri
   val ddl = connection.prepareStatement(
     "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
   ).use { statement ->
-    statement.setString(1, table)
+    statement.bindAll(table)
     statement.executeQuery().use { rows ->
 
       if (!rows.next()) return true

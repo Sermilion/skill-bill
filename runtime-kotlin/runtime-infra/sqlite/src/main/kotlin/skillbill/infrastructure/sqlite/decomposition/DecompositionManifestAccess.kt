@@ -16,14 +16,14 @@ import skillbill.workflow.model.decompositionStatus
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
-fun loadDecompositionManifest(
+internal fun loadDecompositionManifest(
   path: Path,
   fileStore: DecompositionManifestStore,
   validator: DecompositionManifestValidator,
   recoverPending: Boolean = true,
 ): DecompositionManifest = loadValidatedDecompositionManifest(path, fileStore, validator, recoverPending).manifest
 
-fun loadValidatedDecompositionManifest(
+internal fun loadValidatedDecompositionManifest(
   path: Path,
   fileStore: DecompositionManifestStore,
   validator: DecompositionManifestValidator,
@@ -37,7 +37,7 @@ fun loadValidatedDecompositionManifest(
   )
 }
 
-fun validateDecompositionManifestYaml(
+internal fun validateDecompositionManifestYaml(
   path: Path,
   fileStore: DecompositionManifestStore,
   validator: DecompositionManifestValidator,
@@ -62,20 +62,20 @@ fun validateDecompositionManifestYaml(
   }
 }
 
-fun archivedDecompositionManifest(repoRoot: Path, manifestPath: Path): Boolean {
+internal fun archivedDecompositionManifest(repoRoot: Path, manifestPath: Path): Boolean {
   val relative = runCatching { repoRoot.normalize().relativize(manifestPath.normalize()).toString() }
     .getOrDefault(manifestPath.toString())
     .replace('\\', '/')
   return relative.startsWith(".feature-specs/done/")
 }
 
-fun decodeArtifacts(existingArtifactsJson: String): Map<String, Any?> =
+internal fun decodeArtifacts(existingArtifactsJson: String): Map<String, Any?> =
   JsonCodec.parseObjectOrNull(existingArtifactsJson)
     ?.let(JsonCodec::jsonElementToValue)
     ?.let(JsonCodec::anyToStringAnyMap)
     .orEmpty()
 
-fun findMatchingDecompositionManifests(
+internal fun findMatchingDecompositionManifests(
   repoRoot: Path,
   issueKey: String,
   fileStore: DecompositionManifestStore,
@@ -107,7 +107,7 @@ fun findMatchingDecompositionManifests(
     .toList()
 }
 
-fun resolveDecompositionManifest(
+internal fun resolveDecompositionManifest(
   repoRoot: Path,
   issueKey: String,
   fileStore: DecompositionManifestStore,
@@ -133,7 +133,7 @@ fun resolveDecompositionManifest(
   return activeCandidates.firstOrNull()?.manifest ?: candidates.firstOrNull()?.manifest
 }
 
-fun DecompositionManifest.withParentStatus(): DecompositionManifest {
+internal fun DecompositionManifest.withParentStatus(): DecompositionManifest {
   val parentStatus = when {
     subtasks.all {
       it.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
@@ -152,7 +152,7 @@ fun DecompositionManifest.withParentStatus(): DecompositionManifest {
   return copy(status = parentStatus)
 }
 
-fun Any?.asStringAnyMapOrNull(): Map<String, Any?>? =
+internal fun Any?.asStringAnyMapOrNull(): Map<String, Any?>? =
   (this as? Map<*, *>)?.entries?.associateTo(LinkedHashMap()) { (key, value) ->
     val stringKey = key as? String ?: return null
     stringKey to value

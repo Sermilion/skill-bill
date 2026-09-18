@@ -5,6 +5,7 @@ private const val MAX_CONDITION_CHARS = 200
 enum class DatabaseAccessOperation(val wireValue: String) {
   OPEN("open"),
   READ("read"),
+  WRITE("write"),
 }
 
 class DatabaseAccessError(

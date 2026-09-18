@@ -4,18 +4,18 @@ import skillbill.review.model.ReviewDeliveryGrainStats
 import skillbill.review.model.ReviewHealthStats
 import java.sql.Connection
 
-val reviewHealthSeverities = listOf("Blocker", "Major", "Minor")
-val reviewHealthConfidences = listOf("High", "Medium", "Low")
-val reviewHealthScopes = listOf("branch_diff", "unstaged_changes", "working_tree", "unknown")
+internal val reviewHealthSeverities = listOf("Blocker", "Major", "Minor")
+internal val reviewHealthConfidences = listOf("High", "Medium", "Low")
+internal val reviewHealthScopes = listOf("branch_diff", "unstaged_changes", "working_tree", "unknown")
 
-data class ReviewHealthPayload(
-  val source: String,
-  val payload: Map<String, Any?>,
-  val deliveryIdentity: String? = null,
-  val deliveryAttempts: Int? = null,
+internal data class ReviewHealthPayload(
+  internal val source: String,
+  internal val payload: Map<String, Any?>,
+  internal val deliveryIdentity: String? = null,
+  internal val deliveryAttempts: Int? = null,
 )
 
-fun buildReviewHealthStats(connection: Connection, reviewRunId: String?): ReviewHealthStats {
+internal fun buildReviewHealthStats(connection: Connection, reviewRunId: String?): ReviewHealthStats {
   val parsedPayloads = loadStandaloneReviewPayloads(connection) + loadEmbeddedReviewPayloads(connection)
   val scopedPayloads =
     if (reviewRunId == null) {

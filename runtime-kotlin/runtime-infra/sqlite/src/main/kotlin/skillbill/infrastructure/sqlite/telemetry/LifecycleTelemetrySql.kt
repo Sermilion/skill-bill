@@ -1,28 +1,30 @@
 package skillbill.infrastructure.sqlite.telemetry
-
 import kotlinx.serialization.json.JsonElement
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import java.sql.Connection
-import java.sql.PreparedStatement
 import java.sql.ResultSet
 
-fun Boolean.toSqlInt(): Int = if (this) 1 else 0
+internal fun Boolean.toSqlInt(): Int = if (this) 1 else 0
 
-fun listJson(items: List<Any?>): String = JsonCodec.mapToJsonString(mapOf("items" to items)).itemsArrayJson()
+internal fun listJson(items: List<Any?>): String = JsonCodec.mapToJsonString(
+  mapOf(SqliteLifecycleTelemetryMaterializationPayloadKeys.ITEMS to items),
+).itemsArrayJson()
 
-fun rowExists(connection: Connection, tableName: String, sessionId: String): Boolean =
+internal fun rowExists(connection: Connection, tableName: String, sessionId: String): Boolean =
   connection.prepareStatement("SELECT 1 FROM $tableName WHERE session_id = ?").use { statement ->
-    statement.bind(sessionId)
+    statement.bindAll(sessionId)
     statement.executeQuery().use(ResultSet::next)
   }
 
-fun lifecycleRow(connection: Connection, tableName: String, sessionId: String): Map<String, Any?>? =
+internal fun lifecycleRow(connection: Connection, tableName: String, sessionId: String): Map<String, Any?>? =
   connection.prepareStatement("SELECT * FROM $tableName WHERE session_id = ?").use { statement ->
-    statement.bind(sessionId)
+    statement.bindAll(sessionId)
     statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.toMap() else null }
   }
 
-fun markLifecycleEmitted(connection: Connection, tableName: String, columnName: String, sessionId: String) {
+internal fun markLifecycleEmitted(connection: Connection, tableName: String, columnName: String, sessionId: String) {
   connection.prepareStatement(
     """
     UPDATE $tableName
@@ -30,21 +32,13 @@ fun markLifecycleEmitted(connection: Connection, tableName: String, columnName: 
     WHERE session_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(sessionId)
+    statement.bindAll(sessionId)
     statement.executeUpdate()
   }
 }
 
-fun PreparedStatement.bind(vararg values: Any?) {
-  values.toList().forEachIndexed { index, value -> setObject(index + 1, value) }
-}
-
-fun PreparedStatement.bind(values: List<Any?>) {
-  values.forEachIndexed { index, value -> setObject(index + 1, value) }
-}
-
 private fun String.itemsArrayJson(): String = JsonCodec.parseObjectOrNull(this)
-  ?.get("items")
+  ?.get(SqliteLifecycleTelemetryMaterializationPayloadKeys.ITEMS)
   ?.let { JsonCodec.json.encodeToString(JsonElement.serializer(), it) }
   ?: "[]"
 

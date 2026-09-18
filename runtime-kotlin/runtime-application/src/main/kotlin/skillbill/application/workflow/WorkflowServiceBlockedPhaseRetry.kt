@@ -34,7 +34,7 @@ import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_A
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import java.time.OffsetDateTime
+import java.time.Clock
 import java.time.ZoneOffset
 
 class WorkflowServiceBlockedPhaseRetry(
@@ -44,6 +44,7 @@ class WorkflowServiceBlockedPhaseRetry(
   private val decompositionManifestWriter: DecompositionManifestWriter,
   private val repositoryRoot: RepositoryRoot,
   private val runtimeDiagnostics: RuntimeDiagnostics,
+  private val clock: Clock,
 ) {
   fun retry(
     database: DatabaseSessionFactory,
@@ -177,7 +178,7 @@ class WorkflowServiceBlockedPhaseRetry(
     request: BlockedPhaseRetryRequest,
     state: BlockedPhaseRetryState,
   ): BlockedPhaseRetryPersistence {
-    val input = blockedPhaseRetryInput(request, state)
+    val input = blockedPhaseRetryInput(request, state, clock)
     val family = WorkflowFamily.TASK_RUNTIME
     val updated = engine.updateRecord(family.definition, existing, input)
     family.save(unitOfWork.workflowStates, updated)
@@ -203,11 +204,13 @@ class WorkflowServiceBlockedPhaseRetry(
 private fun blockedPhaseRetryInput(
   request: BlockedPhaseRetryRequest,
   state: BlockedPhaseRetryState,
+  clock: Clock,
 ): WorkflowUpdateInput {
+  val now = clock.instant().atOffset(ZoneOffset.UTC).toString()
   val retryEntry = FeatureTaskRuntimePhaseLedgerEntry(
     action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
     sequenceNumber = (state.ledger.maxOfOrNull { it.sequenceNumber } ?: -1) + 1,
-    timestamp = OffsetDateTime.now(ZoneOffset.UTC).toString(),
+    timestamp = now,
     phaseId = request.phaseId,
     attemptCount = state.blockedRecord.attemptCount,
     resolvedAgentId = state.blockedRecord.resolvedAgentId,
@@ -235,7 +238,7 @@ private fun blockedPhaseRetryInput(
         FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
           SharedPayloadKeys.PHASE_ID to request.phaseId,
           "reason" to request.reason,
-          "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+          "retried_at" to now,
           "previous_blocked_reason" to state.blockedRecord.blockedReason,
           "previous_blocked_record" to state.blockedRecord.asWorkflowArtifactEntry(),
         ),

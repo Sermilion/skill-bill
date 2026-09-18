@@ -8,6 +8,7 @@ import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimePhaseOutputSchemaValidator
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -17,6 +18,7 @@ import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
 import java.nio.file.Files
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -279,7 +281,11 @@ class GoalPlanningPreparationCheckpointTest {
 
   private fun checkpointHarness(): CheckpointHarness {
     val tempDir = Files.createTempDirectory("goal-planning-checkpoint")
-    val database = SQLiteDatabaseSessionFactory(EnvironmentContext(environment = emptyMap(), userHome = tempDir))
+    val database = SQLiteDatabaseSessionFactory(
+      EnvironmentContext(environment = emptyMap(), userHome = tempDir),
+      Clock.systemUTC(),
+      NoOpCheckpointDiagnostics,
+    )
     val checkpoint = GoalPlanningPreparationCheckpoint(
       database = database,
       envelopeValidator = FeatureTaskRuntimeWireArtifactSchemaValidator(),
@@ -311,6 +317,11 @@ class GoalPlanningPreparationCheckpointTest {
     fun readPlan(subtaskId: Int = 1): GoalSubtaskPlanCheckpoint? = database.read {
       it.goalPlanningPreparations.findSubtaskPlan(identity(), subtaskId, descriptor(subtaskId).governedSubSpecPath)
     }
+  }
+
+  private object NoOpCheckpointDiagnostics : RuntimeDiagnostics {
+    override fun warning(message: String, error: Throwable?) = Unit
+    override fun error(message: String, error: Throwable?) = Unit
   }
 
   private companion object {

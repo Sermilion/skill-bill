@@ -30,7 +30,7 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
-import java.time.OffsetDateTime
+import java.time.Clock
 import java.time.ZoneOffset
 import kotlin.random.Random
 
@@ -222,9 +222,9 @@ fun WorkflowService.openFeatureTask(args: WorkflowServiceOpenFeatureTaskArgs): W
   )
 }
 
-fun generateWorkflowId(prefix: String): String {
-  val now = OffsetDateTime.now(ZoneOffset.UTC)
-  val suffix = (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[Random.nextInt(SUFFIX_CHARS.length)] }
+fun generateWorkflowId(prefix: String, clock: Clock, random: Random): String {
+  val now = clock.instant().atOffset(ZoneOffset.UTC)
+  val suffix = (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[random.nextInt(SUFFIX_CHARS.length)] }
     .joinToString("")
   return "$prefix-${now.year}${now.monthValue.twoDigits()}${now.dayOfMonth.twoDigits()}-" +
     "${now.hour.twoDigits()}${now.minute.twoDigits()}${now.second.twoDigits()}-$suffix"

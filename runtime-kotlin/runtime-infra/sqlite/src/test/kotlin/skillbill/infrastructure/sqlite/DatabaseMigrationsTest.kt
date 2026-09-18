@@ -1,13 +1,21 @@
 package skillbill.infrastructure.sqlite
 
+import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
+import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
 import skillbill.infrastructure.sqlite.core.DatabaseColumnMigrations
+import skillbill.infrastructure.sqlite.core.DatabaseIdentity
 import skillbill.infrastructure.sqlite.core.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.DatabaseSchema
-import skillbill.infrastructure.sqlite.core.inImmediateTransaction
+import skillbill.infrastructure.sqlite.core.attachSqliteDiagnostics
+import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
 import skillbill.infrastructure.sqlite.telemetry.GoalTelemetryMigration
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.workflow.GoalRunnerControlStore
+import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
+import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.review.context.model.CodeReviewExecutionMode
 import java.nio.file.Files
 import java.sql.DriverManager
 import java.sql.SQLException
@@ -31,14 +39,14 @@ class DatabaseMigrationsTest {
       connection.createStatement().use { it.execute("CREATE TABLE rollback_probe (value TEXT NOT NULL)") }
 
       assertFailsWith<IllegalStateException> {
-        connection.inImmediateTransaction {
+        connection.inNestedWriteTransaction {
           createStatement().use { it.executeUpdate("INSERT INTO rollback_probe VALUES ('partial')") }
           error("non-SQL migration failure")
         }
       }
 
       assertEquals(0, rowCount(connection, "rollback_probe"))
-      connection.inImmediateTransaction {
+      connection.inNestedWriteTransaction {
         createStatement().use { it.executeUpdate("INSERT INTO rollback_probe VALUES ('committed')") }
       }
       assertEquals(1, rowCount(connection, "rollback_probe"))
@@ -88,6 +96,9 @@ class DatabaseMigrationsTest {
         36 to "add-agent-activity-stamps",
         37 to "add-telemetry-outbox-delivery-identity",
         38 to "add-worktree-edit-journal",
+        39 to "ensure-schema-columns-and-heals",
+        40 to "migrate-legacy-goal-runner-controls",
+        41 to "migrate-legacy-telemetry-outbox",
       ),
       migrationDefinitions,
     )
@@ -369,15 +380,16 @@ class DatabaseMigrationsTest {
   }
 
   @Test
-  fun `column heal still runs on a write capable open with no pending migration`() {
+  fun `column heal runs from its ledger migration on a legacy open`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-gate-column-heal").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       connection.createStatement().use {
+        it.executeUpdate("DELETE FROM schema_migrations WHERE name = 'ensure-schema-columns-and-heals'")
         it.executeUpdate("ALTER TABLE feature_task_workflows DROP COLUMN interruption_reason")
       }
       assertFalse("interruption_reason" in tableColumns(connection, "feature_task_workflows"))
       assertFalse(versionIsPrimaryKey(connection), "The ledger must already be name-keyed for this to gate.")
-      assertEquals(DatabaseMigrations.migrations.size, migrationRows(connection).size)
+      assertEquals(DatabaseMigrations.migrations.size - 1, migrationRows(connection).size)
       connection.createStatement().use {
         it.executeUpdate(
           """
@@ -392,12 +404,12 @@ class DatabaseMigrationsTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       assertTrue(
         "interruption_reason" in tableColumns(connection, "feature_task_workflows"),
-        "DatabaseColumnMigrations.apply must heal the column even though no migration is pending.",
+        "DatabaseColumnMigrations.apply must heal the column when its ledger migration is pending.",
       )
       assertEquals(
         "2026-05-01T10:00:00Z",
         tableColumnValue(connection, "feature_task_workflows", "workflow_id", "wfl-gate-heal", "state_entered_at"),
-        "healWorkListMetadata must keep running on a write-capable open with nothing pending.",
+        "healWorkListMetadata must run within the pending ledger migration.",
       )
     }
   }
@@ -409,9 +421,7 @@ class DatabaseMigrationsTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       connection.createStatement().use { statement ->
         statement.executeUpdate("DELETE FROM schema_migrations WHERE version = 16")
-        statement.executeUpdate(
-          "DELETE FROM schema_migrations WHERE name = 'rekey-producer-output-evidence-by-agent'",
-        )
+        clearProducerOutputEvidenceMigrationRecords(connection)
         statement.executeUpdate("DROP TABLE producer_output_evidence")
         statement.executeUpdate(PRE_GENERATION_PRODUCER_OUTPUT_EVIDENCE_SQL)
       }
@@ -714,6 +724,10 @@ class DatabaseMigrationsEnsureDatabaseTest {
   fun `goal continuation recovery accepts the runtime and prose continuation contracts`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-goal-continuation-issue-key").resolve("metrics.db")
 
+    val runtimeGoalArtifactsJson = buildString {
+      append("""{"goal_continuation":{"issue_key":" SKILL-117 ","subtask_id":1,"""")
+      append("""suppress_pr":true,"goal_branch":"feature/117"}}""")
+    }
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       connection.createStatement().use { statement ->
         statement.executeUpdate(
@@ -722,7 +736,7 @@ class DatabaseMigrationsEnsureDatabaseTest {
             workflow_id, mode, contract_version, workflow_status, artifacts_json, started_at, state_entered_at
           ) VALUES (
             'wftr-text-key', 'runtime', '0.1', 'running',
-            '{"goal_continuation":{"issue_key":" SKILL-117 ","subtask_id":1,"suppress_pr":true,"goal_branch":"feature/117"}}',
+            '$runtimeGoalArtifactsJson',
             '2026-05-01T10:00:00Z', '2026-05-01T10:00:00Z'
           )
           """.trimIndent(),
@@ -1472,6 +1486,87 @@ class DatabaseMigrationsReviewAttributionTest {
       assertTrue(routedSkills.size < before.first, "Canonical routed skills must collapse the raw variants.")
       assertTrue(stacks.size < before.first, "Canonical stacks must collapse the raw variants.")
       assertEquals(0, executionModeGaps(connection), "Every run must carry an execution_mode after migration.")
+    }
+  }
+
+  @Test
+  fun `legacy goal runner artifacts move once into controls with migration diagnostics`() {
+    val dbPath = Files.createTempDirectory("runtime-kotlin-legacy-goal-controls").resolve("metrics.db")
+    seedLegacyGoalRunnerControlsMigrationFixture(dbPath)
+    SqliteTestDiagnostics.reset()
+
+    val delegate = DriverManager.getDriver("jdbc:sqlite:$dbPath")
+    val observingDriver = SqliteConnectionRecordingDriver(delegate) { connection ->
+      connection.attachSqliteDiagnostics(SqliteTestDiagnostics)
+    }
+    DriverManager.deregisterDriver(delegate)
+    DriverManager.registerDriver(observingDriver)
+    DriverManager.registerDriver(delegate)
+    try {
+      DatabaseRuntime.establishSchemaReadiness(dbPath)
+      DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        val store = GoalRunnerControlStore(connection)
+        assertEquals(
+          GoalRunnerReviewPolicy(CodeReviewExecutionMode.INLINE),
+          store.reviewPolicy("wftr-legacy-goal-parent"),
+        )
+        assertEquals(
+          mapOf(
+            2 to GoalRunnerOutOfBandAcceptance(
+              subtaskId = 2,
+              commitSha = "legacy-commit",
+              reason = "accepted outside the normal review path",
+              acceptedAt = "2026-09-17T10:00:00Z",
+            ),
+          ),
+          store.outOfBandAcceptances("wftr-legacy-goal-parent"),
+        )
+      }
+    } finally {
+      DriverManager.deregisterDriver(observingDriver)
+      DriverManager.deregisterDriver(delegate)
+      DriverManager.registerDriver(delegate)
+    }
+
+    val migrationWarnings = SqliteTestDiagnostics.recordedWarnings()
+      .filter { warning -> warning.contains("record_kind=migration") }
+    assertEquals(1, migrationWarnings.size)
+    assertTrue(migrationWarnings.single().contains("parent_workflow_id=wftr-legacy-goal-parent"))
+    assertTrue(migrationWarnings.single().contains(GOAL_REVIEW_POLICY_ARTIFACT_KEY))
+    assertTrue(migrationWarnings.single().contains(GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY))
+
+    DatabaseRuntime.establishSchemaReadiness(dbPath)
+    DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+      val store = GoalRunnerControlStore(connection)
+      assertEquals(CodeReviewExecutionMode.INLINE, store.reviewPolicy("wftr-legacy-goal-parent")?.codeReviewMode)
+      assertEquals(
+        "legacy-commit",
+        store.outOfBandAcceptances("wftr-legacy-goal-parent").getValue(2).commitSha,
+      )
+    }
+    assertEquals(
+      1,
+      SqliteTestDiagnostics.recordedWarnings().count { warning ->
+        warning.contains("record_kind=migration")
+      },
+    )
+  }
+
+  @Test
+  fun `establishment stamps user_version to the highest ledger migration version`() {
+    val dbPath = Files.createTempDirectory("runtime-kotlin-db-user-version").resolve("metrics.db")
+    DatabaseRuntime.ensureDatabase(dbPath).close()
+    val expectedVersion = DatabaseMigrations.migrations.maxOf { migration -> migration.version }
+    val identity = DatabaseIdentity.read(dbPath)
+    assertNotNull(identity)
+    assertEquals(expectedVersion, identity.userVersion)
+    DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+      connection.createStatement().use { statement ->
+        statement.executeQuery("PRAGMA user_version").use { rows ->
+          assertTrue(rows.next())
+          assertEquals(expectedVersion, rows.getInt(1))
+        }
+      }
     }
   }
 }

@@ -13,9 +13,8 @@ import skillbill.engine.decomposition.encodeDecompositionManifestYaml
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
 import skillbill.engine.manifest
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
-import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.model.EnvironmentContext
+import skillbill.infrastructure.sqlite.ensureTestDatabase
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.taskruntime.FeatureTaskRuntimeHeartbeat
@@ -79,10 +78,13 @@ class GoalRunnerPurgeCoordinatorTest {
   @Test
   fun `live owned child worker refuses purge even when parent is idle`() {
     val dbPath = Files.createTempDirectory("goal-purge-live-child").resolve("metrics.db")
-    val database = SQLiteDatabaseSessionFactory(
-      EnvironmentContext(dbPathOverride = dbPath.toString(), environment = emptyMap()),
+    val userHome = dbPath.parent
+    val database = sqliteDatabaseSessionFactory(
+      userHome = userHome,
+      dbPathOverride = dbPath.toString(),
+      environment = emptyMap(),
     )
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    ensureTestDatabase(dbPath).use { connection ->
       connection.prepareStatement(
         """
         INSERT INTO feature_task_workflows (workflow_id, mode, contract_version, artifacts_json)

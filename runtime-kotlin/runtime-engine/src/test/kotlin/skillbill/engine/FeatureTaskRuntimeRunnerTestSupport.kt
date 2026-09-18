@@ -672,7 +672,7 @@ private fun testSpecGate(
 
 private fun disabledRuntimeLifecycleTelemetry(database: DatabaseSessionFactory): FeatureTaskRuntimeLifecycleTelemetry =
   FeatureTaskRuntimeLifecycleTelemetry(
-    LifecycleTelemetryService(database, DisabledRuntimeTelemetrySettingsProvider),
+    LifecycleTelemetryService(database, DisabledRuntimeTelemetrySettingsProvider, Clock.systemUTC()),
     NoopRuntimeDiagnostics,
   )
 
@@ -997,7 +997,7 @@ private fun telemetryHarnessRunner(
         branchSetupRunner = branchSetupRunner,
         planningStopper = planningStopper,
         lifecycleTelemetry = FeatureTaskRuntimeLifecycleTelemetry(
-          LifecycleTelemetryService(database, EnabledRuntimeTelemetrySettingsProvider),
+          LifecycleTelemetryService(database, EnabledRuntimeTelemetrySettingsProvider, Clock.systemUTC()),
           NoopRuntimeDiagnostics,
         ),
         gitOperations = runtimeConfig.branchSetup.gitOperations,

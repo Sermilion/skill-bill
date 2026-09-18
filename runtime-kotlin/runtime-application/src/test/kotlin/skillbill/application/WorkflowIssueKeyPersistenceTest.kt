@@ -14,6 +14,7 @@ import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -34,6 +35,7 @@ class WorkflowIssueKeyPersistenceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
 
     val firstRuntime = assertIs<WorkflowOpenResult.Ok>(
@@ -78,6 +80,7 @@ class WorkflowIssueKeyPersistenceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
 
     assertFailsWith<InvalidFeatureTaskExecutionIdentitySchemaError> {

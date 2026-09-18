@@ -3,6 +3,7 @@ package skillbill.infrastructure.sqlite.workflow
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.model.GoalRunnerControlState
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
@@ -27,8 +28,7 @@ internal class GoalRunnerControlStore(
         updated_at = CURRENT_TIMESTAMP
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, parentWorkflowId)
-      statement.setString(2, JsonCodec.mapToJsonString(state.toArtifactMap()))
+      statement.bindAll(parentWorkflowId, JsonCodec.mapToJsonString(state.toArtifactMap()))
       statement.executeUpdate()
     }
     return state
@@ -56,7 +56,7 @@ internal class GoalRunnerControlStore(
       WHERE parent_workflow_id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, parentWorkflowId)
+      statement.bindAll(parentWorkflowId)
       statement.executeUpdate()
     }
   }
@@ -74,8 +74,7 @@ internal class GoalRunnerControlStore(
         updated_at = CURRENT_TIMESTAMP
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, parentWorkflowId)
-      statement.setString(2, JsonCodec.mapToJsonString(policy.toArtifactMap()))
+      statement.bindAll(parentWorkflowId, JsonCodec.mapToJsonString(policy.toArtifactMap()))
       statement.executeUpdate()
     }
     return policy
@@ -100,9 +99,8 @@ internal class GoalRunnerControlStore(
         updated_at = CURRENT_TIMESTAMP
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, parentWorkflowId)
-      statement.setString(
-        2,
+      statement.bindAll(
+        parentWorkflowId,
         JsonCodec.valueToJsonElement(
           merged.values.sortedBy(GoalRunnerOutOfBandAcceptance::subtaskId)
             .map(GoalRunnerOutOfBandAcceptance::toArtifactMap),
@@ -121,7 +119,7 @@ internal class GoalRunnerControlStore(
       WHERE parent_workflow_id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, parentWorkflowId)
+      statement.bindAll(parentWorkflowId)
       statement.executeUpdate()
     }
   }
@@ -129,7 +127,7 @@ internal class GoalRunnerControlStore(
   private fun selectJson(parentWorkflowId: String, column: String): String? = connection.prepareStatement(
     "SELECT $column FROM goal_runner_controls WHERE parent_workflow_id = ?",
   ).use { statement ->
-    statement.setString(1, parentWorkflowId)
+    statement.bindAll(parentWorkflowId)
     statement.executeQuery().use { rows ->
       if (rows.next()) rows.getString(1)?.takeIf(String::isNotBlank) else null
     }

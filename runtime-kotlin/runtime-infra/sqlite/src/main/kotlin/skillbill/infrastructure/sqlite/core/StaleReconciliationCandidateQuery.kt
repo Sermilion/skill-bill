@@ -1,6 +1,4 @@
 package skillbill.infrastructure.sqlite.core
-
-import skillbill.infrastructure.sqlite.telemetry.bind
 import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import java.sql.Connection
 import java.sql.ResultSet
@@ -57,7 +55,7 @@ internal fun reconciliationCandidates(
   val sessionCutoff = request.now.minus(request.sessionThresholdSeconds, ChronoUnit.SECONDS).toString()
   val goalCutoff = request.now.minus(request.goalIssueAbandonmentDays, ChronoUnit.DAYS).toString()
   return connection.prepareStatement(staleCandidateSelectionSql).use { statement ->
-    statement.bind(
+    statement.bindAll(
       sessionCutoff,
       sessionCutoff,
       sessionCutoff,

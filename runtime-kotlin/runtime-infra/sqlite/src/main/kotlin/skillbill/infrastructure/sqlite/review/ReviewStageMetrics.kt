@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.infrastructure.sqlite.PARAM_ONE
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.context.model.ReviewClaimVerdictAdmission
 import skillbill.review.context.model.ReviewSpecAdjudicationAdmission
 import skillbill.review.model.ReviewClaimVerdict
@@ -15,7 +15,7 @@ import skillbill.review.model.ReviewStageMetrics
 import skillbill.review.model.ReviewStageVerdictDistribution
 import java.sql.Connection
 
-fun aggregateReviewStageMetrics(
+internal fun aggregateReviewStageMetrics(
   connection: Connection,
   reviewRunId: String,
   runFindingCount: Int,
@@ -25,7 +25,7 @@ fun aggregateReviewStageMetrics(
   return aggregateReviewStageMetrics(verdicts, resolvedTier, runFindingCount)
 }
 
-fun aggregateReviewStageMetrics(
+internal fun aggregateReviewStageMetrics(
   verdicts: List<ReviewFindingVerdict>,
   resolvedTier: String,
   runFindingCount: Int,
@@ -63,23 +63,23 @@ fun aggregateReviewStageMetrics(
   )
 }
 
-fun resolvedTier(executionMode: ReviewExecutionMode?): String = when (executionMode) {
+internal fun resolvedTier(executionMode: ReviewExecutionMode?): String = when (executionMode) {
   ReviewExecutionMode.INLINE -> ReviewExecutionMode.INLINE.wireValue
   ReviewExecutionMode.DELEGATED -> ReviewExecutionMode.DELEGATED.wireValue
   else -> "unresolved"
 }
 
-fun fetchReviewExecutionMode(connection: Connection, reviewRunId: String): ReviewExecutionMode? =
+internal fun fetchReviewExecutionMode(connection: Connection, reviewRunId: String): ReviewExecutionMode? =
   connection.prepareStatement(
     "SELECT execution_mode FROM review_runs WHERE review_run_id = ?",
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
       if (resultSet.next()) resultSet.getString("execution_mode")?.let(ReviewExecutionMode::fromWire) else null
     }
   }
 
-fun loadReviewRunTiers(connection: Connection): Map<String, String> = connection.prepareStatement(
+internal fun loadReviewRunTiers(connection: Connection): Map<String, String> = connection.prepareStatement(
   "SELECT review_run_id, execution_mode FROM review_runs",
 ).use { statement ->
   statement.executeQuery().use { resultSet ->
@@ -94,7 +94,7 @@ fun loadReviewRunTiers(connection: Connection): Map<String, String> = connection
   }
 }
 
-fun stageMetricsByResolvedTier(connection: Connection): Map<String, ReviewStageMetrics> {
+internal fun stageMetricsByResolvedTier(connection: Connection): Map<String, ReviewStageMetrics> {
   val tiers = loadReviewRunTiers(connection)
   val grouped = linkedMapOf<String, MutableList<Pair<String, List<ReviewFindingVerdict>>>>()
   listOf("inline", "delegated", "unresolved").forEach { grouped[it] = mutableListOf() }

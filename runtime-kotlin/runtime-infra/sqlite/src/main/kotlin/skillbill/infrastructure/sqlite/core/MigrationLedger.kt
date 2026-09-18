@@ -73,8 +73,7 @@ internal object MigrationLedger {
       VALUES (?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.setInt(1, migration.version)
-      statement.setString(2, migration.name)
+      statement.bindAll(migration.version, migration.name)
       statement.executeUpdate()
     }
   }
@@ -86,8 +85,11 @@ internal object MigrationLedger {
   }
 
   private fun versionIsPrimaryKey(connection: Connection): Boolean = connection.prepareStatement(
-    "SELECT pk FROM pragma_table_info('schema_migrations') WHERE name = 'version'",
+    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
   ).use { statement ->
-    statement.executeQuery().use { resultSet -> resultSet.next() && resultSet.getInt("pk") > 0 }
+    statement.executeQuery().use { resultSet ->
+      resultSet.next() && Regex("""\bversion\s+INTEGER\s+PRIMARY\s+KEY\b""", RegexOption.IGNORE_CASE)
+        .containsMatchIn(resultSet.getString("sql").orEmpty())
+    }
   }
 }

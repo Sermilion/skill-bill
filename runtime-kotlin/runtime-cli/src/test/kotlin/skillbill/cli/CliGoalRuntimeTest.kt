@@ -3,7 +3,7 @@ package skillbill.cli
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliExecutionResult
 import skillbill.di.SkillBillVersion
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import java.sql.DriverManager
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -646,7 +646,7 @@ class CliGoalUnaddressedFindingsTest {
   @Test
   fun `an unreadable ledger reports itself instead of an affirmative zero`() {
     val fixture = goalFixture(subtaskCount = 1)
-    DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+    ensureTestDatabase(fixture.dbPath).use { connection ->
       connection.prepareStatement(
         "INSERT INTO unaddressed_findings (issue_key, workflow_id, subtask_id, review_pass_number, " +
           "finding_ordinal, severity, issue_category, location, summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",

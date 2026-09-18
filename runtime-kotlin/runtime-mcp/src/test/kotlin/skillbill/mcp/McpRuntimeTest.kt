@@ -18,7 +18,7 @@ import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.di.SkillBillVersion
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.mcp.core.McpRuntime
 import skillbill.mcp.core.importReview
@@ -183,7 +183,7 @@ class McpRuntimeTest {
 
     assertEquals("rvw-20260427-empty", importResult["review_run_id"])
     assertEquals(0, importResult["finding_count"])
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    ensureTestDatabase(dbPath).use { connection ->
       assertEquals(
         1,
         scalarInt(
@@ -291,7 +291,7 @@ class McpRuntimeTest {
     recordFeatureVerifyLifecycle(context)
     recordPrDescriptionLifecycle(context)
 
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    ensureTestDatabase(dbPath).use { connection ->
       assertLifecyclePersistence(connection)
     }
   }
@@ -373,7 +373,7 @@ class McpRuntimeTest {
     assertEquals("kotlin", payload["platform_slug"])
     assertEquals("unstaged_changes", payload["scope_type"])
 
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    ensureTestDatabase(dbPath).use { connection ->
       val outboxCount =
         connection.createStatement().use { statement ->
           statement.executeQuery(
@@ -668,7 +668,7 @@ class McpTokenEstimationTest {
     assertEquals(1, stats["estimated_token_runs_with_value"])
     assertEquals(7500.0, stats["average_estimated_total_tokens"])
     val dbPath = tempDir.resolve("metrics.db")
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    ensureTestDatabase(dbPath).use { connection ->
       assertEquals(
         1,
         scalarInt(
@@ -702,7 +702,7 @@ class McpTokenEstimationTest {
       blockedReason = "",
     )
 
-    DatabaseRuntime.ensureDatabase(tempDir.resolve("metrics.db")).use { connection ->
+    ensureTestDatabase(tempDir.resolve("metrics.db")).use { connection ->
       assertEquals(
         "review",
         scalarString(

@@ -1,17 +1,6 @@
 package skillbill.infrastructure.sqlite.review
 
-const val PARAM_FIVE: Int = 5
-const val PARAM_SIX: Int = 6
-const val PARAM_SEVEN: Int = 7
-const val PARAM_EIGHT: Int = 8
-const val PARAM_NINE: Int = 9
-const val PARAM_TEN: Int = 10
-const val PARAM_ELEVEN: Int = 11
-const val PARAM_TWELVE: Int = 12
-const val PARAM_THIRTEEN: Int = 13
-const val PARAM_FOURTEEN: Int = 14
-
-val reviewSummarySql =
+internal val reviewSummarySql =
   """
   SELECT
     review_run_id,
@@ -32,7 +21,7 @@ val reviewSummarySql =
   WHERE review_run_id = ?
   """.trimIndent()
 
-val importedFindingsSql =
+internal val importedFindingsSql =
   """
   SELECT finding_id, severity, confidence, issue_category, location, description, finding_text, lane_skill_name
   FROM findings
@@ -40,7 +29,7 @@ val importedFindingsSql =
   ORDER BY finding_id
   """.trimIndent()
 
-val reviewRunLanesSql =
+internal val reviewRunLanesSql =
   """
   SELECT
     lane_skill_name,
@@ -61,7 +50,7 @@ val reviewRunLanesSql =
   ORDER BY order_index, lane_skill_name
   """.trimIndent()
 
-val laneEffectivenessSql =
+internal val laneEffectivenessSql =
   """
   WITH latest_feedback AS (
     SELECT review_run_id, finding_id, MAX(id) AS latest_id
@@ -84,14 +73,14 @@ val laneEffectivenessSql =
   WHERE (? IS NULL OR f.review_run_id = ?)
   """.trimIndent()
 
-val findingMetadataSql =
+internal val findingMetadataSql =
   """
   SELECT finding_id, severity, confidence
   FROM findings
   WHERE review_run_id = ? AND finding_id = ?
   """.trimIndent()
 
-val numberedFindingsSql =
+internal val numberedFindingsSql =
   """
   SELECT
     f.finding_id,

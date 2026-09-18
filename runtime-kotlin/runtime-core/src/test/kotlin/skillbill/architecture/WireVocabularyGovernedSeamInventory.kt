@@ -4,6 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
+import skillbill.contracts.review.ReviewFindingPayloadKeys
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
 import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
 import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
@@ -66,10 +71,30 @@ internal object WireVocabularyGovernedSeamInventory {
         "infrastructure/sqlite/goalrunner/GoalContinuationArtifactCodec",
       ),
     ),
+    GovernedPayloadSeam(
+      seamId = "sqlite-telemetry-materialization",
+      schemaRepoRelativePath = SQLITE_TELEMETRY_MATERIALIZATION_AUTHORITY,
+      governedRelativePathMarkers = listOf(
+        "infrastructure/sqlite/telemetry/",
+      ),
+    ),
+    GovernedPayloadSeam(
+      seamId = "sqlite-review-telemetry",
+      schemaRepoRelativePath = SQLITE_REVIEW_TELEMETRY_AUTHORITY,
+      governedRelativePathMarkers = listOf(
+        "infrastructure/sqlite/review/",
+      ),
+    ),
   )
 
   const val GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY: String =
     "internal/feature-task-runtime-goal-continuation-artifact"
+
+  const val SQLITE_TELEMETRY_MATERIALIZATION_AUTHORITY: String =
+    "internal/sqlite-telemetry-materialization"
+
+  const val SQLITE_REVIEW_TELEMETRY_AUTHORITY: String =
+    "internal/sqlite-review-telemetry"
 
   fun closedSchemaPropertyKeys(schemaRepoRelativePath: String): Set<String> = when (schemaRepoRelativePath) {
     DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH -> decompositionManifestGovernedKeys(
@@ -82,8 +107,32 @@ internal object WireVocabularyGovernedSeamInventory {
       loadRepoSchema(schemaRepoRelativePath),
     )
     GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY -> goalContinuationArtifactGovernedKeys()
+    SQLITE_TELEMETRY_MATERIALIZATION_AUTHORITY -> sqliteTelemetryMaterializationGovernedKeys()
+    SQLITE_REVIEW_TELEMETRY_AUTHORITY -> sqliteReviewTelemetryGovernedKeys()
     else -> emptySet()
   }
+
+  private fun sqliteTelemetryMaterializationGovernedKeys(): Set<String> = payloadKeyValues(
+    SharedPayloadKeys::class.java,
+    LifecycleTelemetryPayloadKeys::class.java,
+    GoalTelemetryPayloadKeys::class.java,
+    SqliteLifecycleTelemetryMaterializationPayloadKeys::class.java,
+  )
+
+  private fun sqliteReviewTelemetryGovernedKeys(): Set<String> = payloadKeyValues(
+    SharedPayloadKeys::class.java,
+    SqliteReviewTelemetryPayloadKeys::class.java,
+    ReviewFindingPayloadKeys::class.java,
+  )
+
+  private fun payloadKeyValues(vararg owners: Class<*>): Set<String> = owners.flatMap { owner ->
+    owner.declaredFields
+      .filter { field -> field.type == String::class.java }
+      .map { field ->
+        field.isAccessible = true
+        field.get(null) as String
+      }
+  }.toSet()
 
   private fun goalContinuationArtifactGovernedKeys(): Set<String> = setOf(
     SharedPayloadKeys.ISSUE_KEY,

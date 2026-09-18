@@ -31,6 +31,7 @@ import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -221,6 +222,7 @@ class TelemetryLevelMutationServiceTest {
     val service = LifecycleTelemetryService(
       database = FakeTelemetryDatabaseSessionFactory(outbox),
       settingsProvider = fixture.settingsProvider,
+      clock = Clock.systemUTC(),
     )
 
     val result = service.featureTaskRuntimeStarted(

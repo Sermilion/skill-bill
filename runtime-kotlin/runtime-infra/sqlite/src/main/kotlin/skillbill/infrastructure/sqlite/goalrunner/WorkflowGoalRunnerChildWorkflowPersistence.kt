@@ -36,8 +36,8 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationAr
 import java.nio.file.Path
 
 internal data class SavedGoalChildWorkflow(
-  val state: GoalRunnerManifestState,
-  val projectionArtifactsJson: String,
+  internal val state: GoalRunnerManifestState,
+  internal val projectionArtifactsJson: String,
 )
 
 internal class WorkflowGoalRunnerChildWorkflowPersistence(
@@ -169,7 +169,6 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       ?: error("Unknown decomposed parent workflow '${state.parentWorkflowId}'.")
     existingRecord.requireRuntimeModeForEngineWrite()
     val existingParent = existingRecord.toSnapshot()
-    migrateLegacyGoalRunnerControls(unitOfWork, existingParent)
     val parentUpdated = engine.updateRecord(
       WorkflowFamily.TASK_RUNTIME.definition,
       existingParent,

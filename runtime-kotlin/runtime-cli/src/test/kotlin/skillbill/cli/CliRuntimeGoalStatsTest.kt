@@ -2,8 +2,7 @@ package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.withLifecycleTelemetryStore
 import skillbill.telemetry.model.GoalFinishedRecord
 import skillbill.telemetry.model.GoalStartedRecord
 import java.nio.file.Files
@@ -35,8 +34,7 @@ class CliRuntimeGoalStatsTest {
     val tempDir = Files.createTempDirectory("skillbill-cli-goal-stats-human")
     val dbPath = tempDir.resolve("metrics.db")
 
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val store = LifecycleTelemetryStore(connection)
+    withLifecycleTelemetryStore(tempDir, dbPath) { store ->
       store.goalStarted(
         GoalStartedRecord(
           issueKey = "SKILL-66",

@@ -3,58 +3,48 @@ package skillbill.infrastructure.sqlite.core
 import org.sqlite.SQLiteConfig
 import skillbill.error.DatabaseAccessError
 import skillbill.error.DatabaseAccessOperation
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 
-data class OpenDatabase(
-  val connection: Connection,
-  val dbPath: Path,
+internal data class OpenDatabase(
+  internal val connection: Connection,
+  internal val dbPath: Path,
 ) : AutoCloseable {
   override fun close() {
     connection.close()
   }
 }
 
-object DatabaseRuntime {
+internal object DatabaseRuntime {
   private var writeReadinessGate = DatabaseWriteReadinessGate()
 
-  internal fun resetWriteReadinessForTests() {
-    writeReadinessGate = DatabaseWriteReadinessGate()
+  fun ensureWriteReady(path: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics) {
+    val normalized = path.toAbsolutePath().normalize()
+    writeReadinessGate.ensureReady(normalized) {
+      establishSchemaReadiness(normalized, diagnostics)
+    }
   }
+  fun resolveDbPath(cliValue: String?, environment: Map<String, String>, userHome: Path): Path =
+    DatabasePaths.resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
 
-  internal fun writeReadinessEstablishmentCount(): Int = writeReadinessGate.schemaEstablishmentExecutions
-
-  fun ensureWriteReady(path: Path) {
-    writeReadinessGate.ensureReady(path.toAbsolutePath().normalize())
-  }
-  fun resolveDbPath(
-    cliValue: String?,
-    environment: Map<String, String> = System.getenv(),
-    userHome: Path = Paths.get(System.getProperty("user.home")),
-  ): Path = DatabasePaths.resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
-
-  fun openDb(
-    cliValue: String? = null,
-    environment: Map<String, String> = System.getenv(),
-    userHome: Path = Paths.get(System.getProperty("user.home")),
-  ): OpenDatabase {
+  fun openDb(cliValue: String?, environment: Map<String, String>, userHome: Path): OpenDatabase {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openDbAt(dbPath)
   }
 
-  fun openDbAt(dbPath: Path): OpenDatabase {
-    ensureWriteReady(dbPath)
+  fun openDbAt(dbPath: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics): OpenDatabase {
+    ensureWriteReady(dbPath, diagnostics)
     return openWriteDbAt(dbPath)
   }
 
   fun openWriteDbAt(dbPath: Path): OpenDatabase =
     OpenDatabase(connection = openWriteConnectionAt(dbPath), dbPath = dbPath)
 
-  fun establishSchemaReadiness(path: Path) {
+  fun establishSchemaReadiness(path: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics) {
     path.parent?.toAbsolutePath()?.normalize()?.toFile()?.mkdirs()
     asTypedFailure(path, DatabaseAccessOperation.OPEN) {
       DriverManager.getConnection("jdbc:sqlite:${path.toAbsolutePath().normalize()}").use { connection ->
@@ -62,10 +52,7 @@ object DatabaseRuntime {
           asTypedFailure(path, DatabaseAccessOperation.OPEN) {
             configureConnection(connection, enableWal = true)
             DatabaseSchema.createBaseSchema(connection)
-            DatabaseMigrations.apply(connection)
-            DatabaseColumnMigrations.apply(connection)
-            DatabaseColumnMigrations.healDiagnosticEvidenceKeys(connection)
-            DatabaseColumnMigrations.healWorkListMetadata(connection)
+            DatabaseMigrations.apply(connection, diagnostics)
           }
         }
       }
@@ -84,29 +71,21 @@ object DatabaseRuntime {
     }
   }
 
-  fun openReadDb(
-    cliValue: String? = null,
-    environment: Map<String, String> = System.getenv(),
-    userHome: Path = Paths.get(System.getProperty("user.home")),
-  ): OpenDatabase {
+  fun openReadDb(cliValue: String?, environment: Map<String, String>, userHome: Path): OpenDatabase {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openReadDbAt(dbPath)
   }
 
-  fun openReadDbAt(dbPath: Path): OpenDatabase {
+  fun openReadDbAt(dbPath: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics): OpenDatabase {
     if (!Files.exists(dbPath) || isSchemaless(dbPath)) {
-      return openDbAt(dbPath)
+      return openDbAt(dbPath, diagnostics)
     }
     return openReadOnlyDb(dbPath)
   }
 
   internal fun openReadConnectionAt(dbPath: Path): OpenDatabase = openReadOnlyDb(dbPath)
 
-  fun openReadDbIfPresent(
-    cliValue: String? = null,
-    environment: Map<String, String> = System.getenv(),
-    userHome: Path = Paths.get(System.getProperty("user.home")),
-  ): OpenDatabase? {
+  fun openReadDbIfPresent(cliValue: String?, environment: Map<String, String>, userHome: Path): OpenDatabase? {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openReadDbIfPresentAt(dbPath)
   }
@@ -166,6 +145,12 @@ object DatabaseRuntime {
   }
 }
 
+internal fun Connection.databasePath(): Path {
+  val url = metaData.url ?: error("sqlite connection url is missing")
+  val raw = url.removePrefix("jdbc:sqlite:")
+  return Path.of(raw).toAbsolutePath().normalize()
+}
+
 private fun <T> asTypedFailure(dbPath: Path, operation: DatabaseAccessOperation, block: () -> T): T = try {
   block()
 } catch (error: SQLException) {
@@ -175,12 +160,10 @@ private fun <T> asTypedFailure(dbPath: Path, operation: DatabaseAccessOperation,
 private fun <T> Connection.closingOnFailure(block: () -> T): T {
   var succeeded = false
   return try {
-    val result = block()
-    succeeded = true
-    result
+    block().also { succeeded = true }
   } finally {
     if (!succeeded) {
-      closeQuietly()
+      runCatching { close() }
     }
   }
 }
@@ -194,7 +177,3 @@ internal fun databaseAccessError(
   operation = operation,
   condition = "sqlite result code ${error.errorCode}: ${error.message.orEmpty()}",
 )
-
-internal fun Connection.closeQuietly() {
-  runCatching { close() }
-}

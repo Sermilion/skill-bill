@@ -11,6 +11,7 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.sql.Connection
+import java.time.Clock
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -68,7 +69,7 @@ internal fun assertRuntimeAndVerifyStateTransitions(
 
 internal fun prepareConcurrentWorkflowTransitions(dbPath: Path, initial: WorkflowStateRow) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-    WorkflowStateStore(connection).saveFeatureTaskRuntimeWorkflow(initial)
+    WorkflowStateStore(connection, Clock.systemUTC()).saveFeatureTaskRuntimeWorkflow(initial)
     connection.createStatement().use { statement ->
       statement.execute("CREATE TABLE workflow_transition_log (state_entered_at TEXT NOT NULL)")
       statement.execute(

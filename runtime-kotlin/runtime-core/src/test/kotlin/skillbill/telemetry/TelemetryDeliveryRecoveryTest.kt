@@ -2,8 +2,8 @@ package skillbill.telemetry
 
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.TelemetryOutboxTestHandle
+import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.TelemetryClient
@@ -319,11 +319,10 @@ class TelemetryDeliveryRecoveryTest {
     }
   }
 
-  private fun withOutbox(block: (TelemetryOutboxStore) -> Unit) {
-    val dbPath = Files.createTempDirectory("telemetry-delivery-recovery").resolve("metrics.db")
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      block(TelemetryOutboxStore(connection))
-    }
+  private fun withOutbox(block: (TelemetryOutboxTestHandle) -> Unit) {
+    val tempDir = Files.createTempDirectory("telemetry-delivery-recovery")
+    val dbPath = tempDir.resolve("metrics.db")
+    withTelemetryOutboxStore(tempDir, dbPath, block = block)
   }
 
   private fun settings(batchSize: Int = 50): TelemetrySettings = TelemetrySettings(

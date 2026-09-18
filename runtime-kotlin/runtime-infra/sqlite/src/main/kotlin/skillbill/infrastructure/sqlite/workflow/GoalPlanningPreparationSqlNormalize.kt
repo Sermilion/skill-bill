@@ -6,6 +6,7 @@ import skillbill.contracts.workflow.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -29,7 +30,7 @@ internal fun Connection.rejectLegacy(workflowId: String) {
   prepareStatement(
     "SELECT 1 FROM goal_planning_preparations WHERE parent_goal_workflow_id = ? LIMIT 1",
   ).use { s ->
-    s.setString(1, workflowId)
+    s.bindAll(workflowId)
     s.executeQuery().use {
       if (it.next()) {
         throw IncompatibleGoalPlanningPreparationRecoveryError(

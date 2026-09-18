@@ -10,6 +10,7 @@ import skillbill.model.WorkflowOpsContext
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import java.nio.file.Files
+import java.time.Clock
 import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -35,7 +36,8 @@ class RuntimeComponentInvocationSnapshotTest {
         )
       val environment = component.resolvedEnvironmentContext
       val firstDbPath =
-        component.databaseSessionFactory(environment).resolveDbPath().toAbsolutePath().normalize()
+        component.databaseSessionFactory(environment, Clock.systemUTC(), component.runtimeDiagnostics)
+          .resolveDbPath().toAbsolutePath().normalize()
       val firstConfigPath = component.telemetryConfigStorePort.configPath().toAbsolutePath().normalize()
       assertEquals(homeA, environment.userHome.toAbsolutePath().normalize())
 
@@ -43,7 +45,11 @@ class RuntimeComponentInvocationSnapshotTest {
       component.runtimeContext()
       val afterMutationEnvironment = component.resolvedEnvironmentContext
       val secondDbPath =
-        component.databaseSessionFactory(afterMutationEnvironment).resolveDbPath().toAbsolutePath().normalize()
+        component.databaseSessionFactory(
+          afterMutationEnvironment,
+          Clock.systemUTC(),
+          component.runtimeDiagnostics,
+        ).resolveDbPath().toAbsolutePath().normalize()
       val secondConfigPath = component.telemetryConfigStorePort.configPath().toAbsolutePath().normalize()
 
       assertEquals(homeA, afterMutationEnvironment.userHome.toAbsolutePath().normalize())
@@ -124,8 +130,16 @@ class RuntimeComponentInvocationSnapshotTest {
       componentB.featureTaskRuntimeWorkerCoordinator,
     )
     assertNotSame(
-      componentA.databaseSessionFactory(componentA.resolvedEnvironmentContext),
-      componentB.databaseSessionFactory(componentB.resolvedEnvironmentContext),
+      componentA.databaseSessionFactory(
+        componentA.resolvedEnvironmentContext,
+        Clock.systemUTC(),
+        componentA.runtimeDiagnostics,
+      ),
+      componentB.databaseSessionFactory(
+        componentB.resolvedEnvironmentContext,
+        Clock.systemUTC(),
+        componentB.runtimeDiagnostics,
+      ),
     )
   }
 }

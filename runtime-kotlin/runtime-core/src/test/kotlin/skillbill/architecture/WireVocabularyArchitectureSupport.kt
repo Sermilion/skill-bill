@@ -118,7 +118,7 @@ internal object WireVocabularyArchitectureSupport {
   ): List<String> = buildList {
     addAll(duplicateDeclarations(declarations))
     if (context.enforceGovernedSeams) {
-      addAll(governedSeamViolations(context.governedKeys, context.keyValues))
+      addAll(governedSeamViolations(files, context.governedKeys, context.keyValues))
     }
     files.forEach { file ->
       addAll(localVocabularyRestatements(file, context.tokenValues, declarations))
@@ -136,8 +136,17 @@ internal object WireVocabularyArchitectureSupport {
     }
   }.distinct().sorted()
 
-  private fun governedSeamViolations(governedKeys: Map<String, Set<String>>, keyValues: Set<String>): List<String> =
-    WireVocabularyGovernedSeamInventory.seams.flatMap { seam ->
+  private fun governedSeamViolations(
+    files: List<SourceFile>,
+    governedKeys: Map<String, Set<String>>,
+    keyValues: Set<String>,
+  ): List<String> = WireVocabularyGovernedSeamInventory.seams
+    .filter { seam ->
+      seam.governedRelativePathMarkers.any { marker ->
+        files.any { file -> marker in file.relativePath }
+      }
+    }
+    .flatMap { seam ->
       WireVocabularyGovernedSeamInventory.schemaFieldsMissingKotlinOwner(
         governedKeys.getValue(seam.schemaRepoRelativePath),
         seam.schemaRepoRelativePath,

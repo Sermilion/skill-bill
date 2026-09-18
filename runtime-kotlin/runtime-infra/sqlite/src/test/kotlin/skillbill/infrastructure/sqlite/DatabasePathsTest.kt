@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite
 
+import skillbill.infrastructure.sqlite.core.DatabasePaths
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.core.DbConstants
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -17,7 +17,7 @@ class DatabasePathsTest {
     val resolved =
       DatabaseRuntime.resolveDbPath(
         cliValue = "./custom/metrics.db",
-        environment = mapOf(DbConstants.DB_ENVIRONMENT_KEY to "/tmp/env-metrics.db"),
+        environment = mapOf(DatabasePaths.DB_ENVIRONMENT_KEY to "/tmp/env-metrics.db"),
         userHome = Path.of("/tmp/home"),
       )
 
@@ -29,7 +29,7 @@ class DatabasePathsTest {
     val resolved =
       DatabaseRuntime.resolveDbPath(
         cliValue = null,
-        environment = mapOf(DbConstants.DB_ENVIRONMENT_KEY to "~/metrics.db"),
+        environment = mapOf(DatabasePaths.DB_ENVIRONMENT_KEY to "~/metrics.db"),
         userHome = Path.of("/tmp/home"),
       )
 
@@ -57,14 +57,19 @@ class DatabasePathsTest {
     assertEquals(0, Files.size(dbPath), "The regression starts from a genuinely zero-byte file.")
 
     listOf(
-      DatabaseRuntime.resolveDbPath(cliValue = dbPath.toString(), environment = emptyMap()),
+      DatabaseRuntime.resolveDbPath(cliValue = dbPath.toString(), environment = emptyMap(), userHome = workingDir),
       DatabaseRuntime.resolveDbPath(
         cliValue = null,
-        environment = mapOf(DbConstants.DB_ENVIRONMENT_KEY to dbPath.toString()),
+        environment = mapOf(DatabasePaths.DB_ENVIRONMENT_KEY to dbPath.toString()),
+        userHome = workingDir,
       ),
     ).forEach { resolved ->
       assertEquals(dbPath.toAbsolutePath().normalize(), resolved)
-      DatabaseRuntime.openReadDb(cliValue = resolved.toString(), environment = emptyMap()).use { open ->
+      DatabaseRuntime.openReadDb(
+        cliValue = resolved.toString(),
+        environment = emptyMap(),
+        userHome = workingDir,
+      ).use { open ->
         assertTrue(
           tableNames(open.connection).containsAll(setOf("review_runs", "findings", "telemetry_outbox")),
           "A schema-less file must be migrated to schema-complete, not reported as an empty store.",
@@ -75,19 +80,29 @@ class DatabasePathsTest {
 
   @Test
   fun `openReadDb on an absent path still bootstraps a schema-complete database`() {
-    val dbPath = Files.createTempDirectory("runtime-kotlin-absent-store").resolve("review-metrics.db")
+    val workingDir = Files.createTempDirectory("runtime-kotlin-absent-store")
+    val dbPath = workingDir.resolve("review-metrics.db")
 
-    DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap()).use { open ->
+    DatabaseRuntime.openReadDb(
+      cliValue = dbPath.toString(),
+      environment = emptyMap(),
+      userHome = workingDir,
+    ).use { open ->
       assertTrue(tableNames(open.connection).containsAll(setOf("review_runs", "findings")))
     }
   }
 
   @Test
   fun `openReadDb keeps a schema-complete database read-only`() {
-    val dbPath = Files.createTempDirectory("runtime-kotlin-readonly-store").resolve("review-metrics.db")
+    val workingDir = Files.createTempDirectory("runtime-kotlin-readonly-store")
+    val dbPath = workingDir.resolve("review-metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).close()
 
-    DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap()).use { open ->
+    DatabaseRuntime.openReadDb(
+      cliValue = dbPath.toString(),
+      environment = emptyMap(),
+      userHome = workingDir,
+    ).use { open ->
       assertFailsWith<SQLException>("An already-complete store must not gain write capability.") {
         open.connection.createStatement().use { statement ->
           statement.executeUpdate("INSERT INTO review_runs (review_run_id, routed_skill) VALUES ('rvw-x', 's')")

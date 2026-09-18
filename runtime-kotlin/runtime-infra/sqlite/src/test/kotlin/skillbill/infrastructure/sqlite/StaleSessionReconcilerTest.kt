@@ -11,6 +11,7 @@ import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import java.nio.file.Files
 import java.sql.Connection
+import java.time.Clock
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -111,7 +112,7 @@ class StaleSessionReconcilerTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       seedStaleLifecycleSessions(connection)
 
-      val reconciled = reconcileStaleTelemetrySessions(connection, level = "full")
+      val reconciled = reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full")
 
       assertEquals(0, reconciled.featureImplementSessions)
       assertEquals(1, reconciled.featureTaskRuntimeSessions)
@@ -130,7 +131,7 @@ class StaleSessionReconcilerTest {
       assertEquals("stale", payload(connection, "skillbill_feature_verify_finished")["completion_status"])
       assertEquals("stale", payload(connection, "skillbill_quality_check_finished")["result"])
 
-      val repeated = reconcileStaleTelemetrySessions(connection, level = "full")
+      val repeated = reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full")
 
       assertEquals(0, repeated.emittedTerminalEvents)
       assertEquals(1, eventCount(connection, "skillbill_feature_task_runtime_finished"))
@@ -144,7 +145,7 @@ class StaleSessionReconcilerTest {
     val dbPath = Files.createTempDirectory("stale-reconciler-late-finish").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       seedStaleLifecycleSessions(connection)
-      reconcileStaleTelemetrySessions(connection, level = "full")
+      reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full")
 
       val store = LifecycleTelemetryStore(connection)
       store.featureTaskRuntimeFinished(featureTaskRuntimeFinishedRecord("ftr-stale"), level = "full")
@@ -183,7 +184,8 @@ class StaleSessionReconcilerTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       seedAbandonedGoalIssueCandidates(connection)
 
-      val reconciled = reconcileStaleTelemetrySessions(connection, level = "full", goalIssueAbandonmentDays = 14)
+      val reconciled =
+        reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
 
       assertEquals(1, reconciled.goalIssueAbandonedSessions)
       assertEquals(1, reconciled.emittedTerminalEvents)
@@ -202,7 +204,8 @@ class StaleSessionReconcilerTest {
       assertEquals(null, goalColumnValue(connection, "SKILL-111", "status"))
       assertEquals(null, goalColumnValue(connection, "SKILL-110", "status"))
 
-      val repeated = reconcileStaleTelemetrySessions(connection, level = "full", goalIssueAbandonmentDays = 14)
+      val repeated =
+        reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
 
       assertEquals(0, repeated.goalIssueAbandonedSessions)
       assertEquals(1, eventCount(connection, "skillbill_goal_issue_finished"))
@@ -223,7 +226,7 @@ class StaleSessionReconcilerTest {
         statement.executeUpdate()
       }
 
-      reconcileStaleTelemetrySessions(connection, level = "full", goalIssueAbandonmentDays = 14)
+      reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
 
       assertEquals("abandoned", goalColumnValue(connection, "SKILL-109", "status"))
       assertTrue(
@@ -317,7 +320,7 @@ class StaleSessionReconcilerTest {
         )
       }
 
-      val reconciled = reconcileStaleTelemetrySessions(connection, level = "full")
+      val reconciled = reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full")
 
       assertEquals(0, reconciled.featureTaskRuntimeSessions)
       assertEquals(null, columnValue(connection, "feature_task_runtime_sessions", "ftr-active", "finished_at"))

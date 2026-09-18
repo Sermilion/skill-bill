@@ -29,6 +29,7 @@ dependencies {
   testImplementation(project(":runtime-infra:workflow"))
   testImplementation(project(":runtime-infra:http"))
   testImplementation(project(":runtime-infra:sqlite"))
+  testImplementation(testFixtures(project(":runtime-infra:sqlite")))
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
 }

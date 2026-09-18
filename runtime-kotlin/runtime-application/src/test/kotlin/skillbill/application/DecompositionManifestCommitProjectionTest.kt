@@ -41,6 +41,7 @@ import skillbill.workflow.model.WorkflowStatus
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -493,6 +494,7 @@ class DecompositionManifestCommitProjectionTest {
       repositoryRoot = RepositoryRoot(repoRoot),
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.open(

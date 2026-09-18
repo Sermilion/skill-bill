@@ -57,6 +57,7 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
 import skillbill.ports.validation.RepoValidationGateway
+import java.time.Clock
 
 @RuntimeSingleton
 @Component
@@ -106,8 +107,11 @@ abstract class RuntimeComponent(
     RuntimeBootstrapBindings.repositoryEnclosingRootPort()
 
   @Provides @RuntimeSingleton @JvmSynthetic
-  fun databaseSessionFactory(context: EnvironmentContext): DatabaseSessionFactory =
-    RuntimeBootstrapBindings.databaseSessionFactory(context)
+  fun databaseSessionFactory(
+    context: EnvironmentContext,
+    clock: Clock,
+    diagnostics: RuntimeDiagnostics,
+  ): DatabaseSessionFactory = RuntimeBootstrapBindings.databaseSessionFactory(context, clock, diagnostics)
 
   @Provides @JvmSynthetic
   fun interruptSignal(): InterruptSignalPort = JvmInterruptSignalPort

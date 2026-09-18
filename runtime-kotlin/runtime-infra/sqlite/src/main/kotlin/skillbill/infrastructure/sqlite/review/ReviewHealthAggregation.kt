@@ -1,18 +1,19 @@
 package skillbill.infrastructure.sqlite.review
 
 import skillbill.contracts.review.ReviewFindingPayloadKeys
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.review.model.FindingOutcomeType
 
 private val reviewHealthSources = listOf("standalone", "embedded", "malformed", UNKNOWN_REVIEW_HEALTH_SOURCE)
-private val reviewHealthOutcomes =
-  listOf("finding_accepted", "fix_applied", "finding_edited", "fix_rejected", "false_positive")
+private val reviewHealthOutcomes = FindingOutcomeType.entries.map { it.wireValue }
 
-fun aggregateLatestOutcomeCounts(payloads: List<ReviewHealthPayload>): Map<String, Int> {
+internal fun aggregateLatestOutcomeCounts(payloads: List<ReviewHealthPayload>): Map<String, Int> {
   val counts = reviewHealthOutcomes.associateWith { 0 }.toMutableMap()
   payloads.forEach { payload ->
-    val latestOutcomeCounts = payload.payload["latest_outcome_counts"] as? Map<*, *>
+    val latestOutcomeCounts = payload.payload[SqliteReviewTelemetryPayloadKeys.LATEST_OUTCOME_COUNTS] as? Map<*, *>
     if (latestOutcomeCounts == null) {
       reviewFindingDetails(payload.payload).forEach { detail ->
-        addOutcomeCount(counts, detail["outcome_type"]?.toString().orEmpty(), 1)
+        addOutcomeCount(counts, detail[SqliteReviewTelemetryPayloadKeys.OUTCOME_TYPE]?.toString().orEmpty(), 1)
       }
     } else {
       latestOutcomeCounts.forEach { (key, value) -> addOutcomeCount(counts, key?.toString().orEmpty(), value.asInt()) }
@@ -21,7 +22,7 @@ fun aggregateLatestOutcomeCounts(payloads: List<ReviewHealthPayload>): Map<Strin
   return counts.toMap()
 }
 
-fun aggregateFindingDetailCounts(
+internal fun aggregateFindingDetailCounts(
   payloads: List<ReviewHealthPayload>,
   fieldName: String,
   expectedValues: List<String>,
@@ -38,7 +39,7 @@ fun aggregateFindingDetailCounts(
   return counts.toMap()
 }
 
-fun aggregatePayloadValueCounts(
+internal fun aggregatePayloadValueCounts(
   payloads: List<ReviewHealthPayload>,
   fieldName: String,
   expectedValues: List<String>,
@@ -52,24 +53,27 @@ fun aggregatePayloadValueCounts(
   return counts.toMap()
 }
 
-fun countReviewHealthSources(payloads: List<ReviewHealthPayload>, malformedRecords: Int): Map<String, Int> {
+internal fun countReviewHealthSources(payloads: List<ReviewHealthPayload>, malformedRecords: Int): Map<String, Int> {
   val counts = reviewHealthSources.associateWith { 0 }.toMutableMap()
   payloads.forEach { payload ->
     val source = payload.source.takeIf(counts::containsKey) ?: UNKNOWN_REVIEW_HEALTH_SOURCE
     counts[source] = counts.getValue(source) + 1
   }
-  counts["malformed"] = malformedRecords
+  counts[SqliteReviewTelemetryPayloadKeys.MALFORMED] = malformedRecords
   return counts.toMap()
 }
 
-const val UNKNOWN_REVIEW_HEALTH_SOURCE: String = "unknown"
+internal const val UNKNOWN_REVIEW_HEALTH_SOURCE: String = "unknown"
 
-fun aggregateCategorySeverityCrossTab(payloads: List<ReviewHealthPayload>): Map<String, Map<String, Int>> {
+internal fun aggregateCategorySeverityCrossTab(payloads: List<ReviewHealthPayload>): Map<String, Map<String, Int>> {
   val crossTab = mutableMapOf<String, MutableMap<String, Int>>()
   payloads.forEach { payload ->
     reviewFindingDetails(payload.payload).forEach { detail ->
       val category = detail[ReviewFindingPayloadKeys.ISSUE_CATEGORY]?.toString().orEmpty()
-      val severity = normalizeFindingDetailValue("severity", detail["severity"]?.toString().orEmpty())
+      val severity = normalizeFindingDetailValue(
+        "severity",
+        detail[SqliteReviewTelemetryPayloadKeys.SEVERITY]?.toString().orEmpty(),
+      )
       if (category.isNotBlank() && severity.isNotBlank()) {
         crossTab.getOrPut(category) { mutableMapOf() }[severity] =
           crossTab.getValue(category).getOrDefault(severity, 0) + 1
@@ -85,9 +89,17 @@ private fun addOutcomeCount(counts: MutableMap<String, Int>, key: String, count:
   }
 }
 
-private fun reviewFindingDetails(payload: Map<String, Any?>): List<Map<*, *>> =
-  (payload["accepted_finding_details"] as? List<*>).orEmpty().filterIsInstance<Map<*, *>>() +
-    (payload["rejected_finding_details"] as? List<*>).orEmpty().filterIsInstance<Map<*, *>>()
+private fun reviewFindingDetails(payload: Map<String, Any?>): List<Map<*, *>> {
+  val accepted =
+    (payload[SqliteReviewTelemetryPayloadKeys.ACCEPTED_FINDING_DETAILS] as? List<*>)
+      .orEmpty()
+      .filterIsInstance<Map<*, *>>()
+  val rejected =
+    (payload[SqliteReviewTelemetryPayloadKeys.REJECTED_FINDING_DETAILS] as? List<*>)
+      .orEmpty()
+      .filterIsInstance<Map<*, *>>()
+  return accepted + rejected
+}
 
 private fun normalizeFindingDetailValue(fieldName: String, value: String): String = when (fieldName) {
   "confidence" -> when (value.lowercase()) {

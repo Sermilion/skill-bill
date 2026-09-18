@@ -8,8 +8,10 @@ import skillbill.model.EnvironmentContext
 import skillbill.model.RepositoryRoot
 import skillbill.model.RuntimeContext
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import java.nio.file.Path
+import java.time.Clock
 
 internal object RuntimeBootstrapBindings {
   fun repositoryEnclosingRootPort(): RepositoryEnclosingRootPort = CanonicalRepositoryRoot
@@ -58,6 +60,9 @@ internal object RuntimeBootstrapBindings {
 
   fun repositoryRoot(context: EnvironmentContext): RepositoryRoot = RepositoryRoot(context.repositoryRoot)
 
-  fun databaseSessionFactory(context: EnvironmentContext): DatabaseSessionFactory =
-    SQLiteDatabaseSessionFactory(context)
+  fun databaseSessionFactory(
+    context: EnvironmentContext,
+    clock: Clock,
+    diagnostics: RuntimeDiagnostics,
+  ): DatabaseSessionFactory = SQLiteDatabaseSessionFactory(context, clock, diagnostics)
 }

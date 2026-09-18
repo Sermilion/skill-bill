@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.core
 
+import skillbill.infrastructure.sqlite.workflow.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION
 import java.sql.Connection
 
 internal object DatabaseColumnMigrationsEnsure {
@@ -52,7 +53,7 @@ internal object DatabaseColumnMigrationsEnsure {
       connection = connection,
       tableName = "feature_verify_workflows",
       columnName = "contract_version",
-      definition = "TEXT NOT NULL DEFAULT '${DbConstants.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION}'",
+      definition = "TEXT NOT NULL DEFAULT '$FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION'",
     )
   }
 

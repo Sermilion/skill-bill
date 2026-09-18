@@ -3,7 +3,6 @@ package skillbill.infrastructure.sqlite
 import org.sqlite.SQLiteException
 import skillbill.error.DatabaseAccessError
 import skillbill.error.DatabaseAccessOperation
-import skillbill.model.EnvironmentContext
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager
@@ -109,11 +108,6 @@ class SQLiteDatabaseSessionFactoryTypedFailureTest {
   private fun unopenableDatabasePath(tempDir: Path): Path =
     tempDir.resolve("unopenable.db").also { it.createDirectories() }
 
-  private fun boundDatabase(tempDir: Path, dbPath: Path): SQLiteDatabaseSessionFactory = SQLiteDatabaseSessionFactory(
-    EnvironmentContext(
-      dbPathOverride = dbPath.toString(),
-      environment = emptyMap(),
-      userHome = tempDir,
-    ),
-  )
+  private fun boundDatabase(tempDir: Path, dbPath: Path): SQLiteDatabaseSessionFactory =
+    sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
 }

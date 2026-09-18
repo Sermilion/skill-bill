@@ -10,9 +10,8 @@ import skillbill.contracts.JsonCodec
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
 import skillbill.error.InvalidInstallPlanSchemaError
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.core.DbConstants
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.SqliteTestDatabasePaths
+import skillbill.infrastructure.sqlite.sqliteSessionFactoryForTests
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
@@ -209,11 +208,11 @@ class CliInstallPlanApplyRuntimeTest {
     val componentHome = Files.createTempDirectory("skillbill-cli-install-component-home")
     val fixture = installPlanApplyFixture()
     val overrideDb = Files.createTempFile("skillbill-cli-install-override", ".db")
-    val componentDb = DbConstants.defaultDbPath(componentHome)
+    val componentDb = SqliteTestDatabasePaths.defaultDbPath(componentHome)
     val componentConfig = writeTelemetryConfig(componentHome, "full")
     val overrideConfig = writeTelemetryConfig(fixture.home, "full")
-    enqueueTelemetryEvent(componentDb)
-    enqueueTelemetryEvent(overrideDb)
+    enqueueTelemetryEvent(componentDb, componentHome)
+    enqueueTelemetryEvent(overrideDb, fixture.home)
 
     val result = CliRuntime.run(
       listOf(
@@ -255,8 +254,8 @@ class CliInstallPlanApplyRuntimeTest {
     assertTrue("\"level\":\"off\"" in disabledConfig, disabledConfig)
     assertTrue("\"install_id\":\"test-install-id\"" in disabledConfig, disabledConfig)
     assertTrue(Files.exists(componentConfig))
-    assertEquals(0, pendingTelemetryEvents(overrideDb))
-    assertEquals(1, pendingTelemetryEvents(componentDb))
+    assertEquals(0, pendingTelemetryEvents(overrideDb, fixture.home))
+    assertEquals(1, pendingTelemetryEvents(componentDb, componentHome))
   }
 
   @Test
@@ -956,15 +955,15 @@ private fun createDetectedAgentHomes(home: Path) {
   Files.createDirectories(home.resolve(".cursor"))
 }
 
-private fun enqueueTelemetryEvent(dbPath: Path) {
-  DatabaseRuntime.openDb(cliValue = dbPath.toString(), environment = emptyMap()).use { db ->
-    TelemetryOutboxStore(db.connection).enqueue("test.event", """{"ok":true}""")
+private fun enqueueTelemetryEvent(dbPath: Path, userHome: Path) {
+  sqliteSessionFactoryForTests(userHome, dbPath.toString(), environment = emptyMap()).transaction {
+    it.telemetryOutbox.enqueue("test.event", """{"ok":true}""")
   }
 }
 
-private fun pendingTelemetryEvents(dbPath: Path): Int =
-  DatabaseRuntime.openDb(cliValue = dbPath.toString(), environment = emptyMap()).use { db ->
-    TelemetryOutboxStore(db.connection).pendingCount()
+private fun pendingTelemetryEvents(dbPath: Path, userHome: Path): Int =
+  sqliteSessionFactoryForTests(userHome, dbPath.toString(), environment = emptyMap()).read {
+    it.telemetryOutbox.pendingCount()
   }
 
 private data class InstallPlanApplyFixture(

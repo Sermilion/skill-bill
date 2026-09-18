@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.error.DatabaseAccessError
+import skillbill.error.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.model.EnvironmentContext
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
@@ -24,6 +24,50 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SQLiteDatabaseSessionFactoryTest {
+  @Test
+  fun `transaction maps write SQLException to DatabaseAccessError`() {
+    val tempDir = Files.createTempDirectory("skillbill-write-sql")
+    val dbPath = tempDir.resolve("metrics.db")
+    val database = boundDatabase(tempDir, dbPath)
+
+    val error = assertFailsWith<DatabaseAccessError> {
+      database.transaction { unitOfWork ->
+        val connection = unitOfWork::class.java.getDeclaredField("connection").apply { isAccessible = true }
+          .get(unitOfWork) as Connection
+        connection.createStatement().use {
+          it.execute("INSERT INTO missing_write_probe_table VALUES (1)")
+        }
+      }
+    }
+    assertEquals(DatabaseAccessOperation.WRITE, error.operation)
+  }
+
+  @Test
+  fun `repository SQLException inside transaction is typed and rolls back prior repository writes`() {
+    val tempDir = Files.createTempDirectory("skillbill-repository-write-sql")
+    val dbPath = tempDir.resolve("metrics.db")
+    val database = boundDatabase(tempDir, dbPath)
+    val workflowId = "wftr-repository-rollback"
+
+    val error = assertFailsWith<DatabaseAccessError> {
+      database.transaction { unitOfWork ->
+        unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflowRecord(workflowId))
+        val connection = unitOfWork::class.java.getDeclaredField("connection").apply { isAccessible = true }
+          .get(unitOfWork) as Connection
+        connection.createStatement().use { statement ->
+          statement.execute("DROP TABLE feature_task_workflows")
+        }
+        unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)
+      }
+    }
+
+    assertEquals(DatabaseAccessOperation.WRITE, error.operation)
+    assertEquals(
+      null,
+      database.read { it.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus },
+    )
+  }
+
   @Test
   fun `transaction rolls back repository writes when the use case fails`() {
     val tempDir = Files.createTempDirectory("skillbill-sqlite-session")
@@ -74,10 +118,7 @@ class SQLiteDatabaseSessionFactoryTest {
   @Test
   fun `bound context without override selects the default database path`() {
     val tempDir = Files.createTempDirectory("skillbill-sqlite-default-path")
-    val database =
-      SQLiteDatabaseSessionFactory(
-        EnvironmentContext(environment = emptyMap(), userHome = tempDir),
-      )
+    val database = sqliteDatabaseSessionFactory(userHome = tempDir, environment = emptyMap())
 
     assertEquals(
       tempDir.resolve(".skill-bill/review-metrics.db").toAbsolutePath().normalize(),
@@ -428,13 +469,8 @@ class SQLiteDatabaseSessionFactoryTest {
     }
   }
 
-  private fun boundDatabase(tempDir: Path, dbPath: Path): SQLiteDatabaseSessionFactory = SQLiteDatabaseSessionFactory(
-    EnvironmentContext(
-      dbPathOverride = dbPath.toString(),
-      environment = emptyMap(),
-      userHome = tempDir,
-    ),
-  )
+  private fun boundDatabase(tempDir: Path, dbPath: Path): SQLiteDatabaseSessionFactory =
+    sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
 
   private fun workflowStatus(connection: Connection, workflowId: String): String? = connection
     .prepareStatement("SELECT workflow_status FROM feature_task_workflows WHERE workflow_id = ?")

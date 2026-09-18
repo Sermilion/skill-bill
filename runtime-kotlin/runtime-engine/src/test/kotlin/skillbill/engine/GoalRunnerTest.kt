@@ -65,8 +65,8 @@ import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.install.model.InstallAgent
-import skillbill.model.EnvironmentContext
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
@@ -173,12 +173,10 @@ class GoalRunnerTest {
   @Test
   fun `sqlite goal runner resume preserves completed subtask state`() {
     val root = Files.createTempDirectory("goal-runner-sqlite-resume")
-    val database = SQLiteDatabaseSessionFactory(
-      EnvironmentContext(
-        dbPathOverride = root.resolve("runtime.db").toString(),
-        environment = emptyMap(),
-        userHome = root,
-      ),
+    val database = sqliteDatabaseSessionFactory(
+      userHome = root,
+      dbPathOverride = root.resolve("runtime.db").toString(),
+      environment = emptyMap(),
     )
     val workflowId = "goal-parent-sqlite-resume"
     seedGoalRunnerResumeWorkflow(database, workflowId)

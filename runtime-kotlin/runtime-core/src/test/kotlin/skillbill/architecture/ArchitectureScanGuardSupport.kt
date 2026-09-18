@@ -21,7 +21,10 @@ private val AMBIENT_CLOCK_FORMS: List<Pair<Regex, String>> = listOf(
   Regex("""\bInstant\.now\s*\(""") to "Instant.now()",
   Regex("""\bLocalDateTime\.now\s*\(""") to "LocalDateTime.now()",
   Regex("""\bLocalDate\.now\s*\(""") to "LocalDate.now()",
+  Regex("""\bOffsetDateTime\.now\s*\(""") to "OffsetDateTime.now()",
+  Regex("""\bZonedDateTime\.now\s*\(""") to "ZonedDateTime.now()",
   Regex("""\bClock\.systemUTC\s*\(""") to "Clock.systemUTC()",
+  Regex("""\bJvmSystemClock\.instant\s*\(""") to "JvmSystemClock.instant()",
 )
 
 private val AMBIENT_ENVIRONMENT_FORMS: List<Pair<Regex, String>> = listOf(

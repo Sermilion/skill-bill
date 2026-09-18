@@ -1,7 +1,10 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.ShellContentContractException
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import java.sql.Connection
@@ -30,7 +33,7 @@ internal fun Connection.getWorkflowRow(tableName: String, workflowId: String): W
       WHERE workflow_id = ?
   """.trimIndent(),
 ).use { statement ->
-  statement.setString(1, workflowId)
+  statement.bindAll(workflowId)
   statement.executeQuery().use { resultSet ->
     if (!resultSet.next()) {
       return null
@@ -62,7 +65,7 @@ internal fun Connection.getFeatureTaskWorkflowRow(workflowId: String): WorkflowS
       WHERE workflow_id = ?
   """.trimIndent(),
 ).use { statement ->
-  statement.setString(1, workflowId)
+  statement.bindAll(workflowId)
   statement.executeQuery().use { resultSet ->
     if (!resultSet.next()) {
       return null
@@ -96,7 +99,7 @@ internal fun Connection.getWorkflowRows(tableName: String, workflowIds: Set<Stri
     WHERE workflow_id IN (${workflowIds.workflowSqlPlaceholders()})
     """.trimIndent(),
   ).use { statement ->
-    statement.bindWorkflowIdsForQuery(workflowIds)
+    statement.bindAll(workflowIds)
     statement.executeQuery().use { resultSet ->
       buildMap {
         while (resultSet.next()) {
@@ -138,8 +141,7 @@ internal fun Connection.getFeatureTaskWorkflowRows(
     WHERE mode = ? AND workflow_id IN (${workflowIds.workflowSqlPlaceholders()})
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, mode.wireValue)
-    statement.bindWorkflowIdsForQuery(workflowIds, startIndex = 2)
+    statement.bindAll(listOf(mode.wireValue) + workflowIds)
     statement.executeQuery().use { resultSet ->
       buildMap {
         while (resultSet.next()) {
@@ -150,6 +152,22 @@ internal fun Connection.getFeatureTaskWorkflowRows(
     }
   }
 }
+
+internal fun decodeWorkflowStringList(rawValue: String?): List<String> {
+  if (rawValue.isNullOrBlank()) {
+    return emptyList()
+  }
+  val parsed = try {
+    JsonCodec.parseJsonArrayStrict(rawValue.trim())
+  } catch (_: ShellContentContractException) {
+    throw InvalidWorkflowStateSchemaError("spec_input_types must be a JSON array")
+  }
+  return parsed.map { element ->
+    element as? String ?: throw InvalidWorkflowStateSchemaError("spec_input_types entries must be strings")
+  }
+}
+
+internal fun Set<String>.workflowSqlPlaceholders(): String = joinToString(",") { "?" }
 
 internal fun Connection.listWorkflowRows(tableName: String, limit: Int): List<WorkflowStateRecord> {
   val normalizedLimit = limit.coerceAtLeast(0)
@@ -175,7 +193,7 @@ internal fun Connection.listWorkflowRows(tableName: String, limit: Int): List<Wo
     LIMIT ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setInt(1, normalizedLimit)
+    statement.bindAll(normalizedLimit)
     statement.executeQuery().use { resultSet ->
       buildList {
         while (resultSet.next()) {
@@ -229,8 +247,7 @@ internal fun Connection.listFeatureTaskWorkflowRows(
     LIMIT ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, mode.wireValue)
-    statement.setInt(2, normalizedLimit)
+    statement.bindAll(mode.wireValue, normalizedLimit)
     statement.executeQuery().use { resultSet ->
       buildList {
         while (resultSet.next()) {

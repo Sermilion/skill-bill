@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite.review
-
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.review.model.GoalBlockedSubtaskSummary
 import skillbill.review.model.GoalModeStats
@@ -23,12 +23,12 @@ private val goalSubtaskStatuses = listOf(
   DecompositionStatus.SKIPPED,
 )
 
-fun loadGoalRows(connection: Connection, tableName: String): List<Map<String, Any?>> =
+internal fun loadGoalRows(connection: Connection, tableName: String): List<Map<String, Any?>> =
   connection.prepareStatement("SELECT * FROM $tableName").use { statement ->
     statement.executeQuery().use(::collectRows)
   }
 
-fun buildGoalStats(runRows: List<Map<String, Any?>>, subtaskRows: List<Map<String, Any?>>): GoalWorkflowStats {
+internal fun buildGoalStats(runRows: List<Map<String, Any?>>, subtaskRows: List<Map<String, Any?>>): GoalWorkflowStats {
   val runs = runRows.map(::parseGoalRunRow)
   val subtasks = subtaskRows.map(::parseGoalSubtaskRow)
   val finished = runs.filter { it.finishedAt.isNotBlank() }
@@ -116,34 +116,34 @@ private fun buildByModeStats(runs: List<GoalRunRow>): Map<String, GoalModeStats>
   }
 
 internal data class GoalRunRow(
-  val workflowId: String,
-  val issueKey: String,
-  val featureName: String,
-  val subtaskTotal: Int,
-  val resumed: Boolean,
-  val startedAt: String,
-  val status: String,
-  val workflowStatus: WorkflowStatus?,
-  val finishedAt: String,
-  val durationMs: Long,
-  val mode: String,
-  val parentWorkflowId: String?,
+  internal val workflowId: String,
+  internal val issueKey: String,
+  internal val featureName: String,
+  internal val subtaskTotal: Int,
+  internal val resumed: Boolean,
+  internal val startedAt: String,
+  internal val status: String,
+  internal val workflowStatus: WorkflowStatus?,
+  internal val finishedAt: String,
+  internal val durationMs: Long,
+  internal val mode: String,
+  internal val parentWorkflowId: String?,
 )
 
 internal data class GoalSubtaskRow(
-  val subtaskId: Int,
-  val subtaskName: String,
-  val issueKey: String,
-  val blockedReason: String?,
-  val status: String,
-  val decompositionStatus: DecompositionStatus?,
-  val durationMs: Long,
-  val attemptCount: Int,
+  internal val subtaskId: Int,
+  internal val subtaskName: String,
+  internal val issueKey: String,
+  internal val blockedReason: String?,
+  internal val status: String,
+  internal val decompositionStatus: DecompositionStatus?,
+  internal val durationMs: Long,
+  internal val attemptCount: Int,
 )
 
 private fun parseGoalRunRow(row: Map<String, Any?>): GoalRunRow {
   val identity = "goal_run_sessions[workflow_id=${row[SharedPayloadKeys.WORKFLOW_ID] ?: "<null>"}]"
-  val finishedAtRaw = row["finished_at"]?.toString().orEmpty()
+  val finishedAtRaw = row[GoalTelemetryPayloadKeys.FINISHED_AT]?.toString().orEmpty()
   val finished = finishedAtRaw.isNotBlank()
   if (finished) {
     row.requireNonNegativeInt("subtasks_complete", identity)
@@ -163,7 +163,7 @@ private fun parseGoalRunRow(row: Map<String, Any?>): GoalRunRow {
     finishedAt = finishedAtRaw,
     durationMs = if (finished) row.requireNonNegativeLong("finished_duration_ms", identity) else 0L,
     mode = row.requireNonBlankString("mode", identity),
-    parentWorkflowId = row["parent_workflow_id"]?.toString()?.takeIf(String::isNotBlank),
+    parentWorkflowId = row[GoalTelemetryPayloadKeys.PARENT_WORKFLOW_ID]?.toString()?.takeIf(String::isNotBlank),
   )
 }
 
@@ -179,7 +179,7 @@ private fun parseGoalSubtaskRow(row: Map<String, Any?>): GoalSubtaskRow {
     subtaskId = row.requirePositiveInt("subtask_id", identity),
     subtaskName = row.requirePresentString("subtask_name", identity),
     issueKey = row.requireNonBlankString("issue_key", identity),
-    blockedReason = row["blocked_reason"]?.toString(),
+    blockedReason = row[GoalTelemetryPayloadKeys.BLOCKED_REASON]?.toString(),
     status = status,
     decompositionStatus = DecompositionStatus.fromWire(status),
     durationMs = row.requireNonNegativeLong("duration_ms", identity),

@@ -3,7 +3,6 @@ package skillbill.infrastructure.sqlite
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.model.EnvironmentContext
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -21,7 +20,8 @@ import kotlin.test.assertTrue
 class SqliteFeatureTaskPhaseSettlementRepositoryTest {
   @Test
   fun `migration v35 creates settlement table and supports upsert find delete`() {
-    val dbPath = Files.createTempDirectory("phase-settlement").resolve("metrics.db")
+    val tempDir = Files.createTempDirectory("phase-settlement")
+    val dbPath = tempDir.resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       assertTrue(tableExists(connection, "feature_task_phase_settlements"))
       assertNotNull(
@@ -31,7 +31,7 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
       )
     }
     val repo = SqliteFeatureTaskPhaseSettlementRepository(
-      SQLiteDatabaseSessionFactory(EnvironmentContext(dbPathOverride = dbPath.toString(), environment = emptyMap())),
+      sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
     )
     val settlement = FeatureTaskPhaseSettlement(
       workflowId = "wftr-1",
@@ -50,10 +50,11 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
 
   @Test
   fun `validation evidence command and exit code survive sqlite round trip`() {
-    val dbPath = Files.createTempDirectory("phase-settlement-evidence").resolve("metrics.db")
+    val tempDir = Files.createTempDirectory("phase-settlement-evidence")
+    val dbPath = tempDir.resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).close()
     val repo = SqliteFeatureTaskPhaseSettlementRepository(
-      SQLiteDatabaseSessionFactory(EnvironmentContext(dbPathOverride = dbPath.toString(), environment = emptyMap())),
+      sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
     )
     val evidence = FeatureTaskRuntimeValidationEvidence(
       listOf(FeatureTaskRuntimeValidationCommandResult("./gradlew check", 0)),
@@ -98,10 +99,11 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
 
   @Test
   fun `unknown settlement kind survives durable round trip`() {
-    val dbPath = Files.createTempDirectory("phase-settlement-unknown").resolve("metrics.db")
+    val tempDir = Files.createTempDirectory("phase-settlement-unknown")
+    val dbPath = tempDir.resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).close()
     val repo = SqliteFeatureTaskPhaseSettlementRepository(
-      SQLiteDatabaseSessionFactory(EnvironmentContext(dbPathOverride = dbPath.toString(), environment = emptyMap())),
+      sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
     )
     val unknown = FeatureTaskPhaseSettlementKind.Unknown("future_kind")
     repo.upsert(

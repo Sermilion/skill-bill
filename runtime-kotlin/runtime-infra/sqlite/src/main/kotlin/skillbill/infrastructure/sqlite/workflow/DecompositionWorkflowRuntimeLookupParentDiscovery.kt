@@ -11,7 +11,7 @@ import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 
-fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
+internal fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
   issueKey: String,
   validator: DecompositionManifestValidator,
   currentProjectedManifest: DecompositionManifest?,
@@ -63,8 +63,8 @@ fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
 }
 
 private data class DecomposedParentCandidate(
-  val record: WorkflowStateRecord,
-  val manifest: DecompositionManifest,
+  internal val record: WorkflowStateRecord,
+  internal val manifest: DecompositionManifest,
 )
 
 private fun DecomposedParentCandidate.isStaleAbandonedLineage(
@@ -82,7 +82,7 @@ private fun DecompositionManifest.sameRuntimeIdentity(other: DecompositionManife
     parentSpecPath == other.parentSpecPath &&
     subtasks.map { it.specPath } == other.subtasks.map { it.specPath }
 
-fun WorkflowStateRepository.findDecomposedParentWorkflowForRuntime(
+internal fun WorkflowStateRepository.findDecomposedParentWorkflowForRuntime(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
 ): WorkflowStateRecord? = listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, Int.MAX_VALUE).firstOrNull { row ->

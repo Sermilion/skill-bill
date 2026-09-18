@@ -1,122 +1,132 @@
 package skillbill.infrastructure.sqlite.telemetry
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN
 import skillbill.contracts.telemetry.AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN
+import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
-import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.error.ShellContentContractException
+import skillbill.infrastructure.sqlite.core.InternalSqliteDiagnostics
+import skillbill.infrastructure.sqlite.core.degradedValuePreview
+import skillbill.infrastructure.sqlite.core.recordDegradedValue
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.review.normalizeRoutedSkill
 import skillbill.review.normalizeStackLabel
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
-import java.util.logging.Logger
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys as RevTelKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys as LifeKeys
+import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys as MatKeys
 
-private val lifecycleTelemetryPayloadLog: Logger =
-  Logger.getLogger("skillbill.telemetry.lifecycle.payload")
-
-fun featureTaskRuntimeStartedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
+internal fun featureTaskRuntimeStartedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
   linkedMapOf<String, Any?>(
-    "session_id" to row.stringOrEmpty("session_id"),
-    "feature_size" to row.stringOrEmpty("feature_size"),
-    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty("issue_key"), level, salt),
+    LifeKeys.SESSION_ID to row.stringOrEmpty(LifeKeys.SESSION_ID),
+    MatKeys.FEATURE_SIZE to row.stringOrEmpty(MatKeys.FEATURE_SIZE),
+    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty(SharedPayloadKeys.ISSUE_KEY), level, salt),
   ).apply {
     putAll(correlationFields(row, level, salt))
     if (level == "full") {
-      put("feature_name", row.stringOrEmpty("feature_name"))
+      put(GoalTelemetryPayloadKeys.FEATURE_NAME, row.stringOrEmpty(GoalTelemetryPayloadKeys.FEATURE_NAME))
     }
   }
 
 private fun correlationFields(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> {
-  val workflowId = row.stringOrEmpty("workflow_id")
-  val issueKey = row.stringOrEmpty("issue_key")
-  val parentWorkflowId = row.stringOrEmpty("goal_parent_workflow_id")
+  val workflowId = row.stringOrEmpty(SharedPayloadKeys.WORKFLOW_ID)
+  val issueKey = row.stringOrEmpty(SharedPayloadKeys.ISSUE_KEY)
+  val parentWorkflowId = row.stringOrEmpty(LifeKeys.GOAL_PARENT_WORKFLOW_ID)
   val availability = if (workflowId.isBlank()) {
     TelemetryMeasurementAvailability.UNKNOWN
   } else {
     TelemetryMeasurementAvailability.MEASURED
   }
   return linkedMapOf(
-    LifecycleTelemetryPayloadKeys.CORRELATION_AVAILABILITY to availability.wireValue,
-    LifecycleTelemetryPayloadKeys.REDACTED_WORKFLOW_ID to
+    LifeKeys.CORRELATION_AVAILABILITY to availability.wireValue,
+    LifeKeys.REDACTED_WORKFLOW_ID to
       workflowId.takeIf { it.isNotBlank() }?.let { redactIssueKeyReferences(it, issueKey, level, salt) },
-    LifecycleTelemetryPayloadKeys.GOAL_PARENT_WORKFLOW_ID to
+    LifeKeys.GOAL_PARENT_WORKFLOW_ID to
       parentWorkflowId.takeIf { it.isNotBlank() }?.let { redactIssueKeyReferences(it, issueKey, level, salt) },
-    LifecycleTelemetryPayloadKeys.GOAL_SUBTASK_ID to row.nullableInt(LifecycleTelemetryPayloadKeys.GOAL_SUBTASK_ID),
+    LifeKeys.GOAL_SUBTASK_ID to row.nullableInt(LifeKeys.GOAL_SUBTASK_ID),
   )
 }
 
-fun featureTaskRuntimeFinishedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
-  linkedMapOf<String, Any?>("session_id" to row.stringOrEmpty("session_id")).apply {
-    putAll(correlationFields(row, level, salt))
-    put("completion_status", row.stringOrEmpty("completion_status"))
-    put(
-      "completed_phase_ids",
-      parseStoredJsonArray(row.stringOrEmpty("completed_phase_ids"), "completed_phase_ids"),
-    )
-    put("phase_outcomes", parsePhaseOutcomes(row.stringOrEmpty("phase_outcomes")))
-    put("review_fix_iteration_count", row.intOrZero("review_fix_iteration_count"))
-    put("finding_verification_verified_count", row.intOrZero("finding_verification_verified_count"))
-    put("finding_verification_rejected_count", row.intOrZero("finding_verification_rejected_count"))
-    putAll(reviewFixCapExhaustionFields(row))
-    putAll(auditGapFields(row))
-    putAll(agentContextFields(row))
-    put("regeneration_activation_count", row.intOrZero("regeneration_activation_count"))
-    put("regeneration_attempt_count", row.intOrZero("regeneration_attempt_count"))
-    put("regeneration_outcome_counts", parsePhaseOutcomes(row.stringOrEmpty("regeneration_outcome_counts_json")))
-    put("crash_reconciliation_count", row.intOrZero("crash_reconciliation_count"))
-    put(
-      "crash_reconciliation_reason_counts",
-      parsePhaseOutcomes(row.stringOrEmpty("crash_reconciliation_reason_counts_json")),
-    )
-    put("last_incomplete_phase", row.stringOrEmpty("last_incomplete_phase"))
-    put("blocked_reason", row.stringOrEmpty("blocked_reason"))
-    put("duration_seconds", durationSeconds(row))
-    row.stringOrEmpty(LifecycleTelemetryPayloadKeys.STALE_REASON).takeIf(String::isNotBlank)?.let {
-      put(LifecycleTelemetryPayloadKeys.STALE_REASON, it)
-    }
-    if (level == "full") {
-      put("resolved_branch", row.stringOrEmpty("resolved_branch"))
-    }
+internal fun featureTaskRuntimeFinishedPayload(
+  row: Map<String, Any?>,
+  level: String,
+  salt: String,
+  diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+): Map<String, Any?> = linkedMapOf<String, Any?>(LifeKeys.SESSION_ID to row.stringOrEmpty(LifeKeys.SESSION_ID)).apply {
+  putAll(correlationFields(row, level, salt))
+  put(LifeKeys.COMPLETION_STATUS, row.stringOrEmpty(LifeKeys.COMPLETION_STATUS))
+  put(
+    RevTelKeys.COMPLETED_PHASE_IDS,
+    parseStoredJsonArray(
+      row.stringOrEmpty(RevTelKeys.COMPLETED_PHASE_IDS),
+      RevTelKeys.COMPLETED_PHASE_IDS,
+      diagnostics,
+    ),
+  )
+  put(MatKeys.PHASE_OUTCOMES, parsePhaseOutcomes(row.stringOrEmpty(MatKeys.PHASE_OUTCOMES)))
+  put(MatKeys.REVIEW_FIX_ITERATION_COUNT, row.intOrZero(MatKeys.REVIEW_FIX_ITERATION_COUNT))
+  put(MatKeys.FINDING_VERIFICATION_VERIFIED_COUNT, row.intOrZero(MatKeys.FINDING_VERIFICATION_VERIFIED_COUNT))
+  put(MatKeys.FINDING_VERIFICATION_REJECTED_COUNT, row.intOrZero(MatKeys.FINDING_VERIFICATION_REJECTED_COUNT))
+  putAll(reviewFixCapExhaustionFields(row))
+  putAll(auditGapFields(row))
+  putAll(agentContextFields(row))
+  put(MatKeys.REGENERATION_ACTIVATION_COUNT, row.intOrZero(MatKeys.REGENERATION_ACTIVATION_COUNT))
+  put(MatKeys.REGENERATION_ATTEMPT_COUNT, row.intOrZero(MatKeys.REGENERATION_ATTEMPT_COUNT))
+  put(MatKeys.REGENERATION_OUTCOME_COUNTS, parsePhaseOutcomes(row.stringOrEmpty("regeneration_outcome_counts_json")))
+  put(MatKeys.CRASH_RECONCILIATION_COUNT, row.intOrZero(MatKeys.CRASH_RECONCILIATION_COUNT))
+  put(
+    "crash_reconciliation_reason_counts",
+    parsePhaseOutcomes(row.stringOrEmpty("crash_reconciliation_reason_counts_json")),
+  )
+  put(MatKeys.LAST_INCOMPLETE_PHASE, row.stringOrEmpty(MatKeys.LAST_INCOMPLETE_PHASE))
+  put(GoalTelemetryPayloadKeys.BLOCKED_REASON, row.stringOrEmpty(GoalTelemetryPayloadKeys.BLOCKED_REASON))
+  put(LifeKeys.DURATION_SECONDS, durationSeconds(row, diagnostics))
+  row.stringOrEmpty(LifeKeys.STALE_REASON).takeIf(String::isNotBlank)?.let {
+    put(LifeKeys.STALE_REASON, it)
   }
+  if (level == "full") {
+    put(MatKeys.RESOLVED_BRANCH, row.stringOrEmpty(MatKeys.RESOLVED_BRANCH))
+  }
+}
 
 private fun reviewFixCapExhaustionFields(row: Map<String, Any?>): Map<String, Any?> {
-  val availability = row.availability(LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED_AVAILABILITY)
+  val availability = row.availability(LifeKeys.REVIEW_FIX_CAP_EXHAUSTED_AVAILABILITY)
   val exhausted = if (availability.measured) {
-    row.intOrZero(LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED) == 1
+    row.intOrZero(LifeKeys.REVIEW_FIX_CAP_EXHAUSTED) == 1
   } else {
     null
   }
   return linkedMapOf(
-    LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED_AVAILABILITY to availability.wireValue,
-    LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED to exhausted,
+    LifeKeys.REVIEW_FIX_CAP_EXHAUSTED_AVAILABILITY to availability.wireValue,
+    LifeKeys.REVIEW_FIX_CAP_EXHAUSTED to exhausted,
   )
 }
 
 private fun auditGapFields(row: Map<String, Any?>): Map<String, Any?> {
-  val availability = row.availability(LifecycleTelemetryPayloadKeys.AUDIT_GAP_AVAILABILITY)
-  val iterations = row.nullableInt(LifecycleTelemetryPayloadKeys.AUDIT_GAP_ITERATION_COUNT)
+  val availability = row.availability(LifeKeys.AUDIT_GAP_AVAILABILITY)
+  val iterations = row.nullableInt(LifeKeys.AUDIT_GAP_ITERATION_COUNT)
     .takeIf { availability.measured }
   return linkedMapOf(
-    LifecycleTelemetryPayloadKeys.AUDIT_GAP_AVAILABILITY to availability.wireValue,
-    LifecycleTelemetryPayloadKeys.AUDIT_GAP_MEASUREMENT_GRAIN to AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN,
-    LifecycleTelemetryPayloadKeys.AUDIT_GAP_ITERATION_COUNT to iterations,
-    LifecycleTelemetryPayloadKeys.AUDIT_FIRST_PASS_CONVERGENCE to iterations?.let { it == 0 },
-    LifecycleTelemetryPayloadKeys.AUDIT_REPAIR_ITEM_AVAILABILITY to
+    LifeKeys.AUDIT_GAP_AVAILABILITY to availability.wireValue,
+    LifeKeys.AUDIT_GAP_MEASUREMENT_GRAIN to AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN,
+    LifeKeys.AUDIT_GAP_ITERATION_COUNT to iterations,
+    LifeKeys.AUDIT_FIRST_PASS_CONVERGENCE to iterations?.let { it == 0 },
+    LifeKeys.AUDIT_REPAIR_ITEM_AVAILABILITY to
       TelemetryMeasurementAvailability.UNAVAILABLE_UNSUPPORTED.wireValue,
   )
 }
 
 private fun agentContextFields(row: Map<String, Any?>): Map<String, Any?> {
-  val agents = row.nameList(LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS)
-  val models = row.nameList(LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS)
+  val agents = row.nameList(LifeKeys.RESOLVED_AGENT_IDS)
+  val models = row.nameList(LifeKeys.LAUNCHED_MODELS)
   return linkedMapOf(
-    LifecycleTelemetryPayloadKeys.AGENT_CONTEXT_MEASUREMENT_GRAIN to AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN,
-    LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_AVAILABILITY to agents.availability().wireValue,
-    LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to agents.values.takeIf { it.isNotEmpty() },
-    LifecycleTelemetryPayloadKeys.LAUNCHED_MODEL_AVAILABILITY to models.availability().wireValue,
-    LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to models.values.takeIf { it.isNotEmpty() },
+    LifeKeys.AGENT_CONTEXT_MEASUREMENT_GRAIN to AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN,
+    LifeKeys.RESOLVED_AGENT_AVAILABILITY to agents.availability().wireValue,
+    LifeKeys.RESOLVED_AGENT_IDS to agents.values.takeIf { it.isNotEmpty() },
+    LifeKeys.LAUNCHED_MODEL_AVAILABILITY to models.availability().wireValue,
+    LifeKeys.LAUNCHED_MODELS to models.values.takeIf { it.isNotEmpty() },
   )
 }
 
@@ -144,48 +154,57 @@ private fun parsePhaseOutcomes(rawValue: String): Map<String, Any?> = JsonCodec.
   ?.mapValues { (_, value) -> JsonCodec.jsonElementToValue(value) }
   .orEmpty()
 
-private fun parseStoredJsonArray(rawValue: String, fieldName: String): List<Any?> {
+private fun parseStoredJsonArray(rawValue: String, fieldName: String, diagnostics: RuntimeDiagnostics): List<Any?> {
   if (rawValue.isBlank()) {
     return emptyList()
   }
   return try {
     JsonCodec.parseJsonArrayStrict(rawValue.trim())
-  } catch (_: ShellContentContractException) {
-    lifecycleTelemetryPayloadLog.warning(
-      "skillbill telemetry: degraded malformed JSON array in $fieldName",
+  } catch (error: ShellContentContractException) {
+    diagnostics.recordDegradedValue(
+      seam = "telemetry.json_array.$fieldName",
+      expected = "strict JSON array",
+      used = rawValue.degradedValuePreview(),
+      error = error,
     )
     emptyList()
   }
 }
 
-fun qualityCheckStartedPayload(row: Map<String, Any?>): Map<String, Any?> {
-  val normalizedStack = normalizeStackLabel(row.stringOrEmpty("detected_stack"))
-  val fallback = row.booleanFromInt("fallback") || normalizedStack.fallback
+internal fun qualityCheckStartedPayload(row: Map<String, Any?>): Map<String, Any?> {
+  val normalizedStack = normalizeStackLabel(row.stringOrEmpty(LifeKeys.DETECTED_STACK))
+  val fallback = row.booleanFromInt(LifeKeys.FALLBACK) || normalizedStack.fallback
   return linkedMapOf<String, Any?>(
-    "session_id" to row.stringOrEmpty("session_id"),
-    "routed_skill" to normalizeRoutedSkill(row.stringOrEmpty("routed_skill")),
-    "detected_stack" to normalizedStack.stack,
-    "fallback" to fallback,
-    "scope_type" to row.stringOrEmpty("scope_type"),
-    "initial_failure_count" to row.intOrZero("initial_failure_count"),
-    "orchestrated" to false,
+    LifeKeys.SESSION_ID to row.stringOrEmpty(LifeKeys.SESSION_ID),
+    LifeKeys.ROUTED_SKILL to normalizeRoutedSkill(row.stringOrEmpty(LifeKeys.ROUTED_SKILL)),
+    LifeKeys.DETECTED_STACK to normalizedStack.stack,
+    LifeKeys.FALLBACK to fallback,
+    LifeKeys.SCOPE_TYPE to row.stringOrEmpty(LifeKeys.SCOPE_TYPE),
+    LifeKeys.INITIAL_FAILURE_COUNT to row.intOrZero(LifeKeys.INITIAL_FAILURE_COUNT),
+    MatKeys.ORCHESTRATED to false,
   ).apply {
-    val fallbackReason = row.stringOrEmpty("fallback_reason").ifBlank { normalizedStack.fallbackReason.orEmpty() }
+    val fallbackReason = row.stringOrEmpty(LifeKeys.FALLBACK_REASON).ifBlank {
+      normalizedStack.fallbackReason.orEmpty()
+    }
     if (fallback && fallbackReason.isNotBlank()) {
-      put("fallback_reason", fallbackReason)
+      put(LifeKeys.FALLBACK_REASON, fallbackReason)
     }
   }
 }
 
-fun qualityCheckFinishedPayload(row: Map<String, Any?>, level: String): Map<String, Any?> {
-  val result = row.stringOrEmpty(LifecycleTelemetryPayloadKeys.RESULT).ifBlank { "skipped" }
+internal fun qualityCheckFinishedPayload(
+  row: Map<String, Any?>,
+  level: String,
+  diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+): Map<String, Any?> {
+  val result = row.stringOrEmpty(LifeKeys.RESULT).ifBlank { "skipped" }
   val reconcilerStale = result == STALE_RESULT
-  val finalFailureCount = row.nullableInt(LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT)
+  val finalFailureCount = row.nullableInt(LifeKeys.FINAL_FAILURE_COUNT)
     .takeUnless { reconcilerStale }
   return qualityCheckStartedPayload(row).toMutableMap().apply {
-    put(LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT, finalFailureCount)
+    put(LifeKeys.FINAL_FAILURE_COUNT, finalFailureCount)
     put(
-      LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT_AVAILABILITY,
+      LifeKeys.FINAL_FAILURE_COUNT_AVAILABILITY,
       when {
         reconcilerStale -> TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE
         finalFailureCount == null -> TelemetryMeasurementAvailability.UNKNOWN
@@ -193,73 +212,82 @@ fun qualityCheckFinishedPayload(row: Map<String, Any?>, level: String): Map<Stri
       }.wireValue,
     )
     put(
-      LifecycleTelemetryPayloadKeys.COMPLETION,
+      LifeKeys.COMPLETION,
       when (reconcilerStale) {
         true -> LifecycleSessionCompletion.RECONCILER_STALE
         false -> LifecycleSessionCompletion.OPERATOR_COMPLETED
       }.wireValue,
     )
-    put(LifecycleTelemetryPayloadKeys.ITERATIONS, row.intOrZero(LifecycleTelemetryPayloadKeys.ITERATIONS))
-    put(LifecycleTelemetryPayloadKeys.RESULT, result)
-    put(LifecycleTelemetryPayloadKeys.DURATION_SECONDS, durationSeconds(row))
-    row.stringOrEmpty(LifecycleTelemetryPayloadKeys.STALE_REASON).takeIf(String::isNotBlank)?.let {
-      put(LifecycleTelemetryPayloadKeys.STALE_REASON, it)
+    put(LifeKeys.ITERATIONS, row.intOrZero(LifeKeys.ITERATIONS))
+    put(LifeKeys.RESULT, result)
+    put(LifeKeys.DURATION_SECONDS, durationSeconds(row, diagnostics))
+    row.stringOrEmpty(LifeKeys.STALE_REASON).takeIf(String::isNotBlank)?.let {
+      put(LifeKeys.STALE_REASON, it)
     }
     if (level == "full") {
       put(
-        LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES,
+        LifeKeys.FAILING_CHECK_NAMES,
         parseStoredJsonArray(
-          row.stringOrEmpty(LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES),
-          LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES,
+          row.stringOrEmpty(LifeKeys.FAILING_CHECK_NAMES),
+          LifeKeys.FAILING_CHECK_NAMES,
+          diagnostics,
         ),
       )
       put(
-        LifecycleTelemetryPayloadKeys.UNSUPPORTED_REASON,
-        row.stringOrEmpty(LifecycleTelemetryPayloadKeys.UNSUPPORTED_REASON),
+        LifeKeys.UNSUPPORTED_REASON,
+        row.stringOrEmpty(LifeKeys.UNSUPPORTED_REASON),
       )
     }
   }
 }
 
-const val STALE_RESULT: String = "stale"
+internal const val STALE_RESULT: String = "stale"
 
-fun featureVerifyStartedPayload(row: Map<String, Any?>, level: String): Map<String, Any?> = linkedMapOf<String, Any?>(
-  "session_id" to row.stringOrEmpty("session_id"),
-  "acceptance_criteria_count" to row.intOrZero("acceptance_criteria_count"),
-  "rollout_relevant" to row.booleanFromInt("rollout_relevant"),
-  "orchestrated" to false,
-).apply {
-  if (level == "full") {
-    put("spec_summary", row.stringOrEmpty("spec_summary"))
-  }
-}
-
-fun featureVerifyFinishedPayload(row: Map<String, Any?>, level: String): Map<String, Any?> =
-  featureVerifyStartedPayload(row, level).toMutableMap().apply {
-    put("feature_flag_audit_performed", row.booleanFromInt("feature_flag_audit_performed"))
-    put("review_iterations", row.intOrZero("review_iterations"))
-    put("audit_result", row.stringOrEmpty("audit_result").ifBlank { "skipped" })
-    put("completion_status", row.stringOrEmpty("completion_status"))
-    put("history_relevance", row.stringOrEmpty("history_relevance").ifBlank { "none" })
-    put("history_helpfulness", row.stringOrEmpty("history_helpfulness").ifBlank { "none" })
-    put("duration_seconds", durationSeconds(row))
-    if (level == "full") {
-      put(
-        "gaps_found",
-        parseStoredJsonArray(row.stringOrEmpty("gaps_found"), "gaps_found"),
-      )
-    }
-  }
-
-fun prDescriptionPayload(record: PrDescriptionGeneratedRecord, level: String): Map<String, Any?> =
+internal fun featureVerifyStartedPayload(row: Map<String, Any?>, level: String): Map<String, Any?> =
   linkedMapOf<String, Any?>(
-    "session_id" to record.sessionId,
-    "commit_count" to record.commitCount,
-    "files_changed_count" to record.filesChangedCount,
-    "was_edited_by_user" to record.wasEditedByUser,
-    "pr_created" to record.prCreated,
+    LifeKeys.SESSION_ID to row.stringOrEmpty(LifeKeys.SESSION_ID),
+    LifeKeys.ACCEPTANCE_CRITERIA_COUNT to row.intOrZero(LifeKeys.ACCEPTANCE_CRITERIA_COUNT),
+    LifeKeys.ROLLOUT_RELEVANT to row.booleanFromInt(LifeKeys.ROLLOUT_RELEVANT),
+    MatKeys.ORCHESTRATED to false,
   ).apply {
     if (level == "full") {
-      put("pr_title", record.prTitle)
+      put(LifeKeys.SPEC_SUMMARY, row.stringOrEmpty(LifeKeys.SPEC_SUMMARY))
+    }
+  }
+
+internal fun featureVerifyFinishedPayload(
+  row: Map<String, Any?>,
+  level: String,
+  diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+): Map<String, Any?> = featureVerifyStartedPayload(row, level).toMutableMap().apply {
+  put(LifeKeys.FEATURE_FLAG_AUDIT_PERFORMED, row.booleanFromInt(LifeKeys.FEATURE_FLAG_AUDIT_PERFORMED))
+  put(LifeKeys.REVIEW_ITERATIONS, row.intOrZero(LifeKeys.REVIEW_ITERATIONS))
+  put(LifeKeys.AUDIT_RESULT, row.stringOrEmpty(LifeKeys.AUDIT_RESULT).ifBlank { "skipped" })
+  put(LifeKeys.COMPLETION_STATUS, row.stringOrEmpty(LifeKeys.COMPLETION_STATUS))
+  put(LifeKeys.HISTORY_RELEVANCE, row.stringOrEmpty(LifeKeys.HISTORY_RELEVANCE).ifBlank { "none" })
+  put(LifeKeys.HISTORY_HELPFULNESS, row.stringOrEmpty(LifeKeys.HISTORY_HELPFULNESS).ifBlank { "none" })
+  put(LifeKeys.DURATION_SECONDS, durationSeconds(row, diagnostics))
+  if (level == "full") {
+    put(
+      LifeKeys.GAPS_FOUND,
+      parseStoredJsonArray(
+        row.stringOrEmpty(LifeKeys.GAPS_FOUND),
+        LifeKeys.GAPS_FOUND,
+        diagnostics,
+      ),
+    )
+  }
+}
+
+internal fun prDescriptionPayload(record: PrDescriptionGeneratedRecord, level: String): Map<String, Any?> =
+  linkedMapOf<String, Any?>(
+    LifeKeys.SESSION_ID to record.sessionId,
+    LifeKeys.COMMIT_COUNT to record.commitCount,
+    LifeKeys.FILES_CHANGED_COUNT to record.filesChangedCount,
+    LifeKeys.WAS_EDITED_BY_USER to record.wasEditedByUser,
+    LifeKeys.PR_CREATED to record.prCreated,
+  ).apply {
+    if (level == "full") {
+      put(LifeKeys.PR_TITLE, record.prTitle)
     }
   }

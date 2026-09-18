@@ -1,3 +1,31 @@
+## [2026-09-18] SKILL-356 subtask 3 — ledger-owned schema evolution
+Areas: runtime-kotlin/runtime-infra/sqlite core, goalrunner, review, runtime-kotlin/agent
+- `DatabaseMigrations` now stamps `PRAGMA user_version` in the same transaction as the name-keyed ledger; readiness uses the stamped version and file identity. reusable
+- One ledger migration owns final column, evidence, and work-list healing; named goal-runner control and telemetry-restamp migrations run once with migration diagnostics. reusable
+- Migrate-on-access control and telemetry fallbacks are removed, and Early/Late schema and migration declarations are consolidated while preserving legacy repository behavior.
+- Known limitation: the runtime-application legacy control migration remains intentionally separate; base schema DDL is unchanged.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
+## [2026-09-18] SKILL-356 subtask 2 — goal-runner stores implement their ports directly
+Areas: runtime-kotlin/runtime-infra/sqlite/goalrunner, runtime-kotlin/runtime-core/di, runtime-kotlin/runtime-engine goalrunner fixtures
+- `WorkflowGoalRunnerManifestStore` now implements `GoalRunnerManifestStore` directly; the internal delegate, context bag, and regrouped ops lattice were removed while persistence behavior and SQL stayed unchanged.
+- `WorkflowGoalRunnerOutcomeStore` now has one injected construction path and implements the workflow outcome port directly; behavior-owning collaborators remain internal, and child-wedge repair always rewrites the projection.
+- DI exposes only the manifest and outcome stores for goal-runner ports; fixtures supply the store dependencies explicitly. The goal-runner production surface is 27 files versus 31 in the baseline, with a net reduction of 504 lines. reusable
+- Known limitation: goal-runner migration and schema consolidation remain in subtask 3.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-09-18] SKILL-356 runtime-infra-sqlite boundaries and simplicity
+Areas: runtime-kotlin/runtime-infra/sqlite core/review/telemetry/workflow, runtime-kotlin/runtime-core DI/architecture, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-cli/engine/mcp tests
+- One transaction path now owns read, write, and migration boundaries with typed database failures and rollback behavior; reusable
+- SQLite construction resolves `EnvironmentContext`, `Clock`, and `RuntimeDiagnostics` at the DI boundary, removing ambient defaults and recording degradation decisions; reusable
+- Unit-of-work routing owns feature-task settlements and goal-runner purge persistence; internal SQLite helpers, positional binding, and payload vocabulary are centralized
+- Test fixtures provide explicit database/session setup, while architecture guards enforce dependency, clock, environment, visibility, and wire-key boundaries
+- Known limits: well-formed SQL behavior remains unchanged; goal-runner store-lattice and migration/schema consolidation continue in subtasks 2 and 3
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-08-07] SKILL-168 Subtask 2 consistent read snapshot for ide-status
 
 Areas: runtime-kotlin/runtime-infra-sqlite infrastructure/sqlite + db/workflow, runtime-kotlin/runtime-application work tests, runtime-kotlin/runtime-cli concurrency tests

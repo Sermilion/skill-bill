@@ -3,7 +3,7 @@ package skillbill.infrastructure.sqlite.review
 import skillbill.review.normalizePlatformSlug
 import skillbill.review.normalizeTelemetrySlug
 
-fun platformSlugFromRoutedSkill(
+internal fun platformSlugFromRoutedSkill(
   routedSkill: String?,
   routedSkillPlatformSlugs: Map<String, String> = emptyMap(),
 ): String {
@@ -18,7 +18,7 @@ fun platformSlugFromRoutedSkill(
     ?: "unknown"
 }
 
-fun reviewPlatformSlug(
+internal fun reviewPlatformSlug(
   detectedStack: String?,
   routedSkill: String?,
   routedSkillPlatformSlugs: Map<String, String> = emptyMap(),

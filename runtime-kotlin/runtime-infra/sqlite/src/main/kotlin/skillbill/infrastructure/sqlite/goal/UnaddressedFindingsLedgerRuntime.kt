@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite.goal
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.UnaddressedFinding
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.model.ReviewFindingCitation
 import java.sql.Connection
 
@@ -20,25 +21,26 @@ internal class UnaddressedFindingsLedgerRuntime(private val connection: Connecti
       """.trimIndent(),
     ).use { statement ->
       findings.forEach { finding ->
-        var parameterIndex = 1
-        statement.setString(parameterIndex++, finding.issueKey)
-        statement.setString(parameterIndex++, finding.workflowId)
-        statement.setInt(parameterIndex++, finding.subtaskId)
-        statement.setInt(parameterIndex++, finding.reviewPassNumber)
-        statement.setInt(parameterIndex++, finding.findingOrdinal)
-        statement.setString(parameterIndex++, finding.severity)
-        statement.setString(parameterIndex++, finding.issueCategory)
-        statement.setString(parameterIndex++, finding.location)
-        statement.setString(parameterIndex++, finding.summary)
-        statement.setString(parameterIndex++, finding.reviewRunId)
-        statement.setString(parameterIndex++, finding.findingId)
-        statement.setString(parameterIndex++, finding.claimVerdict?.wireValue)
-        statement.setString(parameterIndex++, finding.scopeDisposition?.wireValue)
-        statement.setString(parameterIndex++, ReviewFindingCitation.encodeList(finding.citations))
-        statement.setString(parameterIndex++, finding.severityAdjustment?.direction?.wireValue)
-        statement.setString(parameterIndex++, finding.severityAdjustment?.justification)
-        statement.setString(parameterIndex++, finding.verificationDisposition)
-        statement.setString(parameterIndex, finding.verificationReason)
+        statement.bindAll(
+          finding.issueKey,
+          finding.workflowId,
+          finding.subtaskId,
+          finding.reviewPassNumber,
+          finding.findingOrdinal,
+          finding.severity,
+          finding.issueCategory,
+          finding.location,
+          finding.summary,
+          finding.reviewRunId,
+          finding.findingId,
+          finding.claimVerdict?.wireValue,
+          finding.scopeDisposition?.wireValue,
+          ReviewFindingCitation.encodeList(finding.citations),
+          finding.severityAdjustment?.direction?.wireValue,
+          finding.severityAdjustment?.justification,
+          finding.verificationDisposition,
+          finding.verificationReason,
+        )
         statement.addBatch()
       }
       statement.executeBatch()
@@ -47,7 +49,7 @@ internal class UnaddressedFindingsLedgerRuntime(private val connection: Connecti
 
   fun clearWorkflowLedger(workflowId: String) {
     connection.prepareStatement("DELETE FROM unaddressed_findings WHERE workflow_id = ?").use { statement ->
-      statement.setString(1, workflowId)
+      statement.bindAll(workflowId)
       statement.executeUpdate()
     }
   }
@@ -59,7 +61,7 @@ internal class UnaddressedFindingsLedgerRuntime(private val connection: Connecti
   fun workflowIdsForIssue(issueKey: String): List<String> = connection.prepareStatement(
     "SELECT workflow_id FROM feature_task_workflows WHERE issue_key = ? ORDER BY workflow_id",
   ).use { statement ->
-    statement.setString(1, issueKey)
+    statement.bindAll(issueKey)
     statement.executeQuery().use { rows ->
       buildList {
         while (rows.next()) {
@@ -72,7 +74,7 @@ internal class UnaddressedFindingsLedgerRuntime(private val connection: Connecti
   fun issueExists(issueKey: String): Boolean = connection.prepareStatement(
     "SELECT 1 FROM feature_task_workflows WHERE issue_key = ? LIMIT 1",
   ).use { statement ->
-    statement.setString(1, issueKey)
+    statement.bindAll(issueKey)
     statement.executeQuery().use { it.next() }
   }
 
@@ -80,8 +82,7 @@ internal class UnaddressedFindingsLedgerRuntime(private val connection: Connecti
     connection.prepareStatement(
       "DELETE FROM unaddressed_findings WHERE workflow_id = ? AND review_pass_number <= ?",
     ).use { statement ->
-      statement.setString(1, workflowId)
-      statement.setInt(2, reviewPassNumber)
+      statement.bindAll(workflowId, reviewPassNumber)
       statement.executeUpdate()
     }
   }
@@ -98,7 +99,7 @@ internal class UnaddressedFindingsLedgerRuntime(private val connection: Connecti
     ORDER BY subtask_id, review_pass_number, finding_ordinal
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, value)
+    statement.bindAll(value)
     statement.executeQuery().use { rows ->
       buildList {
         while (rows.next()) {

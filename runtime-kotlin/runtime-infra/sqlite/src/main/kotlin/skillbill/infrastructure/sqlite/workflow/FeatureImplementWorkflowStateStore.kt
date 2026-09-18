@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
 import skillbill.error.ProseFeatureTaskWorkflowWriteRefusedError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.workflow.FeatureImplementWorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
@@ -45,7 +46,7 @@ internal class FeatureImplementWorkflowStateStore(
       WHERE session_id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(WORKFLOW_ID_PARAMETER_INDEX, sessionId)
+      statement.bindAll(sessionId)
       statement.executeQuery().use { resultSet ->
         if (!resultSet.next()) {
           return null

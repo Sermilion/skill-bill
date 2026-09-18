@@ -137,6 +137,39 @@ class WireVocabularyArchitectureTest {
   }
 
   @Test
+  fun `sqlite telemetry seam rejects inline session id access`() {
+    val files = listOf(
+      syntheticSourceFile(
+        "infrastructure/sqlite/telemetry/TelemetryKeys.kt",
+        """
+        package fixture
+
+        object TelemetryPayloadKeys {
+          const val SESSION_ID: String = "session_id"
+        }
+        """.trimIndent(),
+      ),
+      syntheticSourceFile(
+        "infrastructure/sqlite/telemetry/TelemetryReader.kt",
+        """
+        package fixture
+
+        fun read(payload: Map<String, Any?>) = payload["session_id"]
+        """.trimIndent(),
+      ),
+    )
+    val report = WireVocabularyArchitectureSupport.scanSourceFiles(
+      files = files,
+      includePayloadKeyAccesses = true,
+      enforceGovernedSeams = true,
+      schemaPropertyKeysByPath = mapOf(
+        WireVocabularyGovernedSeamInventory.SQLITE_TELEMETRY_MATERIALIZATION_AUTHORITY to setOf("session_id"),
+      ),
+    )
+    assertTrue(report.violations.any { it.contains("accesses key 'session_id'") })
+  }
+
+  @Test
   fun `new schema field without kotlin owner fails through the production scanner`() {
     val report = WireVocabularyArchitectureSupport.scanSourceFiles(
       files = listOf(

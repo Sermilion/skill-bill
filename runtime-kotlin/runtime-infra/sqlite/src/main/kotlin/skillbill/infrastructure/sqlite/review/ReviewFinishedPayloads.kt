@@ -1,6 +1,8 @@
 package skillbill.infrastructure.sqlite.review
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.learnings.model.LearningScope
 import skillbill.review.model.FindingOutcomeRow
 import skillbill.review.model.ReviewFindingDetail
@@ -15,7 +17,7 @@ import skillbill.review.normalizeScopeType
 import skillbill.review.normalizeStackLabel
 import java.sql.Connection
 
-fun reviewFinishedPayload(
+internal fun reviewFinishedPayload(
   connection: Connection,
   reviewSummary: ReviewSummary,
   findingRows: List<FindingOutcomeRow>,
@@ -58,7 +60,7 @@ fun reviewFinishedPayload(
   )
 }
 
-fun filterReviewFinishedSummary(summary: ReviewFindingStats, level: String): ReviewFinishedFindingStats =
+internal fun filterReviewFinishedSummary(summary: ReviewFindingStats, level: String): ReviewFinishedFindingStats =
   ReviewFinishedFindingStats(
     totalFindings = summary.totalFindings,
     acceptedFindings = summary.acceptedFindings,
@@ -70,7 +72,11 @@ fun filterReviewFinishedSummary(summary: ReviewFindingStats, level: String): Rev
     rejectedFindingDetails = reviewFindingDetails(summary.rejectedFindingDetails, level == "full"),
   )
 
-fun buildLearningsSection(connection: Connection, reviewSessionId: String, level: String): ReviewLearningsSummary {
+internal fun buildLearningsSection(
+  connection: Connection,
+  reviewSessionId: String,
+  level: String,
+): ReviewLearningsSummary {
   val defaultScopeCounts = LearningScope.emptyScopeCounts()
   val learningsData =
     if (reviewSessionId.isEmpty()) {
@@ -80,47 +86,55 @@ fun buildLearningsSection(connection: Connection, reviewSessionId: String, level
     }
   val learningsEntries =
     learningsEntries(
-      entries = (learningsData?.get("learnings") as? List<*>)?.filterIsInstance<Map<String, Any?>>() ?: emptyList(),
+      entries = (
+        learningsData?.get(
+          SqliteReviewTelemetryPayloadKeys.LEARNINGS,
+        ) as? List<*>
+        )?.filterIsInstance<Map<String, Any?>>() ?: emptyList(),
       includeText = level == "full",
     )
   val scopeCounts =
     defaultScopeCounts + (
-      (learningsData?.get("scope_counts") as? Map<*, *>)
+      (learningsData?.get(SqliteReviewTelemetryPayloadKeys.SCOPE_COUNTS) as? Map<*, *>)
         ?.filterKeys { it is String }
         ?.mapKeys { it.key as String }
         ?.mapValues { entry -> (entry.value as? Number)?.toInt() ?: 0 }
         ?: emptyMap()
       )
   return ReviewLearningsSummary(
-    appliedCount = (learningsData?.get("applied_learning_count") as? Number)?.toInt() ?: 0,
+    appliedCount = (
+      learningsData?.get(
+        SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_COUNT,
+      ) as? Number
+      )?.toInt() ?: 0,
     appliedReferences =
-    (learningsData?.get("applied_learning_references") as? List<*>)
+    (learningsData?.get(SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_REFERENCES) as? List<*>)
       ?.mapNotNull { it?.toString() }
       ?: emptyList(),
-    appliedSummary = learningsData?.get("applied_learnings")?.toString() ?: "none",
+    appliedSummary = learningsData?.get(SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNINGS)?.toString() ?: "none",
     scopeCounts = scopeCounts,
     entries = learningsEntries,
   )
 }
 
-fun learningsEntries(entries: List<Map<String, Any?>>, includeText: Boolean): List<ReviewLearningEntry> =
+internal fun learningsEntries(entries: List<Map<String, Any?>>, includeText: Boolean): List<ReviewLearningEntry> =
   entries.map { entry ->
     if (includeText) {
       ReviewLearningEntry(
-        reference = entry["reference"]?.toString(),
-        scope = entry["scope"]?.toString(),
-        title = entry["title"]?.toString(),
-        ruleText = entry["rule_text"]?.toString(),
+        reference = entry[SqliteReviewTelemetryPayloadKeys.REFERENCE]?.toString(),
+        scope = entry[SqliteReviewTelemetryPayloadKeys.SCOPE]?.toString(),
+        title = entry[SqliteReviewTelemetryPayloadKeys.TITLE]?.toString(),
+        ruleText = entry[SqliteReviewTelemetryPayloadKeys.RULE_TEXT]?.toString(),
       )
     } else {
       ReviewLearningEntry(
-        reference = entry["reference"]?.toString(),
-        scope = entry["scope"]?.toString(),
+        reference = entry[SqliteReviewTelemetryPayloadKeys.REFERENCE]?.toString(),
+        scope = entry[SqliteReviewTelemetryPayloadKeys.SCOPE]?.toString(),
       )
     }
   }
 
-fun reviewFindingDetails(details: List<ReviewFindingDetail>, includeText: Boolean): List<ReviewFindingDetail> =
+internal fun reviewFindingDetails(details: List<ReviewFindingDetail>, includeText: Boolean): List<ReviewFindingDetail> =
   details.map { detail ->
     if (includeText) {
       detail
@@ -133,10 +147,10 @@ fun reviewFindingDetails(details: List<ReviewFindingDetail>, includeText: Boolea
     }
   }
 
-fun parseSpecialistReviews(rawValue: String?): List<String> =
+internal fun parseSpecialistReviews(rawValue: String?): List<String> =
   rawValue.orEmpty().split(",").map(String::trim).filter(String::isNotEmpty)
 
-fun normalizeReviewScope(detectedScope: String?): String = detectedScope.orEmpty().substringBefore("(").trim()
+internal fun normalizeReviewScope(detectedScope: String?): String = detectedScope.orEmpty().substringBefore("(").trim()
 
 private fun fetchSessionLearnings(connection: Connection, reviewSessionId: String): Map<String, Any?>? {
   val rawJson =
@@ -147,7 +161,7 @@ private fun fetchSessionLearnings(connection: Connection, reviewSessionId: Strin
     WHERE review_session_id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, reviewSessionId)
+      statement.bindAll(reviewSessionId)
       statement.executeQuery().use { resultSet ->
         if (resultSet.next()) {
           resultSet.getString("learnings_json")

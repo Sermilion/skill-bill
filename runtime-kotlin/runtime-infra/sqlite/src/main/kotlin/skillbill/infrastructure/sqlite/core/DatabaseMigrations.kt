@@ -1,24 +1,58 @@
 package skillbill.infrastructure.sqlite.core
 
+import skillbill.error.DatabaseAccessOperation
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.sql.Connection
 
 internal object DatabaseMigrations {
   val migrations: List<DatabaseMigration> =
-    (databaseMigrationsEarly + databaseMigrationsLate).also(::requireDeterministicMigrations)
+    databaseMigrations.also(::requireDeterministicMigrations)
 
-  fun apply(connection: Connection) {
+  fun apply(
+    connection: Connection,
+    diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+    migrationSet: List<DatabaseMigration> = migrations,
+  ) {
     val ledger = MigrationLedger.readState(connection)
-    if (!ledger.hasPendingWork(migrations.map { migration -> migration.name })) return
+    if (!ledger.hasPendingWork(migrationSet.map { migration -> migration.name })) return
+    val dbPath = connection.databasePath()
+    val existingDiagnostics = connection.sqliteDiagnostics()
+    val ownsDiagnostics = existingDiagnostics === InternalSqliteDiagnostics &&
+      diagnostics !== InternalSqliteDiagnostics
+    if (ownsDiagnostics) {
+      connection.attachSqliteDiagnostics(diagnostics)
+    }
 
-    connection.inImmediateTransaction {
-      MigrationLedger.ensureNameKeyed(this)
-      val appliedNames = MigrationLedger.appliedNames(this)
-      migrations
-        .filterNot { migration -> migration.name in appliedNames }
-        .forEach { migration ->
-          migration.apply(this)
-          MigrationLedger.record(this, migration)
+    try {
+      connection.inDatabaseTransaction(
+        DatabaseTransactionSpec(
+          dbPath = dbPath,
+          beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
+          operation = DatabaseAccessOperation.OPEN,
+          diagnostics = diagnostics,
+        ),
+      ) {
+        MigrationLedger.ensureNameKeyed(this)
+        val appliedNames = MigrationLedger.appliedNames(this)
+        migrationSet
+          .filterNot { migration -> migration.name in appliedNames }
+          .forEach { migration ->
+            migration.apply(this)
+            MigrationLedger.record(this, migration)
+          }
+        val appliedAfter = MigrationLedger.appliedNames(this)
+        val highestVersion =
+          migrationSet.filter { migration -> migration.name in appliedAfter }.maxOfOrNull { migration ->
+            migration.version
+          }
+        if (highestVersion != null) {
+          createStatement().use { statement -> statement.execute("PRAGMA user_version = $highestVersion") }
         }
+      }
+    } finally {
+      if (ownsDiagnostics) {
+        connection.detachSqliteDiagnostics()
+      }
     }
   }
 

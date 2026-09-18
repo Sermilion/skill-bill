@@ -1,6 +1,8 @@
 package skillbill.infrastructure.sqlite.review
-
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.telemetry.durationSeconds
 import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
@@ -15,14 +17,16 @@ private val featureTaskRuntimeCompletionStatuses =
   listOf("completed", "blocked", "decomposed_at_planning", "error", "stale")
 private val featureTaskRuntimePhaseOutcomes = listOf("completed", "blocked", "running")
 
-fun buildFeatureTaskRuntimeStats(rows: List<Map<String, Any?>>): FeatureTaskRuntimeWorkflowStats {
+internal fun buildFeatureTaskRuntimeStats(rows: List<Map<String, Any?>>): FeatureTaskRuntimeWorkflowStats {
   val finishedRows = finishedRows(rows)
   val observedRows = finishedRows.filterNot { it.stringValue("completion_status") == STALE_COMPLETION_STATUS }
   val completedRuns = observedRows.count { it.stringValue("completion_status") == "completed" }
   val blockedRuns = observedRows.count { it.stringValue("completion_status") == "blocked" }
   val decomposedRuns = observedRows.count { it.stringValue("completion_status") == "decomposed_at_planning" }
   val errorRuns = observedRows.count { it.stringValue("completion_status") == "error" }
-  val completedPhaseCounts = observedRows.map { parseJsonList(it["completed_phase_ids"]).size }
+  val completedPhaseCounts = observedRows.map {
+    parseJsonList(it[SqliteReviewTelemetryPayloadKeys.COMPLETED_PHASE_IDS]).size
+  }
   val tokenValues = observedRows.mapNotNull { it.nullableIntValue("estimated_total_tokens") }
   return FeatureTaskRuntimeWorkflowStats(
     totalRuns = rows.size,
@@ -47,7 +51,7 @@ fun buildFeatureTaskRuntimeStats(rows: List<Map<String, Any?>>): FeatureTaskRunt
   )
 }
 
-const val STALE_COMPLETION_STATUS: String = "stale"
+internal const val STALE_COMPLETION_STATUS: String = "stale"
 
 private fun phaseOutcomeCounts(rows: List<Map<String, Any?>>): Map<String, Int> {
   val counts = featureTaskRuntimePhaseOutcomes.associateWith { 0 }.toMutableMap()
@@ -65,14 +69,18 @@ private fun phaseOutcomeCounts(rows: List<Map<String, Any?>>): Map<String, Int> 
   return counts
 }
 
-fun buildFeatureVerifyStats(rows: List<Map<String, Any?>>): FeatureVerifyWorkflowStats {
+internal fun buildFeatureVerifyStats(rows: List<Map<String, Any?>>): FeatureVerifyWorkflowStats {
   val finishedRows = finishedRows(rows)
   val rolloutRelevantRuns = rows.count { it.booleanValue("rollout_relevant") }
   val auditPerformedRuns = finishedRows.count { it.booleanValue("feature_flag_audit_performed") }
   val historyReadRuns = finishedRows.count(::historySignalsPresent)
   val historyRelevantRuns = finishedRows.count { it.stringValue("history_relevance") in setOf("medium", "high") }
   val historyHelpfulRuns = finishedRows.count { it.stringValue("history_helpfulness") in setOf("medium", "high") }
-  val runsWithGapsFound = finishedRows.count { parseJsonList(it["gaps_found"]).isNotEmpty() }
+  val runsWithGapsFound = finishedRows.count {
+    parseJsonList(
+      it[LifecycleTelemetryPayloadKeys.GAPS_FOUND],
+    ).isNotEmpty()
+  }
   val reviewIterations = finishedRows.mapNotNull { it.intValue("review_iterations") }
   val durations = finishedRows.map(::durationSeconds).filter { it > 0 }
   val acceptanceCriteriaCounts = rows.mapNotNull { it.intValue("acceptance_criteria_count") }
@@ -101,18 +109,22 @@ fun buildFeatureVerifyStats(rows: List<Map<String, Any?>>): FeatureVerifyWorkflo
   )
 }
 
-fun loadRows(connection: Connection, tableName: String): List<Map<String, Any?>> =
+internal fun loadRows(connection: Connection, tableName: String): List<Map<String, Any?>> =
   connection.prepareStatement("SELECT * FROM $tableName ORDER BY started_at, session_id").use { statement ->
     statement.executeQuery().use(::collectRows)
   }
 
-fun finishedRows(rows: List<Map<String, Any?>>): List<Map<String, Any?>> =
-  rows.filter { it["finished_at"]?.toString()?.isNotBlank() == true }
+internal fun finishedRows(rows: List<Map<String, Any?>>): List<Map<String, Any?>> =
+  rows.filter { it[GoalTelemetryPayloadKeys.FINISHED_AT]?.toString()?.isNotBlank() == true }
 
-fun historySignalsPresent(row: Map<String, Any?>): Boolean =
+internal fun historySignalsPresent(row: Map<String, Any?>): Boolean =
   row.stringValue("history_relevance") != "none" || row.stringValue("history_helpfulness") != "none"
 
-fun countValues(rows: List<Map<String, Any?>>, columnName: String, expectedValues: List<String>): Map<String, Int> {
+internal fun countValues(
+  rows: List<Map<String, Any?>>,
+  columnName: String,
+  expectedValues: List<String>,
+): Map<String, Int> {
   val counts = expectedValues.associateWith { 0 }.toMutableMap()
   rows.forEach { row ->
     val rawValue = row.stringValue(columnName)

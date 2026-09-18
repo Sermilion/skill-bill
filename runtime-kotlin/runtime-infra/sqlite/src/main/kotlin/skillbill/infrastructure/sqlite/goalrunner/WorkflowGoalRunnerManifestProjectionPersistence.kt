@@ -17,8 +17,8 @@ import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
 internal data class SavedManifestProjection(
-  val state: GoalRunnerManifestState,
-  val projectionArtifactsJson: String,
+  internal val state: GoalRunnerManifestState,
+  internal val projectionArtifactsJson: String,
 )
 
 internal class WorkflowGoalRunnerManifestProjectionPersistence(
@@ -44,7 +44,6 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
       ?: error("Unknown decomposed parent workflow '${state.parentWorkflowId}'.")
     existingRecord.requireRuntimeModeForEngineWrite()
     val existingSnapshot = existingRecord.toSnapshot()
-    migrateLegacyGoalRunnerControls(unitOfWork, existingSnapshot)
     if (clearOutOfBandAcceptances) {
       unitOfWork.goalRunnerControls.clearOutOfBandAcceptances(existingSnapshot.workflowId)
       unitOfWork.goalRunnerControls.clearControlState(existingSnapshot.workflowId)

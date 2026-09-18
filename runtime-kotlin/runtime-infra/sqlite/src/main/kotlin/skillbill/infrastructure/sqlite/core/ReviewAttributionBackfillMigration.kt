@@ -11,12 +11,6 @@ import skillbill.review.resolveCanonicalStack
 import java.sql.Connection
 
 internal object ReviewAttributionBackfillMigration {
-  private const val BIND_ROUTED_SKILL = 1
-  private const val BIND_STACK = 2
-  private const val BIND_SCOPE = 3
-  private const val BIND_SCOPE_DETAIL = 4
-  private const val BIND_REVIEW_RUN_ID = 5
-
   private val requiredRawColumns = setOf("routed_skill", "detected_stack", "detected_scope")
 
   fun apply(connection: Connection) {
@@ -63,11 +57,13 @@ internal object ReviewAttributionBackfillMigration {
       pending.forEach { row ->
         val resolved = row.resolve()
         if (resolved == row.stored) return@forEach
-        statement.setString(BIND_ROUTED_SKILL, resolved.routedSkill)
-        statement.setString(BIND_STACK, resolved.stack)
-        statement.setString(BIND_SCOPE, resolved.scope)
-        statement.setString(BIND_SCOPE_DETAIL, resolved.scopeDetail)
-        statement.setString(BIND_REVIEW_RUN_ID, row.reviewRunId)
+        statement.bindAll(
+          resolved.routedSkill,
+          resolved.stack,
+          resolved.scope,
+          resolved.scopeDetail,
+          row.reviewRunId,
+        )
         statement.addBatch()
         batched += 1
       }

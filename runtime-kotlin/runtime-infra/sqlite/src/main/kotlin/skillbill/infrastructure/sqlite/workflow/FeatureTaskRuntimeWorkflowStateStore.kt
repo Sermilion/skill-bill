@@ -4,9 +4,11 @@ import skillbill.ports.workflow.FeatureTaskRuntimeWorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import java.sql.Connection
+import java.time.Clock
 
 internal class FeatureTaskRuntimeWorkflowStateStore(
   private val connection: Connection,
+  private val clock: Clock,
 ) : FeatureTaskRuntimeWorkflowStateRepository {
   override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
     connection.upsertFeatureTaskWorkflowRow(
@@ -16,6 +18,7 @@ internal class FeatureTaskRuntimeWorkflowStateStore(
         FeatureTaskWorkflowMode.RUNTIME.defaultImplementationSkill
       },
       defaultContractVersion = FeatureTaskWorkflowMode.RUNTIME.defaultContractVersion,
+      clock = clock,
     )
   }
 

@@ -1,13 +1,13 @@
 package skillbill.infrastructure.sqlite.telemetry
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
 import java.sql.Connection
 import java.sql.PreparedStatement
 
-fun saveFeatureTaskRuntimeStarted(connection: Connection, record: FeatureTaskRuntimeStartedRecord) {
+internal fun saveFeatureTaskRuntimeStarted(connection: Connection, record: FeatureTaskRuntimeStartedRecord) {
   if (rowExists(connection, "feature_task_runtime_sessions", record.sessionId)) {
     updateFeatureTaskRuntimeStarted(connection, record)
     return
@@ -20,7 +20,7 @@ fun saveFeatureTaskRuntimeStarted(connection: Connection, record: FeatureTaskRun
     ) VALUES (?, ?, ?, ?, ?, ?, ?)
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.sessionId,
       record.featureSize,
       record.issueKey,
@@ -46,7 +46,7 @@ private fun updateFeatureTaskRuntimeStarted(connection: Connection, record: Feat
     WHERE session_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.featureSize,
       record.issueKey,
       record.featureName,
@@ -59,7 +59,7 @@ private fun updateFeatureTaskRuntimeStarted(connection: Connection, record: Feat
   }
 }
 
-fun saveFeatureTaskRuntimeFinished(
+internal fun saveFeatureTaskRuntimeFinished(
   connection: Connection,
   record: FeatureTaskRuntimeFinishedRecord,
 ): TerminalSaveOutcome {
@@ -124,7 +124,7 @@ private fun bindFeatureTaskRuntimeFinishedUpdate(
   completedPhaseIdsJson: String,
   phaseOutcomesJson: String,
 ) {
-  statement.bind(
+  statement.bindAll(
     record.completionStatus,
     completedPhaseIdsJson,
     phaseOutcomesJson,
@@ -189,7 +189,7 @@ private fun insertFeatureTaskRuntimeFinished(
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.sessionId,
       record.completionStatus,
       completedPhaseIdsJson,

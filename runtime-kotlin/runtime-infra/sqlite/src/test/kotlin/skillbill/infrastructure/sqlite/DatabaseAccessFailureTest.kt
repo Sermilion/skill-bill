@@ -21,7 +21,11 @@ class DatabaseAccessFailureTest {
     val unopenable = unopenableDatabasePath()
 
     val error = assertFailsWith<DatabaseAccessError> {
-      DatabaseRuntime.openReadDb(cliValue = unopenable.toString(), environment = emptyMap())
+      DatabaseRuntime.openReadDb(
+        cliValue = unopenable.toString(),
+        environment = emptyMap(),
+        userHome = unopenable.parent,
+      )
     }
 
     assertEquals(unopenable.toAbsolutePath().normalize().toString(), error.dbPath)
@@ -34,7 +38,11 @@ class DatabaseAccessFailureTest {
     val unopenable = unopenableDatabasePath()
 
     val thrown = runCatching {
-      DatabaseRuntime.openReadDb(cliValue = unopenable.toString(), environment = emptyMap())
+      DatabaseRuntime.openReadDb(
+        cliValue = unopenable.toString(),
+        environment = emptyMap(),
+        userHome = unopenable.parent,
+      )
     }.exceptionOrNull()
 
     assertFalse(thrown is SQLiteException, "raw JDBC exception escaped: $thrown")
@@ -50,7 +58,9 @@ class DatabaseAccessFailureTest {
     val dbPath = tempDir.resolve("review-metrics.db")
     Files.write(dbPath, "this is not a sqlite database".toByteArray())
 
-    runCatching { DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap()).close() }
+    runCatching {
+      DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap(), userHome = tempDir).close()
+    }
 
     assertTrue(Files.deleteIfExists(dbPath), "the temp database file could not be deleted after the failed open")
   }
@@ -59,9 +69,9 @@ class DatabaseAccessFailureTest {
   fun `a healthy database still opens on the read path`() {
     val tempDir = createTempDirectory("skill-bill-db-access-ok")
     val dbPath = tempDir.resolve("review-metrics.db")
-    DatabaseRuntime.openDb(cliValue = dbPath.toString(), environment = emptyMap()).close()
+    DatabaseRuntime.openDb(cliValue = dbPath.toString(), environment = emptyMap(), userHome = tempDir).close()
 
-    DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap()).use { open ->
+    DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap(), userHome = tempDir).use { open ->
       assertContains(open.dbPath.toString(), "review-metrics.db")
       assertFalse(open.connection.isClosed)
     }

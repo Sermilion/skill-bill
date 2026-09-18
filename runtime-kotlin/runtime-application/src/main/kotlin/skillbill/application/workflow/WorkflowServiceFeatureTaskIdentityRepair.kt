@@ -16,11 +16,12 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.workflowStatus
-import java.time.OffsetDateTime
+import java.time.Clock
 import java.time.ZoneOffset
 
 class WorkflowServiceFeatureTaskIdentityRepair(
   private val engine: WorkflowEngine,
+  private val clock: Clock,
 ) {
   fun repair(args: FeatureTaskIdentityRepairArgs): WorkflowUpdateResult {
     val unitOfWork = args.unitOfWork
@@ -79,7 +80,7 @@ class WorkflowServiceFeatureTaskIdentityRepair(
         mapOf(
           FEATURE_TASK_RUNTIME_IDENTITY_REPAIR_ARTIFACT_KEY to mapOf(
             "reason" to args.normalizedReason,
-            "repaired_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+            "repaired_at" to clock.instant().atOffset(ZoneOffset.UTC).toString(),
             "repository_identity" to args.repositoryIdentity,
             "governed_spec_path" to args.governedSpecPath,
           ),

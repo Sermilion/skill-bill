@@ -2,18 +2,15 @@ package skillbill.infrastructure.sqlite
 
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
-import skillbill.infrastructure.sqlite.core.inImmediateTransaction
-import java.lang.reflect.InvocationTargetException
-import java.lang.reflect.Method
+import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.lang.reflect.Proxy
 import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.Statement
-import java.util.logging.Handler
-import java.util.logging.LogRecord
-import java.util.logging.Logger
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,7 +26,7 @@ class ConnectionTransactionsRollbackTest {
     val connection = failingConnection(mapOf("ROLLBACK" to SQLException("rollback-probe-failure")))
 
     val error = assertFailsWith<IllegalStateException> {
-      connection.inImmediateTransaction {
+      connection.inNestedWriteTransaction {
         throw primary
       }
     }
@@ -50,7 +47,7 @@ class ConnectionTransactionsRollbackTest {
     )
 
     val error = assertFailsWith<SQLException> {
-      connection.inImmediateTransaction { }
+      connection.inNestedWriteTransaction { }
     }
 
     assertSame(commitFailure, error)
@@ -63,7 +60,7 @@ class ConnectionTransactionsRollbackTest {
     val dbPath = createTempDirectory("skillbill-immediate-rollback").resolve("rollback.db")
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
       val error = assertFailsWith<IllegalStateException> {
-        connection.inImmediateTransaction {
+        connection.inNestedWriteTransaction {
           error("force rollback")
         }
       }
@@ -74,70 +71,20 @@ class ConnectionTransactionsRollbackTest {
   @Test
   fun `rollback failure after body failure emits a bounded sqlite diagnostic`() {
     val connection = failingConnection(mapOf("ROLLBACK" to SQLException("rollback-probe-failure")))
-    val logger = Logger.getLogger("skillbill.sqlite.transaction")
-    val (error, messages) = capturingLogRecords(logger) {
-      assertFailsWith<IllegalStateException> {
-        connection.inImmediateTransaction {
-          error("primary-probe-failure")
-        }
+    val diagnostics = RecordingDiagnostics()
+    val error = assertFailsWith<IllegalStateException> {
+      connection.inNestedWriteTransaction(diagnostics) {
+        error("primary-probe-failure")
       }
     }
 
     assertEquals("primary-probe-failure", error.message)
     assertTrue(
-      messages.any { message ->
+      diagnostics.warnings.any { message ->
         message.contains("transaction rollback failed") && message.contains("rollback-probe-failure")
       },
-      messages.toString(),
+      diagnostics.warnings.toString(),
     )
-  }
-
-  @Test
-  fun `session factory write transaction dual failure preserves primary`() {
-    val connection = failingConnection(mapOf("ROLLBACK" to SQLException("rollback-probe-failure")))
-    val method = sessionFactoryTransactionMethod("inTransaction")
-    val block: () -> Any? = { throw IllegalStateException("primary-probe-failure") }
-
-    val error = assertFailsWith<InvocationTargetException> {
-      method.invoke(
-        null,
-        connection,
-        Path.of("/tmp/unused-probe.db"),
-        block,
-      )
-    }.cause as IllegalStateException
-
-    assertEquals("primary-probe-failure", error.message)
-    assertEquals(1, error.suppressed.size)
-  }
-
-  @Test
-  fun `session factory read transaction dual failure preserves primary`() {
-    val connection = failingConnection(mapOf("ROLLBACK" to SQLException("rollback-probe-failure")))
-    val method = sessionFactoryTransactionMethod("inReadTransaction")
-    val block: () -> Any? = { throw IllegalStateException("primary-probe-failure") }
-
-    val error = assertFailsWith<InvocationTargetException> {
-      method.invoke(
-        null,
-        connection,
-        Path.of("/tmp/unused-probe.db"),
-        block,
-      )
-    }.cause as IllegalStateException
-
-    assertEquals("primary-probe-failure", error.message)
-    assertEquals(1, error.suppressed.size)
-  }
-
-  private fun sessionFactoryTransactionMethod(name: String): Method {
-    val owner = Class.forName("skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactoryKt")
-    return owner.getDeclaredMethod(
-      name,
-      Connection::class.java,
-      Path::class.java,
-      Function0::class.java,
-    ).also { it.isAccessible = true }
   }
 
   private fun failingConnection(failures: Map<String, SQLException>): Connection {
@@ -157,25 +104,29 @@ class ConnectionTransactionsRollbackTest {
     ) { _, method, _ ->
       when (method.name) {
         "createStatement" -> statement
+        "getMetaData" -> Proxy.newProxyInstance(
+          Class.forName("java.sql.DatabaseMetaData").classLoader,
+          arrayOf(Class.forName("java.sql.DatabaseMetaData")),
+        ) { _, metaMethod, _ ->
+          when (metaMethod.name) {
+            "getURL" -> "jdbc:sqlite:${Path.of("/tmp/unused-probe.db")}"
+            else -> null
+          }
+        }
         else -> null
       }
     } as Connection
   }
 
-  private fun <T> capturingLogRecords(logger: Logger, block: () -> T): Pair<T, List<String>> {
-    val records = mutableListOf<LogRecord>()
-    val handler = object : Handler() {
-      override fun publish(record: LogRecord) {
-        records += record
-      }
-      override fun flush() = Unit
-      override fun close() = Unit
+  private class RecordingDiagnostics : RuntimeDiagnostics {
+    val warnings = CopyOnWriteArrayList<String>()
+
+    override fun warning(message: String, error: Throwable?) {
+      warnings += message
     }
-    logger.addHandler(handler)
-    return try {
-      block() to records.mapNotNull(LogRecord::getMessage)
-    } finally {
-      logger.removeHandler(handler)
+
+    override fun error(message: String, error: Throwable?) {
+      warnings += message
     }
   }
 }

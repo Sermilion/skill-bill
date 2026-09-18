@@ -1,8 +1,8 @@
 package skillbill.telemetry
 
 import skillbill.infrastructure.http.telemetryProxyBatchPayload
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.ensureTestDatabase
+import skillbill.infrastructure.sqlite.telemetryOutboxOnConnection
 import skillbill.ports.repository.toFileLocation
 import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Files
@@ -20,10 +20,10 @@ class TelemetryReleaseAttributionTest {
   @Test
   fun `an event is uploaded with the version that was running when it was enqueued`() {
     withOutboxDatabase { connection ->
-      TelemetryOutboxStore(connection, version = ENQUEUE_TIME_VERSION)
+      telemetryOutboxOnConnection(connection, ENQUEUE_TIME_VERSION)
         .enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"name":"ok"}""")
 
-      val uploadTimeStore = TelemetryOutboxStore(connection, version = UPLOAD_TIME_VERSION)
+      val uploadTimeStore = telemetryOutboxOnConnection(connection, UPLOAD_TIME_VERSION)
       val payload = telemetryProxyBatchPayload(settings(), uploadTimeStore.listPending())
 
       assertEquals(ENQUEUE_TIME_VERSION, payload.batch.single().properties["skill_bill_version"])
@@ -42,7 +42,7 @@ class TelemetryReleaseAttributionTest {
         )
       }
 
-      val pending = TelemetryOutboxStore(connection, version = UPLOAD_TIME_VERSION).listPending()
+      val pending = telemetryOutboxOnConnection(connection, UPLOAD_TIME_VERSION).listPending()
       assertEquals(1, pending.size, "The version-less row must stay pending, not be dropped by the reader.")
 
       val payload = telemetryProxyBatchPayload(settings(), pending)
@@ -57,7 +57,7 @@ class TelemetryReleaseAttributionTest {
 
   private fun withOutboxDatabase(block: (Connection) -> Unit) {
     val dbPath = Files.createTempDirectory("telemetry-release-attribution").resolve("metrics.db")
-    DatabaseRuntime.ensureDatabase(dbPath).use(block)
+    ensureTestDatabase(dbPath).use(block)
   }
 
   private fun settings(): TelemetrySettings = TelemetrySettings(

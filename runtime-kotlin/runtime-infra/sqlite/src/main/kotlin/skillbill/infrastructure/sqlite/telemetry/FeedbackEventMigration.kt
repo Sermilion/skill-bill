@@ -2,18 +2,12 @@ package skillbill.infrastructure.sqlite.telemetry
 
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.infrastructure.sqlite.core.DbConstants
+import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.review.model.FindingOutcomeType
 import java.sql.Connection
 
 internal object FeedbackEventMigration {
   private val legacyFeedbackEventTypes: Set<String> = setOf("accepted", "dismissed", "fix_requested")
-
-  private const val FEEDBACK_EVENT_ID_INDEX: Int = 1
-  private const val FEEDBACK_EVENT_REVIEW_RUN_ID_INDEX: Int = 2
-  private const val FEEDBACK_EVENT_FINDING_ID_INDEX: Int = 3
-  private const val FEEDBACK_EVENT_TYPE_INDEX: Int = 4
-  private const val FEEDBACK_EVENT_NOTE_INDEX: Int = 5
-  private const val FEEDBACK_EVENT_CREATED_AT_INDEX: Int = 6
 
   fun apply(connection: Connection) {
     val createSql = feedbackEventsCreateSql(connection) ?: return
@@ -46,7 +40,7 @@ internal object FeedbackEventMigration {
   }
 
   private fun feedbackEventsNeedMigration(createSql: String): Boolean {
-    val hasCurrentSchema = DbConstants.findingOutcomeTypes.all { eventType -> "'$eventType'" in createSql }
+    val hasCurrentSchema = FindingOutcomeType.entries.all { eventType -> "'${eventType.wireValue}'" in createSql }
     val hasLegacySchema = legacyFeedbackEventTypes.any { eventType -> "'$eventType'" in createSql }
     return !(hasCurrentSchema && !hasLegacySchema)
   }
@@ -80,12 +74,12 @@ internal object FeedbackEventMigration {
   private fun normalizeFeedbackEventType(eventType: String): String {
     val normalizedEventType =
       when (eventType) {
-        "accepted" -> "finding_accepted"
-        "dismissed" -> "fix_rejected"
-        "fix_requested" -> "fix_applied"
+        "accepted" -> FindingOutcomeType.FindingAccepted.wireValue
+        "dismissed" -> FindingOutcomeType.FixRejected.wireValue
+        "fix_requested" -> FindingOutcomeType.FixApplied.wireValue
         else -> eventType
       }
-    require(normalizedEventType in DbConstants.findingOutcomeTypes) {
+    require(FindingOutcomeType.fromWire(normalizedEventType) != null) {
       "Unsupported finding outcome '$eventType'."
     }
     return normalizedEventType
@@ -106,7 +100,7 @@ internal object FeedbackEventMigration {
           review_run_id TEXT NOT NULL,
           finding_id TEXT NOT NULL,
           event_type TEXT NOT NULL CHECK (
-            event_type IN ('finding_accepted', 'fix_applied', 'finding_edited', 'fix_rejected', 'false_positive')
+            event_type IN (${FindingOutcomeType.entries.joinToString(", ") { "'${it.wireValue}'" }})
           ),
           note TEXT NOT NULL DEFAULT '',
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -133,12 +127,7 @@ internal object FeedbackEventMigration {
       """.trimIndent(),
     ).use { statement ->
       rows.forEach { row ->
-        statement.setLong(FEEDBACK_EVENT_ID_INDEX, row.id)
-        statement.setString(FEEDBACK_EVENT_REVIEW_RUN_ID_INDEX, row.reviewRunId)
-        statement.setString(FEEDBACK_EVENT_FINDING_ID_INDEX, row.findingId)
-        statement.setString(FEEDBACK_EVENT_TYPE_INDEX, row.eventType)
-        statement.setString(FEEDBACK_EVENT_NOTE_INDEX, row.note)
-        statement.setString(FEEDBACK_EVENT_CREATED_AT_INDEX, row.createdAt)
+        statement.bindAll(row.id, row.reviewRunId, row.findingId, row.eventType, row.note, row.createdAt)
         statement.addBatch()
       }
       if (rows.isNotEmpty()) {
