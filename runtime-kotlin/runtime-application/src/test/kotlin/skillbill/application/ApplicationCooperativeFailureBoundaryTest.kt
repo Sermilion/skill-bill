@@ -6,6 +6,7 @@ import skillbill.application.review.SpecIntentSourceUnavailable
 import skillbill.application.runtimepersistence.RuntimeOwnedFactUnavailable
 import skillbill.application.runtimepersistence.RuntimeOwnedPersistenceBoundary
 import skillbill.application.system.SystemService
+import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.idestatus.model.AgentActivityLabel
@@ -255,8 +256,9 @@ class ApplicationCooperativeFailureBoundaryTest {
       override fun load(materialize: Boolean) = throw InterruptedException("interrupted")
     }
 
-    assertFailsWith<CancellationException> { cancelled.loadOrNull() }
-    assertFailsWith<InterruptedException> { interrupted.loadOrNull() }
+    val diagnostics = NoopRuntimeDiagnostics
+    assertFailsWith<CancellationException> { telemetrySettingsOrNull(cancelled, diagnostics) }
+    assertFailsWith<InterruptedException> { telemetrySettingsOrNull(interrupted, diagnostics) }
   }
 }
 
@@ -302,8 +304,12 @@ private class RecordingDiagnostics : RuntimeDiagnostics {
   }
 }
 
-private fun versionedSystemService(version: String): SystemService =
-  SystemService(UpdateCheckTestDatabaseSessionFactory(), UpdateCheckTestTelemetrySettingsProvider, version)
+private fun versionedSystemService(version: String): SystemService = SystemService(
+  UpdateCheckTestDatabaseSessionFactory(),
+  UpdateCheckTestTelemetrySettingsProvider,
+  NoopRuntimeDiagnostics,
+  version,
+)
 
 private class UpdateCheckTestDatabaseSessionFactory : DatabaseSessionFactory {
   private val dbPath = Files.createTempDirectory("cooperative-failure-db").resolve("metrics.db")

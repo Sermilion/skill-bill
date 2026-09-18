@@ -5,7 +5,11 @@ import skillbill.di.RuntimeComponent
 import skillbill.di.create
 import skillbill.infrastructure.launcher.agentrun.PathExecutableLookup
 import skillbill.install.model.InstallAgent
+import skillbill.model.EnvironmentContext
+import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
+import skillbill.model.TransportContext
+import skillbill.model.WorkflowOpsContext
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
@@ -24,9 +28,10 @@ class AgentRunServiceRuntimeComponentTest {
     val tempDir = Files.createTempDirectory("skillbill-agent-run-component")
     val service = RuntimeComponent::class.create(
       RuntimeContext(
-        environment = emptyMap(),
-        userHome = tempDir,
-        executableLookup = ExecutableLookup { false },
+        environment = EnvironmentContext(environment = emptyMap(), userHome = tempDir),
+        transport = TransportContext(),
+        workflowOps = WorkflowOpsContext(),
+        callbacks = OptionalCallbacks(executableLookup = ExecutableLookup { false }),
       ),
     ).agentRunService
 
@@ -68,12 +73,15 @@ class AgentRunServiceRuntimeComponentTest {
     val lookupRequests = mutableListOf<String>()
     val service = RuntimeComponent::class.create(
       RuntimeContext(
-        environment = emptyMap(),
-        userHome = tempDir,
-        executableLookup = ExecutableLookup { executable ->
-          lookupRequests += executable
-          false
-        },
+        environment = EnvironmentContext(environment = emptyMap(), userHome = tempDir),
+        transport = TransportContext(),
+        workflowOps = WorkflowOpsContext(),
+        callbacks = OptionalCallbacks(
+          executableLookup = ExecutableLookup { executable ->
+            lookupRequests += executable
+            false
+          },
+        ),
       ),
     ).agentRunService
 

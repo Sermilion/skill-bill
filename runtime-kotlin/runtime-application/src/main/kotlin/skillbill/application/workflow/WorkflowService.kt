@@ -36,7 +36,6 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.ports.workflow.latest
 import skillbill.ports.workflow.list
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
@@ -46,6 +45,7 @@ import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.time.Clock
 import kotlin.random.Random
 

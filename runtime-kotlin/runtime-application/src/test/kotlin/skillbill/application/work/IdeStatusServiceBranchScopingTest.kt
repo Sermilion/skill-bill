@@ -1,5 +1,5 @@
 package skillbill.application.work
-
+import skillbill.application.idestatus.toStatusWireMap
 import skillbill.engine.work.model.IdeStatusCurrentPhaseExecutionKind
 import skillbill.engine.work.model.IdeStatusFreshness
 import skillbill.engine.work.model.IdeStatusLifecycleState
@@ -14,8 +14,8 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.work.model.WorkItemKind
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
+import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant

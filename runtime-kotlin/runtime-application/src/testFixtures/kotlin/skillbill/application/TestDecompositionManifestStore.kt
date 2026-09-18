@@ -59,6 +59,36 @@ object TestDecompositionManifestStore : DecompositionManifestStore {
 
   override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     YAMLMapper().writeValueAsString(wireMap)
+
+  override fun readTextWithoutRecovery(path: Path): String = readText(path)
+
+  override fun isRegularFileWithoutRecovery(path: Path): Boolean = isRegularFile(path)
+
+  override fun findDecompositionManifestFilesWithoutRecovery(repoRoot: Path): List<Path> =
+    findDecompositionManifestFiles(repoRoot)
+
+  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T {
+    val snapshots = writes.distinctBy { (path, _) -> path.toAbsolutePath().normalize() }.map { (path, _) ->
+      val normalized = path.toAbsolutePath().normalize()
+      val existed = Files.isRegularFile(normalized)
+      normalized to (existed to if (existed) Files.readString(normalized) else null)
+    }
+    return runCatching {
+      writes.forEach { (path, content) -> writeTextAtomically(path, content) }
+      verify()
+    }.getOrElse { failure ->
+      snapshots.asReversed().forEach { (path, snapshot) ->
+        runCatching {
+          if (snapshot.first) {
+            writeTextAtomically(path, requireNotNull(snapshot.second))
+          } else {
+            deleteIfExists(path)
+          }
+        }.onFailure(failure::addSuppressed)
+      }
+      throw failure
+    }
+  }
 }
 
 fun loadDecompositionManifest(path: Path) = skillbill.application.decomposition.loadDecompositionManifest(

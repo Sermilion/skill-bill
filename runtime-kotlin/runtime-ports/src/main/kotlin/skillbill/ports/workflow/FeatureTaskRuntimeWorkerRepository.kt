@@ -6,30 +6,28 @@ import skillbill.ports.featuretask.model.parseFeatureTaskRuntimeWorkerLeaseInsta
 
 interface FeatureTaskRuntimeWorkerRepository {
 
-  fun getFeatureTaskRuntimeWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership? = null
+  fun getFeatureTaskRuntimeWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership?
 
   fun acquireFeatureTaskRuntimeWorker(
     ownership: FeatureTaskRuntimeWorkerOwnership,
     expectedUpdatedAt: String?,
-  ): Boolean = error("Feature-task runtime worker acquisition is not implemented by this persistence adapter.")
+  ): Boolean
 
   fun reserveFeatureTaskRuntimeWorkerTakeover(
     workflowId: String,
     expectedOwnerToken: String,
     expectedGeneration: Long,
-  ): Boolean = error("Feature-task runtime worker takeover is not implemented by this persistence adapter.")
+  ): Boolean
 
   fun transferFeatureTaskRuntimeWorker(
     ownership: FeatureTaskRuntimeWorkerOwnership,
     expectedOwnerToken: String,
     expectedGeneration: Long,
-  ): Boolean = error("Feature-task runtime worker transfer is not implemented by this persistence adapter.")
+  ): Boolean
 
-  fun heartbeatFeatureTaskRuntimeWorker(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean =
-    error("Feature-task runtime worker heartbeat is not implemented by this persistence adapter.")
+  fun heartbeatFeatureTaskRuntimeWorker(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean
 
-  fun releaseFeatureTaskRuntimeWorker(workflowId: String, ownerToken: String, generation: Long): Boolean =
-    error("Feature-task runtime worker release is not implemented by this persistence adapter.")
+  fun releaseFeatureTaskRuntimeWorker(workflowId: String, ownerToken: String, generation: Long): Boolean
 
   fun releaseFeatureTaskRuntimeWorkerIfExpired(
     workflowId: String,
@@ -52,7 +50,7 @@ interface FeatureTaskRuntimeWorkerRepository {
    */
   fun findFeatureTaskRuntimeCrashReconciliationCandidates(
     nowInstant: String,
-  ): List<FeatureTaskRuntimeCrashReconciliationCandidate> = emptyList()
+  ): List<FeatureTaskRuntimeCrashReconciliationCandidate>
 
   /**
    * Atomic fenced reconcile write: transition the still-`running` row to the resumable `pending`
@@ -67,5 +65,5 @@ interface FeatureTaskRuntimeWorkerRepository {
     generation: Long,
     interruptionReason: String,
     nowInstant: String,
-  ): Boolean = error("Feature-task runtime crash reconciliation is not implemented by this persistence adapter.")
+  ): Boolean
 }

@@ -53,46 +53,4 @@ data class RuntimeContext(
   val transport: TransportContext,
   val workflowOps: WorkflowOpsContext,
   val callbacks: OptionalCallbacks,
-) {
-  constructor(
-    stdinText: String? = null,
-    environment: Map<String, String> = EnvironmentContext.UnspecifiedEnvironment,
-    userHome: Path = EnvironmentContext.UnspecifiedUserHome,
-    repositoryRoot: Path = EnvironmentContext.UnspecifiedRepositoryRoot,
-    requester: RemoteTransportPort? = null,
-    workflowGitOperations: WorkflowGitOperations? = null,
-    agentRunLauncher: AgentRunLauncher? = null,
-    goalPullRequestPort: GoalPullRequestPort? = null,
-    executableLookup: ExecutableLookup? = null,
-    reviewNativeAgentPreflight: ReviewNativeAgentPreflightPort? = null,
-    runtimeTimingPort: RuntimeTimingPort? = null,
-    hostPlatformPort: HostPlatformPort? = null,
-    installerProcessPort: InstallerProcessPort? = null,
-    installerScriptFetchPort: InstallerScriptFetchPort? = null,
-  ) : this(
-    EnvironmentContext(
-      stdinText = stdinText,
-      environment = environment,
-      userHome = userHome,
-      repositoryRoot = repositoryRoot,
-    ),
-    TransportContext(requester),
-    WorkflowOpsContext(workflowGitOperations),
-    OptionalCallbacks(
-      agentRunLauncher,
-      goalPullRequestPort,
-      executableLookup,
-      reviewNativeAgentPreflight,
-      runtimeTimingPort,
-      hostPlatformPort,
-      installerProcessPort,
-      installerScriptFetchPort,
-    ),
-  )
-
-  companion object {
-    val UnspecifiedEnvironment = EnvironmentContext.UnspecifiedEnvironment
-    val UnspecifiedUserHome = EnvironmentContext.UnspecifiedUserHome
-    val UnspecifiedRepositoryRoot = EnvironmentContext.UnspecifiedRepositoryRoot
-  }
-}
+)

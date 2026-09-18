@@ -4,7 +4,11 @@ import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult.Ok
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
+import skillbill.model.EnvironmentContext
+import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
+import skillbill.model.TransportContext
+import skillbill.model.WorkflowOpsContext
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.model.WorkflowStatus
@@ -25,9 +29,14 @@ class WorkflowServiceRuntimeComponentTest {
     val service =
       RuntimeComponent::class.create(
         RuntimeContext(
-          environment = emptyMap(),
-          userHome = tempDir,
-          repositoryRoot = tempDir,
+          environment = EnvironmentContext(
+            environment = emptyMap(),
+            userHome = tempDir,
+            repositoryRoot = tempDir,
+          ),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
         ),
       ).workflowService
     val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")

@@ -41,7 +41,7 @@ class TelemetryService(
   private val diagnostics: RuntimeDiagnostics,
   private val interruptSignal: InterruptSignalPort,
 ) {
-  fun isEnabled(): Boolean = telemetrySettingsOrNull(settingsProvider)?.enabled ?: false
+  fun isEnabled(): Boolean = telemetrySettingsOrNull(settingsProvider, diagnostics)?.enabled ?: false
 
   fun status(): TelemetryStatusResult {
     val dbPath = database.resolveDbPath()
@@ -87,7 +87,7 @@ class TelemetryService(
   }
 
   fun autoSync() {
-    val settings = telemetrySettingsOrNull(settingsProvider)
+    val settings = telemetrySettingsOrNull(settingsProvider, diagnostics)
     if (settings == null || !settings.enabled || !database.databaseExists()) return
     reconcileBeforeSync(TelemetryReconciliationRequest(level = settings.level, now = clock.instant()))
     try {
@@ -116,7 +116,7 @@ class TelemetryService(
         if (!database.databaseExists()) {
           return@runCatching
         }
-        val level = runCatching { telemetrySettingsOrNull(settingsProvider)?.level }
+        val level = runCatching { telemetrySettingsOrNull(settingsProvider, diagnostics)?.level }
           .getOrElse { thrown ->
             rethrowIfCooperative(thrown)
             null
@@ -161,7 +161,7 @@ class TelemetryService(
 
   fun captureException(workflowPhase: String, error: Exception) {
     if (!database.databaseExists()) return
-    val level = runCatching { telemetrySettingsOrNull(settingsProvider)?.level }
+    val level = runCatching { telemetrySettingsOrNull(settingsProvider, diagnostics)?.level }
       .getOrElse { thrown ->
         rethrowIfCooperative(thrown)
         null

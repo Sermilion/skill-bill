@@ -22,6 +22,7 @@ import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.MissingCompositionLayerError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator
@@ -37,7 +38,6 @@ import skillbill.model.EnvironmentContext
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.learning.LearningRepository
@@ -65,6 +65,7 @@ import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.ports.telemetry.model.TelemetryReconciliationResult
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.WorkflowStatsRepository
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
@@ -76,8 +77,6 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
@@ -106,6 +105,7 @@ import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -698,40 +698,7 @@ internal class FakeTelemetryClient : TelemetryClient {
     error("Unexpected fetchRemoteStats")
 }
 
-internal object NoopWorkflowStateRepository : WorkflowStateRepository {
-  override fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity) = Unit
-  override fun findStandaloneFeatureTaskCandidates(normalizedIssueKey: String, repositoryIdentity: String) =
-    emptyList<FeatureTaskWorkflowCandidate>()
-  override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? = null
-
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
-
-  override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
-
-  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureTaskRuntimeWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership? = null
-}
+internal object NoopWorkflowStateRepository : WorkflowStateRepositoryDefaults()
 
 internal fun createDecompositionWorkflow(service: WorkflowService, parentSpec: Path, subtaskSpec: Path): String =
   createDecompositionWorkflow(service, parentSpec, subtaskSpec, null)
@@ -1092,10 +1059,7 @@ internal fun loadTestDecompositionManifest(path: Path) =
 internal class InMemoryWorkflowStateRepository(
   private val implementSessionSummary: FeatureImplementSessionSummary? = null,
   private val verifySessionSummary: FeatureVerifySessionSummary? = null,
-) : WorkflowStateRepository {
-  override fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity) = Unit
-  override fun findStandaloneFeatureTaskCandidates(normalizedIssueKey: String, repositoryIdentity: String) =
-    emptyList<FeatureTaskWorkflowCandidate>()
+) : WorkflowStateRepositoryDefaults() {
   private val implementRows = linkedMapOf<String, WorkflowStateRecord>()
   private val verifyRows = linkedMapOf<String, WorkflowStateRecord>()
   private val taskRuntimeRows = linkedMapOf<String, WorkflowStateRecord>()
@@ -1128,6 +1092,33 @@ internal class InMemoryWorkflowStateRepository(
 
   override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? =
     verifySessionSummary?.takeIf { it.sessionId == sessionId }
+
+  override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
+      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
+    }
+  }
+
+  override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
+    taskRuntimeRows[workflowId] ?: implementRows[workflowId]
+
+  override fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    getFeatureTaskWorkflow(workflowId)?.also { row ->
+      val actualMode = row.mode ?: FeatureTaskWorkflowMode.PROSE
+      if (actualMode != mode) {
+        throw InvalidWorkflowStateSchemaError("Unexpected feature-task workflow mode.")
+      }
+    }
+
+  override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
+      FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
+    }
+
+  override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    listFeatureTaskWorkflows(mode, Int.MAX_VALUE).firstOrNull()
 
   override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
     if (failNextRuntimeSave) {

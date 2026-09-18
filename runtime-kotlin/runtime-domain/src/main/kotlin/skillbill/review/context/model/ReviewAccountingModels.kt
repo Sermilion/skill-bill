@@ -1,5 +1,7 @@
 package skillbill.review.context.model
 
+import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
+
 data class ReviewAccountingCounters(
   val launchBytes: Long = 0,
   val evidenceBytes: Long = 0,
@@ -132,6 +134,7 @@ data class ReviewAccountingSummary(
   val commitRouting: ReviewCommitRoutingAccounting? = null,
   val parentAnalysis: ReviewParentAnalysisConsumption? = null,
   val integration: ReviewIntegrationAccounting? = null,
+  val contractVersion: String = REVIEW_CONTEXT_CONTRACT_VERSION,
 )
 
 data class ReviewEvidenceDelivery(

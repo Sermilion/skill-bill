@@ -320,7 +320,7 @@ internal fun testGoalPlanningContextDiscovery(
   GoalPlanningContextDiscovery.NONE
 } else {
   object : GoalPlanningContextDiscovery {
-    override fun discover(repoRoot: Path): GoalPlanningContext = context
+    override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext = context
 
     override fun discoverForFindingPaths(repoRoot: Path, findingPaths: List<String>, loudFailOnCapExceeded: Boolean) =
       GoalPlanningContextDiscovery.NONE.discoverForFindingPaths(

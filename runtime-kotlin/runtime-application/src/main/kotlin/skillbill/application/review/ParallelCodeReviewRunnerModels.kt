@@ -6,7 +6,6 @@ import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.reviewevidence.SharedReviewEvidenceCommits
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.NativeReviewOperationProtocol
 import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.model.ParallelReviewLaneRunResult
 import skillbill.ports.review.model.ReviewIntegrationPassOutcome
@@ -124,7 +123,6 @@ class ParallelCodeReviewInlineParentLaunch(
 internal sealed class ParallelCodeReviewGovernedEvidenceBind {
   class Bound(
     val broker: ReviewEvidenceBroker,
-    val protocol: NativeReviewOperationProtocol,
     val endpoint: GovernedReviewEvidenceEndpointHandle,
   ) : ParallelCodeReviewGovernedEvidenceBind()
 

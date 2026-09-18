@@ -18,7 +18,7 @@ import java.time.ZoneOffset
 class FileSystemGoalPlanningContextDiscovery(
   private val clock: Clock,
 ) : GoalPlanningContextDiscovery {
-  override fun discover(repoRoot: Path): GoalPlanningContext {
+  override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext {
     val canonicalRoot = GoalPlanningRepositoryScope.canonicalRoot(repoRoot)
     val walk = GoalPlanningRepositoryScope.agentDirectories(canonicalRoot)
     return buildContext(canonicalRoot, walk, PlanningDiscoveryCaps)

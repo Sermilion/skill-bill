@@ -4,8 +4,8 @@ import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.review.ReviewFinishedPayloadBuildRequest
 import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
-import skillbill.ports.review.toReviewFinishedTelemetryPayload
 import skillbill.ports.telemetry.LifecycleTelemetryRepository
+import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
 import skillbill.review.ReviewParser
 import java.nio.file.Files
 import java.sql.Connection

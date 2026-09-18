@@ -2,7 +2,10 @@ package skillbill.di
 
 import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.infrastructure.workflow.GitWorkflowGitOperations
+import skillbill.model.EnvironmentContext
+import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
+import skillbill.model.TransportContext
 import skillbill.model.WorkflowOpsContext
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
@@ -14,7 +17,14 @@ class AbsentOptionalPortResolutionTest {
 
   @Test
   fun `an absent requester resolves to the JDK transport`() {
-    val resolved = RuntimeBootstrapBindings.runtimeContext(RuntimeContext())
+    val resolved = RuntimeBootstrapBindings.runtimeContext(
+      RuntimeContext(
+        environment = EnvironmentContext(),
+        transport = TransportContext(),
+        workflowOps = WorkflowOpsContext(),
+        callbacks = OptionalCallbacks(),
+      ),
+    )
 
     assertSame(JdkHttpRequester, resolved.transport.requester)
   }
@@ -23,7 +33,14 @@ class AbsentOptionalPortResolutionTest {
   fun `a caller-supplied requester survives bootstrap`() {
     val supplied = RemoteTransportPort { _, _, _, _ -> RemoteTransportResponse(200, "") }
 
-    val resolved = RuntimeBootstrapBindings.runtimeContext(RuntimeContext(requester = supplied))
+    val resolved = RuntimeBootstrapBindings.runtimeContext(
+      RuntimeContext(
+        environment = EnvironmentContext(),
+        transport = TransportContext(requester = supplied),
+        workflowOps = WorkflowOpsContext(),
+        callbacks = OptionalCallbacks(),
+      ),
+    )
 
     assertSame(supplied, resolved.transport.requester)
   }

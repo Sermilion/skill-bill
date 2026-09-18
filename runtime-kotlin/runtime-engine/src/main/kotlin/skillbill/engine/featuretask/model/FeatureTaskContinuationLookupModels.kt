@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask.model
 
 import skillbill.application.continuation.model.GoalContinuationCandidate
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 sealed interface FeatureTaskContinuationLookupResult {
   data object NoMatch : FeatureTaskContinuationLookupResult

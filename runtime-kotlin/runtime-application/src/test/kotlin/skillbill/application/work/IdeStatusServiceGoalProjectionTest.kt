@@ -1,5 +1,5 @@
 package skillbill.application.work
-
+import skillbill.application.idestatus.toStatusWireMap
 import skillbill.engine.work.model.IdeStatusLifecycleState
 import skillbill.engine.work.model.IdeStatusPauseReasonCode
 import skillbill.engine.work.model.IdeStatusRequest

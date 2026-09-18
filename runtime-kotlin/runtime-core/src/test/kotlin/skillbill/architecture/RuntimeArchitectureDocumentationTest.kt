@@ -66,7 +66,7 @@ class RuntimeArchitectureDocumentationTest {
       Regex("""(?m)^\| Run-loop file \| current \| target \|$""").containsMatchIn(architecture),
     )
     assertEquals(
-      22,
+      23,
       Regex("""(?m)^\| `FeatureTaskRuntimeRunLoop[^`]*\.kt` \| \d+ \| \d+ \|$""")
         .findAll(architecture)
         .count(),

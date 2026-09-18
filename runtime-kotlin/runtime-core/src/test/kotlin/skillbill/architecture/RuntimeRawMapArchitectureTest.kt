@@ -79,6 +79,28 @@ class RuntimeRawMapArchitectureTest {
   }
 
   @Test
+  fun `ports main path disables suffix boundary-carrier exemption for FooMap`() {
+    val fixture = SourceFile(
+      relativePath = "runtime-ports/src/main/kotlin/skillbill/ports/fixture/FooMap.kt",
+      packageName = "skillbill.ports.fixture",
+      imports = emptyList(),
+      source = """
+        package skillbill.ports.fixture
+
+        class FooMap(private val delegate: Map<String, Any?>) : Map<String, Any?> by delegate
+      """.trimIndent(),
+    )
+    val violations = findRawMapViolations(fixture)
+    assertEquals(
+      listOf(
+        "runtime-ports/src/main/kotlin/skillbill/ports/fixture/FooMap.kt:3: " +
+          "public `FooMap` exposes raw map shape",
+      ),
+      violations,
+    )
+  }
+
+  @Test
   fun `raw map violation scanner fires on known violation fixtures`() {
     val fixture = SourceFile(
       relativePath = "test-fixture/Fake.kt",

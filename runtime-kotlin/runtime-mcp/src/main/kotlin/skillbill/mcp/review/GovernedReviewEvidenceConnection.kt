@@ -1,9 +1,9 @@
 package skillbill.mcp.review
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.mcp.shared.McpProtocolFramer
-import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.IOException
@@ -20,7 +20,7 @@ internal class GovernedReviewEvidenceConnection(
   fun forward(frame: String): String? {
     writer.appendLine(frame)
     writer.flush()
-    return reader.readReviewEvidenceFrame(GovernedReviewEvidenceCodec.RESPONSE_FRAME_BYTES)
+    return reader.readReviewEvidenceFrame(GovernedReviewEvidenceContracts.RESPONSE_FRAME_BYTES)
   }
 
   override fun close() {
@@ -69,7 +69,9 @@ private const val UTF8_SINGLE_BYTE_MAX = 0x7f
 private const val UTF8_TWO_BYTE_MAX = 0x7ff
 private const val UTF8_THREE_BYTE_WIDTH = 3
 
-private fun BufferedReader.readReviewEvidenceFrame(maxBytes: Int = GovernedReviewEvidenceCodec.REQUEST_BYTES): String? {
+private fun BufferedReader.readReviewEvidenceFrame(
+  maxBytes: Int = GovernedReviewEvidenceContracts.REQUEST_BYTES,
+): String? {
   val frame = StringBuilder()
   var bytes = 0
   var previousHighSurrogate = false

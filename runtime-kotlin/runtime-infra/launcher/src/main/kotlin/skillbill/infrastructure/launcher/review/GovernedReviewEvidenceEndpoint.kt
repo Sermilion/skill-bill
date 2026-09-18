@@ -2,6 +2,7 @@ package skillbill.infrastructure.launcher.review
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.error.ShellContentContractException
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
@@ -11,8 +12,7 @@ import skillbill.infrastructure.launcher.mcp.GovernedReviewMcpConfigWriter
 import skillbill.model.EnvironmentContext
 import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.NativeReviewOperationProtocol
-import skillbill.ports.review.model.GovernedReviewEvidenceCodec
+import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.ports.system.HostPlatformPort
 import skillbill.review.context.model.GovernedReviewJsonRpcArguments
@@ -43,11 +43,11 @@ class UnixSocketGovernedReviewEvidenceEndpointBinder(
 ) : GovernedReviewEvidenceEndpointBinder {
   override fun bind(
     lane: String,
-    protocol: NativeReviewOperationProtocol,
+    broker: ReviewEvidenceBroker,
     onEvidenceRead: (() -> Unit)?,
   ): GovernedReviewEvidenceEndpointHandle = GovernedReviewEvidenceEndpoint.bind(
     lane,
-    protocol,
+    broker,
     bridgeCommand(environment.environment, environment.userHome),
     onEvidenceRead,
   )
@@ -69,7 +69,7 @@ internal fun bridgeCommand(environment: Map<String, String>, userHome: Path): Li
 
 class GovernedReviewEvidenceEndpoint private constructor(
   override val descriptor: GovernedReviewEvidenceEndpointDescriptor,
-  private val protocol: NativeReviewOperationProtocol,
+  private val broker: ReviewEvidenceBroker,
   private val channel: ServerSocketChannel,
   private val directory: Path,
   private val onEvidenceRead: (() -> Unit)?,
@@ -137,23 +137,26 @@ class GovernedReviewEvidenceEndpoint private constructor(
       )
     val id = frame["id"]?.let(JsonCodec::jsonElementToValue)
     val method = frame["method"]?.let(JsonCodec::jsonElementToValue)?.toString().orEmpty()
-    if (method != "tools/call") {
-      return governedReviewEvidenceErrorResponse(
+    return when (method) {
+      "tools/list" -> governedReviewEvidenceToolsListResponse(id)
+      "tools/call" -> {
+        val params = JsonCodec.anyToStringAnyMap(frame["params"]?.let(JsonCodec::jsonElementToValue)).orEmpty()
+        val name = params["name"]?.toString().orEmpty()
+        val arguments = JsonCodec.anyToStringAnyMap(params["arguments"]).orEmpty()
+        dispatch(id, name, arguments)
+      }
+      else -> governedReviewEvidenceErrorResponse(
         id,
         GOVERNED_REVIEW_EVIDENCE_JSON_RPC_METHOD_NOT_FOUND,
         "Method not found: $method",
       )
     }
-    val params = JsonCodec.anyToStringAnyMap(frame["params"]?.let(JsonCodec::jsonElementToValue)).orEmpty()
-    val name = params["name"]?.toString().orEmpty()
-    val arguments = JsonCodec.anyToStringAnyMap(params["arguments"]).orEmpty()
-    return dispatch(id, name, arguments)
   }
   private fun dispatch(id: Any?, name: String, arguments: Map<String, Any?>): String = try {
     when (name) {
-      GovernedReviewEvidenceCodec.READ_EVIDENCE ->
+      GovernedReviewEvidenceContracts.READ_EVIDENCE ->
         governedReviewEvidenceToolResponse(id, read(arguments))
-      GovernedReviewEvidenceCodec.REQUEST_EXPANSION ->
+      GovernedReviewEvidenceContracts.REQUEST_EXPANSION ->
         governedReviewEvidenceToolResponse(id, expand(arguments))
       else -> governedReviewEvidenceErrorResponse(
         id,
@@ -182,12 +185,12 @@ class GovernedReviewEvidenceEndpoint private constructor(
       GovernedReviewJsonRpcArguments.from(arguments),
       issuedExpansions::get,
     )
-    val payload = GovernedReviewEvidenceCodec.batchResultPayload(protocol.read(request)).toPayload()
+    val payload = GovernedReviewEvidenceCodec.batchResultPayload(broker.readBatch(request)).toPayload()
     onEvidenceRead?.invoke()
     return payload
   }
   private fun expand(arguments: Map<String, Any?>): Map<String, Any?> {
-    val record = protocol.authorizeExpansion(
+    val record = broker.authorizeExpansion(
       GovernedReviewEvidenceCodec.expansionRequest(descriptor.lane, GovernedReviewJsonRpcArguments.from(arguments)),
     )
     if (record.authorized) issuedExpansions[record.expansionId] = record
@@ -196,7 +199,7 @@ class GovernedReviewEvidenceEndpoint private constructor(
   companion object {
     fun bind(
       lane: String,
-      protocol: NativeReviewOperationProtocol,
+      broker: ReviewEvidenceBroker,
       bridgeCommand: List<String>,
       onEvidenceRead: (() -> Unit)? = null,
     ): GovernedReviewEvidenceEndpoint {
@@ -216,7 +219,7 @@ class GovernedReviewEvidenceEndpoint private constructor(
         )
         endpoint = GovernedReviewEvidenceEndpoint(
           GovernedReviewEvidenceEndpointDescriptor(lane, socketPath, configPath, token),
-          protocol,
+          broker,
           channel,
           directory,
           onEvidenceRead,

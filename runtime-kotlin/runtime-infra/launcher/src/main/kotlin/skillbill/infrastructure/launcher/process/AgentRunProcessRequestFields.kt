@@ -8,10 +8,9 @@ import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
-import skillbill.ports.agentrun.model.ConversationIsolation
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.NativeReviewOperationProtocol
 import skillbill.ports.review.ReviewEvidenceBroker
+import skillbill.review.context.model.ReviewConversationIsolation
 import java.nio.file.Path
 import kotlin.time.Duration
 
@@ -48,9 +47,8 @@ data class AgentRunProcessEnvironmentFields(
 )
 
 data class AgentRunProcessReviewFields(
-  val conversationIsolation: ConversationIsolation? = null,
+  val conversationIsolation: ReviewConversationIsolation? = null,
   val reviewEvidenceBroker: ReviewEvidenceBroker? = null,
-  val nativeReviewOperations: NativeReviewOperationProtocol? = null,
   val reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? = null,
   val spawnAuthorization: AgentRunSpawnAuthorization? = null,
 )
@@ -82,9 +80,8 @@ data class AgentRunProcessRequest(
   val environment: Map<String, String> get() = environmentFields.environment
   val inheritEnvironment: Boolean get() = environmentFields.inheritEnvironment
   val environmentPassthroughKeys: Set<String> get() = environmentFields.environmentPassthroughKeys
-  val conversationIsolation: ConversationIsolation? get() = review.conversationIsolation
+  val conversationIsolation: ReviewConversationIsolation? get() = review.conversationIsolation
   val reviewEvidenceBroker: ReviewEvidenceBroker? get() = review.reviewEvidenceBroker
-  val nativeReviewOperations: NativeReviewOperationProtocol? get() = review.nativeReviewOperations
   val reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? get() = review.reviewEvidenceEndpoint
   val spawnAuthorization: AgentRunSpawnAuthorization? get() = review.spawnAuthorization
 
@@ -102,11 +99,8 @@ data class AgentRunProcessRequest(
     operationDeadline?.let { deadline ->
       require(deadline.isPositive()) { "Agent run operation deadline must be positive when provided." }
     }
-    require(reviewEvidenceBroker == null || conversationIsolation == ConversationIsolation.NONE) {
+    require(reviewEvidenceBroker == null || conversationIsolation == ReviewConversationIsolation.FRESH) {
       "A process review evidence transport requires fresh-context isolation."
-    }
-    require((reviewEvidenceBroker == null) == (nativeReviewOperations == null)) {
-      "A process review evidence transport and its pre-execution operation protocol must be supplied together."
     }
     require((reviewEvidenceBroker == null) == (reviewEvidenceEndpoint == null)) {
       "A process review evidence transport and its bound endpoint must be supplied together."
@@ -139,9 +133,8 @@ internal class AgentRunProcessRequestDsl {
   var environment: Map<String, String> = emptyMap()
   var inheritEnvironment: Boolean = true
   var environmentPassthroughKeys: Set<String> = emptySet()
-  var conversationIsolation: ConversationIsolation? = null
+  var conversationIsolation: ReviewConversationIsolation? = null
   var reviewEvidenceBroker: ReviewEvidenceBroker? = null
-  var nativeReviewOperations: NativeReviewOperationProtocol? = null
   var reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? = null
   var spawnAuthorization: AgentRunSpawnAuthorization? = null
 
@@ -177,7 +170,6 @@ internal class AgentRunProcessRequestDsl {
     review = AgentRunProcessReviewFields(
       conversationIsolation = conversationIsolation,
       reviewEvidenceBroker = reviewEvidenceBroker,
-      nativeReviewOperations = nativeReviewOperations,
       reviewEvidenceEndpoint = reviewEvidenceEndpoint,
       spawnAuthorization = spawnAuthorization,
     ),

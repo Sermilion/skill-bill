@@ -23,6 +23,7 @@ import skillbill.application.review.model.UsageValidationException
 import skillbill.application.review.reviewHarness
 import skillbill.application.review.simulateGovernedEvidenceReads
 import skillbill.application.review.sparseReviewPack
+import skillbill.application.review.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.config.model.RepoLocalConfig
@@ -50,13 +51,14 @@ import skillbill.ports.review.ReviewRepository
 import skillbill.ports.review.ReviewRubricResolver
 import skillbill.ports.review.ReviewSpecialistContractProvider
 import skillbill.ports.review.model.ResolvedReviewRubric
+import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
+import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewLaunchAgentStagingRequest
 import skillbill.ports.review.model.ReviewToolCall
 import skillbill.ports.review.model.ReviewToolCallResult
-import skillbill.ports.review.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.scaffold.model.PilotedPlatformPackProjection
@@ -67,6 +69,7 @@ import skillbill.review.ParallelReviewFindingParser
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.review.context.model.ReviewContextBudgetPolicy
+import skillbill.review.context.model.ReviewExpansionRecord
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewParseResult
 import skillbill.review.model.ReviewFindingVerdict
@@ -1438,6 +1441,16 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
     repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
     reviewEvidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
       object : ReviewEvidenceBroker {
+        override fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord =
+          ReviewExpansionRecord(
+            expansionId = "test-expansion",
+            assignmentDigest = "a".repeat(64),
+            requestedPath = request.path,
+            reachabilityReason = "test harness",
+            authorized = false,
+            sequence = 0,
+          )
+
         override fun readBatch(request: ReviewEvidenceBatchRequest) = ReviewEvidenceBatchResult(
           results = emptyList(),
           cumulativeBytes = 0,
@@ -1744,6 +1757,11 @@ internal class RecordingDiffResolver(
     calls += args
     return if (responses.containsKey(args)) responses[args] else default
   }
+
+  override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
+    emptyMap<String, ReviewCheckpointFileIdentity>()
+
+  override fun readDiff(path: Path, maxBytes: Long): String? = null
 }
 
 private class RealProcessDiffResolver : DiffResolverPort {
@@ -1761,6 +1779,11 @@ private class RealProcessDiffResolver : DiffResolverPort {
     Thread.currentThread().interrupt()
     null
   }
+
+  override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
+    emptyMap<String, ReviewCheckpointFileIdentity>()
+
+  override fun readDiff(path: Path, maxBytes: Long): String? = null
 }
 
 internal fun stubCatalogGateway(manifests: List<PlatformManifest> = emptyList()): ScaffoldCatalogGateway =

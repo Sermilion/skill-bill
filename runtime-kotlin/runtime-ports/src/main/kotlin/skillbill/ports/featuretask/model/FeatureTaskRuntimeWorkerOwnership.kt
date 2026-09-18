@@ -22,19 +22,21 @@ data class FeatureTaskRuntimeWorkerOwnership(
 ) {
   val heartbeatAtInstant: Instant = parseLeaseInstant(workflowId, "heartbeat_at", heartbeatAt)
   val expiresAtInstant: Instant = parseLeaseInstant(workflowId, "expires_at", expiresAt)
+
+  companion object {
+    internal fun parseLeaseInstant(workflowId: String, field: String, value: String): Instant = try {
+      Instant.parse(value)
+    } catch (_: DateTimeParseException) {
+      throw InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError(
+        workflowId,
+        "$field must be an RFC 3339 instant",
+      )
+    }
+  }
 }
 
-fun parseFeatureTaskRuntimeWorkerLeaseInstant(workflowId: String, field: String, value: String): Instant = try {
-  Instant.parse(value)
-} catch (_: DateTimeParseException) {
-  throw InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError(
-    workflowId,
-    "$field must be an RFC 3339 instant",
-  )
-}
-
-private fun parseLeaseInstant(workflowId: String, field: String, value: String): Instant =
-  parseFeatureTaskRuntimeWorkerLeaseInstant(workflowId, field, value)
+fun parseFeatureTaskRuntimeWorkerLeaseInstant(workflowId: String, field: String, value: String): Instant =
+  FeatureTaskRuntimeWorkerOwnership.parseLeaseInstant(workflowId, field, value)
 
 enum class FeatureTaskRuntimeWorkerLeaseState(val wireValue: String) {
   ACTIVE("active"),
@@ -52,13 +54,3 @@ data class FeatureTaskRuntimeCrashReconciliationCandidate(
   val currentStepId: String,
   val workflowStatus: String,
 )
-
-sealed interface FeatureTaskRuntimeWorkerAcquisition {
-  data class Acquired(val ownership: FeatureTaskRuntimeWorkerOwnership) : FeatureTaskRuntimeWorkerAcquisition
-  data class OrphanReclaimed(val ownership: FeatureTaskRuntimeWorkerOwnership) : FeatureTaskRuntimeWorkerAcquisition
-  data class ExactLiveOwner(val ownership: FeatureTaskRuntimeWorkerOwnership) : FeatureTaskRuntimeWorkerAcquisition
-  data object Contended : FeatureTaskRuntimeWorkerAcquisition
-  data class OwnershipMismatch(val reason: String) : FeatureTaskRuntimeWorkerAcquisition
-  data class UnsupportedProcessEvidence(val reason: String) : FeatureTaskRuntimeWorkerAcquisition
-  data class StaleSelector(val workflowId: String) : FeatureTaskRuntimeWorkerAcquisition
-}

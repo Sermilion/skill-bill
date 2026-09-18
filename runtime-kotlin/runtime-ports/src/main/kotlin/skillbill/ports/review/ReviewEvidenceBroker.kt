@@ -3,23 +3,31 @@ package skillbill.ports.review
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewEvidenceBrokerBinding
-import skillbill.ports.review.model.ReviewEvidenceDiscoveryPage
-import skillbill.ports.review.model.ReviewEvidenceDiscoveryRequest
 import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
+import skillbill.ports.review.model.ReviewLaneAccounting
+import skillbill.ports.review.model.ReviewToolCall
+import skillbill.ports.review.model.ReviewToolCallResult
+import skillbill.review.context.model.ReviewBudgetOutcome
 import skillbill.review.context.model.ReviewExpansionRecord
 
-interface ReviewEvidenceBroker : ReviewEvidenceLaneAccounting {
-  fun discover(request: ReviewEvidenceDiscoveryRequest): ReviewEvidenceDiscoveryPage =
-    error("This broker does not support evidence discovery.")
-  fun expansionById(id: String): ReviewExpansionRecord? = null
-  fun confirmDelivery(receipt: String) = Unit
-  fun recordMalformedRequest() = Unit
-  fun finishDeliverySession() = Unit
-
-  fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord =
-    error("This evidence broker does not support governed complete-file expansion.")
+interface ReviewEvidenceBroker {
+  fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord
 
   fun readBatch(request: ReviewEvidenceBatchRequest): ReviewEvidenceBatchResult
+
+  fun recordToolCall(call: ReviewToolCall): ReviewToolCallResult
+
+  fun recordModelTurn(): ReviewBudgetOutcome?
+
+  fun validateLaneResult(result: String): ReviewBudgetOutcome?
+
+  fun observeLaneResultChunk(chunk: String): ReviewBudgetOutcome?
+
+  fun hasObservedLaneResult(): Boolean = accounting().resultBytes > 0
+
+  fun accounting(): ReviewLaneAccounting
+
+  fun terminalOutcome(): ReviewBudgetOutcome?
 }
 
 fun interface ReviewEvidenceBrokerFactory {

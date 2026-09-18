@@ -1,6 +1,7 @@
 package skillbill.ports.review.model
 
 import skillbill.review.context.model.ForbiddenReviewOperation
+import skillbill.review.context.model.ReviewAccountingTerminalOutcome
 import skillbill.review.context.model.ReviewBudgetOutcome
 import skillbill.review.context.model.ReviewEvidenceLimits
 import skillbill.review.context.model.ReviewExpansionRecord
@@ -122,7 +123,7 @@ data class ReviewLaneAccounting(
   val toolCalls: Int = 0,
   val modelTurns: Int = 0,
   val resultBytes: Long = 0,
-  val terminalStatus: String = "completed",
+  val terminalStatus: String = ReviewAccountingTerminalOutcome.COMPLETED.wireValue,
   val terminalOutcome: ReviewBudgetOutcome? = null,
   val reviewDisposition: ReviewLaneReviewDisposition? = null,
   val bundleCompositionDigest: String? = null,

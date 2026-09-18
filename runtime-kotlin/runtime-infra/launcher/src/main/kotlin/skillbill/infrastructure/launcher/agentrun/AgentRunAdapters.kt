@@ -144,7 +144,6 @@ internal class ProcessAgentRunAdapter(
     review = AgentRunProcessReviewFields(
       conversationIsolation = command.conversationIsolation,
       reviewEvidenceBroker = request.reviewEvidenceBroker,
-      nativeReviewOperations = request.nativeReviewOperations,
       reviewEvidenceEndpoint = request.reviewEvidenceEndpoint,
       spawnAuthorization = request.spawnAuthorization,
     ),

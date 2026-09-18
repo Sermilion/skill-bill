@@ -12,33 +12,30 @@ import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 
 interface SharedGoalPreplanRepository {
-  fun checkpointSharedPreplan(checkpoint: SharedGoalPreplanCheckpoint): Unit =
-    error("Shared goal preplan checkpointing is not implemented by this repository.")
+  fun checkpointSharedPreplan(checkpoint: SharedGoalPreplanCheckpoint)
 
   fun replaceSharedPreplan(
     checkpoint: SharedGoalPreplanCheckpoint,
     expectedPayloadSha256: String,
     cascadePlanSubtaskIds: List<Int> = emptyList(),
-  ): Unit = error("Shared goal preplan replacement is not implemented by this repository.")
+  )
 
   fun advanceSharedPreplanProvenance(
     identity: GoalPlanningIdentity,
     expectedPayloadSha256: String,
     provenance: GoalPlanningContractProvenance,
-  ): Unit = error("Shared goal preplan provenance advance is not implemented by this repository.")
+  )
 
   fun cascadeSiblingPlansAfterSharedPreplanRefresh(
     parentGoalWorkflowId: String,
     cascadePlanSubtaskIds: List<Int>,
-  ): List<Int> = error("Shared-preplan refresh plan cascade is not implemented by this repository.")
+  ): List<Int>
 
   fun findSharedPreplan(expectedIdentity: GoalPlanningIdentity): SharedGoalPreplanCheckpoint?
 
-  fun deleteSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int =
-    error("Shared goal preplan deletion is not implemented by this repository.")
+  fun deleteSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int
 
-  fun invalidateSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int =
-    error("Shared goal preplan invalidation is not implemented by this repository.")
+  fun invalidateSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int
 
   fun listPreparedPlanSubtaskIds(parentGoalWorkflowId: String): List<Int>
 
@@ -66,14 +63,11 @@ interface GoalSubtaskPlanRepository {
     reason = blockedReason ?: "Goal planning has not started.",
   )
 
-  fun checkpointSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint): Unit =
-    error("Goal subtask plan checkpointing is not implemented by this repository.")
+  fun checkpointSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint)
 
-  fun replaceSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint): Unit =
-    error("Goal subtask plan replacement is not implemented by this repository.")
+  fun replaceSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint)
 
-  fun deleteSubtaskPlan(parentGoalWorkflowId: String, subtaskId: Int): Int =
-    error("Goal subtask plan deletion is not implemented by this repository.")
+  fun deleteSubtaskPlan(parentGoalWorkflowId: String, subtaskId: Int): Int
 
   fun findSubtaskPlan(
     expectedIdentity: GoalPlanningIdentity,

@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.review.ReviewFindingPayloadKeys
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.bindAll
@@ -129,7 +130,7 @@ internal fun queryLatestFindingOutcomes(connection: Connection, reviewRunId: Str
               location = resultSet.getString(SqliteReviewTelemetryPayloadKeys.LOCATION),
               description = resultSet.getString(SqliteReviewTelemetryPayloadKeys.DESCRIPTION),
               outcomeType = resultSet.getString(SqliteReviewTelemetryPayloadKeys.OUTCOME_TYPE).orEmpty(),
-              note = resultSet.getString("note").orEmpty(),
+              note = resultSet.getString(ReviewFinishedTelemetryPayloadKeys.NOTE).orEmpty(),
             ),
           )
         }

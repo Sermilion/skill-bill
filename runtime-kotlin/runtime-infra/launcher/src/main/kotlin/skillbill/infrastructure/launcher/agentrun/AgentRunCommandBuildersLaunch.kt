@@ -4,15 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.GovernedReviewLaunchCapabilityError
 import skillbill.install.model.InstallAgent
-import skillbill.ports.agentrun.model.ConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
+import skillbill.review.context.model.ReviewConversationIsolation
 import java.nio.file.Path
 
 internal fun launchPrompt(request: SkillRunRequest): String = requireNotNull(request.promptOverride) {
   "launchPrompt requires a promptOverride; goal-continuation runs spawn skill-bill directly."
 }
+
+internal fun governedReviewConversationIsolation(request: SkillRunRequest): ReviewConversationIsolation? =
+  ReviewConversationIsolation.FRESH.takeIf { request.reviewEvidenceBroker != null }
 
 internal fun requireGovernedReviewLaunch(
   request: SkillRunRequest,
@@ -29,14 +32,13 @@ internal fun requireGovernedReviewLaunch(
 }
 
 internal fun requireProcessLaunch(request: SkillRunRequest, strategy: ReviewLaunchIsolationStrategy) {
-  request.conversationIsolation?.let { isolation ->
-    require(strategy.supported && isolation == ConversationIsolation.NONE) {
-      "Governed specialist launches require a supported fresh-context strategy."
-    }
-    if (strategy == ReviewLaunchIsolationStrategy.CODEX_NATIVE_FORK_TURNS_NONE) {
-      require(strategy.forkTurns == isolation.forkTurns) {
-        "Governed Codex review launches require fork_turns none."
-      }
+  if (request.reviewEvidenceBroker == null) return
+  require(strategy.supported) {
+    "Governed specialist launches require a supported fresh-context strategy."
+  }
+  if (strategy == ReviewLaunchIsolationStrategy.CODEX_NATIVE_FORK_TURNS_NONE) {
+    require(strategy.supported) {
+      "Governed Codex review launches require fresh-context isolation."
     }
   }
 }

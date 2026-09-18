@@ -1,5 +1,6 @@
 package skillbill.application
 
+import skillbill.application.review.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
@@ -8,11 +9,10 @@ import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.NativeReviewOperationProtocol
+import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.ReviewLaunchAgentStagingPort
 import skillbill.ports.review.ReviewRubricResolver
 import skillbill.ports.review.model.ResolvedReviewRubric
-import skillbill.ports.review.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.review.context.model.CodeReviewExecutionMode
 import java.nio.file.Files
 import java.nio.file.Path
@@ -65,7 +65,7 @@ class ParallelCodeReviewRunnerLaneLaunchOwnershipTest {
         evidenceEndpointBinder = object : GovernedReviewEvidenceEndpointBinder {
           override fun bind(
             lane: String,
-            protocol: NativeReviewOperationProtocol,
+            broker: ReviewEvidenceBroker,
             onEvidenceRead: (() -> Unit)?,
           ): GovernedReviewEvidenceEndpointHandle = throw InterruptedException("bind interrupted")
         },
@@ -214,10 +214,10 @@ private fun countingEndpointBinder(
 ): GovernedReviewEvidenceEndpointBinder = object : GovernedReviewEvidenceEndpointBinder {
   override fun bind(
     lane: String,
-    protocol: NativeReviewOperationProtocol,
+    broker: ReviewEvidenceBroker,
     onEvidenceRead: (() -> Unit)?,
   ): GovernedReviewEvidenceEndpointHandle {
-    val delegate = stubGovernedReviewEvidenceEndpointBinder(root).bind(lane, protocol, onEvidenceRead)
+    val delegate = stubGovernedReviewEvidenceEndpointBinder(root).bind(lane, broker, onEvidenceRead)
     return object : GovernedReviewEvidenceEndpointHandle {
       override val descriptor = delegate.descriptor
 

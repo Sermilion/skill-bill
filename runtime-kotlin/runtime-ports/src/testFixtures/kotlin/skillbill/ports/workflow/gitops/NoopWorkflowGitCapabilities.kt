@@ -1,10 +1,20 @@
 package skillbill.ports.workflow.gitops
 
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
+import skillbill.ports.workflow.gitops.model.WorkflowScopedPathContentsResult
 import java.nio.file.Path
 
 internal const val HASH_RADIX_HEX: Int = 16
 internal const val NOOP_REVIEW_BASE_SHA_LENGTH: Int = 40
+
+object NoopSuppressionEvidenceGitOperations : SuppressionEvidenceGitOperations {
+  override fun scopedPathContentsAgainstBase(repoRoot: Path, baseRef: String, headPaths: List<String>) =
+    WorkflowScopedPathContentsResult(
+      status = WorkflowGitOperationStatus.ERROR,
+      error = "WorkflowGitOperations must provide a suppression-evidence implementation.",
+    )
+}
 
 object UnavailableScopedStagingGitOperations : ScopedStagingGitOperations {
   override fun stagePaths(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult =

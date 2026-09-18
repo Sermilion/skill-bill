@@ -144,7 +144,7 @@ private fun DefaultGoalPlanningSweep.createPlanningPacket(
   parentSpec: String,
   decomposition: String,
 ): Map<String, Any?> {
-  val discovered = contextDiscovery.discover(canonicalRepository)
+  val discovered = contextDiscovery.loadPlanningContext(canonicalRepository)
   val packet = linkedMapOf<String, Any?>(
     GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION to GoalPlanningSharedContextPacket.VERSION,
     GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to

@@ -5,11 +5,12 @@ import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.infrastructure.launcher.mcp.GovernedReviewMcpConfigWriter
 import skillbill.infrastructure.launcher.review.GovernedReviewEvidenceEndpoint
 import skillbill.infrastructure.launcher.review.bridgeCommand
-import skillbill.ports.review.NativeReviewOperationProtocol
+import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
+import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewToolCall
 import skillbill.ports.review.model.ReviewToolCallResult
 import skillbill.review.context.model.ForbiddenReviewOperation
@@ -28,13 +29,13 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GovernedReviewEvidenceEndpointTest {
-  private class RecordingProtocol : NativeReviewOperationProtocol {
+  private class RecordingBroker : ReviewEvidenceBroker {
     val reads = mutableListOf<ReviewEvidenceBatchRequest>()
 
     override fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord =
       error("unused")
 
-    override fun read(request: ReviewEvidenceBatchRequest): ReviewEvidenceBatchResult {
+    override fun readBatch(request: ReviewEvidenceBatchRequest): ReviewEvidenceBatchResult {
       reads += request
       return ReviewEvidenceBatchResult(
         results = listOf(
@@ -51,14 +52,29 @@ class GovernedReviewEvidenceEndpointTest {
       )
     }
 
-    override fun tool(call: ReviewToolCall): ReviewToolCallResult = error("unused")
-    override fun modelTurn(): ReviewBudgetOutcome? = null
-    override fun laneResultChunk(chunk: String): ReviewBudgetOutcome? = null
+    override fun recordToolCall(call: ReviewToolCall): ReviewToolCallResult = error("unused")
+
+    override fun recordModelTurn(): ReviewBudgetOutcome? = null
+
+    override fun validateLaneResult(result: String): ReviewBudgetOutcome? = null
+
+    override fun observeLaneResultChunk(chunk: String): ReviewBudgetOutcome? = null
+
+    override fun accounting(): ReviewLaneAccounting = ReviewLaneAccounting(
+      lane = "architecture",
+      evidenceBytes = 0,
+      expansions = emptyList(),
+      toolCalls = 0,
+      modelTurns = 0,
+      resultBytes = 0,
+    )
+
+    override fun terminalOutcome(): ReviewBudgetOutcome? = null
   }
 
   @Test
   fun `an out-of-surface read is refused with no content and still reaches the broker`() {
-    val protocol = RecordingProtocol()
+    val protocol = RecordingBroker()
     GovernedReviewEvidenceEndpoint.bind("architecture", protocol, listOf("/bin/true")).use { endpoint ->
       connect(endpoint, endpoint.descriptor.token).use { connection ->
         val reply = requireNotNull(connection.call(readFrame("src/Elsewhere.kt")))
@@ -73,7 +89,7 @@ class GovernedReviewEvidenceEndpointTest {
 
   @Test
   fun `a connection presenting a foreign token is served nothing`() {
-    val protocol = RecordingProtocol()
+    val protocol = RecordingBroker()
     GovernedReviewEvidenceEndpoint.bind("architecture", protocol, listOf("/bin/true")).use { endpoint ->
       Client(SocketChannel.open(UnixDomainSocketAddress.of(endpoint.descriptor.socketPath))).use { connection ->
         assertNull(connection.handshake("not-this-launch"))
@@ -88,7 +104,7 @@ class GovernedReviewEvidenceEndpointTest {
     val before = perLaunchDirectories(tempRoot)
 
     assertFailsWith<GovernedReviewEvidenceTransportError> {
-      GovernedReviewEvidenceEndpoint.bind("architecture", RecordingProtocol(), emptyList())
+      GovernedReviewEvidenceEndpoint.bind("architecture", RecordingBroker(), emptyList())
     }
 
     assertEquals(before, perLaunchDirectories(tempRoot))
@@ -118,7 +134,7 @@ class GovernedReviewEvidenceEndpointTest {
     val previousTempRoot = System.getProperty("java.io.tmpdir")
     System.setProperty("java.io.tmpdir", longRoot.toString())
     try {
-      val protocol = RecordingProtocol()
+      val protocol = RecordingBroker()
       GovernedReviewEvidenceEndpoint.bind("architecture", protocol, listOf("/bin/true")).use { endpoint ->
         connect(endpoint, endpoint.descriptor.token).use { connection ->
           connection.call(readFrame("src/Elsewhere.kt"))
@@ -132,7 +148,7 @@ class GovernedReviewEvidenceEndpointTest {
 
   @Test
   fun `closing the endpoint removes the per-launch socket and config`() {
-    val endpoint = GovernedReviewEvidenceEndpoint.bind("architecture", RecordingProtocol(), listOf("/bin/true"))
+    val endpoint = GovernedReviewEvidenceEndpoint.bind("architecture", RecordingBroker(), listOf("/bin/true"))
     assertTrue(Files.exists(endpoint.descriptor.socketPath))
     assertTrue(Files.exists(endpoint.descriptor.mcpConfigPath))
     val cursorConfig = GovernedReviewMcpConfigWriter.cursorProjectConfigPath(

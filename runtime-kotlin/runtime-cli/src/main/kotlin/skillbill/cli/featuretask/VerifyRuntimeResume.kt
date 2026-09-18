@@ -2,7 +2,7 @@ package skillbill.cli.featuretask
 
 import com.github.ajalt.clikt.core.UsageError
 import skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.nio.file.Path
 
 internal fun verifyRuntimeResume(args: VerifyRuntimeResumeArgs) {

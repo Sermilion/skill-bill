@@ -55,10 +55,6 @@ data class GoalRunnerLaunchAuthorization(
   val spawnAuthorization: AgentRunSpawnAuthorization? = null,
 )
 
-class GoalRunnerLaunchAuthorizationDeniedException(
-  val controlState: GoalRunnerControlState,
-) : IllegalStateException("Goal runner launch authorization was denied by a durable pause boundary.")
-
 data class GoalRunnerReconcileGate(
   val allowInactiveReconciliation: Boolean = true,
   val requireStalenessEvidence: Boolean = false,

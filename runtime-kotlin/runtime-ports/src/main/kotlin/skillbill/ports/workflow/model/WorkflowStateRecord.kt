@@ -1,14 +1,8 @@
 package skillbill.ports.workflow.model
 
-enum class FeatureTaskWorkflowMode(val wireValue: String) {
-  PROSE("prose"),
-  RUNTIME("runtime"),
-  ;
-
-  companion object {
-    fun fromWireValue(value: String): FeatureTaskWorkflowMode? = entries.firstOrNull { it.wireValue == value }
-  }
-}
+import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.WorkflowStatus
 
 data class WorkflowStateRecord(
   val workflowId: String,
@@ -27,7 +21,14 @@ data class WorkflowStateRecord(
   val issueKey: String? = null,
   val stateEnteredAt: String? = null,
   val stateEnteredAtEstimated: Boolean = false,
-)
+) {
+  companion object {
+    internal fun requiredWorkflowStatus(value: String): WorkflowStatus = WorkflowStatus.fromWire(value)
+      ?: throw InvalidWorkflowStateSchemaError(
+        "Workflow state workflow_status has unsupported value '$value'.",
+      )
+  }
+}
 
 data class FeatureImplementSessionSummary(
   val sessionId: String,

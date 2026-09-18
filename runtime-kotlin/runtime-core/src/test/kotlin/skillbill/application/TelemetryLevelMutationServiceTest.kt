@@ -8,6 +8,7 @@ import skillbill.application.telemetry.settings.DefaultTelemetrySettingsProvider
 import skillbill.infrastructure.host.FileTelemetryConfigStore
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.learning.LearningRepository
@@ -223,6 +224,7 @@ class TelemetryLevelMutationServiceTest {
       database = FakeTelemetryDatabaseSessionFactory(outbox),
       settingsProvider = fixture.settingsProvider,
       clock = Clock.systemUTC(),
+      diagnostics = NoopRuntimeDiagnostics,
     )
 
     val result = service.featureTaskRuntimeStarted(

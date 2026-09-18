@@ -3,6 +3,7 @@ package skillbill.infrastructure.sqlite.workflow
 import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.workflow.GoalChildWorkflowStateRepository
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
+import skillbill.workflow.model.WorkflowStatus
 import java.sql.Connection
 
 internal class GoalChildWorkflowStore(
@@ -69,7 +70,9 @@ internal class GoalChildWorkflowStore(
       """.trimIndent(),
     ).use { statement ->
       statement.bindAll(
-        listOf<Any?>(workflowId) + deletableStatuses + listOf(parentWorkflowId, subtaskId),
+        listOf<Any?>(workflowId) +
+          deletableStatuses.map(WorkflowStatus::wireValue) +
+          listOf(parentWorkflowId, subtaskId),
       )
       statement.executeUpdate()
     }

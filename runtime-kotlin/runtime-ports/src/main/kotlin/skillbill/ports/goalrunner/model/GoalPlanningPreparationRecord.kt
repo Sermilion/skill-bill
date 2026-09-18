@@ -3,6 +3,7 @@ package skillbill.ports.goalrunner.model
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.contracts.workflow.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 
 data class GoalPlanningIdentity(
@@ -100,7 +101,7 @@ data class GoalPlanningPreparationStatus(
 )
 
 enum class GoalPlanningPreparationState(val wireValue: String) {
-  PENDING("pending"),
+  PENDING(WorkflowStatus.PENDING.wireValue),
   PREPARED("prepared"),
   ;
 

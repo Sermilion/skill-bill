@@ -109,7 +109,7 @@ class GoalPlanningContextPromptFormatterTest {
       """.trimIndent() + "\n",
     )
 
-    val discovered = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discover(repo)
+    val discovered = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).loadPlanningContext(repo)
     val catalog = discovered.boundaryCatalog
     assertEquals(2, catalog.size, "the fixture must offer a real choice between two entries")
     val catalogIds = catalog.map { heading -> heading.headingId }.toSet()

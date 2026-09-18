@@ -1,15 +1,15 @@
 package skillbill.infrastructure.launcher.agentrun
 
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.infrastructure.launcher.mcp.GovernedReviewMcpConfigWriter
 import skillbill.infrastructure.launcher.process.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
 import skillbill.install.model.AGENT_LAUNCHER_CLIS
 import skillbill.install.model.AgentLauncherCli
 import skillbill.install.model.InstallAgent
-import skillbill.ports.agentrun.model.ConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunRequest
-import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
+import skillbill.review.context.model.ReviewConversationIsolation
 import java.nio.file.Path
 import kotlin.time.Duration
 
@@ -21,7 +21,7 @@ internal data class AgentRunCommand(
   val environment: Map<String, String> = emptyMap(),
   val inheritEnvironment: Boolean = true,
   val idlePolicy: AgentRunIdlePolicy = AgentRunIdlePolicy.DB_PROGRESS_ONLY,
-  val conversationIsolation: ConversationIsolation? = null,
+  val conversationIsolation: ReviewConversationIsolation? = null,
 
   val outputDecoder: AgentRunOutputDecoder? = null,
 
@@ -121,8 +121,8 @@ internal val ANTHROPIC_MODEL_ALIASES = setOf("opus", "sonnet", "haiku")
 internal fun isAnthropicModelReference(model: String): Boolean =
   model.startsWith("claude-") || model in ANTHROPIC_MODEL_ALIASES
 
-internal val GOVERNED_REVIEW_TOOLS: List<String> = GovernedReviewEvidenceCodec.OPERATIONS.map { operation ->
-  "mcp__${GovernedReviewEvidenceCodec.SERVER_NAME}__$operation"
+internal val GOVERNED_REVIEW_TOOLS: List<String> = GovernedReviewEvidenceContracts.OPERATIONS.map { operation ->
+  "mcp__${GovernedReviewEvidenceContracts.SERVER_NAME}__$operation"
 }
 
 internal val REVIEW_FAN_OUT_TOOLS = (listOf("Agent", "Task") + GOVERNED_REVIEW_TOOLS).joinToString(",")
@@ -183,7 +183,7 @@ internal class ClaudeAgentRunCommandBuilder(
       stdinText = launchPrompt(request),
       environment = goalContinuationEnvironment(request) + compactionEnvironment(request),
       inheritEnvironment = request.reviewEvidenceBroker == null,
-      conversationIsolation = request.conversationIsolation,
+      conversationIsolation = governedReviewConversationIsolation(request),
       idlePolicy = when {
         request.streamOutputForLiveness -> AgentRunIdlePolicy.OUTPUT_EXTENDED
         request.readOnlyPhase -> AgentRunIdlePolicy.HEARTBEAT_EXTENDED
@@ -262,7 +262,7 @@ internal class CodexAgentRunCommandBuilder(
       stdinText = launchPrompt(request),
       environment = goalContinuationEnvironment(request),
       inheritEnvironment = request.reviewEvidenceBroker == null,
-      conversationIsolation = request.conversationIsolation,
+      conversationIsolation = governedReviewConversationIsolation(request),
       idlePolicy = codexLivenessPolicy(request),
       environmentPassthroughKeys =
       if (request.reviewEvidenceBroker != null) CODEX_PROVIDER_PASSTHROUGH_KEYS else emptySet(),

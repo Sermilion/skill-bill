@@ -3,7 +3,10 @@ package skillbill.mcp.shared
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
 import skillbill.model.EnvironmentContext
+import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
+import skillbill.model.TransportContext
+import skillbill.model.WorkflowOpsContext
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import java.nio.file.Path
@@ -20,12 +23,15 @@ data class McpRuntimeContext(
   }
 
   fun toRuntimeContext(stdinText: String? = null): RuntimeContext = RuntimeContext(
-    stdinText = stdinText,
-    environment = environment,
-    userHome = userHome,
-    repositoryRoot = repositoryRoot ?: EnvironmentContext.UnspecifiedRepositoryRoot,
-    requester = requester,
-    workflowGitOperations = workflowGitOperations,
+    environment = EnvironmentContext(
+      stdinText = stdinText,
+      environment = environment,
+      userHome = userHome,
+      repositoryRoot = repositoryRoot ?: EnvironmentContext.UnspecifiedRepositoryRoot,
+    ),
+    transport = TransportContext(requester),
+    workflowOps = WorkflowOpsContext(workflowGitOperations),
+    callbacks = OptionalCallbacks(),
   )
 
   internal fun mcpComponent(): McpComponent = component

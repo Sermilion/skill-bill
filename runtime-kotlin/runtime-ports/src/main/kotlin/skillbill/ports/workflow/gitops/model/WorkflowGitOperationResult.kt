@@ -11,24 +11,26 @@ sealed interface WorkflowGitOperationResult {
     override val value: String = "",
     override val error: String = "",
   ) : WorkflowGitOperationResult {
-    override val wireValue: String = "ok"
+    override val wireValue: String = WorkflowGitOperationStatus.OK.wireValue
   }
 
   data class Failed(
     override val error: String = "",
     override val value: String = "",
   ) : WorkflowGitOperationResult {
-    override val wireValue: String = "error"
+    override val wireValue: String = WorkflowGitOperationStatus.ERROR.wireValue
   }
 
   companion object {
     operator fun invoke(status: String, value: String = "", error: String = ""): WorkflowGitOperationResult =
       fromWire(status, value, error)
 
-    fun fromWire(status: String, value: String = "", error: String = ""): WorkflowGitOperationResult = when (status) {
-      "ok" -> Ok(value = value, error = error)
-      "error" -> Failed(error = error.ifBlank { status }, value = value)
-      else -> Failed(error = error.ifBlank { status }, value = value)
+    fun fromWire(status: String, value: String = "", error: String = ""): WorkflowGitOperationResult = when (
+      WorkflowGitOperationStatus.fromWire(status)
+    ) {
+      WorkflowGitOperationStatus.OK -> Ok(value = value, error = error)
+      WorkflowGitOperationStatus.ERROR -> Failed(error = error.ifBlank { status }, value = value)
+      null -> Failed(error = error.ifBlank { status }, value = value)
     }
   }
 }

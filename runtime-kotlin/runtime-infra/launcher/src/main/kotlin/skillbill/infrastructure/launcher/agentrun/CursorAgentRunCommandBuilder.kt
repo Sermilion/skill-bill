@@ -46,7 +46,7 @@ internal class CursorAgentRunCommandBuilder(
       stdinText = launchPrompt(request),
       environment = GoalContinuationEnvironment + goalContinuationEnvironment(request),
       inheritEnvironment = !isReviewLaunch,
-      conversationIsolation = request.conversationIsolation,
+      conversationIsolation = governedReviewConversationIsolation(request),
       idlePolicy = when {
         streamPartialOutput && request.streamOutputForLiveness -> AgentRunIdlePolicy.OUTPUT_EXTENDED
         else -> unstreamedLivenessPolicy(request)

@@ -52,4 +52,44 @@ class PortNullObjectAbsenceArchitectureTest {
       PortNullObjectCensus.namesIn("  data object Empty : ValidationGateTriageResult"),
     )
   }
+
+  @Test
+  fun `every runtime-ports test fixture object has an outside test or fixture reference`() {
+    val fixtureRoot = runtimeRoot.resolve("runtime-kotlin/runtime-ports/src/testFixtures")
+    val fixtureFiles = kotlinFiles(fixtureRoot)
+    val declarations = fixtureFiles.flatMap { path ->
+      Regex("""(?m)^\s*(?:internal\s+)?object\s+([A-Za-z]\w*)\b""")
+        .findAll(Files.readString(path))
+        .map { match -> match.groupValues[1] to path }
+        .toList()
+    }
+    val referenceFiles = kotlinFiles(runtimeRoot.resolve("runtime-kotlin"))
+      .filterNot { path -> path.fileName.toString() == "PortNullObjectClassification.kt" }
+
+    val missingReferences = declarations
+      .filter { (name, declarationPath) ->
+        referenceFiles
+          .filterNot { path -> path == declarationPath }
+          .none { path -> Regex("""\b${Regex.escape(name)}\b""").containsMatchIn(Files.readString(path)) }
+      }
+      .map { (name, path) -> "$name (${runtimeRoot.relativize(path)})" }
+      .sorted()
+
+    assertEquals(emptyList(), missingReferences)
+    assertEquals(
+      emptySet(),
+      PortNullObjectClassification.classifiedObjects.keys.intersect(
+        setOf("StubGovernedReviewEvidenceEndpointBinder", "CheckpointHistoryGitOperationsRefusalTest"),
+      ),
+    )
+  }
+
+  private fun kotlinFiles(root: Path): List<Path> {
+    if (!Files.isDirectory(root)) return emptyList()
+    return Files.walk(root).use { paths ->
+      paths
+        .filter { path -> Files.isRegularFile(path) && path.extension == "kt" }
+        .toList()
+    }
+  }
 }

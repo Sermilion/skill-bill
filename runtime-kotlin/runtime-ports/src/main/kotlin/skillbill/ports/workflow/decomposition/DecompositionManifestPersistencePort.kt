@@ -5,42 +5,18 @@ import java.nio.file.Path
 
 interface DecompositionManifestPersistencePort {
   fun readText(path: Path): String
-  fun readTextWithoutRecovery(path: Path): String = readText(path)
+
+  fun readTextWithoutRecovery(path: Path): String
+
   fun isRegularFile(path: Path): Boolean
-  fun isRegularFileWithoutRecovery(path: Path): Boolean = isRegularFile(path)
+
+  fun isRegularFileWithoutRecovery(path: Path): Boolean
+
   fun writeTextAtomically(target: Path, content: String)
+
   fun deleteIfExists(target: Path)
 
   fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String
-}
 
-fun <T> DecompositionManifestPersistencePort.writeBundleAtomically(
-  writes: List<Pair<Path, String>>,
-  verify: () -> T,
-): T {
-  val snapshots = writes.distinctBy { (path, _) -> path }.map { (path, _) ->
-    val existed = isRegularFile(path)
-    DecompositionManifestBundleSnapshot(path, existed, if (existed) readText(path) else null)
-  }
-  return runCatching {
-    writes.forEach { (path, content) -> writeTextAtomically(path, content) }
-    verify()
-  }.getOrElse { failure ->
-    snapshots.asReversed().forEach { snapshot ->
-      runCatching {
-        if (snapshot.existed) {
-          writeTextAtomically(snapshot.path, requireNotNull(snapshot.content))
-        } else {
-          deleteIfExists(snapshot.path)
-        }
-      }.onFailure(failure::addSuppressed)
-    }
-    throw failure
-  }
+  fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T
 }
-
-private data class DecompositionManifestBundleSnapshot(
-  val path: Path,
-  val existed: Boolean,
-  val content: String?,
-)

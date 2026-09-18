@@ -59,6 +59,9 @@ import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateC
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateProgressStore
 import skillbill.engine.featuretask.validation.ValidationGateResolver
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.error.RejectedOutputDiagnosticError.Absent
+import skillbill.error.RejectedOutputDiagnosticError.Conflict
 import skillbill.featurespec.FeatureSpecPreparationPolicy
 import skillbill.featurespec.model.FeatureSpecPreparationDecision
 import skillbill.featurespec.model.FeatureSpecPreparationMode
@@ -79,12 +82,10 @@ import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError.Absent
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError.Conflict
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import skillbill.ports.diff.DiffResolverPort
+import skillbill.ports.diff.DiffResolverPortDefaults
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeCrashReconciliationCandidate
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState.TAKEOVER_RESERVED
@@ -118,14 +119,13 @@ import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.buildGoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode.PROSE
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.specscratch.SpecScratchStore
@@ -154,6 +154,10 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -563,7 +567,7 @@ internal data class RuntimeHarnessConfig(
   val codeReviewMode: CodeReviewExecutionMode = CodeReviewExecutionMode.DEFAULT,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
     FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
-  val diffResolver: DiffResolverPort = object : DiffResolverPort {
+  val diffResolver: DiffResolverPort = object : DiffResolverPortDefaults() {
     override fun runProcess(args: List<String>, workDir: Path): String? = null
   },
   val validationGateRunner: ValidationGateRunner? = null,
@@ -591,7 +595,7 @@ private data class RuntimePhaseGatesDeps(
     NoopFeatureTaskRuntimeWireArtifactValidator,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
     FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
-  val diffResolver: DiffResolverPort = object : DiffResolverPort {
+  val diffResolver: DiffResolverPort = object : DiffResolverPortDefaults() {
     override fun runProcess(args: List<String>, workDir: Path): String? = null
   },
   val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -674,7 +678,12 @@ private fun testSpecGate(
 
 private fun disabledRuntimeLifecycleTelemetry(database: DatabaseSessionFactory): FeatureTaskRuntimeLifecycleTelemetry =
   FeatureTaskRuntimeLifecycleTelemetry(
-    LifecycleTelemetryService(database, DisabledRuntimeTelemetrySettingsProvider, Clock.systemUTC()),
+    LifecycleTelemetryService(
+      database,
+      DisabledRuntimeTelemetrySettingsProvider,
+      Clock.systemUTC(),
+      NoopRuntimeDiagnostics,
+    ),
     NoopRuntimeDiagnostics,
   )
 
@@ -994,38 +1003,60 @@ private fun telemetryHarnessRunner(
     goalContinuationRecorder = workflow.goalContinuationRecorder,
     runInvariantsStore = workflow.runInvariantsStore,
     outputValidator = validator,
-    phaseGates = runtimePhaseGates(
-      RuntimePhaseGatesDeps(
-        branchSetupRunner = branchSetupRunner,
-        planningStopper = planningStopper,
-        lifecycleTelemetry = FeatureTaskRuntimeLifecycleTelemetry(
-          LifecycleTelemetryService(database, EnabledRuntimeTelemetrySettingsProvider, Clock.systemUTC()),
-          NoopRuntimeDiagnostics,
-        ),
-        gitOperations = runtimeConfig.branchSetup.gitOperations,
-        sharedEvidenceResolver = runtimeConfig.sharedEvidenceResolver,
-        diffResolver = runtimeConfig.diffResolver,
-        recorder = workflow.recorder,
-        validationGateRunnerOverride = runtimeConfig.validationGateRunner,
-        validationGatePlatformManifests = runtimeConfig.validationGatePlatformManifests,
-        reviewDriver = harnessReviewDriverSyncingPendingVerifyFindings(runtimeConfig.reviewDriver),
-      ),
+    phaseGates = telemetryRunnerPhaseGates(
+      runtimeConfig,
+      database,
+      workflow,
+      branchSetupRunner,
+      planningStopper,
     ),
     crashReconciler = harnessCrashReconciler(database, NoopFeatureTaskRuntimeWorkerSupervisor),
     phaseSettlementService = harnessPhaseSettlement(),
     diagnostics = NoopRuntimeDiagnostics,
     clock = testHarnessClock,
-    probeWriters = FeatureTaskRuntimeProbeWriters(
-      activityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics),
-      worktreeEditJournalWriter = WorktreeEditJournalWriter(
-        database,
-        Clock.systemUTC(),
-        NoopRuntimeDiagnostics,
-        NoopWorkflowGitOperations,
-      ),
-    ),
+    probeWriters = telemetryRunnerProbeWriters(database),
   )
 }
+
+private fun telemetryRunnerPhaseGates(
+  runtimeConfig: RuntimeHarnessConfig,
+  database: RuntimeFakeDatabaseSessionFactory,
+  workflow: RunnerHarnessWorkflow,
+  branchSetupRunner: FeatureTaskRuntimeBranchSetupRunner,
+  planningStopper: FeatureTaskRuntimePlanningStopper,
+): FeatureTaskRuntimePhaseGates = runtimePhaseGates(
+  RuntimePhaseGatesDeps(
+    branchSetupRunner = branchSetupRunner,
+    planningStopper = planningStopper,
+    lifecycleTelemetry = FeatureTaskRuntimeLifecycleTelemetry(
+      LifecycleTelemetryService(
+        database,
+        EnabledRuntimeTelemetrySettingsProvider,
+        Clock.systemUTC(),
+        NoopRuntimeDiagnostics,
+      ),
+      NoopRuntimeDiagnostics,
+    ),
+    gitOperations = runtimeConfig.branchSetup.gitOperations,
+    sharedEvidenceResolver = runtimeConfig.sharedEvidenceResolver,
+    diffResolver = runtimeConfig.diffResolver,
+    recorder = workflow.recorder,
+    validationGateRunnerOverride = runtimeConfig.validationGateRunner,
+    validationGatePlatformManifests = runtimeConfig.validationGatePlatformManifests,
+    reviewDriver = harnessReviewDriverSyncingPendingVerifyFindings(runtimeConfig.reviewDriver),
+  ),
+)
+
+private fun telemetryRunnerProbeWriters(database: RuntimeFakeDatabaseSessionFactory): FeatureTaskRuntimeProbeWriters =
+  FeatureTaskRuntimeProbeWriters(
+    activityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics),
+    worktreeEditJournalWriter = WorktreeEditJournalWriter(
+      database,
+      Clock.systemUTC(),
+      NoopRuntimeDiagnostics,
+      NoopWorkflowGitOperations,
+    ),
+  )
 
 private fun noOpDecompositionPlanner(): FeatureTaskRuntimeDecompositionPlanner = FeatureTaskRuntimeDecompositionPlanner(
   preparationRuntime = FeatureSpecPreparationRuntime { intake ->
@@ -1829,6 +1860,8 @@ internal class RuntimeFakeDatabaseSessionFactory(
       override fun markExpired(before: Instant): Int = 0
 
       override fun delete(selector: RejectedOutputDiagnosticSelector): Int = 0
+
+      override fun deleteProducerOutputsBefore(before: Instant): Int = 0
       override fun retainProducerOutput(evidence: ProducerOutputEvidence) {
         val key = ProducerEvidenceKey(
           evidence.workflowId,
@@ -1934,7 +1967,7 @@ private fun FeatureTaskRuntimeWorkerOwnership.matchesActiveOwnership(
   this.generation == generation &&
   leaseState == FeatureTaskRuntimeWorkerLeaseState.ACTIVE
 
-internal class InMemoryRuntimeWorkflowRepository : WorkflowStateRepository {
+internal class InMemoryRuntimeWorkflowRepository : WorkflowStateRepositoryDefaults() {
   private var workerOwnership: FeatureTaskRuntimeWorkerOwnership? = null
 
   fun seedWorkerOwnership(ownership: FeatureTaskRuntimeWorkerOwnership) {
@@ -2042,10 +2075,60 @@ internal class InMemoryRuntimeWorkflowRepository : WorkflowStateRepository {
     runCatching { Instant.parse(expiresAt).isBefore(Instant.parse(nowInstant)) }
       .getOrDefault(false)
 
-  override fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity) = Unit
+  private val identities = linkedMapOf<String, FeatureTaskExecutionIdentity>()
 
-  override fun findStandaloneFeatureTaskCandidates(normalizedIssueKey: String, repositoryIdentity: String) =
-    emptyList<FeatureTaskWorkflowCandidate>()
+  override fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity) {
+    identities[identity.workflowId] = identity
+  }
+
+  override fun getFeatureTaskExecutionIdentity(workflowId: String): FeatureTaskExecutionIdentity? =
+    identities[workflowId]
+
+  override fun findStandaloneFeatureTaskCandidates(
+    normalizedIssueKey: String,
+    repositoryIdentity: String,
+  ): List<FeatureTaskWorkflowCandidate> = emptyList()
+
+  override fun findGoalChildFeatureTaskCandidates(
+    normalizedIssueKey: String,
+    repositoryIdentity: String,
+  ): List<FeatureTaskWorkflowCandidate> = identities.values
+    .filter {
+      it.normalizedIssueKey == normalizedIssueKey &&
+        it.repositoryIdentity == repositoryIdentity &&
+        it.routeScope == FeatureTaskRouteScope.GOAL_CHILD
+    }
+    .mapNotNull { identity ->
+      getFeatureTaskWorkflow(identity.workflowId)?.let { FeatureTaskWorkflowCandidate(identity, it) }
+    }
+
+  override fun countGoalChildIdentities(normalizedIssueKey: String): Int = identities.values.count {
+    it.normalizedIssueKey == normalizedIssueKey && it.routeScope == FeatureTaskRouteScope.GOAL_CHILD
+  }
+
+  override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
+      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
+    }
+  }
+
+  override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
+    taskRuntimeRows[workflowId] ?: implementRows[workflowId]
+
+  override fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    getFeatureTaskWorkflow(workflowId)?.takeIf { row ->
+      (row.mode ?: FeatureTaskWorkflowMode.PROSE) == mode
+    }
+
+  override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
+      FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
+    }
+
+  override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    listFeatureTaskWorkflows(mode, Int.MAX_VALUE).firstOrNull()
 
   private val taskRuntimeRows = linkedMapOf<String, WorkflowStateRecord>()
   private val implementRows = linkedMapOf<String, WorkflowStateRecord>()

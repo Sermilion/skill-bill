@@ -1,8 +1,8 @@
 package skillbill.application.workflow.model
 
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
 
 data class PersistOpenedWorkflowArgs(
   val family: WorkflowFamily,

@@ -6,12 +6,10 @@ import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.review.model.ReviewWorkerKind
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
-import skillbill.ports.agentrun.model.ConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-import skillbill.ports.review.BrokerBackedNativeReviewOperationProtocol
 import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.ReviewEvidenceBrokerFactory
@@ -118,9 +116,7 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
           timeout = args.request.timeout,
           promptOverride = args.request.withSelectedAgentAddons(args.launch.prompt),
           modelOverride = args.modelOverride,
-          conversationIsolation = ConversationIsolation.NONE,
           reviewEvidenceBroker = args.bound.broker,
-          nativeReviewOperations = args.bound.protocol,
           reviewEvidenceEndpoint = args.bound.endpoint,
           nativeReviewWorkerName = PARALLEL_REVIEW_INLINE_NATIVE_WORKER
             .takeIf { args.resolvedMode == ResolvedReviewExecutionMode.INLINE },
@@ -145,13 +141,6 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
           ParallelCodeReviewGovernedEvidenceBindFault.CONSTRUCTION,
         )
       }
-    val protocol = runCatching { BrokerBackedNativeReviewOperationProtocol(broker) }
-      .getOrElseUnlessCooperative {
-        return ParallelCodeReviewGovernedEvidenceBind.Unbound(
-          ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM,
-          ParallelCodeReviewGovernedEvidenceBindFault.PROTOCOL,
-        )
-      }
     return runCatching {
       val onEvidenceRead = request.activityWorkflowId?.takeIf(String::isNotBlank)?.let { workflowId ->
         {
@@ -163,8 +152,7 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
       }
       ParallelCodeReviewGovernedEvidenceBind.Bound(
         broker,
-        protocol,
-        governedEvidenceEndpointBinder.bind(broker.accounting().lane, protocol, onEvidenceRead),
+        governedEvidenceEndpointBinder.bind(broker.accounting().lane, broker, onEvidenceRead),
       )
     }.getOrElseUnlessCooperative {
       ParallelCodeReviewGovernedEvidenceBind.Unbound(

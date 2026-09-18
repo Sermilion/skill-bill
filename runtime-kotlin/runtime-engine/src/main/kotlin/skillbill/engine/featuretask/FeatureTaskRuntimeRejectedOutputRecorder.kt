@@ -9,11 +9,11 @@ import skillbill.engine.featuretask.model.RejectedOutputDiagnosticDegradeRequest
 import skillbill.engine.featuretask.model.RejectedOutputDiagnosticPersistRequest
 import skillbill.error.InvalidProducerOutputEvidenceSchemaError
 import skillbill.error.InvalidRejectedOutputDiagnosticSchemaError
+import skillbill.error.RejectedOutputDiagnosticError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.evidenceKey
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get

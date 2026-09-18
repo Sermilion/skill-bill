@@ -1,9 +1,10 @@
 package skillbill.application.evidence
 
 import skillbill.engine.featuretask.FeatureTaskRuntimeSharedReviewEvidenceResolver
+import skillbill.error.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
 import skillbill.ports.diff.DiffResolverPort
+import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceDeriver
-import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceRequest
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolution
@@ -42,6 +43,11 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
       invoked += key
       return responses[key]
     }
+
+    override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
+      emptyMap<String, ReviewCheckpointFileIdentity>()
+
+    override fun readDiff(path: Path, maxBytes: Long): String? = null
   }
 
   private class InMemoryStore : FeatureTaskRuntimeSharedEvidenceResolverPort {

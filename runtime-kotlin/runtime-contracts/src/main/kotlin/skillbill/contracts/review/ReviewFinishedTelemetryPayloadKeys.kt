@@ -1,0 +1,62 @@
+package skillbill.contracts.review
+
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+
+object ReviewFinishedTelemetryPayloadKeys {
+  const val TOTAL_FINDINGS: String = "total_findings"
+  const val ACCEPTED_FINDINGS: String = "accepted_findings"
+  const val REJECTED_FINDINGS: String = "rejected_findings"
+  const val UNRESOLVED_FINDINGS: String = "unresolved_findings"
+  const val ACCEPTED_RATE: String = "accepted_rate"
+  const val REJECTED_RATE: String = "rejected_rate"
+  const val ACCEPTED_FINDING_DETAILS: String = "accepted_finding_details"
+  const val REJECTED_FINDING_DETAILS: String = "rejected_finding_details"
+  const val REVIEW_SESSION_ID: String = "review_session_id"
+  const val ROUTED_SKILL: String = LifecycleTelemetryPayloadKeys.ROUTED_SKILL
+  const val REVIEW_SUBSKILLS: String = "review_subskills"
+  const val REVIEW_SCOPE: String = "review_scope"
+  const val REVIEW_PLATFORM: String = "review_platform"
+  const val DETECTED_STACK: String = LifecycleTelemetryPayloadKeys.DETECTED_STACK
+  const val DETECTED_STACK_DETAIL: String = "detected_stack_detail"
+  const val FALLBACK: String = LifecycleTelemetryPayloadKeys.FALLBACK
+  const val FALLBACK_REASON: String = LifecycleTelemetryPayloadKeys.FALLBACK_REASON
+  const val PLATFORM_SLUG: String = "platform_slug"
+  const val SCOPE_TYPE: String = LifecycleTelemetryPayloadKeys.SCOPE_TYPE
+  const val EXECUTION_MODE: String = "execution_mode"
+  const val REVIEW_FINISHED_AT: String = "review_finished_at"
+  const val LEARNINGS: String = "learnings"
+  const val VERIFICATION: String = "verification"
+  const val ADJUDICATION: String = "adjudication"
+  const val REFUTATION_RATE_BY_STAGE: String = "refutation_rate_by_stage"
+  const val REJECTED_VERDICT_COUNTS: String = "rejected_verdict_counts"
+  const val SEVERITY_ADJUSTMENT_COUNTS: String = "severity_adjustment_counts"
+  const val RESOLVED_TIER: String = "resolved_tier"
+  const val SEVERITY: String = "severity"
+  const val CONFIDENCE: String = "confidence"
+  const val OUTCOME_TYPE: String = "outcome_type"
+  const val LOCATION: String = "location"
+  const val DESCRIPTION: String = "description"
+  const val NOTE: String = "note"
+  const val APPLIED_COUNT: String = "applied_count"
+  const val APPLIED_REFERENCES: String = "applied_references"
+  const val APPLIED_SUMMARY: String = "applied_summary"
+  const val SCOPE_COUNTS: String = "scope_counts"
+  const val ENTRIES: String = "entries"
+  const val REFERENCE: String = "reference"
+  const val SCOPE: String = "scope"
+  const val TITLE: String = "title"
+  const val RULE_TEXT: String = "rule_text"
+  const val CONFIRMED: String = "confirmed"
+  const val REFUTED: String = "refuted"
+  const val UNRESOLVED: String = "unresolved"
+  const val IN_SCOPE: String = "in_scope"
+  const val OUT_OF_SCOPE_PREEXISTING: String = "out_of_scope_preexisting"
+  const val SPEC_DEVIATION: String = "spec_deviation"
+  const val SPEC_ACCEPTED_TRADEOFF: String = "spec_accepted_tradeoff"
+  const val FINDING_COUNT: String = "finding_count"
+  const val UNCITED_REFUTATIONS: String = "uncited_refutations"
+  const val UNCITED_DOWNGRADES: String = "uncited_downgrades"
+  const val FINDING_MUTATIONS: String = "finding_mutations"
+  const val RAISED: String = "raised"
+  const val LOWERED: String = "lowered"
+}

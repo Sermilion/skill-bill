@@ -10,6 +10,7 @@ import skillbill.application.telemetry.model.QualityCheckStartedRequest
 import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.review.normalizeRoutedSkill
 import skillbill.review.normalizeStackLabel
@@ -22,9 +23,10 @@ import skillbill.workflow.model.workflowStepStatus
 class LifecycleTelemetryGoalEmission(
   private val database: DatabaseSessionFactory,
   private val settingsProvider: TelemetrySettingsProvider,
+  private val diagnostics: RuntimeDiagnostics,
 ) : GoalLifecycleTelemetryEmitter {
   override fun goalStarted(request: GoalStartedRequest) {
-    enabledStandaloneResult(settingsProvider, request.workflowId) { settings ->
+    enabledStandaloneResult(settingsProvider, diagnostics, request.workflowId) { settings ->
       database.transaction { unitOfWork ->
         unitOfWork.lifecycleTelemetry.goalStarted(request.toRecord(), settings.level)
       }
@@ -32,7 +34,7 @@ class LifecycleTelemetryGoalEmission(
   }
 
   override fun goalSubtaskFinished(request: GoalSubtaskFinishedRequest) {
-    enabledStandaloneResult(settingsProvider, request.workflowId) { settings ->
+    enabledStandaloneResult(settingsProvider, diagnostics, request.workflowId) { settings ->
       val reconciledRequest = request.reconcileBlockedReason()
       database.transaction { unitOfWork ->
         unitOfWork.lifecycleTelemetry.goalSubtaskFinished(reconciledRequest.toRecord(), settings.level)
@@ -41,7 +43,7 @@ class LifecycleTelemetryGoalEmission(
   }
 
   override fun goalFinished(request: GoalFinishedRequest) {
-    enabledStandaloneResult(settingsProvider, request.workflowId) { settings ->
+    enabledStandaloneResult(settingsProvider, diagnostics, request.workflowId) { settings ->
       database.transaction { unitOfWork ->
         unitOfWork.lifecycleTelemetry.goalFinished(request.toRecord(), settings.level)
       }
@@ -49,7 +51,7 @@ class LifecycleTelemetryGoalEmission(
   }
 
   override fun goalIssueFinished(request: GoalIssueFinishedRequest) {
-    enabledStandaloneResult(settingsProvider, request.parentWorkflowId) { settings ->
+    enabledStandaloneResult(settingsProvider, diagnostics, request.parentWorkflowId) { settings ->
       database.transaction { unitOfWork ->
         unitOfWork.lifecycleTelemetry.goalIssueFinished(request.toRecord(), settings.level)
       }
@@ -59,10 +61,11 @@ class LifecycleTelemetryGoalEmission(
 
 internal fun enabledStandaloneResult(
   settingsProvider: TelemetrySettingsProvider,
+  diagnostics: RuntimeDiagnostics,
   sessionId: String,
   action: (TelemetrySettings) -> Unit,
 ): JsonPayloadContract {
-  val settings = telemetrySettingsOrNull(settingsProvider)
+  val settings = telemetrySettingsOrNull(settingsProvider, diagnostics)
   return if (settings?.enabled == true) {
     action(settings)
     lifecycleOkPayload(sessionId)
@@ -70,6 +73,11 @@ internal fun enabledStandaloneResult(
     lifecycleSkippedPayload(sessionId)
   }
 }
+
+internal fun telemetryLevelOrAnonymous(
+  settingsProvider: TelemetrySettingsProvider,
+  diagnostics: RuntimeDiagnostics,
+): String = telemetrySettingsOrNull(settingsProvider, diagnostics)?.level ?: "anonymous"
 
 internal fun FeatureTaskRuntimeFinishedRequest.reconcileBlockedRuntimeFields(): FeatureTaskRuntimeFinishedRequest {
   if (completionStatus.workflowStatus() != WorkflowStatus.BLOCKED) {

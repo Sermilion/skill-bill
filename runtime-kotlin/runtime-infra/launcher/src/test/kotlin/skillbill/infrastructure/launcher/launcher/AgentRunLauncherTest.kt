@@ -16,9 +16,9 @@ import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
-import skillbill.ports.agentrun.model.ConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
+import skillbill.review.context.model.ReviewConversationIsolation
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import java.nio.file.Path
 import kotlin.test.Test
@@ -121,13 +121,13 @@ class HeadlessAgentRunAdapterTest {
   @Test
   fun `process adapter carries codex fork turns none to the worker start request`() {
     val runner = RecordingAgentRunProcessRunner()
-    val request = phaseRunRequest().copy(conversationIsolation = ConversationIsolation.NONE)
+    val request = governedReviewRequest()
     val builder = CodexAgentRunCommandBuilder()
 
     ProcessAgentRunAdapter(InstallAgent.CODEX, builder, runner, ALL_EXECUTABLES_AVAILABLE).launch(request)
 
-    assertEquals(ConversationIsolation.NONE, runner.requests.single().conversationIsolation)
-    assertEquals("none", runner.requests.single().conversationIsolation?.forkTurns)
+    assertEquals(ReviewConversationIsolation.FRESH, runner.requests.single().conversationIsolation)
+    assertTrue(runner.requests.single().command.any { it == "fork_turns=none" })
   }
 
   @Test

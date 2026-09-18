@@ -3,6 +3,7 @@ import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+import skillbill.error.GoalRunnerLaunchAuthorizationDeniedException
 import skillbill.error.InvalidAgentAddonSelectionError
 import skillbill.error.LegacyProseWorkflowError
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_REQUEST
@@ -13,24 +14,18 @@ import skillbill.infrastructure.sqlite.workflow.decompositionRuntime
 import skillbill.infrastructure.sqlite.workflow.findDecomposedParentWorkflow
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.goalrunner.acquireExecutionLease
-import skillbill.ports.goalrunner.executionLease
-import skillbill.ports.goalrunner.heartbeatExecutionLease
-import skillbill.ports.goalrunner.releaseExecutionLease
-import skillbill.ports.goalrunner.releaseExecutionLeaseIfExpired
 import skillbill.ports.goalrunner.runner.model.GoalRunnerCompletionPersistenceResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorization
-import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorizationDeniedException
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerPausePersistenceResult
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.DecompositionStatus
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
 import java.time.Clock
@@ -202,7 +197,7 @@ internal fun GoalRunnerControlCoordinator.spawnAuthorization(
     val controls = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
     val manifest = parent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest
     if (controls.requiresPauseBoundary(manifest)) {
-      throw GoalRunnerLaunchAuthorizationDeniedException(controls)
+      throw GoalRunnerLaunchAuthorizationDeniedException(controls.pauseReason)
     }
     spawn()
   }
@@ -241,7 +236,7 @@ internal fun GoalRunnerControlCoordinator.planningSpawnAuthorization(
     val manifest = parent.decompositionRuntime(decompositionManifestValidator)
       ?: error("Goal parent '$parentWorkflowId' has no decomposition manifest.")
     if (controls.requiresPauseBoundary(manifest)) {
-      throw GoalRunnerLaunchAuthorizationDeniedException(controls)
+      throw GoalRunnerLaunchAuthorizationDeniedException(controls.pauseReason)
     }
     spawn()
   }

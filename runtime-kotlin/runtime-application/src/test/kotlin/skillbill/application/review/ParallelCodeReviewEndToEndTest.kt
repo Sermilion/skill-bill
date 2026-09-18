@@ -2,6 +2,7 @@ package skillbill.application.review
 
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
+import skillbill.review.context.model.toBoundedPayload
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -146,7 +147,7 @@ class ParallelCodeReviewEndToEndTest {
       .run(harnessRequest())
 
     val record = recorder.savedAccounting.single()
-    assertEquals("accounting_summary", record.boundedPayload["kind"])
+    assertEquals("accounting_summary", record.summary.toBoundedPayload()["kind"])
     assertTrue(record.reviewId.isNotBlank() && record.packetDigest.isNotBlank())
   }
 
@@ -159,7 +160,7 @@ class ParallelCodeReviewEndToEndTest {
 
     val record = recorder.savedAccounting.single()
     assertEquals(reviewRunId, record.reviewId)
-    assertEquals(reviewRunId, record.boundedPayload["review_id"])
+    assertEquals(reviewRunId, record.summary.toBoundedPayload()["review_id"])
   }
 
   @Test fun `accounting falls back to the packet review id when no run id is supplied`() {

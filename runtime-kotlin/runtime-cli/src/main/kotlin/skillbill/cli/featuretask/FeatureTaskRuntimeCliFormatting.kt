@@ -10,7 +10,7 @@ import skillbill.cli.model.CliRunInputs
 import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEventSink
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
 
 internal fun WorkflowService.openRuntimeWorkflowId(

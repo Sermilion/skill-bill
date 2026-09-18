@@ -30,14 +30,15 @@ import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
-import skillbill.ports.agentrun.model.ConversationIsolation
-import skillbill.ports.review.BrokerBackedNativeReviewOperationProtocol
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
+import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewToolCall
+import skillbill.review.context.model.ReviewConversationIsolation
+import skillbill.review.context.model.ReviewExpansionRecord
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -235,8 +236,7 @@ class JvmAgentRunProcessRunnerTest {
           outputSink = sink
           reviewEvidenceEndpoint = endpoint
           reviewEvidenceBroker = TeardownProbeBroker
-          nativeReviewOperations = BrokerBackedNativeReviewOperationProtocol(TeardownProbeBroker)
-          conversationIsolation = ConversationIsolation.NONE
+          conversationIsolation = ReviewConversationIsolation.FRESH
         },
       )
     }
@@ -613,7 +613,7 @@ class JvmAgentRunProcessRunnerTest {
   fun `a timed-out governed launch leaves no endpoint bound`() {
     val endpoint = GovernedReviewEvidenceEndpoint.bind(
       "architecture",
-      BrokerBackedNativeReviewOperationProtocol(TeardownProbeBroker),
+      TeardownProbeBroker,
       listOf("/bin/true"),
     )
 
@@ -623,9 +623,8 @@ class JvmAgentRunProcessRunnerTest {
         Path.of("."),
       ) {
         timeout = 1.seconds
-        conversationIsolation = ConversationIsolation.NONE
+        conversationIsolation = ReviewConversationIsolation.FRESH
         reviewEvidenceBroker = TeardownProbeBroker
-        nativeReviewOperations = BrokerBackedNativeReviewOperationProtocol(TeardownProbeBroker)
         reviewEvidenceEndpoint = endpoint
       },
     )
@@ -636,6 +635,9 @@ class JvmAgentRunProcessRunnerTest {
   }
 
   private object TeardownProbeBroker : ReviewEvidenceBroker {
+    override fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord =
+      error("unused")
+
     override fun readBatch(request: ReviewEvidenceBatchRequest) = error("unused")
     override fun recordToolCall(call: ReviewToolCall) = error("unused")
     override fun recordModelTurn() = null

@@ -8,9 +8,9 @@ import skillbill.application.telemetry.model.FeatureVerifyStartedRequest
 import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
-import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import java.time.Clock
 
@@ -19,10 +19,11 @@ class LifecycleTelemetryService(
   private val database: DatabaseSessionFactory,
   private val settingsProvider: TelemetrySettingsProvider,
   private val clock: Clock,
-) : GoalLifecycleTelemetryEmitter by LifecycleTelemetryGoalEmission(database, settingsProvider) {
+  private val diagnostics: RuntimeDiagnostics,
+) : GoalLifecycleTelemetryEmitter by LifecycleTelemetryGoalEmission(database, settingsProvider, diagnostics) {
   fun featureTaskRuntimeStarted(request: FeatureTaskRuntimeStartedRequest): JsonPayloadContract {
     val sessionId = request.sessionId.ifBlank { generateLifecycleSessionId("ftr", clock) }
-    return enabledStandaloneResult(settingsProvider, sessionId) { settings ->
+    return enabledStandaloneResult(settingsProvider, diagnostics, sessionId) { settings ->
       database.transaction { unitOfWork ->
         unitOfWork.lifecycleTelemetry.featureTaskRuntimeStarted(request.toRecord(sessionId), settings.level)
       }
@@ -30,7 +31,7 @@ class LifecycleTelemetryService(
   }
 
   fun featureTaskRuntimeFinished(request: FeatureTaskRuntimeFinishedRequest): JsonPayloadContract =
-    enabledStandaloneResult(settingsProvider, request.sessionId) { settings ->
+    enabledStandaloneResult(settingsProvider, diagnostics, request.sessionId) { settings ->
       val reconciledRequest = request.reconcileBlockedRuntimeFields()
       database.transaction { unitOfWork ->
         unitOfWork.lifecycleTelemetry.featureTaskRuntimeFinished(reconciledRequest.toRecord(), settings.level)
@@ -45,7 +46,7 @@ class LifecycleTelemetryService(
       else ->
         validateQualityCheckStarted(normalizedRequest)
           ?.let { lifecycleErrorPayload(sessionId, it) }
-          ?: enabledStandaloneResult(settingsProvider, sessionId) { settings ->
+          ?: enabledStandaloneResult(settingsProvider, diagnostics, sessionId) { settings ->
             database.transaction { unitOfWork ->
               unitOfWork.lifecycleTelemetry.qualityCheckStarted(
                 normalizedRequest.toRecord(sessionId),
@@ -62,9 +63,9 @@ class LifecycleTelemetryService(
       ?.let { lifecycleErrorPayload(normalizedRequest.sessionId, it) }
       ?: when {
         normalizedRequest.orchestrated ->
-          normalizedRequest.orchestratedPayload(telemetryLevelOrAnonymous(settingsProvider))
+          normalizedRequest.orchestratedPayload(telemetryLevelOrAnonymous(settingsProvider, diagnostics))
         else ->
-          enabledStandaloneResult(settingsProvider, normalizedRequest.sessionId) { settings ->
+          enabledStandaloneResult(settingsProvider, diagnostics, normalizedRequest.sessionId) { settings ->
             database.transaction { unitOfWork ->
               unitOfWork.lifecycleTelemetry.qualityCheckFinished(
                 normalizedRequest.toRecord(),
@@ -80,7 +81,7 @@ class LifecycleTelemetryService(
     return when {
       request.orchestrated -> orchestratedStartedSkippedPayload()
       else ->
-        enabledStandaloneResult(settingsProvider, sessionId) { settings ->
+        enabledStandaloneResult(settingsProvider, diagnostics, sessionId) { settings ->
           database.transaction { unitOfWork ->
             unitOfWork.lifecycleTelemetry.featureVerifyStarted(request.toRecord(sessionId), settings.level)
           }
@@ -92,9 +93,9 @@ class LifecycleTelemetryService(
     validateFeatureVerifyFinished(request)
       ?.let { lifecycleErrorPayload(request.sessionId, it) }
       ?: when {
-        request.orchestrated -> request.orchestratedPayload(telemetryLevelOrAnonymous(settingsProvider))
+        request.orchestrated -> request.orchestratedPayload(telemetryLevelOrAnonymous(settingsProvider, diagnostics))
         else ->
-          enabledStandaloneResult(settingsProvider, request.sessionId) { settings ->
+          enabledStandaloneResult(settingsProvider, diagnostics, request.sessionId) { settings ->
             database.transaction { unitOfWork ->
               unitOfWork.lifecycleTelemetry.featureVerifyFinished(request.toRecord(), settings.level)
             }
@@ -104,9 +105,9 @@ class LifecycleTelemetryService(
   fun prDescriptionGenerated(request: PrDescriptionGeneratedRequest): JsonPayloadContract {
     val sessionId = if (request.orchestrated) "" else generateLifecycleSessionId("prd", clock)
     return when {
-      request.orchestrated -> request.orchestratedPayload(telemetryLevelOrAnonymous(settingsProvider))
+      request.orchestrated -> request.orchestratedPayload(telemetryLevelOrAnonymous(settingsProvider, diagnostics))
       else ->
-        enabledStandaloneResult(settingsProvider, sessionId) { settings ->
+        enabledStandaloneResult(settingsProvider, diagnostics, sessionId) { settings ->
           database.transaction { unitOfWork ->
             unitOfWork.lifecycleTelemetry.prDescriptionGenerated(request.toRecord(sessionId), settings.level)
           }
@@ -114,6 +115,3 @@ class LifecycleTelemetryService(
     }
   }
 }
-
-internal fun telemetryLevelOrAnonymous(settingsProvider: TelemetrySettingsProvider): String =
-  telemetrySettingsOrNull(settingsProvider)?.level ?: "anonymous"

@@ -8,15 +8,22 @@ import skillbill.application.review.harnessRequest
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.review.reviewHarness
 import skillbill.application.review.reviewPack
-import skillbill.application.review.toBoundedPayload
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.infrastructure.contracts.review.ReviewContextSchemaValidator
 import skillbill.infrastructure.sqlite.ensureTestDatabase
+import skillbill.infrastructure.sqlite.review.toBoundedPayload
 import skillbill.infrastructure.sqlite.reviewAccountingOnConnection
 import skillbill.infrastructure.sqlite.telemetryOutboxOnConnection
 import skillbill.ports.review.model.ReviewAccountingRecord
+import skillbill.review.context.ReviewTreeAccounting
+import skillbill.review.context.model.ReviewAccountingCounters
+import skillbill.review.context.model.ReviewAccountingInput
 import skillbill.review.context.model.ReviewAccountingSummary
+import skillbill.review.context.model.ReviewCommitRoutingAccounting
+import skillbill.review.context.model.ReviewIntegrationAccounting
+import skillbill.review.context.model.ReviewIntegrationTerminalOutcome
+import skillbill.review.context.model.ReviewParentAnalysisConsumption
 import skillbill.review.model.REVIEW_STAGE_DEGRADATION_EVENT_NAME
 import java.nio.file.Files
 import java.sql.Connection
@@ -79,12 +86,59 @@ class ReviewAccountingDurableRedactionTest {
       val summary = recordedReview().second
       val payload = summary.toBoundedPayload()
 
-      accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, payload))
+      accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, summary))
       val loaded = assertNotNull(accounting.load(REVIEW_RUN_ID))
 
-      assertEquals(JsonCodec.mapToJsonString(payload), JsonCodec.mapToJsonString(loaded.boundedPayload))
+      assertEquals(JsonCodec.mapToJsonString(payload), JsonCodec.mapToJsonString(loaded.summary.toBoundedPayload()))
       assertNoSentinels(storedAccountingJson(connection))
-      ReviewContextSchemaValidator.validate(loaded.boundedPayload, "durable-review-accounting")
+      ReviewContextSchemaValidator.validate(loaded.summary.toBoundedPayload(), "durable-review-accounting")
+    }
+  }
+
+  @Test fun `sqlite preserves the pre-change accounting JSON bytes`() {
+    withConnection { connection ->
+      val summary = ReviewTreeAccounting.summarize(
+        "fixture-review",
+        "fixture-packet",
+        ReviewAccountingInput(
+          lane = "parent",
+          assignmentDigest = "fixture-assignment",
+          counters = ReviewAccountingCounters(1, 2, 3, 4, 5, 6),
+        ),
+      ).copy(
+        commitRouting = ReviewCommitRoutingAccounting(
+          commitSequenceDigest = "fixture-commits",
+          routingDigest = "fixture-routing",
+          commitCount = 1,
+          laneCount = 1,
+          focusedCommitCount = 1,
+          skippedCommitCount = 0,
+          focusedPairCount = 1,
+          skippedPairCount = 0,
+        ),
+        parentAnalysis = ReviewParentAnalysisConsumption(
+          analyzedPairs = 1,
+          analyzedBytes = 2,
+          maxAnalysisPairs = 3,
+          maxAnalysisBytes = 4,
+        ),
+        integration = ReviewIntegrationAccounting(
+          commitSequenceDigest = "fixture-integration",
+          terminalOutcome = ReviewIntegrationTerminalOutcome.COMPLETED,
+          summarizedLaneCount = 1,
+          findingCount = 0,
+          counters = ReviewAccountingCounters(7, 8, 9, 10, 11, 12),
+        ),
+      )
+
+      reviewAccountingOnConnection(connection).upsert(
+        ReviewAccountingRecord(summary.reviewId, summary.packetDigest, summary),
+      )
+
+      assertEquals(
+        PRE_CHANGE_ACCOUNTING_JSON,
+        storedAccountingJson(connection),
+      )
     }
   }
 
@@ -115,9 +169,9 @@ class ReviewAccountingDurableRedactionTest {
         },
       )
 
-      accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, current))
+      accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, summary))
       val regenerated = assertNotNull(accounting.load(REVIEW_RUN_ID))
-      assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, regenerated.boundedPayload["contract_version"])
+      assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, regenerated.summary.toBoundedPayload()["contract_version"])
     }
   }
 
@@ -148,10 +202,10 @@ class ReviewAccountingDurableRedactionTest {
         },
       )
 
-      accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, current))
+      accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, summary))
       val regenerated = assertNotNull(accounting.load(REVIEW_RUN_ID))
-      assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, regenerated.boundedPayload["contract_version"])
-      assertEquals("2.3", regenerated.boundedPayload["contract_version"])
+      assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, regenerated.summary.toBoundedPayload()["contract_version"])
+      assertEquals("2.3", regenerated.summary.toBoundedPayload()["contract_version"])
     }
   }
 
@@ -173,7 +227,7 @@ class ReviewAccountingDurableRedactionTest {
       }
 
       val loaded = assertNotNull(accounting.load(REVIEW_RUN_ID))
-      assertEquals("2.1", loaded.boundedPayload["contract_version"])
+      assertEquals("2.1", loaded.summary.toBoundedPayload()["contract_version"])
       assertEquals(JsonCodec.mapToJsonString(legacy), storedAccountingJson(connection))
     }
   }
@@ -288,5 +342,21 @@ class ReviewAccountingDurableRedactionTest {
 
   private companion object {
     const val REVIEW_RUN_ID = "rvw-20260722-101500-ab12"
+    val PRE_CHANGE_ACCOUNTING_JSON = """
+      {"contract_version":"2.3","kind":"accounting_summary","review_id":"fixture-review",
+      "packet_digest":"fixture-packet","parent":{"lane":"parent","assignment_digest":"fixture-assignment",
+      "launch_bytes":1,"evidence_bytes":2,"result_bytes":3,"expansions":4,"tool_calls":5,"model_turns":6,
+      "inclusive_counters":{"launch_bytes":1,"evidence_bytes":2,"result_bytes":3,"expansions":4,
+      "tool_calls":5,"model_turns":6},"terminal_outcome":"completed"},"lanes":[],
+      "commit_routing_accounting":{"commit_sequence_digest":"fixture-commits","routing_digest":"fixture-routing",
+      "commit_count":1,"lane_count":1,"focused_commit_count":1,"skipped_commit_count":0,
+      "focused_pair_count":1,"skipped_pair_count":0,"incomplete_lanes":[]},
+      "parent_analysis_consumption":{"analyzed_pairs":1,"analyzed_bytes":2,"max_analysis_pairs":3,
+      "max_analysis_bytes":4},"integration":{"commit_sequence_digest":"fixture-integration",
+      "terminal_outcome":"completed","summarized_lane_count":1,"finding_count":0,
+      "counters":{"launch_bytes":7,"evidence_bytes":8,"result_bytes":9,"expansions":10,
+      "tool_calls":11,"model_turns":12}},"aggregate_counters":{"launch_bytes":1,"evidence_bytes":2,
+      "result_bytes":3,"expansions":4,"tool_calls":5,"model_turns":6}}
+    """.trimIndent().replace("\n", "")
   }
 }

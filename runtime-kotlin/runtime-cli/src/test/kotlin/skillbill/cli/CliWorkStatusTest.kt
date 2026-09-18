@@ -1,5 +1,4 @@
 package skillbill.cli
-
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.engine.work.model.IdeStatusFreshness
@@ -123,7 +122,7 @@ class CliWorkStatusTest {
       summary = "Goal SKILL-165 is planning subtasks (2/5 planned). 3 subtasks are being planned now.",
     )
 
-    val wire = snapshot.toStatusWireMap()
+    val wire = IdeStatusSchemaValidator.wireMap(snapshot)
     IdeStatusSchemaValidator.validate(wire, "cli-goal-planning")
     val planning = wire["planning"] as Map<*, *>
     assertEquals(listOf("3", "4", "5"), planning["planning_wave_subtask_ids"])

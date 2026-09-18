@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask.model
 
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskRouteScope
 
 data class FeatureTaskContinuationLookupQuery(
   val issueKey: String,

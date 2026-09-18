@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.review
+import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
@@ -27,13 +29,13 @@ internal fun ResultSet.toImportedFinding(): ImportedFinding = ImportedFinding(
 
 internal fun ResultSet.toReviewSummary(): ReviewSummary = ReviewSummary(
   reviewRunId = getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
-  reviewSessionId = getString("review_session_id"),
+  reviewSessionId = getString(McpToolPayloadKeys.REVIEW_SESSION_ID),
   routedSkill = getString(LifecycleTelemetryPayloadKeys.ROUTED_SKILL),
   detectedScope = getString("detected_scope"),
   detectedStack = getString(LifecycleTelemetryPayloadKeys.DETECTED_STACK),
-  executionMode = getString("execution_mode")?.let(ReviewExecutionMode::fromWire),
+  executionMode = getString(ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE)?.let(ReviewExecutionMode::fromWire),
   specialistReviewsRaw = getString("specialist_reviews"),
-  reviewFinishedAt = getString("review_finished_at"),
+  reviewFinishedAt = getString(ReviewFinishedTelemetryPayloadKeys.REVIEW_FINISHED_AT),
   reviewFinishedEventEmittedAt = getString("review_finished_event_emitted_at"),
   orchestratedRun = getBoolean("orchestrated_run"),
   routedSkillCanonical = getString("routed_skill_canonical") ?: "unresolved",

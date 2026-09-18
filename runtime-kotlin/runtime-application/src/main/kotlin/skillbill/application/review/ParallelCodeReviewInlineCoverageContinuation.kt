@@ -2,7 +2,6 @@ package skillbill.application.review
 
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
-import skillbill.ports.agentrun.model.ConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
@@ -85,7 +84,7 @@ internal class ParallelCodeReviewInlineCoverageContinuation(
             endpoint.unbindListener()
             endpoint = governedEvidenceEndpointBinder.bind(
               bound.broker.accounting().lane,
-              bound.protocol,
+              bound.broker,
               evidenceReadCallback(args.request),
             )
             remainingTimeout = remainingPassTimeout(args.request.timeout, passStarted)
@@ -176,9 +175,7 @@ internal class ParallelCodeReviewInlineCoverageContinuation(
       timeout = timeout,
       promptOverride = args.request.withSelectedAgentAddons(args.launch.prompt),
       modelOverride = args.modelOverride,
-      conversationIsolation = ConversationIsolation.NONE,
       reviewEvidenceBroker = args.bound.broker,
-      nativeReviewOperations = args.bound.protocol,
       reviewEvidenceEndpoint = endpoint,
       nativeReviewWorkerName = PARALLEL_REVIEW_INLINE_NATIVE_WORKER
         .takeIf { args.resolvedMode == ResolvedReviewExecutionMode.INLINE },

@@ -3,7 +3,7 @@ package skillbill.application.review
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
-import skillbill.ports.review.model.ReviewAccountingBoundedPayload
+import skillbill.contracts.review.ReviewAccountingPayloadKeys
 import skillbill.ports.review.model.ReviewAccountingRecord
 import skillbill.review.context.ReviewTreeAccounting
 import skillbill.review.context.model.ReviewAccountingCounters
@@ -11,6 +11,7 @@ import skillbill.review.context.model.ReviewAccountingInput
 import skillbill.review.context.model.ReviewAccountingSummary
 import skillbill.review.context.model.ReviewAccountingTerminalOutcome
 import skillbill.review.context.model.ReviewLaneSegmentAccounting
+import skillbill.review.context.model.toBoundedPayload
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -44,39 +45,46 @@ class ReviewAccountingProjectionRedactionTest {
 
     assertEquals(
       setOf(
-        "contract_version",
-        "kind",
-        "review_id",
-        "packet_digest",
-        "parent",
-        "lanes",
-        "commit_routing_accounting",
-        "parent_analysis_consumption",
-        "integration",
-        "aggregate_counters",
+        ReviewAccountingPayloadKeys.CONTRACT_VERSION,
+        ReviewAccountingPayloadKeys.KIND,
+        ReviewAccountingPayloadKeys.REVIEW_ID,
+        ReviewAccountingPayloadKeys.PACKET_DIGEST,
+        ReviewAccountingPayloadKeys.PARENT,
+        ReviewAccountingPayloadKeys.LANES,
+        ReviewAccountingPayloadKeys.COMMIT_ROUTING_ACCOUNTING,
+        ReviewAccountingPayloadKeys.PARENT_ANALYSIS_CONSUMPTION,
+        ReviewAccountingPayloadKeys.INTEGRATION,
+        ReviewAccountingPayloadKeys.AGGREGATE_COUNTERS,
       ),
       payload.keys,
     )
-    assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, payload["contract_version"])
-    val parent = requireNotNull(JsonCodec.anyToStringAnyMap(payload["parent"]))
+    assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, payload[ReviewAccountingPayloadKeys.CONTRACT_VERSION])
+    val parent = requireNotNull(JsonCodec.anyToStringAnyMap(payload[ReviewAccountingPayloadKeys.PARENT]))
     assertEquals(
       setOf(
-        "lane",
-        "assignment_digest",
-        "launch_bytes",
-        "evidence_bytes",
-        "result_bytes",
-        "expansions",
-        "tool_calls",
-        "model_turns",
-        "inclusive_counters",
-        "terminal_outcome",
+        ReviewAccountingPayloadKeys.LANE,
+        ReviewAccountingPayloadKeys.ASSIGNMENT_DIGEST,
+        ReviewAccountingPayloadKeys.LAUNCH_BYTES,
+        ReviewAccountingPayloadKeys.EVIDENCE_BYTES,
+        ReviewAccountingPayloadKeys.RESULT_BYTES,
+        ReviewAccountingPayloadKeys.EXPANSIONS,
+        ReviewAccountingPayloadKeys.TOOL_CALLS,
+        ReviewAccountingPayloadKeys.MODEL_TURNS,
+        ReviewAccountingPayloadKeys.INCLUSIVE_COUNTERS,
+        ReviewAccountingPayloadKeys.TERMINAL_OUTCOME,
       ),
       parent.keys,
     )
-    val counters = requireNotNull(JsonCodec.anyToStringAnyMap(payload["aggregate_counters"]))
+    val counters = requireNotNull(JsonCodec.anyToStringAnyMap(payload[ReviewAccountingPayloadKeys.AGGREGATE_COUNTERS]))
     assertEquals(
-      setOf("launch_bytes", "evidence_bytes", "result_bytes", "expansions", "tool_calls", "model_turns"),
+      setOf(
+        ReviewAccountingPayloadKeys.LAUNCH_BYTES,
+        ReviewAccountingPayloadKeys.EVIDENCE_BYTES,
+        ReviewAccountingPayloadKeys.RESULT_BYTES,
+        ReviewAccountingPayloadKeys.EXPANSIONS,
+        ReviewAccountingPayloadKeys.TOOL_CALLS,
+        ReviewAccountingPayloadKeys.MODEL_TURNS,
+      ),
       counters.keys,
     )
   }
@@ -101,13 +109,15 @@ class ReviewAccountingProjectionRedactionTest {
         ),
       ),
     )
-    val lane = requireNotNull(JsonCodec.anyToStringAnyMapList((summary.toBoundedPayload()["lanes"]))).single()
-    assertEquals(digest, lane["bundle_composition_digest"])
-    assertEquals(listOf("unreviewable"), lane["unreviewed_segment_ids"])
-    val segments = requireNotNull(JsonCodec.anyToStringAnyMapList(lane["segment_accounting"]))
-    assertEquals("seg-000", segments.single()["segment_id"])
-    assertEquals(128L, segments.single()["measured_bytes"])
-    assertEquals(2, segments.single()["entry_count"])
+    val lane = requireNotNull(
+      JsonCodec.anyToStringAnyMapList(summary.toBoundedPayload()[ReviewAccountingPayloadKeys.LANES]),
+    ).single()
+    assertEquals(digest, lane[ReviewAccountingPayloadKeys.BUNDLE_COMPOSITION_DIGEST])
+    assertEquals(listOf("unreviewable"), lane[ReviewAccountingPayloadKeys.UNREVIEWED_SEGMENT_IDS])
+    val segments = requireNotNull(JsonCodec.anyToStringAnyMapList(lane[ReviewAccountingPayloadKeys.SEGMENT_ACCOUNTING]))
+    assertEquals("seg-000", segments.single()[ReviewAccountingPayloadKeys.SEGMENT_ID])
+    assertEquals(128L, segments.single()[ReviewAccountingPayloadKeys.MEASURED_BYTES])
+    assertEquals(2, segments.single()[ReviewAccountingPayloadKeys.ENTRY_COUNT])
   }
 
   @Test fun `incomplete broker-refusal accounting projects refused segment ids only`() {
@@ -130,8 +140,10 @@ class ReviewAccountingProjectionRedactionTest {
         ),
       ),
     )
-    val lane = requireNotNull(JsonCodec.anyToStringAnyMapList((summary.toBoundedPayload()["lanes"]))).single()
-    assertEquals(listOf("seg-evidence-refused"), lane["unreviewed_segment_ids"])
+    val lane = requireNotNull(
+      JsonCodec.anyToStringAnyMapList(summary.toBoundedPayload()[ReviewAccountingPayloadKeys.LANES]),
+    ).single()
+    assertEquals(listOf("seg-evidence-refused"), lane[ReviewAccountingPayloadKeys.UNREVIEWED_SEGMENT_IDS])
     assertFalse(lane.toString().contains("evidence-unreviewable"))
   }
 
@@ -139,24 +151,21 @@ class ReviewAccountingProjectionRedactionTest {
     val recorded = recordedReview().second
     val payload = recorded.toBoundedPayload()
 
-    val record = ReviewAccountingRecord(recorded.reviewId, recorded.packetDigest, payload)
+    val record = ReviewAccountingRecord(recorded.reviewId, recorded.packetDigest, recorded)
 
-    assertEquals(payload, record.boundedPayload)
-    forbidden.forEach { assertFalse(record.boundedPayload.toString().contains(it)) }
+    assertEquals(payload, record.summary.toBoundedPayload())
+    forbidden.forEach { assertFalse(record.summary.toBoundedPayload().toString().contains(it)) }
+    validateReviewContextPayload(payload, "review-accounting-record")
   }
 
   @Test fun `durable record rejects an accounting payload carrying content`() {
     val leaking = summary().toBoundedPayload() + ("prompt" to "PROMPT_SECRET")
 
     val failure = runCatching {
-      ReviewAccountingRecord(
-        "review-id",
-        "packet-digest",
-        ReviewAccountingBoundedPayload.from(leaking),
-      )
+      validateReviewContextPayload(leaking, "review-accounting-leak")
     }.exceptionOrNull()
 
-    assertTrue(failure is IllegalArgumentException, "Content-bearing accounting payload must fail loudly.")
+    assertTrue(failure != null, "Content-bearing accounting payload must fail schema validation.")
   }
 
   private fun recordedReview(): Pair<ReviewRecorder, ReviewAccountingSummary> {
