@@ -4,7 +4,9 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
 import java.nio.file.Path
 
-abstract class WorkflowGitOperationsTestBase : WorkflowGitOperations {
+abstract class WorkflowGitOperationsTestBase :
+  WorkflowGitRemoteOperationsDefaults(),
+  WorkflowGitOperations {
   override fun worktreeNumstat(repoRoot: Path): WorkflowWorktreeNumstatResult =
     WorkflowWorktreeNumstatResult(status = WorkflowGitOperationStatus.OK, files = emptyList())
 
@@ -23,4 +25,10 @@ abstract class WorkflowGitOperationsTestBase : WorkflowGitOperations {
     NoopRuntimePhaseFileManifestGitOperations
 
   override val scopedStagingOperations: ScopedStagingGitOperations = UnavailableScopedStagingGitOperations
+
+  override fun scopedPathContentsAgainstBase(
+    repoRoot: Path,
+    baseRef: String,
+    headPaths: List<String>,
+  ) = NoopSuppressionEvidenceGitOperations.scopedPathContentsAgainstBase(repoRoot, baseRef, headPaths)
 }

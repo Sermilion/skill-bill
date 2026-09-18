@@ -334,7 +334,9 @@ runtime-core
   types live in area-owned `model` packages, including the
   `skillbill.model.FileLocation` value type that carries repo paths through domain
   and port signatures without a `java.nio` dependency.
-- `runtime-ports`: `skillbill.model.RuntimeContext`, persistence sessions,
+- `runtime-ports`: `skillbill.model.RuntimeContext` (one constructor:
+  `EnvironmentContext`, `TransportContext`, `WorkflowOpsContext`, `OptionalCallbacks`),
+  persistence sessions,
   repositories, gateway interfaces, telemetry port interfaces, workflow git
   operations, decomposition-manifest file-store ports, port-owned model types,
   the `skillbill.model.toPath` and `skillbill.ports.repository.toFileLocation` bridges that adapters use to turn
@@ -354,6 +356,8 @@ runtime-core
 - `runtime-infra/http` (`:runtime-infra:http`): telemetry HTTP client/requester implementation and
   telemetry proxy payload mapping.
 - `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`: filesystem and process adapters for telemetry config,
+  with governed review evidence JSON-RPC codec objects internal to
+  `skillbill.infrastructure.launcher.review` (not `runtime-ports`),
   install plan/apply, install staging, governed scaffold/load/render,
   repo validation, native-agent rendering/linking, launcher MCP registration,
   git workflow operations, decomposition-manifest file storage, and
@@ -731,7 +735,10 @@ moves or deleting staging evidence. Rejected journals raise
 `InvalidDecompositionManifestBundleJournalError`, retain the marker and staging
 artifacts, and do not replay SQLite mutations — operators back up evidence and
 remove the marker manually after review. Valid interrupted `0.1` journals still
-roll forward through `recoverPending`.
+roll forward through `recoverPending`. `DecompositionManifestStore` declares
+`writeBundleAtomically`, `readTextWithoutRecovery`, and
+`isRegularFileWithoutRecovery` as abstract adapter operations so callers cannot
+silently bypass the journal boundary.
 
 ## Boundary Rules
 
@@ -744,7 +751,10 @@ roll forward through `recoverPending`.
    clients, filesystem APIs, process environment APIs, infrastructure packages,
    or application services.
 4. Port packages must not depend on application, infrastructure, entry
-   adapters, or composition roots.
+   adapters, or composition roots. `runtime-ports/src/main` must not declare
+   top-level objects, non-DTO top-level classes, `(this as` casts, or interface
+   default bodies that `error` or `throw`; `PortsDeclarationArchitectureTest`
+   enforces this beside `RuntimeContractModuleImportRulesTest`.
 5. Contracts packages must not depend on application, domain area packages,
    ports, infrastructure, entry adapters, or composition roots. `runtime-contracts`
    main source is a pure DTO/constants/exceptions leaf: it MUST NOT contain any

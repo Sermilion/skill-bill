@@ -1,7 +1,7 @@
 package skillbill.mcp
 
 import skillbill.mcp.core.McpToolRegistry
-import skillbill.ports.workflow.FeatureTaskExecutionIdentityPolicy
+import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

@@ -1,7 +1,6 @@
 package skillbill.infrastructure.workflow
 
 import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.ports.review.BrokerBackedNativeReviewOperationProtocol
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceBrokerBinding
 import skillbill.ports.review.model.ReviewEvidenceRequest
@@ -106,33 +105,6 @@ class FileSystemReviewEvidenceBrokerTest {
     assertFailsWith<IllegalArgumentException> {
       broker(root, assignment(listOf("link/A.kt")))
     }
-  }
-
-  @Test fun `native operation protocol rejects forbidden tools before execution`() {
-    val root = repo("A.kt" to "assigned")
-    val broker = broker(root, assignment(listOf("A.kt")))
-    val protocol = BrokerBackedNativeReviewOperationProtocol(broker)
-
-    val rejected = protocol.tool(ReviewToolCall("security", ReviewOperationKind.SHELL_COMMAND, "git status"))
-
-    assertFalse(rejected.admitted)
-    assertEquals(0, broker.accounting().toolCalls)
-  }
-
-  @Test fun `native operation protocol admits measured reads and authorized expansions`() {
-    val root = repo("A.kt" to "assigned", "B.kt" to "dependency")
-    val assignment = assignment(listOf("A.kt"), listOf("B.kt"))
-    val request = expansionRequest(assignment, "B.kt", "called by assigned hunk")
-    val broker = broker(root, assignment, trustedExpansionLedger = listOf(requireNotNull(request.authorizedExpansion)))
-    val protocol = BrokerBackedNativeReviewOperationProtocol(broker)
-
-    val result = protocol.read(
-      ReviewEvidenceBatchRequest.of(request),
-    )
-
-    assertEquals("dependency", result.results.single().content)
-    assertEquals(1, result.expansions.size)
-    assertEquals(10, broker.accounting().evidenceBytes)
   }
 
   @Test fun `batched assigned reads are measured in one pass`() {

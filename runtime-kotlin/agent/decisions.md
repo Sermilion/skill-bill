@@ -4,6 +4,20 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-18] SKILL-358: runtime-ports hold interfaces; errors and test defaults leave main
+
+Port interfaces no longer ship `error`/`throw` default bodies; `WorkflowStateRepositoryDefaults`,
+`GoalPlanningPreparationRepositoryDefaults`, and `ReviewEvidenceBrokerDefaults` in
+`runtime-ports` testFixtures reproduce former stub behavior. `RejectedOutputDiagnosticError`,
+`FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError`, and
+`GoalRunnerLaunchAuthorizationDeniedException` live under `skillbill.error` (contracts or domain
+where module edges require). Governed review wire codec objects are internal under
+`runtime-infra/launcher/.../review/`; `DecompositionManifestStore.writeBundleAtomically` is abstract
+on the port. Discovery-era review-evidence operations and `NativeReviewOperationProtocol` are removed;
+`RuntimeContext` is a single constructor over `EnvironmentContext`, `TransportContext`,
+`WorkflowOpsContext`, and `OptionalCallbacks`. `PortsDeclarationArchitectureTest` guards ports main
+source beside `RuntimeContractModuleImportRulesTest`.
+
 ## [2026-09-18] SKILL-357: MCP input schemas project from telemetry YAML
 
 `orchestration/contracts/telemetry-event-schema.yaml` is the single source for

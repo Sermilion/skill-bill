@@ -5,7 +5,7 @@ import skillbill.error.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files

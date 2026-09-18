@@ -59,6 +59,18 @@ object TestDecompositionManifestStore : DecompositionManifestStore {
 
   override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     YAMLMapper().writeValueAsString(wireMap)
+
+  override fun readTextWithoutRecovery(path: Path): String = readText(path)
+
+  override fun isRegularFileWithoutRecovery(path: Path): Boolean = isRegularFile(path)
+
+  override fun findDecompositionManifestFilesWithoutRecovery(repoRoot: Path): List<Path> =
+    findDecompositionManifestFiles(repoRoot)
+
+  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T {
+    writes.forEach { (path, content) -> writeTextAtomically(path, content) }
+    return verify()
+  }
 }
 
 fun loadDecompositionManifest(path: Path) = skillbill.application.decomposition.loadDecompositionManifest(

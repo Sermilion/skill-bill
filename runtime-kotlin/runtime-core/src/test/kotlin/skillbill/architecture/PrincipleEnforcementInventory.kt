@@ -135,6 +135,9 @@ object PrincipleEnforcementInventory {
       "test-only substitutes live in testFixtures.",
     "Inward-layer import rules: runtime-ports imports no adapter machinery and runtime-domain imports no " +
       "serialization or IO library, both asserted as an empty violation list without a baseline.",
+    "Ports declaration guard: runtime-ports main source must not declare top-level objects, non-DTO " +
+      "top-level classes, (this as casts, or interface default bodies that error or throw; " +
+      "PortsDeclarationArchitectureTest proves the scanner on synthetic fixtures.",
     "Composition-only construction: no main-source site outside skillbill.di may construct a concrete class " +
       "censused from @Provides parameter types and explicit Provides constructions; import aliases count, " +
       "comments and string literals are ignored, unrelated same-named functions are skipped, and sanctioned " +

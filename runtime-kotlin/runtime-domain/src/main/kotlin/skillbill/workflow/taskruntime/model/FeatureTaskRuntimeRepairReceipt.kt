@@ -55,7 +55,6 @@ enum class FeatureTaskRuntimeRepairOutcome(val wireValue: String) {
   }
 }
 
-@ConsistentCopyVisibility
 data class FeatureTaskRuntimeRepairConstructIdentity internal constructor(val key: String) {
   companion object {
     fun of(file: String?, symbol: String): FeatureTaskRuntimeRepairConstructIdentity {

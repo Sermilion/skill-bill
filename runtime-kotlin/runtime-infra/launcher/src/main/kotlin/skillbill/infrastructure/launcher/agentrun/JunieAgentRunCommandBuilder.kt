@@ -42,7 +42,7 @@ internal class JunieAgentRunCommandBuilder(
       timeout = request.timeout,
       environment = goalContinuationEnvironment(request),
       inheritEnvironment = request.reviewEvidenceBroker == null,
-      conversationIsolation = request.conversationIsolation,
+      conversationIsolation = governedReviewConversationIsolation(request),
       idlePolicy = unstreamedLivenessPolicy(request),
       environmentPassthroughKeys =
       if (request.reviewEvidenceBroker != null) JUNIE_PROVIDER_PASSTHROUGH_KEYS else emptySet(),

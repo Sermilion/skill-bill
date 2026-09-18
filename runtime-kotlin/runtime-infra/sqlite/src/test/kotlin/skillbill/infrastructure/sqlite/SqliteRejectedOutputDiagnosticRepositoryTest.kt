@@ -3,7 +3,7 @@ package skillbill.infrastructure.sqlite
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
+import skillbill.error.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import skillbill.ports.diagnostics.model.RejectedOutputLifecycle

@@ -6,7 +6,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.error.LegacyProseWorkflowError
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.DecompositionManifestValidator

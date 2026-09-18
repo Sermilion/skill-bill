@@ -17,8 +17,7 @@ enum class GoalRunnerWedgeClass(val wireValue: String, val durableField: String)
   ;
 
   companion object {
-    fun fromWire(value: String): GoalRunnerWedgeClass = entries.firstOrNull { it.wireValue == value }
-      ?: error("Unknown goal-repair wedge class '$value'.")
+    fun fromWire(value: String): GoalRunnerWedgeClass? = entries.firstOrNull { it.wireValue == value }
   }
 
   val operatorRequired: Boolean

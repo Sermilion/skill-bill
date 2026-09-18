@@ -5,7 +5,7 @@ import skillbill.application.diagnostics.model.RejectedOutputDiagnosticCliResult
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
+import skillbill.error.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import skillbill.ports.persistence.UnitOfWork
 import java.time.Clock

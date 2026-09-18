@@ -10,7 +10,7 @@ internal fun DefaultGoalPlanningSweep.freshPlanningPacket(
   shared: GoalPlanningSharedContext,
   state: GoalRunnerManifestState,
 ): Map<String, Any?> {
-  val discovered = contextDiscovery.discover(shared.repoRoot)
+  val discovered = contextDiscovery.loadPlanningContext(shared.repoRoot)
   val decomposition = manifestFileStore.readText(
     resolvedGovernedPath(
       shared.repoRoot,

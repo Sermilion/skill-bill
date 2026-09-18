@@ -41,7 +41,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequ
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.idestatus.IdeStatusValidator
-import skillbill.ports.idestatus.IdeStatusWireMap
+import skillbill.ports.idestatus.model.IdeStatusWireMap
 import skillbill.ports.idestatus.NoopIdeStatusValidator
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
@@ -55,11 +55,12 @@ import skillbill.ports.work.WorkListRepository
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
@@ -458,7 +459,7 @@ internal class OrphanedIdentityWorkflowStates(
     throw InvalidWorkflowStateSchemaError(message)
 }
 
-internal class IdeStatusWorkflowStates : WorkflowStateRepository {
+internal class IdeStatusWorkflowStates : WorkflowStateRepositoryDefaults() {
   internal val implement = mutableMapOf<String, WorkflowStateRecord>()
   internal val verify = mutableMapOf<String, WorkflowStateRecord>()
   internal val identities = mutableMapOf<String, FeatureTaskExecutionIdentity>()

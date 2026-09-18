@@ -12,7 +12,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.ports.workflow.decomposition.writeBundleAtomically
+
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.decomposition.DecompositionManifestValidator

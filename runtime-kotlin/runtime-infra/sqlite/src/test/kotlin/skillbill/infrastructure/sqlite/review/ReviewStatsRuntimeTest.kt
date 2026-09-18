@@ -13,7 +13,7 @@ import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceValidation
 import skillbill.learnings.model.RejectedLearningSourceOutcome
-import skillbill.ports.review.toReviewFinishedTelemetryPayload
+import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.review.ReviewParser
 import skillbill.review.model.FeedbackRequest

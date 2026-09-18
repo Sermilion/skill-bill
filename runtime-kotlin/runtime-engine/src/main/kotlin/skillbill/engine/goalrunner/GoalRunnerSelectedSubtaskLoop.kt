@@ -8,7 +8,7 @@ import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerSelection
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
-import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorizationDeniedException
+import skillbill.error.GoalRunnerLaunchAuthorizationDeniedException
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import java.time.Clock
@@ -163,9 +163,12 @@ internal class GoalRunnerSelectedSubtaskLoop(
           spawnAuthorization = launchAuthorization.spawnAuthorization,
         ),
       )
-    } catch (denied: GoalRunnerLaunchAuthorizationDeniedException) {
+    } catch (_: GoalRunnerLaunchAuthorizationDeniedException) {
       return SelectedSubtaskLaunch.Stopped(
-        deniedLaunchPause(prepared, denied.controlState),
+        deniedLaunchPause(
+          prepared,
+          manifestStore.controlState(prepared.attemptedState.parentWorkflowId),
+        ),
       )
     }
     return SelectedSubtaskLaunch.Completed(

@@ -1,5 +1,8 @@
-package skillbill.ports.review
+package skillbill.application.review
 
+import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
+import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
+import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import java.nio.file.Path
 
@@ -7,7 +10,7 @@ fun stubGovernedReviewEvidenceEndpointBinder(root: Path): GovernedReviewEvidence
   object : GovernedReviewEvidenceEndpointBinder {
     override fun bind(
       lane: String,
-      protocol: NativeReviewOperationProtocol,
+      broker: ReviewEvidenceBroker,
       onEvidenceRead: (() -> Unit)?,
     ): GovernedReviewEvidenceEndpointHandle = object : GovernedReviewEvidenceEndpointHandle {
       override val descriptor = GovernedReviewEvidenceEndpointDescriptor(

@@ -5,19 +5,21 @@ import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.contracts.system.DoctorContract
 import skillbill.contracts.system.VersionContract
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 
 @Inject
 class SystemService(
   private val database: DatabaseSessionFactory,
   private val settingsProvider: TelemetrySettingsProvider,
+  private val diagnostics: RuntimeDiagnostics,
   private val versionValue: String,
 ) {
   fun version(): VersionContract = VersionContract(version = versionValue)
 
   fun doctor(): DoctorContract {
     val dbPath = database.resolveDbPath()
-    val settings = telemetrySettingsOrNull(settingsProvider)
+    val settings = telemetrySettingsOrNull(settingsProvider, diagnostics)
     return DoctorContract(
       version = versionValue,
       dbPath = dbPath.toString(),

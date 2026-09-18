@@ -53,7 +53,7 @@ class ReviewService(
     return database.transaction { unitOfWork ->
       unitOfWork.reviews.saveImportedReview(review, sourcePath)
       if (finishZeroFindingTelemetry && review.findings.isEmpty()) {
-        val settings = telemetrySettingsOrNull(settingsProvider)
+        val settings = telemetrySettingsOrNull(settingsProvider, diagnostics)
         unitOfWork.reviews.updateReviewFinishedTelemetryState(
           runId = review.reviewRunId,
           enabled = settings?.enabled ?: false,
@@ -73,7 +73,7 @@ class ReviewService(
   }
 
   fun reviewFinishedTelemetryPayload(runId: String): ReviewFinishedTelemetry? = database.transaction { unitOfWork ->
-    val settings = telemetrySettingsOrNull(settingsProvider)
+    val settings = telemetrySettingsOrNull(settingsProvider, diagnostics)
     unitOfWork.reviews.updateReviewFinishedTelemetryState(
       runId = runId,
       enabled = settings?.enabled ?: false,
@@ -86,7 +86,7 @@ class ReviewService(
     database.transaction { unitOfWork ->
       unitOfWork.reviews.recordFeedback(
         FeedbackRequest(runId, findings, event, note),
-        feedbackTelemetryOptions(settingsProvider),
+        feedbackTelemetryOptions(settingsProvider, diagnostics),
         routedSkillPlatformSlugs = reviewAttributionPort.routedSkillPlatformSlugs(),
       )
       ReviewFeedbackResult(
@@ -106,6 +106,7 @@ class ReviewService(
     TriageReviewRequest(
       database = database,
       settingsProvider = settingsProvider,
+      diagnostics = diagnostics,
       runId = runId,
       decisions = decisions,
       listOnly = listOnly,

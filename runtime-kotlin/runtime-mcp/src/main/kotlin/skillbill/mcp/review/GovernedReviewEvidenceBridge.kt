@@ -2,17 +2,17 @@ package skillbill.mcp.review
 
 import kotlinx.serialization.json.JsonObject
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.mcp.shared.McpProtocolFramer
-import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import java.nio.file.Path
 
 internal object GovernedReviewEvidenceBridge {
   fun enabled(environment: Map<String, String>): Boolean =
-    !environment[GovernedReviewEvidenceCodec.SOCKET_ENV].isNullOrBlank()
+    !environment[GovernedReviewEvidenceContracts.SOCKET_ENV].isNullOrBlank()
 
   fun run(environment: Map<String, String>) {
-    val socketPath = environment[GovernedReviewEvidenceCodec.SOCKET_ENV].orEmpty()
-    val token = environment[GovernedReviewEvidenceCodec.TOKEN_ENV].orEmpty()
+    val socketPath = environment[GovernedReviewEvidenceContracts.SOCKET_ENV].orEmpty()
+    val token = environment[GovernedReviewEvidenceContracts.TOKEN_ENV].orEmpty()
     GovernedReviewEvidenceConnection.connect(Path.of(socketPath), token).use { connection ->
       generateSequence(::readlnOrNull).forEach { line ->
         handleLine(line) { frame -> connection.forward(frame) }?.let(::println)
@@ -29,13 +29,15 @@ internal object GovernedReviewEvidenceBridge {
       id == null -> null
       method == "initialize" -> McpProtocolFramer.successResponse(
         id,
-        McpProtocolFramer.initialize(GovernedReviewEvidenceCodec.SERVER_NAME),
+        McpProtocolFramer.initialize(GovernedReviewEvidenceContracts.SERVER_NAME),
       )
       method == "ping" -> McpProtocolFramer.successResponse(id, emptyMap())
-      method == "tools/list" -> McpProtocolFramer.successResponse(
-        id,
-        McpProtocolFramer.toolsList(GovernedReviewEvidenceCodec.toolSpecList().asToolPayloads()),
-      )
+      method == "tools/list" -> forward(line)
+        ?: McpProtocolFramer.errorResponse(
+          id,
+          McpProtocolFramer.INTERNAL_ERROR,
+          "Governed review evidence endpoint closed.",
+        )
       method == "tools/call" -> forwardToolCall(id, message.toolName(), line, forward)
       else -> McpProtocolFramer.errorResponse(
         id,
@@ -46,7 +48,7 @@ internal object GovernedReviewEvidenceBridge {
   }
 
   private fun forwardToolCall(id: Any?, name: String, line: String, forward: (String) -> String?): String =
-    if (name in GovernedReviewEvidenceCodec.OPERATIONS) {
+    if (name in GovernedReviewEvidenceContracts.OPERATIONS) {
       forward(line) ?: McpProtocolFramer.errorResponse(
         id,
         McpProtocolFramer.INTERNAL_ERROR,

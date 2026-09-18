@@ -1,7 +1,8 @@
-package skillbill.ports.review.model
+package skillbill.infrastructure.launcher.review
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidGovernedReviewEvidenceRequestError
+import skillbill.ports.review.model.ReviewEvidenceRequest
 import skillbill.review.context.model.ReviewEvidenceLimits
 import skillbill.review.context.model.ReviewExpansionRecord
 
@@ -42,6 +43,7 @@ internal object GovernedReviewEvidenceCodecWireParsing {
     ReviewEvidenceLimits.field(value)
     return value
   }
+
   private fun asMap(raw: Any?): Map<String, Any?> = raw?.let(JsonCodec::anyToStringAnyMap)
     ?: throw InvalidGovernedReviewEvidenceRequestError("review-evidence", "Each read selector must be an object.")
 

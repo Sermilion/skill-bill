@@ -43,7 +43,6 @@ class FeatureTaskLastCommitReviewDriverTest {
     assertEquals(Path.of("/tmp/repo"), skill.repoRoot)
     assertEquals("wftr-review-child", skill.issueKey)
     assertNull(skill.reviewEvidenceBroker)
-    assertNull(skill.nativeReviewOperations)
     assertNull(skill.reviewEvidenceEndpoint)
     assertFalse(skill.readOnlyPhase)
     assertNull(skill.progressIdleTimeout)

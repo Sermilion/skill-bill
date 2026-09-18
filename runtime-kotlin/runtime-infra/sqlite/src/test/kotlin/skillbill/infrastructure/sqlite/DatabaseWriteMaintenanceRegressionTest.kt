@@ -3,7 +3,7 @@ package skillbill.infrastructure.sqlite
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files

@@ -8,10 +8,11 @@ import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.workflow.GoalRunnerControlStore
 import skillbill.infrastructure.sqlite.workflow.LEGACY_UNKNOWN_PAUSED_AT
-import skillbill.ports.goalrunner.acquireExecutionLease
-import skillbill.ports.goalrunner.executionLease
-import skillbill.ports.goalrunner.heartbeatExecutionLease
-import skillbill.ports.goalrunner.releaseExecutionLease
+import skillbill.infrastructure.sqlite.goalrunner.acquireExecutionLease
+import skillbill.infrastructure.sqlite.goalrunner.executionLease
+import skillbill.infrastructure.sqlite.goalrunner.heartbeatExecutionLease
+import skillbill.infrastructure.sqlite.goalrunner.releaseExecutionLease
+import skillbill.infrastructure.sqlite.goalrunner.releaseExecutionLeaseIfExpired
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.review.context.model.CodeReviewExecutionMode
@@ -20,6 +21,7 @@ import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GoalRunnerControlStoreTest {
@@ -261,6 +263,51 @@ class GoalRunnerControlStoreTest {
       )
       assertTrue(store.releaseExecutionLease("parent-lease", lease.ownerToken, lease.generation))
       assertEquals(null, store.executionLease("parent-lease"))
+    }
+  }
+
+  @Test
+  fun `expired execution lease releases only at the expiry boundary with matching fencing`() {
+    val dbPath = Files.createTempDirectory("skillbill-goal-expired-lease-release").resolve("metrics.db")
+    val lease = GoalRunnerExecutionLease(
+      generation = 3,
+      ownerToken = "owner-token-expired",
+      hostIdentity = "host",
+      bootIdentity = "boot",
+      pid = 42,
+      processBirthToken = "birth",
+      heartbeatAt = "2026-08-02T10:00:00Z",
+      expiresAt = "2026-08-02T10:00:30Z",
+    )
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val store = GoalRunnerControlStore(connection)
+      assertTrue(store.acquireExecutionLease("parent-expired", lease))
+      assertFalse(
+        store.releaseExecutionLeaseIfExpired(
+          "parent-expired",
+          lease.ownerToken,
+          lease.generation,
+          "2026-08-02T10:00:29Z",
+        ),
+      )
+      assertFalse(
+        store.releaseExecutionLeaseIfExpired(
+          "parent-expired",
+          "different-owner",
+          lease.generation,
+          "2026-08-02T10:00:30Z",
+        ),
+      )
+      assertTrue(
+        store.releaseExecutionLeaseIfExpired(
+          "parent-expired",
+          lease.ownerToken,
+          lease.generation,
+          "2026-08-02T10:00:30Z",
+        ),
+      )
+      assertEquals(null, store.executionLease("parent-expired"))
     }
   }
 

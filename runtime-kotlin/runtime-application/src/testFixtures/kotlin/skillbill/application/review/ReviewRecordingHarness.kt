@@ -36,12 +36,13 @@ import skillbill.ports.review.ReviewRepository
 import skillbill.ports.review.ReviewRubricResolver
 import skillbill.ports.review.model.ResolvedReviewRubric
 import skillbill.ports.review.model.ReviewAccountingRecord
+import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceRequest
 import skillbill.ports.review.model.ReviewIntegrationPassRecord
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewOwnedFileEvidence
-import skillbill.ports.review.stubGovernedReviewEvidenceEndpointBinder
+import skillbill.application.review.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.scaffold.model.PilotedPlatformPackProjection
@@ -182,6 +183,11 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
   val sharedEvidenceLocatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE
   val boundaries = ParallelCodeReviewRunnerBoundaries(
     diffResolver = object : DiffResolverPort {
+      override fun reviewWorktreeFileIdentities(
+        root: Path,
+        paths: List<String>,
+      ): Map<String, ReviewCheckpointFileIdentity> = emptyMap()
+
       override fun readDiff(path: Path, maxBytes: Long): String? = null
 
       override fun runProcess(args: List<String>, workDir: Path): String? {
@@ -489,8 +495,8 @@ fun diffForChanges(vararg changes: Pair<String, String>): String = changes.joinT
 }
 
 fun simulateGovernedEvidenceReads(request: SkillRunRequest) {
-  val protocol = request.nativeReviewOperations ?: return
-  val lane = request.reviewEvidenceBroker?.accounting()?.lane ?: return
+  val broker = request.reviewEvidenceBroker ?: return
+  val lane = runCatching { broker.accounting().lane }.getOrNull() ?: return
   val prompt = request.promptOverride ?: return
   val paths = prompt.lineSequence()
     .filter { it.startsWith("Owned paths: ") }
@@ -499,7 +505,7 @@ fun simulateGovernedEvidenceReads(request: SkillRunRequest) {
     .toList()
   if (paths.isEmpty()) return
   runCatching {
-    protocol.read(
+    broker.readBatch(
       ReviewEvidenceBatchRequest(
         lane = lane,
         requests = paths.map { ReviewEvidenceRequest(lane = lane, path = it) },

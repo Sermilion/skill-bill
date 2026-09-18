@@ -4,7 +4,7 @@ import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
+import skillbill.error.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import java.time.Clock

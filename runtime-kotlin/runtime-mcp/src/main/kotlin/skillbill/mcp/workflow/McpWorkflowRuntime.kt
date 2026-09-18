@@ -8,7 +8,7 @@ import skillbill.application.workflow.openFeatureTask
 import skillbill.error.InvalidMcpToolArgumentError
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.componentForLegacyContext
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskRouteScope
 
 internal data class McpWorkflowOpenArgs(
   val kind: WorkflowFamilyKind,

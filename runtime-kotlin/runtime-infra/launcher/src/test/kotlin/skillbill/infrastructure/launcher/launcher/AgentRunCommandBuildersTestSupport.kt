@@ -5,15 +5,16 @@ import skillbill.error.GovernedReviewLaunchCapabilityError
 import skillbill.infrastructure.launcher.agentrun.AgentRunCommand
 import skillbill.infrastructure.launcher.agentrun.AgentRunCommandBuilder
 import skillbill.install.model.InstallAgent
-import skillbill.ports.agentrun.model.ConversationIsolation
+import skillbill.review.context.model.ReviewConversationIsolation
 import skillbill.ports.agentrun.model.SkillRunRequest
-import skillbill.ports.review.BrokerBackedNativeReviewOperationProtocol
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.ReviewEvidenceBroker
-import skillbill.ports.review.model.GovernedReviewEvidenceCodec
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
+import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
 import skillbill.ports.review.model.ReviewToolCall
+import skillbill.review.context.model.ReviewExpansionRecord
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -51,12 +52,15 @@ internal fun assertClaudeGovernedLaunch(command: List<String>) {
   assertEquals(mcpJson, command[command.indexOf("--mcp-config") + 1])
   assertTrue(command.contains("--strict-mcp-config"))
   val tools = command[command.indexOf("--tools") + 1].split(",")
-  assertEquals(GovernedReviewEvidenceCodec.OPERATIONS.map { "mcp__skill-bill-review-evidence__$it" }, tools)
+  assertEquals(
+    GovernedReviewEvidenceContracts.OPERATIONS.map { "mcp__${GovernedReviewEvidenceContracts.SERVER_NAME}__$it" },
+    tools,
+  )
 }
 
 internal fun assertCodexGovernedLaunch(command: List<String>) {
-  val mcpTomlServer = "mcp_servers.${GovernedReviewEvidenceCodec.SERVER_NAME}"
-  val governedOperations = GovernedReviewEvidenceCodec.OPERATIONS
+  val mcpTomlServer = "mcp_servers.${GovernedReviewEvidenceContracts.SERVER_NAME}"
+  val governedOperations = GovernedReviewEvidenceContracts.OPERATIONS
   assertTrue(command.contains("--ignore-user-config"))
   val configValues = command.filterIndexed { index, _ -> index > 0 && command[index - 1] == "--config" }
   assertTrue(configValues.any { it.startsWith(mcpTomlServer) && it.contains("enabled_tools=") })
@@ -103,9 +107,7 @@ internal fun request(
 )
 
 internal fun governedReviewRequest(nativeReviewWorkerName: String? = null): SkillRunRequest = request().copy(
-  conversationIsolation = ConversationIsolation.NONE,
   reviewEvidenceBroker = NoOpReviewEvidenceBroker,
-  nativeReviewOperations = BrokerBackedNativeReviewOperationProtocol(NoOpReviewEvidenceBroker),
   reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
   nativeReviewWorkerName = nativeReviewWorkerName,
 )
@@ -122,6 +124,9 @@ internal object StubReviewEvidenceEndpoint : GovernedReviewEvidenceEndpointHandl
 }
 
 internal object NoOpReviewEvidenceBroker : ReviewEvidenceBroker {
+  override fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord =
+    error("unused")
+
   override fun readBatch(request: ReviewEvidenceBatchRequest) = error("unused")
   override fun recordToolCall(call: ReviewToolCall) = error("unused")
   override fun recordModelTurn() = error("unused")

@@ -2,6 +2,7 @@ package skillbill.infrastructure.workflow
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.security.MessageDigest
@@ -20,7 +21,7 @@ class FileSystemDecompositionManifestFileStoreTest {
     Files.createDirectories(requireNotNull(manifest.parent))
     Files.writeString(manifest, "contract_version: '0.5'\n")
 
-    val store = FileSystemDecompositionManifestFileStore()
+    val store: DecompositionManifestStore = FileSystemDecompositionManifestFileStore()
 
     assertEquals(listOf(manifest), store.findDecompositionManifestFiles(repoRoot))
     assertFalse(
@@ -70,7 +71,7 @@ class FileSystemDecompositionManifestFileStoreTest {
       ),
     )
 
-    val store = FileSystemDecompositionManifestFileStore()
+    val store: DecompositionManifestStore = FileSystemDecompositionManifestFileStore()
 
     assertEquals("new manifest", store.readText(secondTarget))
     assertEquals("new spec", Files.readString(firstTarget))
@@ -101,12 +102,18 @@ class FileSystemDecompositionManifestFileStoreTest {
     val secondTarget = parent.resolve("decomposition-manifest.yaml")
     Files.writeString(firstTarget, "old spec")
     Files.writeString(secondTarget, "old manifest")
-    val store = FileSystemDecompositionManifestFileStore()
+    val store: DecompositionManifestStore = FileSystemDecompositionManifestFileStore()
 
     assertFailsWith<IllegalStateException> {
       store.writeBundleAtomically(
         listOf(firstTarget to "new spec", secondTarget to "new manifest"),
       ) {
+        val markers = Files.list(parent).use { paths ->
+          paths.iterator().asSequence()
+            .filter { path -> path.fileName.toString().endsWith(".commit") }
+            .toList()
+        }
+        assertEquals(1, markers.size)
         error("verification failed")
       }
     }

@@ -8,7 +8,7 @@ import skillbill.infrastructure.sqlite.core.DatabaseIdentity
 import skillbill.infrastructure.sqlite.core.DatabaseMigration
 import skillbill.infrastructure.sqlite.core.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.DatabaseWriteReadinessGate
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files

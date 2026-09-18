@@ -8,9 +8,9 @@ import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.core.sqliteDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet

@@ -28,7 +28,7 @@ import skillbill.ports.telemetry.TelemetryReconciliationRepository
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition

@@ -7,7 +7,7 @@ import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.engine.planningprojection.producerProjectionGateReason
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
-import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorizationDeniedException
+import skillbill.error.GoalRunnerLaunchAuthorizationDeniedException
 
 fun DefaultGoalPlanningSweep.projectionGateReason(payload: String, phaseId: String): String? {
   val envelope = JsonCodec.parseObjectOrNull(payload)
@@ -38,7 +38,7 @@ internal fun DefaultGoalPlanningSweep.produceAttemptAfterPauseCheck(
   val outcome = runCatching { launchPlanningAttempt(args.phase, prompt) }
     .getOrElse { error ->
       if (error is GoalRunnerLaunchAuthorizationDeniedException) {
-        return planningPauseOutcome(shared, currentSubtaskId, phaseId, error.controlState.pauseReason)
+        return planningPauseOutcome(shared, currentSubtaskId, phaseId, error.pauseReason)
           ?: error("planning pause outcome was unexpectedly absent")
       }
       throw error

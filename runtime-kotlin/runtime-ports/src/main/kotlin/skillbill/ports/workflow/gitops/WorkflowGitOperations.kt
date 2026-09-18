@@ -7,7 +7,8 @@ interface WorkflowGitOperations :
   WorkflowGitBranchOperations,
   WorkflowGitRemoteOperations,
   WorkflowGitCommitHistoryOperations,
-  WorkflowGitWorktreeOperations {
+  WorkflowGitWorktreeOperations,
+  SuppressionEvidenceGitOperations {
   val checkpointHistoryOperations: CheckpointHistoryGitOperations
 
   val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations

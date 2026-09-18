@@ -5,9 +5,9 @@ import skillbill.infrastructure.sqlite.workflow.WorkflowStateRow
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.sql.Connection

@@ -19,7 +19,7 @@ import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveInput
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveResult
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path

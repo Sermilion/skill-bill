@@ -1,6 +1,6 @@
 package skillbill.ports.workflow.gitops.model
 
-class GoalSubtaskReviewInputWireMap private constructor(
+data class GoalSubtaskReviewInputWireMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
   companion object {

@@ -4,12 +4,12 @@ import skillbill.ports.workflow.FeatureImplementWorkflowStateRepository
 import skillbill.ports.workflow.FeatureTaskExecutionLookupRepository
 import skillbill.ports.workflow.FeatureTaskRuntimeWorkerRepository
 import skillbill.ports.workflow.FeatureTaskRuntimeWorkflowStateRepository
-import skillbill.ports.workflow.FeatureTaskWorkflowRowRepository
 import skillbill.ports.workflow.FeatureTaskWorkflowStateRepository
 import skillbill.ports.workflow.FeatureVerifyWorkflowStateRepository
 import skillbill.ports.workflow.GoalChildWorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
 import java.time.Clock
 
@@ -40,6 +40,25 @@ internal class FeatureTaskWorkflowStateStore(
   clock: Clock,
 ) : FeatureTaskWorkflowStateRepository,
   FeatureTaskExecutionLookupRepository by FeatureTaskExecutionLookupStore(connection),
-  FeatureTaskWorkflowRowRepository by FeatureTaskWorkflowRowStore(connection, clock),
   GoalChildWorkflowStateRepository by GoalChildWorkflowStore(connection),
-  FeatureTaskRuntimeWorkerRepository by FeatureTaskRuntimeWorkerStore(connection)
+  FeatureTaskRuntimeWorkerRepository by FeatureTaskRuntimeWorkerStore(connection) {
+  private val rows = FeatureTaskWorkflowRowStore(connection, clock)
+
+  override fun terminalizeLegacyProseFeatureTaskWorkflow(row: WorkflowStateRecord) =
+    rows.terminalizeLegacyProseFeatureTaskWorkflow(row)
+
+  override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) =
+    rows.saveFeatureTaskWorkflow(row, mode)
+
+  override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
+    rows.getFeatureTaskWorkflow(workflowId)
+
+  override fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    rows.getFeatureTaskWorkflowAsMode(workflowId, mode)
+
+  override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
+    rows.listFeatureTaskWorkflows(mode, limit)
+
+  override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
+    rows.latestFeatureTaskWorkflow(mode)
+}

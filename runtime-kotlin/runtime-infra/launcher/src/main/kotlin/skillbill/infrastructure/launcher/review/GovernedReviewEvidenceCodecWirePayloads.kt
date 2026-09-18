@@ -1,5 +1,6 @@
-package skillbill.ports.review.model
+package skillbill.infrastructure.launcher.review
 
+import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.review.context.model.ForbiddenReviewOperation
 import skillbill.review.context.model.ReviewBudgetOutcome
 import skillbill.review.context.model.ReviewExpansionRecord

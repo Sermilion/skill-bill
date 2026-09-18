@@ -4,6 +4,7 @@ import skillbill.application.review.model.TriageResult
 import skillbill.application.review.model.TriageResultKind
 import skillbill.application.telemetry.settings.feedbackTelemetryOptions
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.review.ReviewRepository
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.review.TriageDecisionParser
@@ -15,6 +16,7 @@ import skillbill.review.model.TriageDecision
 internal data class TriageReviewRequest(
   val database: DatabaseSessionFactory,
   val settingsProvider: TelemetrySettingsProvider,
+  val diagnostics: RuntimeDiagnostics,
   val runId: String,
   val decisions: List<String>,
   val listOnly: Boolean,
@@ -39,6 +41,7 @@ internal fun triageReview(request: TriageReviewRequest): TriageResult =
       val applied = applyTriageDecisions(
         TriageDecisionsRequest(
           settingsProvider = request.settingsProvider,
+          diagnostics = request.diagnostics,
           reviewRepository = unitOfWork.reviews,
           runId = request.runId,
           numberedFindings = numberedFindings,
@@ -58,6 +61,7 @@ internal fun triageReview(request: TriageReviewRequest): TriageResult =
 
 internal data class TriageDecisionsRequest(
   val settingsProvider: TelemetrySettingsProvider,
+  val diagnostics: RuntimeDiagnostics,
   val reviewRepository: ReviewRepository,
   val runId: String,
   val numberedFindings: List<NumberedFinding>,
@@ -72,7 +76,7 @@ internal fun applyTriageDecisions(request: TriageDecisionsRequest): AppliedTriag
     val returnedTelemetry =
       request.reviewRepository.recordFeedback(
         FeedbackRequest(request.runId, listOf(decision.findingId), decision.outcomeType, decision.note),
-        feedbackTelemetryOptions(request.settingsProvider),
+        feedbackTelemetryOptions(request.settingsProvider, request.diagnostics),
         routedSkillPlatformSlugs = request.routedSkillPlatformSlugs,
       )
     if (returnedTelemetry != null) {

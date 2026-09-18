@@ -4,6 +4,7 @@ import skillbill.application.system.SystemService
 import skillbill.application.updatecheck.model.RECOMMENDED_INSTALL_COMMAND
 import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.model.TransportContext
+import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.telemetry.RemoteTransportPort
@@ -75,6 +76,7 @@ class UpdateCheckServiceTest {
       systemService = SystemService(
         TestDatabaseSessionFactory(),
         TestTelemetrySettingsProvider,
+        NoopRuntimeDiagnostics,
         versionValue = "0.0.0-SNAPSHOT",
       ),
       transportContext = TransportContext(
@@ -124,6 +126,7 @@ class UpdateCheckServiceTest {
       systemService = SystemService(
         TestDatabaseSessionFactory(),
         TestTelemetrySettingsProvider,
+        NoopRuntimeDiagnostics,
         versionValue = installedVersion,
       ),
       transportContext = TransportContext(
@@ -167,6 +170,7 @@ class UpdateCheckServiceTest {
     systemService = SystemService(
       TestDatabaseSessionFactory(),
       TestTelemetrySettingsProvider,
+      NoopRuntimeDiagnostics,
       versionValue = versionValue,
     ),
     transportContext = TransportContext(

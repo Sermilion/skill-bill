@@ -1,4 +1,4 @@
-package skillbill.ports.workflow.model
+package skillbill.workflow.model
 
 import skillbill.contracts.workflow.FEATURE_TASK_EXECUTION_IDENTITY_CONTRACT_VERSION
 
@@ -16,8 +16,3 @@ enum class FeatureTaskRouteScope(val wireValue: String) {
   STANDALONE("standalone"),
   GOAL_CHILD("goal_child"),
 }
-
-data class FeatureTaskWorkflowCandidate(
-  val identity: FeatureTaskExecutionIdentity?,
-  val workflow: WorkflowStateRecord,
-)

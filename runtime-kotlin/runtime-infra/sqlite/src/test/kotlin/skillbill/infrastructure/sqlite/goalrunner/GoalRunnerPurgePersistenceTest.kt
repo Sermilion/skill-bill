@@ -6,8 +6,8 @@ import skillbill.infrastructure.sqlite.goalChildWorkflow
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
 import skillbill.infrastructure.sqlite.workflowRow
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.nio.file.Files
 import java.sql.Connection
 import java.time.Clock

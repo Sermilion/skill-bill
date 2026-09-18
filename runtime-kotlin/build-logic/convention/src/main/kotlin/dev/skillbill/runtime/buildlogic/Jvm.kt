@@ -40,6 +40,7 @@ internal fun Project.configureKotlinJvm() {
       jvmTarget.set(JvmTarget.JVM_21)
       allWarningsAsErrors.set(true)
       freeCompilerArgs.add("-Xjsr305=strict")
+      freeCompilerArgs.add("-Xconsistent-data-class-copy-visibility")
     }
   }
 

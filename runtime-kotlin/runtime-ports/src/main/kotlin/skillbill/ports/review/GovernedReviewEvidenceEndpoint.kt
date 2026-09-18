@@ -16,7 +16,7 @@ interface GovernedReviewEvidenceEndpointHandle : AutoCloseable {
 interface GovernedReviewEvidenceEndpointBinder {
   fun bind(
     lane: String,
-    protocol: NativeReviewOperationProtocol,
+    broker: ReviewEvidenceBroker,
     onEvidenceRead: (() -> Unit)? = null,
   ): GovernedReviewEvidenceEndpointHandle
 }

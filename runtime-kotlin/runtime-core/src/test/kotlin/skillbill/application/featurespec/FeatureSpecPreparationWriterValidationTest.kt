@@ -13,7 +13,11 @@ import skillbill.featurespec.model.FeatureSpecWriteRequest
 import skillbill.featurespec.model.FeatureSpecWriteResult
 import skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.workflow.FileSystemDecompositionManifestFileStore
+import skillbill.model.EnvironmentContext
+import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
+import skillbill.model.TransportContext
+import skillbill.model.WorkflowOpsContext
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import java.nio.file.Files
 import java.nio.file.Path
@@ -34,8 +38,10 @@ class FeatureSpecPreparationWriterValidationTest {
     val component =
       RuntimeComponent::class.create(
         RuntimeContext(
-          environment = emptyMap(),
-          userHome = repoRoot,
+          environment = EnvironmentContext(environment = emptyMap(), userHome = repoRoot),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
         ),
       )
 

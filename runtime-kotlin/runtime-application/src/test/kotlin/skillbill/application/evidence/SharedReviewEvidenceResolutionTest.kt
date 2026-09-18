@@ -7,6 +7,7 @@ import skillbill.application.reviewevidence.SharedReviewEvidenceResolution
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.diff.DiffResolverPort
+import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceDeriver
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceRequest
@@ -40,6 +41,11 @@ class SharedReviewEvidenceResolutionTest {
       invoked += key
       return responses[key]
     }
+
+    override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
+      emptyMap<String, ReviewCheckpointFileIdentity>()
+
+    override fun readDiff(path: Path, maxBytes: Long): String? = null
   }
 
   private class InMemoryStore(

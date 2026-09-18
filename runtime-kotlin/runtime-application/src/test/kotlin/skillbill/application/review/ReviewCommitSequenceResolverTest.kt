@@ -7,6 +7,7 @@ import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.diff.DiffResolverPort
+import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import skillbill.review.context.model.ReviewCommitSource
 import java.nio.file.Path
 import kotlin.test.Test
@@ -32,6 +33,11 @@ class ReviewCommitSequenceResolverTest {
       invoked += key
       return responses[key]
     }
+
+    override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
+      emptyMap<String, ReviewCheckpointFileIdentity>()
+
+    override fun readDiff(path: Path, maxBytes: Long): String? = null
   }
 
   private fun branchRepo(shas: List<String>, diffs: Map<String, String>, parents: Map<String, String>): FakeGit {

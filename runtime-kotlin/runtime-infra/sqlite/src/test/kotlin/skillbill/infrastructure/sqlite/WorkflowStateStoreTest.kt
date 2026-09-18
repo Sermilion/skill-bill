@@ -9,8 +9,8 @@ import skillbill.infrastructure.sqlite.workflow.FEATURE_IMPLEMENT_WORKFLOW_CONTR
 import skillbill.infrastructure.sqlite.workflow.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateRow
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.sql.DriverManager

@@ -1,10 +1,9 @@
-package skillbill.ports.continuation
+package skillbill.workflow.model
 
 import skillbill.contracts.issuekey.isWellFormedIssueKey
 import skillbill.contracts.issuekey.malformedIssueKeyReason
 import skillbill.contracts.workflow.FEATURE_TASK_EXECUTION_IDENTITY_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
 
 object FeatureTaskExecutionIdentityPolicy {
   const val REPOSITORY_IDENTITY_PREFIX: String = "repo-root-realpath-v1:"

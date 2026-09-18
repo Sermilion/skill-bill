@@ -44,7 +44,7 @@ class FileSystemDecompositionManifestFileStore :
     return Files.isRegularFile(path)
   }
 
-  fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T {
+  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T {
     val distinctWrites = writes.distinctBy { (path, _) -> path.toAbsolutePath().normalize() }
     val parents = distinctWrites.map { (path, _) -> path.toAbsolutePath().normalize().parent }.distinct()
     if (parents.size != 1 || distinctWrites.isEmpty()) {

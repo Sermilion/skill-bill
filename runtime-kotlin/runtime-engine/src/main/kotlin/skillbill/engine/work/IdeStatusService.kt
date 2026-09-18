@@ -18,7 +18,7 @@ import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.system.CheckedOutBranchSource
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
 import java.time.Clock
 

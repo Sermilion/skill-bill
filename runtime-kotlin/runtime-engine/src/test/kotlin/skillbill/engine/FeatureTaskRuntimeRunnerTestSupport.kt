@@ -79,9 +79,9 @@ import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError.Absent
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError.Conflict
+import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.error.RejectedOutputDiagnosticError.Absent
+import skillbill.error.RejectedOutputDiagnosticError.Conflict
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import skillbill.ports.diff.DiffResolverPort
@@ -123,9 +123,9 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.buildGoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode.PROSE
+import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.specscratch.SpecScratchStore

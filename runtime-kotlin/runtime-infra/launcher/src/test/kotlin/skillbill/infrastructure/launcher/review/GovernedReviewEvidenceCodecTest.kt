@@ -1,8 +1,8 @@
-package skillbill.ports.review
+package skillbill.infrastructure.launcher.review
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.InvalidGovernedReviewEvidenceRequestError
-import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.review.context.model.ForbiddenReviewOperation
@@ -12,7 +12,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class GovernedReviewEvidenceCodecTest {
   @Test
@@ -81,10 +80,10 @@ class GovernedReviewEvidenceCodecTest {
 
   @Test
   fun `the governed surface is exactly two operations`() {
-    assertEquals(listOf("read_evidence", "request_expansion"), GovernedReviewEvidenceCodec.OPERATIONS)
-    assertTrue(
-      GovernedReviewEvidenceCodec.toolSpecList().asToolPayloads().map { it["name"] } ==
-        GovernedReviewEvidenceCodec.OPERATIONS,
+    assertEquals(GovernedReviewEvidenceContracts.OPERATIONS, listOf("read_evidence", "request_expansion"))
+    assertEquals(
+      GovernedReviewEvidenceCodec.toolSpecList().asToolPayloads().map { it["name"] },
+      GovernedReviewEvidenceContracts.OPERATIONS,
     )
   }
 }

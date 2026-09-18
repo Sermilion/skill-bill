@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
+import skillbill.error.RejectedOutputDiagnosticError
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

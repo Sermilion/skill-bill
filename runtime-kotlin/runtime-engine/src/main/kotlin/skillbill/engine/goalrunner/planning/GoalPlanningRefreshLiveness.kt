@@ -4,7 +4,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import java.time.Clock
 

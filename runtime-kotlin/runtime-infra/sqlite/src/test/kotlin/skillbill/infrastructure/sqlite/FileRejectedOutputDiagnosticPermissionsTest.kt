@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
+import skillbill.error.RejectedOutputDiagnosticError
 import java.io.IOException
 import java.net.URI
 import java.nio.file.FileSystems

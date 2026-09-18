@@ -1,7 +1,7 @@
 package skillbill.application
 
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
-import skillbill.ports.workflow.FeatureTaskExecutionIdentityPolicy
+import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

@@ -11,7 +11,7 @@ import skillbill.error.InvalidIdeStatusSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
 import skillbill.ports.idestatus.IdeStatusValidator
-import skillbill.ports.idestatus.IdeStatusWireMap
+import skillbill.ports.idestatus.model.IdeStatusWireMap
 import java.util.logging.Level
 import java.util.logging.Logger
 

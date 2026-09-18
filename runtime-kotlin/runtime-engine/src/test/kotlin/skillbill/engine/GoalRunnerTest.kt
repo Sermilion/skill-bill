@@ -89,7 +89,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequ
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.ports.goalrunner.runner.model.GoalRunnerCompletionPersistenceResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorization
-import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorizationDeniedException
+import skillbill.error.GoalRunnerLaunchAuthorizationDeniedException
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLedgerSequenceWatermarks
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
@@ -124,9 +124,9 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
@@ -3357,7 +3357,7 @@ internal class InMemoryGoalManifestStore(
       override fun <T> withAuthorization(spawn: () -> T): T {
         beforeLaunchAuthorization?.invoke(subtaskId)
         if (controlState.requiresPauseBoundary(state.manifest)) {
-          throw GoalRunnerLaunchAuthorizationDeniedException(controlState)
+          throw GoalRunnerLaunchAuthorizationDeniedException(controlState.pauseReason)
         }
         return spawn()
       }

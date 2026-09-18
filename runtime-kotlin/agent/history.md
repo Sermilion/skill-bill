@@ -1,3 +1,12 @@
+## [2026-09-18] SKILL-358 subtask 1 — Ports hold interfaces and DTOs
+Areas: runtime-kotlin/{runtime-ports,runtime-domain,runtime-contracts,runtime-application,runtime-engine,runtime-infra,runtime-mcp,runtime-cli,runtime-core}, ARCHITECTURE.md
+- Reduced `runtime-ports` to interface and DTO declarations: moved implementation-only codecs and lease logic outward, made honest seams abstract, and relocated execution identity policy to the domain.
+- Removed obsolete review-discovery/protocol surfaces, grouped `RuntimeContext` constructor inputs, and moved runtime-owned errors and contract vocabulary to their owning boundaries.
+- Added the ports declaration architecture guard and test fixtures for explicit substitutes; documented the resulting ownership and boundary decisions. reusable
+- Known limitation: module suites and the full repository quality gate remain owned by the validate phase.
+Feature flag: N/A
+Acceptance criteria: 11/11 implemented
+
 ## [2026-09-18] SKILL-355 — Persist observed worktree edits and project them on goal status
 Areas: runtime-kotlin/{runtime-ports,runtime-domain,runtime-contracts,runtime-application/idestatus,runtime-infra/{sqlite,workflow,launcher},runtime-engine/{featuretask,goalrunner},runtime-cli/goal}, docs
 - Wait-loop `AgentRunWorktreeEditObserver` persists per-path git numstat ticks (staged+unstaged vs HEAD, untracked as insertions) into a capped SQLite journal; idle stamps and progress stay on the existing probe token.

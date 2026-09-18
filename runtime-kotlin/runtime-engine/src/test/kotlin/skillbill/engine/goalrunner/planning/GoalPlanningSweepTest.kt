@@ -3141,7 +3141,7 @@ internal const val FIXTURE_HEADING = "## [2026-08-01] fixture-entry"
 internal const val FIXTURE_BODY = "distinctive fixture body sentence"
 
 private val fakeContextDiscovery = object : GoalPlanningContextDiscovery {
-  override fun discover(repoRoot: Path): GoalPlanningContext = GoalPlanningContext(
+  override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext = GoalPlanningContext(
     boundaryCatalog = listOf(
       GoalPlanningBoundaryHeading(
         headingId = FIXTURE_HEADING_ID,
@@ -3156,7 +3156,7 @@ private val fakeContextDiscovery = object : GoalPlanningContextDiscovery {
 
   override fun discoverForFindingPaths(repoRoot: Path, findingPaths: List<String>, loudFailOnCapExceeded: Boolean) =
     GoalVerificationBoundaryDiscovery(
-      boundaryCatalog = discover(repoRoot).boundaryCatalog,
+      boundaryCatalog = loadPlanningContext(repoRoot).boundaryCatalog,
       boundaryCatalogTruncated = false,
       boundaryContextUnavailable = findingPaths.isEmpty(),
     )
@@ -3219,9 +3219,9 @@ private class CountingContextDiscovery : GoalPlanningContextDiscovery {
   var calls: Int = 0
     private set
 
-  override fun discover(repoRoot: Path): GoalPlanningContext {
+  override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext {
     calls += 1
-    return fakeContextDiscovery.discover(repoRoot)
+    return fakeContextDiscovery.loadPlanningContext(repoRoot)
   }
 
   override fun discoverForFindingPaths(repoRoot: Path, findingPaths: List<String>, loudFailOnCapExceeded: Boolean) =
@@ -3244,7 +3244,7 @@ private class MutableContextDiscovery : GoalPlanningContextDiscovery {
     catalog = emptyList()
   }
 
-  override fun discover(repoRoot: Path): GoalPlanningContext {
+  override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext {
     calls += 1
     return GoalPlanningContext(
       boundaryCatalog = catalog,

@@ -7,8 +7,8 @@ import skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.workflow.FeatureTaskExecutionIdentityPolicy
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
+import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 

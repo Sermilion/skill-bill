@@ -7,7 +7,6 @@ import skillbill.goalrunner.model.GoalRunnerLivenessState
 import skillbill.goalrunner.model.GoalRunnerProcessState
 import skillbill.install.model.InstallAgent
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.NativeReviewOperationProtocol
 import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.model.ReviewProcessOutcome
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
@@ -43,9 +42,7 @@ data class SkillRunRequest(
   val effortOverride: String? = null,
   val compaction: PhaseCompactionDirective? = null,
   val goalContinuation: SkillRunGoalContinuationContext? = null,
-  val conversationIsolation: ConversationIsolation? = null,
   val reviewEvidenceBroker: ReviewEvidenceBroker? = null,
-  val nativeReviewOperations: NativeReviewOperationProtocol? = null,
   val reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? = null,
   val nativeReviewWorkerName: String? = null,
   val reviewFanOut: Boolean = false,
@@ -65,12 +62,6 @@ data class SkillRunRequest(
     progressIdleTimeout?.let { idleTimeout ->
       require(idleTimeout.isPositive()) { "progressIdleTimeout must be positive." }
     }
-    require(reviewEvidenceBroker == null || conversationIsolation == ConversationIsolation.NONE) {
-      "A review evidence transport is valid only for a fresh-context governed specialist launch."
-    }
-    require((reviewEvidenceBroker == null) == (nativeReviewOperations == null)) {
-      "A governed review evidence transport and its pre-execution operation protocol must be supplied together."
-    }
     require((reviewEvidenceBroker == null) == (reviewEvidenceEndpoint == null)) {
       "A governed review evidence transport and its bound endpoint must be supplied together."
     }
@@ -85,10 +76,6 @@ data class SkillRunRequest(
 
 interface AgentRunSpawnAuthorization {
   fun <T> withAuthorization(spawn: () -> T): T
-}
-
-enum class ConversationIsolation(val forkTurns: String) {
-  NONE("none"),
 }
 
 data class SkillRunGoalContinuationContext(

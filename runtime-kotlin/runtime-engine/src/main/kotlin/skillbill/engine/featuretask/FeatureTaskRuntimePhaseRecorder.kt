@@ -19,7 +19,7 @@ import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator

@@ -25,6 +25,9 @@ object UnavailableDecompositionManifestStore : DecompositionManifestStore {
 
   override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     unavailableDecompositionManifestStore()
+
+  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T =
+    unavailableDecompositionManifestStore()
 }
 
 private fun unavailableDecompositionManifestStore(): Nothing {

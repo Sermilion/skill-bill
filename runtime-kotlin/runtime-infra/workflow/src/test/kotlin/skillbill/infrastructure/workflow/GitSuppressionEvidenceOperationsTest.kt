@@ -1,7 +1,6 @@
 package skillbill.infrastructure.workflow
 
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
-import skillbill.ports.workflow.gitops.scopedPathContentsAgainstBase
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.writeText

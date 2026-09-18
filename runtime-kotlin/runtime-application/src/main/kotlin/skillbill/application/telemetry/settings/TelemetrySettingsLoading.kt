@@ -2,18 +2,37 @@ package skillbill.application.telemetry.settings
 
 import skillbill.application.telemetry.model.TelemetryMutationResult
 import skillbill.application.telemetry.sync.telemetrySyncTarget
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.telemetry.model.TelemetrySettings
+import kotlin.coroutines.cancellation.CancellationException
+
+internal const val TELEMETRY_SETTINGS_LOAD_FAILURE_MESSAGE =
+  "Telemetry settings could not be loaded; treating telemetry as disabled."
 
 internal fun loadTelemetrySettings(settingsProvider: TelemetrySettingsProvider): TelemetrySettings =
   settingsProvider.load()
 
-internal fun telemetrySettingsOrNull(settingsProvider: TelemetrySettingsProvider): TelemetrySettings? =
-  settingsProvider.loadOrNull()
+internal fun telemetrySettingsOrNull(
+  settingsProvider: TelemetrySettingsProvider,
+  diagnostics: RuntimeDiagnostics,
+): TelemetrySettings? = try {
+  settingsProvider.load()
+} catch (error: CancellationException) {
+  throw error
+} catch (error: InterruptedException) {
+  throw error
+} catch (error: Exception) {
+  diagnostics.error(TELEMETRY_SETTINGS_LOAD_FAILURE_MESSAGE, error)
+  null
+}
 
-internal fun feedbackTelemetryOptions(settingsProvider: TelemetrySettingsProvider): FeedbackTelemetryOptions {
-  val settings = telemetrySettingsOrNull(settingsProvider)
+internal fun feedbackTelemetryOptions(
+  settingsProvider: TelemetrySettingsProvider,
+  diagnostics: RuntimeDiagnostics,
+): FeedbackTelemetryOptions {
+  val settings = telemetrySettingsOrNull(settingsProvider, diagnostics)
   return FeedbackTelemetryOptions(
     enabled = settings?.enabled ?: false,
     level = settings?.level ?: "off",

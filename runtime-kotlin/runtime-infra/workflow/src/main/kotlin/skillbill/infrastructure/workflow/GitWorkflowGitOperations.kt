@@ -8,7 +8,6 @@ import skillbill.ports.workflow.gitops.RepositoryOwnedPathsGitOperations
 import skillbill.ports.workflow.gitops.RuntimePhaseFileManifestGitOperations
 import skillbill.ports.workflow.gitops.ScopedStagingGitOperations
 import skillbill.ports.workflow.gitops.SuppressionEvidenceGitOperations
-import skillbill.ports.workflow.gitops.SuppressionEvidenceGitOperationsProvider
 import skillbill.ports.workflow.gitops.WorkflowGitBranchOperations
 import skillbill.ports.workflow.gitops.WorkflowGitCommitHistoryOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -23,7 +22,7 @@ class GitWorkflowGitOperations :
   WorkflowGitRemoteOperations by GitStandardWorkflowGitOperations,
   WorkflowGitCommitHistoryOperations by GitStandardWorkflowGitOperations,
   WorkflowGitWorktreeOperations by GitStandardWorkflowGitOperations,
-  SuppressionEvidenceGitOperationsProvider {
+  SuppressionEvidenceGitOperations by GitSuppressionEvidenceOperations {
   override val checkpointHistoryOperations: CheckpointHistoryGitOperations = GitCheckpointHistoryOperations
   override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations = GitGoalSubtaskReviewOperations
   override val scopedStagingOperations: ScopedStagingGitOperations = GitScopedStagingOperations
@@ -31,7 +30,6 @@ class GitWorkflowGitOperations :
     GitRuntimePhaseFileManifestOperations
   override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations = GitRepositoryFingerprintOperations
   override val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations = GitRepositoryOwnedPathsOperations
-  override val suppressionEvidenceOperations: SuppressionEvidenceGitOperations = GitSuppressionEvidenceOperations
 }
 
 internal object GitRepositoryOwnedPathsOperations : RepositoryOwnedPathsGitOperations {

@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite.workflow
 
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.sqlite.core.bindAll
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.isTerminal

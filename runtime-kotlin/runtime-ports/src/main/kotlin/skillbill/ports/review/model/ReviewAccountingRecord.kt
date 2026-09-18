@@ -13,9 +13,9 @@ data class ReviewAccountingRecord(
     require(reviewId.isNotBlank() && packetDigest.isNotBlank())
     requireBoundedAccountingPayload(boundedPayload.asMap())
   }
-}
 
-internal fun requireBoundedAccountingPayload(payload: Map<String, Any?>) {
+  companion object {
+    internal fun requireBoundedAccountingPayload(payload: Map<String, Any?>) {
   val legacy = payload[SharedPayloadKeys.CONTRACT_VERSION] == LEGACY_REVIEW_CONTEXT_CONTRACT_VERSION
   val topKeys = if (legacy) {
     setOf(
@@ -54,7 +54,7 @@ internal fun requireBoundedAccountingPayload(payload: Map<String, Any?>) {
 private val COMMIT_FOCUSED_KEYS =
   setOf("commit_routing_accounting", "parent_analysis_consumption", "integration")
 
-private fun requireAccountingNode(value: Any?, legacy: Boolean) {
+    private fun requireAccountingNode(value: Any?, legacy: Boolean) {
   val node = value as? Map<*, *> ?: error("Review accounting node must be an object.")
   val keys = setOf(
     "lane", "assignment_digest", "launch_bytes", "evidence_bytes", "result_bytes", "expansions",
@@ -76,7 +76,7 @@ private fun requireAccountingNode(value: Any?, legacy: Boolean) {
 
 private val BUNDLE_KEYS = setOf("bundle_composition_digest", "segment_accounting", "unreviewed_segment_ids")
 
-private fun requireEvidenceDelivery(value: Any?) {
+    private fun requireEvidenceDelivery(value: Any?) {
   val delivery = value as? Map<*, *>
     ?: throw InvalidReviewContextSchemaError("review-accounting", "Evidence delivery must be an object.")
   val keys = setOf("required_units", "delivered_units", "remaining_units", "request_count")
@@ -87,7 +87,7 @@ private fun requireEvidenceDelivery(value: Any?) {
   requireDeliveryCounts(counts)
 }
 
-private fun requireDeliveryCounts(counts: Map<String, Long>) {
+    private fun requireDeliveryCounts(counts: Map<String, Long>) {
   if (counts.values.any { it !in 0..Int.MAX_VALUE.toLong() } ||
     counts.getValue("required_units") != counts.getValue("delivered_units") + counts.getValue("remaining_units")
   ) {
@@ -95,7 +95,7 @@ private fun requireDeliveryCounts(counts: Map<String, Long>) {
   }
 }
 
-private fun requireBundleAccounting(node: Map<*, *>) {
+    private fun requireBundleAccounting(node: Map<*, *>) {
   node["bundle_composition_digest"]?.let { require(it is String && it.isNotBlank()) }
   node["segment_accounting"]?.let { segments ->
     val entries = segments as? List<*> ?: error("Review segment accounting must be a list.")
@@ -108,7 +108,7 @@ private fun requireBundleAccounting(node: Map<*, *>) {
   }
 }
 
-private fun requireSegmentAccounting(value: Any?) {
+    private fun requireSegmentAccounting(value: Any?) {
   val segment = value as? Map<*, *> ?: error("Review segment accounting entry must be an object.")
   require(segment.keys == setOf("segment_id", "measured_bytes", "entry_count", "composition_digest"))
   require(segment["segment_id"] is String && segment["composition_digest"] is String)
@@ -117,13 +117,13 @@ private fun requireSegmentAccounting(value: Any?) {
   }
 }
 
-private fun requireCounters(value: Any?) {
+    private fun requireCounters(value: Any?) {
   val counters = value as? Map<*, *> ?: error("Review accounting counters must be an object.")
   require(counters.keys == COUNTER_KEYS)
   require(counters.values.all { (it as? Number)?.toLong()?.let { count -> count >= 0 } == true })
 }
 
-private val COUNTER_KEYS = setOf(
+    private val COUNTER_KEYS = setOf(
   "launch_bytes",
   "evidence_bytes",
   "result_bytes",
@@ -132,4 +132,6 @@ private val COUNTER_KEYS = setOf(
   "model_turns",
 )
 
-private const val LEGACY_REVIEW_CONTEXT_CONTRACT_VERSION: String = "2.1"
+    private const val LEGACY_REVIEW_CONTEXT_CONTRACT_VERSION: String = "2.1"
+  }
+}

@@ -5,7 +5,8 @@ object NoopWorkflowGitOperations :
   WorkflowGitBranchOperations by NoopWorkflowGitBranchOperations,
   WorkflowGitRemoteOperations by NoopWorkflowGitRemoteOperations,
   WorkflowGitCommitHistoryOperations by NoopWorkflowGitCommitHistoryOperations,
-  WorkflowGitWorktreeOperations by NoopWorkflowGitWorktreeOperations {
+  WorkflowGitWorktreeOperations by NoopWorkflowGitWorktreeOperations,
+  SuppressionEvidenceGitOperations by NoopSuppressionEvidenceGitOperations {
   override val checkpointHistoryOperations: CheckpointHistoryGitOperations =
     UnavailableCheckpointHistoryGitOperations
 

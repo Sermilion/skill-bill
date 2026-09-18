@@ -21,7 +21,7 @@ import skillbill.ports.review.model.ReviewFactPorts
 import skillbill.ports.review.model.ReviewLaneSelection
 import skillbill.ports.review.model.ReviewScopeFacts
 import skillbill.ports.review.model.ReviewStackRoutingFacts
-import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
+import skillbill.error.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceLocatorReadRequest
 import skillbill.review.context.ReviewContextEnvelopeValidator

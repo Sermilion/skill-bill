@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite.review
 
 import skillbill.SAMPLE_REVIEW
-import skillbill.ports.review.toReviewFinishedTelemetryPayload
+import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
 import skillbill.review.ReviewParser
 import skillbill.review.model.ImportedReview
 import skillbill.tempDbConnection

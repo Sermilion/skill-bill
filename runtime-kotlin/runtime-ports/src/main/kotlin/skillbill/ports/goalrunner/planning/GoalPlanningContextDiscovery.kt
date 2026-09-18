@@ -5,7 +5,7 @@ import skillbill.ports.goalrunner.verification.model.GoalVerificationBoundaryDis
 import java.nio.file.Path
 
 interface GoalPlanningContextDiscovery {
-  fun discover(repoRoot: Path): GoalPlanningContext
+  fun loadPlanningContext(repoRoot: Path): GoalPlanningContext
 
   fun discoverForFindingPaths(
     repoRoot: Path,
@@ -23,7 +23,7 @@ interface GoalPlanningContextDiscovery {
     )
 
     val NONE: GoalPlanningContextDiscovery = object : GoalPlanningContextDiscovery {
-      override fun discover(repoRoot: Path): GoalPlanningContext = EMPTY
+      override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext = EMPTY
 
       override fun discoverForFindingPaths(
         repoRoot: Path,

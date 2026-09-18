@@ -122,9 +122,23 @@ class RuntimeComponentInvocationSnapshotTest {
     val homeA = Files.createTempDirectory("skillbill-isolation-a")
     val homeB = Files.createTempDirectory("skillbill-isolation-b")
     val componentA =
-      RuntimeComponent::class.create(RuntimeContext(environment = emptyMap(), userHome = homeA))
+      RuntimeComponent::class.create(
+        RuntimeContext(
+          environment = EnvironmentContext(environment = emptyMap(), userHome = homeA),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
+        ),
+      )
     val componentB =
-      RuntimeComponent::class.create(RuntimeContext(environment = emptyMap(), userHome = homeB))
+      RuntimeComponent::class.create(
+        RuntimeContext(
+          environment = EnvironmentContext(environment = emptyMap(), userHome = homeB),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
+        ),
+      )
     assertNotSame(
       componentA.featureTaskRuntimeWorkerCoordinator,
       componentB.featureTaskRuntimeWorkerCoordinator,

@@ -16,11 +16,12 @@ import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.TelemetryReconciliationRepository
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.review.model.ReviewFindingVerdict
@@ -79,7 +80,7 @@ class FakeDatabaseSessionFactory(
   }
 }
 
-class InMemoryWorkflowStates : WorkflowStateRepository {
+class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
   private val implement = mutableMapOf<String, WorkflowStateRecord>()
   private val verify = mutableMapOf<String, WorkflowStateRecord>()
   private val taskRuntime = mutableMapOf<String, WorkflowStateRecord>()

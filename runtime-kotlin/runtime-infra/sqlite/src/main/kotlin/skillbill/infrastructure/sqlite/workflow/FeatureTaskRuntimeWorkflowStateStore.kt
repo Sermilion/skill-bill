@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
 import skillbill.ports.workflow.FeatureTaskRuntimeWorkflowStateRepository
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import java.sql.Connection
 import java.time.Clock

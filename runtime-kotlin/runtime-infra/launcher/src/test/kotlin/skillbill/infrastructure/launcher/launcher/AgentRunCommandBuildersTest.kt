@@ -12,9 +12,8 @@ import skillbill.infrastructure.launcher.process.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpConfigFormat
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.MODEL_DIRECTIVE_CAPABLE_AGENTS
-import skillbill.ports.agentrun.model.ConversationIsolation
-import skillbill.ports.review.BrokerBackedNativeReviewOperationProtocol
-import skillbill.ports.review.model.GovernedReviewEvidenceCodec.OPERATIONS
+import skillbill.review.context.model.ReviewConversationIsolation
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
@@ -365,9 +364,7 @@ class AgentRunCommandBuildersTest {
   @Test
   fun `a governed claude launch is a fresh isolated process naming its worker`() {
     val isolated = request().copy(
-      conversationIsolation = ConversationIsolation.NONE,
       reviewEvidenceBroker = NoOpReviewEvidenceBroker,
-      nativeReviewOperations = BrokerBackedNativeReviewOperationProtocol(NoOpReviewEvidenceBroker),
       reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
       nativeReviewWorkerName = "bill-kotlin-code-review-architecture",
     )
@@ -375,7 +372,7 @@ class AgentRunCommandBuildersTest {
     val command = builder.build(isolated)
 
     assertEquals(ReviewLaunchIsolationStrategy.FRESH_PROCESS, builder.reviewIsolation)
-    assertEquals(ConversationIsolation.NONE, command.conversationIsolation)
+    assertEquals(ReviewConversationIsolation.FRESH, command.conversationIsolation)
     assertEquals(
       "bill-kotlin-code-review-architecture",
       command.command[command.command.indexOf("--agent") + 1],
@@ -420,12 +417,10 @@ class AgentRunCommandBuildersTest {
   @Test
   fun `governed claude review names only governed operations and no raw filesystem tool`() {
     val isolated = request().copy(
-      conversationIsolation = ConversationIsolation.NONE,
       reviewEvidenceBroker = NoOpReviewEvidenceBroker,
-      nativeReviewOperations = BrokerBackedNativeReviewOperationProtocol(NoOpReviewEvidenceBroker),
       reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
     )
-    val governedOperations = OPERATIONS
+    val governedOperations = GovernedReviewEvidenceContracts.OPERATIONS
 
     listOf(false to emptyList<String>(), true to listOf("Agent", "Task")).forEach { (fanOut, delegation) ->
       val command = ClaudeAgentRunCommandBuilder().build(isolated.copy(reviewFanOut = fanOut)).command
@@ -446,9 +441,7 @@ class AgentRunCommandBuildersTest {
   @Test
   fun `claude builder forwards provider passthrough keys when review evidence broker is present`() {
     val isolated = request().copy(
-      conversationIsolation = ConversationIsolation.NONE,
       reviewEvidenceBroker = NoOpReviewEvidenceBroker,
-      nativeReviewOperations = BrokerBackedNativeReviewOperationProtocol(NoOpReviewEvidenceBroker),
       reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
       nativeReviewWorkerName = "bill-kotlin-code-review-architecture",
     )

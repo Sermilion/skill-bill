@@ -5,7 +5,7 @@ import skillbill.infrastructure.skills.install.mcp.McpTomlConfig
 import skillbill.infrastructure.skills.install.mcp.mutableStringAnyMap
 import skillbill.infrastructure.skills.install.mcp.readJsonObject
 import skillbill.infrastructure.skills.install.mcp.writeJson
-import skillbill.ports.review.model.GovernedReviewEvidenceCodec
+import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -17,13 +17,13 @@ object GovernedReviewMcpConfigWriter {
       throw GovernedReviewEvidenceTransportError("A governed review MCP bridge command is required.")
     }
     val env = linkedMapOf(
-      GovernedReviewEvidenceCodec.SOCKET_ENV to socketPath.toString(),
-      GovernedReviewEvidenceCodec.TOKEN_ENV to token,
-      GovernedReviewEvidenceCodec.LANE_ENV to lane,
+      GovernedReviewEvidenceContracts.SOCKET_ENV to socketPath.toString(),
+      GovernedReviewEvidenceContracts.TOKEN_ENV to token,
+      GovernedReviewEvidenceContracts.LANE_ENV to lane,
     )
     val settings = linkedMapOf<String, Any?>(
       "mcpServers" to linkedMapOf(
-        GovernedReviewEvidenceCodec.SERVER_NAME to linkedMapOf(
+        GovernedReviewEvidenceContracts.SERVER_NAME to linkedMapOf(
           "type" to "stdio",
           "command" to bridgeCommand.first(),
           "args" to bridgeCommand.drop(1),
@@ -42,11 +42,11 @@ object GovernedReviewMcpConfigWriter {
       McpTomlConfig.writeGovernedServer(
         tomlPath,
         McpTomlConfig.GovernedServer(
-          serverName = GovernedReviewEvidenceCodec.SERVER_NAME,
+          serverName = GovernedReviewEvidenceContracts.SERVER_NAME,
           command = bridgeCommand.first(),
           args = bridgeCommand.drop(1),
           env = env,
-          enabledTools = GovernedReviewEvidenceCodec.OPERATIONS,
+          enabledTools = GovernedReviewEvidenceContracts.OPERATIONS,
         ),
       )
       Files.setPosixFilePermissions(tomlPath, PosixFilePermissions.fromString("rw-------"))
@@ -64,10 +64,10 @@ object GovernedReviewMcpConfigWriter {
   fun tomlConfigPath(mcpConfigPath: Path): Path = mcpConfigPath.resolveSibling("mcp.toml")
 
   fun codexConfigOverrides(mcpConfigPath: Path, socketPath: Path, token: String, lane: String): List<String> {
-    val prefix = "mcp_servers.${GovernedReviewEvidenceCodec.SERVER_NAME}"
+    val prefix = "mcp_servers.${GovernedReviewEvidenceContracts.SERVER_NAME}"
     val server = if (Files.isRegularFile(mcpConfigPath)) {
       mutableStringAnyMap(readJsonObject(mcpConfigPath)["mcpServers"])
-        .let { mutableStringAnyMap(it[GovernedReviewEvidenceCodec.SERVER_NAME]) }
+        .let { mutableStringAnyMap(it[GovernedReviewEvidenceContracts.SERVER_NAME]) }
     } else {
       linkedMapOf()
     }
@@ -75,15 +75,15 @@ object GovernedReviewMcpConfigWriter {
     val args = (server["args"] as? List<*>)?.map { it.toString() }.orEmpty()
     val env = mutableStringAnyMap(server["env"]).ifEmpty {
       linkedMapOf(
-        GovernedReviewEvidenceCodec.SOCKET_ENV to socketPath.toString(),
-        GovernedReviewEvidenceCodec.TOKEN_ENV to token,
-        GovernedReviewEvidenceCodec.LANE_ENV to lane,
+        GovernedReviewEvidenceContracts.SOCKET_ENV to socketPath.toString(),
+        GovernedReviewEvidenceContracts.TOKEN_ENV to token,
+        GovernedReviewEvidenceContracts.LANE_ENV to lane,
       )
     }
     return buildList {
       if (command.isNotEmpty()) add("$prefix.command=\"$command\"")
       add("$prefix.args=[${args.joinToString(", ") { "\"$it\"" }}]")
-      add("$prefix.enabled_tools=[${GovernedReviewEvidenceCodec.OPERATIONS.joinToString(", ") { "\"$it\"" }}]")
+      add("$prefix.enabled_tools=[${GovernedReviewEvidenceContracts.OPERATIONS.joinToString(", ") { "\"$it\"" }}]")
       add("$prefix.env={${env.entries.joinToString(", ") { "${it.key}=\"${it.value}\"" }}}")
     }
   }

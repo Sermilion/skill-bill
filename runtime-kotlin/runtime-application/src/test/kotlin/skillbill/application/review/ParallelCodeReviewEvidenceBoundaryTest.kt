@@ -4,7 +4,6 @@ import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.NativeReviewOperationProtocol
 import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.ReviewEvidenceBrokerFactory
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
@@ -63,7 +62,7 @@ class ParallelCodeReviewEvidenceBoundaryTest {
         evidenceEndpointBinder = object : GovernedReviewEvidenceEndpointBinder {
           override fun bind(
             lane: String,
-            protocol: NativeReviewOperationProtocol,
+            broker: ReviewEvidenceBroker,
             onEvidenceRead: (() -> Unit)?,
           ): GovernedReviewEvidenceEndpointHandle = error("endpoint bind failed")
         },
@@ -190,7 +189,7 @@ class ParallelCodeReviewEvidenceBoundaryTest {
         evidenceEndpointBinder = object : GovernedReviewEvidenceEndpointBinder {
           override fun bind(
             lane: String,
-            protocol: NativeReviewOperationProtocol,
+            broker: ReviewEvidenceBroker,
             onEvidenceRead: (() -> Unit)?,
           ): GovernedReviewEvidenceEndpointHandle = object : GovernedReviewEvidenceEndpointHandle {
             override val descriptor = GovernedReviewEvidenceEndpointDescriptor(

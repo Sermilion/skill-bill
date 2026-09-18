@@ -65,6 +65,7 @@ import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.ports.telemetry.model.TelemetryReconciliationResult
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.WorkflowStatsRepository
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
@@ -76,8 +77,6 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
@@ -698,40 +697,7 @@ internal class FakeTelemetryClient : TelemetryClient {
     error("Unexpected fetchRemoteStats")
 }
 
-internal object NoopWorkflowStateRepository : WorkflowStateRepository {
-  override fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity) = Unit
-  override fun findStandaloneFeatureTaskCandidates(normalizedIssueKey: String, repositoryIdentity: String) =
-    emptyList<FeatureTaskWorkflowCandidate>()
-  override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? = null
-
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
-
-  override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
-
-  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureTaskRuntimeWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership? = null
-}
+internal object NoopWorkflowStateRepository : WorkflowStateRepositoryDefaults()
 
 internal fun createDecompositionWorkflow(service: WorkflowService, parentSpec: Path, subtaskSpec: Path): String =
   createDecompositionWorkflow(service, parentSpec, subtaskSpec, null)
@@ -1092,10 +1058,7 @@ internal fun loadTestDecompositionManifest(path: Path) =
 internal class InMemoryWorkflowStateRepository(
   private val implementSessionSummary: FeatureImplementSessionSummary? = null,
   private val verifySessionSummary: FeatureVerifySessionSummary? = null,
-) : WorkflowStateRepository {
-  override fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity) = Unit
-  override fun findStandaloneFeatureTaskCandidates(normalizedIssueKey: String, repositoryIdentity: String) =
-    emptyList<FeatureTaskWorkflowCandidate>()
+) : WorkflowStateRepositoryDefaults() {
   private val implementRows = linkedMapOf<String, WorkflowStateRecord>()
   private val verifyRows = linkedMapOf<String, WorkflowStateRecord>()
   private val taskRuntimeRows = linkedMapOf<String, WorkflowStateRecord>()

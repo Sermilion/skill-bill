@@ -11,7 +11,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.save
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord

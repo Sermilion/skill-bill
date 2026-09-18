@@ -146,7 +146,7 @@ class FileSystemGoalPlanningBoundaryBodyResolverTest {
   }
 
   private fun catalogOf(repo: Path): List<GoalPlanningBoundaryHeading> =
-    FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discover(repo).boundaryCatalog
+    FileSystemGoalPlanningContextDiscovery(JvmSystemClock).loadPlanningContext(repo).boundaryCatalog
 
   private fun resolve(
     repo: Path,

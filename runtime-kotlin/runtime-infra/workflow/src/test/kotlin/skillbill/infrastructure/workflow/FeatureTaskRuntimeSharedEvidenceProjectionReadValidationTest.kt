@@ -1,6 +1,6 @@
 package skillbill.infrastructure.workflow
 
-import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
+import skillbill.error.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceRequest
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolveOutcome
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint

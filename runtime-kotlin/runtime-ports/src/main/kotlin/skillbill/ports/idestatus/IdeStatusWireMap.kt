@@ -1,6 +1,6 @@
-package skillbill.ports.idestatus
+package skillbill.ports.idestatus.model
 
-class IdeStatusWireMap private constructor(
+data class IdeStatusWireMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
   companion object {

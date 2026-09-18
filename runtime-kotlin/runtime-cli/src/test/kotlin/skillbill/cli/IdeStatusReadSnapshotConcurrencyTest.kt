@@ -12,7 +12,11 @@ import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
+import skillbill.model.EnvironmentContext
+import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
+import skillbill.model.TransportContext
+import skillbill.model.WorkflowOpsContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
@@ -22,9 +26,9 @@ import skillbill.ports.system.CheckedOutBranchSource
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -177,7 +181,14 @@ private class SnapshotFixture(
   }
 
   private fun service(database: DatabaseSessionFactory): IdeStatusService {
-    val component = RuntimeComponent::class.create(RuntimeContext(environment = emptyMap(), userHome = home))
+    val component = RuntimeComponent::class.create(
+      RuntimeContext(
+        environment = EnvironmentContext(environment = emptyMap(), userHome = home),
+        transport = TransportContext(),
+        workflowOps = WorkflowOpsContext(),
+        callbacks = OptionalCallbacks(),
+      ),
+    )
     return IdeStatusService(
       database = database,
       projector = IdeStatusProjector(
