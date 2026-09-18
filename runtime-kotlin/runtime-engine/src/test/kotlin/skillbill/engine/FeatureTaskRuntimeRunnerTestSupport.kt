@@ -253,7 +253,9 @@ internal val ALL_PHASES =
     "pr",
   )
 internal val COMPLETED_PHASES_CLEAN_RUN = ALL_PHASES.filterNot { it == "implement_fix" || it == "build" }
-internal val AGENT_LAUNCHED_PHASES = ALL_PHASES.filterNot { it == "review" || it == "implement_fix" || it == "build" }
+internal val AGENT_LAUNCHED_PHASES = ALL_PHASES.filterNot {
+  it == "review" || it == "implement_fix" || it == "build" || it == "commit_push"
+}
 internal fun expiredCrashedOwnership(): FeatureTaskRuntimeWorkerOwnership = FeatureTaskRuntimeWorkerOwnership(
   workflowId = WORKFLOW_ID,
   generation = 1,

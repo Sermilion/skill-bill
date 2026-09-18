@@ -344,6 +344,18 @@ class FeatureTaskRuntimeCheckpointScopeTest {
   }
 
   @Test
+  fun `commit subject uses the subtask name and falls back without inventing prose`() {
+    assertEquals(
+      "$ISSUE: $SUBTASK_NAME",
+      FeatureTaskRuntimeCheckpointMessage.subject(ISSUE, SUBTASK_NAME, "7"),
+    )
+    assertEquals(
+      "$ISSUE: subtask 7",
+      FeatureTaskRuntimeCheckpointMessage.subject(ISSUE, "   ", "7"),
+    )
+  }
+
+  @Test
   fun `subtask trailers round-trip and never match another subtask`() {
     val identity = FeatureTaskRuntimeSubtaskCommitIdentity(issueKey = ISSUE, subtaskId = "7")
     val rendered = message(phaseId = "audit", loopId = null, generation = 0, intent = INTENT_INITIAL)

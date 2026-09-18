@@ -168,6 +168,10 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
           with(FeatureTaskRuntimeRunLoopValidationGate) {
             gateContext.runDeclaredBuildGateCycle(prepared.run)
           }
+        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH ->
+          with(FeatureTaskRuntimeRunLoopCommitPush) {
+            gateContext.runDeclaredCommitPushCycle(prepared.run)
+          }
         else ->
           with(FeatureTaskRuntimeRunLoopValidationGate) {
             gateContext.runPhaseAttempts(prepared.run)

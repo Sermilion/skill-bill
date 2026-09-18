@@ -320,11 +320,11 @@ Required workflow artifacts for the pilot:
 - `audit_report` — per-criterion pass/fail evidence
 - `validation_result` — routed skill or repo-native validator result
 - `history_result` — written/skipped outcome for boundary history
-- `commit_push_result` — reserved shell-owned artifact name for Step 10; the agent emits
-  a non-blank `message` (and optional advisory `changed_paths`). The runtime amends every dirty
-  non-ignored path, including `.feature-specs/`, into the owned subtask commit, then captures the
-  sha, pushes, and prunes checkpoint refs after the manifest records `commit_sha`. If nothing
-  remains to commit, it finishes and pushes the current HEAD.
+- `commit_push_result` — reserved shell-owned artifact for Step 10. The runtime stages every dirty
+  non-ignored path, including `.feature-specs/`, into the owned subtask commit using a subject from
+  the issue key and subtask name, then captures the sha, pushes, and prunes checkpoint refs after
+  the manifest records `commit_sha`. If nothing remains to commit, it finishes and pushes the
+  current HEAD. This phase does not launch an agent.
 - `pr_result` — PR url/title or terminal failure note
 
 Pilot-specific retry rules:
@@ -335,8 +335,8 @@ Pilot-specific retry rules:
   max audit iterations
 - `validate` retries in place until pass/fail is final
 - `commit_push` and `pr_description` are terminal gates; no downstream step may
-  continue if they fail. `commit_push` is runtime-owned: the agent must not run
-  `git commit` or `git push` for a subtask deliverable.
+  continue if they fail. `commit_push` is runtime-owned: it does not launch an
+  agent, and it does not run `git commit` or `git push` from agent output.
 
 ## Authoring Boundary
 
