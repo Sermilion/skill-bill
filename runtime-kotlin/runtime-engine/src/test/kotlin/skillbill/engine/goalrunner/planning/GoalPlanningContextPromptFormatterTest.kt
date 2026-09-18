@@ -1,8 +1,8 @@
 package skillbill.engine.goalrunner.planning
 
 import skillbill.contracts.time.JvmSystemClock
-import skillbill.infrastructure.fs.goalplanning.FileSystemGoalPlanningBoundaryBodyResolver
-import skillbill.infrastructure.fs.goalplanning.FileSystemGoalPlanningContextDiscovery
+import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningBoundaryBodyResolver
+import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningContextDiscovery
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryBody
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.ports.goalrunner.planning.model.GoalPlanningResolvedBoundaryBodies

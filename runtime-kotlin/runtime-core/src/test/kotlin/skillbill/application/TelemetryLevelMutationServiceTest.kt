@@ -5,7 +5,7 @@ import skillbill.application.telemetry.TelemetryLevelMutationService
 import skillbill.application.telemetry.config.TelemetryConfigMutations
 import skillbill.application.telemetry.model.FeatureTaskRuntimeStartedRequest
 import skillbill.application.telemetry.settings.DefaultTelemetrySettingsProvider
-import skillbill.infrastructure.fs.FileTelemetryConfigStore
+import skillbill.infrastructure.host.FileTelemetryConfigStore
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository

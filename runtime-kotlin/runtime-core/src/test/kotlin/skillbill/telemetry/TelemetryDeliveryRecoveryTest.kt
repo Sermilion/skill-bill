@@ -1,7 +1,7 @@
 package skillbill.telemetry
 
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
-import skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort
+import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.ports.concurrency.InterruptSignalPort

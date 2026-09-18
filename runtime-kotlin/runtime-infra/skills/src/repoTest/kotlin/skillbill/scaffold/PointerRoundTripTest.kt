@@ -1,0 +1,68 @@
+package skillbill.scaffold
+
+import org.junit.jupiter.api.Assumptions
+import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.pointer.renderPointer
+import skillbill.model.toPath
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertTrue
+
+class PointerRoundTripTest {
+  @Test
+  fun `every declared pointer renders without requiring source pointer files`() {
+    val repoRoot = findRepoRoot() ?: run {
+      Assumptions.assumeTrue(
+        false,
+        "Skipping pointer round-trip test: could not locate repo root " +
+          "(set SKILL_BILL_REPO_ROOT or run from inside repo)",
+      )
+      return
+    }
+    val packsRoot = repoRoot.resolve("platform-packs")
+    if (!Files.isDirectory(packsRoot)) {
+      Assumptions.assumeTrue(false, "platform-packs/ not present; skipping round-trip")
+      return
+    }
+    val packs = discoverPlatformPackManifests(packsRoot)
+    val checked = mutableListOf<Path>()
+    packs.forEach { pack ->
+      pack.pointers.forEach { spec ->
+        val pointerFile = pack.packRoot.resolve(spec.skillRelativeDir).resolve(spec.name)
+        val rendered = renderPointer(repoRoot, pack.packRoot.toPath(), spec)
+        assertTrue(rendered.isNotBlank(), "Pointer render was blank at $pointerFile")
+        assertTrue(
+          !Files.exists(pointerFile.toPath()),
+          "Declared pointer should not be committed on disk: $pointerFile",
+        )
+        checked.add(pointerFile.toPath())
+      }
+    }
+    assertTrue(checked.isNotEmpty(), "Expected to round-trip at least one declared pointer")
+  }
+
+  private fun findRepoRoot(): Path? {
+    val envRoot = System.getenv("SKILL_BILL_REPO_ROOT")
+      ?.takeIf { it.isNotBlank() }
+      ?.let { Path.of(it).toAbsolutePath().normalize() }
+      ?.takeIf(::looksLikeRepoRoot)
+    var current: Path? = envRoot ?: Path.of("").toAbsolutePath().normalize()
+    var found: Path? = envRoot
+    while (found == null && current != null) {
+      if (looksLikeRepoRoot(current)) {
+        found = current
+      } else {
+        current = current.parent
+      }
+    }
+    return found
+  }
+
+  private fun looksLikeRepoRoot(candidate: Path): Boolean {
+    val hasSettings = Files.isRegularFile(candidate.resolve("settings.gradle.kts")) ||
+      Files.isRegularFile(candidate.resolve("runtime-kotlin/settings.gradle.kts"))
+    val hasSkills = Files.isDirectory(candidate.resolve("skills"))
+    return hasSettings && hasSkills
+  }
+}

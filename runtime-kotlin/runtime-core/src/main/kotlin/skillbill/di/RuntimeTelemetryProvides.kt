@@ -5,7 +5,7 @@ import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
 import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.telemetry.TelemetryLevelMutationService
 import skillbill.application.telemetry.settings.DefaultTelemetrySettingsProvider
-import skillbill.infrastructure.fs.FileTelemetryConfigStore
+import skillbill.infrastructure.host.FileTelemetryConfigStore
 import skillbill.infrastructure.http.HttpTelemetryClient
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryConfigStore

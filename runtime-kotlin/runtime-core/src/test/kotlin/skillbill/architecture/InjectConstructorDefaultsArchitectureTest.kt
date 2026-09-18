@@ -36,18 +36,38 @@ class InjectConstructorDefaultsArchitectureTest {
   }
 
   @Test
-  fun `runtime-infra-fs inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra-fs")
+  fun `runtime-infra host inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:host")
   }
 
   @Test
-  fun `runtime-infra-http inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra-http")
+  fun `runtime-infra contracts inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:contracts")
   }
 
   @Test
-  fun `runtime-infra-sqlite inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra-sqlite")
+  fun `runtime-infra skills inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:skills")
+  }
+
+  @Test
+  fun `runtime-infra launcher inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:launcher")
+  }
+
+  @Test
+  fun `runtime-infra workflow inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:workflow")
+  }
+
+  @Test
+  fun `runtime-infra http inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:http")
+  }
+
+  @Test
+  fun `runtime-infra sqlite inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:sqlite")
   }
 
   @Test

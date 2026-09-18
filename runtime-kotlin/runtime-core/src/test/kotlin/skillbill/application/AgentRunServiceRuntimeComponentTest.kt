@@ -3,7 +3,7 @@ package skillbill.application
 import skillbill.application.agentrun.model.AgentRunStartRequest
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
-import skillbill.infrastructure.fs.launcher.agentrun.PathExecutableLookup
+import skillbill.infrastructure.launcher.agentrun.PathExecutableLookup
 import skillbill.install.model.InstallAgent
 import skillbill.model.RuntimeContext
 import skillbill.ports.agentrun.ExecutableLookup

@@ -4,8 +4,8 @@ import me.tatarka.inject.annotations.Provides
 import skillbill.featurespec.FeatureSpecPreparationPolicy
 import skillbill.featurespec.model.FeatureSpecPreparationDecision
 import skillbill.featurespec.model.FeatureSpecPreparationIntake
-import skillbill.infrastructure.fs.FileSystemFeatureSpecPathResolver
-import skillbill.infrastructure.fs.FileSystemSpecScratchStore
+import skillbill.infrastructure.workflow.FileSystemFeatureSpecPathResolver
+import skillbill.infrastructure.workflow.FileSystemSpecScratchStore
 import skillbill.ports.featurespec.FeatureSpecPathResolverPort
 import skillbill.ports.workflow.specscratch.SpecScratchStore
 

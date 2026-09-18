@@ -8,7 +8,7 @@ object WorkflowStateSchemaPaths {
     "orchestration/contracts/workflow-state-schema.yaml"
 
   const val CLASSPATH_RESOURCE: String =
-    "skillbill/infrastructure/fs/contracts/workflow-state-schema.yaml"
+    "skillbill/infrastructure/contracts/workflow-state-schema.yaml"
 
   const val EXPECTED_SCHEMA_ID: String =
     "https://skill-bill.dev/contracts/workflow-state-schema.yaml"

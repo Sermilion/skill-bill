@@ -23,9 +23,12 @@ dependencies {
 
   testImplementation(testFixtures(project(":runtime-application")))
   testImplementation(testFixtures(project(":runtime-ports")))
-  testImplementation(project(":runtime-infra-fs"))
-  testImplementation(project(":runtime-infra-http"))
-  testImplementation(project(":runtime-infra-sqlite"))
+  testImplementation(project(":runtime-infra:host"))
+  testImplementation(project(":runtime-infra:contracts"))
+  testImplementation(project(":runtime-infra:skills"))
+  testImplementation(project(":runtime-infra:workflow"))
+  testImplementation(project(":runtime-infra:http"))
+  testImplementation(project(":runtime-infra:sqlite"))
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
 }

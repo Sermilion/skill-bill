@@ -10,18 +10,15 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class RuntimeArchitectureDocumentationTest {
-  private val runtimeRoot: Path =
-    Path.of("").toAbsolutePath().normalize().let { workingDir ->
-      if (workingDir.fileName.toString().startsWith("runtime-")) {
-        workingDir.parent
-      } else {
-        workingDir
-      }
-    }
+  private val runtimeRoot: Path = ArchitectureScanSupport.runtimeRoot
+
+  private fun modulePath(moduleId: String, vararg segments: String): Path = segments.fold(
+    runtimeRoot.resolve(RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleId)),
+  ) { path, segment -> path.resolve(segment) }
 
   @Test
   fun `architecture document declares package ownership and dependency direction`() {
-    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
 
     assertContains(architecture, "runtime-cli / runtime-mcp data gateways")
     assertContains(architecture, "-> runtime-application use cases")
@@ -63,7 +60,7 @@ class RuntimeArchitectureDocumentationTest {
 
   @Test
   fun `architecture document records the run loop boundary census`() {
-    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
     assertTrue(architecture.contains("The complete run-loop file census is pinned below."))
     assertTrue(
       Regex("""(?m)^\| Run-loop file \| current \| target \|$""").containsMatchIn(architecture),
@@ -78,13 +75,13 @@ class RuntimeArchitectureDocumentationTest {
 
   @Test
   fun `architecture document declares the runtime contract and schema seams`() {
-    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
 
     assertContains(architecture, "Runtime Contract And Schema Seams")
     assertContains(architecture, "InstallPlanWireValidator")
     assertContains(architecture, "DecompositionManifestValidator")
     assertContains(architecture, "WorkflowSnapshotValidator")
-    assertContains(architecture, "runtime-infra-fs")
+    assertContains(architecture, "runtime-infra/contracts")
     assertContains(architecture, "skillbill.install.model.InstallPlanWireValidator")
     assertContains(architecture, "Decomposition-manifest schema validation is owned by")
     assertContains(architecture, "skillbill.workflow.decomposition.DecompositionManifestValidator")
@@ -110,7 +107,7 @@ class RuntimeArchitectureDocumentationTest {
 
   @Test
   fun `architecture document declares governed wire seams and current enforcement state`() {
-    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
 
     assertContains(architecture, "## Governed payload seams (mechanical scope)")
     assertContains(architecture, "Decomposition manifest")
@@ -121,7 +118,7 @@ class RuntimeArchitectureDocumentationTest {
 
   @Test
   fun `architecture document records the typed scaffold gateway and adapter map inventory`() {
-    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
     val scaffoldSection = architecture
       .substringAfter("## Scaffold Capability Ports And Pure-Policy Ownership")
       .substringBefore("## Architecture Guardrails")
@@ -181,17 +178,19 @@ class RuntimeArchitectureDocumentationTest {
 
   @Test
   fun `substance audit disposition keeps validation ownership after report task deletion`() {
-    val buildScript = runtimeRoot.resolve("runtime-infra-fs/build.gradle.kts").readText()
-    val decisions = Files.readString(runtimeRoot.resolve("agent/decisions.md"))
-    val substanceRoot = runtimeRoot.resolve(
-      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/substance",
+    val skillsBuild = modulePath("runtime-infra:skills", "build.gradle.kts").readText()
+    val decisions = Files.readString(runtimeRoot.resolve("runtime-kotlin/agent/decisions.md"))
+    val substanceRoot = modulePath(
+      "runtime-infra:skills",
+      "src/main/kotlin/skillbill/infrastructure/skills/scaffold/substance",
     )
-    val auditEntryPoint = runtimeRoot.resolve(
-      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/platformpack/" +
-        "substanceaudit/PlatformPackSubstanceAudit.kt",
+    val auditEntryPoint = modulePath(
+      "runtime-infra:skills",
+      "src/main/kotlin/skillbill/infrastructure/skills/scaffold/platformpack/substanceaudit/" +
+        "PlatformPackSubstanceAudit.kt",
     )
 
-    assertFalse(buildScript.contains("platformPackSubstanceReport"))
+    assertFalse(skillsBuild.contains("platformPackSubstanceReport"))
     assertFalse(Files.exists(substanceRoot))
     assertTrue(Files.isRegularFile(auditEntryPoint))
     assertContains(decisions, "`RepoValidationCollected` already calls `PlatformPackSubstanceAudit.audit`")
@@ -199,41 +198,34 @@ class RuntimeArchitectureDocumentationTest {
   }
 
   @Test
-  fun `infra fs retains its area source sets and verification task`() {
-    val buildScript = runtimeRoot.resolve("runtime-infra-fs/build.gradle.kts").readText()
-
-    listOf(
-      "Jvm",
-      "Contracts",
-      "AgentAddon",
-      "NativeAgent",
-      "Scaffold",
-      "Install",
-      "Launcher",
-      "Infrastructure",
-      "GoalPlanning",
-      "SkillRemove",
-    ).forEach { area ->
-      assertTrue(
-        buildScript.contains("\"$area\""),
-        "Missing infra-fs area source-set entry: $area",
+  fun `infrastructure modules do not retain infra-fs area source sets or verification task`() {
+    val infrastructureRoots = listOf(
+      "runtime-infra:host",
+      "runtime-infra:contracts",
+      "runtime-infra:skills",
+      "runtime-infra:launcher",
+      "runtime-infra:workflow",
+    )
+    infrastructureRoots.forEach { moduleId ->
+      val buildScript = modulePath(moduleId, "build.gradle.kts").readText()
+      assertFalse(
+        buildScript.contains("infraFs"),
+        "$moduleId must not declare infra-fs area source sets.",
       )
-      assertTrue(
-        buildScript.contains("val sourceSetName = \"infraFs\${areaName}Area\""),
-        "Missing infra-fs area source set: $area",
+      assertFalse(
+        buildScript.contains("verifyInfraFsAreaCompile"),
+        "$moduleId must not register verifyInfraFsAreaCompile.",
+      )
+      assertFalse(
+        buildScript.contains("friendPaths"),
+        "$moduleId must not declare friendPaths.",
       )
     }
-    assertContains(buildScript, "tasks.register(\"verifyInfraFsAreaCompile\")")
-    assertTrue(
-      Files.isDirectory(
-        runtimeRoot.resolve("runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs"),
-      ),
-    )
   }
 
   @Test
   fun `boundary decisions record raw-map enforcement supersession`() {
-    val decisions = Files.readString(runtimeRoot.resolve("agent/decisions.md"))
+    val decisions = Files.readString(runtimeRoot.resolve("runtime-kotlin/agent/decisions.md"))
 
     assertContains(decisions, "2026-09-14 — SKILL-52.5 subtask 7: zero-tolerance raw-map enforcement")
     assertContains(decisions, "Retire allow-list governance")
@@ -243,7 +235,7 @@ class RuntimeArchitectureDocumentationTest {
 
   @Test
   fun `package ownership matches runtime module catalog in both directions`() {
-    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
     val section = architecture.substringAfter("## Package Ownership").substringBefore("\n## ")
     val catalog = RuntimeModuleCatalog.declaredSubsystemPackages.toSet()
     val missingFromDoc = catalog.filter { pkg -> !ownershipSectionNamesPackage(section, pkg) }.toSet()
@@ -313,8 +305,8 @@ class RuntimeArchitectureDocumentationTest {
 
   @Test
   fun `architecture document settings and runtime module declare the same graph`() {
-    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
-    val settings = Files.readString(runtimeRoot.resolve("settings.gradle.kts"))
+    val architecture = Files.readString(runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
+    val settings = Files.readString(runtimeRoot.resolve("runtime-kotlin/settings.gradle.kts"))
 
     assertEquals(
       RuntimeModuleCatalog.declaredGradleModules,
@@ -331,6 +323,54 @@ class RuntimeArchitectureDocumentationTest {
       architecture.fencedTextListAfter("The subsystem package set is:").toSet(),
       "ARCHITECTURE.md subsystem package list must match RuntimeModuleCatalog.declaredSubsystemPackages.",
     )
+  }
+
+  @Test
+  fun `module split documentation uses nested infrastructure names`() {
+    val repositoryRoot = ArchitectureScanSupport.runtimeRoot
+    val documentationFiles = listOf(
+      "runtime-kotlin/ARCHITECTURE.md",
+      "docs/code-principles.md",
+      "docs/internal-skills-architecture.md",
+      "docs/skill-source-generation.md",
+      "docs/agent/history.md",
+    ).map { relativePath -> repositoryRoot.resolve(relativePath) }
+    val directoryNames = listOf(
+      "runtime-infra/host",
+      "runtime-infra/contracts",
+      "runtime-infra/skills",
+      "runtime-infra/launcher",
+      "runtime-infra/workflow",
+      "runtime-infra/http",
+      "runtime-infra/sqlite",
+    )
+    val projectIds = listOf(
+      ":runtime-infra:host",
+      ":runtime-infra:contracts",
+      ":runtime-infra:skills",
+      ":runtime-infra:launcher",
+      ":runtime-infra:workflow",
+      ":runtime-infra:http",
+      ":runtime-infra:sqlite",
+    )
+
+    val documentation = documentationFiles.joinToString("\n", transform = Files::readString)
+    directoryNames.forEach { directory -> assertContains(documentation, directory) }
+    projectIds.forEach { projectId -> assertContains(documentation, projectId) }
+
+    val legacyNames = listOf(
+      "runtime-infra" + "-fs",
+      "runtime-infra" + "-http",
+      "runtime-infra" + "-sqlite",
+    )
+    val staleReferences =
+      documentationFiles.filterNot { it.fileName.toString() == "history.md" }.flatMap { path ->
+        val text = Files.readString(path)
+        legacyNames
+          .filter(text::contains)
+          .map { name -> "${repositoryRoot.relativize(path)} contains $name" }
+      }
+    assertEquals(emptyList(), staleReferences)
   }
 
   private fun String.fencedTextListAfter(marker: String): List<String> {

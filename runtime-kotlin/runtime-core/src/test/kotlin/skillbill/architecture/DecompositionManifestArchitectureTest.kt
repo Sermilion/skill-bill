@@ -9,14 +9,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class DecompositionManifestArchitectureTest {
-  private val runtimeRoot: Path =
-    Path.of("").toAbsolutePath().normalize().let { workingDir ->
-      if (workingDir.fileName.toString().startsWith("runtime-")) {
-        workingDir.parent
-      } else {
-        workingDir
-      }
-    }
+  private val runtimeRoot: Path = ArchitectureScanSupport.runtimeRoot
+  private val infraWorkflowModule = RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:workflow")
   private val domainDecompositionManifestRuntimeSeamTokens = listOf(
     "DecompositionManifestSchemaValidator",
     "validateYamlText",
@@ -30,10 +24,13 @@ class DecompositionManifestArchitectureTest {
 
   @Test
   fun `decomposition manifest schema validation stays at application seams`() {
-    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(
+      runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"),
+    )
     val applicationSeam = Files.readString(
       runtimeRoot.resolve(
-        "runtime-application/src/main/kotlin/skillbill/application/decomposition/DecompositionManifestFileWrites.kt",
+        "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/decomposition/" +
+          "DecompositionManifestFileWrites.kt",
       ),
     )
 
@@ -59,7 +56,7 @@ class DecompositionManifestArchitectureTest {
 
     val infraStoreSeam = Files.readString(
       runtimeRoot.resolve(
-        "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/" +
+        "$infraWorkflowModule/src/main/kotlin/skillbill/infrastructure/workflow/" +
           "FileSystemDecompositionManifestFileStore.kt",
       ),
     )
@@ -69,7 +66,9 @@ class DecompositionManifestArchitectureTest {
 
   @Test
   fun `domain workflow code does not own decomposition manifest schema or YAML seams`() {
-    val domainWorkflowRoot = runtimeRoot.resolve("runtime-domain/src/main/kotlin/skillbill/workflow")
+    val domainWorkflowRoot = runtimeRoot.resolve(
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow",
+    )
 
     val validatorPortFile =
       domainWorkflowRoot.resolve("decomposition/DecompositionManifestValidator.kt").normalize()
@@ -92,7 +91,9 @@ class DecompositionManifestArchitectureTest {
 
   @Test
   fun `application decomposition runtime artifact emission uses validated seam`() {
-    val applicationRoot = runtimeRoot.resolve("runtime-application/src/main/kotlin/skillbill/application")
+    val applicationRoot = runtimeRoot.resolve(
+      "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application",
+    )
     val allowedRawWireMapFile = applicationRoot.resolve("decomposition/DecompositionManifestFileWrites.kt").normalize()
     val violations = Files.walk(applicationRoot).use { paths ->
       paths
@@ -122,7 +123,7 @@ class DecompositionManifestArchitectureTest {
 
   @Test
   fun `tracked decomposition manifests omit runtime result payloads`() {
-    val repoRoot = runtimeRoot.parent
+    val repoRoot = runtimeRoot
     val featureSpecRoot = repoRoot.resolve(".feature-specs")
     val manifests = if (Files.isDirectory(featureSpecRoot)) {
       Files.walk(featureSpecRoot).use { paths ->

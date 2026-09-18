@@ -44,7 +44,9 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `runtime cli check task depends on validate agent configs`() {
-    val buildFile = Files.readString(runtimeArchitectureRoot.resolve("runtime-cli/build.gradle.kts"))
+    val buildFile = Files.readString(
+      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-cli/build.gradle.kts"),
+    )
     assertContains(buildFile, "val validateAgentConfigs by tasks.registering(JavaExec::class)")
     val validateAgentConfigsBlock =
       Regex(
@@ -102,7 +104,9 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `runtime ports avoid concrete thread interrupt restoration`() {
-    val portMainFiles = sourceFilesIn(runtimeArchitectureRoot.resolve("runtime-ports/src/main/kotlin"))
+    val portMainFiles = sourceFilesIn(
+      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-ports/src/main/kotlin"),
+    )
     assertNoBannedSourceReferences(
       files = portMainFiles,
       bannedReferences = listOf(
@@ -115,11 +119,13 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `runtime application does not select the JVM interrupt adapter`() {
-    val applicationMainFiles = sourceFilesIn(runtimeArchitectureRoot.resolve("runtime-application/src/main/kotlin"))
+    val applicationMainFiles = sourceFilesIn(
+      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-application/src/main/kotlin"),
+    )
     assertNoBannedImports(
       files = applicationMainFiles,
       bannedImports = listOf(
-        "skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort",
+        "skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort",
         "skillbill.ports.concurrency.JvmInterruptSignalPort",
       ),
     )
@@ -127,7 +133,9 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `runtime application owns no direct timing logging or threading environment APIs`() {
-    val applicationMainFiles = sourceFilesIn(runtimeArchitectureRoot.resolve("runtime-application/src/main/kotlin"))
+    val applicationMainFiles = sourceFilesIn(
+      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-application/src/main/kotlin"),
+    )
     assertTrue(applicationMainFiles.isNotEmpty(), "runtime-application main source scan must be non-vacuous.")
     assertNoBannedImports(
       files = applicationMainFiles,
@@ -161,9 +169,9 @@ class RuntimeLayerBoundaryArchitectureTest {
     val boundaryFiles =
       sourceFiles()
         .filter { file ->
-          file.relativePath.startsWith("runtime-application/src/main/kotlin/") ||
-            file.relativePath.startsWith("runtime-domain/src/main/kotlin/") ||
-            file.relativePath.startsWith("runtime-ports/src/main/kotlin/")
+          file.relativePath.startsWith("runtime-kotlin/runtime-application/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-kotlin/runtime-domain/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-kotlin/runtime-ports/src/main/kotlin/")
         }
 
     assertNoBannedImports(
@@ -182,8 +190,8 @@ class RuntimeLayerBoundaryArchitectureTest {
     val domainAndPortFiles =
       sourceFiles()
         .filter { file ->
-          file.relativePath.startsWith("runtime-domain/src/main/kotlin/") ||
-            file.relativePath.startsWith("runtime-ports/src/main/kotlin/")
+          file.relativePath.startsWith("runtime-kotlin/runtime-domain/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-kotlin/runtime-ports/src/main/kotlin/")
         }
 
     assertNoBannedImports(
@@ -223,7 +231,7 @@ class RuntimeLayerBoundaryArchitectureTest {
     val domainFiles =
       sourceFiles()
         .filter { file ->
-          file.relativePath.startsWith("runtime-domain/src/main/kotlin/")
+          file.relativePath.startsWith("runtime-kotlin/runtime-domain/src/main/kotlin/")
         }
 
     assertNoBannedSourceReferences(
@@ -235,7 +243,7 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `application domain and ports use Path only as an inert value type`() {
-    val architecture = Files.readString(runtimeArchitectureRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(runtimeArchitectureRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
     assertContains(architecture, "`java.nio.file.Path` is allowed")
     assertContains(architecture, "only as an inert value type")
     assertContains(architecture, "home-directory expansion")
@@ -245,9 +253,9 @@ class RuntimeLayerBoundaryArchitectureTest {
     val boundaryFiles =
       sourceFiles()
         .filter { file ->
-          file.relativePath.startsWith("runtime-application/src/main/kotlin/") ||
-            file.relativePath.startsWith("runtime-domain/src/main/kotlin/") ||
-            file.relativePath.startsWith("runtime-ports/src/main/kotlin/")
+          file.relativePath.startsWith("runtime-kotlin/runtime-application/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-kotlin/runtime-domain/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-kotlin/runtime-ports/src/main/kotlin/")
         }
     val pathImportingFiles = boundaryFiles.filter { file -> "java.nio.file.Path" in file.imports }
     assertTrue(
@@ -298,9 +306,9 @@ class RuntimeLayerBoundaryArchitectureTest {
     val violations =
       sourceFiles()
         .filter { file ->
-          file.relativePath.startsWith("runtime-application/") ||
-            file.relativePath.startsWith("runtime-domain/") ||
-            file.relativePath.startsWith("runtime-ports/")
+          file.relativePath.startsWith("runtime-kotlin/runtime-application/") ||
+            file.relativePath.startsWith("runtime-kotlin/runtime-domain/") ||
+            file.relativePath.startsWith("runtime-kotlin/runtime-ports/")
         }
         .flatMap { file ->
           if (file.packageName.split('.').contains("model")) return@flatMap emptyList()
@@ -386,10 +394,10 @@ class RuntimeLayerBoundaryArchitectureTest {
   fun `mcp adapter avoids direct filesystem http sql dependencies`() {
     val mcpFiles =
       sourceFiles()
-        .filter { file -> file.relativePath.startsWith("runtime-mcp/src/main/kotlin/") }
+        .filter { file -> file.relativePath.startsWith("runtime-kotlin/runtime-mcp/src/main/kotlin/") }
     val cliFiles =
       sourceFiles()
-        .filter { file -> file.relativePath.startsWith("runtime-cli/src/main/kotlin/") }
+        .filter { file -> file.relativePath.startsWith("runtime-kotlin/runtime-cli/src/main/kotlin/") }
 
     assertNoBannedSourceReferences(
       files = mcpFiles,

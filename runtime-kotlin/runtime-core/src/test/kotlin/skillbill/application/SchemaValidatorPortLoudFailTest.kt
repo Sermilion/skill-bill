@@ -4,9 +4,9 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.error.InvalidInstallPlanSchemaError
-import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
-import skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator
-import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
+import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator
+import skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator
+import skillbill.infrastructure.workflow.FileSystemDecompositionManifestFileStore
 import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore

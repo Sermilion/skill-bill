@@ -1,13 +1,13 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.infrastructure.fs.FileSystemScaffoldCatalogGateway
-import skillbill.infrastructure.fs.FileSystemScaffoldGateway
-import skillbill.infrastructure.fs.FileSystemScaffoldGeneratedStaging
-import skillbill.infrastructure.fs.FileSystemScaffoldInstallLink
-import skillbill.infrastructure.fs.FileSystemScaffoldManifestPersistence
-import skillbill.infrastructure.fs.FileSystemUnsupportedScaffoldGateway
-import skillbill.infrastructure.fs.scaffold.adapters.FileSystemScaffoldSourceLoader
+import skillbill.infrastructure.skills.FileSystemScaffoldCatalogGateway
+import skillbill.infrastructure.skills.FileSystemScaffoldGateway
+import skillbill.infrastructure.skills.FileSystemScaffoldGeneratedStaging
+import skillbill.infrastructure.skills.FileSystemScaffoldInstallLink
+import skillbill.infrastructure.skills.FileSystemScaffoldManifestPersistence
+import skillbill.infrastructure.skills.FileSystemUnsupportedScaffoldGateway
+import skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldSourceLoader
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.UnsupportedScaffoldGateway

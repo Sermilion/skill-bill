@@ -11,7 +11,7 @@ class RuntimeRawMapArchitectureTest {
 
   @Test
   fun `architecture prose does not carry raw-map FQN inventories`() {
-    val architecture = Files.readString(runtimeArchitectureRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(runtimeArchitectureRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
     val rawMapRule = architecture.substringAfter("**Raw Map Boundary Rule")
       .substringBefore("\n12. `java.nio.file.Path`")
     assertFalse(rawMapRule.contains("<!-- open-boundary-allowlist:start -->"))
@@ -32,6 +32,10 @@ class RuntimeRawMapArchitectureTest {
     )
     val staleReferences = Files.walk(runtimeArchitectureRoot).use { paths ->
       paths
+        .filter { path ->
+          val normalized = path.toString().replace('\\', '/')
+          !normalized.contains("/.feature-specs/") && !normalized.contains("/.git/")
+        }
         .filter { path ->
           Files.isRegularFile(path) &&
             path.fileName.toString().substringAfterLast('.', "") in setOf("kt", "md", "py", "yaml", "yml", "sh")

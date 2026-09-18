@@ -11,7 +11,7 @@ import skillbill.cli.workflow.toCliMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
-import skillbill.infrastructure.fs.contracts.workflow.GoalObservabilityEventSchemaValidator
+import skillbill.infrastructure.contracts.workflow.GoalObservabilityEventSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts

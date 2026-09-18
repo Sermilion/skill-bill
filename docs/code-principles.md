@@ -51,7 +51,7 @@ inside durable control-state or phase-output decoders.
 
 - `runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/error/FailureWireCodeContract.kt`
 - `runtime-kotlin/runtime-domain/src/test/kotlin/skillbill/workflow/failureidentity/FailureWireCodeConformanceTest.kt`
-- `runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/db/workflow/GoalRunnerControlStore.kt` (`decodeControlState` and helpers)
+- `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/workflow/GoalRunnerControlStore.kt` (`decodeControlState` and helpers)
 - `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/TypedParseBoundaryArchitectureTest.kt`
 
 **Amendment.** Genuinely open operator or agent JSON maps, external process
@@ -75,8 +75,12 @@ closed enum for pack-local file paths.
 
 **Reference examples.**
 
-- `runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/scaffold/platformpack/ShellContentLoader.kt` (`parseFallbackCapabilities`)
-- `runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/launcher/agentrun/AgentRunCommandBuildersLaunch.kt` (`GovernedReviewLaunchCapability`)
+Infrastructure Gradle directories: `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`,
+`runtime-infra/launcher`, `runtime-infra/workflow`, `runtime-infra/http`, and `runtime-infra/sqlite`
+(`:runtime-infra:host` through `:runtime-infra:sqlite`).
+
+- `runtime-kotlin/runtime-infra/skills/src/main/kotlin/skillbill/scaffold/platformpack/ShellContentLoader.kt` (`parseFallbackCapabilities`)
+- `runtime-kotlin/runtime-infra/skills/src/main/kotlin/skillbill/launcher/agentrun/AgentRunCommandBuildersLaunch.kt` (`GovernedReviewLaunchCapability`)
 - `runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/error/GovernedReviewShellContentErrors.kt`
 
 **Amendment (SKILL-220 subtask 3).** `fallback_capabilities`, native-agent
@@ -123,7 +127,7 @@ storage technology.
 
 - `runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/featuretask/model/FeatureTaskRuntimeRunModels.kt`
 - `runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/goalrunner/runner/GoalRunnerPorts.kt` (`GoalRunnerManifestStore`)
-- `runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifestStore.kt`
+- `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifestStore.kt`
 - `runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/engine/WorkflowEngine.kt`
 - `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PackageClusteringArchitectureTest.kt`
 - `runtime-kotlin/ARCHITECTURE.md` Package Ownership section
@@ -147,7 +151,7 @@ silent takeover without generation fencing.
 
 - `runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/goalrunner/model/GoalRunnerControlModels.kt`
 - `runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/goalrunner/GoalRunnerStatusService.kt`
-- `runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/goalrunner/WorkflowGoalRunnerOutcomeTerminalPersistence.kt`
+- `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/goalrunner/WorkflowGoalRunnerOutcomeTerminalPersistence.kt`
 - `runtime-kotlin/ARCHITECTURE.md` DB-first feature-task continuation section
 
 ## Composition And API Surface

@@ -41,18 +41,38 @@ class RuntimeApplicationAmbientClockArchitectureTest {
   }
 
   @Test
-  fun `runtime-infra-fs ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra-fs")
+  fun `runtime-infra host ambient clock sites equal the recorded census`() {
+    assertAmbientClockMatchesBaseline("runtime-infra:host")
   }
 
   @Test
-  fun `runtime-infra-http ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra-http")
+  fun `runtime-infra contracts ambient clock sites equal the recorded census`() {
+    assertAmbientClockMatchesBaseline("runtime-infra:contracts")
   }
 
   @Test
-  fun `runtime-infra-sqlite ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra-sqlite")
+  fun `runtime-infra skills ambient clock sites equal the recorded census`() {
+    assertAmbientClockMatchesBaseline("runtime-infra:skills")
+  }
+
+  @Test
+  fun `runtime-infra launcher ambient clock sites equal the recorded census`() {
+    assertAmbientClockMatchesBaseline("runtime-infra:launcher")
+  }
+
+  @Test
+  fun `runtime-infra workflow ambient clock sites equal the recorded census`() {
+    assertAmbientClockMatchesBaseline("runtime-infra:workflow")
+  }
+
+  @Test
+  fun `runtime-infra http ambient clock sites equal the recorded census`() {
+    assertAmbientClockMatchesBaseline("runtime-infra:http")
+  }
+
+  @Test
+  fun `runtime-infra sqlite ambient clock sites equal the recorded census`() {
+    assertAmbientClockMatchesBaseline("runtime-infra:sqlite")
   }
 
   @Test

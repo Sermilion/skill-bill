@@ -6,7 +6,7 @@ import skillbill.application.review.ReviewService
 import skillbill.application.telemetry.RUNTIME_EXCEPTION_EVENT
 import skillbill.application.telemetry.TelemetryLevelMutationService
 import skillbill.application.telemetry.TelemetryService
-import skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort
+import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.model.EnvironmentContext

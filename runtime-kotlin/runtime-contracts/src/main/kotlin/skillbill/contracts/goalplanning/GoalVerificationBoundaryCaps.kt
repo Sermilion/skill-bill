@@ -9,7 +9,7 @@ import skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError
 
 object GoalVerificationBoundaryCaps {
   const val CONTRACT_VERSION = "0.2"
-  const val RESOURCE_PATH = "skillbill/infrastructure/fs/contracts/goal-verification-boundary-caps.yaml"
+  const val RESOURCE_PATH = "skillbill/infrastructure/contracts/goal-verification-boundary-caps.yaml"
   const val CONTRACT_FILE = "orchestration/contracts/goal-verification-boundary-caps.yaml"
   const val SCHEMA_FILE = "orchestration/contracts/goal-verification-boundary-caps-schema.yaml"
 

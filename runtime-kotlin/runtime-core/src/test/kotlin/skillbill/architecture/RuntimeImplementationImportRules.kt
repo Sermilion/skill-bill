@@ -8,17 +8,17 @@ internal fun isRuntimeImplementationImport(importedName: String): Boolean {
   val forbiddenPrefixes = listOf(
     "skillbill.infrastructure.sqlite.",
     "skillbill.infrastructure.",
-    "skillbill.infrastructure.fs.",
+    "skillbill.infrastructure.skills.",
     "skillbill.infrastructure.http.",
     "skillbill.infrastructure.sqlite.",
-    "skillbill.infrastructure.fs.nativeagent.",
-    "skillbill.infrastructure.fs.launcher.",
-    "skillbill.infrastructure.fs.skillremove.",
+    "skillbill.infrastructure.skills.nativeagent.",
+    "skillbill.infrastructure.launcher.",
+    "skillbill.infrastructure.skills.skillremove.",
   )
   val importsForbiddenRoot = forbiddenPrefixes.any(importedName::startsWith)
-  val importsInstallImplementation = importedName.startsWith("skillbill.infrastructure.fs.install.") &&
+  val importsInstallImplementation = importedName.startsWith("skillbill.infrastructure.skills.install.") &&
     !importedName.startsWith("skillbill.install.model.")
-  val importsScaffoldImplementation = importedName.startsWith("skillbill.infrastructure.fs.scaffold.") &&
+  val importsScaffoldImplementation = importedName.startsWith("skillbill.infrastructure.skills.scaffold.") &&
     !importedName.startsWith("skillbill.scaffold.model.")
   val importsTelemetryImplementation = importedName.startsWith("skillbill.telemetry.") &&
     !importedName.startsWith("skillbill.telemetry.model.")
@@ -73,7 +73,7 @@ internal fun assertRuntimeCorePublicProjectEdges(runtimeRoot: Path, runtimeCoreB
     "runtime-core's generated public API closure must stay limited to the documented Kotlin-Inject " +
       "ABI closure; it must not transitively re-export concrete infrastructure, CLI, or MCP modules.",
   )
-  val architecture = runtimeRoot.resolve("ARCHITECTURE.md").toFile().readText()
+  val architecture = runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md").toFile().readText()
   val normalizedArchitecture = architecture.replace(Regex("\\s+"), " ")
   assertTrue(
     "publishes only the generated Kotlin-Inject ABI edges" in architecture,
@@ -157,7 +157,9 @@ private fun runtimeCoreApiDependencyClosure(runtimeRoot: Path, directEdges: Set<
   val visited = mutableSetOf<String>()
   fun visit(module: String) {
     if (!visited.add(module)) return
-    val buildFile = runtimeRoot.resolve(module.removePrefix(":")).resolve("build.gradle.kts").toFile()
+    val buildFile = runtimeRoot.resolve(
+      "runtime-kotlin/${module.removePrefix(":")}/build.gradle.kts",
+    ).toFile()
     if (!buildFile.isFile) return
     Regex("""api\(project\("(:runtime-[^"]+)"\)\)""")
       .findAll(buildFile.readText())
@@ -176,8 +178,9 @@ private fun runtimeComponentInternalProviderJvmLeaks(runtimeRoot: Path): List<St
     .toList()
 }
 
-private fun runtimeComponentText(runtimeRoot: Path): String =
-  runtimeRoot.resolve("runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt").toFile().readText()
+private fun runtimeComponentText(runtimeRoot: Path): String = runtimeRoot.resolve(
+  "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt",
+).toFile().readText()
 
 private fun importsBySimpleName(sourceText: String): Map<String, String> = sourceText.lineSequence()
   .mapNotNull { line -> line.trim().removePrefix("import ").takeIf { line.trim().startsWith("import ") } }

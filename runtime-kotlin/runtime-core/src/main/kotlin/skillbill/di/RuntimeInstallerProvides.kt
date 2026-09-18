@@ -1,8 +1,8 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.infrastructure.fs.InstallerProcessAdapter
 import skillbill.infrastructure.http.HttpInstallerScriptFetchAdapter
+import skillbill.infrastructure.launcher.InstallerProcessAdapter
 import skillbill.model.OptionalCallbacks
 import skillbill.ports.process.InstallerProcessPort
 import skillbill.ports.process.InstallerScriptFetchPort

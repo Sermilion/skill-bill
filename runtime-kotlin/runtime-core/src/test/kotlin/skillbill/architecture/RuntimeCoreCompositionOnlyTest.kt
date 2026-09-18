@@ -24,7 +24,11 @@ class RuntimeCoreCompositionOnlyTest {
   @Test
   fun `module api edges match the recorded expectation`() {
     RuntimeModuleCatalog.moduleEdgeExpectations.forEach { (moduleName, expectation) ->
-      val source = Files.readString(runtimeKotlinRoot.resolve("$moduleName/build.gradle.kts"))
+      val source = Files.readString(
+        runtimeKotlinRoot.resolve(
+          "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)}/build.gradle.kts",
+        ),
+      )
       assertModuleEdgesMatchExpectation(moduleName, source, expectation)
     }
   }
@@ -32,7 +36,11 @@ class RuntimeCoreCompositionOnlyTest {
   @Test
   fun `module implementation edges match the recorded expectation`() {
     RuntimeModuleCatalog.moduleEdgeExpectations.forEach { (moduleName, expectation) ->
-      val source = Files.readString(runtimeKotlinRoot.resolve("$moduleName/build.gradle.kts"))
+      val source = Files.readString(
+        runtimeKotlinRoot.resolve(
+          "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)}/build.gradle.kts",
+        ),
+      )
       assertModuleEdgesMatchExpectation(moduleName, source, expectation)
     }
   }
@@ -62,9 +70,13 @@ class RuntimeCoreCompositionOnlyTest {
       api(project(":runtime-ports"))
       implementation(project(":runtime-domain"))
       implementation(project(":runtime-contracts"))
-      implementation(project(":runtime-infra-fs"))
-      implementation(project(":runtime-infra-http"))
-      implementation(project(":runtime-infra-sqlite"))
+      implementation(project(":runtime-infra:host"))
+      implementation(project(":runtime-infra:contracts"))
+      implementation(project(":runtime-infra:skills"))
+      implementation(project(":runtime-infra:launcher"))
+      implementation(project(":runtime-infra:workflow"))
+      implementation(project(":runtime-infra:http"))
+      implementation(project(":runtime-infra:sqlite"))
       implementation(project(":runtime-extra"))
     }
     """.trimIndent()
@@ -85,8 +97,12 @@ class RuntimeCoreCompositionOnlyTest {
         api(project(":runtime-ports"))
         implementation(project(":runtime-domain"))
         implementation(project(":runtime-contracts"))
-        implementation(project(":runtime-infra-fs"))
-        implementation(project(":runtime-infra-http"))
+        implementation(project(":runtime-infra:host"))
+        implementation(project(":runtime-infra:contracts"))
+        implementation(project(":runtime-infra:skills"))
+        implementation(project(":runtime-infra:launcher"))
+        implementation(project(":runtime-infra:workflow"))
+        implementation(project(":runtime-infra:http"))
       }
     """.trimIndent()
     assertFailsWith<AssertionError> {
@@ -106,9 +122,13 @@ class RuntimeCoreCompositionOnlyTest {
         api(project(":runtime-ports"))
         api(project(":runtime-domain"))
         implementation(project(":runtime-contracts"))
-        implementation(project(":runtime-infra-fs"))
-        implementation(project(":runtime-infra-http"))
-        implementation(project(":runtime-infra-sqlite"))
+        implementation(project(":runtime-infra:host"))
+        implementation(project(":runtime-infra:contracts"))
+        implementation(project(":runtime-infra:skills"))
+        implementation(project(":runtime-infra:launcher"))
+        implementation(project(":runtime-infra:workflow"))
+        implementation(project(":runtime-infra:http"))
+        implementation(project(":runtime-infra:sqlite"))
       }
     """.trimIndent()
     assertFailsWith<AssertionError> {

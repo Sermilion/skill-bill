@@ -2,7 +2,7 @@ package skillbill.engine.featuretask
 
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointRefPruneRequest
 import skillbill.engine.goalrunner.pruneEligibleCheckpointRefsForManifest
-import skillbill.infrastructure.fs.GitWorkflowGitOperations
+import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.deleteCheckpointRef
 import skillbill.ports.workflow.gitops.listCheckpointRefs

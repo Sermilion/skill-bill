@@ -1,10 +1,10 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.infrastructure.fs.FileExternalAgentAddonSourceConfigStore
-import skillbill.infrastructure.fs.FileSystemDeclaredReviewSpecialists
-import skillbill.infrastructure.fs.FileSystemInstalledPlatformPackCatalog
-import skillbill.infrastructure.fs.agentaddon.AgentAddonSelectionResolver
+import skillbill.infrastructure.skills.FileExternalAgentAddonSourceConfigStore
+import skillbill.infrastructure.skills.FileSystemInstalledPlatformPackCatalog
+import skillbill.infrastructure.skills.agentaddon.AgentAddonSelectionResolver
+import skillbill.infrastructure.workflow.FileSystemDeclaredReviewSpecialists
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.review.DeclaredReviewSpecialistsPort

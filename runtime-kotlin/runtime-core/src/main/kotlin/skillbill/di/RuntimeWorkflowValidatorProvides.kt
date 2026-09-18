@@ -1,10 +1,10 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
-import skillbill.infrastructure.fs.contracts.workflow.IdeStatusSchemaValidator
-import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
+import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator
+import skillbill.infrastructure.contracts.workflow.IdeStatusSchemaValidator
+import skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.ports.idestatus.IdeStatusValidator
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowSnapshotValidator

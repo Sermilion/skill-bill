@@ -10,7 +10,7 @@ object DecompositionManifestSchemaPaths {
     "orchestration/contracts/decomposition-manifest-schema.yaml"
 
   const val CLASSPATH_RESOURCE: String =
-    "skillbill/infrastructure/fs/contracts/decomposition-manifest-schema.yaml"
+    "skillbill/infrastructure/contracts/decomposition-manifest-schema.yaml"
 
   const val EXPECTED_SCHEMA_ID: String =
     "https://skill-bill.dev/contracts/decomposition-manifest-schema.yaml"

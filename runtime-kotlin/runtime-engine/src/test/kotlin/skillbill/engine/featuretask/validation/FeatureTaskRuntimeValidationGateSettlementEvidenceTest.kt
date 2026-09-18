@@ -7,8 +7,8 @@ import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLa
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminalOutcome
-import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimePhaseOutputWireSchema
-import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeValidationEvidenceSchemaValidator
+import skillbill.infrastructure.contracts.workflow.FeatureTaskRuntimePhaseOutputWireSchema
+import skillbill.infrastructure.contracts.workflow.FeatureTaskRuntimeValidationEvidenceSchemaValidator
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.workflow.goal.model.ValidationDepth

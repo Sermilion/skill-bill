@@ -1,10 +1,10 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.infrastructure.fs.FileSystemRepoLocalConfig
-import skillbill.infrastructure.fs.FileSystemRepoValidationGateway
-import skillbill.infrastructure.fs.scaffold.adapters.FileSystemScaffoldRepoValidation
-import skillbill.infrastructure.fs.validation.FileSystemValidationGateRunner
+import skillbill.infrastructure.host.FileSystemRepoLocalConfig
+import skillbill.infrastructure.skills.FileSystemRepoValidationGateway
+import skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldRepoValidation
+import skillbill.infrastructure.workflow.validation.FileSystemValidationGateRunner
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.scaffold.repo.ScaffoldRepoValidationPort
 import skillbill.ports.validation.RepoValidationGateway

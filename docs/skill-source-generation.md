@@ -319,7 +319,7 @@ the loop.
 - the authored body rendered into `## Execution`
 - generated ceremony text in `## Ceremony`
 
-The renderer is implemented in `runtime-kotlin/runtime-infra-fs` around
+The renderer is implemented in `runtime-kotlin/runtime-infra/skills` around
 `AuthoringRender.kt` and supporting scaffold renderers.
 
 Important rules:

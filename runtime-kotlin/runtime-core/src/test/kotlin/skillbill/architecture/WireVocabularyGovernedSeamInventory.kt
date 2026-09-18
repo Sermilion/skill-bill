@@ -28,7 +28,7 @@ internal object WireVocabularyGovernedSeamInventory {
         "application/decomposition/",
         "application/workflow/Decomposition",
         "application/featurespec/",
-        "infrastructure/fs/contracts/workflow/DecompositionManifest",
+        "infrastructure/contracts/workflow/DecompositionManifest",
         "infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifest",
         "infrastructure/sqlite/goalrunner/GoalContinuationArtifactCodec",
         "engine/goalrunner/planning/GoalPlanningShared",
@@ -52,7 +52,7 @@ internal object WireVocabularyGovernedSeamInventory {
       governedRelativePathMarkers = listOf(
         "workflow/taskruntime/",
         "engine/featuretask/",
-        "infrastructure/fs/phaseoutput/",
+        "infrastructure/contracts/phaseoutput/",
         "mcp/featuretask/McpFeatureTaskSettlement",
         "application/workflow/WorkflowWire",
         "application/workflow/WorkflowService",
