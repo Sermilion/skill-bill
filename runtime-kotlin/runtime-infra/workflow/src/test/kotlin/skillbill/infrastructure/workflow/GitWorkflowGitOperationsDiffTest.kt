@@ -4,6 +4,8 @@ import skillbill.ports.workflow.gitops.buildGoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.captureGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
+import skillbill.workflow.goal.model.GoalObservabilityDiffStat
+import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -300,5 +302,50 @@ class GitWorkflowGitOperationsDiffTest {
 
     assertEquals(WorkflowGitOperationStatus.OK, result.status, result.error)
     assertEquals(git(repoRoot, "rev-parse", "HEAD"), requireNotNull(result.baseline).reviewBaseSha)
+  }
+
+  @Test
+  fun `worktree numstat combines staged and unstaged edits, counts untracked text, and omits binaries`() {
+    val repoRoot = Files.createTempDirectory("skillbill-worktree-numstat")
+    git(repoRoot, "init")
+    git(repoRoot, "config", "user.email", "skill-bill@example.test")
+    git(repoRoot, "config", "user.name", "Skill Bill")
+    git(repoRoot, "config", "diff.renames", "true")
+    Files.writeString(repoRoot.resolve("tracked.txt"), "one\ntwo\nthree\n")
+    Files.writeString(repoRoot.resolve("moved.txt"), "keep line one\nkeep line two\nkeep line three\n")
+    git(repoRoot, "add", ".")
+    git(repoRoot, "commit", "-m", "initial")
+    Files.writeString(repoRoot.resolve("tracked.txt"), "one\nTWO\nthree\n")
+    git(repoRoot, "add", "tracked.txt")
+    Files.writeString(repoRoot.resolve("tracked.txt"), "one\nTWO\nTHREE\n")
+    Files.writeString(repoRoot.resolve("notes.txt"), "alpha\nbeta\ngamma")
+    Files.write(repoRoot.resolve("image.bin"), byteArrayOf(0x89.toByte(), 0x50, 0x00, 0x47))
+    git(repoRoot, "mv", "moved.txt", "renamed.txt")
+    Files.writeString(repoRoot.resolve("renamed.txt"), "keep line one\nkeep line two\nkeep line three\nmore\n")
+
+    val result = GitWorkflowGitOperations().worktreeNumstat(repoRoot)
+
+    assertEquals(WorkflowGitOperationStatus.OK, result.status, result.error)
+    val byPath = result.files.associateBy { it.path }
+    assertEquals(setOf("tracked.txt", "notes.txt", "renamed.txt"), byPath.keys)
+    assertEquals(GoalObservabilityFileDiffStat("tracked.txt", insertions = 2, deletions = 2), byPath["tracked.txt"])
+    assertEquals(GoalObservabilityFileDiffStat("notes.txt", insertions = 3, deletions = 0), byPath["notes.txt"])
+    assertEquals(GoalObservabilityFileDiffStat("renamed.txt", insertions = 1, deletions = 0), byPath["renamed.txt"])
+  }
+
+  @Test
+  fun `numstat parsing drops binary rows, keys renames by new path, and aggregates the remainder`() {
+    val output = "-\t-\tassets/logo.png\n3\t1\tsrc/{old => new}/File.kt\n2\t0\tREADME.md\n"
+
+    val entries = parseNumstatEntries(output)
+
+    assertEquals(
+      listOf(
+        GoalObservabilityFileDiffStat("src/new/File.kt", insertions = 3, deletions = 1),
+        GoalObservabilityFileDiffStat("README.md", insertions = 2, deletions = 0),
+      ),
+      entries,
+    )
+    assertEquals(GoalObservabilityDiffStat(filesChanged = 2, insertions = 5, deletions = 1), parseDiffStat(output))
   }
 }

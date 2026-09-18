@@ -2,6 +2,7 @@ package skillbill.goalrunner.model
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
+import skillbill.idestatus.model.WorktreeEditSummary
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilityEvent
@@ -104,6 +105,8 @@ data class GoalRunnerStatusProjection(
   val subtaskActiveDurationMs: Long = 0,
   val subtaskActiveDurationAsOf: String? = null,
   val degradedDurableRead: Boolean = false,
+  val latestWorktreeEdit: WorktreeEditSummary? = null,
+  val auditAcRetryCount: Int? = null,
 )
 
 data class GoalRunnerSubtaskValidationEvidence(
@@ -166,6 +169,8 @@ data class GoalRunnerStatusProjectionRuntimeInputs(
   val subtaskActiveDurationMs: Long = 0,
   val subtaskActiveDurationAsOf: String? = null,
   val degradedDurableRead: Boolean = false,
+  val latestWorktreeEdit: WorktreeEditSummary? = null,
+  val auditAcRetryCount: Int? = null,
 )
 
 object GoalRunnerStatusProjector {

@@ -38,6 +38,7 @@ import skillbill.engine.goalrunner.testGoalRunnerStatusService
 import skillbill.engine.goalrunner.testPhaseRecorder
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerManifestStore
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
+import skillbill.engine.goalrunner.testWorktreeEditJournalWriter
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.model.ExecutionLiveness
@@ -4032,6 +4033,7 @@ class GoalRunnerLaunchReconcilerWiringTest {
       outcomeStore = outcomes,
       progressReader = GoalRunnerProgressReader(outcomes),
       activityStampWriter = testActivityStampWriter(),
+      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
       clock = testHarnessClock,
       diagnostics = NoopRuntimeDiagnostics,
     )
@@ -4081,6 +4083,7 @@ class GoalRunnerLaunchReconcilerWiringTest {
       outcomeStore = outcomes,
       progressReader = GoalRunnerProgressReader(outcomes),
       activityStampWriter = testActivityStampWriter(),
+      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
       clock = testHarnessClock,
       diagnostics = NoopRuntimeDiagnostics,
     )
@@ -4117,6 +4120,7 @@ class GoalRunnerLaunchReconcilerWiringTest {
       outcomeStore = outcomes,
       progressReader = GoalRunnerProgressReader(outcomes),
       activityStampWriter = testActivityStampWriter(),
+      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
       clock = testHarnessClock,
       diagnostics = NoopRuntimeDiagnostics,
     )
@@ -4150,6 +4154,7 @@ class GoalRunnerLaunchReconcilerWiringTest {
       outcomeStore = outcomes,
       progressReader = GoalRunnerProgressReader(outcomes),
       activityStampWriter = testActivityStampWriter(),
+      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
       clock = testHarnessClock,
       diagnostics = NoopRuntimeDiagnostics,
     )
@@ -4185,6 +4190,7 @@ class GoalRunnerLaunchReconcilerWiringTest {
       outcomeStore = outcomes,
       progressReader = GoalRunnerProgressReader(outcomes),
       activityStampWriter = testActivityStampWriter(),
+      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
       clock = testHarnessClock,
       diagnostics = NoopRuntimeDiagnostics,
     )

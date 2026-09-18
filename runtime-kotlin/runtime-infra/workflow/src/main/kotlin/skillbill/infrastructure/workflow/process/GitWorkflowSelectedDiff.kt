@@ -259,6 +259,7 @@ internal const val UNTRACKED_NON_REGULAR_MARKER = "non-regular"
 internal const val UNTRACKED_UNREADABLE_MARKER = "unreadable"
 internal const val UNTRACKED_FINGERPRINT_CONTENT_MAX_BYTES = 1_048_576L
 internal const val UNTRACKED_FINGERPRINT_BUFFER_BYTES = 8_192
+internal const val UNTRACKED_LINE_COUNT_BYTE_CAP = 1_048_576L
 internal const val GIT_STATUS_MIN_LENGTH = 4
 internal const val GIT_STATUS_CODE_LENGTH = 2
 internal const val GIT_STATUS_PATH_OFFSET = 3

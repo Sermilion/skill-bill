@@ -3,10 +3,12 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
+import skillbill.contracts.workflow.WorktreeEditJournalPayloadKeys
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.agentAttributionFromPhaseState
+import skillbill.engine.featuretask.auditGapIterationCount
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.featuretask.validation.ValidationGateResolver
 import skillbill.engine.featuretask.validation.durableValidationChangedPaths
@@ -17,13 +19,17 @@ import skillbill.engine.goalrunner.planning.GoalPlanningStatusReasonCoherence
 import skillbill.engine.goalrunner.planning.model.GoalPlanningStatusAlignRequest
 import skillbill.error.ShellContentContractException
 import skillbill.goalrunner.model.ExecutionLiveness
+import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
 import skillbill.goalrunner.model.GoalRunnerStatusProjectionRuntimeInputs
 import skillbill.goalrunner.model.GoalRunnerStatusProjector
 import skillbill.goalrunner.model.GoalRunnerSubtaskValidationEvidence
+import skillbill.idestatus.model.WorktreeEditSummary
+import skillbill.idestatus.model.summary
 import skillbill.model.RepositoryRoot
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
+import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.runner.GoalRunnerAttemptLedgerStore
@@ -31,6 +37,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
+import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -58,6 +65,7 @@ class GoalRunnerStatusProjectionDataSources(
   val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   val phaseRecorder: FeatureTaskRuntimePhaseRecorder,
   val attemptLedgerStore: GoalRunnerAttemptLedgerStore,
+  val database: DatabaseSessionFactory,
 )
 
 @Inject
@@ -82,6 +90,7 @@ class GoalRunnerStatusProjectionAssembler(
   val outcomeStore get() = dataSources.outcomeStore
   val phaseRecorder get() = dataSources.phaseRecorder
   val attemptLedgerStore get() = dataSources.attemptLedgerStore
+  val database get() = dataSources.database
 
   fun project(loadedState: GoalRunnerManifestState, request: GoalRunnerStatusRequest): GoalRunnerStatusProjection {
     val acceptances = manifestStore.outOfBandAcceptances(loadedState.parentWorkflowId)
@@ -126,10 +135,7 @@ internal fun GoalRunnerStatusProjectionAssembler.statusProjectionRuntimeInputs(
 ): GoalRunnerStatusProjectionRuntimeInputs {
   val durableRead = GoalRunnerStatusDurableReadTracker(diagnostics)
   val childWorkflowId = currentSubtask?.workflowId?.takeIf(String::isNotBlank)
-  val progress = childWorkflowId?.let { workflowId ->
-    outcomeStore.progress(workflowId)
-  }
-  val derivedCurrentStep = derivedChildCurrentStep(childWorkflowId)
+  val progress = childWorkflowId?.let { workflowId -> outcomeStore.progress(workflowId) }
   val ledgerSummary = runCatching {
     attemptLedgerStore.readAttemptLedgerSummary(loadedState.manifest.issueKey)
   }.getOrElse { error ->
@@ -141,41 +147,117 @@ internal fun GoalRunnerStatusProjectionAssembler.statusProjectionRuntimeInputs(
     )
     null
   }
-  return GoalRunnerStatusProjectionRuntimeInputs(
-    executionLiveness = resolveExecutionLiveness(
-      parentWorkflowId = loadedState.parentWorkflowId,
+  return buildStatusProjectionRuntimeInputs(
+    GoalStatusProjectionRuntimeAssembly(
+      loadedState = loadedState,
+      request = request,
+      manifest = manifest,
       currentSubtask = currentSubtask,
+      acceptances = acceptances,
       durableRead = durableRead,
+      progress = progress,
+      ledgerSummary = ledgerSummary,
+      childWorkflowId = childWorkflowId,
+      latestWorktreeEdit = latestWorktreeEditSummary(childWorkflowId, durableRead),
+      auditAcRetryCount = measuredAuditAcRetryCount(childWorkflowId, durableRead),
     ),
-    planning = alignedPlanningStatus(loadedState, request, manifest, currentSubtask),
-    currentStepOverride = derivedCurrentStep ?: progress?.currentStepId,
-    currentWorkflowStatus = progress?.workflowStatus,
-    latestLivenessSignal = progress?.latestLivenessSignal,
-    latestObservabilityEvent = progress?.latestGoalObservabilityEvent?.toObservabilityEvent(),
-    requestedDiffStat = requestedDiffStat(request),
-    selectedDiffHunks = requestedSelectedDiffHunks(request),
-    blockedAttemptCount = ledgerSummary?.blockedAttemptCount ?: 0,
-    supervisorKillCount = ledgerSummary?.supervisorKillCount ?: 0,
-    phaseAttemptCounts = ledgerSummary?.phaseAttemptCounts ?: emptyMap(),
-    cumulativeFixIterations = ledgerSummary?.cumulativeFixIterations ?: emptyMap(),
-    reAttemptCauseCounts = ledgerSummary?.reAttemptCauseCounts ?: emptyMap(),
-    findingsInScope = ledgerSummary?.findingsInScope,
-    outOfBandAcceptances = acceptances.toAcceptedSubtasks(),
-    completedSubtaskValidation = completedSubtaskValidation(
-      manifest,
-      request.repoRoot ?: repositoryRoot.path,
-    ),
-    paused = loadedState.controlState.paused,
-    pauseRequested = loadedState.controlState.pauseRequested,
-    pauseReason = loadedState.controlState.pauseReason,
-    pausedAt = loadedState.controlState.pausedAt,
-    stopAfterSubtaskId = loadedState.controlState.stopAfterSubtaskId,
-    activeDurationMs = loadedState.controlState.activeDurationMs,
-    activeDurationAsOf = loadedState.controlState.activeDurationAsOf,
-    subtaskActiveDurationMs = loadedState.controlState.subtaskActiveDurationMs,
-    subtaskActiveDurationAsOf = loadedState.controlState.subtaskActiveDurationAsOf,
-    degradedDurableRead = durableRead.degraded,
   )
+}
+
+private data class GoalStatusProjectionRuntimeAssembly(
+  val loadedState: GoalRunnerManifestState,
+  val request: GoalRunnerStatusRequest,
+  val manifest: DecompositionManifest,
+  val currentSubtask: DecompositionSubtask?,
+  val acceptances: Map<Int, GoalRunnerOutOfBandAcceptance>,
+  val durableRead: GoalRunnerStatusDurableReadTracker,
+  val progress: GoalRunnerWorkflowProgress?,
+  val ledgerSummary: GoalRunnerAttemptLedgerSummary?,
+  val childWorkflowId: String?,
+  val latestWorktreeEdit: WorktreeEditSummary?,
+  val auditAcRetryCount: Int?,
+)
+
+private fun GoalRunnerStatusProjectionAssembler.buildStatusProjectionRuntimeInputs(
+  assembly: GoalStatusProjectionRuntimeAssembly,
+): GoalRunnerStatusProjectionRuntimeInputs = GoalRunnerStatusProjectionRuntimeInputs(
+  executionLiveness = resolveExecutionLiveness(
+    parentWorkflowId = assembly.loadedState.parentWorkflowId,
+    currentSubtask = assembly.currentSubtask,
+    durableRead = assembly.durableRead,
+  ),
+  planning = alignedPlanningStatus(
+    assembly.loadedState,
+    assembly.request,
+    assembly.manifest,
+    assembly.currentSubtask,
+  ),
+  currentStepOverride = derivedChildCurrentStep(assembly.childWorkflowId)
+    ?: assembly.progress?.currentStepId,
+  currentWorkflowStatus = assembly.progress?.workflowStatus,
+  latestLivenessSignal = assembly.progress?.latestLivenessSignal,
+  latestObservabilityEvent = assembly.progress?.latestGoalObservabilityEvent?.toObservabilityEvent(),
+  requestedDiffStat = requestedDiffStat(assembly.request),
+  selectedDiffHunks = requestedSelectedDiffHunks(assembly.request),
+  blockedAttemptCount = assembly.ledgerSummary?.blockedAttemptCount ?: 0,
+  supervisorKillCount = assembly.ledgerSummary?.supervisorKillCount ?: 0,
+  phaseAttemptCounts = assembly.ledgerSummary?.phaseAttemptCounts ?: emptyMap(),
+  cumulativeFixIterations = assembly.ledgerSummary?.cumulativeFixIterations ?: emptyMap(),
+  reAttemptCauseCounts = assembly.ledgerSummary?.reAttemptCauseCounts ?: emptyMap(),
+  findingsInScope = assembly.ledgerSummary?.findingsInScope,
+  outOfBandAcceptances = assembly.acceptances.toAcceptedSubtasks(),
+  completedSubtaskValidation = completedSubtaskValidation(
+    assembly.manifest,
+    assembly.request.repoRoot ?: repositoryRoot.path,
+  ),
+  paused = assembly.loadedState.controlState.paused,
+  pauseRequested = assembly.loadedState.controlState.pauseRequested,
+  pauseReason = assembly.loadedState.controlState.pauseReason,
+  pausedAt = assembly.loadedState.controlState.pausedAt,
+  stopAfterSubtaskId = assembly.loadedState.controlState.stopAfterSubtaskId,
+  activeDurationMs = assembly.loadedState.controlState.activeDurationMs,
+  activeDurationAsOf = assembly.loadedState.controlState.activeDurationAsOf,
+  subtaskActiveDurationMs = assembly.loadedState.controlState.subtaskActiveDurationMs,
+  subtaskActiveDurationAsOf = assembly.loadedState.controlState.subtaskActiveDurationAsOf,
+  degradedDurableRead = assembly.durableRead.degraded,
+  latestWorktreeEdit = assembly.latestWorktreeEdit,
+  auditAcRetryCount = assembly.auditAcRetryCount,
+)
+
+private fun GoalRunnerStatusProjectionAssembler.latestWorktreeEditSummary(
+  childWorkflowId: String?,
+  durableRead: GoalRunnerStatusDurableReadTracker,
+) = childWorkflowId?.let { workflowId ->
+  runCatching {
+    database.readIfPresent { unitOfWork ->
+      unitOfWork.worktreeEditJournal.latestTick(workflowId)
+    }
+  }.getOrElse { error ->
+    durableRead.recordDegradedRead(
+      seam = "goal-status.worktree_edit_journal",
+      expected = "latest_tick",
+      used = "omitted",
+      error = error,
+    )
+    null
+  }?.summary(WorktreeEditJournalPayloadKeys.PATH_SAMPLE_LIMIT)
+}
+
+private fun GoalRunnerStatusProjectionAssembler.measuredAuditAcRetryCount(
+  childWorkflowId: String?,
+  durableRead: GoalRunnerStatusDurableReadTracker,
+) = childWorkflowId?.let { workflowId ->
+  runCatching {
+    auditGapIterationCount(phaseRecorder.loadPhaseLedger(workflowId))
+  }.getOrElse { error ->
+    durableRead.recordDegradedRead(
+      seam = "goal-status.audit_ac_retry_count",
+      expected = "ledger_count",
+      used = "omitted",
+      error = error,
+    )
+    null
+  }?.takeIf { count -> count > 0 }
 }
 
 private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidation(

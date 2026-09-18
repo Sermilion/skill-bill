@@ -1,6 +1,13 @@
 package skillbill.ports.workflow.gitops
 
+import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
+import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
+import java.nio.file.Path
+
 abstract class WorkflowGitOperationsTestBase : WorkflowGitOperations {
+  override fun worktreeNumstat(repoRoot: Path): WorkflowWorktreeNumstatResult =
+    WorkflowWorktreeNumstatResult(status = WorkflowGitOperationStatus.OK, files = emptyList())
+
   override val checkpointHistoryOperations: CheckpointHistoryGitOperations =
     UnavailableCheckpointHistoryGitOperations
 

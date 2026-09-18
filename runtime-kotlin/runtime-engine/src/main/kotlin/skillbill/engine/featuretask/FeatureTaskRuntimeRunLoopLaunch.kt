@@ -273,6 +273,11 @@ object FeatureTaskRuntimeRunLoopLaunch {
             workflowId = run.request.workflowId,
             parentWorkflowId = run.request.goalContinuation?.parentWorkflowId,
           ),
+          worktreeEditObserver = worktreeEditJournalWriter.observer(
+            repoRoot = run.request.repoRoot,
+            resolveWorkflowId = { run.request.workflowId },
+            resolvePhaseId = { run.phaseId },
+          ),
         ),
       ),
     )

@@ -4,11 +4,13 @@ import skillbill.cli.kernel.detectInvokingAgentId
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
+import skillbill.contracts.workflow.WorktreeEditJournalPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.error.DatabaseAccessError
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalRunnerAcceptedSubtask
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
+import skillbill.idestatus.model.WorktreeEditSource
 import skillbill.ports.workflow.gitops.model.DEFAULT_SELECTED_DIFF_MAX_BYTES
 import skillbill.ports.workflow.gitops.model.DEFAULT_SELECTED_DIFF_MAX_HUNKS
 import skillbill.ports.workflow.gitops.model.DEFAULT_SELECTED_DIFF_MAX_LINES
@@ -117,10 +119,26 @@ private fun MutableMap<String, Any?>.putGoalStatusDetails(projection: GoalRunner
       projection.completedSubtaskValidation.map { evidence -> evidence.toStatusWire() },
     )
   }
+  projection.latestWorktreeEdit?.let { edit ->
+    put(
+      WorktreeEditJournalPayloadKeys.WORKTREE_EDITS,
+      linkedMapOf(
+        WorktreeEditJournalPayloadKeys.RECORDED_AT to edit.recordedAt.toString(),
+        WorktreeEditJournalPayloadKeys.PHASE_ID to edit.phaseId,
+        WorktreeEditJournalPayloadKeys.PATH_SAMPLE to edit.pathSample,
+        WorktreeEditJournalPayloadKeys.NET_INSERTIONS to edit.netInsertions,
+        WorktreeEditJournalPayloadKeys.NET_DELETIONS to edit.netDeletions,
+        WorktreeEditJournalPayloadKeys.SOURCE to WorktreeEditSource.WORKTREE_PROBE.wireValue,
+      ),
+    )
+  }
+  projection.auditAcRetryCount?.let { count ->
+    put(WorktreeEditJournalPayloadKeys.AUDIT_AC_RETRY_COUNT, count)
+  }
 }
 
 internal fun GoalRunnerStatusProjection?.toBoundedGoalStatusCliMap(issueKey: String): Map<String, Any?> = this?.let {
-  linkedMapOf(
+  linkedMapOf<String, Any?>(
     "complete_count" to it.completeCount,
     "pending_count" to it.pendingCount,
     "blocked_count" to it.blockedCount,
@@ -128,7 +146,25 @@ internal fun GoalRunnerStatusProjection?.toBoundedGoalStatusCliMap(issueKey: Str
     "current_step" to it.currentStep?.let(::singleLineBounded),
     "execution_liveness" to it.executionLiveness.wireValue,
     "resumable_state" to it.monitorResumableState(),
-  )
+  ).apply {
+    it.latestWorktreeEdit?.let { edit ->
+      put(
+        WorktreeEditJournalPayloadKeys.WORKTREE_EDITS,
+        linkedMapOf(
+          WorktreeEditJournalPayloadKeys.RECORDED_AT to singleLineBounded(edit.recordedAt.toString()),
+          WorktreeEditJournalPayloadKeys.PHASE_ID to edit.phaseId,
+          WorktreeEditJournalPayloadKeys.PATH_SAMPLE to
+            singleLineBounded(edit.pathSample.joinToString(",")),
+          WorktreeEditJournalPayloadKeys.NET_INSERTIONS to edit.netInsertions,
+          WorktreeEditJournalPayloadKeys.NET_DELETIONS to edit.netDeletions,
+          WorktreeEditJournalPayloadKeys.SOURCE to WorktreeEditSource.WORKTREE_PROBE.wireValue,
+        ),
+      )
+    }
+    it.auditAcRetryCount?.let { count ->
+      put(WorktreeEditJournalPayloadKeys.AUDIT_AC_RETRY_COUNT, count)
+    }
+  }
 } ?: linkedMapOf(
   SharedPayloadKeys.STATUS to "not_found",
   SharedPayloadKeys.ISSUE_KEY to singleLineBounded(issueKey),
@@ -179,6 +215,7 @@ internal fun goalStatusText(payload: Map<String, Any?>): String = buildString {
   appendGoalStatusSummary(payload)
   appendPlanningStatusLines(payload)
   appendObservabilityStatusLines(payload)
+  appendWorktreeEditLines(payload)
   appendOperatorSurfaceLines(payload)
   appendValidationStatusLines(payload)
   appendDiffStatusLines(payload)
@@ -271,5 +308,24 @@ internal fun goalMonitorStatusText(payload: Map<String, Any?>): String =
       appendLine("current_step: ${payload["current_step"] ?: "none"}")
       appendLine("execution_liveness: ${payload["execution_liveness"]}")
       appendLine("resumable_state: ${payload["resumable_state"]}")
+      appendWorktreeEditLines(payload)
     }
   }
+
+private fun StringBuilder.appendWorktreeEditLines(payload: Map<String, Any?>) {
+  (payload[WorktreeEditJournalPayloadKeys.WORKTREE_EDITS] as? Map<*, *>)?.let { edits ->
+    val phase = edits[WorktreeEditJournalPayloadKeys.PHASE_ID] ?: "none"
+    val paths = when (val sample = edits[WorktreeEditJournalPayloadKeys.PATH_SAMPLE]) {
+      is List<*> -> sample.joinToString(",")
+      else -> sample?.toString().orEmpty()
+    }
+    appendLine(
+      "worktree_edits: at=${edits[WorktreeEditJournalPayloadKeys.RECORDED_AT]} phase=$phase " +
+        "+${edits[WorktreeEditJournalPayloadKeys.NET_INSERTIONS]} " +
+        "-${edits[WorktreeEditJournalPayloadKeys.NET_DELETIONS]} paths=$paths",
+    )
+  }
+  payload[WorktreeEditJournalPayloadKeys.AUDIT_AC_RETRY_COUNT]?.let { count ->
+    appendLine("audit_ac_retry_count: $count")
+  }
+}

@@ -68,6 +68,7 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
       subtaskLauncher,
       phaseSettlementService,
       activityStampWriter,
+      worktreeEditJournalWriter,
       clock,
       diagnostics,
       FeatureTaskRuntimeRunLoopSession(

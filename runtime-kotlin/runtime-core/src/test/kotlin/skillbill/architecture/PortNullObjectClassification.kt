@@ -22,6 +22,7 @@ object PortNullObjectClassification {
     "UnavailableGoalSubtaskReviewGitOperations" to PortNullObjectKind.TOTAL_REFUSAL,
     "EmptyGoalRunnerControlRepository" to PortNullObjectKind.RECORDING_NULL_OBJECT,
     "EmptyAgentActivityStampRepository" to PortNullObjectKind.RECORDING_NULL_OBJECT,
+    "EmptyWorktreeEditJournalRepository" to PortNullObjectKind.RECORDING_NULL_OBJECT,
     "NoopGoalRunnerAttemptLedgerStore" to PortNullObjectKind.RECORDING_NULL_OBJECT,
     "NoopGoalRunnerChildRepairStore" to PortNullObjectKind.RECORDING_NULL_OBJECT,
     "NoopIdeStatusValidator" to PortNullObjectKind.RECORDING_NULL_OBJECT,

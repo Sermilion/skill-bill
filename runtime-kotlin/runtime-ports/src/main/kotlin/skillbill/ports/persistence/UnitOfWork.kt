@@ -7,6 +7,7 @@ import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.goalrunner.UnaddressedFindingsRepository
 import skillbill.ports.idestatus.AgentActivityStampRepository
+import skillbill.ports.idestatus.WorktreeEditJournalRepository
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.review.ReviewRepository
 import skillbill.ports.telemetry.LifecycleTelemetryRepository
@@ -29,6 +30,7 @@ interface UnitOfWork : GoalRunnerPersistenceSession {
   override val goalRunnerControls: GoalRunnerControlRepository
   val unaddressedFindings: UnaddressedFindingsRepository
   val agentActivityStamps: AgentActivityStampRepository
+  val worktreeEditJournal: WorktreeEditJournalRepository
   val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository?
   val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions?
 }

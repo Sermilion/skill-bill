@@ -84,6 +84,8 @@ internal fun assembleGoalRunnerStatusProjection(
     subtaskActiveDurationMs = extras.subtaskActiveDurationMs,
     subtaskActiveDurationAsOf = extras.subtaskActiveDurationAsOf,
     degradedDurableRead = extras.degradedDurableRead,
+    latestWorktreeEdit = extras.latestWorktreeEdit,
+    auditAcRetryCount = extras.auditAcRetryCount,
   )
 }
 

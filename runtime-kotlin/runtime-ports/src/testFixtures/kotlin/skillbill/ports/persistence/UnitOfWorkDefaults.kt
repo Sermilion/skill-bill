@@ -6,10 +6,13 @@ import skillbill.ports.goalrunner.UnaddressedFindingsRepository
 import skillbill.ports.goalrunner.UnavailableUnaddressedFindingsRepository
 import skillbill.ports.idestatus.AgentActivityStampRepository
 import skillbill.ports.idestatus.EmptyAgentActivityStampRepository
+import skillbill.ports.idestatus.EmptyWorktreeEditJournalRepository
+import skillbill.ports.idestatus.WorktreeEditJournalRepository
 
 abstract class UnitOfWorkDefaults : UnitOfWork {
   open override val unaddressedFindings: UnaddressedFindingsRepository = UnavailableUnaddressedFindingsRepository
   open override val agentActivityStamps: AgentActivityStampRepository = EmptyAgentActivityStampRepository
+  open override val worktreeEditJournal: WorktreeEditJournalRepository = EmptyWorktreeEditJournalRepository
   open override val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository? = null
   open override val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions? = null
 }

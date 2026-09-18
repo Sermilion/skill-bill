@@ -5,6 +5,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
+import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
 import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
@@ -39,4 +40,7 @@ internal object NoopWorkflowGitWorktreeOperations : WorkflowGitWorktreeOperation
       selectedDiffHunks = GoalObservabilitySelectedDiffHunks(),
     )
   }
+
+  override fun worktreeNumstat(repoRoot: Path): WorkflowWorktreeNumstatResult =
+    WorkflowWorktreeNumstatResult(status = WorkflowGitOperationStatus.OK, files = emptyList())
 }

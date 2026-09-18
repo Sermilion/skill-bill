@@ -328,4 +328,30 @@ internal val databaseMigrationsLate: List<DatabaseMigration> =
       name = "add-telemetry-outbox-delivery-identity",
       operation = TelemetryOutboxDeliveryIdentityMigration::apply,
     ),
+    DatabaseMigration(
+      version = 38,
+      name = "add-worktree-edit-journal",
+      operation = { connection ->
+        connection.createStatement().use { statement ->
+          statement.execute(
+            """
+              CREATE TABLE IF NOT EXISTS worktree_edit_journal (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workflow_id TEXT NOT NULL,
+                phase_id TEXT,
+                recorded_at TEXT NOT NULL,
+                path TEXT NOT NULL,
+                lines_added INTEGER NOT NULL,
+                lines_removed INTEGER NOT NULL,
+                source TEXT NOT NULL CHECK (source IN ('worktree_probe'))
+              )
+            """.trimIndent(),
+          )
+          statement.execute(
+            "CREATE INDEX IF NOT EXISTS idx_worktree_edit_journal_workflow_recorded " +
+              "ON worktree_edit_journal(workflow_id, recorded_at)",
+          )
+        }
+      },
+    ),
   )

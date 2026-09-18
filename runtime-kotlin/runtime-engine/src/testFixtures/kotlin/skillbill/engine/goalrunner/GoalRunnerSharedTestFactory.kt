@@ -77,6 +77,7 @@ fun testGoalRunnerStatusService(
       outcomeStore = outcomeStore,
       phaseRecorder = phaseRecorder,
       attemptLedgerStore = ports.attemptLedgerStore,
+      database = database,
     ),
     gitOperations = ports.gitOperations,
     clock = clock,

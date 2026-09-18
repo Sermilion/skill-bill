@@ -5,6 +5,7 @@ import skillbill.engine.goalrunner.GoalRunnerProgressReader
 import skillbill.engine.goalrunner.SubtaskLaunchRequestArgs
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.testActivityStampWriter
+import skillbill.engine.goalrunner.testWorktreeEditJournalWriter
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import java.nio.file.Path
 import kotlin.test.Test
@@ -24,6 +25,7 @@ class GoalRunnerDirectRuntimeContinuationTest {
       outcomeStore = outcomeStore,
       progressReader = GoalRunnerProgressReader(outcomeStore),
       activityStampWriter = testActivityStampWriter(),
+      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
       clock = testHarnessClock,
       diagnostics = NoopRuntimeDiagnostics,
     )
@@ -60,6 +62,7 @@ class GoalRunnerDirectRuntimeContinuationTest {
       outcomeStore = outcomeStore,
       progressReader = GoalRunnerProgressReader(outcomeStore),
       activityStampWriter = testActivityStampWriter(),
+      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
       clock = testHarnessClock,
       diagnostics = NoopRuntimeDiagnostics,
     )

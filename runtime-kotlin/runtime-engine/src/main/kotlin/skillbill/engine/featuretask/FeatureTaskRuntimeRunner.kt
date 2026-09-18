@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePreparation
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
@@ -23,8 +22,11 @@ class FeatureTaskRuntimeRunner(
   val phaseSettlementService: FeatureTaskPhaseSettlementService,
   val diagnostics: RuntimeDiagnostics,
   val clock: Clock,
-  val activityStampWriter: AgentActivityStampWriter,
+  val probeWriters: FeatureTaskRuntimeProbeWriters,
 ) {
+  val activityStampWriter get() = probeWriters.activityStampWriter
+  val worktreeEditJournalWriter get() = probeWriters.worktreeEditJournalWriter
+
   fun run(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeRunReport {
     val reconciliation = crashReconciler.reconcile()
     return when (val preparation = prepareRun(request)) {
