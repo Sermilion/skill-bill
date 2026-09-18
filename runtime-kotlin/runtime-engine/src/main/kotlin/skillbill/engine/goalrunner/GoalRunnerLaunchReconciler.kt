@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.agentoutput.stderrExcerpt
 import skillbill.application.idestatus.AgentActivityStampWriter
+import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.goalrunner.GoalRunnerOutcomeReconciler
 import skillbill.goalrunner.GoalRunnerQualityGateSelectionResolver
@@ -33,6 +34,7 @@ class GoalRunnerLaunchReconciler(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   private val progressReader: GoalRunnerProgressReader,
   private val activityStampWriter: AgentActivityStampWriter,
+  private val worktreeEditJournalWriter: WorktreeEditJournalWriter,
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
 ) {
@@ -68,6 +70,11 @@ class GoalRunnerLaunchReconciler(
       resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId },
       parentWorkflowId = goalContinuation?.parentWorkflowId,
     )
+    val worktreeEditObserver = worktreeEditJournalWriter.observer(
+      repoRoot = request.repoRoot,
+      resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId },
+      resolvePhaseId = { tickReader.progressState()?.childProgress?.currentStepId },
+    )
     return GoalRunnerSubtaskLaunchRequest(
       invokedAgentId = request.invokedAgentId,
       configuredAgentOverrideId = request.configuredAgentOverrideId,
@@ -86,6 +93,7 @@ class GoalRunnerLaunchReconciler(
         goalContinuation = goalContinuation,
         spawnAuthorization = spawnAuthorization,
         activityStampSink = activityStampSink,
+        worktreeEditObserver = worktreeEditObserver,
       ),
     )
   }

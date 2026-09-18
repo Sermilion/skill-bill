@@ -5,18 +5,21 @@ import skillbill.goalrunner.model.GoalRunnerLivenessState
 import skillbill.infrastructure.host.jvm.testGateJvmResolver
 import skillbill.infrastructure.launcher.agentrun.WorktreeActivityProbe
 import skillbill.infrastructure.launcher.agentrun.headlessAgentRunAdapters
+import skillbill.infrastructure.launcher.process.AgentRunActivityProbe
 import skillbill.infrastructure.launcher.process.JvmAgentRunProcessRunner
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressSnapshot
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
 import skillbill.ports.agentrun.model.AgentRunProgressEmitter
+import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -249,6 +252,44 @@ class AgentRunLauncherActivityTest {
       assertContains(sessionId, "SKILL-56")
       assertContains(sessionId, "subtask-2")
     }
+  }
+
+  @Test
+  fun `worktree edit observer fires once per changed activity token and never alters idle detection`() {
+    val tokens = listOf("seed", "a", "b", "b")
+    var probeCalls = 0
+    val observations = AtomicInteger(0)
+    val observed = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
+      testAgentRunProcessRequest(
+        listOf("sh", "-c", "sleep 0.8"),
+        Path.of(".").toAbsolutePath().normalize(),
+      ) {
+        timeout = 3.seconds
+        activityProbe = AgentRunActivityProbe { tokens[minOf(probeCalls++, tokens.lastIndex)] }
+        worktreeEditObserver = AgentRunWorktreeEditObserver {
+          if (observations.incrementAndGet() == 2) error("journal unavailable")
+        }
+      },
+    )
+
+    assertEquals(0, observed.exitStatus)
+    assertFalse(observed.timedOut)
+    assertEquals(2, observations.get(), "two token changes after wait-loop seed read, including the throwing one")
+
+    val idleObservations = AtomicInteger(0)
+    val idle = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
+      testAgentRunProcessRequest(
+        listOf("sh", "-c", "sleep 2"),
+        Path.of(".").toAbsolutePath().normalize(),
+      ) {
+        timeout = 5.seconds
+        progressIdleTimeout = 100.milliseconds
+        worktreeEditObserver = AgentRunWorktreeEditObserver { idleObservations.incrementAndGet() }
+      },
+    )
+
+    assertTrue(idle.timedOut, "observer wiring must not keep an idle child alive")
+    assertEquals(GoalRunnerLivenessState.IDLE, idle.liveness?.livenessState)
   }
 
   @Test

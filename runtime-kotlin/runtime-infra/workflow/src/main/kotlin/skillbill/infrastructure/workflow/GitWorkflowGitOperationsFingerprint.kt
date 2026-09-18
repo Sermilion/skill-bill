@@ -11,6 +11,7 @@ import skillbill.infrastructure.workflow.process.GIT_STATUS_PATH_OFFSET
 import skillbill.infrastructure.workflow.process.SelectedDiffBudget
 import skillbill.infrastructure.workflow.process.UNTRACKED_FINGERPRINT_BUFFER_BYTES
 import skillbill.infrastructure.workflow.process.UNTRACKED_FINGERPRINT_CONTENT_MAX_BYTES
+import skillbill.infrastructure.workflow.process.UNTRACKED_LINE_COUNT_BYTE_CAP
 import skillbill.infrastructure.workflow.process.UNTRACKED_NON_REGULAR_MARKER
 import skillbill.infrastructure.workflow.process.UNTRACKED_UNREADABLE_MARKER
 import skillbill.infrastructure.workflow.process.appendSelectedDiffHunks
@@ -26,11 +27,14 @@ import skillbill.ports.workflow.gitops.model.WorkflowScopedPathContentsResult
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
+import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
 import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
+import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
 import java.io.IOException
+import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -99,6 +103,63 @@ internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOpe
       changedFileSummary = parseChangedFileSummary(status.value),
       diffStat = diff,
     )
+  }
+
+  fun worktreeNumstat(repoRoot: Path): WorkflowWorktreeNumstatResult {
+    val tracked = runGitForActivity(repoRoot, listOf("diff", "--numstat", "HEAD"))
+    if (tracked !is WorkflowGitOperationResult.Ok) return numstatFailure(tracked.error)
+    val untracked = runGitForActivity(repoRoot, listOf("ls-files", "--others", "--exclude-standard", "-z"))
+    if (untracked !is WorkflowGitOperationResult.Ok) return numstatFailure(untracked.error)
+    val root = repoRoot.normalize()
+    val untrackedEntries = untracked.value.split('\u0000')
+      .filter(String::isNotBlank)
+      .sorted()
+      .mapNotNull { path ->
+        untrackedLineCount(root, path)?.let { lines ->
+          GoalObservabilityFileDiffStat(path = path, insertions = lines, deletions = 0)
+        }
+      }
+    return WorkflowWorktreeNumstatResult(
+      status = WorkflowGitOperationStatus.OK,
+      files = parseNumstatEntries(tracked.value) + untrackedEntries,
+    )
+  }
+
+  private fun numstatFailure(error: String): WorkflowWorktreeNumstatResult =
+    WorkflowWorktreeNumstatResult(status = WorkflowGitOperationStatus.ERROR, files = emptyList(), error = error)
+
+  private fun untrackedLineCount(root: Path, path: String): Int? {
+    val resolved = root.resolve(path).normalize()
+    val contained = runCatching {
+      requirePathContainedIn(resolved, root) { "Untracked path escapes repository root: $path" }
+    }
+    if (contained.isFailure) return null
+    if (Files.isSymbolicLink(resolved) || !Files.isRegularFile(resolved, LinkOption.NOFOLLOW_LINKS)) return null
+    return try {
+      Files.newInputStream(resolved).use { input -> countTextLines(input) }
+    } catch (_: IOException) {
+      null
+    }
+  }
+
+  private fun countTextLines(input: InputStream): Int? {
+    val buffer = ByteArray(UNTRACKED_FINGERPRINT_BUFFER_BYTES)
+    var lines = 0
+    var consumed = 0L
+    var lastByte: Int = -1
+    var read = input.read(buffer)
+    while (read >= 0 && consumed < UNTRACKED_LINE_COUNT_BYTE_CAP) {
+      for (index in 0 until read) {
+        val byte = buffer[index].toInt()
+        if (byte == 0) return null
+        if (byte == NEWLINE_BYTE) lines += 1
+        lastByte = byte
+      }
+      consumed += read
+      read = input.read(buffer)
+    }
+    if (consumed > 0 && lastByte != NEWLINE_BYTE) lines += 1
+    return lines
   }
 
   fun selectedDiffHunks(repoRoot: Path, request: WorkflowSelectedDiffHunksRequest): WorkflowSelectedDiffHunksResult {
@@ -337,19 +398,37 @@ internal fun parseChangedFileSummary(statusOutput: String): GoalObservabilityCha
 }
 
 internal fun parseDiffStat(numstatOutput: String): GoalObservabilityDiffStat {
-  var filesChanged = 0
-  var insertions = 0
-  var deletions = 0
+  val entries = parseNumstatEntries(numstatOutput)
+  return GoalObservabilityDiffStat(
+    filesChanged = entries.size,
+    insertions = entries.sumOf(GoalObservabilityFileDiffStat::insertions),
+    deletions = entries.sumOf(GoalObservabilityFileDiffStat::deletions),
+  )
+}
+
+internal fun parseNumstatEntries(numstatOutput: String): List<GoalObservabilityFileDiffStat> =
   numstatOutput.lineSequence()
     .map(String::trim)
     .filter(String::isNotBlank)
-    .forEach { line ->
+    .mapNotNull { line ->
       val parts = line.split(Regex("\\s+"), limit = GIT_NUMSTAT_PART_LIMIT)
-      if (parts.size >= GIT_NUMSTAT_PART_LIMIT) {
-        filesChanged += 1
-        insertions += parts[0].toIntOrNull() ?: 0
-        deletions += parts[1].toIntOrNull() ?: 0
-      }
+      if (parts.size < GIT_NUMSTAT_PART_LIMIT) return@mapNotNull null
+      val insertions = parts[0].toIntOrNull() ?: return@mapNotNull null
+      val deletions = parts[1].toIntOrNull() ?: return@mapNotNull null
+      GoalObservabilityFileDiffStat(
+        path = numstatRenameTarget(parts[2]),
+        insertions = insertions,
+        deletions = deletions,
+      )
     }
-  return GoalObservabilityDiffStat(filesChanged = filesChanged, insertions = insertions, deletions = deletions)
+    .toList()
+
+private fun numstatRenameTarget(rawPath: String): String {
+  if (NUMSTAT_BRACE_RENAME.containsMatchIn(rawPath)) {
+    return rawPath.replace(NUMSTAT_BRACE_RENAME, "$2").replace("//", "/")
+  }
+  return if (" => " in rawPath) rawPath.substringAfter(" => ") else rawPath
 }
+
+private val NUMSTAT_BRACE_RENAME = Regex("\\{([^{}]*) => ([^{}]*)\\}")
+private const val NEWLINE_BYTE: Int = '\n'.code

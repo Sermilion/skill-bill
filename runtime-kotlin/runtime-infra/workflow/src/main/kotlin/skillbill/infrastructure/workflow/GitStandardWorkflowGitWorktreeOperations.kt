@@ -6,6 +6,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
+import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
 import java.nio.file.Path
 
 internal object GitStandardWorkflowGitWorktreeOperations : WorkflowGitWorktreeOperations {
@@ -16,6 +17,9 @@ internal object GitStandardWorkflowGitWorktreeOperations : WorkflowGitWorktreeOp
 
   override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult =
     GitRepositoryFingerprintOperations.worktreeActivity(repoRoot)
+
+  override fun worktreeNumstat(repoRoot: Path): WorkflowWorktreeNumstatResult =
+    GitRepositoryFingerprintOperations.worktreeNumstat(repoRoot)
 
   override fun selectedDiffHunks(
     repoRoot: Path,

@@ -133,6 +133,7 @@ internal class ProcessAgentRunAdapter(
       progressEmitter = request.progressEmitter,
       activityProbe = WorktreeActivityProbe(command.workingDirectory),
       activityStampSink = request.activityStampSink,
+      worktreeEditObserver = request.worktreeEditObserver,
       idlePolicy = command.idlePolicy,
     ),
     environmentFields = AgentRunProcessEnvironmentFields(

@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask
 import skillbill.application.idestatus.AgentActivityStampWriter
+import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.recovery.recommendedDurableChildRecoveryCommand
@@ -27,6 +28,7 @@ internal data class FeatureTaskRuntimeRunLoopContext(
   val subtaskLauncher: GoalRunnerSubtaskLauncher,
   val phaseSettlementService: FeatureTaskPhaseSettlementService,
   val activityStampWriter: AgentActivityStampWriter,
+  val worktreeEditJournalWriter: WorktreeEditJournalWriter,
   val clock: Clock,
   val diagnostics: RuntimeDiagnostics,
   val session: FeatureTaskRuntimeRunLoopSession,

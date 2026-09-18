@@ -4,6 +4,25 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-18] SKILL-355: observed worktree edits are runtime-owned
+
+The worktree edit journal is written only from the wait-loop
+`AgentRunWorktreeEditObserver` via git numstat (`worktreeNumstat`). No MCP tool and no
+agent receipt may insert journal rows. Declared-progress hints, if added later, must not
+write the journal or count as durable workflow progress.
+
+`phase_id` for goal children may lag one activity tick behind a step change because the
+goal launch path resolves it from the memoized tick-reader window
+(`GoalRunnerTickProgressReader`), not from a live workflow snapshot at persist time.
+
+The per-workflow cap is 2000 rows (`WorktreeEditJournalPayloadKeys.MAX_ROWS_PER_WORKFLOW`);
+overflow drops whole oldest ticks (grouped by `recorded_at`) and emits
+`seam=worktree_edit_journal_cap`.
+
+`combinedDiffStat` keeps its existing two-diff git invocation; it shares only the numstat
+parser (`parseNumstatEntries`) with `worktreeNumstat`, which measures staged+unstaged against
+HEAD in one `git diff --numstat HEAD` plus untracked insertions.
+
 ## [2026-09-18] SKILL-354 subtask 2: split infrastructure by measured ownership
 Context: This entry supersedes the 2026-06-12 decision to keep
 `runtime-infra/fs` as one adapter module. The measured module already

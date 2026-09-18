@@ -3,6 +3,7 @@ package skillbill.infrastructure.launcher.process
 import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.ports.agentrun.model.AgentRunActivityStampSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
+import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
 
 internal fun ProcessWaitLoop.pollWorkflowProgress(nowNanos: Long) {
   val read = request.progressProbe.readProgressToken(degradation)
@@ -49,6 +50,7 @@ internal fun ProcessWaitLoop.pollFileActivity(nowNanos: Long) {
     }
     writeActivityLabel()
     request.activityStampSink.safeStamp(AgentActivityLabel.WORKTREE_WRITE)
+    request.worktreeEditObserver.safeObserve()
   }
 }
 
@@ -104,4 +106,8 @@ internal fun ProcessWaitLoop.writeActivityLabel() {
 
 internal fun AgentRunActivityStampSink.safeStamp(label: AgentActivityLabel) {
   runCatching { stamp(label) }
+}
+
+internal fun AgentRunWorktreeEditObserver.safeObserve() {
+  runCatching { observe() }
 }

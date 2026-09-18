@@ -1,3 +1,12 @@
+## [2026-09-18] SKILL-355 — Persist observed worktree edits and project them on goal status
+Areas: runtime-kotlin/{runtime-ports,runtime-domain,runtime-contracts,runtime-application/idestatus,runtime-infra/{sqlite,workflow,launcher},runtime-engine/{featuretask,goalrunner},runtime-cli/goal}, docs
+- Wait-loop `AgentRunWorktreeEditObserver` persists per-path git numstat ticks (staged+unstaged vs HEAD, untracked as insertions) into a capped SQLite journal; idle stamps and progress stay on the existing probe token.
+- `GoalRunnerStatusProjection` and `goal status` / `--monitor` / `goal watch` surface the latest tick sample plus `audit_ac_retry_count`, omitting unmeasured fields instead of emitting zero.
+- Pattern: runtime-owned observation only — no MCP write tool, no agent receipt insert, journal rows do not refresh idle. reusable
+- Known limitation: goal-child `phase_id` may lag one activity tick behind a step change (memoized tick-reader window).
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-18] SKILL-354 subtask 1 — Nest runtime infrastructure modules and make governed resources a convention
 Areas: runtime-kotlin/{settings,build-logic/runtime-infra/{fs,http,sqlite},runtime-core architecture}, docs
 - Moved the filesystem, HTTP, and SQLite adapters under `runtime-infra/{fs,http,sqlite}` as nested Gradle projects and preserved `runtime-infra-<name>` archive names.

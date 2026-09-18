@@ -7,6 +7,7 @@ import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
+import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
 import skillbill.ports.agentrun.model.ConversationIsolation
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.NativeReviewOperationProtocol
@@ -36,6 +37,7 @@ data class AgentRunProcessProbeFields(
   val progressEmitter: AgentRunProgressEmitter = AgentRunProgressEmitter.NONE,
   val activityProbe: AgentRunActivityProbe = AgentRunActivityProbe.NONE,
   val activityStampSink: AgentRunActivityStampSink = AgentRunActivityStampSink.NONE,
+  val worktreeEditObserver: AgentRunWorktreeEditObserver = AgentRunWorktreeEditObserver.NONE,
   val idlePolicy: AgentRunIdlePolicy = AgentRunIdlePolicy.DB_PROGRESS_ONLY,
 )
 
@@ -75,6 +77,7 @@ data class AgentRunProcessRequest(
   val progressEmitter: AgentRunProgressEmitter get() = probes.progressEmitter
   val activityProbe: AgentRunActivityProbe get() = probes.activityProbe
   val activityStampSink: AgentRunActivityStampSink get() = probes.activityStampSink
+  val worktreeEditObserver: AgentRunWorktreeEditObserver get() = probes.worktreeEditObserver
   val idlePolicy: AgentRunIdlePolicy get() = probes.idlePolicy
   val environment: Map<String, String> get() = environmentFields.environment
   val inheritEnvironment: Boolean get() = environmentFields.inheritEnvironment
@@ -131,6 +134,7 @@ internal class AgentRunProcessRequestDsl {
   var progressEmitter: AgentRunProgressEmitter = AgentRunProgressEmitter.NONE
   var activityProbe: AgentRunActivityProbe = AgentRunActivityProbe.NONE
   var activityStampSink: AgentRunActivityStampSink = AgentRunActivityStampSink.NONE
+  var worktreeEditObserver: AgentRunWorktreeEditObserver = AgentRunWorktreeEditObserver.NONE
   var idlePolicy: AgentRunIdlePolicy = AgentRunIdlePolicy.DB_PROGRESS_ONLY
   var environment: Map<String, String> = emptyMap()
   var inheritEnvironment: Boolean = true
@@ -162,6 +166,7 @@ internal class AgentRunProcessRequestDsl {
       progressEmitter = progressEmitter,
       activityProbe = activityProbe,
       activityStampSink = activityStampSink,
+      worktreeEditObserver = worktreeEditObserver,
       idlePolicy = idlePolicy,
     ),
     environmentFields = AgentRunProcessEnvironmentFields(

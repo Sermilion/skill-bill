@@ -17,6 +17,7 @@ import skillbill.infrastructure.sqlite.workflow.AgentActivityStampStore
 import skillbill.infrastructure.sqlite.workflow.GoalPlanningPreparationStore
 import skillbill.infrastructure.sqlite.workflow.GoalRunnerControlStore
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
+import skillbill.infrastructure.sqlite.workflow.WorktreeEditJournalStore
 import skillbill.infrastructure.sqlite.worklist.SQLiteWorkListRepository
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.model.CreateLearningRequest
@@ -30,6 +31,7 @@ import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.UnaddressedFindingsRepository
 import skillbill.ports.idestatus.AgentActivityStampRepository
+import skillbill.ports.idestatus.WorktreeEditJournalRepository
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.learning.model.LearningResolution
 import skillbill.ports.persistence.UnitOfWork
@@ -77,6 +79,8 @@ class SQLiteUnitOfWork(
   override val unaddressedFindings: UnaddressedFindingsRepository = SQLiteUnaddressedFindingsRepository(connection)
   override val agentActivityStamps: AgentActivityStampRepository =
     AgentActivityStampStore(connection)
+  override val worktreeEditJournal: WorktreeEditJournalRepository =
+    WorktreeEditJournalStore(connection)
   override val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository =
     SqliteRejectedOutputDiagnosticRepository(connection)
   override val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions =

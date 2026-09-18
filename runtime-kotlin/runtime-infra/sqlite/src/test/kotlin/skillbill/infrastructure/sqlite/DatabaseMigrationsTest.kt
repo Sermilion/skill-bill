@@ -87,6 +87,7 @@ class DatabaseMigrationsTest {
         35 to "add-feature-task-phase-settlements",
         36 to "add-agent-activity-stamps",
         37 to "add-telemetry-outbox-delivery-identity",
+        38 to "add-worktree-edit-journal",
       ),
       migrationDefinitions,
     )

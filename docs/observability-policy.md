@@ -45,6 +45,15 @@ these seams:
   when a caller enumerates with `enforceContractVersion=false` (reconcile's LOCAL side and
   installed-workspace baseline status) and a stale `const` violation is tolerated instead of
   raising `ContractVersionMismatchError`
+- worktree edit journal measure: `WorktreeEditJournalWriter.observe` when
+  `worktreeNumstat` is non-OK records
+  `seam=worktree_edit_journal_measure value_expected=numstat value_used=skipped` and skips the tick
+- worktree edit journal persist: the same observe path when append/trim fails records
+  `seam=worktree_edit_journal_persist value_expected=persisted_tick value_used=failed` and returns
+  without rethrowing (except cooperative cancellation)
+- worktree edit journal cap: when `trimToCap` drops rows records
+  `seam=worktree_edit_journal_cap value_expected=rows_within_cap value_used=dropped_oldest_ticks`
+  with `dropped_rows`
 
 Each record names the seam, the value actually used, the value that was expected,
 and why the substitution happened. A fallback that cannot be attributed to a

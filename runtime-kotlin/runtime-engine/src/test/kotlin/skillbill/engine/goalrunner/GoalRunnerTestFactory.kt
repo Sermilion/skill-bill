@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner
 
 import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.idestatus.AgentActivityStampWriter
+import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
@@ -52,6 +53,15 @@ import java.time.Clock
 internal fun testActivityStampWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
 ): AgentActivityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics)
+
+internal fun testWorktreeEditJournalWriter(
+  database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
+): WorktreeEditJournalWriter = WorktreeEditJournalWriter(
+  database,
+  Clock.systemUTC(),
+  NoopRuntimeDiagnostics,
+  NoopWorkflowGitOperations,
+)
 
 internal data class GoalRunnerTestWiring(
   val runBoundaries: GoalRunnerRunBoundaries,
@@ -170,6 +180,7 @@ internal fun testGoalRunner(wiring: GoalRunnerTestWiring): GoalRunner {
     wiring.runBoundaries.outcomeStore,
     progressReader,
     testActivityStampWriter(),
+    testWorktreeEditJournalWriter(),
     wiring.runBoundaries.clock,
     wiring.runBoundaries.diagnostics,
   )

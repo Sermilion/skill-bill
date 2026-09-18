@@ -5,6 +5,7 @@ import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.RecordingSpecStatusWriter
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.idestatus.AgentActivityStampWriter
+import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.application.review.SpecIntentProjectionExtractor
 import skillbill.application.review.SpecIntentProjectionResolver
 import skillbill.application.review.model.ParallelReviewLaneStatus
@@ -36,6 +37,7 @@ import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimePlanningStopper
+import skillbill.engine.featuretask.FeatureTaskRuntimeProbeWriters
 import skillbill.engine.featuretask.FeatureTaskRuntimeReviewDriver
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunner
@@ -885,7 +887,15 @@ private fun harnessRunner(deps: HarnessRunnerDeps): FeatureTaskRuntimeRunner {
     phaseSettlementService = harnessPhaseSettlement(),
     diagnostics = deps.diagnostics,
     clock = testHarnessClock,
-    activityStampWriter = AgentActivityStampWriter(deps.database, Clock.systemUTC(), deps.diagnostics),
+    probeWriters = FeatureTaskRuntimeProbeWriters(
+      activityStampWriter = AgentActivityStampWriter(deps.database, Clock.systemUTC(), deps.diagnostics),
+      worktreeEditJournalWriter = WorktreeEditJournalWriter(
+        deps.database,
+        Clock.systemUTC(),
+        deps.diagnostics,
+        NoopWorkflowGitOperations,
+      ),
+    ),
   )
 }
 
@@ -1003,7 +1013,15 @@ private fun telemetryHarnessRunner(
     phaseSettlementService = harnessPhaseSettlement(),
     diagnostics = NoopRuntimeDiagnostics,
     clock = testHarnessClock,
-    activityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics),
+    probeWriters = FeatureTaskRuntimeProbeWriters(
+      activityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics),
+      worktreeEditJournalWriter = WorktreeEditJournalWriter(
+        database,
+        Clock.systemUTC(),
+        NoopRuntimeDiagnostics,
+        NoopWorkflowGitOperations,
+      ),
+    ),
   )
 }
 

@@ -40,6 +40,7 @@ internal object DatabaseSchema {
       "rejected_output_diagnostics",
       "producer_output_evidence",
       "agent_activity_stamps",
+      "worktree_edit_journal",
     )
 
   val indexNames: Set<String> =
@@ -68,6 +69,7 @@ internal object DatabaseSchema {
       "idx_review_run_stage_boundaries_run",
       "idx_review_runs_routed_skill_canonical",
       "idx_findings_lane",
+      "idx_worktree_edit_journal_workflow_recorded",
     )
 
   fun createBaseSchema(connection: Connection) {
