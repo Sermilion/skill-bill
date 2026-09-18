@@ -424,7 +424,6 @@ object PrincipleEnforcementInventory {
 
   val runtimeComponentInboundApi: List<String> = listOf(
     "agentRunService",
-    "clock",
     "configResolutionService",
     "externalAddonOverlayService",
     "externalAgentAddonSourceConfigPort",

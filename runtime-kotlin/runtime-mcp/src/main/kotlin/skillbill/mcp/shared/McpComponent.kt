@@ -12,7 +12,7 @@ import skillbill.di.RuntimeComponent
 import skillbill.engine.featuretask.FeatureTaskPhaseSettlementService
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.time.RuntimeClock
+import java.time.Clock
 
 @Component
 internal abstract class McpComponent(
@@ -26,7 +26,7 @@ internal abstract class McpComponent(
   abstract val workflowService: WorkflowService
   abstract val updateCheckService: UpdateCheckService
   abstract val featureTaskPhaseSettlementService: FeatureTaskPhaseSettlementService
-  abstract val clock: RuntimeClock
+  abstract val clock: Clock
   abstract val runtimeDiagnostics: RuntimeDiagnostics
   abstract val databaseSessionFactory: DatabaseSessionFactory
 }
