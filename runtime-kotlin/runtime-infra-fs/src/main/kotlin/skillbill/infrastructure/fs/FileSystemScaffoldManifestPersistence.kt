@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.fs.launcher.process.rollbackRestoreBytes
+import skillbill.infrastructure.fs.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.fs.scaffold.manifest.appendCodeReviewArea
 import skillbill.infrastructure.fs.scaffold.manifest.appendGovernedAddonManifestRegistration
 import skillbill.infrastructure.fs.scaffold.manifest.renderGovernedAddonManifestRegistration

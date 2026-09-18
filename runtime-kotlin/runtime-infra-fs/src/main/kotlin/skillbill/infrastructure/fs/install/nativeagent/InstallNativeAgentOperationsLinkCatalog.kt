@@ -1,6 +1,6 @@
 package skillbill.infrastructure.fs.install.nativeagent
 
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import skillbill.infrastructure.fs.scaffold.platformpack.loadPlatformManifest
 import skillbill.model.toPath
 import java.nio.file.Files

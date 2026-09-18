@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.nativeagent.rendering
 
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

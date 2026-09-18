@@ -1,11 +1,11 @@
 package skillbill.infrastructure.fs.install.scaffold
 
-import skillbill.infrastructure.fs.JdkHostPlatformPort
 import skillbill.infrastructure.fs.install.plan.InstallContext
 import skillbill.infrastructure.fs.install.plan.detectAgents
 import skillbill.infrastructure.fs.install.plan.installSkill
 import skillbill.infrastructure.fs.install.plan.resolveInstallEnvironment
 import skillbill.infrastructure.fs.install.plan.resolveInstallHome
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.fs.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackManifests
 import skillbill.infrastructure.fs.scaffold.runtime.ADD_ON_INSTALL_NOTE

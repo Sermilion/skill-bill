@@ -9,6 +9,7 @@ import skillbill.contracts.install.InstallPlanSchemaPaths
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.error.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
 import java.util.logging.Level
@@ -98,40 +99,42 @@ internal const val INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH: String =
   InstallPlanSchemaPaths.REPO_RELATIVE_PATH
 
 private fun installPlanSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
-  classLoader = InstallPlanSchemaValidator::class.java.classLoader,
-  classpathResource = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidInstallPlanSchemaError(
-      fieldPath = "",
-      reason = "Canonical install-plan schema is missing. Expected to find it on the JVM classpath at " +
-        "'$INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE'.",
-    )
-  },
-  processingFailure = { cause ->
-    InvalidInstallPlanSchemaError(
-      fieldPath = "",
-      reason = cause.message ?: cause::class.simpleName.orEmpty(),
-      cause = cause,
-    )
-  },
-  loadFailureLogger = { error ->
-    logSchemaLoadFailure(
-      log,
-      "install-plan",
-      INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
-      INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-  },
-  expectedSchemaId = InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = INSTALL_PLAN_CONTRACT_VERSION,
-  identityFailure = { reason ->
-    InvalidInstallPlanSchemaError(
-      fieldPath = "<schema>",
-      reason = reason,
-    )
-  },
+  CompiledSchemaRequest(
+    cacheKey = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = InstallPlanSchemaValidator::class.java.classLoader,
+    classpathResource = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidInstallPlanSchemaError(
+        fieldPath = "",
+        reason = "Canonical install-plan schema is missing. Expected to find it on the JVM classpath at " +
+          "'$INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidInstallPlanSchemaError(
+        fieldPath = "",
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        log,
+        "install-plan",
+        INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
+        INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = INSTALL_PLAN_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidInstallPlanSchemaError(
+        fieldPath = "<schema>",
+        reason = reason,
+      )
+    },
+  ),
 )
 
 fun extractOffendingValueFromInstance(instance: JsonNode, instanceLocation: String): String {

@@ -3,7 +3,7 @@ package skillbill.infrastructure.fs.install.plan
 import skillbill.error.InvalidInternalSkillClassificationError
 import skillbill.infrastructure.fs.install.staging.StagedSymlinkTargetInput
 import skillbill.infrastructure.fs.install.staging.resolveStagedSymlinkTarget
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
+import skillbill.infrastructure.fs.jvm.rollbackDeleteIfExists
 import skillbill.infrastructure.fs.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.install.model.AgentTarget
 import skillbill.install.model.InstallPlanSkill

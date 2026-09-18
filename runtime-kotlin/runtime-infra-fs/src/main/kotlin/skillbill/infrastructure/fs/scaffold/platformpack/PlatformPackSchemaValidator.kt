@@ -7,6 +7,7 @@ import com.networknt.schema.ValidationMessage
 import skillbill.error.ContractVersionMismatchError
 import skillbill.error.InvalidManifestSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import skillbill.infrastructure.fs.scaffold.runtime.SHELL_CONTRACT_VERSION
 import java.util.logging.Logger
 
@@ -174,22 +175,24 @@ internal const val PLATFORM_PACK_SCHEMA_REPO_RELATIVE_PATH: String =
   PlatformPackSchemaPaths.REPO_RELATIVE_PATH
 
 private fun loadSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
-  classLoader = PlatformPackSchemaValidator::class.java.classLoader,
-  classpathResource = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidManifestSchemaError(
-      "Canonical platform-pack schema is missing. Expected to find it on the JVM classpath at " +
-        "'$PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE'.",
-    )
-  },
-  processingFailure = { cause ->
-    InvalidManifestSchemaError(cause.message ?: cause::class.simpleName.orEmpty())
-  },
-  loadFailureLogger = {},
-  expectedSchemaId = PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = SHELL_CONTRACT_VERSION,
-  identityFailure = { reason -> InvalidManifestSchemaError(reason) },
+  CompiledSchemaRequest(
+    cacheKey = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = PlatformPackSchemaValidator::class.java.classLoader,
+    classpathResource = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidManifestSchemaError(
+        "Canonical platform-pack schema is missing. Expected to find it on the JVM classpath at " +
+          "'$PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidManifestSchemaError(cause.message ?: cause::class.simpleName.orEmpty())
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = SHELL_CONTRACT_VERSION,
+    identityFailure = { reason -> InvalidManifestSchemaError(reason) },
+  ),
 )
 
 internal fun anchoredTopLevelFieldNames(): Set<String> = ANCHORED_TOP_LEVEL_FIELD_NAMES

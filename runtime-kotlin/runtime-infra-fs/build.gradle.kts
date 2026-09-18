@@ -407,16 +407,20 @@ val infraFsAreaLayerOrder =
 
 val infraFsAreaSourceDirs =
   mapOf(
-    "Jvm" to "skillbill/infrastructure/fs/jvm",
-    "Infrastructure" to "skillbill/infrastructure/fs",
-    "Install" to "skillbill/infrastructure/fs/install",
-    "Launcher" to "skillbill/infrastructure/fs/launcher",
-    "NativeAgent" to "skillbill/infrastructure/fs/nativeagent",
-    "Scaffold" to "skillbill/infrastructure/fs/scaffold",
-    "AgentAddon" to "skillbill/infrastructure/fs/agentaddon",
-    "Contracts" to "skillbill/infrastructure/fs/contracts",
-    "GoalPlanning" to "skillbill/infrastructure/fs/goalplanning",
-    "SkillRemove" to "skillbill/infrastructure/fs/skillremove",
+    "Jvm" to listOf("skillbill/infrastructure/fs/jvm"),
+    "Infrastructure" to listOf("skillbill/infrastructure/fs"),
+    "Install" to listOf("skillbill/infrastructure/fs/install"),
+    "Launcher" to listOf("skillbill/infrastructure/fs/launcher"),
+    "NativeAgent" to listOf("skillbill/infrastructure/fs/nativeagent"),
+    "Scaffold" to listOf("skillbill/infrastructure/fs/scaffold"),
+    "AgentAddon" to listOf("skillbill/infrastructure/fs/agentaddon"),
+    "Contracts" to
+      listOf(
+        "skillbill/infrastructure/fs/contracts",
+        "skillbill/infrastructure/fs/phaseoutput",
+      ),
+    "GoalPlanning" to listOf("skillbill/infrastructure/fs/goalplanning"),
+    "SkillRemove" to listOf("skillbill/infrastructure/fs/skillremove"),
   )
 
 val javaPlugin = extensions.getByType(JavaPluginExtension::class.java)
@@ -426,9 +430,9 @@ val infraFsAreaSourceSets =
   infraFsAreaLayerOrder.associateWith { areaName ->
     val sourceSetName = "infraFs${areaName}Area"
     val areaSourceSet = javaPlugin.sourceSets.create(sourceSetName)
-    areaSourceSet.java.srcDir(
-      layout.projectDirectory.dir("src/main/kotlin/${infraFsAreaSourceDirs.getValue(areaName)}"),
-    )
+    infraFsAreaSourceDirs.getValue(areaName).forEach { sourceDir ->
+      areaSourceSet.java.srcDir(layout.projectDirectory.dir("src/main/kotlin/$sourceDir"))
+    }
     configurations.getByName(areaSourceSet.implementationConfigurationName).extendsFrom(
       configurations.getByName(mainSourceSet.implementationConfigurationName),
     )

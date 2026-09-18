@@ -1,8 +1,8 @@
 package skillbill.infrastructure.fs.scaffold.authoring
 
 import skillbill.error.SkillBillRuntimeException
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
-import skillbill.infrastructure.fs.launcher.process.rollbackRestoreBytes
+import skillbill.infrastructure.fs.jvm.rollbackDeleteIfExists
+import skillbill.infrastructure.fs.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.fs.scaffold.platformpack.addonUsageFor
 import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackManifests
 import skillbill.infrastructure.fs.scaffold.runtime.displayNameFromSlug

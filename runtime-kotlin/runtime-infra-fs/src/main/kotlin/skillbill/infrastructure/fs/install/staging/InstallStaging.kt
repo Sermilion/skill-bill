@@ -132,12 +132,10 @@ internal fun stageInstalledSkill(input: StageInstalledSkillInput): RenderedSkill
     throw error
   } catch (error: ShellContentContractException) {
     throw error
-  } catch (error: Exception) {
-    throw InvalidInstallStagingError(
-      sourceLabel = input.sourceSkillDir.toString(),
-      reason = error.message ?: error::class.simpleName.orEmpty(),
-      cause = error,
-    )
+  } catch (error: IOException) {
+    invalidStageInstalledSkill(input, error)
+  } catch (error: IllegalArgumentException) {
+    invalidStageInstalledSkill(input, error)
   }
   tryReusePreparedStageInstalledSkill(prepared, input.suppliedCompactIdentity)?.let { reused ->
     log.fine(
@@ -191,13 +189,17 @@ private fun buildFreshInstallStaging(inputs: FreshInstallInputs): RenderedSkill 
   } catch (error: SkillBillRuntimeException) {
     logInstallStagingFailure(inputs, tempDir, promoted, error)
     failure = error
-  } catch (error: Exception) {
-    logInstallStagingFailure(inputs, tempDir, promoted, error)
-    failure = error
   }
   failure?.let { throw it }
   return stagedResult!!
 }
+
+private fun invalidStageInstalledSkill(input: StageInstalledSkillInput, error: Throwable): Nothing =
+  throw InvalidInstallStagingError(
+    sourceLabel = input.sourceSkillDir.toString(),
+    reason = error.message ?: error::class.simpleName.orEmpty(),
+    cause = error,
+  )
 
 private fun logInstallStagingFailure(inputs: FreshInstallInputs, tempDir: Path, promoted: Boolean, error: Throwable) {
   log.log(

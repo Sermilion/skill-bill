@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.install.apply
 
 import skillbill.infrastructure.fs.install.plan.resolveTelemetryConfigPath
-import skillbill.infrastructure.fs.resolveEnvironmentMap
+import skillbill.infrastructure.fs.jvm.resolveEnvironmentMap
 import skillbill.install.model.ClaudeMcpProfileFailure
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssue

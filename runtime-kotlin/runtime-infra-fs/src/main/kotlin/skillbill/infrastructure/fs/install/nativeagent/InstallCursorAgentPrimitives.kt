@@ -1,8 +1,8 @@
 package skillbill.infrastructure.fs.install.nativeagent
 
+import skillbill.infrastructure.fs.jvm.resolveUserHome
 import skillbill.infrastructure.fs.nativeagent.discovery.discoverNativeAgentFilesByDir
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
-import skillbill.infrastructure.fs.resolveUserHome
 import java.nio.file.Path
 
 internal fun discoverCursorAgentMarkdown(

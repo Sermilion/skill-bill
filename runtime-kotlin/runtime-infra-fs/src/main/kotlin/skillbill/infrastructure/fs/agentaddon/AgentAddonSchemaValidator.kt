@@ -6,6 +6,7 @@ import skillbill.contracts.agentaddon.AGENT_ADDON_CONTRACT_VERSION
 import skillbill.contracts.agentaddon.AgentAddonSchemaPaths
 import skillbill.error.InvalidAgentAddonSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.SchemaIdentityRequest
 
 private object ClasspathAgentAddonSchemaResourceLoader : AgentAddonSchemaResourceLoader {
   override fun read(): String = AgentAddonSchemaValidator::class.java.classLoader
@@ -39,11 +40,13 @@ class AgentAddonSchemaValidator(
       val source = AgentAddonSchemaPaths.CLASSPATH_RESOURCE
       val node: JsonNode = ClasspathContractSchemaLoader.sharedYamlMapper().readTree(resourceLoader.read())
       ClasspathContractSchemaLoader.validateSchemaIdentity(
-        yamlNode = node,
-        classpathResource = source,
-        expectedSchemaId = AgentAddonSchemaPaths.EXPECTED_SCHEMA_ID,
-        expectedContractVersion = AGENT_ADDON_CONTRACT_VERSION,
-        identityFailure = { reason -> InvalidAgentAddonSchemaError(source, reason) },
+        SchemaIdentityRequest(
+          yamlNode = node,
+          classpathResource = source,
+          expectedSchemaId = AgentAddonSchemaPaths.EXPECTED_SCHEMA_ID,
+          expectedContractVersion = AGENT_ADDON_CONTRACT_VERSION,
+          identityFailure = { reason -> InvalidAgentAddonSchemaError(source, reason) },
+        ),
       )
       ClasspathContractSchemaLoader.compiledSchemaFromYamlNode(
         cacheKey = "agent-addon:${System.identityHashCode(resourceLoader)}:$source",

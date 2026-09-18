@@ -2,8 +2,9 @@ package skillbill.infrastructure.fs
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.decomposition.BUNDLE_JOURNAL_CONTRACT_VERSION
-import skillbill.infrastructure.fs.launcher.process.atomicWriteString
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
+import skillbill.infrastructure.fs.jvm.atomicWriteString
 import skillbill.ports.system.HostPlatformPort
 import java.nio.channels.FileChannel
 import java.nio.file.Files

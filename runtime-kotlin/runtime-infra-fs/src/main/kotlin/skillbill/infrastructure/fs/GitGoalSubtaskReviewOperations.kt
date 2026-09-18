@@ -1,6 +1,8 @@
 package skillbill.infrastructure.fs
 
-import skillbill.infrastructure.fs.launcher.process.newSha256Digest
+import skillbill.infrastructure.fs.contracts.newSha256Digest
+import skillbill.infrastructure.fs.launcher.process.runGitCommand
+import skillbill.infrastructure.fs.launcher.process.runGitProcess
 import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest

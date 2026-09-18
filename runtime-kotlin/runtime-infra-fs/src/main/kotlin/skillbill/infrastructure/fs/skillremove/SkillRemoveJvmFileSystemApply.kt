@@ -8,8 +8,8 @@ import skillbill.domain.skillremove.model.SkillRemovalRequest
 import skillbill.domain.skillremove.model.SkillRemovalTarget
 import skillbill.infrastructure.fs.install.nativeagent.InstallNativeAgentOperations
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkRequest
-import skillbill.infrastructure.fs.launcher.process.rollbackDeletePathEntry
-import skillbill.infrastructure.fs.launcher.process.rollbackRestoreBytes
+import skillbill.infrastructure.fs.jvm.rollbackDeletePathEntry
+import skillbill.infrastructure.fs.jvm.rollbackRestoreBytes
 import java.io.IOException
 import java.nio.file.FileVisitResult
 import java.nio.file.FileVisitResult.CONTINUE

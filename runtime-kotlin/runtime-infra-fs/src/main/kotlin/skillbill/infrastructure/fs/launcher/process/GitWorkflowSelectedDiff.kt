@@ -1,4 +1,4 @@
-package skillbill.infrastructure.fs
+package skillbill.infrastructure.fs.launcher.process
 
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest

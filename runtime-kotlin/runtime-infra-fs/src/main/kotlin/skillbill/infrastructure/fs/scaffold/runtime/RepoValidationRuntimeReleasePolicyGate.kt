@@ -1,6 +1,6 @@
 package skillbill.infrastructure.fs.scaffold.runtime
 
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.isRegularFile

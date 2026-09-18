@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.nativeagent.rendering
 
-import skillbill.infrastructure.fs.launcher.process.sha256Bytes
+import skillbill.infrastructure.fs.contracts.sha256Bytes
+import skillbill.infrastructure.fs.jvm.resolveUserHome
 import skillbill.infrastructure.fs.nativeagent.composition.NATIVE_AGENT_BUNDLE_FILE
 import skillbill.infrastructure.fs.nativeagent.composition.NATIVE_AGENT_SOURCE_DIR
 import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentCompositionContext
@@ -11,7 +12,6 @@ import skillbill.infrastructure.fs.nativeagent.composition.parseNativeAgentSourc
 import skillbill.infrastructure.fs.nativeagent.discovery.discoverNativeAgentSourceEntries
 import skillbill.infrastructure.fs.nativeagent.discovery.discoverNativeAgentSourceEntriesInRoots
 import skillbill.infrastructure.fs.nativeagent.validation.validateNativeAgentArtifactsForInstall
-import skillbill.infrastructure.fs.resolveUserHome
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption

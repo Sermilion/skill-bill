@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.phaseoutput
 
 import com.fasterxml.jackson.databind.JsonNode
 import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation

@@ -1,5 +1,6 @@
 package skillbill.infrastructure.fs.launcher.process
 
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes

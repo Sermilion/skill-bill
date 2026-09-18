@@ -1,6 +1,6 @@
 package skillbill.infrastructure.fs.install.staging
 
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption

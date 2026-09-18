@@ -2,10 +2,10 @@
 package skillbill.infrastructure.fs.scaffold.runtime
 
 import skillbill.error.ScaffoldRollbackError
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteEmptyDirectory
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteRegularFileOrSymlink
-import skillbill.infrastructure.fs.launcher.process.rollbackRestoreBytes
+import skillbill.infrastructure.fs.jvm.rollbackDeleteEmptyDirectory
+import skillbill.infrastructure.fs.jvm.rollbackDeleteIfExists
+import skillbill.infrastructure.fs.jvm.rollbackDeleteRegularFileOrSymlink
+import skillbill.infrastructure.fs.jvm.rollbackRestoreBytes
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

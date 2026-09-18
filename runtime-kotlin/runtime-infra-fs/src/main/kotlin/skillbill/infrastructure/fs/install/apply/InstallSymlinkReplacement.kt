@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.install.apply
 
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
+import skillbill.infrastructure.fs.jvm.rollbackDeleteIfExists
 import java.io.IOException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.FileSystemException

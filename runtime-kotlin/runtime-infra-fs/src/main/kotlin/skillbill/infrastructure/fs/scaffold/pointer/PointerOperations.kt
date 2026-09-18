@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.scaffold.pointer
 
 import skillbill.error.ContractVersionMismatchError
-import skillbill.infrastructure.fs.launcher.process.atomicWriteBytes
+import skillbill.infrastructure.fs.jvm.atomicWriteBytes
 import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackManifests
 import skillbill.infrastructure.fs.scaffold.runtime.SHELL_CONTRACT_VERSION
 import skillbill.model.toPath

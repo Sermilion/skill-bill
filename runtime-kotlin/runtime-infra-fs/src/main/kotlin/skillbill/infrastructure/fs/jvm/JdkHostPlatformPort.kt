@@ -1,4 +1,4 @@
-package skillbill.infrastructure.fs
+package skillbill.infrastructure.fs.jvm
 
 import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Path

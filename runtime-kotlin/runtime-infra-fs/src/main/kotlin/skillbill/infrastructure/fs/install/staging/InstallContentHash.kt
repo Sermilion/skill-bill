@@ -1,8 +1,8 @@
 package skillbill.infrastructure.fs.install.staging
 
 import skillbill.infrastructure.fs.agentaddon.AgentAddonPointer
-import skillbill.infrastructure.fs.launcher.process.newSha256Digest
-import skillbill.infrastructure.fs.launcher.process.requirePathContainedIn
+import skillbill.infrastructure.fs.contracts.newSha256Digest
+import skillbill.infrastructure.fs.jvm.requirePathContainedIn
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec

@@ -7,6 +7,7 @@ import skillbill.contracts.workflow.PRODUCER_OUTPUT_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.ProducerOutputEvidenceSchemaPaths
 import skillbill.error.InvalidProducerOutputEvidenceSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 
@@ -45,19 +46,21 @@ class ProducerOutputEvidenceSchemaValidator : ProducerOutputEvidenceValidator {
 }
 
 private fun producerOutputEvidenceSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = ProducerOutputEvidenceSchemaPaths.CLASSPATH_RESOURCE,
-  classLoader = ProducerOutputEvidenceSchemaValidator::class.java.classLoader,
-  classpathResource = ProducerOutputEvidenceSchemaPaths.CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidProducerOutputEvidenceSchemaError("Canonical producer output evidence schema resource is missing.")
-  },
-  processingFailure = { cause ->
-    InvalidProducerOutputEvidenceSchemaError(
-      cause.message ?: cause::class.simpleName.orEmpty(),
-    )
-  },
-  loadFailureLogger = {},
-  expectedSchemaId = ProducerOutputEvidenceSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = PRODUCER_OUTPUT_EVIDENCE_CONTRACT_VERSION,
-  identityFailure = { reason -> InvalidProducerOutputEvidenceSchemaError(reason) },
+  CompiledSchemaRequest(
+    cacheKey = ProducerOutputEvidenceSchemaPaths.CLASSPATH_RESOURCE,
+    classLoader = ProducerOutputEvidenceSchemaValidator::class.java.classLoader,
+    classpathResource = ProducerOutputEvidenceSchemaPaths.CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidProducerOutputEvidenceSchemaError("Canonical producer output evidence schema resource is missing.")
+    },
+    processingFailure = { cause ->
+      InvalidProducerOutputEvidenceSchemaError(
+        cause.message ?: cause::class.simpleName.orEmpty(),
+      )
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = ProducerOutputEvidenceSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = PRODUCER_OUTPUT_EVIDENCE_CONTRACT_VERSION,
+    identityFailure = { reason -> InvalidProducerOutputEvidenceSchemaError(reason) },
+  ),
 )

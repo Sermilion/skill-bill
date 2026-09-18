@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.scaffold
 
 import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper
+import skillbill.infrastructure.fs.contracts.WorkflowStateSnapshotWireMapper
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowDefinition

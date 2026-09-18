@@ -1,7 +1,7 @@
 
 package skillbill.infrastructure.fs.scaffold.runtime
 
-import skillbill.infrastructure.fs.JdkHostPlatformPort
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.fs.scaffold.payload.detectKind
 import skillbill.infrastructure.fs.scaffold.payload.validatePayloadVersion
 import skillbill.ports.repository.toFileLocation

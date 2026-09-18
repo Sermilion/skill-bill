@@ -1,5 +1,6 @@
 package skillbill.infrastructure.fs
 
+import skillbill.infrastructure.fs.launcher.process.runGitCommand
 import skillbill.ports.workflow.gitops.CheckpointHistoryGitOperations
 import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations

@@ -1,6 +1,6 @@
 package skillbill.infrastructure.fs.goalplanning
 
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import java.time.LocalDate
 
 data class BoundaryMemoryEntry(

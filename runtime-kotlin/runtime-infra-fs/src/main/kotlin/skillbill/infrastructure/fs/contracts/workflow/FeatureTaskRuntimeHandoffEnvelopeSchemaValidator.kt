@@ -9,6 +9,7 @@ import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionContext
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 
 object FeatureTaskRuntimeHandoffEnvelopeSchemaValidator {
   fun validate(envelope: Map<String, Any?>, workflowId: String? = null) {
@@ -46,39 +47,41 @@ object FeatureTaskRuntimeHandoffEnvelopeSchemaValidator {
 }
 
 private fun schema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
-  classLoader = FeatureTaskRuntimeHandoffEnvelopeSchemaValidator::class.java.classLoader,
-  classpathResource = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidFeatureTaskRuntimeHandoffProjectionError(
-      context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
-        workflowId = null,
-        consumerPhaseId = "<schema-load>",
-        projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
-        projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
-        projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
-        failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
-        reason = "Canonical feature-task-runtime handoff envelope schema is missing on the classpath.",
-      ),
-    )
-  },
-  processingFailure = { cause ->
-    InvalidFeatureTaskRuntimeHandoffProjectionError(
-      context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
-        workflowId = null,
-        consumerPhaseId = "<schema-load>",
-        projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
-        projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
-        projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
-        failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-      ),
-    )
-  },
-  loadFailureLogger = {},
-  expectedSchemaId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
-  identityFailure = ::featureTaskRuntimeHandoffEnvelopeIdentityMismatchError,
+  CompiledSchemaRequest(
+    cacheKey = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
+    classLoader = FeatureTaskRuntimeHandoffEnvelopeSchemaValidator::class.java.classLoader,
+    classpathResource = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidFeatureTaskRuntimeHandoffProjectionError(
+        context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
+          workflowId = null,
+          consumerPhaseId = "<schema-load>",
+          projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
+          projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
+          projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
+          failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
+          reason = "Canonical feature-task-runtime handoff envelope schema is missing on the classpath.",
+        ),
+      )
+    },
+    processingFailure = { cause ->
+      InvalidFeatureTaskRuntimeHandoffProjectionError(
+        context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
+          workflowId = null,
+          consumerPhaseId = "<schema-load>",
+          projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
+          projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
+          projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
+          failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        ),
+      )
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
+    identityFailure = ::featureTaskRuntimeHandoffEnvelopeIdentityMismatchError,
+  ),
 )
 
 private fun featureTaskRuntimeHandoffEnvelopeIdentityMismatchError(

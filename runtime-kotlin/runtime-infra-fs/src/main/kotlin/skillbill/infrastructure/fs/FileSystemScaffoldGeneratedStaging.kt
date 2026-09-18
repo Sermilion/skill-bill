@@ -2,8 +2,8 @@ package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.SkillAlreadyExistsError
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteEmptyDirectory
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteRegularFileOrSymlink
+import skillbill.infrastructure.fs.jvm.rollbackDeleteEmptyDirectory
+import skillbill.infrastructure.fs.jvm.rollbackDeleteRegularFileOrSymlink
 import skillbill.ports.scaffold.staging.ScaffoldGeneratedStagingPort
 import skillbill.ports.scaffold.staging.model.ScaffoldStageFileRequest
 import skillbill.ports.scaffold.staging.model.ScaffoldStageFileResult

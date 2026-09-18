@@ -188,12 +188,8 @@ class FileSystemInstallSkillLink(
 ) : InstallSkillLinkPort {
   override fun linkSkill(request: InstallSkillLinkRequest): InstallSkillLinkResult = InstallSkillLinkResult(
     linkedPaths = linkInstalledSkill(
-      source = request.source,
-      targetDir = request.targetDir,
-      agent = request.agent,
-      repoRoot = request.repoRoot,
-      home = request.home,
-      hostPlatform = hostPlatform,
+      request,
+      hostPlatform,
     ),
   )
 }

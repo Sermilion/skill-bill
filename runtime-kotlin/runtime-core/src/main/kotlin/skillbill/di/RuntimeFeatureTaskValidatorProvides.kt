@@ -7,8 +7,8 @@ import skillbill.infrastructure.fs.RejectedOutputDiagnosticSchemaValidator
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactSchemaValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactValidatorPort
 
 internal interface RuntimeFeatureTaskValidatorProvides {
   @Provides @JvmSynthetic
@@ -19,7 +19,7 @@ internal interface RuntimeFeatureTaskValidatorProvides {
   @Provides @JvmSynthetic
   fun featureTaskRuntimeWireArtifactValidator(
     validator: FeatureTaskRuntimeWireArtifactSchemaValidator,
-  ): FeatureTaskRuntimeWireArtifactValidatorPort = validator
+  ): FeatureTaskRuntimeWireArtifactValidator = validator
 
   @Provides @JvmSynthetic
   fun rejectedOutputDiagnosticMetadataValidator(): RejectedOutputDiagnosticMetadataValidator =

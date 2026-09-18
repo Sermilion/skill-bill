@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.fs.launcher.process.atomicWriteString
+import skillbill.infrastructure.fs.jvm.atomicWriteString
 import skillbill.install.model.BaselineManifest
 import skillbill.ports.install.baseline.BaselineManifestPersistencePort
 import skillbill.ports.install.baseline.model.ReadBaselineManifestRequest

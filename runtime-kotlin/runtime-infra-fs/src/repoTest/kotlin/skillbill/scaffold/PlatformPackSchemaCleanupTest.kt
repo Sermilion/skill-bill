@@ -12,6 +12,7 @@ import skillbill.error.InvalidNativeAgentCompositionSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.ShellContentContractException
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.SchemaIdentityRequest
 import skillbill.infrastructure.fs.nativeagent.composition.NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION
 import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentCompositionSchemaPaths
 import skillbill.infrastructure.fs.scaffold.platformpack.PlatformPackSchemaPaths
@@ -339,11 +340,13 @@ private fun validateIdentity(
   error: (String) -> ShellContentContractException,
 ) {
   ClasspathContractSchemaLoader.validateSchemaIdentity(
-    yamlNode = node,
-    classpathResource = expectedSchemaId,
-    expectedSchemaId = expectedSchemaId,
-    expectedContractVersion = expectedContractVersion,
-    contractVersionPath = contractVersionPath,
-    identityFailure = error,
+    SchemaIdentityRequest(
+      yamlNode = node,
+      classpathResource = expectedSchemaId,
+      expectedSchemaId = expectedSchemaId,
+      expectedContractVersion = expectedContractVersion,
+      contractVersionPath = contractVersionPath,
+      identityFailure = error,
+    ),
   )
 }

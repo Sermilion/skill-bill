@@ -3,9 +3,9 @@ package skillbill.infrastructure.fs.skillremove
 import skillbill.domain.skillremove.model.AgentSymlinkProvider
 import skillbill.domain.skillremove.model.AgentSymlinkUnlink
 import skillbill.domain.skillremove.model.SkillRemovalRequest
+import skillbill.infrastructure.fs.jvm.resolveEnvironmentMap
 import skillbill.infrastructure.fs.nativeagent.support.claudeConfigRoots
 import skillbill.infrastructure.fs.nativeagent.support.codexAgentsTargets
-import skillbill.infrastructure.fs.resolveEnvironmentMap
 import java.nio.file.Path
 
 internal fun SkillRemoveJvmFileSystemPlanning.agentUnlinksForSkills(

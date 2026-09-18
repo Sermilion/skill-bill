@@ -13,6 +13,7 @@ import skillbill.contracts.review.ReviewContextSchemaPaths
 import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.error.ShellContentContractException
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.ValidatedClasspathYamlNodeRequest
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.util.logging.Level
@@ -253,43 +254,53 @@ private fun logReviewContextSchemaFailure(error: Throwable): Throwable {
 }
 
 private fun loadReviewContextSchema(): ReviewContextSchemas {
-  val yamlNode = try {
+  return compileReviewContextSchemas(readReviewContextSchemaNode())
+}
+
+private fun readReviewContextSchemaNode(): JsonNode {
+  return try {
     ClasspathContractSchemaLoader.readValidatedClasspathYamlNode(
-      classLoader = ReviewContextSchemaValidator::class.java.classLoader,
-      resource = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
-      missingResource = {
-        InvalidReviewContextSchemaError(
-          sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
-          reason = "Canonical review context schema is missing from the classpath.",
-        )
-      },
-      processingFailure = { cause ->
-        InvalidReviewContextSchemaError(
-          sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
-          reason = cause.message ?: cause::class.simpleName.orEmpty(),
-          cause = cause,
-        )
-      },
-      expectedSchemaId = ReviewContextSchemaPaths.EXPECTED_SCHEMA_ID,
-      expectedContractVersion = REVIEW_CONTEXT_CONTRACT_VERSION,
-      contractVersionMatches = { node, expected ->
-        node.path("\$defs").fields().asSequence()
-          .map { (_, definition) ->
-            definition.path("properties").path(SharedPayloadKeys.CONTRACT_VERSION).path("const").asText("")
-          }
-          .filter(String::isNotBlank)
-          .all { it == expected }
-      },
-      identityFailure = { reason ->
-        InvalidReviewContextSchemaError(
-          sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
-          reason = reason,
-        )
-      },
+      ValidatedClasspathYamlNodeRequest(
+        classLoader = ReviewContextSchemaValidator::class.java.classLoader,
+        resource = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+        missingResource = {
+          InvalidReviewContextSchemaError(
+            sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+            reason = "Canonical review context schema is missing from the classpath.",
+          )
+        },
+        processingFailure = { cause ->
+          InvalidReviewContextSchemaError(
+            sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+            reason = cause.message ?: cause::class.simpleName.orEmpty(),
+            cause = cause,
+          )
+        },
+        expectedSchemaId = ReviewContextSchemaPaths.EXPECTED_SCHEMA_ID,
+        expectedContractVersion = REVIEW_CONTEXT_CONTRACT_VERSION,
+        contractVersionMatches = ::reviewContextContractVersionMatches,
+        identityFailure = { reason ->
+          InvalidReviewContextSchemaError(
+            sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+            reason = reason,
+          )
+        },
+      ),
     )
   } catch (error: ShellContentContractException) {
     throw logReviewContextSchemaFailure(error)
   }
+}
+
+private fun reviewContextContractVersionMatches(node: JsonNode, expected: String): Boolean =
+  node.path("\$defs").fields().asSequence()
+    .map { (_, definition) ->
+      definition.path("properties").path(SharedPayloadKeys.CONTRACT_VERSION).path("const").asText("")
+    }
+    .filter(String::isNotBlank)
+    .all { it == expected }
+
+private fun compileReviewContextSchemas(yamlNode: JsonNode): ReviewContextSchemas {
   try {
     val mapper = ClasspathContractSchemaLoader.sharedObjectMapper()
     val envelopeSchema = ClasspathContractSchemaLoader.compiledSchemaFromYamlNode(

@@ -4,7 +4,7 @@ import skillbill.error.InvalidScaffoldPayloadError
 import skillbill.error.MissingPlatformPackError
 import skillbill.error.SkillAlreadyExistsError
 import skillbill.error.UnknownSkillKindError
-import skillbill.infrastructure.fs.JdkHostPlatformPort
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.fs.scaffold.platformpack.loadPlatformPack
 import skillbill.infrastructure.fs.scaffold.rendering.defaultAreaFocus
 import skillbill.ports.system.HostPlatformPort

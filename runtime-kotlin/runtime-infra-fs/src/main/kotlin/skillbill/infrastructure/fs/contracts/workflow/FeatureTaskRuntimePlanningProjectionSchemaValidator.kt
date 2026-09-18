@@ -7,6 +7,7 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CO
 import skillbill.contracts.workflow.FeatureTaskRuntimePlanningProjectionsSchemaPaths
 import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 
 object FeatureTaskRuntimePlanningProjectionSchemaValidator {
   fun validate(payload: Map<String, Any?>, sourceLabel: String) {
@@ -41,31 +42,33 @@ object FeatureTaskRuntimePlanningProjectionSchemaValidator {
 }
 
 private fun schema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
-  classLoader = FeatureTaskRuntimePlanningProjectionSchemaValidator::class.java.classLoader,
-  classpathResource = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
-      sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
-      reason = "Canonical feature-task-runtime planning-projections schema is missing. Expected classpath resource " +
-        "'${FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE}'.",
-    )
-  },
-  processingFailure = { cause ->
-    InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
-      sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
-      reason = cause.message ?: cause::class.simpleName.orEmpty(),
-      cause = cause,
-    )
-  },
-  loadFailureLogger = {},
-  expectedSchemaId = FeatureTaskRuntimePlanningProjectionsSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION,
-  contractVersionPath = listOf("\$defs", "contractVersion", "const"),
-  identityFailure = { reason ->
-    InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
-      sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
-      reason = reason,
-    )
-  },
+  CompiledSchemaRequest(
+    cacheKey = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+    classLoader = FeatureTaskRuntimePlanningProjectionSchemaValidator::class.java.classLoader,
+    classpathResource = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
+        sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+        reason = "Canonical feature-task-runtime planning-projections schema is missing. Expected classpath resource " +
+          "'${FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE}'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
+        sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = FeatureTaskRuntimePlanningProjectionsSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION,
+    contractVersionPath = listOf("\$defs", "contractVersion", "const"),
+    identityFailure = { reason ->
+      InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
+        sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+        reason = reason,
+      )
+    },
+  ),
 )

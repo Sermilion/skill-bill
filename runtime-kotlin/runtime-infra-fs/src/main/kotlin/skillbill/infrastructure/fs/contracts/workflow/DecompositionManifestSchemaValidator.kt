@@ -15,6 +15,7 @@ import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
 import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepair
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepairDecision
 import skillbill.workflow.decomposition.DecompositionManifestValidator
@@ -266,40 +267,42 @@ internal const val DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH: String =
   DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH
 
 private fun decompositionManifestSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-  classLoader = DecompositionManifestSchemaValidator::class.java.classLoader,
-  classpathResource = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidDecompositionManifestSchemaError(
-      sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-      reason = "Canonical decomposition manifest schema is missing. Expected to find it on the JVM classpath at " +
-        "'$DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE'.",
-    )
-  },
-  processingFailure = { cause ->
-    InvalidDecompositionManifestSchemaError(
-      sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-      reason = cause.message ?: cause::class.simpleName.orEmpty(),
-      cause = cause,
-    )
-  },
-  loadFailureLogger = { error ->
-    logSchemaLoadFailure(
-      decompositionManifestLog,
-      "decomposition manifest",
-      DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-      DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-  },
-  expectedSchemaId = DecompositionManifestSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = DECOMPOSITION_MANIFEST_CONTRACT_VERSION,
-  identityFailure = { reason ->
-    InvalidDecompositionManifestSchemaError(
-      sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-      reason = reason,
-    )
-  },
+  CompiledSchemaRequest(
+    cacheKey = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = DecompositionManifestSchemaValidator::class.java.classLoader,
+    classpathResource = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidDecompositionManifestSchemaError(
+        sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+        reason = "Canonical decomposition manifest schema is missing. Expected to find it on the JVM classpath at " +
+          "'$DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidDecompositionManifestSchemaError(
+        sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        decompositionManifestLog,
+        "decomposition manifest",
+        DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+        DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = DecompositionManifestSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = DECOMPOSITION_MANIFEST_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidDecompositionManifestSchemaError(
+        sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+        reason = reason,
+      )
+    },
+  ),
 )
 
 fun decompositionManifestDottedFieldPath(instanceLocation: String): String = when {

@@ -5,6 +5,7 @@ import skillbill.contracts.workflow.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.SchemaIdentityRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -45,17 +46,19 @@ class GoalPlanningPreparationSchemaContractVersionTest {
   fun `validator asserts identity of the classpath schema`() {
     val yamlNode = classpathSchema()
     ClasspathContractSchemaLoader.validateSchemaIdentity(
-      yamlNode = yamlNode,
-      classpathResource = GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE,
-      expectedSchemaId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
-      expectedContractVersion = GOAL_PLANNING_PREPARATION_CONTRACT_VERSION,
-      identityFailure = { reason ->
-        InvalidGoalPlanningPreparationSchemaError(
-          sourceLabel = GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE,
-          fieldPath = "<schema>",
-          reason = reason,
-        )
-      },
+      SchemaIdentityRequest(
+        yamlNode = yamlNode,
+        classpathResource = GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE,
+        expectedSchemaId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+        expectedContractVersion = GOAL_PLANNING_PREPARATION_CONTRACT_VERSION,
+        identityFailure = { reason ->
+          InvalidGoalPlanningPreparationSchemaError(
+            sourceLabel = GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE,
+            fieldPath = "<schema>",
+            reason = reason,
+          )
+        },
+      ),
     )
   }
 

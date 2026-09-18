@@ -1,5 +1,7 @@
 package skillbill.infrastructure.fs
 
+import skillbill.infrastructure.fs.launcher.process.runGitCommand
+import skillbill.infrastructure.fs.launcher.process.runGitProcess
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Files
 import java.nio.file.Path

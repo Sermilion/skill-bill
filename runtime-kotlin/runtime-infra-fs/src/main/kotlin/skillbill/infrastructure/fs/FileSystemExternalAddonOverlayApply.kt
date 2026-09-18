@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs
 
 import org.yaml.snakeyaml.Yaml
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import skillbill.scaffold.model.GovernedAddonActivation
 import skillbill.scaffold.model.GovernedAddonSelection
 import java.io.IOException

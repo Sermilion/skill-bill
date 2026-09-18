@@ -7,7 +7,7 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.error.InvalidAgentAddonSelectionError
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import skillbill.ports.agentaddon.AgentAddonSelectionPort

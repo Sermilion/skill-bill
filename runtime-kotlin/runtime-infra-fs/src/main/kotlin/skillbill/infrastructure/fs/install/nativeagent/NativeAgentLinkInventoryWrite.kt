@@ -4,7 +4,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION
 import skillbill.error.InvalidNativeAgentLinkInventoryWriteError
 import skillbill.error.ShellContentContractException
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -31,14 +31,14 @@ internal object NativeAgentLinkInventoryWrite {
     }
     val bytes = request.mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(root)
     if (bytes.size > NativeAgentLinkInventoryLimits.MAX_BYTES) {
-      throw writeError(
+      invalidWrite(
         request.path,
         "native-agent link inventory exceeds ${NativeAgentLinkInventoryLimits.MAX_BYTES} bytes",
       )
     }
     val schemaErrors = request.schema.validate(request.mapper.readTree(bytes))
     if (schemaErrors.isNotEmpty()) {
-      throw writeError(request.path, schemaErrors.joinToString("; ") { it.message })
+      invalidWrite(request.path, schemaErrors.joinToString("; ") { it.message })
     }
     NativeAgentLinkInventoryDecode.validateSemanticEntries(request.entries, request.home, request.managedRoots)
     val temporary = Files.createTempFile(request.path.parent, "${request.path.fileName}.", ".tmp")
@@ -73,4 +73,6 @@ internal object NativeAgentLinkInventoryWrite {
     cause: Throwable? = null,
   ): InvalidNativeAgentLinkInventoryWriteError =
     InvalidNativeAgentLinkInventoryWriteError(path = path.toString(), reason = reason, cause = cause)
+
+  private fun invalidWrite(path: Path, reason: String): Nothing = throw writeError(path, reason)
 }

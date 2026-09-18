@@ -4,8 +4,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalPayloadKeys
 import skillbill.error.InvalidDecompositionManifestSchemaError
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID

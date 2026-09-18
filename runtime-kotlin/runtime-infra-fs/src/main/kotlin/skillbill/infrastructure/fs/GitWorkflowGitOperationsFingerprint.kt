@@ -1,7 +1,21 @@
 package skillbill.infrastructure.fs
 
-import skillbill.infrastructure.fs.launcher.process.newSha256Digest
-import skillbill.infrastructure.fs.launcher.process.requirePathContainedIn
+import skillbill.infrastructure.fs.contracts.newSha256Digest
+import skillbill.infrastructure.fs.jvm.requirePathContainedIn
+import skillbill.infrastructure.fs.launcher.process.GIT_CHANGED_FILE_SAMPLE_LIMIT
+import skillbill.infrastructure.fs.launcher.process.GIT_NUMSTAT_PART_LIMIT
+import skillbill.infrastructure.fs.launcher.process.GIT_RENAME_NAME_STATUS_MIN_FIELDS
+import skillbill.infrastructure.fs.launcher.process.GIT_STATUS_CODE_LENGTH
+import skillbill.infrastructure.fs.launcher.process.GIT_STATUS_MIN_LENGTH
+import skillbill.infrastructure.fs.launcher.process.GIT_STATUS_PATH_OFFSET
+import skillbill.infrastructure.fs.launcher.process.SelectedDiffBudget
+import skillbill.infrastructure.fs.launcher.process.UNTRACKED_FINGERPRINT_BUFFER_BYTES
+import skillbill.infrastructure.fs.launcher.process.UNTRACKED_FINGERPRINT_CONTENT_MAX_BYTES
+import skillbill.infrastructure.fs.launcher.process.UNTRACKED_NON_REGULAR_MARKER
+import skillbill.infrastructure.fs.launcher.process.UNTRACKED_UNREADABLE_MARKER
+import skillbill.infrastructure.fs.launcher.process.appendSelectedDiffHunks
+import skillbill.infrastructure.fs.launcher.process.runGitCommand
+import skillbill.infrastructure.fs.launcher.process.runGitForActivity
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
 import skillbill.ports.workflow.gitops.RuntimePhaseFileManifestGitOperations
 import skillbill.ports.workflow.gitops.SuppressionEvidenceGitOperations

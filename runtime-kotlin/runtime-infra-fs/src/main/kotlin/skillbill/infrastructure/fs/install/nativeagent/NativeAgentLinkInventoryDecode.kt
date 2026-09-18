@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.networknt.schema.JsonSchema
 import skillbill.error.InvalidNativeAgentLinkInventoryDecodeError
 import skillbill.error.ShellContentContractException
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.install.model.SupportedAgent
 import java.io.IOException
 import java.nio.file.Files
@@ -19,41 +19,19 @@ internal object NativeAgentLinkInventoryDecode {
     managedRoots: List<Path>,
     mapper: ObjectMapper,
     schema: JsonSchema,
-  ): List<NativeAgentLinkInventoryEntry> {
-    try {
-      if (Files.size(path) > NativeAgentLinkInventoryLimits.MAX_BYTES) {
-        throw decodeError(path, "inventory exceeds ${NativeAgentLinkInventoryLimits.MAX_BYTES} bytes")
-      }
-      val root = mapper.readTree(path.toFile())
-        ?: throw decodeError(path, "<root> must be an object")
-      if (!root.isObject) {
-        throw decodeError(path, "<root> must be an object")
-      }
-      val schemaErrors = schema.validate(root)
-      if (schemaErrors.isNotEmpty()) {
-        throw decodeError(path, schemaErrors.joinToString("; ") { it.message })
-      }
-      val entries = root["entries"]?.elements()?.asSequence()?.map { node ->
-        NativeAgentLinkInventoryEntry(
-          logicalName = node.requiredText("logical_name", path),
-          provider = node.requiredText("provider", path),
-          installedPath = Path.of(node.requiredText("installed_path", path)),
-          cacheTargetPath = Path.of(node.requiredText("cache_target_path", path)),
-          contentDigest = node.requiredText("content_digest", path),
-          sourceRoot = Path.of(node.requiredText("source_root", path)),
-        )
-      }?.toList() ?: throw decodeError(path, "entries is required")
-      validateDecodedEntries(entries, home, managedRoots, path)
-      return entries
-    } catch (error: CancellationException) {
-      throw error
-    } catch (error: ShellContentContractException) {
-      throw error
-    } catch (error: IOException) {
-      throw decodeError(path, error.message.orEmpty(), error)
-    } catch (error: IllegalArgumentException) {
-      throw decodeError(path, error.message.orEmpty(), error)
-    }
+  ): List<NativeAgentLinkInventoryEntry> = try {
+    val root = readValidatedRoot(path, mapper, schema)
+    val entries = decodeEntries(root, path)
+    validateDecodedEntries(entries, home, managedRoots, path)
+    entries
+  } catch (error: CancellationException) {
+    rethrow(error)
+  } catch (error: ShellContentContractException) {
+    rethrow(error)
+  } catch (error: IOException) {
+    throwDecodeError(path, error)
+  } catch (error: IllegalArgumentException) {
+    throwDecodeError(path, error)
   }
 
   fun validateSemanticEntries(entries: List<NativeAgentLinkInventoryEntry>, home: Path, managedRoots: List<Path>) {
@@ -76,63 +54,112 @@ internal object NativeAgentLinkInventoryDecode {
     }.getOrDefault(false)
   }
 
+  private fun readValidatedRoot(path: Path, mapper: ObjectMapper, schema: JsonSchema): JsonNode {
+    if (Files.size(path) > NativeAgentLinkInventoryLimits.MAX_BYTES) {
+      invalid(path, "inventory exceeds ${NativeAgentLinkInventoryLimits.MAX_BYTES} bytes")
+    }
+    val root = mapper.readTree(path.toFile()) ?: invalid(path, "<root> must be an object")
+    if (!root.isObject) invalid(path, "<root> must be an object")
+    val schemaErrors = schema.validate(root)
+    if (schemaErrors.isNotEmpty()) {
+      invalid(path, schemaErrors.joinToString("; ") { it.message })
+    }
+    return root
+  }
+
+  private fun decodeEntries(root: JsonNode, path: Path): List<NativeAgentLinkInventoryEntry> =
+    root["entries"]?.elements()?.asSequence()?.map { node ->
+      NativeAgentLinkInventoryEntry(
+        logicalName = node.requiredText("logical_name", path),
+        provider = node.requiredText("provider", path),
+        installedPath = Path.of(node.requiredText("installed_path", path)),
+        cacheTargetPath = Path.of(node.requiredText("cache_target_path", path)),
+        contentDigest = node.requiredText("content_digest", path),
+        sourceRoot = Path.of(node.requiredText("source_root", path)),
+      )
+    }?.toList() ?: invalid(path, "entries is required")
+
   private fun validateDecodedEntries(
     entries: List<NativeAgentLinkInventoryEntry>,
     home: Path,
     managedRoots: List<Path>,
     path: Path,
   ) {
+    validateUniqueEntries(entries, path)
+    entries.forEach { entry -> validateDecodedEntry(entry, home, managedRoots, path) }
+  }
+
+  private fun validateUniqueEntries(entries: List<NativeAgentLinkInventoryEntry>, path: Path) {
     if (entries.map { it.provider to it.installedPath.normalize() }.distinct().size != entries.size) {
-      throw decodeError(path, "duplicate provider/installed_path entry")
+      invalid(path, "duplicate provider/installed_path entry")
     }
     if (
       entries.groupBy { Triple(it.provider, it.installedPath.parent.normalize(), it.logicalName) }
         .values.any { it.size > 1 }
     ) {
-      throw decodeError(path, "duplicate provider/directory/logical_name entry")
-    }
-    entries.forEach { entry ->
-      if (entry.provider !in NativeAgentLinkInventoryLimits.PROVIDERS) {
-        throw decodeError(path, "unsupported provider '${entry.provider}'")
-      }
-      if (!entry.contentDigest.matches(Regex("[0-9a-f]{${NativeAgentLinkInventoryLimits.DIGEST_HEX_LENGTH}}"))) {
-        throw decodeError(path, "invalid content_digest")
-      }
-      if (!entry.installedPath.isAbsolute) throw decodeError(path, "installed_path must be absolute")
-      if (!entry.cacheTargetPath.isAbsolute) throw decodeError(path, "cache_target_path must be absolute")
-      if (
-        !entry.sourceRoot.isAbsolute ||
-        entry.sourceRoot.toString().length > NativeAgentLinkInventoryLimits.MAX_SOURCE_ROOT_LENGTH
-      ) {
-        throw decodeError(path, "source_root must be an absolute bounded path")
-      }
-      if (entry.sourceRoot != entry.sourceRoot.normalize()) {
-        throw decodeError(path, "source_root must be normalized")
-      }
-      if (entry.installedPath != entry.installedPath.normalize()) {
-        throw decodeError(path, "installed_path must be normalized")
-      }
-      if (entry.cacheTargetPath != entry.cacheTargetPath.normalize()) {
-        throw decodeError(path, "cache_target_path must be normalized")
-      }
-      if (!NativeAgentLinkInventoryLimits.LOGICAL_NAME.matches(entry.logicalName)) {
-        throw decodeError(path, "logical_name must be a single filename stem")
-      }
-      val provider = NativeAgentLinkInventoryPaths.provider(entry.provider)
-      val allowedDirs = provider.homeAgentDirs(home).map { it.toAbsolutePath().normalize() }
-      if (entry.installedPath.parent !in allowedDirs) {
-        throw decodeError(path, "installed_path is outside provider directory")
-      }
-      if (entry.installedPath.fileName.toString() != provider.fileName(entry.logicalName)) {
-        throw decodeError(path, "installed_path does not match provider/logical_name identity")
-      }
-      if (
-        !isCanonicalNativeAgentArtifactTarget(home, provider, entry.logicalName, entry.cacheTargetPath, managedRoots)
-      ) {
-        throw decodeError(path, "cache_target_path does not match a trusted provider artifact")
-      }
+      invalid(path, "duplicate provider/directory/logical_name entry")
     }
   }
+
+  private fun validateDecodedEntry(
+    entry: NativeAgentLinkInventoryEntry,
+    home: Path,
+    managedRoots: List<Path>,
+    path: Path,
+  ) {
+    validateEntryShape(entry, path)
+    val provider = NativeAgentLinkInventoryPaths.provider(entry.provider)
+    val allowedDirs = provider.homeAgentDirs(home).map { it.toAbsolutePath().normalize() }
+    if (entry.installedPath.parent !in allowedDirs) {
+      invalid(path, "installed_path is outside provider directory")
+    }
+    if (entry.installedPath.fileName.toString() != provider.fileName(entry.logicalName)) {
+      invalid(path, "installed_path does not match provider/logical_name identity")
+    }
+    if (!isCanonicalNativeAgentArtifactTarget(home, provider, entry.logicalName, entry.cacheTargetPath, managedRoots)) {
+      invalid(path, "cache_target_path does not match a trusted provider artifact")
+    }
+  }
+
+  private fun validateEntryShape(entry: NativeAgentLinkInventoryEntry, path: Path) {
+    if (entry.provider !in NativeAgentLinkInventoryLimits.PROVIDERS) {
+      invalid(path, "unsupported provider '${entry.provider}'")
+    }
+    if (!entry.contentDigest.matches(Regex("[0-9a-f]{${NativeAgentLinkInventoryLimits.DIGEST_HEX_LENGTH}}"))) {
+      invalid(path, "invalid content_digest")
+    }
+    validateAbsolutePaths(entry, path)
+    validateNormalizedPaths(entry, path)
+    if (!NativeAgentLinkInventoryLimits.LOGICAL_NAME.matches(entry.logicalName)) {
+      invalid(path, "logical_name must be a single filename stem")
+    }
+  }
+
+  private fun validateAbsolutePaths(entry: NativeAgentLinkInventoryEntry, path: Path) {
+    if (!entry.installedPath.isAbsolute) invalid(path, "installed_path must be absolute")
+    if (!entry.cacheTargetPath.isAbsolute) invalid(path, "cache_target_path must be absolute")
+    if (
+      !entry.sourceRoot.isAbsolute ||
+      entry.sourceRoot.toString().length > NativeAgentLinkInventoryLimits.MAX_SOURCE_ROOT_LENGTH
+    ) {
+      invalid(path, "source_root must be an absolute bounded path")
+    }
+  }
+
+  private fun validateNormalizedPaths(entry: NativeAgentLinkInventoryEntry, path: Path) {
+    if (entry.sourceRoot != entry.sourceRoot.normalize()) invalid(path, "source_root must be normalized")
+    if (entry.installedPath != entry.installedPath.normalize()) invalid(path, "installed_path must be normalized")
+    if (entry.cacheTargetPath != entry.cacheTargetPath.normalize()) {
+      invalid(path, "cache_target_path must be normalized")
+    }
+  }
+
+  private fun <T> rethrow(error: Throwable): T = throw error
+
+  private fun throwDecodeError(path: Path, error: Throwable): Nothing =
+    throw decodeError(path, error.message.orEmpty(), error)
+
+  private fun invalid(path: Path, reason: String): Nothing = throw decodeError(path, reason)
 
   private fun JsonNode.requiredText(field: String, path: Path): String =
     get(field)?.asText()?.takeIf(String::isNotBlank)

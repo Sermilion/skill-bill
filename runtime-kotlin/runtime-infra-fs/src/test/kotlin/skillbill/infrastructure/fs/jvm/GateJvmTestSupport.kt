@@ -1,6 +1,5 @@
 package skillbill.infrastructure.fs.jvm
 
-import skillbill.infrastructure.fs.JdkHostPlatformPort
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import java.nio.file.Files
 import java.nio.file.Path

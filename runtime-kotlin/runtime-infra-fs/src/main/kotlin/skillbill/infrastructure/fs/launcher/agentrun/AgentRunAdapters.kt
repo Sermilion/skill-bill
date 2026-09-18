@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.launcher.agentrun
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessEnvironmentFields
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessLaunchFields
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessProbeFields
@@ -8,7 +9,6 @@ import skillbill.infrastructure.fs.launcher.process.AgentRunProcessRequest
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessReviewFields
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessRunner
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessTimingFields
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.infrastructure.fs.launcher.review.CursorReviewStreamMalformedError
 import skillbill.install.model.AgentLauncherCli
 import skillbill.install.model.InstallAgent

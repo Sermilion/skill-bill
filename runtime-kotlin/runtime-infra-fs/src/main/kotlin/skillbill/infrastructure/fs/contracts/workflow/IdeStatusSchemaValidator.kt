@@ -9,6 +9,7 @@ import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
 import skillbill.contracts.workflow.IdeStatusSchemaPaths
 import skillbill.error.InvalidIdeStatusSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import skillbill.ports.idestatus.IdeStatusValidator
 import skillbill.ports.idestatus.IdeStatusWireMap
 import java.util.logging.Level
@@ -85,41 +86,43 @@ internal const val IDE_STATUS_SCHEMA_REPO_RELATIVE_PATH: String =
   IdeStatusSchemaPaths.REPO_RELATIVE_PATH
 
 private fun ideStatusSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-  classLoader = IdeStatusSchemaValidator::class.java.classLoader,
-  classpathResource = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidIdeStatusSchemaError(
-      sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-      fieldPath = "",
-      reason = "Canonical IDE status schema is missing. Expected classpath resource " +
-        "'$IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE'.",
-    )
-  },
-  processingFailure = { cause ->
-    InvalidIdeStatusSchemaError(
-      sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-      fieldPath = "",
-      reason = cause.message ?: cause::class.simpleName.orEmpty(),
-      cause = cause,
-    )
-  },
-  loadFailureLogger = { error ->
-    logSchemaLoadFailure(
-      ideStatusLog,
-      "IDE status",
-      IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-      IDE_STATUS_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-  },
-  expectedSchemaId = IdeStatusSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = IDE_STATUS_CONTRACT_VERSION,
-  identityFailure = { reason ->
-    InvalidIdeStatusSchemaError(
-      sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-      fieldPath = "<schema>",
-      reason = reason,
-    )
-  },
+  CompiledSchemaRequest(
+    cacheKey = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = IdeStatusSchemaValidator::class.java.classLoader,
+    classpathResource = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidIdeStatusSchemaError(
+        sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = "Canonical IDE status schema is missing. Expected classpath resource " +
+          "'$IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidIdeStatusSchemaError(
+        sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        ideStatusLog,
+        "IDE status",
+        IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+        IDE_STATUS_SCHEMA_REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = IdeStatusSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = IDE_STATUS_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidIdeStatusSchemaError(
+        sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "<schema>",
+        reason = reason,
+      )
+    },
+  ),
 )

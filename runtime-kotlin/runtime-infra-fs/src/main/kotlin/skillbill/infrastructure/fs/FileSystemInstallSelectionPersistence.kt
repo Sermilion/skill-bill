@@ -3,7 +3,7 @@ package skillbill.infrastructure.fs
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.MissingInstallSelectionRecordError
 import skillbill.error.UnreadableInstallSelectionRecordError
-import skillbill.infrastructure.fs.launcher.process.atomicWriteString
+import skillbill.infrastructure.fs.jvm.atomicWriteString
 import skillbill.install.model.SharedInstallSelection
 import skillbill.ports.install.selection.InstallSelectionPersistencePort
 import skillbill.ports.install.selection.model.ReadLatestSuccessfulInstallSelectionRequest

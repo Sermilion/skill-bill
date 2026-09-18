@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.install.reconcile
 
 import skillbill.error.ReconciliationConflictError
 import skillbill.infrastructure.fs.agentaddon.discoverAgentAddons
+import skillbill.infrastructure.fs.contracts.newSha256Digest
 import skillbill.infrastructure.fs.install.plan.discoverPlatformManifests
 import skillbill.infrastructure.fs.install.plan.enumerateInstallPlanSkills
 import skillbill.infrastructure.fs.install.staging.INSTALL_CACHE_KEY_BYTES
@@ -15,7 +16,6 @@ import skillbill.infrastructure.fs.install.staging.computeInstallContentHash
 import skillbill.infrastructure.fs.install.staging.generatedSupportPointersFor
 import skillbill.infrastructure.fs.install.staging.prepareInternalStaging
 import skillbill.infrastructure.fs.install.staging.validateAgentAddonPointerNamespace
-import skillbill.infrastructure.fs.launcher.process.newSha256Digest
 import skillbill.install.model.BaselineManifest
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode

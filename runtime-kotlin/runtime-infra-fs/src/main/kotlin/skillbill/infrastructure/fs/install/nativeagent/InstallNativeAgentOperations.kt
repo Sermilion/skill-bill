@@ -3,8 +3,8 @@ package skillbill.infrastructure.fs.install.nativeagent
 import skillbill.infrastructure.fs.install.plan.CLAUDE_AGENTS_KIND
 import skillbill.infrastructure.fs.install.plan.CURSOR_AGENTS_KIND
 import skillbill.infrastructure.fs.install.plan.JUNIE_AGENTS_KIND
+import skillbill.infrastructure.fs.jvm.resolveUserHome
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
-import skillbill.infrastructure.fs.resolveUserHome
 import skillbill.install.model.AgentTarget
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files

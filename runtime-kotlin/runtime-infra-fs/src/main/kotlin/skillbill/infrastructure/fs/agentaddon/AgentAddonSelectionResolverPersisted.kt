@@ -7,7 +7,7 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.error.AgentAddonSelectionDriftError
 import skillbill.error.InvalidAgentAddonSelectionError
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.Path

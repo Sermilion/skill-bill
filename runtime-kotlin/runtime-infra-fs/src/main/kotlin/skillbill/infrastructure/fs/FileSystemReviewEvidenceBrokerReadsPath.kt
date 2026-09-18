@@ -1,9 +1,9 @@
 package skillbill.infrastructure.fs
 
 import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.infrastructure.fs.launcher.process.pathContainedIn
-import skillbill.infrastructure.fs.launcher.process.requirePathContainedIn
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
+import skillbill.infrastructure.fs.jvm.pathContainedIn
+import skillbill.infrastructure.fs.jvm.requirePathContainedIn
 import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.review.context.model.ForbiddenReviewOperation
 import skillbill.review.context.model.ReviewBudgetOutcome

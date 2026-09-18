@@ -1,4 +1,4 @@
-package skillbill.infrastructure.fs
+package skillbill.infrastructure.fs.contracts
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys

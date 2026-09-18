@@ -4,7 +4,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidSkillContentIdentityError
 import skillbill.error.SkillContentIdentityMismatchError
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.infrastructure.fs.scaffold.validation.parseSkillFrontmatter
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files

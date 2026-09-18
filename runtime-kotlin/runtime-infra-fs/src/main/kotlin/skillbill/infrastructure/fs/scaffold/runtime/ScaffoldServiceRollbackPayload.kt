@@ -2,8 +2,8 @@
 package skillbill.infrastructure.fs.scaffold.runtime
 
 import skillbill.error.InvalidScaffoldPayloadError
-import skillbill.infrastructure.fs.JdkHostPlatformPort
-import skillbill.infrastructure.fs.resolveUserHome
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
+import skillbill.infrastructure.fs.jvm.resolveUserHome
 import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Path
 

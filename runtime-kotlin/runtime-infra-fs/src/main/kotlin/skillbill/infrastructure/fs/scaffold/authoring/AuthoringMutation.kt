@@ -2,7 +2,7 @@ package skillbill.infrastructure.fs.scaffold.authoring
 
 import skillbill.error.ShellContentContractException
 import skillbill.error.SkillBillRuntimeException
-import skillbill.infrastructure.fs.launcher.process.rollbackRestoreBytes
+import skillbill.infrastructure.fs.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.fs.scaffold.runtime.requiredSupportingFilesForSkill
 import skillbill.infrastructure.fs.scaffold.runtime.supportingFileTargets
 import skillbill.infrastructure.fs.scaffold.validation.validateAuthoredContent

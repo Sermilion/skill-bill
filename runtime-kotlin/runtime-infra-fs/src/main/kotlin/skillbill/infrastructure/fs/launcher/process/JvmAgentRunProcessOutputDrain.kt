@@ -1,5 +1,6 @@
 package skillbill.infrastructure.fs.launcher.process
 
+import skillbill.infrastructure.fs.contracts.newSha256Digest
 import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream

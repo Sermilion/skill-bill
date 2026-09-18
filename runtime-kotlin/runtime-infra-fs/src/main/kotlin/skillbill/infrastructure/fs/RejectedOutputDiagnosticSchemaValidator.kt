@@ -7,6 +7,7 @@ import skillbill.contracts.workflow.REJECTED_OUTPUT_DIAGNOSTIC_CONTRACT_VERSION
 import skillbill.contracts.workflow.RejectedOutputDiagnosticSchemaPaths
 import skillbill.error.InvalidRejectedOutputDiagnosticSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 
@@ -48,21 +49,23 @@ class RejectedOutputDiagnosticSchemaValidator : RejectedOutputDiagnosticMetadata
 }
 
 private fun rejectedOutputDiagnosticSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = RejectedOutputDiagnosticSchemaPaths.CLASSPATH_RESOURCE,
-  classLoader = RejectedOutputDiagnosticSchemaValidator::class.java.classLoader,
-  classpathResource = RejectedOutputDiagnosticSchemaPaths.CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidRejectedOutputDiagnosticSchemaError(
-      "Canonical rejected-output diagnostic schema resource is missing.",
-    )
-  },
-  processingFailure = { cause ->
-    InvalidRejectedOutputDiagnosticSchemaError(
-      cause.message ?: cause::class.simpleName.orEmpty(),
-    )
-  },
-  loadFailureLogger = {},
-  expectedSchemaId = RejectedOutputDiagnosticSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = REJECTED_OUTPUT_DIAGNOSTIC_CONTRACT_VERSION,
-  identityFailure = { reason -> InvalidRejectedOutputDiagnosticSchemaError(reason) },
+  CompiledSchemaRequest(
+    cacheKey = RejectedOutputDiagnosticSchemaPaths.CLASSPATH_RESOURCE,
+    classLoader = RejectedOutputDiagnosticSchemaValidator::class.java.classLoader,
+    classpathResource = RejectedOutputDiagnosticSchemaPaths.CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidRejectedOutputDiagnosticSchemaError(
+        "Canonical rejected-output diagnostic schema resource is missing.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidRejectedOutputDiagnosticSchemaError(
+        cause.message ?: cause::class.simpleName.orEmpty(),
+      )
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = RejectedOutputDiagnosticSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = REJECTED_OUTPUT_DIAGNOSTIC_CONTRACT_VERSION,
+    identityFailure = { reason -> InvalidRejectedOutputDiagnosticSchemaError(reason) },
+  ),
 )

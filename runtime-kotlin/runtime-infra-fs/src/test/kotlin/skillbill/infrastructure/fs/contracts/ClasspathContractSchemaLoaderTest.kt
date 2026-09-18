@@ -23,35 +23,37 @@ class ClasspathContractSchemaLoaderTest {
     try {
       val error = assertFailsWith<InvalidGoalProgressEventSchemaError> {
         ClasspathContractSchemaLoader.compiledSchema(
-          cacheKey = "test-missing-${GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE}",
-          classLoader = classLoader,
-          classpathResource = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-          missingResource = {
-            InvalidGoalProgressEventSchemaError(
-              sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-              fieldPath = "",
-              reason = "Canonical goal progress event schema is missing. Expected classpath resource " +
-                "'$GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE'.",
-            )
-          },
-          processingFailure = { cause ->
-            InvalidGoalProgressEventSchemaError(
-              sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-              fieldPath = "",
-              reason = cause.message ?: cause::class.simpleName.orEmpty(),
-              cause = cause,
-            )
-          },
-          loadFailureLogger = {},
-          expectedSchemaId = GoalProgressEventSchemaPaths.EXPECTED_SCHEMA_ID,
-          expectedContractVersion = GOAL_PROGRESS_EVENT_CONTRACT_VERSION,
-          identityFailure = { reason ->
-            InvalidGoalProgressEventSchemaError(
-              sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-              fieldPath = "<schema>",
-              reason = reason,
-            )
-          },
+          CompiledSchemaRequest(
+            cacheKey = "test-missing-${GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE}",
+            classLoader = classLoader,
+            classpathResource = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+            missingResource = {
+              InvalidGoalProgressEventSchemaError(
+                sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+                fieldPath = "",
+                reason = "Canonical goal progress event schema is missing. Expected classpath resource " +
+                  "'$GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE'.",
+              )
+            },
+            processingFailure = { cause ->
+              InvalidGoalProgressEventSchemaError(
+                sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+                fieldPath = "",
+                reason = cause.message ?: cause::class.simpleName.orEmpty(),
+                cause = cause,
+              )
+            },
+            loadFailureLogger = {},
+            expectedSchemaId = GoalProgressEventSchemaPaths.EXPECTED_SCHEMA_ID,
+            expectedContractVersion = GOAL_PROGRESS_EVENT_CONTRACT_VERSION,
+            identityFailure = { reason ->
+              InvalidGoalProgressEventSchemaError(
+                sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+                fieldPath = "<schema>",
+                reason = reason,
+              )
+            },
+          ),
         )
       }
       assertContains(error.reason, GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE)

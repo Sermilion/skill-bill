@@ -1,6 +1,6 @@
 package skillbill.infrastructure.fs
 
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.ports.review.model.ReviewRefusedOperationRecord

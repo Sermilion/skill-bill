@@ -8,6 +8,7 @@ import skillbill.contracts.workflow.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.GoalObservabilityEventSchemaPaths
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -71,43 +72,45 @@ internal const val GOAL_OBSERVABILITY_EVENT_SCHEMA_REPO_RELATIVE_PATH: String =
   GoalObservabilityEventSchemaPaths.REPO_RELATIVE_PATH
 
 private fun goalObservabilityEventSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-  classLoader = GoalObservabilityEventSchemaValidator::class.java.classLoader,
-  classpathResource = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidGoalObservabilityEventSchemaError(
-      sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      fieldPath = "",
-      reason = "Canonical goal-observability event schema is missing. Expected classpath resource " +
-        "'$GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE'.",
-    )
-  },
-  processingFailure = { cause ->
-    InvalidGoalObservabilityEventSchemaError(
-      sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      fieldPath = "",
-      reason = cause.message ?: cause::class.simpleName.orEmpty(),
-      cause = cause,
-    )
-  },
-  loadFailureLogger = { error ->
-    logSchemaLoadFailure(
-      goalObservabilityLog,
-      "goal-observability event",
-      GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      GOAL_OBSERVABILITY_EVENT_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-  },
-  expectedSchemaId = GoalObservabilityEventSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
-  identityFailure = { reason ->
-    InvalidGoalObservabilityEventSchemaError(
-      sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      fieldPath = "<schema>",
-      reason = reason,
-    )
-  },
+  CompiledSchemaRequest(
+    cacheKey = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = GoalObservabilityEventSchemaValidator::class.java.classLoader,
+    classpathResource = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidGoalObservabilityEventSchemaError(
+        sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = "Canonical goal-observability event schema is missing. Expected classpath resource " +
+          "'$GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidGoalObservabilityEventSchemaError(
+        sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        goalObservabilityLog,
+        "goal-observability event",
+        GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+        GOAL_OBSERVABILITY_EVENT_SCHEMA_REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = GoalObservabilityEventSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidGoalObservabilityEventSchemaError(
+        sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "<schema>",
+        reason = reason,
+      )
+    },
+  ),
 )
 
 fun goalObservabilityDottedFieldPath(instanceLocation: String): String = when {

@@ -4,10 +4,10 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.error.ShellContentContractException
-import skillbill.infrastructure.fs.JdkHostPlatformPort
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
+import skillbill.infrastructure.fs.jvm.resolveUserHome
+import skillbill.infrastructure.fs.jvm.rollbackDeleteIfExists
 import skillbill.infrastructure.fs.launcher.mcp.GovernedReviewMcpConfigWriter
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
-import skillbill.infrastructure.fs.resolveUserHome
 import skillbill.model.EnvironmentContext
 import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle

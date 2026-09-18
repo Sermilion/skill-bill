@@ -3,10 +3,11 @@ package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.MissingInstalledNativeAgentError
+import skillbill.infrastructure.fs.contracts.sha256HexOfFile
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkInventory
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkInventoryEntry
 import skillbill.infrastructure.fs.install.nativeagent.parseEmbeddedLogicalName
-import skillbill.infrastructure.fs.launcher.process.sha256HexOfFile
+import skillbill.infrastructure.fs.jvm.resolveEnvironmentMap
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.SupportedAgent
 import skillbill.model.EnvironmentContext

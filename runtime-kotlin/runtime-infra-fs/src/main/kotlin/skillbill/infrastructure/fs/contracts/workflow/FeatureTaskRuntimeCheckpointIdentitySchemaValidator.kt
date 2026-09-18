@@ -7,6 +7,7 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CON
 import skillbill.contracts.workflow.FeatureTaskRuntimeCheckpointIdentitySchemaPaths
 import skillbill.error.InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 
 object FeatureTaskRuntimeCheckpointIdentitySchemaValidator {
   fun validate(payload: Map<String, Any?>, sourceLabel: String) {
@@ -31,33 +32,35 @@ object FeatureTaskRuntimeCheckpointIdentitySchemaValidator {
 }
 
 private fun schema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
-  classLoader = FeatureTaskRuntimeCheckpointIdentitySchemaValidator::class.java.classLoader,
-  classpathResource = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError(
-      sourceLabel = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
-      reason = "Canonical feature-task-runtime checkpoint-identity schema is missing. Expected classpath " +
-        "resource '${FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE}'.",
-    )
-  },
-  processingFailure = { cause ->
-    InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError(
-      sourceLabel = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
-      reason = cause.message ?: cause::class.simpleName.orEmpty(),
-      cause = cause,
-    )
-  },
-  loadFailureLogger = {},
-  expectedSchemaId = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION,
-  identityFailure = { reason ->
-    InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError(
-      sourceLabel = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
-      reason = reason,
-    )
-  },
-  prepareSchemaDocument = { yamlNode ->
-    yamlNode.inlineIssueKeySchemaRefs()
-  },
+  CompiledSchemaRequest(
+    cacheKey = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
+    classLoader = FeatureTaskRuntimeCheckpointIdentitySchemaValidator::class.java.classLoader,
+    classpathResource = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError(
+        sourceLabel = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
+        reason = "Canonical feature-task-runtime checkpoint-identity schema is missing. Expected classpath " +
+          "resource '${FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE}'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError(
+        sourceLabel = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError(
+        sourceLabel = FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
+        reason = reason,
+      )
+    },
+    prepareSchemaDocument = { yamlNode ->
+      yamlNode.inlineIssueKeySchemaRefs()
+    },
+  ),
 )

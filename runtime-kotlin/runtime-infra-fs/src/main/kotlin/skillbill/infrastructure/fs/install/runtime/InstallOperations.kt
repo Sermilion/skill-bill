@@ -1,11 +1,11 @@
 package skillbill.infrastructure.fs.install.runtime
 
-import skillbill.infrastructure.fs.JdkHostPlatformPort
 import skillbill.infrastructure.fs.install.apply.applyInstallPlan
 import skillbill.infrastructure.fs.install.plan.buildInstallPlan
 import skillbill.infrastructure.fs.install.plan.detectAgents
 import skillbill.infrastructure.fs.install.plan.resolveInstallEnvironment
 import skillbill.infrastructure.fs.install.plan.resolveInstallHome
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
 import skillbill.install.model.AgentTarget
 import skillbill.install.model.InstallApplyResult
 import skillbill.install.model.InstallPlan

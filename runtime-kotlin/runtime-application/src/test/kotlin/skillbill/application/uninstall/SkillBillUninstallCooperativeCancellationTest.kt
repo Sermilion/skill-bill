@@ -132,7 +132,7 @@ private object NoopRuntimeDiagnostics : RuntimeDiagnostics {
 }
 
 private object StubHostPlatformPort : HostPlatformPort {
-  override fun resolveUserHome(): java.nio.file.Path = java.nio.file.Path.of(System.getProperty("user.home"))
+  override fun resolveUserHome(): Path = Path.of(System.getProperty("user.home"))
   override fun resolveEnvironment(): Map<String, String> = System.getenv()
   override fun resolveJavaHome(): Path = Path.of(System.getProperty("java.home"))
   override fun resolveWorkingDirectory(): Path = Path.of(System.getProperty("user.dir"))

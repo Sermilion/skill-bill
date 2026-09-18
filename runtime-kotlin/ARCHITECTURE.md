@@ -837,7 +837,7 @@ skillbill.workflow.verify
   port takes the typed `skillbill.workflow.engine.model.WorkflowStateSnapshot`, not a
   `Map<String, Any?>`; projecting that record onto the canonical wire shape is
   adapter work owned by
-  `skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper`, so
+  `skillbill.infrastructure.fs.contracts.WorkflowStateSnapshotWireMapper`, so
   `WorkflowEngine` never builds a snapshot map. The owning read seam is still
   `skillbill.workflow.engine.WorkflowEngine`; durable record
   mapping stays pure and the next engine read rejects drift. Architecture

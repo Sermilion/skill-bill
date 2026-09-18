@@ -8,6 +8,7 @@ import skillbill.contracts.workflow.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -108,44 +109,46 @@ internal const val GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH: String =
   GoalPlanningPreparationSchemaPaths.REPO_RELATIVE_PATH
 
 private fun goalPlanningPreparationSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  cacheKey = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-  classLoader = GoalPlanningPreparationSchemaValidator::class.java.classLoader,
-  classpathResource = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-  missingResource = {
-    InvalidGoalPlanningPreparationSchemaError(
-      sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-      fieldPath = "",
-      reason = "Canonical goal planning preparation schema is missing. Expected classpath resource " +
-        "'$GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE'.",
-    )
-  },
-  processingFailure = { cause ->
-    InvalidGoalPlanningPreparationSchemaError(
-      sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-      fieldPath = "",
-      reason = cause.message ?: cause::class.simpleName.orEmpty(),
-      cause = cause,
-    )
-  },
-  loadFailureLogger = { error ->
-    logSchemaLoadFailure(
-      goalPlanningPreparationLog,
-      "goal planning preparation",
-      GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-      GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-  },
-  expectedSchemaId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
-  expectedContractVersion = GOAL_PLANNING_PREPARATION_CONTRACT_VERSION,
-  identityFailure = { reason ->
-    InvalidGoalPlanningPreparationSchemaError(
-      sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-      fieldPath = "<schema>",
-      reason = reason,
-    )
-  },
-  prepareSchemaDocument = { yamlNode ->
-    yamlNode.inlineIssueKeySchemaRefs()
-  },
+  CompiledSchemaRequest(
+    cacheKey = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = GoalPlanningPreparationSchemaValidator::class.java.classLoader,
+    classpathResource = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidGoalPlanningPreparationSchemaError(
+        sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = "Canonical goal planning preparation schema is missing. Expected classpath resource " +
+          "'$GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidGoalPlanningPreparationSchemaError(
+        sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        goalPlanningPreparationLog,
+        "goal planning preparation",
+        GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+        GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = GOAL_PLANNING_PREPARATION_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidGoalPlanningPreparationSchemaError(
+        sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "<schema>",
+        reason = reason,
+      )
+    },
+    prepareSchemaDocument = { yamlNode ->
+      yamlNode.inlineIssueKeySchemaRefs()
+    },
+  ),
 )

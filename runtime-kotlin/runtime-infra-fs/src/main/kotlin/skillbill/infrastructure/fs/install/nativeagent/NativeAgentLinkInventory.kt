@@ -7,6 +7,7 @@ import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERS
 import skillbill.contracts.nativeagent.NativeAgentLinkInventorySchemaPaths
 import skillbill.error.InvalidNativeAgentLinkInventorySchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
 import java.nio.channels.FileChannel
 import java.nio.file.Files
@@ -27,24 +28,26 @@ internal object NativeAgentLinkInventory {
   private val mapper = ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
   private val schema: JsonSchema
     get() = ClasspathContractSchemaLoader.compiledSchema(
-      cacheKey = NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE,
-      classLoader = javaClass.classLoader,
-      classpathResource = NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE,
-      missingResource = {
-        InvalidNativeAgentLinkInventorySchemaError(
-          "Canonical native-agent link inventory schema resource is missing from the classpath.",
-        )
-      },
-      processingFailure = { cause ->
-        InvalidNativeAgentLinkInventorySchemaError(
-          cause.message ?: cause::class.simpleName.orEmpty(),
-          cause,
-        )
-      },
-      loadFailureLogger = {},
-      expectedSchemaId = NativeAgentLinkInventorySchemaPaths.EXPECTED_SCHEMA_ID,
-      expectedContractVersion = NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION,
-      identityFailure = { reason -> InvalidNativeAgentLinkInventorySchemaError(reason) },
+      CompiledSchemaRequest(
+        cacheKey = NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE,
+        classLoader = javaClass.classLoader,
+        classpathResource = NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE,
+        missingResource = {
+          InvalidNativeAgentLinkInventorySchemaError(
+            "Canonical native-agent link inventory schema resource is missing from the classpath.",
+          )
+        },
+        processingFailure = { cause ->
+          InvalidNativeAgentLinkInventorySchemaError(
+            cause.message ?: cause::class.simpleName.orEmpty(),
+            cause,
+          )
+        },
+        loadFailureLogger = {},
+        expectedSchemaId = NativeAgentLinkInventorySchemaPaths.EXPECTED_SCHEMA_ID,
+        expectedContractVersion = NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION,
+        identityFailure = { reason -> InvalidNativeAgentLinkInventorySchemaError(reason) },
+      ),
     )
 
   fun reconcile(request: NativeAgentLinkInventoryReconcileRequest) {

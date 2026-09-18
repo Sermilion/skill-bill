@@ -5,9 +5,9 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.error.ReviewHunkEvidenceLocatorMissingError
 import skillbill.error.ReviewHunkEvidenceLocatorUnreadableError
-import skillbill.infrastructure.fs.launcher.process.deleteRecursively
-import skillbill.infrastructure.fs.launcher.process.pathContainedIn
-import skillbill.infrastructure.fs.launcher.process.replaceDirectory
+import skillbill.infrastructure.fs.jvm.deleteRecursively
+import skillbill.infrastructure.fs.jvm.pathContainedIn
+import skillbill.infrastructure.fs.jvm.replaceDirectory
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceDeriver
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
