@@ -21,7 +21,7 @@ class FileSystemDecompositionManifestFileStore :
   }
 
   override fun readText(path: Path): String {
-    return withDecompositionManifestBundleLock(path.parent) {
+    return withDecompositionManifestBundleLock(path.parent, bundleJournal.hostPlatform) {
       bundleJournal.recoverPendingUnlocked(path.parent)
       Files.readString(path)
     }
@@ -33,7 +33,7 @@ class FileSystemDecompositionManifestFileStore :
   }
 
   override fun isRegularFile(path: Path): Boolean {
-    return withDecompositionManifestBundleLock(path.parent) {
+    return withDecompositionManifestBundleLock(path.parent, bundleJournal.hostPlatform) {
       bundleJournal.recoverPendingUnlocked(path.parent)
       Files.isRegularFile(path)
     }
@@ -70,7 +70,7 @@ class FileSystemDecompositionManifestFileStore :
     }
 
     val parent = requireNotNull(parents.single())
-    return withDecompositionManifestBundleLock(parent) {
+    return withDecompositionManifestBundleLock(parent, bundleJournal.hostPlatform) {
       bundleJournal.recoverPendingUnlocked(parent)
       val snapshots = distinctWrites.map { (path, _) ->
         val normalized = path.toAbsolutePath().normalize()
@@ -103,14 +103,14 @@ class FileSystemDecompositionManifestFileStore :
     yamlMapper.writeValueAsString(wireMap)
 
   override fun deleteIfExists(target: Path) {
-    withDecompositionManifestBundleLock(target.parent) {
+    withDecompositionManifestBundleLock(target.parent, bundleJournal.hostPlatform) {
       bundleJournal.recoverPendingUnlocked(target.parent)
       Files.deleteIfExists(target)
     }
   }
 
   override fun writeTextAtomically(target: Path, content: String) {
-    withDecompositionManifestBundleLock(target.parent) {
+    withDecompositionManifestBundleLock(target.parent, bundleJournal.hostPlatform) {
       bundleJournal.recoverPendingUnlocked(target.parent)
       bundleJournal.writeAtomically(target, content)
     }

@@ -1,6 +1,5 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
-import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
@@ -12,7 +11,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DecompositionManifestValidationRepairTest {
-  private val validator = DecompositionManifestValidatorAdapter()
+  private val validator = DecompositionManifestSchemaValidator()
 
   @Test
   fun `valid YAML is accepted unchanged without normalization evidence`() {

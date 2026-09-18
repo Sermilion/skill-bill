@@ -1,21 +1,14 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.workflow.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -23,12 +16,10 @@ private val goalPlanningPreparationLog: Logger =
   Logger.getLogger("skillbill.contracts.workflow.GoalPlanningPreparationSchemaValidator")
 
 object GoalPlanningPreparationSchemaValidator {
-  private val schema: JsonSchema by lazy { loadGoalPlanningPreparationSchema() }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
-
   fun validate(envelope: Map<String, Any?>, sourceLabel: String) {
-    val instance: JsonNode = mapper.valueToTree(envelope)
-    val errors: Set<ValidationMessage> = schema.validate(instance)
+    val instance: JsonNode = ClasspathContractSchemaLoader.valueToTree(envelope)
+    val errors: Set<ValidationMessage> =
+      ClasspathContractSchemaLoader.validate(goalPlanningPreparationSchema(), instance)
     if (errors.isNotEmpty()) {
       val sorted = errors.sortedWith(violationOrdering)
       val fieldPath = dottedFieldPath(sorted.first().instanceLocation?.toString().orEmpty())
@@ -44,29 +35,6 @@ object GoalPlanningPreparationSchemaValidator {
         sourceLabel = sourceLabel,
         fieldPath = fieldPath,
         reason = reason,
-      )
-    }
-  }
-
-  fun assertIdentity(yamlNode: JsonNode) {
-    val loadedId = yamlNode.path("\$id").asText("")
-    if (loadedId != GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID) {
-      throw InvalidGoalPlanningPreparationSchemaError(
-        sourceLabel = GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE,
-        fieldPath = "\$id",
-        reason = "Canonical goal planning preparation schema identity mismatch: loaded '\$id' is " +
-          "'$loadedId' but expected '${GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or " +
-          "shadowed copy of the schema is on the classpath.",
-      )
-    }
-    val loadedConst = yamlNode.path("properties").path("contract_version").path("const").asText("")
-    if (loadedConst != GOAL_PLANNING_PREPARATION_CONTRACT_VERSION) {
-      throw InvalidGoalPlanningPreparationSchemaError(
-        sourceLabel = GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE,
-        fieldPath = "properties.contract_version.const",
-        reason = "Canonical goal planning preparation schema contract_version.const mismatch: loaded " +
-          "'$loadedConst' but the runtime expects '$GOAL_PLANNING_PREPARATION_CONTRACT_VERSION'. The schema " +
-          "on the classpath is out of date relative to the running runtime-contracts.",
       )
     }
   }
@@ -140,74 +108,47 @@ internal const val GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH: String =
   GoalPlanningPreparationSchemaPaths.REPO_RELATIVE_PATH
 
-private fun loadGoalPlanningPreparationSchema(): JsonSchema {
-  var failure: Throwable? = null
-  try {
-    val yamlText = readGoalPlanningPreparationSchemaText()
-    val yamlNode = YAMLMapper().readTree(yamlText)
-    GoalPlanningPreparationSchemaValidator.assertIdentity(yamlNode)
-    yamlNode.inlineIssueKeySchemaRefs()
-    val jsonText = ObjectMapper().writeValueAsString(yamlNode)
-    val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-    return factory.getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
-  } catch (error: InvalidGoalPlanningPreparationSchemaError) {
-    logSchemaLoadFailure(
-      goalPlanningPreparationLog,
-      "goal planning preparation",
-      GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-      GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  } catch (error: IOException) {
-    logSchemaLoadFailure(
-      goalPlanningPreparationLog,
-      "goal planning preparation",
-      GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-      GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  } catch (error: JsonProcessingException) {
-    logSchemaLoadFailure(
-      goalPlanningPreparationLog,
-      "goal planning preparation",
-      GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-      GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  }
-  throw failure
-}
-
-private fun readGoalPlanningPreparationSchemaText(): String {
-  GoalPlanningPreparationSchemaValidator::class.java.classLoader
-    .getResourceAsStream(GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE)
-    ?.use { return it.readBytes().toString(Charsets.UTF_8) }
-
-  val walkAnchor: Path = Path.of("").toAbsolutePath()
-  val resolved = walkForGoalPlanningPreparationSchemaFile(walkAnchor)
-  if (resolved != null) {
-    return Files.readString(resolved)
-  }
-  throw InvalidGoalPlanningPreparationSchemaError(
-    sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
-    fieldPath = "",
-    reason = "Canonical goal planning preparation schema is missing. Expected to find it on the JVM " +
-      "classpath at '$GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE' or on disk under " +
-      "'$GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH' walked up from: $walkAnchor.",
-  )
-}
-
-private fun walkForGoalPlanningPreparationSchemaFile(hint: Path): Path? {
-  var current: Path? = hint.toAbsolutePath().normalize()
-  while (current != null) {
-    val candidate = current.resolve(GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH)
-    if (Files.isRegularFile(candidate)) {
-      return candidate
-    }
-    current = current.parent
-  }
-  return null
-}
+private fun goalPlanningPreparationSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  CompiledSchemaRequest(
+    cacheKey = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = GoalPlanningPreparationSchemaValidator::class.java.classLoader,
+    classpathResource = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidGoalPlanningPreparationSchemaError(
+        sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = "Canonical goal planning preparation schema is missing. Expected classpath resource " +
+          "'$GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidGoalPlanningPreparationSchemaError(
+        sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        goalPlanningPreparationLog,
+        "goal planning preparation",
+        GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+        GOAL_PLANNING_PREPARATION_SCHEMA_REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = GOAL_PLANNING_PREPARATION_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidGoalPlanningPreparationSchemaError(
+        sourceLabel = GOAL_PLANNING_PREPARATION_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "<schema>",
+        reason = reason,
+      )
+    },
+    prepareSchemaDocument = { yamlNode ->
+      yamlNode.inlineIssueKeySchemaRefs()
+    },
+  ),
+)

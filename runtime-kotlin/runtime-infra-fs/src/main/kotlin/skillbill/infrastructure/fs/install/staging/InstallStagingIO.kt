@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.install.staging
 
 import skillbill.infrastructure.fs.agentaddon.AgentAddonPointer
 import skillbill.infrastructure.fs.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import skillbill.infrastructure.fs.scaffold.authoring.AuthoringTarget
 import skillbill.infrastructure.fs.scaffold.authoring.normalizeMarkdownLineEndings
 import skillbill.infrastructure.fs.scaffold.authoring.renderWrapper
@@ -13,7 +14,6 @@ import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.io.File
 import java.nio.charset.StandardCharsets
-import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -170,16 +170,7 @@ internal fun promoteInstallStagingDir(tempDir: Path, finalStagingDir: Path) {
     promoteByBackupAndMove(tempDir, finalStagingDir)
     return
   }
-  try {
-    Files.move(
-      tempDir,
-      finalStagingDir,
-      StandardCopyOption.REPLACE_EXISTING,
-      StandardCopyOption.ATOMIC_MOVE,
-    )
-  } catch (_: AtomicMoveNotSupportedException) {
-    Files.move(tempDir, finalStagingDir, StandardCopyOption.REPLACE_EXISTING)
-  }
+  atomicMoveReplacing(tempDir, finalStagingDir)
 }
 
 internal fun cleanupInstallStagingOnFailure(tempDir: Path, finalStagingDir: Path, promoted: Boolean) {

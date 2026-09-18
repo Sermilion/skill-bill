@@ -4,16 +4,15 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalPayloadKeys
 import skillbill.error.InvalidDecompositionManifestSchemaError
-import java.nio.file.AtomicMoveNotSupportedException
+import skillbill.infrastructure.fs.contracts.sha256Hex
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
-import java.security.MessageDigest
 import java.util.UUID
 
 internal object DecompositionManifestBundleJournalRecovery {
   fun recoverPending(parent: Path?, journal: DecompositionManifestBundleJournal) {
-    withDecompositionManifestBundleLock(parent) { journal.recoverPendingUnlocked(parent) }
+    withDecompositionManifestBundleLock(parent, journal.hostPlatform) { journal.recoverPendingUnlocked(parent) }
   }
 
   fun recoverPendingUnlocked(parent: Path?, journal: DecompositionManifestBundleJournal) {
@@ -74,7 +73,7 @@ internal object DecompositionManifestBundleJournalCreate {
       val target = path.toAbsolutePath().normalize()
       val staged = stagingDirectory.resolve("entry-$index")
       journal.writeAtomically(staged, content)
-      DecompositionManifestBundleEntry(target, staged, DecompositionManifestBundleJournalIo.sha256(content))
+      DecompositionManifestBundleEntry(target, staged, sha256Hex(content.toByteArray(Charsets.UTF_8)))
     }
     val marker = parent.resolve(
       "${DecompositionManifestBundleJournal.BUNDLE_PREFIX}$transactionId" +
@@ -105,7 +104,10 @@ internal object DecompositionManifestBundleJournalIo {
     DecompositionManifestBundleJournalValidation.validateTransaction(transaction)
     transaction.entries.forEach { entry ->
       when {
-        Files.isRegularFile(entry.staged) -> moveAtomically(entry.staged, entry.target)
+        Files.isRegularFile(entry.staged) -> {
+          Files.createDirectories(requireNotNull(entry.target.parent))
+          atomicMoveReplacing(entry.staged, entry.target)
+        }
         Files.isRegularFile(entry.target) -> Unit
         else -> error("Decomposition manifest bundle journal is incomplete for '${entry.target}'.")
       }
@@ -122,26 +124,8 @@ internal object DecompositionManifestBundleJournalIo {
     deleteRecursively(transaction.stagingDirectory)
   }
 
-  fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
-    .digest(value.toByteArray(Charsets.UTF_8))
-    .joinToString("") { byte -> "%02x".format(byte) }
-
   fun read(marker: Path): DecompositionManifestBundleTransaction =
     DecompositionManifestBundleJournalValidation.readValidated(marker)
-
-  internal fun moveAtomically(source: Path, target: Path) {
-    Files.createDirectories(requireNotNull(target.parent))
-    try {
-      Files.move(
-        source,
-        target,
-        StandardCopyOption.REPLACE_EXISTING,
-        StandardCopyOption.ATOMIC_MOVE,
-      )
-    } catch (_: AtomicMoveNotSupportedException) {
-      Files.move(source, target, StandardCopyOption.REPLACE_EXISTING)
-    }
-  }
 
   private fun deleteRecursively(root: Path) {
     if (!Files.exists(root)) return

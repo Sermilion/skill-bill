@@ -1,9 +1,6 @@
 package skillbill.infrastructure.fs.install.apply
 
 import skillbill.infrastructure.fs.install.staging.installedSkillsCacheRoot
-import skillbill.infrastructure.fs.install.support.InstallSymlinkException
-import skillbill.infrastructure.fs.install.support.createNewSymlinkWithGuidance
-import skillbill.infrastructure.fs.install.support.createReplacementSymlinkWithGuidance
 import skillbill.install.model.InstallAgentLinkStatus
 import skillbill.install.model.InstallAgentSkillLinkOutcome
 import skillbill.install.model.InstallAgentTarget

@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.install.nativeagent
 
-import skillbill.error.InvalidNativeAgentLinkInventorySchemaError
+import skillbill.error.InvalidNativeAgentLinkInventoryReconcileError
+import skillbill.error.ShellContentContractException
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -28,7 +29,6 @@ internal fun reconcileNativeAgentLinkInventoryLocked(request: NativeAgentLinkInv
       false
     }
   }
-  var failure: Throwable? = null
   try {
     NativeAgentLinkInventoryWrite.write(
       NativeAgentLinkInventoryWriteRequest(
@@ -42,26 +42,19 @@ internal fun reconcileNativeAgentLinkInventoryLocked(request: NativeAgentLinkInv
         afterTemporaryCreation = request.afterTemporaryCreation,
       ),
     )
-  } catch (error: InvalidNativeAgentLinkInventorySchemaError) {
-    failure = error
+  } catch (error: ShellContentContractException) {
+    throw reconcileError(request.path, error.message.orEmpty(), error)
   } catch (error: IOException) {
-    failure = InvalidNativeAgentLinkInventorySchemaError(
-      "Invalid native-agent link inventory publication '${request.path}': ${error.message}",
-      error,
-    )
-  } catch (error: IllegalArgumentException) {
-    failure = InvalidNativeAgentLinkInventorySchemaError(
-      "Invalid native-agent link inventory publication '${request.path}': ${error.message}",
-      error,
-    )
-  } catch (error: IllegalStateException) {
-    failure = InvalidNativeAgentLinkInventorySchemaError(
-      "Invalid native-agent link inventory publication '${request.path}': ${error.message}",
-      error,
-    )
+    throw reconcileError(request.path, error.message.orEmpty(), error)
   }
-  failure?.let { throw it }
 }
+
+private fun reconcileError(
+  path: Path,
+  reason: String,
+  cause: Throwable? = null,
+): InvalidNativeAgentLinkInventoryReconcileError =
+  InvalidNativeAgentLinkInventoryReconcileError(path = path.toString(), reason = reason, cause = cause)
 
 private fun loadPreviousNativeAgentLinkInventory(
   path: Path,

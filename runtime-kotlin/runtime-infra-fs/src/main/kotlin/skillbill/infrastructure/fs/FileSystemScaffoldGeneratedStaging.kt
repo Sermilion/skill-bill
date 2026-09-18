@@ -2,6 +2,8 @@ package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.SkillAlreadyExistsError
+import skillbill.infrastructure.fs.jvm.rollbackDeleteEmptyDirectory
+import skillbill.infrastructure.fs.jvm.rollbackDeleteRegularFileOrSymlink
 import skillbill.ports.scaffold.staging.ScaffoldGeneratedStagingPort
 import skillbill.ports.scaffold.staging.model.ScaffoldStageFileRequest
 import skillbill.ports.scaffold.staging.model.ScaffoldStageFileResult
@@ -34,14 +36,10 @@ class FileSystemScaffoldGeneratedStaging : ScaffoldGeneratedStagingPort {
   }
 
   override fun rollbackFile(path: Path) {
-    if (Files.isRegularFile(path) || Files.isSymbolicLink(path)) {
-      Files.deleteIfExists(path)
-    }
+    rollbackDeleteRegularFileOrSymlink(path)
   }
 
   override fun rollbackDirectory(path: Path) {
-    if (Files.isDirectory(path) && Files.list(path).use { !it.findAny().isPresent }) {
-      Files.deleteIfExists(path)
-    }
+    rollbackDeleteEmptyDirectory(path)
   }
 }

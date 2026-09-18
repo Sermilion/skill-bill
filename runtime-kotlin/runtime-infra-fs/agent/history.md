@@ -1,5 +1,33 @@
 # Boundary History — runtime-kotlin/runtime-infra-fs
 
+## [2026-09-18] SKILL-353 subtask 3 — correct documentation, settle substance report, move adapter tests
+Areas: runtime-infra-fs/scaffold and install, runtime-infra-fs test boundaries, runtime-engine featuretask tests, runtime-application workflow tests, runtime-kotlin architecture
+- Architecture guidance now describes the typed ScaffoldGateway boundary and inventories adapter-internal raw maps under scaffold; the documentation regression guard owns the live claim.
+- The unused platformPackSubstanceReport Gradle task and report entry point were removed; the audit implementation now lives under platformpack/substanceaudit and validation remains its consumer. reusable
+- install/support was dissolved into plan, apply, and rendering owners; engine- and application-dependent tests moved to the module whose behavior they exercise, removing the engine test edge and friendPaths entry.
+- Pattern: record ownership at the boundary while preserving typed ports and existing validation consumers.
+- Known limitation: adapter-internal scaffold raw maps remain documented rather than converted to typed models.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-09-17] SKILL-353 subtask 2 — one owner per process, agent, environment, and primitive
+Areas: runtime-infra-fs process/install/nativeagent/launcher/scaffold/skillremove, runtime-domain/install, runtime-ports/system, runtime-core architecture
+- Bounded external-process execution, teardown, and capture settlement now have one shared owner across git, gh, validation, review, and installer seams.
+- Supported agents, embedded native-agent names, host environment resolution, and agent-home/config paths now use canonical declarations and injected facts instead of duplicated literals or ambient reads.
+- Atomic writes and moves, directory replacement, SHA-256 digests, and path containment route through shared filesystem primitives; install, scaffold, removal, and evidence rollback callers reuse them. reusable
+- Known limitation: git and installer lifetime behavior retain dedicated sibling coverage while sharing the bounded process ownership model.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-09-17] SKILL-353 subtask 1 — one schema loader, typed failures, and recorded fallbacks
+Areas: runtime-infra-fs/contracts, runtime-infra-fs validators and install seams, runtime-core validator bindings, runtime-contracts errors
+- One classpath schema loader now owns schema compilation, identity, and contract-version checks; validators retain family-specific error shaping and ordered paths/values. reusable
+- Fifteen forwarding adapters were removed and validators are bound directly; working-directory schema walks and duplicate loader state are gone.
+- Decode seams raise typed failures, while remaining fallback sites are classified as typed errors, recorded degradation, or documented absence.
+- Known limitation: the loader and a few validators still have overlapping schema caches pending architecture-gate confirmation.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-16] SKILL-248 subtask 3 — Validate recovery ownership and simplify persistence adapters
 Areas: runtime-infra-fs/decomposition journal and contracts, runtime-infra-sqlite/goalrunner and readiness, runtime-contracts, runtime-core architecture
 - Journal recovery validates the versioned envelope, transaction-owned paths, symlink/traversal containment, unique entries, and staged or already-applied digests before moves or cleanup; invalid records retain evidence and raise typed actionable failures.

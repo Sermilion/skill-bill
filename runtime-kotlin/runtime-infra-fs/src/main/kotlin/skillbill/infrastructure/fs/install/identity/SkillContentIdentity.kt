@@ -4,12 +4,12 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidSkillContentIdentityError
 import skillbill.error.SkillContentIdentityMismatchError
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.infrastructure.fs.scaffold.validation.parseSkillFrontmatter
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.security.MessageDigest
 
 internal const val SKILL_CONTENT_IDENTITY_CONTRACT_VERSION = "0.1"
 internal const val SKILL_CONTENT_IDENTITY_FILENAME = ".content-identity"
@@ -55,7 +55,7 @@ internal data class SkillContentIdentity(
         invalidIdentity(source.toString(), "content.md frontmatter is missing")
       }
       val canonical = runCatching { source.toRealPath().toString() }.getOrElse { source.toString() }
-      return SkillContentIdentity(canonical, sha256(content), metadata.toSortedMap())
+      return SkillContentIdentity(canonical, sha256Hex(content), metadata.toSortedMap())
     }
 
     fun fromInstalled(stagingDir: Path): SkillContentIdentity {
@@ -144,10 +144,6 @@ internal data class SkillContentIdentity(
 
     private fun invalidIdentity(sourceLabel: String, reason: String, cause: Throwable? = null): Nothing =
       throw InvalidSkillContentIdentityError(sourceLabel, reason, cause)
-
-    private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
-      .digest(bytes)
-      .joinToString("") { byte -> "%02x".format(byte) }
   }
 }
 

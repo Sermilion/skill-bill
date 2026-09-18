@@ -1,5 +1,6 @@
 package skillbill.infrastructure.fs.scaffold.pointer
 
+import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -28,11 +29,7 @@ internal fun discoverAgentAddonGeneratedArtifacts(root: Path): List<Path> {
     "shell-ceremony.md",
     "telemetry-contract.md",
     "stack-routing.md",
-    "claude-agents",
-    "codex-agents",
-    "junie-agents",
-    "cursor-agents",
-  )
+  ) + SupportedAgent.entries.map(SupportedAgent::nativeAgentsKind)
   return Files.walk(addonsRoot).use { stream ->
     stream.filter { it.name in generatedNames }.sorted().toList()
   }

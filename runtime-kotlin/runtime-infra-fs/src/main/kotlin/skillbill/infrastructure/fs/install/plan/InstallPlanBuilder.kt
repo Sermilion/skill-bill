@@ -1,7 +1,5 @@
 package skillbill.infrastructure.fs.install.plan
 
-import skillbill.infrastructure.fs.install.support.claudeSkillTargets
-import skillbill.infrastructure.fs.install.support.codexSkillTargets
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentDefaultTarget
 import skillbill.install.model.InstallAgentTarget
@@ -13,6 +11,7 @@ import skillbill.install.model.InstallPlanWireValidator
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPlatformSkillMaterializationRequest
 import skillbill.install.model.InstallPolicyInput
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.validateInstallPlanWireSnapshot
 import skillbill.install.policy.InstallPlanPolicy
 import skillbill.model.toPath
@@ -36,7 +35,7 @@ internal fun buildInstallPlan(request: InstallPlanRequest, wireValidator: Instal
 }
 
 private fun requireSupportedAgentContract() {
-  require(SUPPORTED_AGENTS == InstallAgent.supportedIds) {
+  require(SUPPORTED_AGENTS.map(SupportedAgent::wireValue) == InstallAgent.supportedIds) {
     "Install plan supported-agent contract drifted. Domain=${InstallAgent.supportedIds}; core=$SUPPORTED_AGENTS."
   }
 }
@@ -140,21 +139,19 @@ internal fun materializeSelectedPlatformSkills(
   }
 }
 
-private fun installPlanEnvironment(request: InstallPlanRequest): Map<String, String> =
-  request.environment.ifEmpty { System.getenv() }
+private fun installPlanEnvironment(request: InstallPlanRequest): Map<String, String> = request.environment
 
-private fun multiRootDefaultTargets(
-  home: Path,
-  environment: Map<String, String> = System.getenv(),
-): List<InstallAgentDefaultTarget> = agentPaths(home, environment).flatMap { (agentId, path) ->
-  val agent = InstallAgent.fromId(agentId)
-  when (agentId) {
-    "claude" -> claudeSkillTargets(home, environment).map { skillPath ->
-      InstallAgentDefaultTarget(agent = agent, path = skillPath.toFileLocation())
+private fun multiRootDefaultTargets(home: Path, environment: Map<String, String>): List<InstallAgentDefaultTarget> =
+  agentPaths(home, installConfigRoots(home, environment)).flatMap { (agent, path) ->
+    if (agent == SupportedAgent.CLAUDE) {
+      claudeSkillTargets(home, environment).map { skillPath ->
+        InstallAgentDefaultTarget(agent = agent, path = skillPath.toFileLocation())
+      }
+    } else if (agent == SupportedAgent.CODEX) {
+      codexSkillTargets(home, environment).map { skillPath ->
+        InstallAgentDefaultTarget(agent = agent, path = skillPath.toFileLocation())
+      }
+    } else {
+      listOf(InstallAgentDefaultTarget(agent = agent, path = path.toFileLocation()))
     }
-    "codex" -> codexSkillTargets(home, environment).map { skillPath ->
-      InstallAgentDefaultTarget(agent = agent, path = skillPath.toFileLocation())
-    }
-    else -> listOf(InstallAgentDefaultTarget(agent = agent, path = path.toFileLocation()))
   }
-}

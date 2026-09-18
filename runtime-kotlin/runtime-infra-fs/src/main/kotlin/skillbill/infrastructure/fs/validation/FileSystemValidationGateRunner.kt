@@ -5,7 +5,10 @@ import skillbill.infrastructure.fs.jvm.GateJvmDisposition
 import skillbill.infrastructure.fs.jvm.GateJvmResolver
 import skillbill.infrastructure.fs.jvm.GateJvmStartupFailureException
 import skillbill.infrastructure.fs.jvm.GateJvmUnresolvedException
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.fs.jvm.applyTo
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRequest
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRunner
 import skillbill.ports.validation.ValidationGateRunner
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunRequest
@@ -16,7 +19,6 @@ import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.concurrent.TimeUnit
 import javax.xml.parsers.DocumentBuilderFactory
 
 @Inject
@@ -29,26 +31,33 @@ class FileSystemValidationGateRunner(
     val artifactFloor = clock.instant().truncatedTo(ChronoUnit.SECONDS)
     val outputFile = Files.createTempFile("skillbill-validation-gate", ".out")
     return try {
-      val builder = ProcessBuilder(request.argv)
-        .directory(request.repoRoot.toFile())
-        .redirectErrorStream(true)
-        .redirectOutput(outputFile.toFile())
-      val environment = builder.environment()
-      val gateJvm = gateJvmResolver.resolve(environment)
-      applyResolvedGateJvm(environment, gateJvm)
-      val process = builder.start()
-      val finished = process.waitFor(GATE_TIMEOUT_MINUTES, TimeUnit.MINUTES)
-      if (!finished) {
-        process.destroyForcibly()
+      val baselineEnvironment = LinkedHashMap(JdkHostPlatformPort.resolveEnvironment())
+      val gateJvm = gateJvmResolver.resolve(baselineEnvironment)
+      applyResolvedGateJvm(baselineEnvironment, gateJvm)
+      val processResult = BoundedExternalProcessRunner.run(
+        BoundedExternalProcessRequest(
+          argv = request.argv,
+          workingDirectory = request.repoRoot,
+          environment = baselineEnvironment,
+          clearEnvironment = true,
+          redirectOutputFile = outputFile,
+          deadlineSeconds = GATE_TIMEOUT_MINUTES * 60L,
+          outputCapBytes = null,
+        ),
+      )
+      if (processResult.timedOut) {
         throw ValidationGateProcessException(
           "Validation gate command timed out after ${GATE_TIMEOUT_MINUTES}m: ${request.argv.joinToString(" ")}",
         )
       }
-      val stdout = Files.readString(outputFile)
+      if (processResult.launchFailure) {
+        throw ValidationGateProcessException(processResult.output)
+      }
+      val stdout = processResult.output
       val durationMs = ((System.nanoTime() - started) / NANOS_PER_MILLIS).coerceAtLeast(0L)
       val executedWorkUnits = deriveExecutedWorkUnits(request, stdout)
       val executedCheckIdentities = deriveExecutedCheckIdentities(request, stdout)
-      val exitCode = process.exitValue()
+      val exitCode = processResult.exitCode
       val parsedFindings = parseFindings(request, stdout, artifactFloor)
       rejectGateJvmStartupFailure(gateJvm, exitCode, parsedFindings, stdout)
       val outcome = deriveOutcome(exitCode, parsedFindings)

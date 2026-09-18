@@ -4,9 +4,9 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.error.InvalidInstallPlanSchemaError
-import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
-import skillbill.infrastructure.fs.InstallPlanWireValidatorAdapter
+import skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator
+import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
 import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
@@ -24,8 +24,8 @@ import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 
 class SchemaValidatorPortLoudFailTest {
-  private val installValidator: InstallPlanWireValidator = InstallPlanWireValidatorAdapter()
-  private val decompositionValidator: DecompositionManifestValidator = DecompositionManifestValidatorAdapter()
+  private val installValidator: InstallPlanWireValidator = InstallPlanSchemaValidator()
+  private val decompositionValidator: DecompositionManifestValidator = DecompositionManifestSchemaValidator()
   private val fileStore = FileSystemDecompositionManifestFileStore()
 
   @Test
@@ -151,7 +151,7 @@ class SchemaValidatorPortLoudFailTest {
   )
 
   private fun DecompositionManifest.toMutableWireMap(): MutableMap<String, Any?> =
-    LinkedHashMap(DecompositionManifestValidatorAdapter().encodeManifestWireMap(this))
+    LinkedHashMap(DecompositionManifestSchemaValidator().encodeManifestWireMap(this))
 
   private fun validInstallPlanWireMap(): MutableMap<String, Any?> = linkedMapOf(
     "status" to "planned",

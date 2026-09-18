@@ -1,9 +1,12 @@
 package skillbill.infrastructure.fs
 
 import skillbill.error.InvalidReviewContextSchemaError
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRequest
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRunner
+import skillbill.infrastructure.fs.launcher.process.GIT_TIMEOUT_SECONDS
+import skillbill.infrastructure.fs.launcher.process.runGitCommand
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 
 internal fun readImmutableReviewFile(root: Path, revision: String, path: String, maxBytes: Long): ByteArray? {
   if (!immutableReviewFileExists(root, revision, path)) return null
@@ -41,10 +44,18 @@ internal fun readImmutableReviewDelta(
 internal fun readImmutableReviewCommand(root: Path, args: List<String>, maxBytes: Long): ByteArray {
   val output = Files.createTempFile("skill-bill-evidence", ".blob")
   try {
-    val process = ProcessBuilder(listOf("git", "-C", root.toString()) + args)
-      .redirectOutput(output.toFile()).redirectError(ProcessBuilder.Redirect.DISCARD).start()
-    awaitImmutableReviewCommand(process)
-    if (process.exitValue() != 0) {
+    val result = BoundedExternalProcessRunner.run(
+      BoundedExternalProcessRequest(
+        argv = listOf("git", "-C", root.toString()) + args,
+        redirectOutputFile = output,
+        deadlineSeconds = GIT_TIMEOUT_SECONDS,
+        outputCapBytes = null,
+      ),
+    )
+    if (result.timedOut) {
+      throw InvalidReviewContextSchemaError("review-expansion", "Immutable evidence read timed out.")
+    }
+    if (result.exitCode != 0) {
       throw InvalidReviewContextSchemaError(
         "review-expansion",
         "Immutable evidence read failed.",
@@ -53,19 +64,5 @@ internal fun readImmutableReviewCommand(root: Path, args: List<String>, maxBytes
     return Files.newInputStream(output).use { it.readNBytes(minOf(maxBytes + 1, Int.MAX_VALUE.toLong()).toInt()) }
   } finally {
     Files.deleteIfExists(output)
-  }
-}
-
-private fun awaitImmutableReviewCommand(process: Process) {
-  val completed = try {
-    process.waitFor(GIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-  } catch (error: InterruptedException) {
-    process.destroyForcibly()
-    Thread.currentThread().interrupt()
-    throw error
-  }
-  if (!completed) {
-    process.destroyForcibly()
-    throw InvalidReviewContextSchemaError("review-expansion", "Immutable evidence read timed out.")
   }
 }

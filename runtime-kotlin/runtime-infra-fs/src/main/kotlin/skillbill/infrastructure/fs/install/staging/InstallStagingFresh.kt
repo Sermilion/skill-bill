@@ -2,7 +2,6 @@ package skillbill.infrastructure.fs.install.staging
 
 import skillbill.infrastructure.fs.agentaddon.AgentAddonPointer
 import skillbill.infrastructure.fs.install.identity.SkillContentIdentity
-import skillbill.infrastructure.fs.install.support.writeRenderedSupportPointerFiles
 import skillbill.infrastructure.fs.scaffold.authoring.AuthoringTarget
 import skillbill.install.model.RenderedSkill
 import skillbill.ports.repository.toFileLocation

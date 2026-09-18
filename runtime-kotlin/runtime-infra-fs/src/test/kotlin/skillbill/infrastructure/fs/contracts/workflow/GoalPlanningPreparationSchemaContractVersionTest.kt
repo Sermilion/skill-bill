@@ -3,6 +3,9 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
+import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.SchemaIdentityRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -42,7 +45,21 @@ class GoalPlanningPreparationSchemaContractVersionTest {
   @Test
   fun `validator asserts identity of the classpath schema`() {
     val yamlNode = classpathSchema()
-    GoalPlanningPreparationSchemaValidator.assertIdentity(yamlNode)
+    ClasspathContractSchemaLoader.validateSchemaIdentity(
+      SchemaIdentityRequest(
+        yamlNode = yamlNode,
+        classpathResource = GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE,
+        expectedSchemaId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+        expectedContractVersion = GOAL_PLANNING_PREPARATION_CONTRACT_VERSION,
+        identityFailure = { reason ->
+          InvalidGoalPlanningPreparationSchemaError(
+            sourceLabel = GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE,
+            fieldPath = "<schema>",
+            reason = reason,
+          )
+        },
+      ),
+    )
   }
 
   private fun classpathSchema(): JsonNode {

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
@@ -56,8 +57,8 @@ internal object DuplicateKeyMergeParser {
     val merged = merge(text, format)?.takeIf { it.node.isObject } ?: return null
     val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
       format = merged.format,
-      originalDigest = StructuralRepairSyntax.sha256(text),
-      repairedDigest = StructuralRepairSyntax.sha256(merged.repairedText),
+      originalDigest = StructuralRepairSyntax.sha256Hex(text),
+      repairedDigest = StructuralRepairSyntax.sha256Hex(merged.repairedText),
       operation = FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS,
       sourceLocation = StructuralRepairSyntax.sourceLocation(
         sourceLabel,

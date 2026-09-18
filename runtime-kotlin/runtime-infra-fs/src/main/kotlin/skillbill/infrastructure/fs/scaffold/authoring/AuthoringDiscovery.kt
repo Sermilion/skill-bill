@@ -1,6 +1,8 @@
 package skillbill.infrastructure.fs.scaffold.authoring
 
 import skillbill.error.SkillBillRuntimeException
+import skillbill.infrastructure.fs.jvm.rollbackDeleteIfExists
+import skillbill.infrastructure.fs.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.fs.scaffold.platformpack.addonUsageFor
 import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackManifests
 import skillbill.infrastructure.fs.scaffold.runtime.displayNameFromSlug
@@ -46,7 +48,7 @@ private fun rollbackUpgrade(originalBytes: Map<Path, ByteArray>, createdPaths: L
   restoreFiles(originalBytes)
   createdPaths.asReversed().forEach { path ->
     if (path !in originalBytes) {
-      Files.deleteIfExists(path)
+      rollbackDeleteIfExists(path)
     }
   }
 }
@@ -81,7 +83,7 @@ internal fun discoverTargets(repoRoot: Path, enforceContractVersion: Boolean = t
 }
 
 private fun restoreFiles(originalBytes: Map<Path, ByteArray>) {
-  originalBytes.forEach { (path, bytes) -> Files.write(path, bytes) }
+  originalBytes.forEach { (path, bytes) -> rollbackRestoreBytes(path, bytes) }
 }
 
 private fun recordPackTargets(discovered: MutableMap<String, AuthoringTarget>, pack: PlatformManifest) {

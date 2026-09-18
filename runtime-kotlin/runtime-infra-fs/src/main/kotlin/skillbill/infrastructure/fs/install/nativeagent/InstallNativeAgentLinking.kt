@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.install.nativeagent
 
-import skillbill.infrastructure.fs.install.support.createNewSymlinkWithGuidance
-import skillbill.infrastructure.fs.install.support.createReplacementSymlinkWithGuidance
+import skillbill.infrastructure.fs.install.apply.createNewSymlinkWithGuidance
+import skillbill.infrastructure.fs.install.apply.createReplacementSymlinkWithGuidance
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.AgentTarget
 import skillbill.model.toPath

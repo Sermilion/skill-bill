@@ -1,6 +1,6 @@
 package skillbill.infrastructure.fs.launcher.mcp
 
-import skillbill.infrastructure.fs.launcher.process.atomicWriteString
+import skillbill.infrastructure.fs.jvm.atomicWriteString
 import skillbill.install.model.McpMutationResult
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files

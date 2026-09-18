@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.launcher.agentrun
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessEnvironmentFields
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessLaunchFields
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessProbeFields
@@ -16,7 +17,6 @@ import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Path
-import java.security.MessageDigest
 
 interface AgentRunAdapter {
   val agent: InstallAgent
@@ -72,7 +72,7 @@ class ProcessAgentRunAdapter(
       mcpStartupObserved = result.mcpStartupObserved,
       stdoutTruncated = result.stdoutTruncated,
       stdoutByteSize = if (result.stdoutTruncated) result.stdoutByteSize else decodedBodyBytes.size.toLong(),
-      stdoutSha256 = if (result.stdoutTruncated) result.stdoutSha256 else sha256(decodedBodyBytes),
+      stdoutSha256 = if (result.stdoutTruncated) result.stdoutSha256 else sha256Hex(decodedBodyBytes),
       childSessionPath = command.workingDirectory.toString(),
       childSessionId = childSessionId(agent, request, command.workingDirectory),
       assistantEventCount = decoded.assistantEventCount,
@@ -162,9 +162,6 @@ class ProcessAgentRunAdapter(
       append(workingDirectory.fileName?.toString() ?: workingDirectory.toString())
     }
 }
-
-private fun sha256(bytes: ByteArray): String =
-  MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
 data class DecodedAgentRunOutput(
   val text: String,

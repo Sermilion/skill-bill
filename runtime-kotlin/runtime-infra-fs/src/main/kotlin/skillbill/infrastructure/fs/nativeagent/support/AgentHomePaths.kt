@@ -1,5 +1,6 @@
 package skillbill.infrastructure.fs.nativeagent.support
 
+import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.streams.toList
@@ -7,17 +8,13 @@ import kotlin.streams.toList
 const val CLAUDE_CONFIG_DIR_ENV: String = "CLAUDE_CONFIG_DIR"
 
 private const val CODEX_HOME_ENV: String = "CODEX_HOME"
-private const val CLAUDE_PROFILE_PREFIX: String = ".claude-"
-private const val CODEX_PROFILE_PREFIX: String = ".codex-"
-private const val CODEX_AGENTS_KIND: String = "codex-agents"
-
 private val CLAUDE_PROFILE_MARKERS: List<String> =
   listOf(".claude.json", ".credentials.json", "commands", "agents", "history.jsonl")
 
 private val CODEX_PROFILE_MARKERS: List<String> =
   listOf("config.toml", "history.jsonl", "installation_id", "router.config.toml")
 
-fun claudeConfigRoots(home: Path, environment: Map<String, String> = System.getenv()): List<Path> {
+fun claudeConfigRoots(home: Path, environment: Map<String, String>): List<Path> {
   val ordered = mutableListOf<Path>()
   val seen = mutableSetOf<Path>()
 
@@ -35,7 +32,9 @@ fun claudeConfigRoots(home: Path, environment: Map<String, String> = System.gete
       Files.list(home).use { stream ->
         stream
           .filter { entry -> Files.isDirectory(entry) }
-          .filter { entry -> entry.fileName.toString().startsWith(CLAUDE_PROFILE_PREFIX) }
+          .filter { entry ->
+            entry.fileName.toString().startsWith(requireNotNull(SupportedAgent.CLAUDE.profileDirectoryPrefix))
+          }
           .filter { entry -> hasClaudeProfileMarker(entry) }
           .sorted(compareBy { entry -> entry.fileName.toString() })
           .toList()
@@ -50,8 +49,8 @@ fun claudeConfigRoots(home: Path, environment: Map<String, String> = System.gete
   return ordered
 }
 
-fun codexAgentsTargets(home: Path? = null, environment: Map<String, String> = System.getenv()): List<Path> {
-  val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+fun codexAgentsTargets(home: Path, environment: Map<String, String>): List<Path> {
+  val resolvedHome = home
   val ordered = mutableListOf<Path>()
   val seen = mutableSetOf<Path>()
 
@@ -72,15 +71,13 @@ data class NativeAgentHomeTarget(
   val path: Path,
 )
 
-fun detectCodexAgentsTargets(
-  home: Path? = null,
-  environment: Map<String, String> = System.getenv(),
-): List<NativeAgentHomeTarget> {
-  val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+fun detectCodexAgentsTargets(home: Path, environment: Map<String, String>): List<NativeAgentHomeTarget> {
+  val resolvedHome = home
   if (!codexAgentIsPresent(resolvedHome, environment)) {
     return emptyList()
   }
-  return codexAgentsTargets(resolvedHome, environment).map { path -> NativeAgentHomeTarget(CODEX_AGENTS_KIND, path) }
+  return codexAgentsTargets(resolvedHome, environment)
+    .map { path -> NativeAgentHomeTarget(SupportedAgent.CODEX.nativeAgentsKind, path) }
 }
 
 private fun codexConfigRoots(home: Path, environment: Map<String, String>): List<Path> {
@@ -104,7 +101,9 @@ private fun codexConfigRoots(home: Path, environment: Map<String, String>): List
       Files.list(home).use { stream ->
         stream
           .filter { entry -> Files.isDirectory(entry) }
-          .filter { entry -> entry.fileName.toString().startsWith(CODEX_PROFILE_PREFIX) }
+          .filter { entry ->
+            entry.fileName.toString().startsWith(requireNotNull(SupportedAgent.CODEX.profileDirectoryPrefix))
+          }
           .filter { entry -> hasCodexProfileMarker(entry) }
           .sorted(compareBy { entry -> entry.fileName.toString() })
           .toList()

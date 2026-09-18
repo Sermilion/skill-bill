@@ -5,9 +5,7 @@ import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
-import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
-import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
-import skillbill.infrastructure.fs.GoalPlanningPreparationEnvelopeValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputSchemaValidator
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
@@ -27,6 +25,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactSchemaValidator
 
 class GoalPlanningPreparationCheckpointTest {
   @Test
@@ -283,9 +282,9 @@ class GoalPlanningPreparationCheckpointTest {
     val database = SQLiteDatabaseSessionFactory(EnvironmentContext(environment = emptyMap(), userHome = tempDir))
     val checkpoint = GoalPlanningPreparationCheckpoint(
       database = database,
-      envelopeValidator = GoalPlanningPreparationEnvelopeValidatorAdapter(),
-      phaseOutputValidator = FeatureTaskRuntimePhaseOutputValidatorAdapter(),
-      planningProjectionValidator = FeatureTaskRuntimeWireArtifactValidatorAdapter(),
+      envelopeValidator = FeatureTaskRuntimeWireArtifactSchemaValidator(),
+      phaseOutputValidator = FeatureTaskRuntimePhaseOutputSchemaValidator(),
+      planningProjectionValidator = FeatureTaskRuntimeWireArtifactSchemaValidator(),
     )
     return CheckpointHarness(checkpoint, database)
   }

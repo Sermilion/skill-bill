@@ -2,6 +2,7 @@ package skillbill.architecture
 
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -116,6 +117,118 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, "Workflow phase-output envelope")
     assertContains(architecture, "`produced_outputs` entry maps")
     assertContains(architecture, "does not prove every `String` in")
+  }
+
+  @Test
+  fun `architecture document records the typed scaffold gateway and adapter map inventory`() {
+    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    val scaffoldSection = architecture
+      .substringAfter("## Scaffold Capability Ports And Pure-Policy Ownership")
+      .substringBefore("## Architecture Guardrails")
+
+    assertContains(scaffoldSection, "`ScaffoldGateway` in `skillbill.ports.scaffold` is the typed port")
+    assertContains(scaffoldSection, "`runtime-cli` and `runtime-mcp` through `RuntimeComponent`")
+    assertContains(scaffoldSection, "[2026-09-03]")
+    assertContains(scaffoldSection, "SKILL-52.3 subtask 3 closed")
+
+    listOf(
+      "optionalBaselineLayers",
+      "resolveAddonConsumerSkillDirs",
+      "payload",
+      "toRawScaffoldPayload",
+      "appendAgentAddonFields",
+      "appendHorizontalFields",
+      "appendPlatformPackFields",
+      "appendPlatformOverrideFields",
+      "appendCodeReviewAreaFields",
+      "appendAddOnFields",
+      "validatePayloadVersion",
+      "detectKind",
+      "requireStringMap",
+      "requireStringOrDefaultMap",
+      "rejectBaselineLayersForNonPlatformPack",
+      "resolvePlatformPackSelection",
+      "rejectLegacyPlatformPackSelector",
+      "resolvePlatformPackDefaults",
+      "optionalSpecialistSubagents",
+      "rejectLeafSubagentSpecialists",
+      "validate",
+      "assemblePlatformManifest",
+      "extractCustomFields",
+      "validatedCustomFields",
+      "validateAgainstCanonicalSchema",
+      "toPayload",
+      "scaffoldWithAdapters",
+      "resolveRepoRoot",
+      "planScaffold",
+      "planHorizontal",
+      "planPlatformOverridePiloted",
+      "planPlatformPack",
+      "rejectPlatformPackSubagentOverrides",
+      "planCodeReviewArea",
+      "planAddOn",
+      "planAgentAddon",
+      "canonicalName",
+      "optionalAddonLocationPath",
+      "public`: `scaffold`",
+    ).forEach { functionName ->
+      assertTrue(
+        scaffoldSection.contains(functionName),
+        "Missing scaffold raw-map inventory entry: $functionName",
+      )
+    }
+  }
+
+  @Test
+  fun `substance audit disposition keeps validation ownership after report task deletion`() {
+    val buildScript = runtimeRoot.resolve("runtime-infra-fs/build.gradle.kts").readText()
+    val decisions = Files.readString(runtimeRoot.resolve("agent/decisions.md"))
+    val substanceRoot = runtimeRoot.resolve(
+      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/substance",
+    )
+    val auditEntryPoint = runtimeRoot.resolve(
+      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/platformpack/" +
+        "substanceaudit/PlatformPackSubstanceAudit.kt",
+    )
+
+    assertFalse(buildScript.contains("platformPackSubstanceReport"))
+    assertFalse(Files.exists(substanceRoot))
+    assertTrue(Files.isRegularFile(auditEntryPoint))
+    assertContains(decisions, "`RepoValidationCollected` already calls `PlatformPackSubstanceAudit.audit`")
+    assertContains(decisions, "Do not add a CLI report command")
+  }
+
+  @Test
+  fun `infra fs retains its area source sets and verification task`() {
+    val buildScript = runtimeRoot.resolve("runtime-infra-fs/build.gradle.kts").readText()
+
+    listOf(
+      "Jvm",
+      "Contracts",
+      "AgentAddon",
+      "NativeAgent",
+      "Scaffold",
+      "Install",
+      "Launcher",
+      "Infrastructure",
+      "GoalPlanning",
+      "SkillRemove",
+    ).forEach { area ->
+      assertTrue(
+        buildScript.contains("\"$area\""),
+        "Missing infra-fs area source-set entry: $area",
+      )
+      assertTrue(
+        buildScript.contains("val sourceSetName = \"infraFs\${areaName}Area\""),
+        "Missing infra-fs area source set: $area",
+      )
+    }
+    assertContains(buildScript, "tasks.register(\"verifyInfraFsAreaCompile\")")
+    assertTrue(
+      Files.isDirectory(
+        runtimeRoot.resolve("runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs"),
+      ),
+    )
   }
 
   @Test

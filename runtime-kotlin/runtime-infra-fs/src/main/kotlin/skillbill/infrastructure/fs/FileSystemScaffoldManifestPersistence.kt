@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.fs.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.fs.scaffold.manifest.appendCodeReviewArea
 import skillbill.infrastructure.fs.scaffold.manifest.appendGovernedAddonManifestRegistration
 import skillbill.infrastructure.fs.scaffold.manifest.renderGovernedAddonManifestRegistration
@@ -31,7 +32,7 @@ class FileSystemScaffoldManifestPersistence : ScaffoldManifestPersistencePort {
   )
 
   override fun restore(snapshot: ScaffoldManifestSnapshot) {
-    Files.write(snapshot.manifestPath, snapshot.originalBytes)
+    rollbackRestoreBytes(snapshot.manifestPath, snapshot.originalBytes)
   }
 
   override fun write(request: ScaffoldManifestWriteRequest) {

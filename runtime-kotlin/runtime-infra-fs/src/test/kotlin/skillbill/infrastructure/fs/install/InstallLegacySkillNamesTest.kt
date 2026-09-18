@@ -1,6 +1,6 @@
 package skillbill.infrastructure.fs.install
 
-import skillbill.infrastructure.fs.install.support.legacySkillBillCleanupNames
+import skillbill.infrastructure.fs.install.apply.legacySkillBillCleanupNames
 import kotlin.test.Test
 import kotlin.test.assertContains
 

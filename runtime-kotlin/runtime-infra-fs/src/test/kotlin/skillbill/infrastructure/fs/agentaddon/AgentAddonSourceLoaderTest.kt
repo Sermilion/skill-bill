@@ -1,8 +1,9 @@
 package skillbill.infrastructure.fs.agentaddon
 
+import skillbill.error.InvalidAgentAddonAgentIdError
 import skillbill.error.InvalidAgentAddonSchemaError
 import skillbill.error.MissingAgentAddonDeclarationError
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,6 +13,15 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class AgentAddonSourceLoaderTest {
+
+  @Test
+  fun `unknown agent id fails with typed parse error`() {
+    val error = assertFailsWith<InvalidAgentAddonAgentIdError> {
+      SupportedAgent.parseAgentAddonId("unsupported-agent")
+    }
+
+    assertTrue(error.reason.contains("Unknown agent"), error.reason)
+  }
 
   @Test
   fun `absent and empty roots are valid`() {
@@ -25,12 +35,12 @@ class AgentAddonSourceLoaderTest {
   fun `discovery returns typed declarations in slug order and required lookup works`() {
     val repo = Files.createTempDirectory("agent-addon-order")
     writeAddon(repo, "z-last", listOf("codex"))
-    writeAddon(repo, "a-first", InstallAgent.supportedIds)
+    writeAddon(repo, "a-first", SupportedAgent.supportedIds)
 
     val declarations = discoverAgentAddons(repo)
 
     assertEquals(listOf("a-first", "z-last"), declarations.map { it.slug })
-    assertEquals(InstallAgent.supportedIds, declarations.first().agents)
+    assertEquals(SupportedAgent.supportedIds, declarations.first().agents)
     assertEquals("z-last", requireAgentAddon(repo, "z-last").slug)
   }
 
@@ -189,7 +199,7 @@ class AgentAddonSourceLoaderTest {
     val error = assertFailsWith<InvalidAgentAddonSchemaError> { discoverAgentAddons(repo) }
 
     assertTrue(error.reason.contains("unknown agent id 'unknown'"), error.reason)
-    InstallAgent.supportedIds.forEach { assertTrue(error.reason.contains(it), error.reason) }
+    SupportedAgent.supportedIds.forEach { assertTrue(error.reason.contains(it), error.reason) }
   }
 
   @Test

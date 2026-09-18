@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.jvm
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.system.HostPlatformPort
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -28,9 +29,10 @@ fun GateJvmDisposition.applyTo(environment: MutableMap<String, String>) {
 @Inject
 class GateJvmResolver(
   private val diagnostics: RuntimeDiagnostics,
+  private val hostPlatform: HostPlatformPort,
 ) {
   fun resolve(childEnvironment: MutableMap<String, String>): GateJvmDisposition {
-    val imageRoot = runtimeImageRoot()
+    val imageRoot = runtimeImageRoot(hostPlatform)
     val rejected = rejectedCandidate(childEnvironment)
     val dropped = dropRuntimeImageJava(childEnvironment, imageRoot)
     val disposition = evaluateGuard(childEnvironment, rejected)
@@ -177,11 +179,11 @@ private data class GuardOutput(
   val reachedRemediation: Boolean,
 )
 
-internal fun runtimeImageRoot(): Path? = runningJavaHome()?.takeUnless(::hostsAJavaCompiler)
+internal fun runtimeImageRoot(hostPlatform: HostPlatformPort): Path? =
+  runningJavaHome(hostPlatform)?.takeUnless(::hostsAJavaCompiler)
 
-private fun runningJavaHome(): Path? = runCatching {
-  Path.of(System.getProperty("java.home").orEmpty()).toRealPath()
-}.getOrNull()
+private fun runningJavaHome(hostPlatform: HostPlatformPort): Path? =
+  runCatching { hostPlatform.resolveJavaHome().toRealPath() }.getOrNull()
 
 private fun hostsAJavaCompiler(home: Path): Boolean =
   JAVA_COMPILER_EXECUTABLES.any { name -> Files.isExecutable(home.resolve("bin").resolve(name)) }

@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.install.reconcile
 
 import skillbill.error.ReconciliationConflictError
 import skillbill.infrastructure.fs.agentaddon.discoverAgentAddons
+import skillbill.infrastructure.fs.contracts.newSha256Digest
 import skillbill.infrastructure.fs.install.plan.discoverPlatformManifests
 import skillbill.infrastructure.fs.install.plan.enumerateInstallPlanSkills
 import skillbill.infrastructure.fs.install.staging.INSTALL_CACHE_KEY_BYTES
@@ -38,7 +39,6 @@ import skillbill.scaffold.model.PlatformManifest
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
 
 internal const val SKILLS_PREFIX = "skills/"
 internal const val PLATFORM_PACKS_PREFIX = "platform-packs/"
@@ -180,7 +180,7 @@ private fun agentAddonEntries(roots: ReconcileSourceRoots): Map<String, Reconcil
 private const val AGENT_ADDON_HASH_FIELD_SEPARATOR: Byte = 0
 
 private fun hashAgentAddonSource(manifestPath: Path, contentPath: Path): String {
-  val digest = MessageDigest.getInstance("SHA-256")
+  val digest = newSha256Digest()
   listOf("agent-addon.yaml" to manifestPath, "content.md" to contentPath).forEach { (name, path) ->
     digest.update(name.toByteArray(Charsets.UTF_8))
     digest.update(AGENT_ADDON_HASH_FIELD_SEPARATOR)

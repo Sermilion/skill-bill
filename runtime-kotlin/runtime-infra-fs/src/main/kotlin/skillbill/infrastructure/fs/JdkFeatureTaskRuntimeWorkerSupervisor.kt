@@ -50,8 +50,9 @@ internal fun processBootIdentity(diagnostics: RuntimeDiagnostics): String {
     .getOrNull()
     ?.let { return "boot-${it.toEpochMilli()}" }
   diagnostics.warning(
-    "This platform exposes no kernel boot id and no start instant for pid $INIT_PID, so worker " +
-      "ownership carries no boot identity. Process-birth evidence remains the reused-pid guard.",
+    "seam=processBootIdentity expected=kernel boot id or init-process birth " +
+      "used=$BOOT_IDENTITY_UNAVAILABLE. This platform exposes neither; process-birth evidence remains " +
+      "the reused-pid guard.",
   )
   return BOOT_IDENTITY_UNAVAILABLE
 }

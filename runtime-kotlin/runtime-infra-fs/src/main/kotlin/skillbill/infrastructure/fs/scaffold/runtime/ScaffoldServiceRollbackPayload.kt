@@ -2,6 +2,9 @@
 package skillbill.infrastructure.fs.scaffold.runtime
 
 import skillbill.error.InvalidScaffoldPayloadError
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
+import skillbill.infrastructure.fs.jvm.resolveUserHome
+import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Path
 
 internal fun canonicalName(payload: Map<String, Any?>, defaultName: String): String {
@@ -27,8 +30,8 @@ internal fun optionalAddonLocationPath(payload: Map<String, Any?>, repoRoot: Pat
     )
   }
   val expanded = when {
-    rawPath == "~" -> System.getProperty("user.home")
-    rawPath.startsWith("~/") -> Path.of(System.getProperty("user.home"))
+    rawPath == "~" -> resolveUserHome(null).toString()
+    rawPath.startsWith("~/") -> resolveUserHome(null)
       .resolve(rawPath.removePrefix("~/"))
       .toString()
     else -> rawPath
@@ -60,7 +63,8 @@ internal fun defaultPlatformOverrideName(platform: String, family: String): Stri
 
 internal fun deriveDisplayName(platform: String): String = displayNameFromSlug(platform)
 
-internal fun defaultRepoRoot(): Path = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize()
+internal fun defaultRepoRoot(hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path =
+  hostPlatform.resolveWorkingDirectory().toAbsolutePath().normalize()
 
 internal fun noAgentsNote(): String =
   "No local AI agents detected; skipping auto-install. Run `./install.sh` to set up " +

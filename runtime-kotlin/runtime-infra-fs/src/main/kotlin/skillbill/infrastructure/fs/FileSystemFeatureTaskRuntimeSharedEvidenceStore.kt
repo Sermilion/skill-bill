@@ -5,6 +5,9 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.error.ReviewHunkEvidenceLocatorMissingError
 import skillbill.error.ReviewHunkEvidenceLocatorUnreadableError
+import skillbill.infrastructure.fs.jvm.deleteRecursively
+import skillbill.infrastructure.fs.jvm.pathContainedIn
+import skillbill.infrastructure.fs.jvm.replaceDirectory
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceDeriver
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
@@ -16,12 +19,8 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolve
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeRunEvidenceAddress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceDiffPayloadRef
-import java.nio.file.AtomicMoveNotSupportedException
-import java.nio.file.FileAlreadyExistsException
-import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.util.logging.Logger
 
 internal val sharedEvidenceStoreLog: Logger =
@@ -66,7 +65,7 @@ open class FileSystemFeatureTaskRuntimeSharedEvidenceStore :
     val repoRoot = request.repoRoot.toAbsolutePath().normalize()
     val artifactDir = repoRoot.resolve(request.storePath).normalize()
     val storeRoot = repoRoot.resolve(".skill-bill").resolve("run-evidence").normalize()
-    if (!artifactDir.startsWith(storeRoot) || !Files.isDirectory(artifactDir)) {
+    if (!pathContainedIn(artifactDir, storeRoot) || !Files.isDirectory(artifactDir)) {
       throw ReviewHunkEvidenceLocatorMissingError(request.storePath)
     }
     val fingerprint = artifactDir.fileName.toString()
@@ -130,33 +129,13 @@ open class FileSystemFeatureTaskRuntimeSharedEvidenceStore :
   }
 
   private fun publish(staging: Path, artifactDir: Path) {
-    try {
-      Files.move(staging, artifactDir, ATOMIC_MOVE)
-    } catch (error: AtomicMoveNotSupportedException) {
+    replaceDirectory(staging, artifactDir) { cause ->
       degraded(
         seam = "artifact_publish",
-        used = "non-atomic move to $artifactDir",
+        used = "directory replacement fallback at $artifactDir",
         expected = "ATOMIC_MOVE of $staging",
-        cause = "AtomicMoveNotSupportedException: ${error.message.orEmpty()}",
+        cause = cause,
       )
-      deleteRecursively(artifactDir)
-      Files.move(staging, artifactDir)
-    } catch (error: FileAlreadyExistsException) {
-      degraded(
-        seam = "artifact_publish",
-        used = "the artifact already published at $artifactDir",
-        expected = "publish of $staging",
-        cause = "FileAlreadyExistsException: ${error.message.orEmpty()}",
-      )
-    } catch (error: FileSystemException) {
-      degraded(
-        seam = "artifact_publish",
-        used = "replacement of the existing directory at $artifactDir",
-        expected = "ATOMIC_MOVE of $staging",
-        cause = "${error::class.simpleName.orEmpty()}: ${error.message.orEmpty()}",
-      )
-      deleteRecursively(artifactDir)
-      Files.move(staging, artifactDir)
     }
   }
 
@@ -171,13 +150,6 @@ open class FileSystemFeatureTaskRuntimeSharedEvidenceStore :
       "size_bytes" to artifact.diffPayload.sizeBytes,
     ),
   )
-
-  private fun deleteRecursively(root: Path) {
-    if (!Files.exists(root)) return
-    Files.walk(root).use { stream ->
-      stream.toList().sortedDescending().forEach { Files.deleteIfExists(it) }
-    }
-  }
 
   internal companion object {
     const val ENVELOPE_FILE_NAME: String = SHARED_EVIDENCE_ENVELOPE_FILE

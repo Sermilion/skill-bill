@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.scaffold.pointer
 
 import skillbill.error.ShellContentContractException
+import skillbill.infrastructure.fs.jvm.readGitTrackedFiles
 import skillbill.infrastructure.fs.nativeagent.validation.discoverNativeAgentGeneratedArtifactFiles
 import skillbill.infrastructure.fs.scaffold.platformpack.loadPlatformManifest
 import skillbill.infrastructure.fs.scaffold.runtime.requiredSupportingFilesForSkill
@@ -121,21 +122,7 @@ private fun shouldValidateCommittedArtifact(relativePath: String, trackedFiles: 
   trackedFiles == null || relativePath in trackedFiles
 
 private fun trackedRepoFiles(root: Path): Set<String>? {
-  val process = runCatching {
-    ProcessBuilder("git", "-C", root.toString(), "ls-files")
-      .redirectErrorStream(true)
-      .start()
-  }.getOrNull() ?: return null
-  val output = process.inputStream.bufferedReader().use { reader -> reader.readText() }
-  val exitCode = process.waitFor()
-  return if (exitCode == 0) {
-    output.lineSequence()
-      .map(String::trim)
-      .filter(String::isNotEmpty)
-      .toSet()
-  } else {
-    null
-  }
+  return readGitTrackedFiles(root)
 }
 
 private fun discoverGovernedSkillOutputs(root: Path): List<Path> {

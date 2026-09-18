@@ -1,5 +1,6 @@
 package skillbill.infrastructure.fs.install
 
+import skillbill.error.InvalidInstallStagingError
 import skillbill.error.SkillBillRuntimeException
 import skillbill.infrastructure.fs.install.plan.InstallContext
 import skillbill.infrastructure.fs.install.plan.installSkill
@@ -321,7 +322,7 @@ class InstallStagingTest {
     val cacheRoot = installedSkillsCacheRoot(fixture.home)
     val priorChildren = listCacheChildren(cacheRoot)
 
-    assertFailsWith<IllegalArgumentException> {
+    assertFailsWith<InvalidInstallStagingError> {
       stageInstalledSkill(fixture.repoRoot, fixture.skillDir, fixture.home)
     }
     val newChildren = listCacheChildren(cacheRoot) - priorChildren

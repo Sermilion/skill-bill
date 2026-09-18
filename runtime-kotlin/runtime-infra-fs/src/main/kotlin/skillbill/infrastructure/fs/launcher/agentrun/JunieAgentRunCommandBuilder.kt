@@ -26,7 +26,7 @@ class JunieAgentRunCommandBuilder(
         require(request.modelOverride == null && request.effortOverride == null) {
           "junie cannot honor a model/effort directive; remove its execution_matrix entry or --phase-model assignment."
         }
-        add("junie")
+        add(InstallAgent.JUNIE.wireValue)
         add("--project")
         add(request.repoRoot.toString())
         add("--output-format")

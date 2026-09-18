@@ -1,12 +1,10 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
-import skillbill.infrastructure.fs.GoalObservabilityEventValidatorAdapter
-import skillbill.infrastructure.fs.GoalPlanningPreparationEnvelopeValidatorAdapter
-import skillbill.infrastructure.fs.GoalProgressEventValidatorAdapter
-import skillbill.infrastructure.fs.IdeStatusValidatorAdapter
-import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
+import skillbill.infrastructure.fs.contracts.workflow.IdeStatusSchemaValidator
+import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.ports.idestatus.IdeStatusValidator
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowSnapshotValidator
@@ -16,25 +14,26 @@ import skillbill.workflow.goal.GoalProgressEventValidator
 
 internal interface RuntimeWorkflowValidatorProvides {
   @Provides @JvmSynthetic
-  fun decompositionManifestValidator(adapter: DecompositionManifestValidatorAdapter): DecompositionManifestValidator =
-    adapter
+  fun decompositionManifestValidator(validator: DecompositionManifestSchemaValidator): DecompositionManifestValidator =
+    validator
 
   @Provides @JvmSynthetic
-  fun workflowSnapshotValidator(adapter: WorkflowSnapshotValidatorInfraAdapter): WorkflowSnapshotValidator = adapter
+  fun workflowSnapshotValidator(validator: WorkflowStateSchemaValidator): WorkflowSnapshotValidator = validator
 
   @Provides @JvmSynthetic
   fun goalPlanningPreparationEnvelopeValidator(
-    adapter: GoalPlanningPreparationEnvelopeValidatorAdapter,
-  ): GoalPlanningPreparationEnvelopeValidator = adapter
+    validator: FeatureTaskRuntimeWireArtifactValidator,
+  ): GoalPlanningPreparationEnvelopeValidator = validator
 
   @Provides @JvmSynthetic
   fun goalObservabilityEventValidator(
-    adapter: GoalObservabilityEventValidatorAdapter,
-  ): GoalObservabilityEventValidator = adapter
+    validator: FeatureTaskRuntimeWireArtifactValidator,
+  ): GoalObservabilityEventValidator = validator
 
   @Provides @JvmSynthetic
-  fun goalProgressEventValidator(adapter: GoalProgressEventValidatorAdapter): GoalProgressEventValidator = adapter
+  fun goalProgressEventValidator(validator: FeatureTaskRuntimeWireArtifactValidator): GoalProgressEventValidator =
+    validator
 
   @Provides @JvmSynthetic
-  fun ideStatusValidator(adapter: IdeStatusValidatorAdapter): IdeStatusValidator = adapter
+  fun ideStatusValidator(validator: IdeStatusSchemaValidator): IdeStatusValidator = validator
 }

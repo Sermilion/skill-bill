@@ -7,7 +7,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLa
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminalOutcome
-import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaValidator
+import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimePhaseOutputWireSchema
 import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeValidationEvidenceSchemaValidator
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunResult
@@ -188,7 +188,7 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
     val gateEvidence = requireNotNull(
       decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate"),
     )
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(output.payload, "validate")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(output.payload, "validate")
     assertEquals(0, gateEvidence.gateRuns.single().executedWorkUnits)
     assertFalse(gateEvidence.zeroWork)
     assertTrue(gateEvidence.evidenceRecorded)

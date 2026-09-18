@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
@@ -102,8 +103,8 @@ internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
     offset: Int,
   ) = FeatureTaskRuntimePhaseOutputRepairEvidence(
     format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-    originalDigest = StructuralRepairSyntax.sha256(originalText),
-    repairedDigest = StructuralRepairSyntax.sha256(repairedText),
+    originalDigest = StructuralRepairSyntax.sha256Hex(originalText),
+    repairedDigest = StructuralRepairSyntax.sha256Hex(repairedText),
     operation = operation,
     sourceLocation = StructuralRepairSyntax.sourceLocation(phaseId, originalText, offset),
   )
@@ -252,11 +253,11 @@ internal object PhaseOutputExpectedShape {
     val changed = shapeChanged || summaryRecovered
     if (!changed) return accepted
     val repairedText = writeJson(aligned)
-    val evidence = accepted.evidence?.copy(repairedDigest = StructuralRepairSyntax.sha256(repairedText))
+    val evidence = accepted.evidence?.copy(repairedDigest = StructuralRepairSyntax.sha256Hex(repairedText))
       ?: FeatureTaskRuntimePhaseOutputRepairEvidence(
         format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-        originalDigest = StructuralRepairSyntax.sha256(originalText),
-        repairedDigest = StructuralRepairSyntax.sha256(repairedText),
+        originalDigest = StructuralRepairSyntax.sha256Hex(originalText),
+        repairedDigest = StructuralRepairSyntax.sha256Hex(repairedText),
         operation = FeatureTaskRuntimePhaseOutputRepairOperation.RESTORE_EXPECTED_SHAPE,
         sourceLocation = StructuralRepairSyntax.sourceLocation(phaseId, originalText, 0),
       )

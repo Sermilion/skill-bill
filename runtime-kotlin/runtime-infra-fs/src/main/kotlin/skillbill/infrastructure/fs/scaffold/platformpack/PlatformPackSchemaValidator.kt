@@ -2,17 +2,13 @@ package skillbill.infrastructure.fs.scaffold.platformpack
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
 import skillbill.error.ContractVersionMismatchError
 import skillbill.error.InvalidManifestSchemaError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import skillbill.infrastructure.fs.scaffold.runtime.SHELL_CONTRACT_VERSION
-import java.nio.file.Files
-import java.nio.file.Path
 import java.util.logging.Logger
 
 internal val platformPackSchemaLog: Logger =
@@ -20,12 +16,12 @@ internal val platformPackSchemaLog: Logger =
 
 internal class PlatformPackSchemaValidator {
 
-  private val schema: JsonSchema by lazy { loadSchema() }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
+  private val mapper: ObjectMapper
+    get() = ClasspathContractSchemaLoader.sharedObjectMapper()
 
   fun validate(parsedYaml: Map<String, Any?>, slug: String, enforceContractVersion: Boolean = true) {
     val instance: JsonNode = mapper.valueToTree(parsedYaml)
-    val errors: Set<ValidationMessage> = schema.validate(instance)
+    val errors: Set<ValidationMessage> = loadSchema().validate(instance)
 
     val contractVersionConst = errors.firstOrNull { it.isContractVersionConstMismatch() }
     if (contractVersionConst != null && enforceContractVersion) {
@@ -178,80 +174,54 @@ internal const val PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val PLATFORM_PACK_SCHEMA_REPO_RELATIVE_PATH: String =
   PlatformPackSchemaPaths.REPO_RELATIVE_PATH
 
-private fun loadSchema(): JsonSchema {
-  val yamlText = readSchemaText()
-  val yamlNode = YAMLMapper().readTree(yamlText)
-  assertSchemaIdentity(yamlNode)
-  val jsonText = ObjectMapper().writeValueAsString(yamlNode)
-  val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-  return factory.getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
-}
+private fun loadSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  CompiledSchemaRequest(
+    cacheKey = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = PlatformPackSchemaValidator::class.java.classLoader,
+    classpathResource = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidManifestSchemaError(
+        "Canonical platform-pack schema is missing. Expected to find it on the JVM classpath at " +
+          "'$PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidManifestSchemaError(cause.message ?: cause::class.simpleName.orEmpty())
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = SHELL_CONTRACT_VERSION,
+    identityFailure = { reason -> InvalidManifestSchemaError(reason) },
+  ),
+)
 
 internal fun anchoredTopLevelFieldNames(): Set<String> = ANCHORED_TOP_LEVEL_FIELD_NAMES
 
-private val ANCHORED_TOP_LEVEL_FIELD_NAMES: Set<String> by lazy {
-  val yamlText = readSchemaText()
-  val yamlNode: JsonNode = YAMLMapper().readTree(yamlText)
-  val properties = yamlNode.path("properties")
-  if (properties.isMissingNode || !properties.isObject) {
-    throw InvalidManifestSchemaError(
-      "Canonical platform-pack schema is missing a top-level 'properties' object; cannot derive " +
-        "the anchored top-level field set.",
+private val ANCHORED_TOP_LEVEL_FIELD_NAMES: Set<String>
+  get() {
+    val yamlText = ClasspathContractSchemaLoader.readClasspathYamlText(
+      classLoader = PlatformPackSchemaValidator::class.java.classLoader,
+      resource = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
+      missingError = {
+        InvalidManifestSchemaError(
+          "Canonical platform-pack schema is missing. Expected to find it on the JVM classpath at " +
+            "'$PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE'.",
+        )
+      },
     )
-  }
-  val anchored = linkedSetOf<String>()
-  properties.fields().forEach { (name, definition) ->
-    if (definition.path("x-runtime-anchored").asBoolean(false)) {
-      anchored += name
+    val yamlNode: JsonNode = ClasspathContractSchemaLoader.sharedYamlMapper().readTree(yamlText)
+    val properties = yamlNode.path("properties")
+    if (properties.isMissingNode || !properties.isObject) {
+      throw InvalidManifestSchemaError(
+        "Canonical platform-pack schema is missing a top-level 'properties' object; cannot derive " +
+          "the anchored top-level field set.",
+      )
     }
-  }
-  anchored
-}
-
-internal fun assertSchemaIdentity(yamlNode: JsonNode) {
-  val loadedId = yamlNode.path("\$id").asText("")
-  if (loadedId != PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID) {
-    throw InvalidManifestSchemaError(
-      "Canonical platform-pack schema identity mismatch: loaded '\$id' is '$loadedId' but expected " +
-        "'${PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or shadowed copy of the schema is on " +
-        "the classpath.",
-    )
-  }
-  val loadedConst = yamlNode.path("properties").path("contract_version").path("const").asText("")
-  if (loadedConst != SHELL_CONTRACT_VERSION) {
-    throw InvalidManifestSchemaError(
-      "Canonical platform-pack schema contract_version.const mismatch: loaded '$loadedConst' but the " +
-        "shell expects '$SHELL_CONTRACT_VERSION'. The schema on the classpath is out of date relative to " +
-        "the running runtime-core.",
-    )
-  }
-}
-
-private fun readSchemaText(): String {
-  PlatformPackSchemaValidator::class.java.classLoader
-    .getResourceAsStream(PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE)
-    ?.use { return it.readBytes().toString(Charsets.UTF_8) }
-
-  val walkAnchor: Path = Path.of("").toAbsolutePath()
-  val resolved = walkForSchemaFile(walkAnchor)
-  if (resolved != null) {
-    return Files.readString(resolved)
-  }
-  throw InvalidManifestSchemaError(
-    "Canonical platform-pack schema is missing. Expected to find it on the JVM classpath at " +
-      "'$PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE' or on disk under " +
-      "'$PLATFORM_PACK_SCHEMA_REPO_RELATIVE_PATH' walked up from: $walkAnchor.",
-  )
-}
-
-private fun walkForSchemaFile(hint: Path): Path? {
-  var current: Path? = hint.toAbsolutePath().normalize()
-  while (current != null) {
-    val candidate = current.resolve(PLATFORM_PACK_SCHEMA_REPO_RELATIVE_PATH)
-    if (Files.isRegularFile(candidate)) {
-      return candidate
+    val anchored = linkedSetOf<String>()
+    properties.fields().forEach { (name, definition) ->
+      if (definition.path("x-runtime-anchored").asBoolean(false)) {
+        anchored += name
+      }
     }
-    current = current.parent
+    return anchored
   }
-  return null
-}

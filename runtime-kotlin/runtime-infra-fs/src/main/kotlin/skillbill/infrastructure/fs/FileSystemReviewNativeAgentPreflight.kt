@@ -3,17 +3,18 @@ package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.MissingInstalledNativeAgentError
+import skillbill.infrastructure.fs.contracts.sha256HexOfFile
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkInventory
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkInventoryEntry
+import skillbill.infrastructure.fs.install.nativeagent.parseEmbeddedLogicalName
+import skillbill.infrastructure.fs.jvm.resolveEnvironmentMap
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
-import skillbill.infrastructure.fs.nativeagent.support.claudeConfigRoots
-import skillbill.infrastructure.fs.nativeagent.support.detectCodexAgentsTargets
+import skillbill.install.model.SupportedAgent
 import skillbill.model.EnvironmentContext
 import skillbill.ports.review.ReviewNativeAgentPreflightPort
 import skillbill.ports.review.model.ReviewNativeAgentPreflightRequest
 import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
 
 @Inject
 class FileSystemReviewNativeAgentPreflight(
@@ -86,52 +87,22 @@ class FileSystemReviewNativeAgentPreflight(
     ) {
       fail(entry.logicalName, provider, installed, "managed cache artifact is unreadable")
     }
-    if (parseLogicalName(resolved, provider) != entry.logicalName) {
+    if (parseEmbeddedLogicalName(resolved, provider.supportedAgent) != entry.logicalName) {
       fail(entry.logicalName, provider, installed, "artifact logical name does not match the planned worker")
     }
-    if (sha256(
-        resolved,
-      ) != entry.contentDigest
+    if (sha256HexOfFile(resolved) != entry.contentDigest
     ) {
       fail(entry.logicalName, provider, installed, "artifact content digest is stale")
     }
   }
 
-  private fun provider(agentId: String): NativeAgentProvider? = when (agentId) {
-    "claude" -> NativeAgentProvider.Claude
-    "codex" -> NativeAgentProvider.Codex
-    "junie" -> NativeAgentProvider.Junie
-    "cursor" -> NativeAgentProvider.Cursor
-    else -> null
-  }
+  private fun provider(agentId: String): NativeAgentProvider? =
+    runCatching { NativeAgentProvider.forSupportedAgent(SupportedAgent.fromWire(agentId)) }.getOrNull()
 
   private fun activeProviderDirs(provider: NativeAgentProvider, home: Path): List<Path> {
-    val env = environment.environment.ifEmpty { System.getenv() }
-    return when (provider) {
-      NativeAgentProvider.Claude -> claudeConfigRoots(home, env).map { it.resolve("agents") }
-      NativeAgentProvider.Codex -> detectCodexAgentsTargets(home, env).map { it.path }
-      NativeAgentProvider.Junie -> provider.homeAgentDirs(
-        home,
-      ).takeIf { Files.exists(home.resolve(".junie")) }.orEmpty()
-      NativeAgentProvider.Cursor -> provider.homeAgentDirs(
-        home,
-      ).takeIf { Files.exists(home.resolve(".cursor")) }.orEmpty()
-    }.map { it.toAbsolutePath().normalize() }
+    val env = resolveEnvironmentMap(environment.environment)
+    return provider.activeHomeAgentDirs(home, env)
   }
-
-  private fun parseLogicalName(path: Path, provider: NativeAgentProvider): String {
-    val text = Files.readString(path)
-    val pattern = if (provider == NativeAgentProvider.Codex) {
-      Regex("(?m)^name\\s*=\\s*\\\"([^\\\"]+)\\\"")
-    } else {
-      Regex("(?m)^name:\\s*['\\\"]?([^'\\\"\\r\\n]+)")
-    }
-    return pattern.find(text)?.groupValues?.get(1)?.trim()
-      ?: fail(path.fileName.toString(), provider, path, "artifact embedded logical name is missing or malformed")
-  }
-
-  private fun sha256(path: Path): String = MessageDigest.getInstance("SHA-256")
-    .digest(Files.readAllBytes(path)).joinToString("") { "%02x".format(it) }
 
   private fun fail(
     logicalName: String,

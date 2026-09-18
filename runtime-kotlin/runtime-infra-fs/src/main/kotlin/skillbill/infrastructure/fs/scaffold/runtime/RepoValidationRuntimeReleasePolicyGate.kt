@@ -1,8 +1,8 @@
 package skillbill.infrastructure.fs.scaffold.runtime
 
+import skillbill.infrastructure.fs.contracts.sha256Hex
 import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
 import kotlin.io.path.isRegularFile
 
 internal fun RepoValidationRuntimeReleasePolicy.validateReleaseLicensePolicy(
@@ -84,8 +84,6 @@ internal fun isApprovedStableLicense(licenseText: String, approvalText: String):
     }
 }
 
-internal fun normalizedLicenseSha256(licenseText: String): String = MessageDigest.getInstance("SHA-256")
-  .digest(normalizeLicense(licenseText).encodeToByteArray())
-  .joinToString("") { byte -> "%02x".format(byte.toInt() and RepoValidationRuntimeReleasePolicy.UNSIGNED_BYTE_MASK) }
+internal fun normalizedLicenseSha256(licenseText: String): String = sha256Hex(normalizeLicense(licenseText))
 
 internal fun normalizeLicense(licenseText: String): String = licenseText.replace("\r\n", "\n").trimEnd()

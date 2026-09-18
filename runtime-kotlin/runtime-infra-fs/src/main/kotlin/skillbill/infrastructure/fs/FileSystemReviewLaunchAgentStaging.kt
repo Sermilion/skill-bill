@@ -5,6 +5,7 @@ import skillbill.error.MissingInstalledNativeAgentError
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkInventory
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkInventoryEntry
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
+import skillbill.install.model.SupportedAgent
 import skillbill.model.EnvironmentContext
 import skillbill.ports.review.ReviewLaunchAgentStagingPort
 import skillbill.ports.review.model.ReviewLaunchAgentStagingRequest
@@ -62,7 +63,9 @@ class FileSystemReviewLaunchAgentStaging(
     provider: NativeAgentProvider,
     reviewLaunchDirectory: Path,
   ) {
-    val destinationDir = reviewLaunchDirectory.resolve(".cursor/agents")
+    val destinationDir = reviewLaunchDirectory
+      .resolve(requireNotNull(provider.supportedAgent.simpleHomeDirectory))
+      .resolve("agents")
     Files.createDirectories(destinationDir)
     val destination = destinationDir.resolve(provider.fileName(entry.logicalName))
     try {
@@ -72,10 +75,11 @@ class FileSystemReviewLaunchAgentStaging(
     }
   }
 
-  private fun provider(agentId: String): NativeAgentProvider? = when (agentId) {
-    "cursor" -> NativeAgentProvider.Cursor
-    else -> null
-  }
+  private fun provider(agentId: String): NativeAgentProvider? = runCatching {
+    SupportedAgent.fromWire(agentId)
+      .takeIf { agent -> agent == SupportedAgent.CURSOR }
+      ?.let(NativeAgentProvider::forSupportedAgent)
+  }.getOrNull()
 
   private fun fail(
     logicalName: String,

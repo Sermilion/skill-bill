@@ -2,15 +2,20 @@ package skillbill.infrastructure.fs
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.decomposition.BUNDLE_JOURNAL_CONTRACT_VERSION
+import skillbill.infrastructure.fs.contracts.sha256Hex
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
+import skillbill.infrastructure.fs.jvm.atomicWriteString
+import skillbill.ports.system.HostPlatformPort
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 
-internal class DecompositionManifestBundleJournal {
+internal class DecompositionManifestBundleJournal(
+  internal val hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+) {
   private val yamlMapper = YAMLMapper()
 
   fun create(parent: Path, writes: List<Pair<Path, String>>): DecompositionManifestBundleTransaction =
@@ -32,17 +37,7 @@ internal class DecompositionManifestBundleJournal {
     DecompositionManifestBundleJournalIo.cleanup(transaction)
 
   fun writeAtomically(target: Path, content: String) {
-    Files.createDirectories(requireNotNull(target.parent))
-    val temp = Files.createTempFile(target.parent, "${target.fileName}.", ".tmp")
-    try {
-      Files.writeString(temp, content, StandardOpenOption.TRUNCATE_EXISTING)
-      Files.newByteChannel(temp, StandardOpenOption.WRITE).use { channel ->
-        (channel as? FileChannel)?.force(true)
-      }
-      DecompositionManifestBundleJournalIo.moveAtomically(temp, target)
-    } finally {
-      Files.deleteIfExists(temp)
-    }
+    atomicWriteString(target, content)
   }
 
   internal fun read(marker: Path): DecompositionManifestBundleTransaction =
@@ -57,10 +52,14 @@ internal class DecompositionManifestBundleJournal {
 }
 private val processBundleLocks = ConcurrentHashMap<Path, ReentrantLock>()
 
-internal fun <T> withDecompositionManifestBundleLock(parent: Path?, action: () -> T): T {
+internal fun <T> withDecompositionManifestBundleLock(
+  parent: Path?,
+  hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  action: () -> T,
+): T {
   if (parent == null) return action()
   val normalizedParent = parent.toAbsolutePath().normalize()
-  val lockPath = decompositionManifestLockPath(normalizedParent)
+  val lockPath = decompositionManifestLockPath(normalizedParent, hostPlatform)
   val processLock = processBundleLocks.computeIfAbsent(lockPath) { ReentrantLock() }
   val outermost = !processLock.isHeldByCurrentThread
   processLock.lock()
@@ -79,12 +78,10 @@ internal fun <T> withDecompositionManifestBundleLock(parent: Path?, action: () -
   }
 }
 
-private fun decompositionManifestLockPath(parent: Path): Path {
+private fun decompositionManifestLockPath(parent: Path, hostPlatform: HostPlatformPort): Path {
   val owner = lockOwner(parent)
-  val digest = MessageDigest.getInstance(LOCK_DIGEST_ALGORITHM)
-    .digest(owner.toString().toByteArray(Charsets.UTF_8))
-    .joinToString(LOCK_DIGEST_SEPARATOR) { byte -> "%02x".format(byte) }
-  return Path.of(System.getProperty(JAVA_TEMP_DIRECTORY_PROPERTY))
+  val digest = sha256Hex(owner.toString().toByteArray(Charsets.UTF_8))
+  return hostPlatform.resolveTemporaryDirectory()
     .resolve(LOCK_DIRECTORY_NAME)
     .resolve("$digest$LOCK_FILE_SUFFIX")
 }
@@ -101,8 +98,5 @@ private fun lockOwner(parent: Path): Path {
 }
 
 private const val FEATURE_SPECS_DIRECTORY_NAME = ".feature-specs"
-private const val JAVA_TEMP_DIRECTORY_PROPERTY = "java.io.tmpdir"
 private const val LOCK_DIRECTORY_NAME = "skill-bill-decomposition-manifest-locks"
-private const val LOCK_DIGEST_ALGORITHM = "SHA-256"
-private const val LOCK_DIGEST_SEPARATOR = ""
 private const val LOCK_FILE_SUFFIX = ".lock"

@@ -7,4 +7,6 @@ object RejectedOutputDiagnosticSchemaPaths {
     "orchestration/contracts/rejected-output-diagnostic-schema.yaml"
   const val CLASSPATH_RESOURCE: String =
     "skillbill/infrastructure/fs/contracts/rejected-output-diagnostic-schema.yaml"
+  const val EXPECTED_SCHEMA_ID: String =
+    "https://skill-bill.dev/contracts/rejected-output-diagnostic-schema.yaml"
 }

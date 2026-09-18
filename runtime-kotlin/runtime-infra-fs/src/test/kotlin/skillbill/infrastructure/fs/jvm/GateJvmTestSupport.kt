@@ -4,7 +4,7 @@ import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun testGateJvmResolver(): GateJvmResolver = GateJvmResolver(NoopRuntimeDiagnostics)
+internal fun testGateJvmResolver(): GateJvmResolver = GateJvmResolver(NoopRuntimeDiagnostics, JdkHostPlatformPort)
 
 internal fun hostPath(): String = System.getenv(GateJvmEnvironmentKeys.PATH) ?: "/usr/bin:/bin"
 

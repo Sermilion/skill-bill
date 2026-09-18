@@ -5,7 +5,7 @@ import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.review.GovernedReviewEvidencePayloadKeys
 import skillbill.contracts.review.GovernedReviewToolSpecList
 import skillbill.contracts.review.GovernedReviewWirePayload
-import skillbill.error.InvalidReviewContextSchemaError
+import skillbill.error.InvalidGovernedReviewEvidenceRequestError
 import skillbill.review.context.model.GovernedReviewJsonRpcArguments
 import skillbill.review.context.model.ReviewEvidenceLimits
 import skillbill.review.context.model.ReviewExpansionRecord
@@ -36,7 +36,7 @@ object GovernedReviewEvidenceCodec {
         )
       } || arguments[GovernedReviewEvidencePayloadKeys.OPERATION] != "discover"
     ) {
-      throw InvalidReviewContextSchemaError("review-discovery", "Malformed discovery request.")
+      throw InvalidGovernedReviewEvidenceRequestError("review-discovery", "Malformed discovery request.")
     }
     val cursor = discoveryCursor(arguments)
     val size = discoveryPageSize(arguments)
@@ -79,7 +79,7 @@ object GovernedReviewEvidenceCodec {
           arguments[GovernedReviewEvidencePayloadKeys.OPERATION] != "read"
         )
     ) {
-      throw InvalidReviewContextSchemaError("review-evidence", "Malformed read operation.")
+      throw InvalidGovernedReviewEvidenceRequestError("review-evidence", "Malformed read operation.")
     }
     val rawRequests = evidenceReadItems(arguments)
     return ReviewEvidenceBatchRequest(
@@ -100,7 +100,7 @@ object GovernedReviewEvidenceCodec {
         )
       }
     ) {
-      throw InvalidReviewContextSchemaError("review-expansion", "Unknown expansion request field.")
+      throw InvalidGovernedReviewEvidenceRequestError("review-expansion", "Unknown expansion request field.")
     }
     return ReviewExpansionAuthorizationRequest(
       lane = if (GovernedReviewEvidencePayloadKeys.LANE in arguments) {
@@ -152,7 +152,7 @@ object GovernedReviewEvidenceCodec {
 
   private fun requestMetadata(arguments: Map<String, Any?>) {
     if (JsonCodec.mapToJsonString(arguments).toByteArray(Charsets.UTF_8).size > ReviewEvidenceLimits.REQUEST_BYTES) {
-      throw InvalidReviewContextSchemaError("review-evidence", "Request metadata exceeds its byte limit.")
+      throw InvalidGovernedReviewEvidenceRequestError("review-evidence", "Request metadata exceeds its byte limit.")
     }
   }
 }

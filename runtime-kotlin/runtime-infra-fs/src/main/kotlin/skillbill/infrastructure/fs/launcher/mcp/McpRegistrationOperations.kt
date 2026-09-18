@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.launcher.mcp
 
-import skillbill.infrastructure.fs.install.support.codexConfigRoots
+import skillbill.infrastructure.fs.install.plan.codexConfigRoots
+import skillbill.infrastructure.fs.jvm.resolveUserHome
 import skillbill.infrastructure.fs.nativeagent.support.claudeConfigRoots
 import skillbill.install.model.ClaudeMcpProfileFailure
 import skillbill.install.model.InstallAgent
@@ -14,9 +15,9 @@ object McpRegistrationOperations {
     agent: String,
     runtimeMcpBin: Path,
     home: Path? = null,
-    environment: Map<String, String> = System.getenv(),
+    environment: Map<String, String>,
   ): McpMutationResult {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+    val resolvedHome = home ?: resolveUserHome(null)
     val command = runtimeMcpBin.toAbsolutePath().normalize().toString()
     return when (val installAgent = InstallAgent.fromId(agent)) {
       InstallAgent.CLAUDE -> claudeFanOut(agent, resolvedHome, environment) { perProfilePath ->
@@ -30,12 +31,8 @@ object McpRegistrationOperations {
     }
   }
 
-  fun unregister(
-    agent: String,
-    home: Path? = null,
-    environment: Map<String, String> = System.getenv(),
-  ): McpMutationResult {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+  fun unregister(agent: String, home: Path? = null, environment: Map<String, String>): McpMutationResult {
+    val resolvedHome = home ?: resolveUserHome(null)
     return when (val installAgent = InstallAgent.fromId(agent)) {
       InstallAgent.CLAUDE -> claudeFanOut(agent, resolvedHome, environment) { perProfilePath ->
         McpJsonConfig.unregister(agent, perProfilePath)
@@ -48,34 +45,30 @@ object McpRegistrationOperations {
     }
   }
 
-  fun configFormatFor(agent: InstallAgent): McpConfigFormat = when (agent) {
-    InstallAgent.CODEX -> McpConfigFormat.TOML
-    InstallAgent.CLAUDE,
-    InstallAgent.JUNIE,
-    InstallAgent.CURSOR,
-    -> McpConfigFormat.JSON
-  }
+  fun configFormatFor(agent: InstallAgent): McpConfigFormat =
+    if (agent.mcpUsesToml) McpConfigFormat.TOML else McpConfigFormat.JSON
 
-  fun configPathFor(agent: InstallAgent, home: Path): Path = when (agent) {
-    InstallAgent.CLAUDE -> home.resolve(".claude.json")
-    InstallAgent.CODEX -> home.resolve(".codex/config.toml")
-    InstallAgent.JUNIE -> home.resolve(".junie/mcp/mcp.json")
-    InstallAgent.CURSOR -> home.resolve(".cursor/mcp.json")
-  }
+  fun configPathFor(agent: InstallAgent, home: Path): Path = home.resolve(agent.mcpConfigRelativePath)
 
   private fun claudeProfileConfigPaths(home: Path, environment: Map<String, String>): List<Path> {
-    val defaultRoot = home.resolve(".claude").toAbsolutePath().normalize()
+    val defaultRoot = home.resolve(requireNotNull(InstallAgent.CLAUDE.profileDirectoryPrefix).removeSuffix("-"))
+      .toAbsolutePath()
+      .normalize()
     return claudeConfigRoots(home, environment).map { root ->
-      if (root == defaultRoot) home.resolve(".claude.json") else root.resolve(".claude.json")
+      if (root == defaultRoot) {
+        home.resolve(InstallAgent.CLAUDE.mcpProfileFileName)
+      } else {
+        root.resolve(InstallAgent.CLAUDE.mcpProfileFileName)
+      }
     }
   }
 
   private fun codexProfileConfigPaths(home: Path, environment: Map<String, String>): List<Path> {
     val roots = codexConfigRoots(home, environment)
     return if (roots.isNotEmpty()) {
-      roots.map { root -> root.resolve("config.toml") }
+      roots.map { root -> root.resolve(InstallAgent.CODEX.mcpProfileFileName) }
     } else {
-      listOf(home.resolve(".codex/config.toml"))
+      listOf(home.resolve(InstallAgent.CODEX.mcpConfigRelativePath))
     }
   }
 
@@ -87,7 +80,7 @@ object McpRegistrationOperations {
   ): McpMutationResult = profileFanOut(
     agent = agent,
     profilePaths = claudeProfileConfigPaths(home, environment),
-    representativePath = home.resolve(".claude.json"),
+    representativePath = home.resolve(InstallAgent.CLAUDE.mcpConfigRelativePath),
     failureLabel = "Claude",
     mutate = mutate,
   )
@@ -100,7 +93,7 @@ object McpRegistrationOperations {
   ): McpMutationResult = profileFanOut(
     agent = agent,
     profilePaths = codexProfileConfigPaths(home, environment),
-    representativePath = home.resolve(".codex/config.toml"),
+    representativePath = home.resolve(InstallAgent.CODEX.mcpConfigRelativePath),
     failureLabel = "Codex",
     mutate = mutate,
   )

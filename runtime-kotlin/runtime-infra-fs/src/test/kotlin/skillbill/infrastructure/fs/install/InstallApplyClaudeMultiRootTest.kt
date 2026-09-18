@@ -3,8 +3,8 @@ package skillbill.infrastructure.fs.install
 import org.junit.jupiter.api.Assumptions
 import skillbill.infrastructure.fs.install.nativeagent.InstallNativeAgentOperations
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkRequest
+import skillbill.infrastructure.fs.install.plan.CLAUDE_CONFIG_DIR_ENV
 import skillbill.infrastructure.fs.install.runtime.InstallOperations
-import skillbill.infrastructure.fs.install.support.CLAUDE_CONFIG_DIR_ENV
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentLinkStatus
 import skillbill.install.model.InstallAgentSelection

@@ -2,27 +2,20 @@ package skillbill.infrastructure.fs.nativeagent.composition
 
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.error.InvalidNativeAgentCompositionSchemaError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import java.util.logging.Level
 import java.util.logging.Logger
 
 private val log: Logger = Logger.getLogger("skillbill.nativeagent.NativeAgentCompositionSchemaValidator")
 
 object NativeAgentCompositionSchemaValidator {
-  private val schema: JsonSchema by lazy { loadSchema() }
-  private val yamlMapper: YAMLMapper by lazy { YAMLMapper() }
-  private val jsonMapper: ObjectMapper by lazy { ObjectMapper() }
+  private val yamlMapper: YAMLMapper = YAMLMapper()
 
   fun validate(yamlText: String, sourceLabel: String) {
     val instance: JsonNode = try {
@@ -42,7 +35,7 @@ object NativeAgentCompositionSchemaValidator {
   }
 
   private fun validateNode(instance: JsonNode, sourceLabel: String) {
-    val errors: Set<ValidationMessage> = schema.validate(instance)
+    val errors: Set<ValidationMessage> = loadSchema().validate(instance)
     if (errors.isEmpty()) {
       return
     }
@@ -51,32 +44,6 @@ object NativeAgentCompositionSchemaValidator {
     val sorted = errors.sortedWith(violationOrdering)
     val reason = formatValidationReason(sorted)
     throw InvalidNativeAgentCompositionSchemaError(sourceLabel = sourceLabel, reason = reason)
-  }
-
-  fun assertIdentity(yamlText: String) {
-    val yamlNode = yamlMapper.readTree(yamlText)
-    assertIdentity(yamlNode)
-  }
-
-  fun assertIdentity(yamlNode: JsonNode) {
-    val loadedId = yamlNode.path("\$id").asText("")
-    if (loadedId != NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID) {
-      throw InvalidNativeAgentCompositionSchemaError(
-        sourceLabel = "\$id",
-        reason = "Canonical native-agent composition schema identity mismatch: loaded '\$id' is '$loadedId' " +
-          "but expected '${NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or shadowed copy " +
-          "of the schema is on the classpath.",
-      )
-    }
-    val loadedConst = yamlNode.path("\$defs").path("contractVersion").path("const").asText("")
-    if (loadedConst != NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION) {
-      throw InvalidNativeAgentCompositionSchemaError(
-        sourceLabel = "\$defs.contractVersion.const",
-        reason = "Canonical native-agent composition schema contract_version.const mismatch: loaded " +
-          "'$loadedConst' but the runtime expects '$NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION'. The schema " +
-          "on the classpath is out of date relative to the running runtime-core.",
-      )
-    }
   }
 
   private fun buildSchemaDriftLog(errors: Set<ValidationMessage>, sourceLabel: String): String {
@@ -106,73 +73,43 @@ object NativeAgentCompositionSchemaValidator {
     { it.message.orEmpty() },
   )
 
-  private fun loadSchema(): JsonSchema {
-    var failure: Throwable? = null
-    try {
-      val yamlText = readSchemaText()
-      val yamlNode = yamlMapper.readTree(yamlText)
-      assertIdentity(yamlNode)
-      val jsonText = jsonMapper.writeValueAsString(yamlNode)
-      val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-      return factory.getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
-    } catch (error: InvalidNativeAgentCompositionSchemaError) {
-      logSchemaLoadFailure(
-        log,
-        "native-agent composition",
-        NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
-        NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH,
-        error,
-      )
-      failure = error
-    } catch (error: IOException) {
-      logSchemaLoadFailure(
-        log,
-        "native-agent composition",
-        NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
-        NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH,
-        error,
-      )
-      failure = error
-    } catch (error: JsonProcessingException) {
-      logSchemaLoadFailure(
-        log,
-        "native-agent composition",
-        NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
-        NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH,
-        error,
-      )
-      failure = error
-    }
-    throw failure
-  }
-
-  private fun readSchemaText(): String {
-    NativeAgentCompositionSchemaValidator::class.java.classLoader
-      .getResourceAsStream(NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE)
-      ?.use { return it.readBytes().toString(Charsets.UTF_8) }
-
-    val walkAnchor: Path = Path.of("").toAbsolutePath()
-    val resolved = walkForSchemaFile(walkAnchor)
-    if (resolved != null) {
-      return Files.readString(resolved)
-    }
-    throw InvalidNativeAgentCompositionSchemaError(
-      sourceLabel = "<schema-load>",
-      reason = "Canonical native-agent composition schema is missing. Expected to find it on the JVM " +
-        "classpath at '${NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE}' or on disk under " +
-        "'${NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH}' walked up from: $walkAnchor.",
-    )
-  }
-
-  private fun walkForSchemaFile(hint: Path): Path? {
-    var current: Path? = hint.toAbsolutePath().normalize()
-    while (current != null) {
-      val candidate = current.resolve(NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH)
-      if (Files.isRegularFile(candidate)) {
-        return candidate
-      }
-      current = current.parent
-    }
-    return null
-  }
+  private fun loadSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+    CompiledSchemaRequest(
+      cacheKey = NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
+      classLoader = NativeAgentCompositionSchemaValidator::class.java.classLoader,
+      classpathResource = NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
+      missingResource = {
+        InvalidNativeAgentCompositionSchemaError(
+          sourceLabel = "<schema-load>",
+          reason = "Canonical native-agent composition schema is missing. Expected classpath resource " +
+            "'${NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE}'.",
+        )
+      },
+      processingFailure = { cause ->
+        InvalidNativeAgentCompositionSchemaError(
+          sourceLabel = "<schema-load>",
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+          cause = cause,
+        )
+      },
+      loadFailureLogger = { error ->
+        logSchemaLoadFailure(
+          log,
+          "native-agent composition",
+          NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
+          NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH,
+          error,
+        )
+      },
+      expectedSchemaId = NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION,
+      contractVersionPath = listOf("\$defs", "contractVersion", "const"),
+      identityFailure = { reason ->
+        InvalidNativeAgentCompositionSchemaError(
+          sourceLabel = "<schema-load>",
+          reason = reason,
+        )
+      },
+    ),
+  )
 }

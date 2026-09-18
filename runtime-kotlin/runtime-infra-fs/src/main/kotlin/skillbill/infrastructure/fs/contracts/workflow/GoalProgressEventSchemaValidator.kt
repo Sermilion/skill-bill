@@ -1,21 +1,14 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.workflow.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.GoalProgressEventSchemaPaths
 import skillbill.error.InvalidGoalProgressEventSchemaError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -23,12 +16,9 @@ private val goalProgressLog: Logger =
   Logger.getLogger("skillbill.contracts.workflow.GoalProgressEventSchemaValidator")
 
 object GoalProgressEventSchemaValidator {
-  private val schema: JsonSchema by lazy { loadGoalProgressEventSchema() }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
-
   fun validate(event: Map<String, Any?>, sourceLabel: String) {
-    val instance: JsonNode = mapper.valueToTree(event)
-    val errors = schema.validate(instance)
+    val instance: JsonNode = ClasspathContractSchemaLoader.valueToTree(event)
+    val errors = ClasspathContractSchemaLoader.validate(goalProgressEventSchema(), instance)
     if (errors.isEmpty()) return
     goalProgressLog.log(Level.WARNING, buildSchemaDriftLog(sourceLabel, errors, instance))
     val sortedErrors = errors.sortedWith(violationOrdering)
@@ -39,27 +29,6 @@ object GoalProgressEventSchemaValidator {
       ),
       reason = formatValidationReason(sortedErrors, instance),
     )
-  }
-
-  fun assertIdentity(yamlNode: JsonNode) {
-    val loadedId = yamlNode.path("\$id").asText("")
-    if (loadedId != GoalProgressEventSchemaPaths.EXPECTED_SCHEMA_ID) {
-      throw InvalidGoalProgressEventSchemaError(
-        sourceLabel = GoalProgressEventSchemaPaths.CLASSPATH_RESOURCE,
-        fieldPath = "\$id",
-        reason = "Canonical goal progress event schema identity mismatch: loaded '\$id' is '$loadedId' " +
-          "but expected '${GoalProgressEventSchemaPaths.EXPECTED_SCHEMA_ID}'.",
-      )
-    }
-    val loadedConst = yamlNode.path("properties").path("contract_version").path("const").asText("")
-    if (loadedConst != GOAL_PROGRESS_EVENT_CONTRACT_VERSION) {
-      throw InvalidGoalProgressEventSchemaError(
-        sourceLabel = GoalProgressEventSchemaPaths.CLASSPATH_RESOURCE,
-        fieldPath = "contract_version",
-        reason = "Canonical goal progress event schema contract_version.const mismatch: loaded " +
-          "'$loadedConst' but runtime expects '$GOAL_PROGRESS_EVENT_CONTRACT_VERSION'.",
-      )
-    }
   }
 
   private fun buildSchemaDriftLog(sourceLabel: String, errors: Set<ValidationMessage>, instance: JsonNode): String {
@@ -102,71 +71,44 @@ internal const val GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val GOAL_PROGRESS_EVENT_SCHEMA_REPO_RELATIVE_PATH: String =
   GoalProgressEventSchemaPaths.REPO_RELATIVE_PATH
 
-private fun loadGoalProgressEventSchema(): JsonSchema {
-  var failure: Throwable? = null
-  try {
-    val yamlText = readGoalProgressEventSchemaText()
-    val yamlNode = YAMLMapper().readTree(yamlText)
-    GoalProgressEventSchemaValidator.assertIdentity(yamlNode)
-    val jsonText = ObjectMapper().writeValueAsString(yamlNode)
-    return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-      .getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
-  } catch (error: InvalidGoalProgressEventSchemaError) {
-    logSchemaLoadFailure(
-      goalProgressLog,
-      "goal progress event",
-      GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      GOAL_PROGRESS_EVENT_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  } catch (error: IOException) {
-    logSchemaLoadFailure(
-      goalProgressLog,
-      "goal progress event",
-      GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      GOAL_PROGRESS_EVENT_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  } catch (error: JsonProcessingException) {
-    logSchemaLoadFailure(
-      goalProgressLog,
-      "goal progress event",
-      GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      GOAL_PROGRESS_EVENT_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  }
-  throw failure
-}
-
-private fun readGoalProgressEventSchemaText(): String {
-  GoalProgressEventSchemaValidator::class.java.classLoader
-    .getResourceAsStream(GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE)
-    ?.use { return it.readBytes().toString(Charsets.UTF_8) }
-
-  val walkAnchor = Path.of("").toAbsolutePath()
-  val resolved = walkForGoalProgressEventSchemaFile(walkAnchor)
-  if (resolved != null) {
-    return Files.readString(resolved)
-  }
-  throw InvalidGoalProgressEventSchemaError(
-    sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-    fieldPath = "",
-    reason = "Canonical goal progress event schema is missing. Expected classpath resource " +
-      "'$GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE' or repo path " +
-      "'$GOAL_PROGRESS_EVENT_SCHEMA_REPO_RELATIVE_PATH' walked up from: $walkAnchor.",
-  )
-}
-
-private fun walkForGoalProgressEventSchemaFile(hint: Path): Path? {
-  var current: Path? = hint.toAbsolutePath().normalize()
-  while (current != null) {
-    val candidate = current.resolve(GOAL_PROGRESS_EVENT_SCHEMA_REPO_RELATIVE_PATH)
-    if (Files.isRegularFile(candidate)) return candidate
-    current = current.parent
-  }
-  return null
-}
+private fun goalProgressEventSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  CompiledSchemaRequest(
+    cacheKey = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = GoalProgressEventSchemaValidator::class.java.classLoader,
+    classpathResource = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidGoalProgressEventSchemaError(
+        sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = "Canonical goal progress event schema is missing. Expected classpath resource " +
+          "'$GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidGoalProgressEventSchemaError(
+        sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "",
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        goalProgressLog,
+        "goal progress event",
+        GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+        GOAL_PROGRESS_EVENT_SCHEMA_REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = GoalProgressEventSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = GOAL_PROGRESS_EVENT_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidGoalProgressEventSchemaError(
+        sourceLabel = GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+        fieldPath = "<schema>",
+        reason = reason,
+      )
+    },
+  ),
+)

@@ -195,12 +195,15 @@ data class InstallAppliedSkill(
 )
 
 enum class NativeAgentProviderId(
-  val id: String,
+  val agent: SupportedAgent,
 ) {
-  CLAUDE("claude"),
-  CODEX("codex"),
-  JUNIE("junie"),
-  CURSOR("cursor"),
+  CLAUDE(SupportedAgent.CLAUDE),
+  CODEX(SupportedAgent.CODEX),
+  JUNIE(SupportedAgent.JUNIE),
+  CURSOR(SupportedAgent.CURSOR),
+  ;
+
+  val id: String get() = agent.wireValue
 }
 
 enum class NativeAgentApplyStatus {

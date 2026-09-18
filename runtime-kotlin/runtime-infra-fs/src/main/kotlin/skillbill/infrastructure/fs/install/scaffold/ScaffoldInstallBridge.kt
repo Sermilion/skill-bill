@@ -3,6 +3,9 @@ package skillbill.infrastructure.fs.install.scaffold
 import skillbill.infrastructure.fs.install.plan.InstallContext
 import skillbill.infrastructure.fs.install.plan.detectAgents
 import skillbill.infrastructure.fs.install.plan.installSkill
+import skillbill.infrastructure.fs.install.plan.resolveInstallEnvironment
+import skillbill.infrastructure.fs.install.plan.resolveInstallHome
+import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.fs.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackManifests
 import skillbill.infrastructure.fs.scaffold.runtime.ADD_ON_INSTALL_NOTE
@@ -26,7 +29,10 @@ internal fun performScaffoldInstall(
   plan: ScaffoldPlan,
   repoRoot: Path,
 ): Pair<List<Path>, List<String>> {
-  val agents = detectAgents()
+  val hostPlatform = JdkHostPlatformPort
+  val home = resolveInstallHome(null, hostPlatform)
+  val environment = resolveInstallEnvironment(emptyMap(), hostPlatform)
+  val agents = detectAgents(home, environment)
   var installTx = InstallTransaction()
   val internalPlatformSkills = internalPlatformInstallSkills(plan)
   val installPaths = when (plan.kind) {
@@ -39,6 +45,7 @@ internal fun performScaffoldInstall(
   val manifests = if (Files.isDirectory(packsRoot)) discoverPlatformPackManifests(packsRoot) else emptyList()
   val context = InstallContext(
     repoRoot = repoRoot,
+    home = home,
     manifests = manifests,
     selectedPackSkills = internalPlatformSkills,
   )

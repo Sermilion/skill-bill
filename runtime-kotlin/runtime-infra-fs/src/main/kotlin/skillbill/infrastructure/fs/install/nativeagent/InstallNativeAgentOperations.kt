@@ -3,6 +3,7 @@ package skillbill.infrastructure.fs.install.nativeagent
 import skillbill.infrastructure.fs.install.plan.CLAUDE_AGENTS_KIND
 import skillbill.infrastructure.fs.install.plan.CURSOR_AGENTS_KIND
 import skillbill.infrastructure.fs.install.plan.JUNIE_AGENTS_KIND
+import skillbill.infrastructure.fs.jvm.resolveUserHome
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.AgentTarget
 import skillbill.ports.repository.toFileLocation
@@ -32,7 +33,7 @@ data class NativeAgentLinkRequest(
 
 object InstallNativeAgentOperations {
   fun linkClaudeAgents(request: NativeAgentLinkRequest): NativeAgentLinkOutcome {
-    val resolvedHome = request.home ?: Path.of(System.getProperty("user.home"))
+    val resolvedHome = request.home ?: resolveUserHome(null)
     return linkProviderAgents(
       provider = NativeAgentProvider.Claude,
       request = request,
@@ -53,12 +54,14 @@ object InstallNativeAgentOperations {
     provider = NativeAgentProvider.Codex,
     request = request,
     detectTargets = { home ->
-      NativeAgentProvider.Codex.activeHomeAgentDirs(home).map { AgentTarget("codex-agents", it.toFileLocation()) }
+      NativeAgentProvider.Codex.activeHomeAgentDirs(home).map {
+        AgentTarget(NativeAgentProvider.Codex.directoryName, it.toFileLocation())
+      }
     },
   )
 
   fun unlinkCodexAgents(request: NativeAgentLinkRequest): List<Path> {
-    val resolvedHome = request.home ?: Path.of(System.getProperty("user.home"))
+    val resolvedHome = request.home ?: resolveUserHome(null)
     val unlinkedFromCache = unlinkProviderAgents(provider = NativeAgentProvider.Codex, request = request)
     return uninstallCodexAgentTomls(
       request.platformPacksRoot,
@@ -73,7 +76,10 @@ object InstallNativeAgentOperations {
     request = request,
     detectTargets = { resolvedHome ->
       val targetPath = NativeAgentProvider.Junie.homeAgentDirs(resolvedHome).first()
-      if (Files.exists(targetPath) || Files.exists(resolvedHome.resolve(".junie"))) {
+      if (
+        Files.exists(targetPath) ||
+        Files.exists(resolvedHome.resolve(requireNotNull(NativeAgentProvider.Junie.supportedAgent.simpleHomeDirectory)))
+      ) {
         listOf(AgentTarget(JUNIE_AGENTS_KIND, targetPath.toFileLocation()))
       } else {
         emptyList()
@@ -82,7 +88,7 @@ object InstallNativeAgentOperations {
   )
 
   fun unlinkJunieAgents(request: NativeAgentLinkRequest): List<Path> {
-    val resolvedHome = request.home ?: Path.of(System.getProperty("user.home"))
+    val resolvedHome = request.home ?: resolveUserHome(null)
     val unlinkedFromCache = unlinkProviderAgents(provider = NativeAgentProvider.Junie, request = request)
     return uninstallJunieAgentMarkdown(
       request.platformPacksRoot,
@@ -98,7 +104,12 @@ object InstallNativeAgentOperations {
     request = request,
     detectTargets = { resolvedHome ->
       val targetPath = NativeAgentProvider.Cursor.homeAgentDirs(resolvedHome).first()
-      if (Files.exists(targetPath) || Files.exists(resolvedHome.resolve(".cursor"))) {
+      if (
+        Files.exists(targetPath) ||
+        Files.exists(
+          resolvedHome.resolve(requireNotNull(NativeAgentProvider.Cursor.supportedAgent.simpleHomeDirectory)),
+        )
+      ) {
         listOf(AgentTarget(CURSOR_AGENTS_KIND, targetPath.toFileLocation()))
       } else {
         emptyList()
@@ -107,7 +118,7 @@ object InstallNativeAgentOperations {
   )
 
   fun unlinkCursorAgents(request: NativeAgentLinkRequest): List<Path> {
-    val resolvedHome = request.home ?: Path.of(System.getProperty("user.home"))
+    val resolvedHome = request.home ?: resolveUserHome(null)
     val unlinkedFromCache = unlinkProviderAgents(provider = NativeAgentProvider.Cursor, request = request)
     return uninstallCursorAgentMarkdown(
       request.platformPacksRoot,

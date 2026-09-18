@@ -8,7 +8,6 @@ import skillbill.application.review.toLaunchEnvelope
 import skillbill.application.review.toParentPacketEnvelope
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.infrastructure.fs.ReviewContextEnvelopeValidatorAdapter
 import skillbill.infrastructure.fs.contracts.review.ReviewContextSchemaValidator
 import skillbill.ports.review.ReviewBuildTestFactsPort
 import skillbill.ports.review.ReviewGuidancePort
@@ -562,7 +561,7 @@ class ReviewContextSchemaValidatorTest {
   @Test fun `the real service validates its own projections against the canonical schema`() {
     val prepared = ReviewPreparationService(
       ReviewFactPorts(facts, facts, facts, facts, facts, facts),
-      ReviewContextEnvelopeValidatorAdapter(),
+      ReviewContextSchemaValidator(),
     ).prepare(
       ReviewPreparationRequest(
         reviewId = "review",

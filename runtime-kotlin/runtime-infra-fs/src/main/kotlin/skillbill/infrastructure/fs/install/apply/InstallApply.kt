@@ -2,8 +2,6 @@ package skillbill.infrastructure.fs.install.apply
 
 import skillbill.error.SkillContentIdentityMismatchError
 import skillbill.infrastructure.fs.install.plan.discoverPlatformManifests
-import skillbill.infrastructure.fs.install.support.InstallSymlinkException
-import skillbill.infrastructure.fs.install.support.windowsSymlinkGuidance
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind

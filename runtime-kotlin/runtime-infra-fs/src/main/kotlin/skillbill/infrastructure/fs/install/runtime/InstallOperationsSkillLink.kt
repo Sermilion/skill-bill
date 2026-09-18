@@ -2,26 +2,24 @@ package skillbill.infrastructure.fs.install.runtime
 
 import skillbill.infrastructure.fs.install.plan.InstallContext
 import skillbill.infrastructure.fs.install.plan.installSkill
+import skillbill.infrastructure.fs.install.plan.resolveInstallHome
 import skillbill.install.model.AgentTarget
+import skillbill.ports.install.link.model.InstallSkillLinkRequest
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun linkInstalledSkill(
-  source: Path,
-  targetDir: Path,
-  agent: String,
-  repoRoot: Path?,
-  home: Path?,
-): List<Path> {
-  val resolvedTargetDir = targetDir.toAbsolutePath().normalize()
+internal fun linkInstalledSkill(request: InstallSkillLinkRequest, hostPlatform: HostPlatformPort): List<Path> {
+  val resolvedTargetDir = request.targetDir.toAbsolutePath().normalize()
   Files.createDirectories(resolvedTargetDir)
+  val resolvedHome = resolveInstallHome(request.home, hostPlatform)
   return installSkill(
-    skillPath = source,
-    agentTargets = listOf(AgentTarget(agent.ifBlank { "manual" }, resolvedTargetDir.toFileLocation())),
+    skillPath = request.source,
+    agentTargets = listOf(AgentTarget(request.agent.ifBlank { "manual" }, resolvedTargetDir.toFileLocation())),
     context = InstallContext(
-      repoRoot = repoRoot?.toAbsolutePath()?.normalize(),
-      home = home ?: Path.of(System.getProperty("user.home")),
+      repoRoot = request.repoRoot?.toAbsolutePath()?.normalize(),
+      home = resolvedHome,
     ),
   ).linkPaths
 }

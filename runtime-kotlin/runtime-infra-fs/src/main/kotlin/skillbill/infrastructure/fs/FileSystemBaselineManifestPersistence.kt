@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.fs.jvm.atomicWriteString
 import skillbill.install.model.BaselineManifest
 import skillbill.ports.install.baseline.BaselineManifestPersistencePort
 import skillbill.ports.install.baseline.model.ReadBaselineManifestRequest
@@ -9,11 +10,8 @@ import skillbill.ports.install.baseline.model.WriteBaselineManifestRequest
 import skillbill.ports.install.baseline.model.WriteBaselineManifestResult
 import java.io.IOException
 import java.nio.charset.StandardCharsets
-import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption.ATOMIC_MOVE
-import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
 @Inject
 class FileSystemBaselineManifestPersistence : BaselineManifestPersistencePort {
@@ -46,18 +44,7 @@ class FileSystemBaselineManifestPersistence : BaselineManifestPersistencePort {
 }
 
 private fun writeBaselineRecord(path: Path, payload: String) {
-  val parent = path.parent ?: path.toAbsolutePath().normalize().parent
-  val tempFile = Files.createTempFile(parent, "${path.fileName}.", ".tmp")
-  try {
-    Files.writeString(tempFile, payload, StandardCharsets.UTF_8)
-    try {
-      Files.move(tempFile, path, ATOMIC_MOVE, REPLACE_EXISTING)
-    } catch (_: AtomicMoveNotSupportedException) {
-      Files.move(tempFile, path, REPLACE_EXISTING)
-    }
-  } finally {
-    Files.deleteIfExists(tempFile)
-  }
+  atomicWriteString(path, payload)
 }
 
 private fun baselineRecordSize(path: Path): Long = try {

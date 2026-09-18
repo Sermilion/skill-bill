@@ -837,7 +837,7 @@ skillbill.workflow.verify
   port takes the typed `skillbill.workflow.engine.model.WorkflowStateSnapshot`, not a
   `Map<String, Any?>`; projecting that record onto the canonical wire shape is
   adapter work owned by
-  `skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper`, so
+  `skillbill.infrastructure.fs.contracts.WorkflowStateSnapshotWireMapper`, so
   `WorkflowEngine` never builds a snapshot map. The owning read seam is still
   `skillbill.workflow.engine.WorkflowEngine`; durable record
   mapping stays pure and the next engine read rejects drift. Architecture
@@ -1213,6 +1213,42 @@ selected platforms, planned skills, agent targets, MCP registration intent, and
 the typed `InstallPlanDraft` without touching filesystem, process execution,
 staging hashes, symlink checks, binary discovery, or rollback mechanics.
 
+### runtime-infra-fs `java.util.logging` (SKILL-353)
+
+Contract validators log schema drift at `WARNING` through `logSchemaLoadFailure`
+before throwing the family's `Invalid*SchemaError`; that is the operator signal
+for packaged-schema versus runtime-contract version skew, not a silent fallback.
+`FeatureTaskRuntimePhaseOutputSchemaValidatorSupportParsing` logs unparsable
+phase-output candidates at `FINE` while continuing envelope selection.
+`InstallStaging` and staging I/O log reuse and failure at `FINE`/`SEVERE`.
+`JvmAgentRunProcessRunner` and `ProcessRunDegradationRecorder` export bounded
+degradation lines to stderr; `degradationExportLogger` records sink failures
+only. `JdkRuntimeDiagnostics` mirrors `RuntimeDiagnostics` warnings when no
+injectable port exists at the JDK adapter seam.
+
+The remaining `java.util.logging` owners are `InstallStaging`,
+`InstallStagingIO`, `InstallStagingAtomicMoves`, and `InstallStagingPrune`
+(staging reuse, rollback, and cleanup have no diagnostics port);
+`InstallSymlinkReplacement` (symlink replacement cleanup);
+`FileSystemDiffResolver` (bounded git-diff failure context);
+`FileSystemFeatureTaskRuntimeSharedEvidenceStore` (projection-cache
+degradation export);
+`SkillRemoveJvmFileSystemApply` (uninstall cleanup);
+`NativeAgentCompositionSchemaValidator` (schema drift before a typed failure);
+`PlatformPackSchemaValidator` (tolerated legacy manifest version);
+`FeatureTaskRuntimePhaseOutputSchemaLoading` and
+`FeatureTaskRuntimePhaseOutputSchemaValidatorSupportParsing` (schema-load and
+candidate-selection diagnostics);
+`WorkflowStateSchemaValidator`, `IdeStatusSchemaValidator`,
+`GoalProgressEventSchemaValidator`, `GoalObservabilityEventSchemaValidator`,
+`GoalPlanningPreparationSchemaValidator`, `InstallPlanSchemaValidator`,
+`DecompositionManifestSchemaValidator`, and `ReviewContextSchemaValidator`
+(schema drift before typed rejection); and `JdkRuntimeDiagnostics`,
+`JvmAgentRunProcessRunner`, and `ProcessRunDegradationRecorder` (the JDK
+adapter and bounded process/degradation export seams have no injectable
+secondary sink). These are intentional adapter-boundary logs; new fallback
+degradations use `RuntimeDiagnostics`.
+
 `runtime-infra-fs` remains the owner of filesystem/process mechanics: platform
 manifest discovery and schema parsing, base-skill directory scans, agent
 detection/default path probing, pointer realpath validation, content hashing,
@@ -1233,12 +1269,15 @@ install planner/validator policy.
 
 ## Scaffold Capability Ports And Pure-Policy Ownership (SKILL-52.1 subtask 2)
 
-The scaffold pipeline is being decomposed from the single legacy
-`ScaffoldGateway` raw-map surface into typed capability ports and a pure-policy
-module. Subtask 2 lands the port surface and the pure-policy ownership
-boundary; the `ScaffoldGateway` raw-map elimination and the 18 scaffold
-allow-list entries below are intentionally NOT yet removed — they remain
-deferred to subtask 3.
+`ScaffoldGateway` in `skillbill.ports.scaffold` is the typed port consumed by
+`runtime-cli` and `runtime-mcp` through `RuntimeComponent`, per the
+[2026-09-03] load-bearing thin ports decision in `agent/decisions.md`.
+SKILL-52.3 subtask 3 closed the public `ScaffoldGateway` raw-map migration
+(typed `Scaffold*Result` DTOs on every producer). SKILL-231 subtask 3 retained
+`ScaffoldGateway` and `ScaffoldCatalogGateway` through `RuntimeComponent` when
+pass-through application services were collapsed. Adapter-internal payload maps
+under `runtime-infra-fs/.../scaffold/` remain for YAML ingress, planning merge,
+and wire serialisation; they do not widen the port surface.
 
 - **Pure-policy ownership boundary:** every payload-shape rule, kind
   discriminator, subagent-rejection rule, platform-pack selection/defaults/
@@ -1271,9 +1310,43 @@ deferred to subtask 3.
   - Each port has a matching `FileSystem<Capability>` adapter in
     `runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/` that
     delegates to the existing `skillbill.scaffold.AuthoringOperations`
-    and `skillbill.scaffold.scaffold` IO seams. The legacy
-    `FileSystemScaffoldGateway` adapter is intentionally retained — its
-    raw-map removal belongs to subtask 3.
+    and `skillbill.scaffold.scaffold` IO seams. `FileSystemScaffoldGateway`
+    implements the typed `ScaffoldGateway` port.
+- **Adapter-internal raw-map functions** (`Map<String, Any?>` only inside
+  `scaffold/`; not part of `ScaffoldGateway`):
+  - `adapters/FileSystemScaffoldRepoValidation.kt` — `internal`:
+    `optionalBaselineLayers`
+  - `adapters/FileSystemScaffoldSourceLoader.kt` — `internal`:
+    `resolveAddonConsumerSkillDirs`
+  - `authoring/AuthoringRenderOutput.kt` — `public property`: `payload`
+  - `payload/ScaffoldCommandRequestRawPayload.kt` — `internal`:
+    `toRawScaffoldPayload`; `private`: `appendAgentAddonFields`,
+    `appendHorizontalFields`, `appendPlatformPackFields`,
+    `appendPlatformOverrideFields`, `appendCodeReviewAreaFields`, `appendAddOnFields`
+  - `payload/ScaffoldPayloadMapPolicy.kt` — `internal`:
+    `validatePayloadVersion`, `detectKind`, `requireStringMap`,
+    `requireStringOrDefaultMap`, `rejectBaselineLayersForNonPlatformPack`
+  - `payload/ScaffoldPayloadMapPlatformPackPolicy.kt` — `internal`:
+    `resolvePlatformPackSelection`, `resolvePlatformPackDefaults`;
+    `private`: `rejectLegacyPlatformPackSelector`
+  - `payload/ScaffoldPayloadMapSubagentPolicy.kt` — `internal`:
+    `optionalSpecialistSubagents`, `rejectLeafSubagentSpecialists`
+  - `platformpack/PlatformPackSchemaValidator.kt` — `public member on an internal class`:
+    `validate`
+  - `platformpack/ShellContentLoaderPackBuild.kt` — `internal`:
+    `assemblePlatformManifest`, `extractCustomFields`, `validatedCustomFields`,
+    `validateAgainstCanonicalSchema`
+  - `runtime/RepoValidationRuntime.kt` — `public`: `toPayload` (report wire types)
+  - `runtime/ScaffoldService.kt` — `internal`: `scaffoldWithAdapters`
+  - `runtime/ScaffoldServicePlanning.kt` — `internal`: `resolveRepoRoot`,
+    `planScaffold`, `planHorizontal`, `planPlatformOverridePiloted`, `planPlatformPack`,
+    `rejectPlatformPackSubagentOverrides`, `planCodeReviewArea`
+  - `runtime/ScaffoldServicePlanningPayloadMerge.kt` — `internal`:
+    `planAddOn`, `planAgentAddon`
+  - `runtime/ScaffoldServiceRollbackPayload.kt` — `internal`: `canonicalName`,
+    `optionalAddonLocationPath`
+  - `runtime/ScaffoldStandaloneEntrypoint.kt` — `public`: `scaffold`
+    (standalone JVM entry)
 ## Architecture Guardrails
 
 The architecture tests enforce the following rules:

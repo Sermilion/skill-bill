@@ -30,7 +30,7 @@ class InstallPolicyOwnershipArchitectureTest {
   )
 
   private val approvedValidatorAdapters = setOf(
-    "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/InstallPlanWireValidatorAdapter.kt",
+    "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
   )
 
   @Test
@@ -123,7 +123,7 @@ class InstallPolicyOwnershipArchitectureTest {
 
     val validatorOwnerFiles = setOf(
       "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
-      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/InstallPlanWireValidatorAdapter.kt",
+      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
     )
     val adapterFiles = adapterKotlinFiles()
     val violations = adapterFiles

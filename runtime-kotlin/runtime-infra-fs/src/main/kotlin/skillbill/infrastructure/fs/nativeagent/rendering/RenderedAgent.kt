@@ -1,20 +1,15 @@
 package skillbill.infrastructure.fs.nativeagent.rendering
 
-import java.nio.file.AtomicMoveNotSupportedException
+import skillbill.infrastructure.fs.contracts.sha256Hex
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
-import java.security.MessageDigest
 
 internal data class RenderedAgent(val targetName: String, val contents: ByteArray) {
   override fun equals(other: Any?): Boolean = this === other
   override fun hashCode(): Int = System.identityHashCode(this)
 }
-
-internal fun sha256Digest(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
-  .digest(bytes)
-  .joinToString("") { byte -> "%02x".format(byte) }
 
 internal fun listOrphanRenderCandidates(providerRoot: Path, rendered: List<RenderedAgent>): List<Path> =
   Files.list(providerRoot).use { stream ->
@@ -33,7 +28,7 @@ internal fun buildNativeAgentInstallRenderResult(
     NativeAgentRenderedArtifact(
       logicalName = path.fileName.toString().removeSuffix(".${provider.extension}"),
       path = path,
-      contentDigest = sha256Digest(Files.readAllBytes(path)),
+      contentDigest = sha256Hex(Files.readAllBytes(path)),
     )
   }.sortedBy { it.path.toString() },
   cacheRoot = cacheRoot,
@@ -68,20 +63,7 @@ internal fun promoteStagedRenders(
     val target = providerRoot.resolve(entry.targetName)
     val source = staging.resolve(entry.targetName)
     beforeMutation(target)
-    try {
-      Files.move(
-        source,
-        target,
-        StandardCopyOption.REPLACE_EXISTING,
-        StandardCopyOption.ATOMIC_MOVE,
-      )
-    } catch (_: AtomicMoveNotSupportedException) {
-      Files.move(
-        source,
-        target,
-        StandardCopyOption.REPLACE_EXISTING,
-      )
-    }
+    atomicMoveReplacing(source, target)
     target
   }
 }

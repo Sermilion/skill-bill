@@ -1,9 +1,9 @@
 package skillbill.infrastructure.fs.install
 
+import skillbill.infrastructure.fs.install.plan.codexConfigRoots
+import skillbill.infrastructure.fs.install.plan.codexSkillTargets
 import skillbill.infrastructure.fs.install.plan.detectAgents
 import skillbill.infrastructure.fs.install.runtime.InstallOperations
-import skillbill.infrastructure.fs.install.support.codexConfigRoots
-import skillbill.infrastructure.fs.install.support.codexSkillTargets
 import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.Path

@@ -45,7 +45,7 @@ class GateJvmResolverTest {
       GateJvmEnvironmentKeys.PATH to runningHome.resolve("bin").toString(),
     )
 
-    val dropped = dropRuntimeImageJava(environment, runtimeImageRoot())
+    val dropped = dropRuntimeImageJava(environment, runtimeImageRoot(JdkHostPlatformPort))
 
     assertEquals(emptyList(), dropped)
     assertEquals(runningHome.toString(), environment[GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME])

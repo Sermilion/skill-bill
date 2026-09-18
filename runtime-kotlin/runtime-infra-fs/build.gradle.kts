@@ -20,18 +20,9 @@ dependencies {
   implementation(libs.json.schema.validator)
   implementation(libs.jackson.databind)
   implementation(libs.jackson.dataformat.yaml)
-  testImplementation(project(":runtime-application"))
-  testImplementation(project(":runtime-engine"))
   testImplementation(testFixtures(project(":runtime-ports")))
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
-}
-
-tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>("compileTestKotlin") {
-  dependsOn(":runtime-application:compileKotlin")
-  friendPaths.from(
-    rootProject.layout.projectDirectory.dir("runtime-application/build/classes/kotlin/main"),
-  )
 }
 
 enum class GovernedResourceDestination(val dirSuffix: String) {
@@ -400,21 +391,6 @@ tasks.named("processTestResources") {
   }
 }
 
-tasks.register<JavaExec>("platformPackSubstanceReport") {
-  group = "verification"
-  description = "Emit the maintained platform-pack substance report in text or JSON form."
-  classpath = sourceSets.main.get().runtimeClasspath
-  mainClass.set(
-    "skillbill.infrastructure.fs.scaffold.substance.PlatformPackSubstanceReportMainKt",
-  )
-  args(
-    "--repo-root=${providers.gradleProperty(
-      "repoRoot",
-    ).orElse(rootProject.projectDir.parentFile.absolutePath).get()}",
-    "--format=${providers.gradleProperty("reportFormat").orElse("text").get()}",
-  )
-}
-
 val infraFsAreaLayerOrder =
   listOf(
     "Jvm",
@@ -431,16 +407,20 @@ val infraFsAreaLayerOrder =
 
 val infraFsAreaSourceDirs =
   mapOf(
-    "Jvm" to "skillbill/infrastructure/fs/jvm",
-    "Infrastructure" to "skillbill/infrastructure/fs",
-    "Install" to "skillbill/infrastructure/fs/install",
-    "Launcher" to "skillbill/infrastructure/fs/launcher",
-    "NativeAgent" to "skillbill/infrastructure/fs/nativeagent",
-    "Scaffold" to "skillbill/infrastructure/fs/scaffold",
-    "AgentAddon" to "skillbill/infrastructure/fs/agentaddon",
-    "Contracts" to "skillbill/infrastructure/fs/contracts",
-    "GoalPlanning" to "skillbill/infrastructure/fs/goalplanning",
-    "SkillRemove" to "skillbill/infrastructure/fs/skillremove",
+    "Jvm" to listOf("skillbill/infrastructure/fs/jvm"),
+    "Infrastructure" to listOf("skillbill/infrastructure/fs"),
+    "Install" to listOf("skillbill/infrastructure/fs/install"),
+    "Launcher" to listOf("skillbill/infrastructure/fs/launcher"),
+    "NativeAgent" to listOf("skillbill/infrastructure/fs/nativeagent"),
+    "Scaffold" to listOf("skillbill/infrastructure/fs/scaffold"),
+    "AgentAddon" to listOf("skillbill/infrastructure/fs/agentaddon"),
+    "Contracts" to
+      listOf(
+        "skillbill/infrastructure/fs/contracts",
+        "skillbill/infrastructure/fs/phaseoutput",
+      ),
+    "GoalPlanning" to listOf("skillbill/infrastructure/fs/goalplanning"),
+    "SkillRemove" to listOf("skillbill/infrastructure/fs/skillremove"),
   )
 
 val javaPlugin = extensions.getByType(JavaPluginExtension::class.java)
@@ -450,9 +430,9 @@ val infraFsAreaSourceSets =
   infraFsAreaLayerOrder.associateWith { areaName ->
     val sourceSetName = "infraFs${areaName}Area"
     val areaSourceSet = javaPlugin.sourceSets.create(sourceSetName)
-    areaSourceSet.java.srcDir(
-      layout.projectDirectory.dir("src/main/kotlin/${infraFsAreaSourceDirs.getValue(areaName)}"),
-    )
+    infraFsAreaSourceDirs.getValue(areaName).forEach { sourceDir ->
+      areaSourceSet.java.srcDir(layout.projectDirectory.dir("src/main/kotlin/$sourceDir"))
+    }
     configurations.getByName(areaSourceSet.implementationConfigurationName).extendsFrom(
       configurations.getByName(mainSourceSet.implementationConfigurationName),
     )

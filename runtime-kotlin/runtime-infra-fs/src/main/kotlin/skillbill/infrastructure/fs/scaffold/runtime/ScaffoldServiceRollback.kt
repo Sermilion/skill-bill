@@ -2,6 +2,10 @@
 package skillbill.infrastructure.fs.scaffold.runtime
 
 import skillbill.error.ScaffoldRollbackError
+import skillbill.infrastructure.fs.jvm.rollbackDeleteEmptyDirectory
+import skillbill.infrastructure.fs.jvm.rollbackDeleteIfExists
+import skillbill.infrastructure.fs.jvm.rollbackDeleteRegularFileOrSymlink
+import skillbill.infrastructure.fs.jvm.rollbackRestoreBytes
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -24,7 +28,7 @@ internal fun rollbackSymlinks(txn: ScaffoldTransaction, errors: MutableList<Stri
   for (link in txn.createdSymlinks.asReversed()) {
     recordRollbackFailure(errors, "symlink $link") {
       if (Files.isSymbolicLink(link) || Files.exists(link)) {
-        Files.deleteIfExists(link)
+        rollbackDeleteIfExists(link)
       }
     }
   }
@@ -33,7 +37,7 @@ internal fun rollbackSymlinks(txn: ScaffoldTransaction, errors: MutableList<Stri
 internal fun rollbackManifests(txn: ScaffoldTransaction, errors: MutableList<String>) {
   for (snapshot in txn.manifestSnapshots.asReversed()) {
     recordRollbackFailure(errors, "manifest ${snapshot.manifestPath}") {
-      Files.write(snapshot.manifestPath, snapshot.originalBytes)
+      rollbackRestoreBytes(snapshot.manifestPath, snapshot.originalBytes)
     }
   }
 }
@@ -41,9 +45,7 @@ internal fun rollbackManifests(txn: ScaffoldTransaction, errors: MutableList<Str
 internal fun rollbackFiles(txn: ScaffoldTransaction, errors: MutableList<String>) {
   for (path in txn.createdPaths.asReversed()) {
     recordRollbackFailure(errors, "file $path") {
-      if (Files.isRegularFile(path) || Files.isSymbolicLink(path)) {
-        Files.deleteIfExists(path)
-      }
+      rollbackDeleteRegularFileOrSymlink(path)
     }
   }
 }
@@ -51,9 +53,7 @@ internal fun rollbackFiles(txn: ScaffoldTransaction, errors: MutableList<String>
 internal fun rollbackDirs(txn: ScaffoldTransaction, errors: MutableList<String>) {
   for (directory in txn.createdDirs.asReversed()) {
     recordRollbackFailure(errors, "dir $directory") {
-      if (Files.isDirectory(directory) && Files.list(directory).use { !it.findAny().isPresent }) {
-        Files.deleteIfExists(directory)
-      }
+      rollbackDeleteEmptyDirectory(directory)
     }
   }
 }

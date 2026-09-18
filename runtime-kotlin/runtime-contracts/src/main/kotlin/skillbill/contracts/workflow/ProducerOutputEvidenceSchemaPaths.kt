@@ -7,4 +7,6 @@ object ProducerOutputEvidenceSchemaPaths {
     "orchestration/contracts/producer-output-evidence-schema.yaml"
   const val CLASSPATH_RESOURCE: String =
     "skillbill/infrastructure/fs/contracts/producer-output-evidence-schema.yaml"
+  const val EXPECTED_SCHEMA_ID: String =
+    "https://skill-bill.dev/contracts/producer-output-evidence-schema.yaml"
 }

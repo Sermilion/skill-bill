@@ -1,33 +1,31 @@
 package skillbill.infrastructure.fs.contracts.install
 
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
+import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanSchemaPaths
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.error.InvalidInstallPlanSchemaError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.contracts.CompiledSchemaRequest
+import skillbill.install.model.InstallPlanWireMap
+import skillbill.install.model.InstallPlanWireValidator
 import java.util.logging.Level
 import java.util.logging.Logger
 
 private val log: Logger = Logger.getLogger("skillbill.contracts.install.InstallPlanSchemaValidator")
 
-object InstallPlanSchemaValidator {
-  private val schema: JsonSchema by lazy { loadSchema() }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
+@Inject
+class InstallPlanSchemaValidator : InstallPlanWireValidator {
+  override fun validate(plan: InstallPlanWireMap) {
+    validate(plan as Map<String, Any?>)
+  }
 
   fun validate(plan: Map<String, Any?>) {
-    val instance: JsonNode = mapper.valueToTree(plan)
-    val errors: Set<ValidationMessage> = schema.validate(instance)
+    val instance: JsonNode = ClasspathContractSchemaLoader.valueToTree(plan)
+    val errors: Set<ValidationMessage> = ClasspathContractSchemaLoader.validate(installPlanSchema(), instance)
     if (errors.isEmpty()) {
       return
     }
@@ -39,32 +37,6 @@ object InstallPlanSchemaValidator {
     val fieldPath = installPlanSchemaDottedFieldPath(instanceLocation)
     val reason = formatValidationReason(sorted, instance)
     throw InvalidInstallPlanSchemaError(fieldPath = fieldPath, reason = reason)
-  }
-
-  fun assertIdentity(yamlText: String) {
-    val yamlNode = YAMLMapper().readTree(yamlText)
-    assertIdentity(yamlNode)
-  }
-
-  fun assertIdentity(yamlNode: JsonNode) {
-    val loadedId = yamlNode.path("\$id").asText("")
-    if (loadedId != InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID) {
-      throw InvalidInstallPlanSchemaError(
-        fieldPath = "\$id",
-        reason = "Canonical install-plan schema identity mismatch: loaded '\$id' is '$loadedId' but " +
-          "expected '${InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or shadowed copy of the " +
-          "schema is on the classpath.",
-      )
-    }
-    val loadedConst = yamlNode.path("properties").path("contract_version").path("const").asText("")
-    if (loadedConst != INSTALL_PLAN_CONTRACT_VERSION) {
-      throw InvalidInstallPlanSchemaError(
-        fieldPath = "properties.contract_version.const",
-        reason = "Canonical install-plan schema contract_version.const mismatch: loaded '$loadedConst' " +
-          "but the runtime expects '$INSTALL_PLAN_CONTRACT_VERSION'. The schema on the classpath is out " +
-          "of date relative to the running runtime-contracts.",
-      )
-    }
   }
 
   private fun buildSchemaDriftLog(errors: Set<ValidationMessage>, instance: JsonNode): String {
@@ -112,6 +84,12 @@ object InstallPlanSchemaValidator {
     { it.instanceLocation?.toString().orEmpty() },
     { it.message.orEmpty() },
   )
+
+  companion object {
+    private val canonical: InstallPlanSchemaValidator by lazy(::InstallPlanSchemaValidator)
+
+    fun validate(plan: Map<String, Any?>) = canonical.validate(plan)
+  }
 }
 
 internal const val INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE: String =
@@ -120,63 +98,44 @@ internal const val INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH: String =
   InstallPlanSchemaPaths.REPO_RELATIVE_PATH
 
-private fun loadSchema(): JsonSchema {
-  var failure: Throwable? = null
-  try {
-    val yamlText = readSchemaText()
-    val yamlNode = YAMLMapper().readTree(yamlText)
-    InstallPlanSchemaValidator.assertIdentity(yamlNode)
-    val jsonText = ObjectMapper().writeValueAsString(yamlNode)
-    val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-    return factory.getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
-  } catch (error: InvalidInstallPlanSchemaError) {
-    logSchemaLoadFailure(
-      log,
-      "install-plan",
-      INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
-      INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  } catch (error: IOException) {
-    logSchemaLoadFailure(
-      log,
-      "install-plan",
-      INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
-      INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  } catch (error: JsonProcessingException) {
-    logSchemaLoadFailure(
-      log,
-      "install-plan",
-      INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
-      INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  }
-  throw failure
-}
-
-private fun readSchemaText(): String {
-  InstallPlanSchemaValidator::class.java.classLoader
-    .getResourceAsStream(INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE)
-    ?.use { return it.readBytes().toString(Charsets.UTF_8) }
-
-  val walkAnchor: Path = Path.of("").toAbsolutePath()
-  val resolved = walkForSchemaFile(walkAnchor)
-  if (resolved != null) {
-    return Files.readString(resolved)
-  }
-  throw InvalidInstallPlanSchemaError(
-    fieldPath = "",
-    reason = "Canonical install-plan schema is missing. Expected to find it on the JVM classpath at " +
-      "'$INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE' or on disk under " +
-      "'$INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH' walked up from: $walkAnchor.",
-  )
-}
+private fun installPlanSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  CompiledSchemaRequest(
+    cacheKey = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = InstallPlanSchemaValidator::class.java.classLoader,
+    classpathResource = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidInstallPlanSchemaError(
+        fieldPath = "",
+        reason = "Canonical install-plan schema is missing. Expected to find it on the JVM classpath at " +
+          "'$INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidInstallPlanSchemaError(
+        fieldPath = "",
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        log,
+        "install-plan",
+        INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
+        INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = INSTALL_PLAN_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidInstallPlanSchemaError(
+        fieldPath = "<schema>",
+        reason = reason,
+      )
+    },
+  ),
+)
 
 fun extractOffendingValueFromInstance(instance: JsonNode, instanceLocation: String): String {
   val dotted = installPlanSchemaDottedFieldPath(instanceLocation)
@@ -213,16 +172,4 @@ fun installPlanSchemaDottedFieldPath(instanceLocation: String): String = when {
   instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
   instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
   else -> instanceLocation.trimStart('/').replace('/', '.')
-}
-
-private fun walkForSchemaFile(hint: Path): Path? {
-  var current: Path? = hint.toAbsolutePath().normalize()
-  while (current != null) {
-    val candidate = current.resolve(INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH)
-    if (Files.isRegularFile(candidate)) {
-      return candidate
-    }
-    current = current.parent
-  }
-  return null
 }

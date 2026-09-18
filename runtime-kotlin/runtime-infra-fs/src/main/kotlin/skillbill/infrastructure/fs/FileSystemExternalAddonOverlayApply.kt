@@ -1,12 +1,11 @@
 package skillbill.infrastructure.fs
 
 import org.yaml.snakeyaml.Yaml
+import skillbill.infrastructure.fs.jvm.atomicMoveReplacing
 import skillbill.scaffold.model.GovernedAddonActivation
 import skillbill.scaffold.model.GovernedAddonSelection
 import java.io.IOException
-import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
 internal fun applyPlan(plan: SourcePlan) {
@@ -34,7 +33,7 @@ internal fun mergeIntoManifest(plan: SourcePlan) {
   val tempFile = manifestPath.resolveSibling(MANIFEST_TEMP_SUFFIX)
   Files.writeString(tempFile, Yaml().dump(root))
   try {
-    atomicMove(tempFile, manifestPath)
+    atomicMoveReplacing(tempFile, manifestPath)
   } catch (error: IOException) {
     Files.deleteIfExists(tempFile)
     throw error
@@ -91,14 +90,6 @@ internal fun activationEntry(activation: GovernedAddonActivation): MutableMap<St
   put("exclude_path", activation.excludePath)
   put("exclude_content", activation.excludeContent)
   return entry
-}
-
-internal fun atomicMove(source: Path, target: Path) {
-  try {
-    Files.move(source, target, StandardCopyOption.ATOMIC_MOVE)
-  } catch (_: AtomicMoveNotSupportedException) {
-    Files.move(source, target, StandardCopyOption.REPLACE_EXISTING)
-  }
 }
 
 internal fun Any?.asMutableMap(slug: String, field: String): MutableMap<String, Any?> = when (this) {

@@ -1,18 +1,17 @@
 package skillbill.infrastructure.fs.scaffold.pointer
 
 import skillbill.error.ContractVersionMismatchError
+import skillbill.infrastructure.fs.jvm.atomicWriteBytes
 import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackManifests
 import skillbill.infrastructure.fs.scaffold.runtime.SHELL_CONTRACT_VERSION
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.io.File
-import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 
 data class PointerRegenerationResult(
   val regeneratedFiles: List<Path>,
@@ -105,9 +104,9 @@ private fun writePointerArtifact(pointerFile: Path, rendered: String, existed: B
   try {
     Files.createSymbolicLink(pointerFile, Path.of(rendered))
   } catch (_: FileSystemException) {
-    atomicWrite(pointerFile, rendered.toByteArray(Charsets.UTF_8))
+    atomicWriteBytes(pointerFile, rendered.toByteArray(Charsets.UTF_8))
   } catch (_: UnsupportedOperationException) {
-    atomicWrite(pointerFile, rendered.toByteArray(Charsets.UTF_8))
+    atomicWriteBytes(pointerFile, rendered.toByteArray(Charsets.UTF_8))
   }
 }
 
@@ -117,19 +116,5 @@ private fun requireMatchingContractVersion(pack: PlatformManifest) {
       "Platform pack '${pack.slug}': declares contract_version '${pack.contractVersion}' " +
         "but the shell expects '$SHELL_CONTRACT_VERSION'.",
     )
-  }
-}
-
-private fun atomicWrite(target: Path, bytes: ByteArray) {
-  val tmp = Files.createTempFile(target.parent, target.fileName.toString() + ".", ".tmp")
-  try {
-    Files.write(tmp, bytes)
-    try {
-      Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-    } catch (_: AtomicMoveNotSupportedException) {
-      Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING)
-    }
-  } finally {
-    Files.deleteIfExists(tmp)
   }
 }

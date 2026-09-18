@@ -1,5 +1,12 @@
 package skillbill.infrastructure.fs
 
+import skillbill.infrastructure.fs.launcher.process.GIT_PROCESS_CLEANUP_BUDGET_SECONDS
+import skillbill.infrastructure.fs.launcher.process.GIT_TIMEOUT_SECONDS
+import skillbill.infrastructure.fs.launcher.process.GitProcessResult
+import skillbill.infrastructure.fs.launcher.process.gitTimeoutSeconds
+import skillbill.infrastructure.fs.launcher.process.invokeGitProcessWithBoundedLines
+import skillbill.infrastructure.fs.launcher.process.runGitCommandWithStdin
+import skillbill.infrastructure.fs.launcher.process.runGitProcess
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Files
 import java.nio.file.Path
@@ -117,7 +124,7 @@ class GitProcessLifetimeBehaviorTest {
         Thread.sleep(10)
       }
       assertTrue(Files.exists(pidFile), "expected hook child pid file")
-      val ownedChild = ProcessHandle.of(Files.readString(pidFile).trim().toLong()).orElseThrow()
+      val ownedChild = requireNotNull(processHandleFrom(pidFile))
       val gitProcess = ownedChild.parent().orElseThrow()
       child = ownedChild
       git = gitProcess
@@ -245,6 +252,37 @@ class GitProcessLifetimeBehaviorTest {
   }
 
   @Test
+  fun `bounded line git capture reports timedOut for a blocking alias`() {
+    val root = createTempGitRepo()
+    val pidFile = root.resolve("bounded-lines-timeout.pid")
+    var child: ProcessHandle? = null
+    try {
+      val started = System.nanoTime()
+      val result = invokeGitProcessWithBoundedLines(
+        repoRoot = root,
+        args = listOf("-c", "alias.block=!echo \$\$ > $pidFile; exec sleep 120", "block"),
+        readLineMaxBytes = 4_096,
+        shouldStopReading = { false },
+        onLine = {},
+      )
+      if (Files.exists(pidFile)) {
+        child = readProcessHandle(pidFile)
+      }
+      val elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - started)
+      assertTrue(result.timedOut)
+      assertTrue(
+        elapsedSeconds <= gitTimeoutSeconds(listOf("block")) + GIT_PROCESS_CLEANUP_BUDGET_SECONDS + 5L,
+        "bounded line capture exceeded git timeout budget: ${elapsedSeconds}s",
+      )
+      child?.let { handle -> assertFalse(awaitDead(handle), "timed out bounded line git left child alive") }
+    } finally {
+      child?.destroyForcibly()
+      destroyProcessFrom(pidFile)
+      root.toFile().deleteRecursively()
+    }
+  }
+
+  @Test
   fun `binary diff output remains a failed git result with captured patch text`() {
     val root = createTempGitRepo()
     try {
@@ -273,9 +311,21 @@ class GitProcessLifetimeBehaviorTest {
     }
   }
 
-  private fun processHandleFrom(pidFile: Path): ProcessHandle {
+  private fun processHandleFrom(pidFile: Path): ProcessHandle? {
     assertTrue(Files.exists(pidFile), "expected process pid file")
-    return ProcessHandle.of(Files.readString(pidFile).trim().toLong()).orElseThrow()
+    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_SECONDS_FOR_TEST)
+    while (System.nanoTime() < deadline) {
+      readProcessHandle(pidFile)?.let { return it }
+      Thread.sleep(10)
+    }
+    return readProcessHandle(pidFile)
+  }
+
+  private fun readProcessHandle(pidFile: Path): ProcessHandle? {
+    if (!Files.exists(pidFile)) return null
+    return Files.readString(pidFile).trim().toLongOrNull()?.let { pid ->
+      ProcessHandle.of(pid).orElse(null)
+    }
   }
 
   private fun runGitProcessWithCapturedChild(
@@ -318,13 +368,11 @@ class GitProcessLifetimeBehaviorTest {
   }
 
   private fun destroyProcessFrom(pidFile: Path) {
-    if (Files.exists(pidFile)) {
-      ProcessHandle.of(Files.readString(pidFile).trim().toLong())
-        .ifPresent { handle -> handle.destroyForcibly() }
-    }
+    readProcessHandle(pidFile)?.destroyForcibly()
   }
 
-  private fun awaitDead(handle: ProcessHandle): Boolean {
+  private fun awaitDead(handle: ProcessHandle?): Boolean {
+    if (handle == null) return true
     val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS + 2)
     while (System.nanoTime() < deadline && handle.isAlive) {
       Thread.sleep(20)

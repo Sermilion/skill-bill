@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.install.apply
 
-import skillbill.infrastructure.fs.install.support.resolveTelemetryConfigPath
+import skillbill.infrastructure.fs.install.plan.resolveTelemetryConfigPath
+import skillbill.infrastructure.fs.jvm.resolveEnvironmentMap
 import skillbill.install.model.ClaudeMcpProfileFailure
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssue
@@ -34,7 +35,7 @@ internal fun applyTelemetryIntent(
   telemetryConfigStore: TelemetryConfigStore? = null,
 ): InstallTelemetryApplyOutcome {
   val environmentContext = EnvironmentContext(
-    environment = plan.request.environment.ifEmpty { System.getenv() },
+    environment = resolveEnvironmentMap(plan.request.environment),
     userHome = plan.request.home.toPath(),
   )
   val configPath = resolveTelemetryConfigPath(environmentContext.environment, environmentContext.userHome)
