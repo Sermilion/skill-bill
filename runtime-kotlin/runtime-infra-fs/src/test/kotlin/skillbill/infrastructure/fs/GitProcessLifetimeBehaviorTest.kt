@@ -124,7 +124,7 @@ class GitProcessLifetimeBehaviorTest {
         Thread.sleep(10)
       }
       assertTrue(Files.exists(pidFile), "expected hook child pid file")
-      val ownedChild = ProcessHandle.of(Files.readString(pidFile).trim().toLong()).orElseThrow()
+      val ownedChild = requireNotNull(processHandleFrom(pidFile))
       val gitProcess = ownedChild.parent().orElseThrow()
       child = ownedChild
       git = gitProcess
@@ -313,7 +313,19 @@ class GitProcessLifetimeBehaviorTest {
 
   private fun processHandleFrom(pidFile: Path): ProcessHandle? {
     assertTrue(Files.exists(pidFile), "expected process pid file")
-    return ProcessHandle.of(Files.readString(pidFile).trim().toLong()).orElse(null)
+    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_SECONDS_FOR_TEST)
+    while (System.nanoTime() < deadline) {
+      readProcessHandle(pidFile)?.let { return it }
+      Thread.sleep(10)
+    }
+    return readProcessHandle(pidFile)
+  }
+
+  private fun readProcessHandle(pidFile: Path): ProcessHandle? {
+    if (!Files.exists(pidFile)) return null
+    return Files.readString(pidFile).trim().toLongOrNull()?.let { pid ->
+      ProcessHandle.of(pid).orElse(null)
+    }
   }
 
   private fun runGitProcessWithCapturedChild(
@@ -356,10 +368,7 @@ class GitProcessLifetimeBehaviorTest {
   }
 
   private fun destroyProcessFrom(pidFile: Path) {
-    if (Files.exists(pidFile)) {
-      ProcessHandle.of(Files.readString(pidFile).trim().toLong())
-        .ifPresent { handle -> handle.destroyForcibly() }
-    }
+    readProcessHandle(pidFile)?.destroyForcibly()
   }
 
   private fun awaitDead(handle: ProcessHandle?): Boolean {
