@@ -48,8 +48,9 @@ internal fun Connection.upsertWorkflowRow(
     """
     INSERT INTO $tableName (
       workflow_id, session_id, workflow_name, contract_version, workflow_status, current_step_id,
-      steps_json, artifacts_json, issue_key, started_at, state_entered_at, state_entered_at_estimated, finished_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0,
+      steps_json, artifacts_json, issue_key, started_at, updated_at, state_entered_at,
+      state_entered_at_estimated, finished_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0,
               CASE WHEN ? THEN COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP) ELSE NULL END)
     ON CONFLICT(workflow_id) DO UPDATE SET
       session_id = excluded.session_id,
@@ -94,9 +95,9 @@ internal fun Connection.upsertFeatureTaskWorkflowRow(
     """
     INSERT INTO feature_task_workflows (
       workflow_id, session_id, workflow_name, contract_version, workflow_status, current_step_id,
-      steps_json, artifacts_json, issue_key, started_at, state_entered_at, state_entered_at_estimated,
-      finished_at, mode, implementation_skill
-    ) VALUES (?, ?, 'bill-feature-task', ?, ?, ?, ?, ?, ?, ?, ?, 0,
+      steps_json, artifacts_json, issue_key, started_at, updated_at, state_entered_at,
+      state_entered_at_estimated, finished_at, mode, implementation_skill
+    ) VALUES (?, ?, 'bill-feature-task', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0,
               CASE WHEN ? THEN COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP) ELSE NULL END, ?, ?)
     ON CONFLICT(workflow_id) DO UPDATE SET
       session_id = excluded.session_id,
@@ -188,6 +189,7 @@ private fun PreparedStatement.bindWorkflowRow(
   parameters.text(row.issueKey)
   parameters.text(insertionTimestamp)
   parameters.text(insertionTimestamp)
+  parameters.text(insertionTimestamp)
   parameters.boolean(WorkflowStatus.fromWire(row.workflowStatus)?.isTerminal == true)
   parameters.text(row.finishedAt)
   parameters.bind()
@@ -209,6 +211,7 @@ private fun PreparedStatement.bindFeatureTaskWorkflowRow(
   parameters.text(row.stepsJson)
   parameters.text(row.artifactsJson)
   parameters.text(row.issueKey)
+  parameters.text(insertionTimestamp)
   parameters.text(insertionTimestamp)
   parameters.text(insertionTimestamp)
   parameters.boolean(WorkflowStatus.fromWire(row.workflowStatus)?.isTerminal == true)
