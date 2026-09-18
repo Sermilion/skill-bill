@@ -1,4 +1,4 @@
-package skillbill.infrastructure.fs.scaffold.substance
+package skillbill.infrastructure.fs.scaffold.platformpack.substanceaudit
 
 import skillbill.infrastructure.fs.scaffold.platformpack.CODE_REVIEW_FALLBACK_CAPABILITY
 import skillbill.scaffold.model.PlatformManifest

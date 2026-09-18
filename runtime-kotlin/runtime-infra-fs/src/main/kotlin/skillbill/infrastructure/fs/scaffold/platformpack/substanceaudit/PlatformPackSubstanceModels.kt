@@ -1,4 +1,4 @@
-package skillbill.infrastructure.fs.scaffold.substance
+package skillbill.infrastructure.fs.scaffold.platformpack.substanceaudit
 
 import java.math.BigDecimal
 import java.math.RoundingMode

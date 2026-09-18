@@ -3,16 +3,11 @@ package skillbill.infrastructure.fs.install.plan
 import skillbill.error.InvalidInternalSkillClassificationError
 import skillbill.infrastructure.fs.install.staging.StagedSymlinkTargetInput
 import skillbill.infrastructure.fs.install.staging.resolveStagedSymlinkTarget
-import skillbill.infrastructure.fs.install.support.claudeConfigRoot
-import skillbill.infrastructure.fs.install.support.claudeSkillTargets
-import skillbill.infrastructure.fs.install.support.codexConfigRoot
-import skillbill.infrastructure.fs.install.support.codexSkillTargets
+import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
 import skillbill.infrastructure.fs.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.install.model.AgentTarget
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallTransaction
-import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
 import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
@@ -34,11 +29,10 @@ internal data class InstallConfigRoots(
   val codex: Path,
 )
 
-internal fun installConfigRoots(home: Path, environment: Map<String, String>): InstallConfigRoots =
-  InstallConfigRoots(
-    claude = claudeConfigRoot(home, environment),
-    codex = codexConfigRoot(home, environment),
-  )
+internal fun installConfigRoots(home: Path, environment: Map<String, String>): InstallConfigRoots = InstallConfigRoots(
+  claude = claudeConfigRoot(home, environment),
+  codex = codexConfigRoot(home, environment),
+)
 
 internal fun agentPaths(home: Path, configRoots: InstallConfigRoots): Map<SupportedAgent, Path> = mapOf(
   SupportedAgent.CLAUDE to configRoots.claude.resolve("skills"),
@@ -70,10 +64,7 @@ internal fun detectAgents(home: Path, environment: Map<String, String>): List<Ag
   }
 }
 
-internal fun detectCodexAgentsTargets(
-  home: Path,
-  environment: Map<String, String>,
-): List<AgentTarget> {
+internal fun detectCodexAgentsTargets(home: Path, environment: Map<String, String>): List<AgentTarget> {
   val configRoots = installConfigRoots(home, environment)
   val paths = agentPaths(home, configRoots)
   if (!agentIsPresent(home, SupportedAgent.CODEX, paths.getValue(SupportedAgent.CODEX), configRoots)) {

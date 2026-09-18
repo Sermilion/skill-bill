@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.agentaddon
 
-import skillbill.error.InvalidAgentAddonSchemaError
 import skillbill.error.InvalidAgentAddonAgentIdError
+import skillbill.error.InvalidAgentAddonSchemaError
 import skillbill.error.MissingAgentAddonDeclarationError
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.repository.toFileLocation

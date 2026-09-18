@@ -163,7 +163,6 @@ class ProcessAgentRunAdapter(
     }
 }
 
-
 data class DecodedAgentRunOutput(
   val text: String,
 

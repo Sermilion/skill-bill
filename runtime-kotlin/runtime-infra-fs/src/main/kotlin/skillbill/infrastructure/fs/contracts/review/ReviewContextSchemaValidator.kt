@@ -24,7 +24,7 @@ private val reviewContextLog: Logger =
   Logger.getLogger("skillbill.contracts.review.ReviewContextSchemaValidator")
 
 @Inject
-class ReviewContextSchemaValidator() : ReviewContextEnvelopeValidator {
+class ReviewContextSchemaValidator : ReviewContextEnvelopeValidator {
   private val schemas: ReviewContextSchemas
     get() = loadReviewContextSchema()
   private val mapper: ObjectMapper
@@ -73,7 +73,7 @@ class ReviewContextSchemaValidator() : ReviewContextEnvelopeValidator {
   )
 
   companion object {
-    private val canonical = ReviewContextSchemaValidator()
+    private val canonical: ReviewContextSchemaValidator by lazy(::ReviewContextSchemaValidator)
 
     fun validate(envelope: Map<String, Any?>, sourceLabel: String) = canonical.validate(envelope, sourceLabel)
 
@@ -83,7 +83,10 @@ class ReviewContextSchemaValidator() : ReviewContextEnvelopeValidator {
     fun validateAssignment(envelope: Map<String, Any?>, sourceLabel: String) =
       canonical.validateAssignment(envelope, sourceLabel)
 
-    fun validateLaunch(envelope: Map<String, Any?>, sourceLabel: String) = canonical.validateLaunch(envelope, sourceLabel)
+    fun validateLaunch(envelope: Map<String, Any?>, sourceLabel: String) = canonical.validateLaunch(
+      envelope,
+      sourceLabel,
+    )
 
     fun validateIntegrationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
       canonical.validateIntegrationLaunch(envelope, sourceLabel)
@@ -99,7 +102,6 @@ class ReviewContextSchemaValidator() : ReviewContextEnvelopeValidator {
 
     fun validateSpecIntentProjection(payload: Map<String, Any?>, sourceLabel: String) =
       canonical.validateSpecIntentProjection(payload, sourceLabel)
-
   }
 }
 

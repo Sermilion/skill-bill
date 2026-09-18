@@ -11,7 +11,7 @@ import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 
 @Inject
-class RejectedOutputDiagnosticSchemaValidator() : RejectedOutputDiagnosticMetadataValidator {
+class RejectedOutputDiagnosticSchemaValidator : RejectedOutputDiagnosticMetadataValidator {
   override fun validate(metadata: RejectedOutputDiagnostic) {
     val mapper = ClasspathContractSchemaLoader.sharedObjectMapper()
     val instance = mapper.createObjectNode().apply {
@@ -41,27 +41,28 @@ class RejectedOutputDiagnosticSchemaValidator() : RejectedOutputDiagnosticMetada
   }
 
   companion object {
-    fun validate(metadata: RejectedOutputDiagnostic) = RejectedOutputDiagnosticSchemaValidator().validate(metadata)
+    private val canonical: RejectedOutputDiagnosticSchemaValidator by lazy(::RejectedOutputDiagnosticSchemaValidator)
+
+    fun validate(metadata: RejectedOutputDiagnostic) = canonical.validate(metadata)
   }
 }
 
-private fun rejectedOutputDiagnosticSchema(): JsonSchema =
-  ClasspathContractSchemaLoader.compiledSchema(
-    cacheKey = RejectedOutputDiagnosticSchemaPaths.CLASSPATH_RESOURCE,
-    classLoader = RejectedOutputDiagnosticSchemaValidator::class.java.classLoader,
-    classpathResource = RejectedOutputDiagnosticSchemaPaths.CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidRejectedOutputDiagnosticSchemaError(
-        "Canonical rejected-output diagnostic schema resource is missing.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidRejectedOutputDiagnosticSchemaError(
-        cause.message ?: cause::class.simpleName.orEmpty(),
-      )
-    },
-    loadFailureLogger = {},
-    expectedSchemaId = RejectedOutputDiagnosticSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = REJECTED_OUTPUT_DIAGNOSTIC_CONTRACT_VERSION,
-    identityFailure = { reason -> InvalidRejectedOutputDiagnosticSchemaError(reason) },
-  )
+private fun rejectedOutputDiagnosticSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  cacheKey = RejectedOutputDiagnosticSchemaPaths.CLASSPATH_RESOURCE,
+  classLoader = RejectedOutputDiagnosticSchemaValidator::class.java.classLoader,
+  classpathResource = RejectedOutputDiagnosticSchemaPaths.CLASSPATH_RESOURCE,
+  missingResource = {
+    InvalidRejectedOutputDiagnosticSchemaError(
+      "Canonical rejected-output diagnostic schema resource is missing.",
+    )
+  },
+  processingFailure = { cause ->
+    InvalidRejectedOutputDiagnosticSchemaError(
+      cause.message ?: cause::class.simpleName.orEmpty(),
+    )
+  },
+  loadFailureLogger = {},
+  expectedSchemaId = RejectedOutputDiagnosticSchemaPaths.EXPECTED_SCHEMA_ID,
+  expectedContractVersion = REJECTED_OUTPUT_DIAGNOSTIC_CONTRACT_VERSION,
+  identityFailure = { reason -> InvalidRejectedOutputDiagnosticSchemaError(reason) },
+)

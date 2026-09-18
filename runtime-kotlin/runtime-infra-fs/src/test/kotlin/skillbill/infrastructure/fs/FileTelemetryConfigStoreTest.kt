@@ -2,8 +2,8 @@ package skillbill.infrastructure.fs
 
 import org.junit.jupiter.api.io.TempDir
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.fs.install.support.resolveTelemetryConfigPath
-import skillbill.infrastructure.fs.install.support.resolveTelemetryStateDir
+import skillbill.infrastructure.fs.install.plan.resolveTelemetryConfigPath
+import skillbill.infrastructure.fs.install.plan.resolveTelemetryStateDir
 import skillbill.model.EnvironmentContext
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY

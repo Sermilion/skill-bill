@@ -1269,12 +1269,15 @@ install planner/validator policy.
 
 ## Scaffold Capability Ports And Pure-Policy Ownership (SKILL-52.1 subtask 2)
 
-The scaffold pipeline is being decomposed from the single legacy
-`ScaffoldGateway` raw-map surface into typed capability ports and a pure-policy
-module. Subtask 2 lands the port surface and the pure-policy ownership
-boundary; the `ScaffoldGateway` raw-map elimination and the 18 scaffold
-allow-list entries below are intentionally NOT yet removed — they remain
-deferred to subtask 3.
+`ScaffoldGateway` in `skillbill.ports.scaffold` is the typed port consumed by
+`runtime-cli` and `runtime-mcp` through `RuntimeComponent`, per the
+[2026-09-03] load-bearing thin ports decision in `agent/decisions.md`.
+SKILL-52.3 subtask 3 closed the public `ScaffoldGateway` raw-map migration
+(typed `Scaffold*Result` DTOs on every producer). SKILL-231 subtask 3 retained
+`ScaffoldGateway` and `ScaffoldCatalogGateway` through `RuntimeComponent` when
+pass-through application services were collapsed. Adapter-internal payload maps
+under `runtime-infra-fs/.../scaffold/` remain for YAML ingress, planning merge,
+and wire serialisation; they do not widen the port surface.
 
 - **Pure-policy ownership boundary:** every payload-shape rule, kind
   discriminator, subagent-rejection rule, platform-pack selection/defaults/
@@ -1307,9 +1310,43 @@ deferred to subtask 3.
   - Each port has a matching `FileSystem<Capability>` adapter in
     `runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/` that
     delegates to the existing `skillbill.scaffold.AuthoringOperations`
-    and `skillbill.scaffold.scaffold` IO seams. The legacy
-    `FileSystemScaffoldGateway` adapter is intentionally retained — its
-    raw-map removal belongs to subtask 3.
+    and `skillbill.scaffold.scaffold` IO seams. `FileSystemScaffoldGateway`
+    implements the typed `ScaffoldGateway` port.
+- **Adapter-internal raw-map functions** (`Map<String, Any?>` only inside
+  `scaffold/`; not part of `ScaffoldGateway`):
+  - `adapters/FileSystemScaffoldRepoValidation.kt` — `internal`:
+    `optionalBaselineLayers`
+  - `adapters/FileSystemScaffoldSourceLoader.kt` — `internal`:
+    `resolveAddonConsumerSkillDirs`
+  - `authoring/AuthoringRenderOutput.kt` — `public property`: `payload`
+  - `payload/ScaffoldCommandRequestRawPayload.kt` — `internal`:
+    `toRawScaffoldPayload`; `private`: `appendAgentAddonFields`,
+    `appendHorizontalFields`, `appendPlatformPackFields`,
+    `appendPlatformOverrideFields`, `appendCodeReviewAreaFields`, `appendAddOnFields`
+  - `payload/ScaffoldPayloadMapPolicy.kt` — `internal`:
+    `validatePayloadVersion`, `detectKind`, `requireStringMap`,
+    `requireStringOrDefaultMap`, `rejectBaselineLayersForNonPlatformPack`
+  - `payload/ScaffoldPayloadMapPlatformPackPolicy.kt` — `internal`:
+    `resolvePlatformPackSelection`, `resolvePlatformPackDefaults`;
+    `private`: `rejectLegacyPlatformPackSelector`
+  - `payload/ScaffoldPayloadMapSubagentPolicy.kt` — `internal`:
+    `optionalSpecialistSubagents`, `rejectLeafSubagentSpecialists`
+  - `platformpack/PlatformPackSchemaValidator.kt` — `public member on an internal class`:
+    `validate`
+  - `platformpack/ShellContentLoaderPackBuild.kt` — `internal`:
+    `assemblePlatformManifest`, `extractCustomFields`, `validatedCustomFields`,
+    `validateAgainstCanonicalSchema`
+  - `runtime/RepoValidationRuntime.kt` — `public`: `toPayload` (report wire types)
+  - `runtime/ScaffoldService.kt` — `internal`: `scaffoldWithAdapters`
+  - `runtime/ScaffoldServicePlanning.kt` — `internal`: `resolveRepoRoot`,
+    `planScaffold`, `planHorizontal`, `planPlatformOverridePiloted`, `planPlatformPack`,
+    `rejectPlatformPackSubagentOverrides`, `planCodeReviewArea`
+  - `runtime/ScaffoldServicePlanningPayloadMerge.kt` — `internal`:
+    `planAddOn`, `planAgentAddon`
+  - `runtime/ScaffoldServiceRollbackPayload.kt` — `internal`: `canonicalName`,
+    `optionalAddonLocationPath`
+  - `runtime/ScaffoldStandaloneEntrypoint.kt` — `public`: `scaffold`
+    (standalone JVM entry)
 ## Architecture Guardrails
 
 The architecture tests enforce the following rules:

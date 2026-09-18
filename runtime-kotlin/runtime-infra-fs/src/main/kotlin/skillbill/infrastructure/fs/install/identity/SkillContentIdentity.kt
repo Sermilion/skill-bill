@@ -144,7 +144,6 @@ internal data class SkillContentIdentity(
 
     private fun invalidIdentity(sourceLabel: String, reason: String, cause: Throwable? = null): Nothing =
       throw InvalidSkillContentIdentityError(sourceLabel, reason, cause)
-
   }
 }
 

@@ -6,7 +6,6 @@ import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputSchemaValidator
-import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactSchemaValidator
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
@@ -26,6 +25,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactSchemaValidator
 
 class GoalPlanningPreparationCheckpointTest {
   @Test

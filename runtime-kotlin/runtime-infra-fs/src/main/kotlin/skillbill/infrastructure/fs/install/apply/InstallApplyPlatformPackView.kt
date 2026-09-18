@@ -1,7 +1,5 @@
 package skillbill.infrastructure.fs.install.apply
 
-import skillbill.infrastructure.fs.install.support.createNewSymlinkWithGuidance
-import skillbill.infrastructure.fs.install.support.createReplacementSymlinkWithGuidance
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind

@@ -50,8 +50,7 @@ object InstallOperations {
     home: Path?,
     environment: Map<String, String>,
     hostPlatform: HostPlatformPort = JdkHostPlatformPort,
-  ): List<Path> =
-    InstallOperationsPaths.claudeRoots(home, environment, hostPlatform)
+  ): List<Path> = InstallOperationsPaths.claudeRoots(home, environment, hostPlatform)
 
   fun codexAgentsPath(
     home: Path?,
@@ -67,15 +66,13 @@ object InstallOperations {
     home: Path?,
     environment: Map<String, String>,
     hostPlatform: HostPlatformPort = JdkHostPlatformPort,
-  ): List<Path> =
-    InstallOperationsPaths.codexRoots(home, environment, hostPlatform)
+  ): List<Path> = InstallOperationsPaths.codexRoots(home, environment, hostPlatform)
 
   fun claudeAgentsPath(
     home: Path?,
     environment: Map<String, String>,
     hostPlatform: HostPlatformPort = JdkHostPlatformPort,
-  ): Path =
-    InstallOperationsPaths.claudeAgentsPath(home, environment, hostPlatform)
+  ): Path = InstallOperationsPaths.claudeAgentsPath(home, environment, hostPlatform)
 
   fun junieAgentsPath(home: Path?, hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path =
     InstallOperationsPaths.junieAgentsPath(home, hostPlatform)

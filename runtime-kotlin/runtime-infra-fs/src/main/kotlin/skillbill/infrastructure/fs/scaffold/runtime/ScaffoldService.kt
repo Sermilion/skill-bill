@@ -1,11 +1,11 @@
 
 package skillbill.infrastructure.fs.scaffold.runtime
 
+import skillbill.infrastructure.fs.JdkHostPlatformPort
 import skillbill.infrastructure.fs.scaffold.payload.detectKind
 import skillbill.infrastructure.fs.scaffold.payload.validatePayloadVersion
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.system.HostPlatformPort
-import skillbill.infrastructure.fs.JdkHostPlatformPort
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.ScaffoldResult

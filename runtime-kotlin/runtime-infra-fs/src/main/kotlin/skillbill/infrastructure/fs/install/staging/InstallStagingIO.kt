@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.install.staging
 
 import skillbill.infrastructure.fs.agentaddon.AgentAddonPointer
 import skillbill.infrastructure.fs.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
+import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import skillbill.infrastructure.fs.scaffold.authoring.AuthoringTarget
 import skillbill.infrastructure.fs.scaffold.authoring.normalizeMarkdownLineEndings
 import skillbill.infrastructure.fs.scaffold.authoring.renderWrapper
@@ -13,7 +14,6 @@ import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.io.File
 import java.nio.charset.StandardCharsets
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

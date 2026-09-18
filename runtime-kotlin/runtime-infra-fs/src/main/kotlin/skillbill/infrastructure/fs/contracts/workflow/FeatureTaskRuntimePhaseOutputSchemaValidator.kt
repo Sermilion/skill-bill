@@ -9,8 +9,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
@@ -89,5 +87,6 @@ object FeatureTaskRuntimePhaseOutputWireSchema {
     phaseOutputText: String,
     sourceLabel: String,
   ): NormalizedFeatureTaskRuntimePhaseOutput = normalizeVerifyingPhaseOutputLenient(phaseOutputText, sourceLabel)
-
 }
+
+internal typealias FeatureTaskRuntimePhaseOutputSchemaValidator = FeatureTaskRuntimePhaseOutputWireSchema

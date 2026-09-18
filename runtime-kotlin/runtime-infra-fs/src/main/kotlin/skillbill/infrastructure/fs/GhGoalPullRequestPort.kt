@@ -1,12 +1,11 @@
 package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRequest
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRunner
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
 import skillbill.ports.goalrunner.runner.model.GoalPullRequestRequest
 import skillbill.ports.goalrunner.runner.model.GoalPullRequestResult
-import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRequest
-import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRunner
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -125,6 +124,4 @@ private data class CommandResult(
 )
 
 private const val COMMAND_TIMEOUT_SECONDS: Long = 30
-private const val READER_JOIN_TIMEOUT_MILLIS: Long = 1_000
-private const val BUFFER_BYTES: Int = 4096
 private const val MAX_OUTPUT_BYTES: Int = 64 * 1024

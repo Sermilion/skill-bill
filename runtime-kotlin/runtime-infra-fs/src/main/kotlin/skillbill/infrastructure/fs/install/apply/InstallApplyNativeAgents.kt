@@ -5,7 +5,6 @@ import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkOutcome
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkOverrides
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkRequest
 import skillbill.infrastructure.fs.install.staging.installedSkillsCacheRoot
-import skillbill.infrastructure.fs.install.support.InstallSymlinkException
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.InstallAgent

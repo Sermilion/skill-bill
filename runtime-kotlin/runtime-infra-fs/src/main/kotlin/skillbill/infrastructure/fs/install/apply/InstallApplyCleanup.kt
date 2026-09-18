@@ -2,8 +2,6 @@ package skillbill.infrastructure.fs.install.apply
 
 import skillbill.infrastructure.fs.install.plan.platformSkills
 import skillbill.infrastructure.fs.install.staging.installedSkillsCacheRoot
-import skillbill.infrastructure.fs.install.support.InstallCleanupOperations
-import skillbill.infrastructure.fs.install.support.legacySkillBillCleanupNames
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind

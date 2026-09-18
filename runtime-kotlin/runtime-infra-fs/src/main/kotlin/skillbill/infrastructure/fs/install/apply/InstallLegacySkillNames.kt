@@ -1,4 +1,4 @@
-package skillbill.infrastructure.fs.install.support
+package skillbill.infrastructure.fs.install.apply
 
 private val renamedSkillPairs: List<Pair<String, String>> = listOf(
   "bill-module-history" to "bill-boundary-history",

@@ -16,12 +16,12 @@ import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
-import java.security.MessageDigest
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
+import java.security.MessageDigest
 
 internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOperations {
   override fun repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult {
@@ -39,6 +39,10 @@ internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOpe
       val root = repoRoot.normalize()
       untracked.value.orEmpty().split('\u0000').filter(String::isNotBlank).sorted().forEach { path ->
         val resolved = root.resolve(path).normalize()
+        if (Files.isSymbolicLink(resolved)) {
+          UntrackedFingerprintDigest.digestUntrackedEntry(digest, path, resolved)
+          return@forEach
+        }
         requirePathContainedIn(resolved, root) { "Untracked path escapes repository root: $path" }
         UntrackedFingerprintDigest.digestUntrackedEntry(digest, path, resolved)
       }

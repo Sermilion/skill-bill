@@ -1,5 +1,15 @@
 # Boundary History — runtime-kotlin/runtime-infra-fs
 
+## [2026-09-18] SKILL-353 subtask 3 — correct documentation, settle substance report, move adapter tests
+Areas: runtime-infra-fs/scaffold and install, runtime-infra-fs test boundaries, runtime-engine featuretask tests, runtime-application workflow tests, runtime-kotlin architecture
+- Architecture guidance now describes the typed ScaffoldGateway boundary and inventories adapter-internal raw maps under scaffold; the documentation regression guard owns the live claim.
+- The unused platformPackSubstanceReport Gradle task and report entry point were removed; the audit implementation now lives under platformpack/substanceaudit and validation remains its consumer. reusable
+- install/support was dissolved into plan, apply, and rendering owners; engine- and application-dependent tests moved to the module whose behavior they exercise, removing the engine test edge and friendPaths entry.
+- Pattern: record ownership at the boundary while preserving typed ports and existing validation consumers.
+- Known limitation: adapter-internal scaffold raw maps remain documented rather than converted to typed models.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-17] SKILL-353 subtask 2 — one owner per process, agent, environment, and primitive
 Areas: runtime-infra-fs process/install/nativeagent/launcher/scaffold/skillremove, runtime-domain/install, runtime-ports/system, runtime-core architecture
 - Bounded external-process execution, teardown, and capture settlement now have one shared owner across git, gh, validation, review, and installer seams.

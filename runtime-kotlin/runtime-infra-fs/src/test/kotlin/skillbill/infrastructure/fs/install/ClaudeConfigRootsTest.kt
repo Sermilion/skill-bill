@@ -1,8 +1,8 @@
 package skillbill.infrastructure.fs.install
 
+import skillbill.infrastructure.fs.install.plan.claudeConfigRoots
 import skillbill.infrastructure.fs.install.plan.detectAgents
 import skillbill.infrastructure.fs.install.runtime.InstallOperations
-import skillbill.infrastructure.fs.install.support.claudeConfigRoots
 import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.Path

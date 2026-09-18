@@ -1,8 +1,8 @@
 package skillbill.infrastructure.fs.phaseoutput
 
-import skillbill.infrastructure.fs.launcher.process.sha256Hex as contentSha256Hex
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputSourceLocation
+import skillbill.infrastructure.fs.launcher.process.sha256Hex as contentSha256Hex
 
 internal object StructuralRepairSyntax {
   fun generateCandidates(

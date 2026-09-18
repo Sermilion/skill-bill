@@ -1,24 +1,23 @@
 package skillbill.infrastructure.fs.launcher.process
 
-import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.channels.FileChannel
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 
 internal fun newSha256Digest(): MessageDigest = MessageDigest.getInstance("SHA-256")
 
 internal fun sha256Bytes(bytes: ByteArray): ByteArray = newSha256Digest().digest(bytes)
 
-internal fun sha256Hex(bytes: ByteArray): String =
-  sha256Bytes(bytes).joinToString("") { byte -> "%02x".format(byte) }
+internal fun sha256Hex(bytes: ByteArray): String = sha256Bytes(bytes).joinToString("") { byte -> "%02x".format(byte) }
 
 internal fun sha256Hex(text: String): String = sha256Hex(text.toByteArray(Charsets.UTF_8))
 
@@ -52,11 +51,7 @@ internal fun atomicMoveReplacing(source: Path, target: Path) {
   }
 }
 
-internal fun replaceDirectory(
-  source: Path,
-  target: Path,
-  onDegraded: (String) -> Unit,
-) {
+internal fun replaceDirectory(source: Path, target: Path, onDegraded: (String) -> Unit) {
   try {
     Files.move(source, target, ATOMIC_MOVE)
   } catch (error: AtomicMoveNotSupportedException) {

@@ -1,15 +1,12 @@
 package skillbill.infrastructure.fs.contracts
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidGoalObservabilityEventSchemaError
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
-import skillbill.error.InvalidGoalProgressEventSchemaError
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
 import skillbill.contracts.workflow.FeatureTaskRuntimeHandoffEnvelopeSchemaPaths
-import skillbill.error.ShellContentContractException
+import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.InvalidFeatureTaskRuntimeBuildReceiptSchemaError
-import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionContext
+import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.InvalidFeatureTaskRuntimeImplementationAttemptSchemaError
 import skillbill.error.InvalidFeatureTaskRuntimePersistenceSchemaError
 import skillbill.error.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
@@ -17,16 +14,18 @@ import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.error.InvalidFeatureTaskRuntimeProjectionMeasurementSchemaError
 import skillbill.error.InvalidFeatureTaskRuntimeQuarantineSchemaError
 import skillbill.error.InvalidFeatureTaskRuntimeSharedEvidenceProjectionSchemaError
-import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
+import skillbill.error.InvalidGoalObservabilityEventSchemaError
+import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.error.InvalidGoalProgressEventSchemaError
+import skillbill.error.ShellContentContractException
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeWireArtifactKind
 
 internal fun requireValidatorWireMap(
   payload: Any,
   sourceLabel: String,
   nonObjectError: (sourceLabel: String, reason: String) -> ShellContentContractException,
-): Map<String, Any?> =
-  JsonCodec.anyToStringAnyMap(payload)
-    ?: throw nonObjectError(sourceLabel, "<root> must be an object.")
+): Map<String, Any?> = JsonCodec.anyToStringAnyMap(payload)
+  ?: throw nonObjectError(sourceLabel, "<root> must be an object.")
 
 internal fun requireFeatureTaskRuntimeArtifactMap(
   kind: FeatureTaskRuntimeWireArtifactKind,

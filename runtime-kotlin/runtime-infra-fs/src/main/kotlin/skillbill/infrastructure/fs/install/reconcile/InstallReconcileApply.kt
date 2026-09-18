@@ -1,11 +1,11 @@
 package skillbill.infrastructure.fs.install.reconcile
 
 import skillbill.error.ReconciliationConflictError
+import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import skillbill.install.model.BaselineManifest
 import skillbill.install.model.ReconciliationPlan
 import skillbill.install.model.SkillReconciliationOutcome
 import java.io.IOException
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

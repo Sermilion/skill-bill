@@ -1,4 +1,4 @@
-package skillbill.infrastructure.fs.install.support
+package skillbill.infrastructure.fs.install.apply
 
 import java.io.IOException
 import java.nio.file.FileVisitResult

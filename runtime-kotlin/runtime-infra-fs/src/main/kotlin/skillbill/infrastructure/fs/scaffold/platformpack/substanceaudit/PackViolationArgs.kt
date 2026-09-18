@@ -1,4 +1,4 @@
-package skillbill.infrastructure.fs.scaffold.substance
+package skillbill.infrastructure.fs.scaffold.platformpack.substanceaudit
 
 internal data class PackViolationArgs(
   val pack: String,

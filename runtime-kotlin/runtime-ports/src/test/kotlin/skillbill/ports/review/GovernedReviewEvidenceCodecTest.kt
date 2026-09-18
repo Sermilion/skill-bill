@@ -10,8 +10,8 @@ import skillbill.review.context.model.GovernedReviewJsonRpcArguments
 import skillbill.review.context.model.ReviewExpansionRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GovernedReviewEvidenceCodecTest {

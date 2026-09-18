@@ -30,32 +30,31 @@ object FeatureTaskRuntimeImplementationAttemptSchemaValidator {
   private const val MAX_REPORTED_VIOLATIONS: Int = 3
 }
 
-private fun schema(): JsonSchema =
-  ClasspathContractSchemaLoader.compiledSchema(
-    cacheKey = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
-    classLoader = FeatureTaskRuntimeImplementationAttemptSchemaValidator::class.java.classLoader,
-    classpathResource = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidFeatureTaskRuntimeImplementationAttemptSchemaError(
-        sourceLabel = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
-        reason = "Canonical feature-task-runtime implementation-attempt schema is missing. Expected classpath " +
-          "resource '${FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE}'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidFeatureTaskRuntimeImplementationAttemptSchemaError(
-        sourceLabel = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = {},
-    expectedSchemaId = FeatureTaskRuntimeImplementationAttemptSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidFeatureTaskRuntimeImplementationAttemptSchemaError(
-        sourceLabel = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
-        reason = reason,
-      )
-    },
-  )
+private fun schema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  cacheKey = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
+  classLoader = FeatureTaskRuntimeImplementationAttemptSchemaValidator::class.java.classLoader,
+  classpathResource = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
+  missingResource = {
+    InvalidFeatureTaskRuntimeImplementationAttemptSchemaError(
+      sourceLabel = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
+      reason = "Canonical feature-task-runtime implementation-attempt schema is missing. Expected classpath " +
+        "resource '${FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE}'.",
+    )
+  },
+  processingFailure = { cause ->
+    InvalidFeatureTaskRuntimeImplementationAttemptSchemaError(
+      sourceLabel = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
+      reason = cause.message ?: cause::class.simpleName.orEmpty(),
+      cause = cause,
+    )
+  },
+  loadFailureLogger = {},
+  expectedSchemaId = FeatureTaskRuntimeImplementationAttemptSchemaPaths.EXPECTED_SCHEMA_ID,
+  expectedContractVersion = FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION,
+  identityFailure = { reason ->
+    InvalidFeatureTaskRuntimeImplementationAttemptSchemaError(
+      sourceLabel = FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE,
+      reason = reason,
+    )
+  },
+)

@@ -2,14 +2,14 @@ package skillbill.infrastructure.fs.scaffold.runtime
 
 import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.error.InvalidAgentAddonAgentIdError
 import skillbill.error.InvalidScaffoldPayloadError
 import skillbill.error.MissingPlatformPackError
 import skillbill.error.UnknownPreShellFamilyError
-import skillbill.error.InvalidAgentAddonAgentIdError
-import skillbill.install.model.SupportedAgent
 import skillbill.infrastructure.fs.agentaddon.AgentAddonSchemaValidator
 import skillbill.infrastructure.fs.scaffold.payload.requireStringListPayload
 import skillbill.infrastructure.fs.scaffold.platformpack.loadPlatformPack
+import skillbill.install.model.SupportedAgent
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED

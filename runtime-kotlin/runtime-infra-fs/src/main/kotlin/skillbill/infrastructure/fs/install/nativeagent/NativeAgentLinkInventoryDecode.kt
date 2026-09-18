@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.networknt.schema.JsonSchema
 import skillbill.error.InvalidNativeAgentLinkInventoryDecodeError
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.error.ShellContentContractException
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.install.model.SupportedAgent
 import java.io.IOException
 import java.nio.file.Files
@@ -138,10 +138,13 @@ internal object NativeAgentLinkInventoryDecode {
     get(field)?.asText()?.takeIf(String::isNotBlank)
       ?: throw decodeError(path, "$field is required")
 
-  private fun decodeError(path: Path, reason: String, cause: Throwable? = null): InvalidNativeAgentLinkInventoryDecodeError =
-    InvalidNativeAgentLinkInventoryDecodeError(
-      path = path.toString(),
-      reason = "$reason. Delete it and reinstall.",
-      cause = cause,
-    )
+  private fun decodeError(
+    path: Path,
+    reason: String,
+    cause: Throwable? = null,
+  ): InvalidNativeAgentLinkInventoryDecodeError = InvalidNativeAgentLinkInventoryDecodeError(
+    path = path.toString(),
+    reason = "$reason. Delete it and reinstall.",
+    cause = cause,
+  )
 }

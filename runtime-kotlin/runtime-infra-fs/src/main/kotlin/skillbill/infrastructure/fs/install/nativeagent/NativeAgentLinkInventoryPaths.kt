@@ -28,8 +28,7 @@ internal object NativeAgentLinkInventoryPaths {
   fun inventoryPath(home: Path): Path = home.resolve(".skill-bill/native-agent-link-inventory.json")
     .toAbsolutePath().normalize()
 
-  fun provider(id: String): NativeAgentProvider =
-    NativeAgentProvider.forSupportedAgent(SupportedAgent.fromWire(id))
+  fun provider(id: String): NativeAgentProvider = NativeAgentProvider.forSupportedAgent(SupportedAgent.fromWire(id))
 
   private fun generationChildren(parent: Path, prefix: String = ""): List<Path> {
     if (!Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS)) return emptyList()

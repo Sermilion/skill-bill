@@ -47,6 +47,9 @@ internal object GovernedReviewEvidenceCodecWireParsing {
 
   private fun optionalString(source: Map<String, Any?>, key: String): String? = source[key]?.let { value ->
     (value as? String)?.takeIf(String::isNotBlank)?.also(ReviewEvidenceLimits::field)
-      ?: throw InvalidGovernedReviewEvidenceRequestError("review-evidence", "Optional selector must be a nonblank string.")
+      ?: throw InvalidGovernedReviewEvidenceRequestError(
+        "review-evidence",
+        "Optional selector must be a nonblank string.",
+      )
   }
 }

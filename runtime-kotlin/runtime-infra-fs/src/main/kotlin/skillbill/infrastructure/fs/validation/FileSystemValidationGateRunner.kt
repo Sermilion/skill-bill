@@ -1,11 +1,14 @@
 package skillbill.infrastructure.fs.validation
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.fs.JdkHostPlatformPort
 import skillbill.infrastructure.fs.jvm.GateJvmDisposition
 import skillbill.infrastructure.fs.jvm.GateJvmResolver
 import skillbill.infrastructure.fs.jvm.GateJvmStartupFailureException
 import skillbill.infrastructure.fs.jvm.GateJvmUnresolvedException
 import skillbill.infrastructure.fs.jvm.applyTo
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRequest
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRunner
 import skillbill.ports.validation.ValidationGateRunner
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunRequest
@@ -16,9 +19,6 @@ import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import skillbill.infrastructure.fs.JdkHostPlatformPort
-import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRequest
-import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRunner
 import javax.xml.parsers.DocumentBuilderFactory
 
 @Inject

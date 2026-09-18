@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.nativeagent
 
-import skillbill.install.model.SupportedAgent
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
+import skillbill.install.model.SupportedAgent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

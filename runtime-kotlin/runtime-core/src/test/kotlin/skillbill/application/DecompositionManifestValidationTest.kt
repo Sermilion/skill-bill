@@ -2,8 +2,8 @@ package skillbill.application
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidDecompositionManifestSchemaError
-import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
+import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.decodeManifest

@@ -1,12 +1,11 @@
 package skillbill.infrastructure.fs
 
 import org.yaml.snakeyaml.Yaml
+import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import skillbill.scaffold.model.GovernedAddonActivation
 import skillbill.scaffold.model.GovernedAddonSelection
 import java.io.IOException
-import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
 internal fun applyPlan(plan: SourcePlan) {

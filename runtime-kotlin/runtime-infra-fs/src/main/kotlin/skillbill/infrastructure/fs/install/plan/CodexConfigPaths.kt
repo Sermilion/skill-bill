@@ -1,4 +1,4 @@
-package skillbill.infrastructure.fs.install.support
+package skillbill.infrastructure.fs.install.plan
 
 import java.nio.file.Files
 import java.nio.file.Path

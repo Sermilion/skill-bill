@@ -1,19 +1,14 @@
-package skillbill.infrastructure.fs.install.support
+package skillbill.infrastructure.fs.install.apply
 
-import java.io.IOException
 import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
+import java.io.IOException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.UUID
-import java.util.logging.Level
-import java.util.logging.Logger
-
-private val log: Logger = Logger.getLogger("skillbill.install.InstallSymlinkReplacement")
 
 internal fun createReplacementSymlinkWithGuidance(linkPath: Path, linkTarget: Path) {
   createManagedSymlinkWithGuidance(linkPath, linkTarget, replaceExisting = true)

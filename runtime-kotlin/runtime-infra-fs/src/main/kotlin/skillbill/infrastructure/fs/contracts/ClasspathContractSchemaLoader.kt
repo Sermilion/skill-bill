@@ -83,37 +83,35 @@ internal object ClasspathContractSchemaLoader {
     contractVersionMatches: ((JsonNode, String) -> Boolean)? = null,
     identityFailure: (String) -> ShellContentContractException,
     prepareSchemaDocument: (JsonNode) -> Unit = {},
-  ): JsonSchema =
-    compiledSchemas.computeIfAbsent(cacheKey) {
-      compileSchemaDocument(
-        classLoader = classLoader,
-        classpathResource = classpathResource,
-        missingResource = missingResource,
-        processingFailure = processingFailure,
-        loadFailureLogger = loadFailureLogger,
-        expectedSchemaId = expectedSchemaId,
-        expectedContractVersion = expectedContractVersion,
-        contractVersionPath = contractVersionPath,
-        contractVersionMatches = contractVersionMatches,
-        identityFailure = identityFailure,
-        prepareSchemaDocument = prepareSchemaDocument,
-      )
-    }
+  ): JsonSchema = compiledSchemas.computeIfAbsent(cacheKey) {
+    compileSchemaDocument(
+      classLoader = classLoader,
+      classpathResource = classpathResource,
+      missingResource = missingResource,
+      processingFailure = processingFailure,
+      loadFailureLogger = loadFailureLogger,
+      expectedSchemaId = expectedSchemaId,
+      expectedContractVersion = expectedContractVersion,
+      contractVersionPath = contractVersionPath,
+      contractVersionMatches = contractVersionMatches,
+      identityFailure = identityFailure,
+      prepareSchemaDocument = prepareSchemaDocument,
+    )
+  }
 
   fun compiledSchemaFromYamlNode(
     cacheKey: String,
     yamlNode: JsonNode,
     processingFailure: (Throwable) -> ShellContentContractException,
-  ): JsonSchema =
-    compiledSchemas.computeIfAbsent(cacheKey) {
-      try {
-        jsonSchemaFactory.getSchema(objectMapper.writeValueAsString(yamlNode), LOCALE_STABLE_SCHEMA_CONFIG)
-      } catch (cancellation: CancellationException) {
-        throw cancellation
-      } catch (error: Exception) {
-        throw processingFailure(error)
-      }
+  ): JsonSchema = compiledSchemas.computeIfAbsent(cacheKey) {
+    try {
+      jsonSchemaFactory.getSchema(objectMapper.writeValueAsString(yamlNode), LOCALE_STABLE_SCHEMA_CONFIG)
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (error: Exception) {
+      throw processingFailure(error)
     }
+  }
 
   fun compileUncachedYamlNode(yamlNode: JsonNode): JsonSchema =
     jsonSchemaFactory.getSchema(objectMapper.writeValueAsString(yamlNode), LOCALE_STABLE_SCHEMA_CONFIG)

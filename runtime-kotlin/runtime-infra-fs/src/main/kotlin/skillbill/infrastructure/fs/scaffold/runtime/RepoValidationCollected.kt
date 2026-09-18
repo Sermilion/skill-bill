@@ -3,8 +3,8 @@ package skillbill.infrastructure.fs.scaffold.runtime
 import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentCompositionContext
 import skillbill.infrastructure.fs.nativeagent.rendering.discoverRepoNativeAgentSourceEntries
 import skillbill.infrastructure.fs.nativeagent.validation.validateRepoNativeAgents
+import skillbill.infrastructure.fs.scaffold.platformpack.substanceaudit.PlatformPackSubstanceAudit
 import skillbill.infrastructure.fs.scaffold.pointer.validateGeneratedArtifactGuard
-import skillbill.infrastructure.fs.scaffold.substance.PlatformPackSubstanceAudit
 import skillbill.infrastructure.fs.scaffold.validation.validateGovernedSkillDrift
 import java.nio.file.Path
 

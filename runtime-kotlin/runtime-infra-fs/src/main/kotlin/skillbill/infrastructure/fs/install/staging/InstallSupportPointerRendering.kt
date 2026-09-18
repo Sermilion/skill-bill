@@ -1,6 +1,5 @@
-package skillbill.infrastructure.fs.install.support
+package skillbill.infrastructure.fs.install.staging
 
-import skillbill.infrastructure.fs.install.staging.GeneratedSupportPointer
 import skillbill.infrastructure.fs.scaffold.authoring.normalizeMarkdownLineEndings
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files

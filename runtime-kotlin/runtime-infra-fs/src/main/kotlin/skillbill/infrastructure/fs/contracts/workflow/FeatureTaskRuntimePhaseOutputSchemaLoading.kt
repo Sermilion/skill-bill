@@ -1,14 +1,12 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
 import com.networknt.schema.JsonSchema
-import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
 import java.util.logging.Level
 import java.util.logging.Logger
-import kotlin.coroutines.cancellation.CancellationException
 
 internal val featureTaskRuntimePhaseOutputLog: Logger =
   Logger.getLogger("skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputWireSchema")
@@ -19,35 +17,34 @@ internal const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE: 
 internal const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_REPO_RELATIVE_PATH: String =
   FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH
 
-internal fun loadFeatureTaskRuntimePhaseOutputSchema(): JsonSchema =
-  ClasspathContractSchemaLoader.compiledSchema(
-    cacheKey = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-    classLoader = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader,
-    classpathResource = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-        reason = "Canonical feature-task-runtime phase output schema is missing. Expected to find it on the JVM " +
-          "classpath at '$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = { error -> logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error) },
-    expectedSchemaId = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-        reason = reason,
-      )
-    },
-  )
+internal fun loadFeatureTaskRuntimePhaseOutputSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  cacheKey = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+  classLoader = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader,
+  classpathResource = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+  missingResource = {
+    InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+      sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+      reason = "Canonical feature-task-runtime phase output schema is missing. Expected to find it on the JVM " +
+        "classpath at '$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE'.",
+    )
+  },
+  processingFailure = { cause ->
+    InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+      sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+      reason = cause.message ?: cause::class.simpleName.orEmpty(),
+      cause = cause,
+    )
+  },
+  loadFailureLogger = { error -> logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error) },
+  expectedSchemaId = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
+  expectedContractVersion = FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
+  identityFailure = { reason ->
+    InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+      sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+      reason = reason,
+    )
+  },
+)
 
 private fun logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error: Throwable) {
   featureTaskRuntimePhaseOutputLog.log(

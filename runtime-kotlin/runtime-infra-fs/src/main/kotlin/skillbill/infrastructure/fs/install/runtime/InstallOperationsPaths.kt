@@ -2,11 +2,11 @@ package skillbill.infrastructure.fs.install.runtime
 
 import skillbill.infrastructure.fs.install.plan.SUPPORTED_AGENTS
 import skillbill.infrastructure.fs.install.plan.agentPaths
+import skillbill.infrastructure.fs.install.plan.claudeConfigRoot
+import skillbill.infrastructure.fs.install.plan.claudeConfigRoots
+import skillbill.infrastructure.fs.install.plan.codexConfigRoots
 import skillbill.infrastructure.fs.install.plan.installConfigRoots
 import skillbill.infrastructure.fs.install.plan.resolveInstallHome
-import skillbill.infrastructure.fs.install.support.claudeConfigRoot
-import skillbill.infrastructure.fs.install.support.claudeConfigRoots
-import skillbill.infrastructure.fs.install.support.codexConfigRoots
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Path

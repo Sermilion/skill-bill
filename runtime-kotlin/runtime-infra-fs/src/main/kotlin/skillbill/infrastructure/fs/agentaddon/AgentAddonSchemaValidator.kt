@@ -1,8 +1,6 @@
 package skillbill.infrastructure.fs.agentaddon
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
 import skillbill.contracts.agentaddon.AGENT_ADDON_CONTRACT_VERSION
 import skillbill.contracts.agentaddon.AgentAddonSchemaPaths
@@ -10,15 +8,14 @@ import skillbill.error.InvalidAgentAddonSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
 
 private object ClasspathAgentAddonSchemaResourceLoader : AgentAddonSchemaResourceLoader {
-  override fun read(): String =
-    AgentAddonSchemaValidator::class.java.classLoader
-      .getResourceAsStream(AgentAddonSchemaPaths.CLASSPATH_RESOURCE)
-      ?.bufferedReader()
-      ?.use { it.readText() }
-      ?: throw InvalidAgentAddonSchemaError(
-        AgentAddonSchemaPaths.CLASSPATH_RESOURCE,
-        "canonical schema resource is missing",
-      )
+  override fun read(): String = AgentAddonSchemaValidator::class.java.classLoader
+    .getResourceAsStream(AgentAddonSchemaPaths.CLASSPATH_RESOURCE)
+    ?.bufferedReader()
+    ?.use { it.readText() }
+    ?: throw InvalidAgentAddonSchemaError(
+      AgentAddonSchemaPaths.CLASSPATH_RESOURCE,
+      "canonical schema resource is missing",
+    )
 }
 
 fun interface AgentAddonSchemaResourceLoader {

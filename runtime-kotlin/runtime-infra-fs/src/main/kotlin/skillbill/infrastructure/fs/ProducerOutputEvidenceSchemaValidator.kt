@@ -11,7 +11,7 @@ import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 
 @Inject
-class ProducerOutputEvidenceSchemaValidator() : ProducerOutputEvidenceValidator {
+class ProducerOutputEvidenceSchemaValidator : ProducerOutputEvidenceValidator {
   override fun validate(evidence: ProducerOutputEvidence) {
     val mapper = ClasspathContractSchemaLoader.sharedObjectMapper()
     val instance = mapper.createObjectNode().apply {
@@ -38,25 +38,26 @@ class ProducerOutputEvidenceSchemaValidator() : ProducerOutputEvidenceValidator 
   }
 
   companion object {
-    fun validate(evidence: ProducerOutputEvidence) = ProducerOutputEvidenceSchemaValidator().validate(evidence)
+    private val canonical: ProducerOutputEvidenceSchemaValidator by lazy(::ProducerOutputEvidenceSchemaValidator)
+
+    fun validate(evidence: ProducerOutputEvidence) = canonical.validate(evidence)
   }
 }
 
-private fun producerOutputEvidenceSchema(): JsonSchema =
-  ClasspathContractSchemaLoader.compiledSchema(
-    cacheKey = ProducerOutputEvidenceSchemaPaths.CLASSPATH_RESOURCE,
-    classLoader = ProducerOutputEvidenceSchemaValidator::class.java.classLoader,
-    classpathResource = ProducerOutputEvidenceSchemaPaths.CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidProducerOutputEvidenceSchemaError("Canonical producer output evidence schema resource is missing.")
-    },
-    processingFailure = { cause ->
-      InvalidProducerOutputEvidenceSchemaError(
-        cause.message ?: cause::class.simpleName.orEmpty(),
-      )
-    },
-    loadFailureLogger = {},
-    expectedSchemaId = ProducerOutputEvidenceSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = PRODUCER_OUTPUT_EVIDENCE_CONTRACT_VERSION,
-    identityFailure = { reason -> InvalidProducerOutputEvidenceSchemaError(reason) },
-  )
+private fun producerOutputEvidenceSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  cacheKey = ProducerOutputEvidenceSchemaPaths.CLASSPATH_RESOURCE,
+  classLoader = ProducerOutputEvidenceSchemaValidator::class.java.classLoader,
+  classpathResource = ProducerOutputEvidenceSchemaPaths.CLASSPATH_RESOURCE,
+  missingResource = {
+    InvalidProducerOutputEvidenceSchemaError("Canonical producer output evidence schema resource is missing.")
+  },
+  processingFailure = { cause ->
+    InvalidProducerOutputEvidenceSchemaError(
+      cause.message ?: cause::class.simpleName.orEmpty(),
+    )
+  },
+  loadFailureLogger = {},
+  expectedSchemaId = ProducerOutputEvidenceSchemaPaths.EXPECTED_SCHEMA_ID,
+  expectedContractVersion = PRODUCER_OUTPUT_EVIDENCE_CONTRACT_VERSION,
+  identityFailure = { reason -> InvalidProducerOutputEvidenceSchemaError(reason) },
+)

@@ -7,9 +7,9 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.error.InvalidAgentAddonSelectionError
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import java.nio.file.Files
 import java.nio.file.Path
@@ -90,7 +90,11 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
     }
   }
 
-  private fun parseAgent(id: String): String = runCatching { SupportedAgent.parseAgentAddonId(id).wireValue }.getOrElse {
+  private fun parseAgent(id: String): String = runCatching {
+    SupportedAgent.parseAgentAddonId(
+      id,
+    ).wireValue
+  }.getOrElse {
     throw InvalidAgentAddonSelectionError("Unknown receiving agent '$id'.")
   }
 
@@ -119,5 +123,4 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
 
   private fun invalidField(key: String): Nothing =
     throw InvalidAgentAddonSelectionError("Selected agent add-on manifest field '$key' is malformed.")
-
 }

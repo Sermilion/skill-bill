@@ -10,11 +10,8 @@ import kotlin.concurrent.thread
 internal const val GIT_PROCESS_CLEANUP_BUDGET_SECONDS = 5L
 internal const val GIT_PROCESS_POLL_MILLIS = 50L
 
-internal fun startGitProcess(
-  repoRoot: Path,
-  args: List<String>,
-  configure: ProcessBuilder.() -> Unit = {},
-): Process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args).apply(configure).start()
+internal fun startGitProcess(repoRoot: Path, args: List<String>, configure: ProcessBuilder.() -> Unit = {}): Process =
+  ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args).apply(configure).start()
 
 internal fun invokeGitProcess(repoRoot: Path, args: List<String>, stdin: ByteArray?): GitProcessResult {
   val process = startGitProcess(repoRoot, args) { redirectErrorStream(true) }

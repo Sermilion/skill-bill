@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_HANDOFF_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
+import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_HANDOFF_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PROJECTION_MEASUREMENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECTION_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION
@@ -23,8 +23,6 @@ import skillbill.error.InvalidFeatureTaskRuntimeSharedEvidenceProjectionSchemaEr
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.error.ShellContentContractException
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
-import java.nio.file.Files
-import java.nio.file.Path
 
 private const val MAX_REPORTED_SCHEMA_FAILURES = 3
 
@@ -96,35 +94,34 @@ object FeatureTaskRuntimeBuildReceiptSchemaValidator {
   }
 }
 
-private fun buildReceiptSchema(): JsonSchema =
-  ClasspathContractSchemaLoader.compiledSchema(
-    cacheKey = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-    classLoader = FeatureTaskRuntimeBuildReceiptSchemaValidator::class.java.classLoader,
-    classpathResource = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
-        sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-        reason = "Canonical feature-task-runtime build receipt schema is missing. Expected it on the JVM " +
-          "classpath at '${FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE}'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
-        sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = {},
-    expectedSchemaId = FeatureTaskRuntimeBuildReceiptSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
-        sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-        reason = reason,
-      )
-    },
-  )
+private fun buildReceiptSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  cacheKey = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+  classLoader = FeatureTaskRuntimeBuildReceiptSchemaValidator::class.java.classLoader,
+  classpathResource = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+  missingResource = {
+    InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
+      sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+      reason = "Canonical feature-task-runtime build receipt schema is missing. Expected it on the JVM " +
+        "classpath at '${FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE}'.",
+    )
+  },
+  processingFailure = { cause ->
+    InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
+      sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+      reason = cause.message ?: cause::class.simpleName.orEmpty(),
+      cause = cause,
+    )
+  },
+  loadFailureLogger = {},
+  expectedSchemaId = FeatureTaskRuntimeBuildReceiptSchemaPaths.EXPECTED_SCHEMA_ID,
+  expectedContractVersion = FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION,
+  identityFailure = { reason ->
+    InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
+      sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+      reason = reason,
+    )
+  },
+)
 
 private data class BuildReceiptViolationReasons(val valueBearing: String, val payloadFree: String)
 

@@ -31,9 +31,8 @@ internal interface RuntimeWorkflowValidatorProvides {
   ): GoalObservabilityEventValidator = validator
 
   @Provides @JvmSynthetic
-  fun goalProgressEventValidator(
-    validator: FeatureTaskRuntimeWireArtifactValidator,
-  ): GoalProgressEventValidator = validator
+  fun goalProgressEventValidator(validator: FeatureTaskRuntimeWireArtifactValidator): GoalProgressEventValidator =
+    validator
 
   @Provides @JvmSynthetic
   fun ideStatusValidator(validator: IdeStatusSchemaValidator): IdeStatusValidator = validator

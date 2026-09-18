@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.contracts
 
-import skillbill.contracts.workflow.GoalProgressEventSchemaPaths
 import skillbill.contracts.workflow.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
+import skillbill.contracts.workflow.GoalProgressEventSchemaPaths
 import skillbill.error.InvalidGoalProgressEventSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE
 import java.nio.file.Files

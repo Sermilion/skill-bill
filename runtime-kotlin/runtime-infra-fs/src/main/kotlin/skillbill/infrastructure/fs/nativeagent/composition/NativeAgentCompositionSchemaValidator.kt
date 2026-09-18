@@ -8,9 +8,6 @@ import com.networknt.schema.ValidationMessage
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.error.InvalidNativeAgentCompositionSchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -75,42 +72,41 @@ object NativeAgentCompositionSchemaValidator {
     { it.message.orEmpty() },
   )
 
-  private fun loadSchema(): JsonSchema =
-    ClasspathContractSchemaLoader.compiledSchema(
-      cacheKey = NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
-      classLoader = NativeAgentCompositionSchemaValidator::class.java.classLoader,
-      classpathResource = NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
-      missingResource = {
-        InvalidNativeAgentCompositionSchemaError(
-          sourceLabel = "<schema-load>",
-          reason = "Canonical native-agent composition schema is missing. Expected classpath resource " +
-            "'${NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE}'.",
-        )
-      },
-      processingFailure = { cause ->
-        InvalidNativeAgentCompositionSchemaError(
-          sourceLabel = "<schema-load>",
-          reason = cause.message ?: cause::class.simpleName.orEmpty(),
-          cause = cause,
-        )
-      },
-      loadFailureLogger = { error ->
-        logSchemaLoadFailure(
-          log,
-          "native-agent composition",
-          NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
-          NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH,
-          error,
-        )
-      },
-      expectedSchemaId = NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID,
-      expectedContractVersion = NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION,
-      contractVersionPath = listOf("\$defs", "contractVersion", "const"),
-      identityFailure = { reason ->
-        InvalidNativeAgentCompositionSchemaError(
-          sourceLabel = "<schema-load>",
-          reason = reason,
-        )
-      },
-    )
+  private fun loadSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+    cacheKey = NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
+    classLoader = NativeAgentCompositionSchemaValidator::class.java.classLoader,
+    classpathResource = NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidNativeAgentCompositionSchemaError(
+        sourceLabel = "<schema-load>",
+        reason = "Canonical native-agent composition schema is missing. Expected classpath resource " +
+          "'${NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE}'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidNativeAgentCompositionSchemaError(
+        sourceLabel = "<schema-load>",
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        log,
+        "native-agent composition",
+        NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE,
+        NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION,
+    contractVersionPath = listOf("\$defs", "contractVersion", "const"),
+    identityFailure = { reason ->
+      InvalidNativeAgentCompositionSchemaError(
+        sourceLabel = "<schema-load>",
+        reason = reason,
+      )
+    },
+  )
 }

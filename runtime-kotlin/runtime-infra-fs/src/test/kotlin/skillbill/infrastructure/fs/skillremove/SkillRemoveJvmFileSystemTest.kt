@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.skillremove
 
-import skillbill.application.scaffold.SkillRemove
 import skillbill.domain.skillremove.model.ManifestEditKind
+import skillbill.domain.skillremove.model.SkillRemovalPreview
 import skillbill.domain.skillremove.model.SkillRemovalRequest
 import skillbill.domain.skillremove.model.SkillRemovalTarget
 import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackManifests
@@ -151,14 +151,13 @@ class SkillRemoveJvmFileSystemTest {
   fun `applyCascade rewrites platform yaml removing baseline and pointer entries`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val service = SkillRemove(fs)
     val request = SkillRemovalRequest(
 
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
       repoRootAbsolutePath = repoRoot.toString(),
     )
 
-    service.executeRemoval(request)
+    fs.executeRemoval(request)
 
     val kmpManifest = Files.readString(repoRoot.resolve("platform-packs/kmp/platform.yaml"))
     assertTrue(
@@ -180,14 +179,13 @@ class SkillRemoveJvmFileSystemTest {
   fun `applyCascade leaves platform packs in a state the schema accepts on reload`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val service = SkillRemove(fs)
     val request = SkillRemovalRequest(
 
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
       repoRootAbsolutePath = repoRoot.toString(),
     )
 
-    service.executeRemoval(request)
+    fs.executeRemoval(request)
 
     val packs = discoverPlatformPackManifests(repoRoot.resolve("platform-packs"))
     val kmpPack = packs.first { it.slug == "kmp" }
@@ -207,13 +205,12 @@ class SkillRemoveJvmFileSystemTest {
     val packRoot = repoRoot.resolve("platform-packs/kotlin")
     val otherPackRoot = repoRoot.resolve("platform-packs/kmp")
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val service = SkillRemove(fs)
     val request = SkillRemovalRequest(
       target = SkillRemovalTarget.PlatformPack(platform = "kotlin"),
       repoRootAbsolutePath = repoRoot.toString(),
     )
 
-    service.executeRemoval(request)
+    fs.executeRemoval(request)
 
     assertTrue(!Files.exists(packRoot, LinkOption.NOFOLLOW_LINKS), "platform pack root should be deleted")
     assertTrue(Files.isDirectory(otherPackRoot, LinkOption.NOFOLLOW_LINKS), "unrelated platform pack should remain")
@@ -243,13 +240,12 @@ class SkillRemoveJvmFileSystemTest {
   fun `executeRemoval AddOn removes platform and skill-class references`() {
     val (repoRoot, addon) = seedRepoWithAddonReferences()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val service = SkillRemove(fs)
     val request = SkillRemovalRequest(
       target = SkillRemovalTarget.AddOn("platform-packs/kmp/addons/android-compose-edge-to-edge.md"),
       repoRootAbsolutePath = repoRoot.toString(),
     )
 
-    service.executeRemoval(request)
+    fs.executeRemoval(request)
 
     assertTrue(!Files.exists(addon, LinkOption.NOFOLLOW_LINKS), "add-on file should be deleted")
     val platformManifest = Files.readString(repoRoot.resolve("platform-packs/kmp/platform.yaml"))
@@ -285,7 +281,6 @@ class SkillRemoveJvmFileSystemTest {
       """.trimMargin(),
     )
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val service = SkillRemove(fs)
     val request = SkillRemovalRequest(
       target = SkillRemovalTarget.ExternalAddOn(
         sourceRootAbsolutePath = externalDir.toString(),
@@ -295,12 +290,40 @@ class SkillRemoveJvmFileSystemTest {
       repoRootAbsolutePath = repoRoot.toString(),
     )
 
-    service.executeRemoval(request)
+    fs.executeRemoval(request)
 
     assertTrue(!Files.exists(addon, LinkOption.NOFOLLOW_LINKS), "external add-on file should be deleted")
     val manifest = Files.readString(externalDir.resolve("addon-manifest.yaml"))
     assertTrue("awesome.md" !in manifest, manifest)
     assertTrue("navigation.md" in manifest, manifest)
+  }
+
+  private fun SkillRemoveJvmFileSystem.executeRemoval(request: SkillRemovalRequest) {
+    val cascadedSkillNames = when (val target = request.target) {
+      is SkillRemovalTarget.HorizontalSkill ->
+        listOf(target.skillName) +
+          discoverCascadedSkillNames(request).filter { it != target.skillName }
+      is SkillRemovalTarget.PlatformPack,
+      is SkillRemovalTarget.AddOn,
+      is SkillRemovalTarget.ExternalAddOn,
+      -> emptyList()
+    }
+    val skillDirRoot = when (val target = request.target) {
+      is SkillRemovalTarget.HorizontalSkill -> "skills/${target.skillName}"
+      is SkillRemovalTarget.PlatformPack -> "platform-packs/${target.platform}"
+      is SkillRemovalTarget.AddOn -> target.relativePath
+      is SkillRemovalTarget.ExternalAddOn ->
+        Path.of(target.sourceRootAbsolutePath).resolve(target.fileName).normalize().toString().replace('\\', '/')
+    }
+    val preview = SkillRemovalPreview(
+      filesystemPaths = resolveCascadeFilesystemPaths(request, cascadedSkillNames),
+      manifestEdits = planManifestEdits(request, cascadedSkillNames),
+      agentSymlinkUnlinks = planAgentSymlinkUnlinks(request, cascadedSkillNames),
+      readmeCatalogEdits = planReadmeCatalogEdits(request),
+      skillDirRoot = skillDirRoot,
+      cascadedSkillNames = cascadedSkillNames,
+    )
+    applyCascade(request, preview)
   }
 
   private fun seedRepoWithAddonReferences(): Pair<Path, Path> {

@@ -4,8 +4,8 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION
 import skillbill.error.InvalidNativeAgentLinkInventoryWriteError
 import skillbill.error.ShellContentContractException
-import java.io.IOException
 import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -31,7 +31,10 @@ internal object NativeAgentLinkInventoryWrite {
     }
     val bytes = request.mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(root)
     if (bytes.size > NativeAgentLinkInventoryLimits.MAX_BYTES) {
-      throw writeError(request.path, "native-agent link inventory exceeds ${NativeAgentLinkInventoryLimits.MAX_BYTES} bytes")
+      throw writeError(
+        request.path,
+        "native-agent link inventory exceeds ${NativeAgentLinkInventoryLimits.MAX_BYTES} bytes",
+      )
     }
     val schemaErrors = request.schema.validate(request.mapper.readTree(bytes))
     if (schemaErrors.isNotEmpty()) {

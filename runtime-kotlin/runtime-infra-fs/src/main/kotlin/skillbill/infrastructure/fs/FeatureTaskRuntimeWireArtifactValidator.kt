@@ -18,7 +18,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 
 @Inject
-class FeatureTaskRuntimeWireArtifactValidator() : FeatureTaskRuntimeWireArtifactValidator {
+class FeatureTaskRuntimeWireArtifactValidator : FeatureTaskRuntimeWireArtifactValidator {
   override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
     val wireMap = requireFeatureTaskRuntimeArtifactMap(kind, payload, sourceLabel)
     when (kind) {

@@ -71,10 +71,7 @@ data class NativeAgentHomeTarget(
   val path: Path,
 )
 
-fun detectCodexAgentsTargets(
-  home: Path,
-  environment: Map<String, String>,
-): List<NativeAgentHomeTarget> {
+fun detectCodexAgentsTargets(home: Path, environment: Map<String, String>): List<NativeAgentHomeTarget> {
   val resolvedHome = home
   if (!codexAgentIsPresent(resolvedHome, environment)) {
     return emptyList()

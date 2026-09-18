@@ -2,9 +2,9 @@ package skillbill.infrastructure.fs
 
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalPayloadKeys
 import skillbill.error.InvalidDecompositionManifestBundleJournalError
+import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestBundleJournalSchemaValidator
 import skillbill.infrastructure.fs.launcher.process.pathContainedIn
 import skillbill.infrastructure.fs.launcher.process.sha256Hex
-import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestBundleJournalSchemaValidator
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException

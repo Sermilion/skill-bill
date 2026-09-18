@@ -101,35 +101,34 @@ object DecompositionManifestBundleJournalSchemaValidator {
     )
   }
 
-  private fun schema(): JsonSchema =
-    ClasspathContractSchemaLoader.compiledSchema(
-      cacheKey = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
-      classLoader = DecompositionManifestBundleJournalSchemaValidator::class.java.classLoader,
-      classpathResource = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
-      missingResource = {
-        InvalidDecompositionManifestBundleJournalError(
-          sourceLabel = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
-          reason = "Canonical bundle journal schema resource is missing from the classpath.",
-          failureCode = "schema_resource_missing",
-        )
-      },
-      processingFailure = { cause ->
-        InvalidDecompositionManifestBundleJournalError(
-          sourceLabel = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
-          reason = cause.message ?: cause::class.simpleName.orEmpty(),
-          failureCode = "schema_load_error",
-          cause = cause,
-        )
-      },
-      loadFailureLogger = {},
-      expectedSchemaId = DecompositionManifestBundleJournalSchemaPaths.EXPECTED_SCHEMA_ID,
-      expectedContractVersion = BUNDLE_JOURNAL_CONTRACT_VERSION,
-      identityFailure = { reason ->
-        InvalidDecompositionManifestBundleJournalError(
-          sourceLabel = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
-          reason = reason,
-          failureCode = "schema_identity_error",
-        )
-      },
-    )
+  private fun schema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+    cacheKey = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
+    classLoader = DecompositionManifestBundleJournalSchemaValidator::class.java.classLoader,
+    classpathResource = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidDecompositionManifestBundleJournalError(
+        sourceLabel = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
+        reason = "Canonical bundle journal schema resource is missing from the classpath.",
+        failureCode = "schema_resource_missing",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidDecompositionManifestBundleJournalError(
+        sourceLabel = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        failureCode = "schema_load_error",
+        cause = cause,
+      )
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = DecompositionManifestBundleJournalSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = BUNDLE_JOURNAL_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidDecompositionManifestBundleJournalError(
+        sourceLabel = DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE,
+        reason = reason,
+        failureCode = "schema_identity_error",
+      )
+    },
+  )
 }

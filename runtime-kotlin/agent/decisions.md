@@ -4,6 +4,12 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-17] SKILL-353 subtask 3: platform-pack substance report Gradle task removed
+Context: SKILL-353 subtask 3 census. `platformPackSubstanceReport` and `PlatformPackSubstanceReportMain` were referenced only from `runtime-infra-fs/build.gradle.kts` and feature-spec investigation prose. No CI workflow, script, or operator doc invoked the task. `RepoValidationCollected` already calls `PlatformPackSubstanceAudit.audit` on the `skill-bill validate` path.
+Decision: Delete the Gradle `platformPackSubstanceReport` task and `PlatformPackSubstanceReportMain.kt`. Relocate the audit implementation from `scaffold/substance/` to `scaffold/platformpack/substanceaudit/` with the same `PlatformPackSubstanceAudit` entry point. Do not add a CLI report command — no measured operator caller.
+Reason: The report task duplicated audit logic without a consumer; validate already enforces substance for well-formed repos.
+Alternatives considered: `skill-bill` CLI subcommand via `ScaffoldCatalogGateway` (rejected: census found no operator use). Delete `scaffold/substance/**` wholesale without relocating audit types (rejected: would break repo validation until types moved).
+
 ## [2026-09-17] Empty produced_outputs is valid envelope payload
 Context: Runtime-owned validate finishes without agent JSON, and the envelope schema rejected `produced_outputs: {}` before the runtime could stamp gate evidence.
 Decision: Keep `produced_outputs` required as an object. Drop envelope `minProperties: 1`. Empty `{}` is valid when a phase has no payload. Phase allOf branches still require their shapes.

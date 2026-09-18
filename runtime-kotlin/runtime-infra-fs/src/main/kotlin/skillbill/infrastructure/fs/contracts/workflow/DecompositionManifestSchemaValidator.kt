@@ -4,13 +4,11 @@ import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
 import me.tatarka.inject.annotations.Inject
-import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.workflow.DECOMPOSITION_MANIFEST_CONTRACT_VERSION
 import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
@@ -40,7 +38,7 @@ private val decompositionManifestLog: Logger =
   Logger.getLogger("skillbill.contracts.workflow.DecompositionManifestSchemaValidator")
 
 @Inject
-class DecompositionManifestSchemaValidator() : DecompositionManifestValidator {
+class DecompositionManifestSchemaValidator : DecompositionManifestValidator {
   private val yamlMapper: YAMLMapper =
     YAMLMapper(YAMLFactory().apply { enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION) })
   private val mapType = object : TypeReference<Map<String, Any?>>() {}
@@ -252,13 +250,12 @@ class DecompositionManifestSchemaValidator() : DecompositionManifestValidator {
     DecompositionManifestValidationSourceLocation(sourceLabel, offset, line, column)
 
   companion object {
-    private val canonical = DecompositionManifestSchemaValidator()
+    private val canonical: DecompositionManifestSchemaValidator by lazy(::DecompositionManifestSchemaValidator)
 
     fun validate(manifest: Map<String, Any?>, sourceLabel: String) = canonical.validate(manifest, sourceLabel)
 
     fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> =
       canonical.validateYamlTextMap(yamlText, sourceLabel)
-
   }
 }
 
@@ -268,43 +265,42 @@ internal const val DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH: String =
   DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH
 
-private fun decompositionManifestSchema(): JsonSchema =
-  ClasspathContractSchemaLoader.compiledSchema(
-    cacheKey = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-    classLoader = DecompositionManifestSchemaValidator::class.java.classLoader,
-    classpathResource = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidDecompositionManifestSchemaError(
-        sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-        reason = "Canonical decomposition manifest schema is missing. Expected to find it on the JVM classpath at " +
-          "'$DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidDecompositionManifestSchemaError(
-        sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = { error ->
-      logSchemaLoadFailure(
-        decompositionManifestLog,
-        "decomposition manifest",
-        DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-        DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH,
-        error,
-      )
-    },
-    expectedSchemaId = DecompositionManifestSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = DECOMPOSITION_MANIFEST_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidDecompositionManifestSchemaError(
-        sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-        reason = reason,
-      )
-    },
-  )
+private fun decompositionManifestSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  cacheKey = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+  classLoader = DecompositionManifestSchemaValidator::class.java.classLoader,
+  classpathResource = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+  missingResource = {
+    InvalidDecompositionManifestSchemaError(
+      sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+      reason = "Canonical decomposition manifest schema is missing. Expected to find it on the JVM classpath at " +
+        "'$DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE'.",
+    )
+  },
+  processingFailure = { cause ->
+    InvalidDecompositionManifestSchemaError(
+      sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+      reason = cause.message ?: cause::class.simpleName.orEmpty(),
+      cause = cause,
+    )
+  },
+  loadFailureLogger = { error ->
+    logSchemaLoadFailure(
+      decompositionManifestLog,
+      "decomposition manifest",
+      DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+      DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH,
+      error,
+    )
+  },
+  expectedSchemaId = DecompositionManifestSchemaPaths.EXPECTED_SCHEMA_ID,
+  expectedContractVersion = DECOMPOSITION_MANIFEST_CONTRACT_VERSION,
+  identityFailure = { reason ->
+    InvalidDecompositionManifestSchemaError(
+      sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+      reason = reason,
+    )
+  },
+)
 
 fun decompositionManifestDottedFieldPath(instanceLocation: String): String = when {
   instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
@@ -342,4 +338,3 @@ fun extractDecompositionManifestOffendingValue(instance: JsonNode, instanceLocat
     else -> ""
   }
 }
-

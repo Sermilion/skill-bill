@@ -2,10 +2,10 @@ package skillbill.infrastructure.fs.nativeagent.rendering
 
 import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentSource
 import skillbill.infrastructure.fs.nativeagent.composition.declaresReadOnlyToolset
-import skillbill.infrastructure.fs.resolveEnvironmentMap
 import skillbill.infrastructure.fs.nativeagent.support.claudeConfigRoots
 import skillbill.infrastructure.fs.nativeagent.support.codexAgentsTargets
 import skillbill.infrastructure.fs.nativeagent.support.detectCodexAgentsTargets
+import skillbill.infrastructure.fs.resolveEnvironmentMap
 import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.Path

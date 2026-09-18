@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.fs.install.apply.InstallCleanupOperations
 import skillbill.infrastructure.fs.install.nativeagent.InstallNativeAgentOperations
 import skillbill.infrastructure.fs.install.plan.buildInstallStagingIntent
 import skillbill.infrastructure.fs.install.plan.codexAgentsPath
@@ -13,8 +14,8 @@ import skillbill.infrastructure.fs.install.reconcile.computeReconciliationPlan
 import skillbill.infrastructure.fs.install.runtime.InstallOperations
 import skillbill.infrastructure.fs.install.runtime.linkInstalledSkill
 import skillbill.infrastructure.fs.install.staging.installedSkillsCacheRoot
-import skillbill.infrastructure.fs.install.support.InstallCleanupOperations
 import skillbill.infrastructure.fs.launcher.mcp.McpRegistrationOperations
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.install.agent.InstallAgentTargetPort
 import skillbill.ports.install.agent.model.ClaudeConfigRootsRequest
 import skillbill.ports.install.agent.model.ClaudeConfigRootsResult
@@ -64,11 +65,10 @@ import skillbill.ports.install.reconcile.model.InstallReconcileApplyRequest
 import skillbill.ports.install.reconcile.model.InstallReconcileApplyResult
 import skillbill.ports.install.reconcile.model.InstallReconcileRequest
 import skillbill.ports.install.reconcile.model.InstallReconcileResult
-import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.system.HostPlatformPort
+import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkOverrides as FsNativeAgentLinkOverrides
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkRequest as FsNativeAgentLinkRequest
-import skillbill.install.model.SupportedAgent
 
 @Inject
 class FileSystemInstallPlanningFacts(
@@ -216,23 +216,21 @@ class FileSystemInstallAgentTargets(
     )
   }
 
-  override fun claudeConfigRoots(request: ClaudeConfigRootsRequest): ClaudeConfigRootsResult =
-    ClaudeConfigRootsResult(
-      InstallOperations.claudeRoots(
-        request.home,
-        resolveInstallEnvironment(request.environment, hostPlatform),
-        hostPlatform,
-      ),
-    )
+  override fun claudeConfigRoots(request: ClaudeConfigRootsRequest): ClaudeConfigRootsResult = ClaudeConfigRootsResult(
+    InstallOperations.claudeRoots(
+      request.home,
+      resolveInstallEnvironment(request.environment, hostPlatform),
+      hostPlatform,
+    ),
+  )
 
-  override fun codexConfigRoots(request: CodexConfigRootsRequest): CodexConfigRootsResult =
-    CodexConfigRootsResult(
-      InstallOperations.codexRoots(
-        request.home,
-        resolveInstallEnvironment(request.environment, hostPlatform),
-        hostPlatform,
-      ),
-    )
+  override fun codexConfigRoots(request: CodexConfigRootsRequest): CodexConfigRootsResult = CodexConfigRootsResult(
+    InstallOperations.codexRoots(
+      request.home,
+      resolveInstallEnvironment(request.environment, hostPlatform),
+      hostPlatform,
+    ),
+  )
 
   override fun agentDirectory(request: InstallAgentDirectoryRequest): InstallAgentDirectoryResult {
     val environment = resolveInstallEnvironment(request.environment, hostPlatform)

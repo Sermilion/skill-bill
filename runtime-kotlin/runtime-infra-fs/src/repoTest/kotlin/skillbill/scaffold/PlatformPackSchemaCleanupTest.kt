@@ -150,7 +150,11 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
 
     val error = assertFailsWith<InvalidInstallPlanSchemaError> {
-      validateIdentity(YAMLMapper().readTree(mismatchedIdYaml), InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID, INSTALL_PLAN_CONTRACT_VERSION) {
+      validateIdentity(
+        YAMLMapper().readTree(mismatchedIdYaml),
+        InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID,
+        INSTALL_PLAN_CONTRACT_VERSION,
+      ) {
         InvalidInstallPlanSchemaError(fieldPath = "<schema>", reason = it)
       }
     }
@@ -171,7 +175,11 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
 
     val error = assertFailsWith<InvalidInstallPlanSchemaError> {
-      validateIdentity(YAMLMapper().readTree(mismatchedConstYaml), InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID, INSTALL_PLAN_CONTRACT_VERSION) {
+      validateIdentity(
+        YAMLMapper().readTree(mismatchedConstYaml),
+        InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID,
+        INSTALL_PLAN_CONTRACT_VERSION,
+      ) {
         InvalidInstallPlanSchemaError(fieldPath = "<schema>", reason = it)
       }
     }
@@ -186,7 +194,11 @@ class PlatformPackSchemaCleanupTest {
       .resolve(InstallPlanSchemaPaths.REPO_RELATIVE_PATH)
     val yamlText = Files.readString(schemaPath)
 
-    validateIdentity(YAMLMapper().readTree(yamlText), InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID, INSTALL_PLAN_CONTRACT_VERSION) {
+    validateIdentity(
+      YAMLMapper().readTree(yamlText),
+      InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID,
+      INSTALL_PLAN_CONTRACT_VERSION,
+    ) {
       InvalidInstallPlanSchemaError(fieldPath = "<schema>", reason = it)
     }
   }

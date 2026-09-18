@@ -1,5 +1,5 @@
 
-package skillbill.infrastructure.fs.scaffold.substance
+package skillbill.infrastructure.fs.scaffold.platformpack.substanceaudit
 
 import skillbill.infrastructure.fs.scaffold.runtime.RepoValidationRuntime
 import skillbill.testing.repoRootFromTest

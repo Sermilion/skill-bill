@@ -22,7 +22,7 @@ class InstallerProcessAdapter : InstallerProcessPort {
     if (result.launchFailure) {
       return InstallerProcessResult(
         exitCode = 1,
-        output = result.output,
+        output = result.output.replaceFirst("Failed to launch process", "Failed to launch installer"),
         launchFailure = true,
       )
     }

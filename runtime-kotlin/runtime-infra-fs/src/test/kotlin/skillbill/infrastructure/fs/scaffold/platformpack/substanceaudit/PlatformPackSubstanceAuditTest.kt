@@ -1,5 +1,5 @@
 
-package skillbill.infrastructure.fs.scaffold.substance
+package skillbill.infrastructure.fs.scaffold.platformpack.substanceaudit
 
 import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
 import skillbill.testing.seedConformingPlatformPack

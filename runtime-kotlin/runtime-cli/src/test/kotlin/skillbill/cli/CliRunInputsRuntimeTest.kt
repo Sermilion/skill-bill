@@ -167,11 +167,11 @@ class CliRunInputsRuntimeTest {
 }
 
 private class StubHostPlatformPort(override val osName: String) : HostPlatformPort {
-  override fun resolveUserHome(): java.nio.file.Path = java.nio.file.Path.of("/tmp")
+  override fun resolveUserHome(): Path = Path.of("/tmp")
   override fun resolveEnvironment(): Map<String, String> = emptyMap()
-  override fun resolveJavaHome(): java.nio.file.Path = java.nio.file.Path.of("/java")
-  override fun resolveWorkingDirectory(): java.nio.file.Path = java.nio.file.Path.of("/workspace")
-  override fun resolveTemporaryDirectory(): java.nio.file.Path = java.nio.file.Path.of("/tmp")
+  override fun resolveJavaHome(): Path = Path.of("/java")
+  override fun resolveWorkingDirectory(): Path = Path.of("/workspace")
+  override fun resolveTemporaryDirectory(): Path = Path.of("/tmp")
   override val jvmClassPath: String = ""
   override val pathSeparator: String = ":"
 }

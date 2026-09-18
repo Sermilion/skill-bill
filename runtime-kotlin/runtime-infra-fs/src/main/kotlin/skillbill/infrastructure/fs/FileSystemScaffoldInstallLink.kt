@@ -10,7 +10,6 @@ import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackMan
 import skillbill.ports.scaffold.install.ScaffoldInstallLinkPort
 import skillbill.ports.scaffold.install.model.ScaffoldInstallLinkRequest
 import skillbill.ports.scaffold.install.model.ScaffoldInstallLinkResult
-import skillbill.infrastructure.fs.install.plan.resolveInstallHome
 import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Files
 import java.nio.file.Path

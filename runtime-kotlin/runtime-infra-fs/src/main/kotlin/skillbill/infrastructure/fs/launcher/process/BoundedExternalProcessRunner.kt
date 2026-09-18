@@ -4,7 +4,6 @@ import skillbill.infrastructure.fs.GIT_PROCESS_CLEANUP_BUDGET_SECONDS
 import skillbill.infrastructure.fs.GIT_PROCESS_POLL_MILLIS
 import skillbill.infrastructure.fs.closeInputAndJoin
 import skillbill.infrastructure.fs.destroyOwnedProcessTree
-import skillbill.infrastructure.fs.launcher.process.DESTROY_WAIT_TIMEOUT_MILLIS
 import skillbill.ports.process.INSTALLER_OUTPUT_TRUNCATION_SENTINEL
 import skillbill.ports.process.INSTALLER_PROCESS_OUTPUT_CAP_BYTES
 import java.io.IOException

@@ -4,7 +4,7 @@ import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.install.model.InstallAgent.CLAUDE
+import skillbill.install.model.SupportedAgent.CLAUDE
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import kotlin.test.Test
 import kotlin.test.assertContains

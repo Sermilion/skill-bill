@@ -18,7 +18,7 @@ import java.util.logging.Logger
 private val log: Logger = Logger.getLogger("skillbill.contracts.workflow.WorkflowStateSchemaValidator")
 
 @Inject
-class WorkflowStateSchemaValidator() : WorkflowSnapshotValidator {
+class WorkflowStateSchemaValidator : WorkflowSnapshotValidator {
 
   override fun validate(snapshot: WorkflowStateSnapshot, slug: String) {
     validate(WorkflowStateSnapshotWireMapper.wireMap(snapshot), slug)
@@ -79,30 +79,29 @@ fun workflowStateSchemaDottedFieldPath(instanceLocation: String): String = when 
   else -> instanceLocation.trimStart('/').replace('/', '.')
 }
 
-private fun workflowStateSchema(): JsonSchema =
-  ClasspathContractSchemaLoader.compiledSchema(
-    cacheKey = WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE,
-    classLoader = WorkflowStateSchemaValidator::class.java.classLoader,
-    classpathResource = WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidWorkflowStateSchemaError(
-        "Canonical workflow-state schema is missing. Expected to find it on the JVM classpath at " +
-          "'$WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidWorkflowStateSchemaError(cause.message ?: cause::class.simpleName.orEmpty(), cause)
-    },
-    loadFailureLogger = { error ->
-      logSchemaLoadFailure(
-        log,
-        "workflow-state",
-        WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE,
-        WORKFLOW_STATE_SCHEMA_REPO_RELATIVE_PATH,
-        error,
-      )
-    },
-    expectedSchemaId = WorkflowStateSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = WORKFLOW_STATE_CONTRACT_VERSION,
-    identityFailure = { reason -> InvalidWorkflowStateSchemaError(reason) },
-  )
+private fun workflowStateSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
+  cacheKey = WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE,
+  classLoader = WorkflowStateSchemaValidator::class.java.classLoader,
+  classpathResource = WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE,
+  missingResource = {
+    InvalidWorkflowStateSchemaError(
+      "Canonical workflow-state schema is missing. Expected to find it on the JVM classpath at " +
+        "'$WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE'.",
+    )
+  },
+  processingFailure = { cause ->
+    InvalidWorkflowStateSchemaError(cause.message ?: cause::class.simpleName.orEmpty(), cause)
+  },
+  loadFailureLogger = { error ->
+    logSchemaLoadFailure(
+      log,
+      "workflow-state",
+      WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE,
+      WORKFLOW_STATE_SCHEMA_REPO_RELATIVE_PATH,
+      error,
+    )
+  },
+  expectedSchemaId = WorkflowStateSchemaPaths.EXPECTED_SCHEMA_ID,
+  expectedContractVersion = WORKFLOW_STATE_CONTRACT_VERSION,
+  identityFailure = { reason -> InvalidWorkflowStateSchemaError(reason) },
+)

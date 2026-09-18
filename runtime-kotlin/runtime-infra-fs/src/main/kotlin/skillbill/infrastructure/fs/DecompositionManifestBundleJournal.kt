@@ -3,12 +3,12 @@ package skillbill.infrastructure.fs
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.decomposition.BUNDLE_JOURNAL_CONTRACT_VERSION
 import skillbill.infrastructure.fs.launcher.process.atomicWriteString
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.ports.system.HostPlatformPort
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 
@@ -98,6 +98,4 @@ private fun lockOwner(parent: Path): Path {
 
 private const val FEATURE_SPECS_DIRECTORY_NAME = ".feature-specs"
 private const val LOCK_DIRECTORY_NAME = "skill-bill-decomposition-manifest-locks"
-private const val LOCK_DIGEST_ALGORITHM = "SHA-256"
-private const val LOCK_DIGEST_SEPARATOR = ""
 private const val LOCK_FILE_SUFFIX = ".lock"

@@ -3,8 +3,8 @@ package skillbill.infrastructure.fs.install.nativeagent
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.networknt.schema.JsonSchema
-import skillbill.contracts.nativeagent.NativeAgentLinkInventorySchemaPaths
 import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION
+import skillbill.contracts.nativeagent.NativeAgentLinkInventorySchemaPaths
 import skillbill.error.InvalidNativeAgentLinkInventorySchemaError
 import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider

@@ -20,18 +20,9 @@ dependencies {
   implementation(libs.json.schema.validator)
   implementation(libs.jackson.databind)
   implementation(libs.jackson.dataformat.yaml)
-  testImplementation(project(":runtime-application"))
-  testImplementation(project(":runtime-engine"))
   testImplementation(testFixtures(project(":runtime-ports")))
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
-}
-
-tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>("compileTestKotlin") {
-  dependsOn(":runtime-application:compileKotlin")
-  friendPaths.from(
-    rootProject.layout.projectDirectory.dir("runtime-application/build/classes/kotlin/main"),
-  )
 }
 
 enum class GovernedResourceDestination(val dirSuffix: String) {
@@ -398,21 +389,6 @@ tasks.named("processTestResources") {
       dependsOn(task)
     }
   }
-}
-
-tasks.register<JavaExec>("platformPackSubstanceReport") {
-  group = "verification"
-  description = "Emit the maintained platform-pack substance report in text or JSON form."
-  classpath = sourceSets.main.get().runtimeClasspath
-  mainClass.set(
-    "skillbill.infrastructure.fs.scaffold.substance.PlatformPackSubstanceReportMainKt",
-  )
-  args(
-    "--repo-root=${providers.gradleProperty(
-      "repoRoot",
-    ).orElse(rootProject.projectDir.parentFile.absolutePath).get()}",
-    "--format=${providers.gradleProperty("reportFormat").orElse("text").get()}",
-  )
 }
 
 val infraFsAreaLayerOrder =

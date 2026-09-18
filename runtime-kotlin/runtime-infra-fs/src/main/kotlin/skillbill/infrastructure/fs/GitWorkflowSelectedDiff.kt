@@ -6,7 +6,6 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
 import java.io.BufferedReader
-import java.io.IOException
 import java.nio.file.Path
 
 internal fun appendSelectedDiffHunks(

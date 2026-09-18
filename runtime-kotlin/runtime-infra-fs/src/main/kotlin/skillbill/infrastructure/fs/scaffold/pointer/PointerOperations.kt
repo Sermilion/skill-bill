@@ -1,13 +1,13 @@
 package skillbill.infrastructure.fs.scaffold.pointer
 
 import skillbill.error.ContractVersionMismatchError
+import skillbill.infrastructure.fs.launcher.process.atomicWriteBytes
 import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackManifests
 import skillbill.infrastructure.fs.scaffold.runtime.SHELL_CONTRACT_VERSION
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.io.File
-import skillbill.infrastructure.fs.launcher.process.atomicWriteBytes
 import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -118,4 +118,3 @@ private fun requireMatchingContractVersion(pack: PlatformManifest) {
     )
   }
 }
-

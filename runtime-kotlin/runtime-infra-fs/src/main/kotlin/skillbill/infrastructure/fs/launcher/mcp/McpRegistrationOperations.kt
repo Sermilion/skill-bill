@@ -1,9 +1,8 @@
 package skillbill.infrastructure.fs.launcher.mcp
 
-import skillbill.infrastructure.fs.resolveUserHome
-
-import skillbill.infrastructure.fs.install.support.codexConfigRoots
+import skillbill.infrastructure.fs.install.plan.codexConfigRoots
 import skillbill.infrastructure.fs.nativeagent.support.claudeConfigRoots
+import skillbill.infrastructure.fs.resolveUserHome
 import skillbill.install.model.ClaudeMcpProfileFailure
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.McpMutationResult
@@ -32,11 +31,7 @@ object McpRegistrationOperations {
     }
   }
 
-  fun unregister(
-    agent: String,
-    home: Path? = null,
-    environment: Map<String, String>,
-  ): McpMutationResult {
+  fun unregister(agent: String, home: Path? = null, environment: Map<String, String>): McpMutationResult {
     val resolvedHome = home ?: resolveUserHome(null)
     return when (val installAgent = InstallAgent.fromId(agent)) {
       InstallAgent.CLAUDE -> claudeFanOut(agent, resolvedHome, environment) { perProfilePath ->
@@ -60,8 +55,11 @@ object McpRegistrationOperations {
       .toAbsolutePath()
       .normalize()
     return claudeConfigRoots(home, environment).map { root ->
-      if (root == defaultRoot) home.resolve(InstallAgent.CLAUDE.mcpProfileFileName)
-      else root.resolve(InstallAgent.CLAUDE.mcpProfileFileName)
+      if (root == defaultRoot) {
+        home.resolve(InstallAgent.CLAUDE.mcpProfileFileName)
+      } else {
+        root.resolve(InstallAgent.CLAUDE.mcpProfileFileName)
+      }
     }
   }
 

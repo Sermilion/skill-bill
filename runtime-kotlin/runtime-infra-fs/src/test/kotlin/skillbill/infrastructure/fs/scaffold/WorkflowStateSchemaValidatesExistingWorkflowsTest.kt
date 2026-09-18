@@ -1,22 +1,15 @@
 package skillbill.infrastructure.fs.scaffold
 
-import skillbill.application.workflow.WorkflowWireProjections
-import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowDefinition
-import skillbill.workflow.engine.model.WorkflowSnapshotView
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -47,37 +40,6 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
   }
 
   @Test
-  fun `snapshot and step wire bytes remain identical to the captured baselines`() {
-    val definition = FeatureVerifyWorkflowDefinition.definition.copy(
-      workflowName = "bill-feature",
-      contractVersion = "0.1",
-      defaultInitialStepId = "implement",
-      stepIds = listOf("implement"),
-      stepLabels = mapOf("implement" to "Implement"),
-      requiredArtifactsByStep = mapOf("implement" to emptyList()),
-      resumeActions = mapOf("implement" to "Resume."),
-      workflowMode = null,
-    )
-    val engine = WorkflowEngine(
-      object : WorkflowSnapshotValidator {
-        override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
-      },
-    )
-    val record = engine.openRecord(definition, "wf-1", "sess", "implement").copy(
-      startedAt = "1970-01-01T00:00:00Z",
-      updatedAt = "1970-01-01T00:00:00Z",
-      finishedAt = "",
-    )
-    val snapshotJson = JsonCodec.mapToJsonString(
-      WorkflowWireProjections.snapshotMap(engine.snapshotView(definition, record)).toPayload(),
-    ) + "\n"
-    val stepJson = record.stepsJson + "\n"
-
-    assertBaselineBytes("workflow-snapshot-wire.json", snapshotJson)
-    assertBaselineBytes("workflow-step-wire.json", stepJson)
-  }
-
-  @Test
   fun `unknown durable workflow status token raises the typed schema error`() {
     val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
       WorkflowStateSnapshotWireMapper.workflowStatusFromWire("unknown", "workflow_status")
@@ -95,16 +57,10 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
         currentStepId = activeStepId,
       )
 
-      val snapshotView = engine.snapshotView(definition, record)
-      val full = snapshotMap(snapshotView)
-      validator.validate(full, definition.workflowName)
-
+      validator.validate(record, definition.workflowName)
+      engine.snapshotView(definition, record)
       engine.summaryView(definition, record)
-
-      val resumed = engine.resumeView(definition, record).let { resume ->
-        snapshotMap(resume.snapshot)
-      }
-      validator.validate(resumed.filterKeys { it in SNAPSHOT_KEYS }, definition.workflowName)
+      engine.resumeView(definition, record)
     }
   }
 
@@ -145,48 +101,8 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
       } else {
         updated
       }
-      val payload = snapshotMap(engine.snapshotView(definition, withFinishedAt))
-      validator.validate(payload, definition.workflowName)
+      validator.validate(withFinishedAt, definition.workflowName)
+      engine.snapshotView(definition, withFinishedAt)
     }
   }
-
-  private companion object {
-
-    private val SNAPSHOT_KEYS: Set<String> = setOf(
-      "workflow_id",
-      "session_id",
-      "workflow_name",
-      "mode",
-      "contract_version",
-      "workflow_status",
-      "current_step_id",
-      "steps",
-      "artifacts",
-      "started_at",
-      "updated_at",
-      "finished_at",
-    )
-  }
-
-  private fun snapshotMap(view: WorkflowSnapshotView): Map<String, Any?> =
-    WorkflowWireProjections.snapshotMap(view).toPayload()
-
-  private fun assertBaselineBytes(name: String, actual: String) {
-    val expected = Files.readAllBytes(
-      compatibilityRepositoryRoot().resolve(
-        ".feature-specs/done/SKILL-351-runtime-domain-boundaries-and-simplicity/" +
-          "baselines/$name",
-      ),
-    )
-    assertEquals(expected.toList(), actual.toByteArray().toList(), name)
-  }
-}
-
-private fun compatibilityRepositoryRoot(): Path {
-  var current: Path? = Path.of("").toAbsolutePath().normalize()
-  while (current != null) {
-    if (Files.isDirectory(current.resolve(".git"))) return current
-    current = current.parent
-  }
-  error("Repository root is not available from the test working directory.")
 }

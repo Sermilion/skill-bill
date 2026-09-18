@@ -1,21 +1,16 @@
-package skillbill.infrastructure.fs.install.support
+package skillbill.infrastructure.fs.install.plan
 
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.STATE_DIR_ENVIRONMENT_KEY
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun resolveTelemetryStateDir(
-  environment: Map<String, String>,
-  userHome: Path,
-): Path = environment[STATE_DIR_ENVIRONMENT_KEY]?.takeIf(String::isNotBlank)?.let {
-  expandAndNormalizeTelemetryPath(it, userHome)
-} ?: userHome.resolve(".skill-bill").toAbsolutePath().normalize()
+internal fun resolveTelemetryStateDir(environment: Map<String, String>, userHome: Path): Path =
+  environment[STATE_DIR_ENVIRONMENT_KEY]?.takeIf(String::isNotBlank)?.let {
+    expandAndNormalizeTelemetryPath(it, userHome)
+  } ?: userHome.resolve(".skill-bill").toAbsolutePath().normalize()
 
-internal fun resolveTelemetryConfigPath(
-  environment: Map<String, String>,
-  userHome: Path,
-): Path {
+internal fun resolveTelemetryConfigPath(environment: Map<String, String>, userHome: Path): Path {
   environment[CONFIG_ENVIRONMENT_KEY]?.takeIf(String::isNotBlank)?.let {
     return expandAndNormalizeTelemetryPath(it, userHome)
   }
