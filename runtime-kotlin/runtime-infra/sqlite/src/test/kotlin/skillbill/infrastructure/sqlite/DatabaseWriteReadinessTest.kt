@@ -3,6 +3,10 @@ package skillbill.infrastructure.sqlite
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import skillbill.error.DatabaseAccessError
+import skillbill.error.DatabaseAccessOperation
+import skillbill.infrastructure.sqlite.core.DatabaseIdentity
+import skillbill.infrastructure.sqlite.core.DatabaseMigration
+import skillbill.infrastructure.sqlite.core.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.DatabaseWriteReadinessGate
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
@@ -38,7 +42,11 @@ class DatabaseWriteReadinessTest {
   fun `repeated write acquisitions succeed on a warmed database`() {
     val tempDir = Files.createTempDirectory("skillbill-write-readiness")
     val dbPath = tempDir.resolve("metrics.db")
-    val database = sqliteSessionFactoryForTests(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
+    val database = sqliteSessionFactoryForTests(
+      userHome = tempDir,
+      dbPathOverride = dbPath.toString(),
+      environment = emptyMap(),
+    )
 
     database.transaction { unitOfWork ->
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-readiness-1"))
@@ -73,22 +81,32 @@ class DatabaseWriteReadinessTest {
   }
 
   @Test
-  fun `changing database user version at the same path forces schema re-establishment`() {
+  fun `appending a migration changes identity and re-establishes readiness once`() {
     var executions = 0
     val gate = DatabaseWriteReadinessGate { executions += 1 }
     val tempDir = Files.createTempDirectory("skillbill-write-readiness-version")
     val dbPath = tempDir.resolve("metrics.db")
     gate.ensureReady(dbPath)
     val afterInit = executions
+    val initialIdentity = assertNotNull(DatabaseIdentity.read(dbPath))
+    val appendedMigration = DatabaseMigration(
+      version = DatabaseMigrations.migrations.maxOf { migration -> migration.version } + 1,
+      name = "test-only-appended-readiness-migration",
+    ) {}
 
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-      connection.createStatement().use { statement ->
-        statement.execute("PRAGMA user_version = 7")
-      }
+      DatabaseMigrations.apply(
+        connection,
+        migrationSet = DatabaseMigrations.migrations + appendedMigration,
+      )
     }
 
+    val appendedIdentity = assertNotNull(DatabaseIdentity.read(dbPath))
+    assertTrue(appendedIdentity.userVersion > initialIdentity.userVersion)
     gate.ensureReady(dbPath)
-    assertTrue(executions > afterInit)
+    assertEquals(afterInit + 1, executions)
+    gate.ensureReady(dbPath)
+    assertEquals(afterInit + 1, executions)
   }
 
   @Test
@@ -118,11 +136,30 @@ class DatabaseWriteReadinessTest {
   }
 
   @Test
+  fun `unreadable database file surfaces read DatabaseAccessError from ensureReady`() {
+    val tempDir = Files.createTempDirectory("skillbill-write-readiness-unreadable")
+    val dbPath = tempDir.resolve("metrics.db")
+    Files.writeString(dbPath, "not-a-sqlite-database")
+    var establishments = 0
+    val gate = DatabaseWriteReadinessGate { establishments += 1 }
+
+    val error = assertFailsWith<DatabaseAccessError> {
+      gate.ensureReady(dbPath)
+    }
+    assertEquals(DatabaseAccessOperation.READ, error.operation)
+    assertEquals(0, establishments)
+  }
+
+  @Test
   fun `failed readiness is not published and recovery retries initialization`() {
     val tempDir = Files.createTempDirectory("skillbill-write-readiness-failure")
     val invalidPath = tempDir.resolve("metrics.db")
     Files.createDirectory(invalidPath)
-    val database = sqliteSessionFactoryForTests(userHome = tempDir, dbPathOverride = invalidPath.toString(), environment = emptyMap())
+    val database = sqliteSessionFactoryForTests(
+      userHome = tempDir,
+      dbPathOverride = invalidPath.toString(),
+      environment = emptyMap(),
+    )
 
     assertFailsWith<DatabaseAccessError> {
       database.transaction { Unit }

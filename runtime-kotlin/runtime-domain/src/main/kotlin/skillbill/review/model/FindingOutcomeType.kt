@@ -9,7 +9,6 @@ enum class FindingOutcomeType(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): FindingOutcomeType? =
-      entries.firstOrNull { it.wireValue == value }
+    fun fromWire(value: String): FindingOutcomeType? = entries.firstOrNull { it.wireValue == value }
   }
 }

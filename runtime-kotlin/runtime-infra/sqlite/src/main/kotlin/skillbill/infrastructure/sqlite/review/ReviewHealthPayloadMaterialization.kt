@@ -2,15 +2,45 @@ package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.telemetry.enqueueTelemetry
 import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
 import skillbill.review.model.REVIEW_FINISHED_LEGACY_CONTRACT_VERSION
 import skillbill.review.model.REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME
 import skillbill.review.model.REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION
 import java.sql.Connection
-import skillbill.infrastructure.sqlite.core.bindAll
-import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+
+internal fun migrateLegacyTelemetryOutboxLedger(connection: Connection) {
+  connection.prepareStatement(
+    """
+    UPDATE telemetry_outbox
+    SET payload_json = json_set(payload_json, '$.contract_version', ?)
+    WHERE synced_at IS NULL
+      AND event_name != 'skillbill_review_finished'
+      AND json_extract(payload_json, '$.contract_version') = ?
+    """.trimIndent(),
+  ).use { statement ->
+    statement.bindAll(REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION, REVIEW_FINISHED_LEGACY_CONTRACT_VERSION)
+    statement.executeUpdate()
+  }
+  connection.prepareStatement(
+    """
+    SELECT id, payload_json
+    FROM telemetry_outbox
+    WHERE event_name = 'skillbill_review_finished'
+      AND synced_at IS NULL
+    ORDER BY id
+    """.trimIndent(),
+  ).use { statement ->
+    statement.executeQuery().use { resultSet ->
+      while (resultSet.next()) {
+        migrateLegacyReviewFinishedRow(connection, resultSet.getLong("id"), resultSet.getString("payload_json"))
+      }
+    }
+  }
+}
 
 internal fun materializeReviewFinishedPayload(connection: Connection, payload: Map<String, Any?>): Map<String, Any?> {
   if (payload.isEmpty() || !isLegacyReviewFinished(payload)) return payload
@@ -26,7 +56,7 @@ internal fun materializeReviewFinishedPayload(connection: Connection, payload: M
   }
 }
 
-internal fun persistLegacyReviewFinishedRow(connection: Connection, outboxId: Long, raw: String) {
+private fun migrateLegacyReviewFinishedRow(connection: Connection, outboxId: Long, raw: String) {
   val payload = parseHealthJsonObject(raw)
   if (payload.isEmpty() || !isLegacyReviewFinished(payload)) return
   val reviewRunId = payload.stringHealthValue("review_run_id")

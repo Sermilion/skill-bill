@@ -2,9 +2,6 @@ package skillbill.infrastructure.sqlite.review
 
 import skillbill.SAMPLE_REVIEW
 import skillbill.TABLE_REVIEW
-import skillbill.infrastructure.sqlite.review.ReviewRuntime
-import skillbill.infrastructure.sqlite.review.persistImportedReview
-import skillbill.infrastructure.sqlite.review.reviewSummaryChanged
 import skillbill.review.ReviewParser
 import skillbill.review.canonicalPlatformSlugs
 import skillbill.review.withCanonicalAttribution

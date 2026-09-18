@@ -3,6 +3,7 @@ package skillbill.infrastructure.sqlite.core
 import org.sqlite.SQLiteConfig
 import skillbill.error.DatabaseAccessError
 import skillbill.error.DatabaseAccessOperation
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -21,33 +22,29 @@ internal data class OpenDatabase(
 internal object DatabaseRuntime {
   private var writeReadinessGate = DatabaseWriteReadinessGate()
 
-  fun ensureWriteReady(path: Path) {
-    writeReadinessGate.ensureReady(path.toAbsolutePath().normalize())
+  fun ensureWriteReady(path: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics) {
+    val normalized = path.toAbsolutePath().normalize()
+    writeReadinessGate.ensureReady(normalized) {
+      establishSchemaReadiness(normalized, diagnostics)
+    }
   }
-  fun resolveDbPath(
-    cliValue: String?,
-    environment: Map<String, String>,
-    userHome: Path,
-  ): Path = DatabasePaths.resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
+  fun resolveDbPath(cliValue: String?, environment: Map<String, String>, userHome: Path): Path =
+    DatabasePaths.resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
 
-  fun openDb(
-    cliValue: String?,
-    environment: Map<String, String>,
-    userHome: Path,
-  ): OpenDatabase {
+  fun openDb(cliValue: String?, environment: Map<String, String>, userHome: Path): OpenDatabase {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openDbAt(dbPath)
   }
 
-  fun openDbAt(dbPath: Path): OpenDatabase {
-    ensureWriteReady(dbPath)
+  fun openDbAt(dbPath: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics): OpenDatabase {
+    ensureWriteReady(dbPath, diagnostics)
     return openWriteDbAt(dbPath)
   }
 
   fun openWriteDbAt(dbPath: Path): OpenDatabase =
     OpenDatabase(connection = openWriteConnectionAt(dbPath), dbPath = dbPath)
 
-  fun establishSchemaReadiness(path: Path) {
+  fun establishSchemaReadiness(path: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics) {
     path.parent?.toAbsolutePath()?.normalize()?.toFile()?.mkdirs()
     asTypedFailure(path, DatabaseAccessOperation.OPEN) {
       DriverManager.getConnection("jdbc:sqlite:${path.toAbsolutePath().normalize()}").use { connection ->
@@ -55,10 +52,7 @@ internal object DatabaseRuntime {
           asTypedFailure(path, DatabaseAccessOperation.OPEN) {
             configureConnection(connection, enableWal = true)
             DatabaseSchema.createBaseSchema(connection)
-            DatabaseMigrations.apply(connection)
-            DatabaseColumnMigrations.apply(connection)
-            DatabaseColumnMigrations.healDiagnosticEvidenceKeys(connection)
-            DatabaseColumnMigrations.healWorkListMetadata(connection)
+            DatabaseMigrations.apply(connection, diagnostics)
           }
         }
       }
@@ -77,29 +71,21 @@ internal object DatabaseRuntime {
     }
   }
 
-  fun openReadDb(
-    cliValue: String?,
-    environment: Map<String, String>,
-    userHome: Path,
-  ): OpenDatabase {
+  fun openReadDb(cliValue: String?, environment: Map<String, String>, userHome: Path): OpenDatabase {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openReadDbAt(dbPath)
   }
 
-  fun openReadDbAt(dbPath: Path): OpenDatabase {
+  fun openReadDbAt(dbPath: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics): OpenDatabase {
     if (!Files.exists(dbPath) || isSchemaless(dbPath)) {
-      return openDbAt(dbPath)
+      return openDbAt(dbPath, diagnostics)
     }
     return openReadOnlyDb(dbPath)
   }
 
   internal fun openReadConnectionAt(dbPath: Path): OpenDatabase = openReadOnlyDb(dbPath)
 
-  fun openReadDbIfPresent(
-    cliValue: String?,
-    environment: Map<String, String>,
-    userHome: Path,
-  ): OpenDatabase? {
+  fun openReadDbIfPresent(cliValue: String?, environment: Map<String, String>, userHome: Path): OpenDatabase? {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openReadDbIfPresentAt(dbPath)
   }
@@ -173,19 +159,11 @@ private fun <T> asTypedFailure(dbPath: Path, operation: DatabaseAccessOperation,
 
 private fun <T> Connection.closingOnFailure(block: () -> T): T {
   var succeeded = false
-  var primaryFailure: Throwable? = null
   return try {
-    val result = block()
-    succeeded = true
-    result
-  } catch (error: Throwable) {
-    primaryFailure = error
-    throw error
+    block().also { succeeded = true }
   } finally {
     if (!succeeded) {
-      runCatching { close() }.onFailure { closeFailure ->
-        primaryFailure?.addSuppressed(closeFailure)
-      }
+      runCatching { close() }
     }
   }
 }

@@ -10,9 +10,8 @@ import skillbill.engine.work.model.IdeStatusResult
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
-import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.ensureTestDatabase
-import skillbill.model.EnvironmentContext
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.model.RuntimeContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
@@ -80,7 +79,8 @@ class IdeStatusReadSnapshotConcurrencyTest {
     Files.createDirectory(repoRoot.resolve(".git"))
     Files.writeString(repoRoot.resolve(".git").resolve("HEAD"), "ref: refs/heads/feat/$ISSUE_KEY-snapshot\n")
     val dbPath = home.resolve("metrics.db")
-    val database = sqliteDatabaseSessionFactory(userHome = home, dbPathOverride = dbPath.toString(), environment = emptyMap())
+    val database =
+      sqliteDatabaseSessionFactory(userHome = home, dbPathOverride = dbPath.toString(), environment = emptyMap())
     val identity = "$REPOSITORY_IDENTITY_PREFIX${repoRoot.toRealPath()}"
     seed(dbPath, database, identity)
     return SnapshotFixture(home, repoRoot, dbPath, database, observedAt)

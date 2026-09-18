@@ -4,10 +4,11 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.error.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.DatabaseTransactionBeginMode
+import skillbill.infrastructure.sqlite.core.DatabaseTransactionSpec
 import skillbill.infrastructure.sqlite.core.OpenDatabase
 import skillbill.infrastructure.sqlite.core.attachSqliteDiagnostics
-import skillbill.infrastructure.sqlite.core.detachSqliteDiagnostics
 import skillbill.infrastructure.sqlite.core.databaseAccessError
+import skillbill.infrastructure.sqlite.core.detachSqliteDiagnostics
 import skillbill.infrastructure.sqlite.core.inDatabaseTransaction
 import skillbill.infrastructure.sqlite.core.requireResolvedEnvironmentContext
 import skillbill.model.EnvironmentContext
@@ -38,23 +39,26 @@ class SQLiteDatabaseSessionFactory(
 
   override fun databaseExists(): Boolean = Files.exists(resolveDbPath())
 
-  override fun <T> read(block: (UnitOfWork) -> T): T = DatabaseRuntime.openReadDbAt(resolveDbPath()).use { openDb ->
-    openDb.connection.attachSqliteDiagnostics(diagnostics)
-    try {
-      runCatching {
-        openDb.connection.inDatabaseTransaction(
-          dbPath = openDb.dbPath,
-          beginMode = DatabaseTransactionBeginMode.DEFERRED,
-          operation = DatabaseAccessOperation.READ,
-          diagnostics = diagnostics,
-        ) {
-          block(unitOfWork(openDb))
-        }
-      }.getOrElse { error -> throwReadFailure(openDb.dbPath, error) }
-    } finally {
-      openDb.connection.detachSqliteDiagnostics()
+  override fun <T> read(block: (UnitOfWork) -> T): T =
+    DatabaseRuntime.openReadDbAt(resolveDbPath(), diagnostics).use { openDb ->
+      openDb.connection.attachSqliteDiagnostics(diagnostics)
+      try {
+        runCatching {
+          openDb.connection.inDatabaseTransaction(
+            DatabaseTransactionSpec(
+              dbPath = openDb.dbPath,
+              beginMode = DatabaseTransactionBeginMode.DEFERRED,
+              operation = DatabaseAccessOperation.READ,
+              diagnostics = diagnostics,
+            ),
+          ) {
+            block(unitOfWork(openDb))
+          }
+        }.getOrElse { error -> throwReadFailure(openDb.dbPath, error) }
+      } finally {
+        openDb.connection.detachSqliteDiagnostics()
+      }
     }
-  }
 
   override fun <T> readIfPresent(block: (UnitOfWork) -> T): T? =
     DatabaseRuntime.openReadDbIfPresentAt(resolveDbPath())?.use { openDb ->
@@ -62,10 +66,12 @@ class SQLiteDatabaseSessionFactory(
       try {
         runCatching {
           openDb.connection.inDatabaseTransaction(
-            dbPath = openDb.dbPath,
-            beginMode = DatabaseTransactionBeginMode.DEFERRED,
-            operation = DatabaseAccessOperation.READ,
-            diagnostics = diagnostics,
+            DatabaseTransactionSpec(
+              dbPath = openDb.dbPath,
+              beginMode = DatabaseTransactionBeginMode.DEFERRED,
+              operation = DatabaseAccessOperation.READ,
+              diagnostics = diagnostics,
+            ),
           ) {
             block(unitOfWork(openDb))
           }
@@ -81,10 +87,12 @@ class SQLiteDatabaseSessionFactory(
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = withWriteDatabase { openDb ->
     openDb.connection.inDatabaseTransaction(
-      dbPath = openDb.dbPath,
-      beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
-      operation = DatabaseAccessOperation.WRITE,
-      diagnostics = diagnostics,
+      DatabaseTransactionSpec(
+        dbPath = openDb.dbPath,
+        beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
+        operation = DatabaseAccessOperation.WRITE,
+        diagnostics = diagnostics,
+      ),
     ) {
       block(unitOfWork(openDb))
     }
@@ -95,7 +103,7 @@ class SQLiteDatabaseSessionFactory(
 
   private fun <T> withWriteDatabase(block: (OpenDatabase) -> T): T {
     val dbPath = resolveDbPath()
-    DatabaseRuntime.ensureWriteReady(dbPath)
+    DatabaseRuntime.ensureWriteReady(dbPath, diagnostics)
     return DatabaseRuntime.openWriteDbAt(dbPath).use { openDb ->
       openDb.connection.attachSqliteDiagnostics(diagnostics)
       try {
@@ -105,7 +113,6 @@ class SQLiteDatabaseSessionFactory(
       }
     }
   }
-
 }
 
 private fun throwReadFailure(dbPath: Path, error: Throwable): Nothing {

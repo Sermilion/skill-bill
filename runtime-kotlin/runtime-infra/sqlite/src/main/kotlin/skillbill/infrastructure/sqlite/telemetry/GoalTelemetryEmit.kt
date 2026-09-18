@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry
 import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.infrastructure.sqlite.core.sqliteDiagnostics
 import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import java.sql.Connection

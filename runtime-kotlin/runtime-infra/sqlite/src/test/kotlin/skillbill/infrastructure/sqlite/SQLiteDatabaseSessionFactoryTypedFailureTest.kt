@@ -3,7 +3,6 @@ package skillbill.infrastructure.sqlite
 import org.sqlite.SQLiteException
 import skillbill.error.DatabaseAccessError
 import skillbill.error.DatabaseAccessOperation
-import skillbill.model.EnvironmentContext
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager

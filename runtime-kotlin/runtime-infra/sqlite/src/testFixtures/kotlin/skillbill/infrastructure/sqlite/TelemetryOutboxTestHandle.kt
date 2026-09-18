@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.infrastructure.sqlite.telemetry.SkillBillRuntimeVersion
+import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import java.sql.Connection

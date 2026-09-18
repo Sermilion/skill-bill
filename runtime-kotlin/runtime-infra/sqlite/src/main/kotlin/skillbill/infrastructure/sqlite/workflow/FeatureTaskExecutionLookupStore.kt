@@ -1,10 +1,9 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.workflow.FeatureTaskExecutionLookupRepository
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate

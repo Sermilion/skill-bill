@@ -21,7 +21,11 @@ class DatabaseAccessFailureTest {
     val unopenable = unopenableDatabasePath()
 
     val error = assertFailsWith<DatabaseAccessError> {
-      DatabaseRuntime.openReadDb(cliValue = unopenable.toString(), environment = emptyMap(), userHome = unopenable.parent)
+      DatabaseRuntime.openReadDb(
+        cliValue = unopenable.toString(),
+        environment = emptyMap(),
+        userHome = unopenable.parent,
+      )
     }
 
     assertEquals(unopenable.toAbsolutePath().normalize().toString(), error.dbPath)
@@ -34,7 +38,11 @@ class DatabaseAccessFailureTest {
     val unopenable = unopenableDatabasePath()
 
     val thrown = runCatching {
-      DatabaseRuntime.openReadDb(cliValue = unopenable.toString(), environment = emptyMap(), userHome = unopenable.parent)
+      DatabaseRuntime.openReadDb(
+        cliValue = unopenable.toString(),
+        environment = emptyMap(),
+        userHome = unopenable.parent,
+      )
     }.exceptionOrNull()
 
     assertFalse(thrown is SQLiteException, "raw JDBC exception escaped: $thrown")
@@ -50,7 +58,9 @@ class DatabaseAccessFailureTest {
     val dbPath = tempDir.resolve("review-metrics.db")
     Files.write(dbPath, "this is not a sqlite database".toByteArray())
 
-    runCatching { DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap(), userHome = tempDir).close() }
+    runCatching {
+      DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap(), userHome = tempDir).close()
+    }
 
     assertTrue(Files.deleteIfExists(dbPath), "the temp database file could not be deleted after the failed open")
   }

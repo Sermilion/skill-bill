@@ -67,7 +67,6 @@ import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.install.model.InstallAgent
-import skillbill.model.EnvironmentContext
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
@@ -177,7 +176,8 @@ class GoalRunnerTest {
     val database = sqliteDatabaseSessionFactory(
       userHome = root,
       dbPathOverride = root.resolve("runtime.db").toString(),
-     environment = emptyMap())
+      environment = emptyMap(),
+    )
     val workflowId = "goal-parent-sqlite-resume"
     seedGoalRunnerResumeWorkflow(database, workflowId)
     val manifestStore = testWorkflowGoalRunnerManifestStore(

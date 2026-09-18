@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.idestatus.model.AgentActivityStamp
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.idestatus.AgentActivityStampRepository
 import java.sql.Connection
 import java.sql.ResultSet
@@ -95,5 +95,4 @@ internal class AgentActivityStampStore(
       null
     }
   }
-
 }

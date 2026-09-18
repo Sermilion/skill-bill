@@ -1,17 +1,16 @@
 package skillbill.infrastructure.sqlite.goalrunner
 
-import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
-import java.time.Clock
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.goalChildIdentity
 import skillbill.infrastructure.sqlite.goalChildWorkflow
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
 import skillbill.infrastructure.sqlite.workflowRow
-import skillbill.model.EnvironmentContext
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import java.nio.file.Files
 import java.sql.Connection
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -35,9 +34,10 @@ class GoalRunnerPurgePersistenceTest {
       val outboxBefore = connection.prepareStatement("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->
         rows.executeQuery().use { it.getInt(1) }
       }
-      val factory = sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
+      val factory =
+        sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
       factory.transaction { unitOfWork ->
-        goalRunnerPurgePersistence(unitOfWork).purgeDecomposedGoal(unitOfWork, fixture.parentId)
+        goalRunnerPurgePersistence().purgeDecomposedGoal(unitOfWork, fixture.parentId)
       }
       assertPurgedGoalState(connection, store, fixture, outboxBefore)
     }

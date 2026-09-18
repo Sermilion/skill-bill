@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry
 import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
 import java.sql.Connection

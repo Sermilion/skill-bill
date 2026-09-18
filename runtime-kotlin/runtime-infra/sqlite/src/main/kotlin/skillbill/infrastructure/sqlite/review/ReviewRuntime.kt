@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.review.ReviewFindingPayloadKeys
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.ReviewParser
 import skillbill.review.model.FindingMetadata
 import skillbill.review.model.ImportedFinding
@@ -7,8 +9,6 @@ import skillbill.review.model.ImportedReview
 import skillbill.review.model.NumberedFinding
 import skillbill.review.model.ReviewSummary
 import java.sql.Connection
-import skillbill.infrastructure.sqlite.core.bindAll
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 internal object ReviewRuntime {
   fun parseReview(text: String): ImportedReview = ReviewParser.parseReview(text)
 

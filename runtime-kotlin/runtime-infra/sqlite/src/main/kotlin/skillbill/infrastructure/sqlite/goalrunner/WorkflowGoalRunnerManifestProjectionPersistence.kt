@@ -44,7 +44,6 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
       ?: error("Unknown decomposed parent workflow '${state.parentWorkflowId}'.")
     existingRecord.requireRuntimeModeForEngineWrite()
     val existingSnapshot = existingRecord.toSnapshot()
-    migrateLegacyGoalRunnerControls(unitOfWork, existingSnapshot)
     if (clearOutOfBandAcceptances) {
       unitOfWork.goalRunnerControls.clearOutOfBandAcceptances(existingSnapshot.workflowId)
       unitOfWork.goalRunnerControls.clearControlState(existingSnapshot.workflowId)

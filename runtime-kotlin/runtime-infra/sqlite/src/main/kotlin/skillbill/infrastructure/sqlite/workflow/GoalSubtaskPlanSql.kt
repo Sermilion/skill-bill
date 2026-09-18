@@ -1,9 +1,8 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
@@ -188,7 +187,7 @@ internal fun Connection.insertSubtaskPlanRow(checkpoint: GoalSubtaskPlanCheckpoi
     checkpoint.provenance.phaseOutputContractId, checkpoint.provenance.phaseOutputContractVersion,
     checkpoint.payloadSha256, checkpoint.planPayload, checkpoint.repairEvidenceJson(),
   )
-  s.bindAll(*values.toTypedArray())
+  s.bindAll(values)
   s.executeUpdate() > 0
 }
 

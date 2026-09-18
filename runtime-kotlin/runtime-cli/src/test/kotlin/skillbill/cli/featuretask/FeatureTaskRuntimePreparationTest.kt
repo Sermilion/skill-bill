@@ -3,7 +3,6 @@ package skillbill.cli.featuretask
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
-import skillbill.model.EnvironmentContext
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -43,7 +42,8 @@ class FeatureTaskRuntimePreparationTest {
       assertContains(result.stdout, "Error:")
     }
 
-    val database = sqliteDatabaseSessionFactory(userHome = home, dbPathOverride = db.toString(), environment = emptyMap())
+    val database =
+      sqliteDatabaseSessionFactory(userHome = home, dbPathOverride = db.toString(), environment = emptyMap())
     database.transaction { unitOfWork ->
       assertEquals(emptyList(), unitOfWork.workflowStates.listFeatureTaskRuntimeWorkflows())
     }

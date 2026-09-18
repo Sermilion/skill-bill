@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.error.ProseFeatureTaskWorkflowWriteRefusedError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.workflow.FeatureImplementWorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode

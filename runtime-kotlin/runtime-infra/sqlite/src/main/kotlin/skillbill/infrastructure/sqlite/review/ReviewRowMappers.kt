@@ -1,9 +1,8 @@
 package skillbill.infrastructure.sqlite.review
-import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
-
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.review.model.ImportedFinding
 import skillbill.review.model.NumberedFinding
 import skillbill.review.model.ReviewClaimVerdict

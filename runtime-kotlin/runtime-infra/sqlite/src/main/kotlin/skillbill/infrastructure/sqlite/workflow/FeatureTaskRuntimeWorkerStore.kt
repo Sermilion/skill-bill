@@ -1,8 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeCrashReconciliationCandidate
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership

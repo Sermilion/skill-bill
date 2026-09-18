@@ -70,7 +70,10 @@ internal fun aggregateCategorySeverityCrossTab(payloads: List<ReviewHealthPayloa
   payloads.forEach { payload ->
     reviewFindingDetails(payload.payload).forEach { detail ->
       val category = detail[ReviewFindingPayloadKeys.ISSUE_CATEGORY]?.toString().orEmpty()
-      val severity = normalizeFindingDetailValue("severity", detail[SqliteReviewTelemetryPayloadKeys.SEVERITY]?.toString().orEmpty())
+      val severity = normalizeFindingDetailValue(
+        "severity",
+        detail[SqliteReviewTelemetryPayloadKeys.SEVERITY]?.toString().orEmpty(),
+      )
       if (category.isNotBlank() && severity.isNotBlank()) {
         crossTab.getOrPut(category) { mutableMapOf() }[severity] =
           crossTab.getValue(category).getOrDefault(severity, 0) + 1
@@ -86,9 +89,17 @@ private fun addOutcomeCount(counts: MutableMap<String, Int>, key: String, count:
   }
 }
 
-private fun reviewFindingDetails(payload: Map<String, Any?>): List<Map<*, *>> =
-  (payload[SqliteReviewTelemetryPayloadKeys.ACCEPTED_FINDING_DETAILS] as? List<*>).orEmpty().filterIsInstance<Map<*, *>>() +
-    (payload[SqliteReviewTelemetryPayloadKeys.REJECTED_FINDING_DETAILS] as? List<*>).orEmpty().filterIsInstance<Map<*, *>>()
+private fun reviewFindingDetails(payload: Map<String, Any?>): List<Map<*, *>> {
+  val accepted =
+    (payload[SqliteReviewTelemetryPayloadKeys.ACCEPTED_FINDING_DETAILS] as? List<*>)
+      .orEmpty()
+      .filterIsInstance<Map<*, *>>()
+  val rejected =
+    (payload[SqliteReviewTelemetryPayloadKeys.REJECTED_FINDING_DETAILS] as? List<*>)
+      .orEmpty()
+      .filterIsInstance<Map<*, *>>()
+  return accepted + rejected
+}
 
 private fun normalizeFindingDetailValue(fieldName: String, value: String): String = when (fieldName) {
   "confidence" -> when (value.lowercase()) {

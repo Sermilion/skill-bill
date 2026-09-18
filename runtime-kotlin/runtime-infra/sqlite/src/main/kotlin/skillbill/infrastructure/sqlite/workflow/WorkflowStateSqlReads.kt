@@ -1,11 +1,10 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.ShellContentContractException
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import java.sql.Connection
@@ -100,7 +99,7 @@ internal fun Connection.getWorkflowRows(tableName: String, workflowIds: Set<Stri
     WHERE workflow_id IN (${workflowIds.workflowSqlPlaceholders()})
     """.trimIndent(),
   ).use { statement ->
-    statement.bindAll(*workflowIds.toTypedArray())
+    statement.bindAll(workflowIds)
     statement.executeQuery().use { resultSet ->
       buildMap {
         while (resultSet.next()) {
@@ -142,7 +141,7 @@ internal fun Connection.getFeatureTaskWorkflowRows(
     WHERE mode = ? AND workflow_id IN (${workflowIds.workflowSqlPlaceholders()})
     """.trimIndent(),
   ).use { statement ->
-    statement.bindAll(mode.wireValue, *workflowIds.toTypedArray())
+    statement.bindAll(listOf(mode.wireValue) + workflowIds)
     statement.executeQuery().use { resultSet ->
       buildMap {
         while (resultSet.next()) {

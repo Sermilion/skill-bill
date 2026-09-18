@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry
 import skillbill.infrastructure.sqlite.core.bindAll
-
 import java.security.SecureRandom
 import java.sql.Connection
 

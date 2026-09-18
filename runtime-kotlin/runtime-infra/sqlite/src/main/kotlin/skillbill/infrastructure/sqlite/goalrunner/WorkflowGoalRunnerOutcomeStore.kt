@@ -26,29 +26,24 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerLedgerSequenceWatermark
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
-import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
+import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
-import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.goal.GoalObservabilityEventValidator
-import skillbill.workflow.goal.GoalProgressEventValidator
-import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Path
-import java.time.Clock
 
 internal data class RecoverMissingResultPrefixTerminalOutcomeArgs(
   internal val workflowStates: WorkflowStateRepository,
@@ -61,21 +56,22 @@ internal data class RecoverMissingResultPrefixTerminalOutcomeArgs(
 )
 
 class WorkflowGoalRunnerOutcomeStore @Inject constructor(
-  database: DatabaseSessionFactory,
-  workflowSnapshotValidator: WorkflowSnapshotValidator,
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
-  goalProgressEventValidator: GoalProgressEventValidator,
-  gitOperations: WorkflowGitOperations,
-  phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
-  clock: Clock,
-  decompositionManifestValidator: DecompositionManifestValidator,
-  decompositionManifestStore: DecompositionManifestStore,
-  decompositionManifestWriter: DecompositionManifestProjectionWriter,
-  childRepairExecutor: GoalRunnerChildRepairRunnerPort,
+  private val database: DatabaseSessionFactory,
+  dependencies: WorkflowGoalRunnerOutcomeStoreDependencies,
 ) : GoalRunnerWorkflowOutcomeStore,
   GoalRunnerAttemptLedgerStore,
   GoalRunnerChildRepairStore {
+  private val workflowSnapshotValidator = dependencies.workflowSnapshotValidator
+  private val goalObservabilityEventValidator = dependencies.goalObservabilityEventValidator
+  private val goalProgressEventValidator = dependencies.goalProgressEventValidator
+  private val gitOperations = dependencies.gitOperations
+  private val phaseOutputValidator = dependencies.phaseOutputValidator
+  private val workerSupervisor = dependencies.workerSupervisor
+  private val clock = dependencies.clock
+  private val decompositionManifestValidator = dependencies.decompositionManifestValidator
+  private val decompositionManifestStore = dependencies.decompositionManifestStore
+  private val decompositionManifestWriter = dependencies.decompositionManifestWriter
+  private val childRepairExecutor = dependencies.childRepairExecutor
   private val engine = WorkflowEngine(workflowSnapshotValidator)
   private val blockWrites = WorkflowGoalRunnerBlockWrites(engine, clock)
   private val terminalPersistence = WorkflowGoalRunnerOutcomeTerminalPersistence(
@@ -145,7 +141,8 @@ class WorkflowGoalRunnerOutcomeStore @Inject constructor(
   override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean =
     progressRecording.recordProgressEvent(request)
 
-  override fun progressEvents(workflowId: String): List<GoalProgressEvent> = progressRecording.progressEvents(workflowId)
+  override fun progressEvents(workflowId: String): List<GoalProgressEvent> =
+    progressRecording.progressEvents(workflowId)
 
   override fun recordAttemptLedgerEntry(request: GoalRunnerAttemptLedgerRecordRequest): Boolean =
     progressRecording.recordAttemptLedgerEntry(request)
@@ -341,11 +338,10 @@ internal class WorkflowGoalRunnerReconcileBridge(
     )
   }
 
-  fun authoritativeOutcomes(issueKey: String): Map<Int, GoalRunnerStoredOutcome> =
-    database.read { unitOfWork ->
-      outcomeReconcile.loadContinuationCandidates(unitOfWork.workflowStates, issueKey.trim(), repoRoot = null)
-        .authoritativeOutcomesBySubtask()
-    }
+  fun authoritativeOutcomes(issueKey: String): Map<Int, GoalRunnerStoredOutcome> = database.read { unitOfWork ->
+    outcomeReconcile.loadContinuationCandidates(unitOfWork.workflowStates, issueKey.trim(), repoRoot = null)
+      .authoritativeOutcomesBySubtask()
+  }
 }
 
 internal class WorkflowGoalRunnerBlockBridge(
@@ -367,13 +363,10 @@ internal class WorkflowGoalRunnerBlockBridge(
     )
   }
 
-  fun reopenBlockedPhaseForOperatorResume(
-    workflowId: String,
-    preferredPhaseId: String,
-    reason: String,
-  ): Boolean = database.transaction { unitOfWork ->
-    blockWrites.reopenBlockedPhaseForOperatorResume(unitOfWork, workflowId, preferredPhaseId, reason)
-  }
+  fun reopenBlockedPhaseForOperatorResume(workflowId: String, preferredPhaseId: String, reason: String): Boolean =
+    database.transaction { unitOfWork ->
+      blockWrites.reopenBlockedPhaseForOperatorResume(unitOfWork, workflowId, preferredPhaseId, reason)
+    }
 }
 
 internal class WorkflowGoalRunnerChildRepairBridge(

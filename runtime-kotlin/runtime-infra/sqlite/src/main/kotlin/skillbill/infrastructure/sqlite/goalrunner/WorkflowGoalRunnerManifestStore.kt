@@ -4,7 +4,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.model.RepositoryRoot
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.db.DatabaseSessionFactory
@@ -103,8 +102,7 @@ class WorkflowGoalRunnerManifestStore @Inject constructor(
   override fun loadDurableByIssueKey(issueKey: String): GoalRunnerManifestState? =
     manifestLoader.loadFromWorkflowStore(issueKey, currentProjectedManifest = null)
 
-  override fun requestPause(parentWorkflowId: String): GoalRunnerControlState? =
-    controls.requestPause(parentWorkflowId)
+  override fun requestPause(parentWorkflowId: String): GoalRunnerControlState? = controls.requestPause(parentWorkflowId)
 
   override fun pauseNow(
     parentWorkflowId: String,
@@ -148,8 +146,7 @@ class WorkflowGoalRunnerManifestStore @Inject constructor(
     nowInstant,
   )
 
-  override fun controlState(parentWorkflowId: String): GoalRunnerControlState =
-    controls.controlState(parentWorkflowId)
+  override fun controlState(parentWorkflowId: String): GoalRunnerControlState = controls.controlState(parentWorkflowId)
 
   override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState =
     controls.persistControlState(parentWorkflowId, state)
@@ -282,21 +279,18 @@ class WorkflowGoalRunnerManifestStore @Inject constructor(
 
   override fun purgeDecomposedGoal(parentWorkflowId: String) {
     database.transaction { unitOfWork ->
-      goalRunnerPurgePersistence(unitOfWork).purgeDecomposedGoal(unitOfWork, parentWorkflowId)
+      goalRunnerPurgePersistence().purgeDecomposedGoal(unitOfWork, parentWorkflowId)
     }
   }
 
   override fun reviewMode(parentWorkflowId: String): CodeReviewExecutionMode? = database.read { unitOfWork ->
     unitOfWork.goalRunnerControls.reviewPolicy(parentWorkflowId)?.codeReviewMode
-      ?: featureTaskRecordForLegacyControls(unitOfWork.workflowStates, parentWorkflowId)
-        ?.let { record -> reviewPolicyFromLegacyArtifacts(decodeArtifacts(record.artifactsJson))?.codeReviewMode }
   }
 
   override fun persistReviewMode(parentWorkflowId: String, mode: CodeReviewExecutionMode): CodeReviewExecutionMode =
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
         ?: error("Goal parent workflow '$parentWorkflowId' no longer exists.")
-      migrateLegacyGoalRunnerControls(unitOfWork, record)
       val existing = unitOfWork.goalRunnerControls.reviewPolicy(parentWorkflowId)?.codeReviewMode
       if (existing != null) {
         parentProjection.rewrite(unitOfWork, record)
@@ -313,15 +307,12 @@ class WorkflowGoalRunnerManifestStore @Inject constructor(
 
   override fun reviewPolicy(parentWorkflowId: String): GoalRunnerReviewPolicy? = database.read { unitOfWork ->
     unitOfWork.goalRunnerControls.reviewPolicy(parentWorkflowId)
-      ?: featureTaskRecordForLegacyControls(unitOfWork.workflowStates, parentWorkflowId)
-        ?.let { record -> reviewPolicyFromLegacyArtifacts(decodeArtifacts(record.artifactsJson)) }
   }
 
   override fun persistReviewPolicy(parentWorkflowId: String, policy: GoalRunnerReviewPolicy): GoalRunnerReviewPolicy =
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
         ?: error("Goal parent workflow '$parentWorkflowId' no longer exists.")
-      migrateLegacyGoalRunnerControls(unitOfWork, record)
       val existing = unitOfWork.goalRunnerControls.reviewPolicy(parentWorkflowId)
       if (existing == policy) {
         parentProjection.rewrite(unitOfWork, record)
@@ -335,11 +326,7 @@ class WorkflowGoalRunnerManifestStore @Inject constructor(
 
   override fun outOfBandAcceptances(parentWorkflowId: String): Map<Int, GoalRunnerOutOfBandAcceptance> =
     database.read { unitOfWork ->
-      unitOfWork.goalRunnerControls.outOfBandAcceptances(parentWorkflowId).ifEmpty {
-        featureTaskRecordForLegacyControls(unitOfWork.workflowStates, parentWorkflowId)
-          ?.let { record -> outOfBandAcceptancesFromLegacyArtifacts(decodeArtifacts(record.artifactsJson)) }
-          .orEmpty()
-      }
+      unitOfWork.goalRunnerControls.outOfBandAcceptances(parentWorkflowId)
     }
 
   override fun persistOutOfBandAcceptance(
@@ -348,7 +335,6 @@ class WorkflowGoalRunnerManifestStore @Inject constructor(
   ): GoalRunnerOutOfBandAcceptance = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
       ?: error("Goal parent workflow '$parentWorkflowId' no longer exists.")
-    migrateLegacyGoalRunnerControls(unitOfWork, record)
     unitOfWork.goalRunnerControls.persistOutOfBandAcceptance(parentWorkflowId, acceptance)
     parentProjection.rewrite(unitOfWork, record)
     acceptance
@@ -390,5 +376,4 @@ internal class WorkflowGoalRunnerPurgePersistence {
   }
 }
 
-internal fun goalRunnerPurgePersistence(unitOfWork: UnitOfWork): WorkflowGoalRunnerPurgePersistence =
-  WorkflowGoalRunnerPurgePersistence()
+internal fun goalRunnerPurgePersistence(): WorkflowGoalRunnerPurgePersistence = WorkflowGoalRunnerPurgePersistence()

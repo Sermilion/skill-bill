@@ -1,8 +1,7 @@
 package skillbill.infrastructure.sqlite.telemetry
-import skillbill.infrastructure.sqlite.core.bindAll
-import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
-
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.telemetry.model.GoalIssueFinishedRecord
 import java.sql.Connection
 

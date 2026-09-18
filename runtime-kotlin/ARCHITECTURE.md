@@ -187,10 +187,18 @@ Run compatibility repair at a documented initialization or recovery boundary;
 do not remove required repair or cache success forever by pathname alone.
 Measure repeated work before adding a cache, connection pool, or replacement library.
 
+Write readiness is keyed by ledger-stamped `PRAGMA user_version` plus stable file
+identity (`DatabaseIdentity`). `DatabaseMigrations.apply` sets `user_version` to the
+highest applied migration version in the same transaction that records ledger rows.
+`DatabaseRuntime.establishSchemaReadiness` runs only `DatabaseSchema.createBaseSchema`
+and `DatabaseMigrations.apply`; column ensure, diagnostic-evidence heal, work-list
+heal, and one-time legacy goal-runner and telemetry repairs are named ledger migrations.
+
 `DatabaseWriteReadinessGate` compares the `DatabaseIdentity` snapshot already read
 for each cache decision (`DatabaseIdentity.matches`) instead of rereading the file
-and `PRAGMA user_version` through `matchesFile`. The synchronized initialization
-path still performs a second identity observation after acquiring the lock.
+through `matchesFile`. Unreadable database files raise `DatabaseAccessError(READ)` from
+identity read and do not trigger migrate-on-access re-establishment. The synchronized
+initialization path still performs a second identity observation after acquiring the lock.
 `DatabaseWriteReadinessTest` exercises the gate through `sqliteSessionFactoryForTests`
 and recording diagnostics instead of production-only counters.
 
@@ -806,7 +814,10 @@ roll forward through `recoverPending`.
 14. SQLite schema changes are append-only versioned migrations recorded in
     `schema_migrations`, keyed by migration name. Version numbers order the list
     but do not identify a migration: branches assign them independently, so two
-    lineages can ship different migrations under the same number.
+    lineages can ship different migrations under the same number. One-time legacy
+    repairs run as named migrations (`ensure-schema-columns-and-heals`,
+    `migrate-legacy-goal-runner-controls`, `migrate-legacy-telemetry-outbox`) instead
+    of on every establishment or reconcile call.
 
 The subsystem package set is:
 

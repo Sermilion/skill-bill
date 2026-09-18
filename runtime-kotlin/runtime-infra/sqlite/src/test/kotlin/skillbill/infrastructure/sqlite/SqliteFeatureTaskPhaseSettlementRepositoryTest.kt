@@ -1,11 +1,8 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.model.EnvironmentContext
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry

@@ -1,9 +1,8 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
+import skillbill.infrastructure.sqlite.core.bindAll
 import java.sql.Connection
 
 internal class GoalPlanningStatusProjectionSql(

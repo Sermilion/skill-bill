@@ -1,11 +1,8 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
-
 import skillbill.error.DatabaseAccessError
 import skillbill.error.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.model.EnvironmentContext
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode

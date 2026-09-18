@@ -29,7 +29,10 @@ internal class WorkflowStateStore private constructor(
   FeatureImplementWorkflowStateRepository by FeatureImplementWorkflowStateStore(connection),
   FeatureVerifyWorkflowStateRepository by FeatureVerifyWorkflowStateStore(connection, clock),
   FeatureTaskRuntimeWorkflowStateRepository by FeatureTaskRuntimeWorkflowStateStore(connection, clock) {
-  constructor(connection: Connection, clock: Clock) : this(connection, clock, FeatureTaskWorkflowStateStore(connection, clock))
+  constructor(
+    connection: Connection,
+    clock: Clock,
+  ) : this(connection, clock, FeatureTaskWorkflowStateStore(connection, clock))
 }
 
 internal class FeatureTaskWorkflowStateStore(

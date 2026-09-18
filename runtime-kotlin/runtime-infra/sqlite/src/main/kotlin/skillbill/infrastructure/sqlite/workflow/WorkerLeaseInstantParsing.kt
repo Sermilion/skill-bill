@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
 import skillbill.error.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
+import skillbill.infrastructure.sqlite.core.degradedValuePreview
 import skillbill.infrastructure.sqlite.core.recordDegradedValue
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featuretask.model.parseFeatureTaskRuntimeWorkerLeaseInstant
@@ -17,7 +18,7 @@ internal fun parseWorkerLeaseInstant(
   diagnostics.recordDegradedValue(
     seam = "worker_lease.$field",
     expected = "RFC 3339 instant",
-    used = value.take(120),
+    used = value.degradedValuePreview(),
     error = error,
   )
   throw error

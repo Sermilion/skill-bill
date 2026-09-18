@@ -28,7 +28,9 @@ internal fun decodePhaseRecords(artifacts: Any?) = phaseRecordsFromWorkflowArtif
 
 internal fun decodePhaseLedger(artifacts: Any?) = phaseLedgerFromWorkflowArtifacts(artifacts)
 
-internal fun decodeGoalContinuationFieldAdoption(artifacts: Any?) = goalContinuationFieldAdoptionFromWorkflowArtifacts(artifacts)
+internal fun decodeGoalContinuationFieldAdoption(artifacts: Any?) = goalContinuationFieldAdoptionFromWorkflowArtifacts(
+  artifacts,
+)
 
 internal fun decodePhaseOutputRepairEvidence(json: String): FeatureTaskRuntimePhaseOutputRepairEvidence? =
   decodePhaseOutputRepairEvidenceFromArtifact(

@@ -1,9 +1,8 @@
 package skillbill.infrastructure.sqlite.goal
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.UnaddressedFinding
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.model.ReviewFindingCitation
 import java.sql.Connection
 

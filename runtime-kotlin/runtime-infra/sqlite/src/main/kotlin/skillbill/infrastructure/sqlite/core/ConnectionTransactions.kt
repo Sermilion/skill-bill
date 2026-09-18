@@ -15,40 +15,38 @@ internal enum class DatabaseTransactionBeginMode(val sql: String) {
   DEFERRED("BEGIN DEFERRED"),
 }
 
-internal inline fun <T> Connection.inDatabaseTransaction(
-  dbPath: Path,
-  beginMode: DatabaseTransactionBeginMode,
-  operation: DatabaseAccessOperation,
-  diagnostics: RuntimeDiagnostics,
-  mapSqlExceptions: Boolean = true,
-  block: Connection.() -> T,
-): T {
-  executeTransactionStatement(beginMode.sql)
+internal data class DatabaseTransactionSpec(
+  val dbPath: Path,
+  val beginMode: DatabaseTransactionBeginMode,
+  val operation: DatabaseAccessOperation,
+  val diagnostics: RuntimeDiagnostics,
+  val mapSqlExceptions: Boolean = true,
+)
+
+internal inline fun <T> Connection.inDatabaseTransaction(spec: DatabaseTransactionSpec, block: Connection.() -> T): T {
+  executeTransactionStatement(spec.beginMode.sql)
   var committed = false
   var primaryFailure: Throwable? = null
   return try {
-    val result = try {
-      block()
-    } catch (failure: Throwable) {
-      val mappedFailure = if (mapSqlExceptions) {
-        mapTransactionBlockFailure(dbPath, operation, failure)
-      } else {
-        failure
+    val result = runCatching { block() }.getOrElse { failure ->
+      primaryFailure = when (failure) {
+        is SQLException ->
+          if (spec.mapSqlExceptions) {
+            mapTransactionBlockFailure(spec.dbPath, spec.operation, failure)
+          } else {
+            failure
+          }
+        is RuntimeException -> failure
+        else -> throw failure
       }
-      primaryFailure = mappedFailure
-      throw mappedFailure
+      throw primaryFailure
     }
-    try {
-      executeTransactionStatement("COMMIT")
-    } catch (failure: Throwable) {
-      primaryFailure = failure
-      throw failure
-    }
+    commitWriteTransaction { failure -> primaryFailure = failure }
     committed = true
     result
   } finally {
     if (!committed) {
-      rollbackAfterFailedTransaction(dbPath, diagnostics, primaryFailure)
+      rollbackAfterFailedTransaction(spec.dbPath, spec.diagnostics, primaryFailure)
     }
   }
 }
@@ -56,17 +54,24 @@ internal inline fun <T> Connection.inDatabaseTransaction(
 private fun mapTransactionBlockFailure(
   dbPath: Path,
   operation: DatabaseAccessOperation,
-  failure: Throwable,
-): Throwable = when {
-  failure is SQLException && operation == DatabaseAccessOperation.WRITE ->
-    databaseAccessError(dbPath, DatabaseAccessOperation.WRITE, failure)
-  failure is SQLException && operation == DatabaseAccessOperation.READ ->
-    databaseAccessError(dbPath, DatabaseAccessOperation.READ, failure)
+  failure: SQLException,
+): Throwable = when (operation) {
+  DatabaseAccessOperation.WRITE -> databaseAccessError(dbPath, DatabaseAccessOperation.WRITE, failure)
+  DatabaseAccessOperation.READ -> databaseAccessError(dbPath, DatabaseAccessOperation.READ, failure)
   else -> failure
 }
 
 private fun Connection.executeTransactionStatement(sql: String) {
   createStatement().use { it.execute(sql) }
+}
+
+private inline fun Connection.commitWriteTransaction(onFailure: (SQLException) -> Unit) {
+  try {
+    executeTransactionStatement("COMMIT")
+  } catch (failure: SQLException) {
+    onFailure(failure)
+    throw failure
+  }
 }
 
 internal fun Connection.rollbackAfterFailedTransaction(
@@ -90,8 +95,9 @@ internal fun logTransactionRollbackFailure(
 ) {
   val rollbackDetail = boundedTransactionFailureDetail(rollbackFailure)
   val primaryDetail = primaryFailure?.let(::boundedTransactionFailureDetail) ?: "none"
+  val dbLocation = dbPath.toAbsolutePath().normalize()
   diagnostics.warning(
-    "skillbill sqlite: transaction rollback failed after transaction failure at ${dbPath.toAbsolutePath().normalize()}; " +
+    "skillbill sqlite: transaction rollback failed after transaction failure at $dbLocation; " +
       "rollback=$rollbackDetail; primary=$primaryDetail",
     rollbackFailure,
   )
@@ -106,25 +112,32 @@ internal inline fun <T> Connection.inNestedWriteTransaction(
   diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
   block: Connection.() -> T,
 ): T = inDatabaseTransaction(
-  dbPath = this.databasePath(),
-  beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
-  operation = DatabaseAccessOperation.WRITE,
-  diagnostics = diagnostics,
-  mapSqlExceptions = false,
+  DatabaseTransactionSpec(
+    dbPath = this.databasePath(),
+    beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
+    operation = DatabaseAccessOperation.WRITE,
+    diagnostics = diagnostics,
+    mapSqlExceptions = false,
+  ),
   block = block,
 )
 
+internal fun PreparedStatement.bindAll(values: Iterable<*>) {
+  values.forEachIndexed { index, value -> bindParameter(index + 1, value) }
+}
+
 internal fun PreparedStatement.bindAll(vararg values: Any?) {
-  values.forEachIndexed { index, value ->
-    val parameterIndex = index + 1
-    when (value) {
-      null -> setNull(parameterIndex, Types.NULL)
-      is String -> setString(parameterIndex, value)
-      is Int -> setInt(parameterIndex, value)
-      is Long -> setLong(parameterIndex, value)
-      is Boolean -> setBoolean(parameterIndex, value)
-      is ByteArray -> setBytes(parameterIndex, value)
-      else -> throw IllegalArgumentException("Unsupported bind value at index $parameterIndex: ${value::class}")
-    }
+  bindAll(values.asList())
+}
+
+private fun PreparedStatement.bindParameter(parameterIndex: Int, value: Any?) {
+  when (value) {
+    null -> setNull(parameterIndex, Types.NULL)
+    is String -> setString(parameterIndex, value)
+    is Int -> setInt(parameterIndex, value)
+    is Long -> setLong(parameterIndex, value)
+    is Boolean -> setBoolean(parameterIndex, value)
+    is ByteArray -> setBytes(parameterIndex, value)
+    else -> throw IllegalArgumentException("Unsupported bind value at index $parameterIndex: ${value::class}")
   }
 }

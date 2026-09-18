@@ -1,12 +1,11 @@
 package skillbill.infrastructure.sqlite.telemetry
-import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
-
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.core.sqliteDiagnostics
 import skillbill.review.model.REVIEW_STAGE_DEGRADATION_EVENT_NAME
 import skillbill.review.model.ReviewStageDegradationMeasurement
 import java.sql.Connection
-import skillbill.infrastructure.sqlite.core.bindAll
 
 internal fun emitFeatureTaskRuntimeStarted(connection: Connection, sessionId: String, level: String) {
   val row = lifecycleRow(connection, "feature_task_runtime_sessions", sessionId) ?: return

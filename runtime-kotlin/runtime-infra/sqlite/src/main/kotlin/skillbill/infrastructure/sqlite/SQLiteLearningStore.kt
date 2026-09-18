@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningRecord
@@ -10,7 +11,6 @@ import skillbill.learnings.model.LearningSourceValidation
 import skillbill.learnings.model.UpdateLearningRequest
 import java.sql.Connection
 import java.sql.ResultSet
-import skillbill.infrastructure.sqlite.core.bindAll
 
 internal object SQLiteLearningStore {
   fun addLearning(
@@ -53,7 +53,15 @@ internal object SQLiteLearningStore {
       ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.bindAll(validatedScope.wireName, validatedScopeKey, validatedTitle, validatedRuleText, effectiveRationale, sourceValidation.reviewRunId, sourceValidation.findingId)
+      statement.bindAll(
+        validatedScope.wireName,
+        validatedScopeKey,
+        validatedTitle,
+        validatedRuleText,
+        effectiveRationale,
+        sourceValidation.reviewRunId,
+        sourceValidation.findingId,
+      )
       statement.executeUpdate()
     }
     return connection.createStatement().use { statement ->
@@ -126,7 +134,7 @@ internal object SQLiteLearningStore {
           id
         """.trimIndent(),
       ).use { statement ->
-        statement.bindAll(*parameters.toTypedArray())
+        statement.bindAll(parameters)
         statement.executeQuery().use { resultSet ->
           buildList {
             while (resultSet.next()) {
@@ -162,7 +170,14 @@ internal object SQLiteLearningStore {
       WHERE id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.bindAll(validatedScope.wireName, validatedScopeKey, nextTitle, nextRuleText, nextRationale, request.learningId)
+      statement.bindAll(
+        validatedScope.wireName,
+        validatedScopeKey,
+        nextTitle,
+        nextRuleText,
+        nextRationale,
+        request.learningId,
+      )
       statement.executeUpdate()
     }
     return getLearning(connection, request.learningId)

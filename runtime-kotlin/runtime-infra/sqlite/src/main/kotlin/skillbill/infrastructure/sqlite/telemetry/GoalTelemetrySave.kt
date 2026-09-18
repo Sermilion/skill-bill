@@ -1,11 +1,10 @@
 package skillbill.infrastructure.sqlite.telemetry
 import skillbill.infrastructure.sqlite.core.bindAll
-
+import skillbill.infrastructure.sqlite.core.sqliteDiagnostics
 import skillbill.telemetry.model.GoalFinishedRecord
 import skillbill.telemetry.model.GoalIssueFinishedRecord
 import skillbill.telemetry.model.GoalStartedRecord
 import skillbill.telemetry.model.GoalSubtaskFinishedRecord
-import skillbill.infrastructure.sqlite.core.sqliteDiagnostics
 import java.sql.Connection
 
 private const val SQLITE_TIMESTAMP_NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
@@ -207,12 +206,15 @@ internal fun recordGoalIssueSegmentEnd(
   ).use { statement ->
     val tail = listOf(status, status, status, parentWorkflowId, issueKey)
     val params = if (blocked) listOf(workflowId) + tail else tail
-    statement.bindAll(*params.toTypedArray())
+    statement.bindAll(params)
     statement.executeUpdate()
   }
 }
 
-internal fun saveGoalIssueFinished(connection: Connection, record: GoalIssueFinishedRecord): GoalIssueFinishedSaveOutcome {
+internal fun saveGoalIssueFinished(
+  connection: Connection,
+  record: GoalIssueFinishedRecord,
+): GoalIssueFinishedSaveOutcome {
   if (!goalIssueProgressExists(connection, record.parentWorkflowId, record.issueKey)) {
     val recovered = recoverGoalIssueProgress(connection, record)
     if (!recovered.persisted) {
@@ -338,4 +340,3 @@ private fun goalRunSessionExists(connection: Connection, workflowId: String): Bo
     statement.bindAll(workflowId)
     statement.executeQuery().use { it.next() }
   }
-

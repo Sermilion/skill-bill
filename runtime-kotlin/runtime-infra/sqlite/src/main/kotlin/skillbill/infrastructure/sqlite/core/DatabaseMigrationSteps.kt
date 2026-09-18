@@ -149,6 +149,12 @@ internal fun dropDelegatedReviewLifecycleTables(connection: Connection) {
   }
 }
 
+internal fun ensureSchemaColumnsAndHeals(connection: Connection) {
+  DatabaseColumnMigrations.apply(connection)
+  DatabaseColumnMigrations.healDiagnosticEvidenceKeys(connection)
+  DatabaseColumnMigrations.healWorkListMetadata(connection)
+}
+
 internal class DatabaseMigration(
   internal val version: Int,
   internal val name: String,

@@ -43,7 +43,6 @@ import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import java.time.Clock
 import skillbill.ports.featurespec.FeatureSpecPathResolverPort
 import skillbill.ports.install.baseline.InstalledWorkspaceBaselineStatusPort
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
@@ -58,6 +57,7 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
 import skillbill.ports.validation.RepoValidationGateway
+import java.time.Clock
 
 @RuntimeSingleton
 @Component

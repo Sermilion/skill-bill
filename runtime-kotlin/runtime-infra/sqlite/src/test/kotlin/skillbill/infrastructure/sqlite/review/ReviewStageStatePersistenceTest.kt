@@ -1,7 +1,5 @@
 package skillbill.infrastructure.sqlite.review
 
-import java.time.Clock
-
 import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.infrastructure.sqlite.SQLiteReviewRunCompletenessRepository
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
@@ -19,6 +17,7 @@ import skillbill.review.model.ReviewStage
 import skillbill.review.model.ReviewStageBoundary
 import skillbill.review.model.ReviewStageReached
 import skillbill.tempDbConnection
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

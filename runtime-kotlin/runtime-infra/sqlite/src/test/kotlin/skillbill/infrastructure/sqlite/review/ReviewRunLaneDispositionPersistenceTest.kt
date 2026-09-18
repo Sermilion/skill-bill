@@ -1,8 +1,6 @@
 package skillbill.infrastructure.sqlite.review
 
 import skillbill.infrastructure.sqlite.core.DatabaseReviewColumnMigrations
-import skillbill.infrastructure.sqlite.review.fetchReviewRunLanes
-import skillbill.infrastructure.sqlite.review.replaceReviewRunLanes
 import skillbill.review.ReviewRunLaneResolver
 import skillbill.review.context.model.ReviewLaneReviewDisposition
 import skillbill.review.context.model.ReviewLaneSegmentAccounting

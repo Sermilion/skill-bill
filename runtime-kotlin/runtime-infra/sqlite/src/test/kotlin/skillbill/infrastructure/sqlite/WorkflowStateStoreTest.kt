@@ -1,7 +1,5 @@
 package skillbill.infrastructure.sqlite
 
-import java.time.Clock
-
 import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -16,6 +14,7 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.sql.DriverManager
+import java.time.Clock
 import java.time.Instant
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors

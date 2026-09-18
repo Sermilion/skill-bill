@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite.telemetry
-import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
-
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
@@ -186,7 +185,7 @@ internal class TelemetryOutboxStore(
         """.trimIndent(),
       ).use { statement ->
         val values: List<Any?> = eventIds.map { it } + claimToken
-        statement.bindAll(*values.toTypedArray())
+        statement.bindAll(values)
         statement.executeUpdate()
       }
     return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)
@@ -240,7 +239,7 @@ internal class TelemetryOutboxStore(
           addAll(eventIds)
           add(claimToken)
         }
-        statement.bindAll(*values.toTypedArray())
+        statement.bindAll(values)
         statement.executeUpdate()
       }
     return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)

@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.context.model.ReviewClaimVerdictAdmission
 import skillbill.review.context.model.ReviewSpecAdjudicationAdmission
 import skillbill.review.model.ReviewClaimVerdict
@@ -13,7 +14,6 @@ import skillbill.review.model.ReviewStage
 import skillbill.review.model.ReviewStageMetrics
 import skillbill.review.model.ReviewStageVerdictDistribution
 import java.sql.Connection
-import skillbill.infrastructure.sqlite.core.bindAll
 
 internal fun aggregateReviewStageMetrics(
   connection: Connection,

@@ -3,6 +3,7 @@ package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.JsonCodec
 import skillbill.error.ShellContentContractException
 import skillbill.infrastructure.sqlite.core.InternalSqliteDiagnostics
+import skillbill.infrastructure.sqlite.core.degradedValuePreview
 import skillbill.infrastructure.sqlite.core.recordDegradedValue
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.sql.ResultSet
@@ -23,38 +24,36 @@ internal fun average(values: List<Int>): Double = if (values.isEmpty()) {
   String.format(Locale.US, "%.2f", values.average()).toDouble()
 }
 
-internal fun parseJsonList(
-  rawValue: Any?,
-  diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
-): List<Any?> = when (rawValue) {
-  null -> emptyList()
-  is String -> {
-    val trimmed = rawValue.trim()
-    if (trimmed.isEmpty()) {
-      emptyList()
-    } else {
-      try {
-        JsonCodec.parseJsonArrayStrict(trimmed)
-      } catch (error: ShellContentContractException) {
-        diagnostics.recordDegradedValue(
-          seam = "review_stats.json_array",
-          expected = "strict JSON array",
-          used = trimmed.take(120),
-          error = error,
-        )
+internal fun parseJsonList(rawValue: Any?, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics): List<Any?> =
+  when (rawValue) {
+    null -> emptyList()
+    is String -> {
+      val trimmed = rawValue.trim()
+      if (trimmed.isEmpty()) {
         emptyList()
+      } else {
+        try {
+          JsonCodec.parseJsonArrayStrict(trimmed)
+        } catch (error: ShellContentContractException) {
+          diagnostics.recordDegradedValue(
+            seam = "review_stats.json_array",
+            expected = "strict JSON array",
+            used = trimmed.degradedValuePreview(),
+            error = error,
+          )
+          emptyList()
+        }
       }
     }
+    else -> {
+      diagnostics.recordDegradedValue(
+        seam = "review_stats.json_array",
+        expected = "string JSON array",
+        used = rawValue::class.simpleName.orEmpty(),
+      )
+      emptyList()
+    }
   }
-  else -> {
-    diagnostics.recordDegradedValue(
-      seam = "review_stats.json_array",
-      expected = "string JSON array",
-      used = rawValue::class.simpleName.orEmpty(),
-    )
-    emptyList()
-  }
-}
 
 internal fun durationSeconds(
   row: Map<String, Any?>,

@@ -10,7 +10,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
 import skillbill.error.InvalidInstallPlanSchemaError
-import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.sqlite.SqliteTestDatabasePaths
 import skillbill.infrastructure.sqlite.sqliteSessionFactoryForTests
 import skillbill.install.model.InstallAgent

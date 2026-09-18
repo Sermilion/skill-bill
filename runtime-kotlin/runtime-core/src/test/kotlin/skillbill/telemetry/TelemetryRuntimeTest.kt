@@ -4,7 +4,6 @@ import skillbill.application.telemetry.sync.TelemetrySyncRuntime
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.infrastructure.http.HttpTelemetryClient
-import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.RemoteTransportPort
@@ -170,7 +169,7 @@ class TelemetryRuntimeTest {
   }
 
   @Test
-  fun `syncTelemetry covers disabled noop and unconfigured paths`() {
+  fun `autoSyncTelemetry returns disabled when telemetry is off`() {
     val disabledSettings =
       TelemetrySettings(
         configPath = Files.createTempFile("telemetry-invalid-config", ".json").toFileLocation(),
@@ -200,7 +199,10 @@ class TelemetryRuntimeTest {
         TelemetrySyncRuntime.telemetryStatusPayload(disabledDbPath, disabledSettings).telemetryEnabled,
       )
     }
+  }
 
+  @Test
+  fun `syncTelemetry returns noop when outbox is empty`() {
     val noopTempDir = Files.createTempDirectory("telemetry-noop-run")
     val noopDbPath = noopTempDir.resolve("metrics.db")
     withTelemetryOutboxStore(noopTempDir, noopDbPath) { outboxStore ->
@@ -215,7 +217,10 @@ class TelemetryRuntimeTest {
 
       assertEquals(TelemetrySyncStatus.NOOP, noopResult.status)
     }
+  }
 
+  @Test
+  fun `syncTelemetry returns unconfigured when proxy url is blank`() {
     val unconfiguredTempDir = Files.createTempDirectory("telemetry-unconfigured-run")
     val unconfiguredDbPath = unconfiguredTempDir.resolve("metrics.db")
     withTelemetryOutboxStore(unconfiguredTempDir, unconfiguredDbPath) { outboxStore ->

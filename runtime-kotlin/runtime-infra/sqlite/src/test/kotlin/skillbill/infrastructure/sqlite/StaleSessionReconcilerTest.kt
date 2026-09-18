@@ -1,7 +1,5 @@
 package skillbill.infrastructure.sqlite
 
-import java.time.Clock
-
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.reconcileStaleFeatureTaskRuntimeSessions
@@ -13,6 +11,7 @@ import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import java.nio.file.Files
 import java.sql.Connection
+import java.time.Clock
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -185,7 +184,8 @@ class StaleSessionReconcilerTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       seedAbandonedGoalIssueCandidates(connection)
 
-      val reconciled = reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
+      val reconciled =
+        reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
 
       assertEquals(1, reconciled.goalIssueAbandonedSessions)
       assertEquals(1, reconciled.emittedTerminalEvents)
@@ -204,7 +204,8 @@ class StaleSessionReconcilerTest {
       assertEquals(null, goalColumnValue(connection, "SKILL-111", "status"))
       assertEquals(null, goalColumnValue(connection, "SKILL-110", "status"))
 
-      val repeated = reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
+      val repeated =
+        reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
 
       assertEquals(0, repeated.goalIssueAbandonedSessions)
       assertEquals(1, eventCount(connection, "skillbill_goal_issue_finished"))

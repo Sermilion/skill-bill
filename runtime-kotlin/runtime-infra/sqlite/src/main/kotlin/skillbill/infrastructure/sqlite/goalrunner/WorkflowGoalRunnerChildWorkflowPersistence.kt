@@ -169,7 +169,6 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       ?: error("Unknown decomposed parent workflow '${state.parentWorkflowId}'.")
     existingRecord.requireRuntimeModeForEngineWrite()
     val existingParent = existingRecord.toSnapshot()
-    migrateLegacyGoalRunnerControls(unitOfWork, existingParent)
     val parentUpdated = engine.updateRecord(
       WorkflowFamily.TASK_RUNTIME.definition,
       existingParent,

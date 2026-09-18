@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry
 import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 import skillbill.telemetry.model.FeatureVerifyStartedRecord
 import java.sql.Connection
@@ -25,7 +24,10 @@ internal fun saveFeatureVerifyStarted(connection: Connection, record: FeatureVer
 
 internal enum class TerminalSaveOutcome { FIRST_TERMINAL, DUPLICATE }
 
-internal fun saveFeatureVerifyFinished(connection: Connection, record: FeatureVerifyFinishedRecord): TerminalSaveOutcome {
+internal fun saveFeatureVerifyFinished(
+  connection: Connection,
+  record: FeatureVerifyFinishedRecord,
+): TerminalSaveOutcome {
   val gapsFoundJson = listJson(record.gapsFound)
   if (rowExists(connection, "feature_verify_sessions", record.sessionId)) {
     if (lifecycleAlreadyFinished(connection, "feature_verify_sessions", record.sessionId)) {
@@ -59,9 +61,7 @@ private fun updateFeatureVerifyFinished(
       AND (finished_event_emitted_at IS NULL OR completion_status = 'stale')
     """.trimIndent(),
   ).use { statement ->
-    statement.bindAll(
-      *featureVerifyFinishedValues(record, gapsFoundJson, includeSessionFirst = false).toTypedArray(),
-    )
+    statement.bindAll(featureVerifyFinishedValues(record, gapsFoundJson, includeSessionFirst = false))
     statement.executeUpdate()
   }
 }
@@ -80,9 +80,7 @@ private fun insertFeatureVerifyFinished(
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """.trimIndent(),
   ).use { statement ->
-    statement.bindAll(
-      *featureVerifyFinishedValues(record, gapsFoundJson, includeSessionFirst = true).toTypedArray(),
-    )
+    statement.bindAll(featureVerifyFinishedValues(record, gapsFoundJson, includeSessionFirst = true))
     statement.executeUpdate()
   }
 }

@@ -257,7 +257,8 @@ class DecompositionWorkflowContinuation(
     issueKey: String,
     unitOfWork: UnitOfWork,
   ): ContinuationStepResult {
-    val workflowId = generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, workflowIdRandom)
+    val workflowId =
+      generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, workflowIdRandom)
     val updatedManifest = manifest.withStartedSubtask(selection.subtask.id, workflowId, selection.branchPlan.branch)
     val opened = engine.openRecord(
       WorkflowFamily.TASK_RUNTIME.definition,

@@ -1951,6 +1951,14 @@ the `FileLocation` migration.
 Revisit when: `FileLocation` lands — then re-run the pair census and expect the twelve
 decomposition pairs to collapse in one move.
 
+## [2026-09-18] Ledger-stamped user_version and migrate-on-access retirement (SKILL-356 subtask 3)
+
+Context: `PRAGMA user_version` was read for readiness but never written; `establishSchemaReadiness` also ran unconditional column probes and lazy legacy goal-runner and telemetry repairs on every open.
+Decision: Stamp `user_version` to the highest applied migration version inside `DatabaseMigrations.apply`; move column ensure, heals, and legacy artifact repairs into append-only ledger migrations; delete lazy migration call sites; raise `DatabaseAccessError(READ)` from unreadable identity reads instead of silent null.
+Reason: Readiness cache and routine writes must reflect ledger state; one-time repairs belong in the migration ledger with observability records, not in hot paths.
+Alternatives considered: Stamping `user_version` outside the ledger transaction (rejected: diverges from applied migration set). Keeping lazy migrations for safety (rejected: violates routine-work boundary and observability policy).
+Consequence: Fresh and upgraded databases converge through migrations 39–41; `reconcileStaleSessions` no longer restamps telemetry on every call.
+
 ## [2026-09-18] SQLite cross-module test fixtures (SKILL-356)
 
 Context: Review and telemetry persistence tests in `runtime-cli`, `runtime-core`, `runtime-mcp`, and `runtime-engine` reached SQLite through `skillbill.infrastructure.sqlite.core` and internal store types, coupling consumer tests to adapter internals and blocking `internal` visibility on stores.

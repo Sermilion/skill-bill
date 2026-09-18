@@ -5,7 +5,6 @@ import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.SkillBillRuntimeVersion
 import skillbill.infrastructure.sqlite.workflow.GoalPlanningPreparationStore
-import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.telemetry.LifecycleTelemetryRepository
@@ -55,11 +54,7 @@ fun withGoalPlanningPreparationRepository(
   }
 }
 
-fun withLifecycleTelemetryStore(
-  userHome: Path,
-  dbPath: Path,
-  block: (LifecycleTelemetryRepository) -> Unit,
-) {
+fun withLifecycleTelemetryStore(userHome: Path, dbPath: Path, block: (LifecycleTelemetryRepository) -> Unit) {
   ensureTestDatabase(dbPath).use { connection ->
     block(LifecycleTelemetryStore(connection))
   }

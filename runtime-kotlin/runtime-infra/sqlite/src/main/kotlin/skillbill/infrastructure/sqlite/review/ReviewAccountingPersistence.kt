@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.ports.review.model.ReviewAccountingBoundedPayload
 import skillbill.ports.review.model.ReviewAccountingRecord
@@ -12,7 +13,6 @@ import skillbill.review.model.ReviewStageDegradationMeasurement
 import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewSummary
 import java.sql.Connection
-import skillbill.infrastructure.sqlite.core.bindAll
 
 internal fun upsertReviewAccounting(connection: Connection, record: ReviewAccountingRecord) {
   connection.prepareStatement(
@@ -25,8 +25,13 @@ internal fun upsertReviewAccounting(connection: Connection, record: ReviewAccoun
       updated_at = CURRENT_TIMESTAMP
     """.trimIndent(),
   ).use { statement ->
-    statement.bindAll(record.reviewId, record.packetDigest, JsonCodec.mapToJsonString(record.boundedPayload.asMap()
-))
+    statement.bindAll(
+      record.reviewId,
+      record.packetDigest,
+      JsonCodec.mapToJsonString(
+        record.boundedPayload.asMap(),
+      ),
+    )
     statement.executeUpdate()
   }
 }
@@ -213,7 +218,19 @@ internal fun replaceFindings(
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.bindAll(review.reviewRunId, finding.findingId, finding.severity, finding.confidence, finding.issueCategory, finding.location, finding.description, finding.findingText, laneName, lane?.area, lane?.packSlug)
+      statement.bindAll(
+        review.reviewRunId,
+        finding.findingId,
+        finding.severity,
+        finding.confidence,
+        finding.issueCategory,
+        finding.location,
+        finding.description,
+        finding.findingText,
+        laneName,
+        lane?.area,
+        lane?.packSlug,
+      )
       statement.executeUpdate()
     }
   }

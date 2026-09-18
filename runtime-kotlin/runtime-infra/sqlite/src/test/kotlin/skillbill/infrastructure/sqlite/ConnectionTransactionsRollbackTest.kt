@@ -4,6 +4,7 @@ import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import java.lang.reflect.Proxy
 import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
@@ -16,7 +17,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import java.lang.reflect.Proxy
 
 @Execution(ExecutionMode.SAME_THREAD)
 class ConnectionTransactionsRollbackTest {

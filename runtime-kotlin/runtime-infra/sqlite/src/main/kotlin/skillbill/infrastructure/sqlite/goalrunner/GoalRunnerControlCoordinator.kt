@@ -11,10 +11,8 @@ import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.infrastructure.sqlite.workflow.decompositionRuntime
 import skillbill.infrastructure.sqlite.workflow.findDecomposedParentWorkflow
-import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
-import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorizationDeniedException
-import skillbill.ports.goalrunner.runner.model.GoalRunnerPausePersistenceResult
+import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.acquireExecutionLease
 import skillbill.ports.goalrunner.executionLease
 import skillbill.ports.goalrunner.heartbeatExecutionLease
@@ -22,19 +20,20 @@ import skillbill.ports.goalrunner.releaseExecutionLease
 import skillbill.ports.goalrunner.releaseExecutionLeaseIfExpired
 import skillbill.ports.goalrunner.runner.model.GoalRunnerCompletionPersistenceResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorization
+import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorizationDeniedException
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
+import skillbill.ports.goalrunner.runner.model.GoalRunnerPausePersistenceResult
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
-import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
-import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
-import java.time.Clock
 import java.nio.file.Path
+import java.time.Clock
 
 internal class GoalRunnerControlCoordinator(
   internal val database: DatabaseSessionFactory,
@@ -113,7 +112,6 @@ internal class GoalRunnerControlCoordinator(
   ): GoalRunnerControlState? = database.transaction { unitOfWork ->
     val parent = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
       ?: return@transaction null
-    migrateLegacyGoalRunnerControls(unitOfWork, parent)
     val existing = unitOfWork.goalRunnerControls.controlState(parentWorkflowId)
     if (existing.paused && !overwriteExistingReason) {
       return@transaction existing
@@ -193,7 +191,6 @@ internal fun GoalRunnerControlCoordinator.requireParent(
 ): WorkflowStateSnapshot {
   val parent = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
     ?: error("Unknown decomposed parent workflow '$parentWorkflowId'.")
-  migrateLegacyGoalRunnerControls(unitOfWork, parent)
   return parent
 }
 
@@ -276,7 +273,6 @@ internal fun GoalRunnerControlCoordinator.resume(parentWorkflowId: String): Goal
   database.transaction { unitOfWork ->
     val parent = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
       ?: return@transaction null
-    migrateLegacyGoalRunnerControls(unitOfWork, parent)
     val existing = unitOfWork.goalRunnerControls.controlState(parentWorkflowId)
     val resumed = if (existing.paused || existing.pauseRequested) {
       unitOfWork.goalRunnerControls.persistControlState(
@@ -323,8 +319,7 @@ internal fun GoalRunnerControlCoordinator.persistPauseRequest(
 
 internal fun GoalRunnerControlCoordinator.requestPause(parentWorkflowId: String): GoalRunnerControlState? =
   database.transaction { unitOfWork ->
-    WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)?.let { parent ->
-      migrateLegacyGoalRunnerControls(unitOfWork, parent)
+    WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)?.let { _ ->
       persistPauseRequest(unitOfWork, parentWorkflowId)
     }
   }
@@ -337,7 +332,6 @@ internal fun GoalRunnerControlCoordinator.requestPauseByIssueKey(
     issueKey,
     decompositionManifestValidator,
   ) ?: return@transaction null
-  migrateLegacyGoalRunnerControls(unitOfWork, parent.toSnapshot())
   val existing = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
   if (repoRoot != null) {
     val identity = goalRepositoryIdentity(repoRoot)

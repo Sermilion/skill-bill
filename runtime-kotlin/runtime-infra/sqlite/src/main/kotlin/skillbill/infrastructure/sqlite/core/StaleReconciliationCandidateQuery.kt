@@ -1,6 +1,4 @@
 package skillbill.infrastructure.sqlite.core
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import java.sql.Connection
 import java.sql.ResultSet

@@ -1,9 +1,8 @@
 package skillbill.infrastructure.sqlite.review
 
-import skillbill.infrastructure.sqlite.core.bindAll
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
-
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.learnings.model.LearningScope
 import skillbill.review.model.FindingOutcomeRow
 import skillbill.review.model.ReviewFindingDetail
@@ -73,7 +72,11 @@ internal fun filterReviewFinishedSummary(summary: ReviewFindingStats, level: Str
     rejectedFindingDetails = reviewFindingDetails(summary.rejectedFindingDetails, level == "full"),
   )
 
-internal fun buildLearningsSection(connection: Connection, reviewSessionId: String, level: String): ReviewLearningsSummary {
+internal fun buildLearningsSection(
+  connection: Connection,
+  reviewSessionId: String,
+  level: String,
+): ReviewLearningsSummary {
   val defaultScopeCounts = LearningScope.emptyScopeCounts()
   val learningsData =
     if (reviewSessionId.isEmpty()) {
@@ -83,7 +86,11 @@ internal fun buildLearningsSection(connection: Connection, reviewSessionId: Stri
     }
   val learningsEntries =
     learningsEntries(
-      entries = (learningsData?.get(SqliteReviewTelemetryPayloadKeys.LEARNINGS) as? List<*>)?.filterIsInstance<Map<String, Any?>>() ?: emptyList(),
+      entries = (
+        learningsData?.get(
+          SqliteReviewTelemetryPayloadKeys.LEARNINGS,
+        ) as? List<*>
+        )?.filterIsInstance<Map<String, Any?>>() ?: emptyList(),
       includeText = level == "full",
     )
   val scopeCounts =
@@ -95,7 +102,11 @@ internal fun buildLearningsSection(connection: Connection, reviewSessionId: Stri
         ?: emptyMap()
       )
   return ReviewLearningsSummary(
-    appliedCount = (learningsData?.get(SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_COUNT) as? Number)?.toInt() ?: 0,
+    appliedCount = (
+      learningsData?.get(
+        SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_COUNT,
+      ) as? Number
+      )?.toInt() ?: 0,
     appliedReferences =
     (learningsData?.get(SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_REFERENCES) as? List<*>)
       ?.mapNotNull { it?.toString() }

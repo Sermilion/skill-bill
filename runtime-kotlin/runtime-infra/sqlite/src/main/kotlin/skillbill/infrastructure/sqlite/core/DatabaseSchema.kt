@@ -74,7 +74,7 @@ internal object DatabaseSchema {
 
   fun createBaseSchema(connection: Connection) {
     (
-      databaseSchemaStatementsEarly + databaseSchemaStatementsLate +
+      databaseSchemaStatements +
         DatabaseReviewLedgerSchema.reviewRunLaneStatements +
         DatabaseReviewLedgerSchema.reviewFindingOutcomeStatements +
         DatabaseReviewLedgerSchema.reviewStageStateStatements

@@ -1,12 +1,12 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.JsonCodec
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
 import skillbill.review.model.ReviewExecutionMode
 import skillbill.review.model.ReviewFinishedTelemetry
 import skillbill.review.model.ReviewSummary
 import java.sql.Connection
-import skillbill.infrastructure.sqlite.core.bindAll
 
 internal data class ReviewTelemetryState(
   internal val enabled: Boolean,
@@ -58,7 +58,11 @@ internal fun ensureReviewFinishedTimestamp(
   return ReviewRuntime.fetchReviewSummary(connection, reviewRunId)
 }
 
-internal fun ensureTerminalReviewState(connection: Connection, reviewRunId: String, executionMode: ReviewExecutionMode?) {
+internal fun ensureTerminalReviewState(
+  connection: Connection,
+  reviewRunId: String,
+  executionMode: ReviewExecutionMode?,
+) {
   connection.prepareStatement(
     """
     UPDATE review_runs

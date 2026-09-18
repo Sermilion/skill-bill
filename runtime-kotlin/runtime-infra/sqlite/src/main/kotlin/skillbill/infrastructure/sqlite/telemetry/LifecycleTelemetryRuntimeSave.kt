@@ -1,8 +1,7 @@
 package skillbill.infrastructure.sqlite.telemetry
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
 import java.sql.Connection

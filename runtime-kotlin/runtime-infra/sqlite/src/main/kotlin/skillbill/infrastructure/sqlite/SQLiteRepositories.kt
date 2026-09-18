@@ -10,7 +10,6 @@ import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
 import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.infrastructure.sqlite.review.loadReviewAccounting
 import skillbill.infrastructure.sqlite.review.persistImportedReview
-import skillbill.infrastructure.sqlite.review.persistLegacyTelemetryRewrites
 import skillbill.infrastructure.sqlite.review.upsertReviewAccounting
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
@@ -29,6 +28,7 @@ import skillbill.learnings.model.UpdateLearningRequest
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.UnaddressedFindingsRepository
@@ -36,7 +36,6 @@ import skillbill.ports.idestatus.AgentActivityStampRepository
 import skillbill.ports.idestatus.WorktreeEditJournalRepository
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.learning.model.LearningResolution
-import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.review.ReviewRepository
 import skillbill.ports.review.ReviewRunCompletenessRepository
@@ -133,7 +132,7 @@ internal class SQLiteUnitOfWork(
     connection.prepareStatement(
       "DELETE FROM $table WHERE workflow_id IN ($placeholders)",
     ).use { statement ->
-      statement.bindAll(*workflowIds.toTypedArray())
+      statement.bindAll(workflowIds)
       statement.executeUpdate()
     }
   }
@@ -164,10 +163,8 @@ internal class SQLiteUnaddressedFindingsRepository(connection: Connection) : Una
 internal class SQLiteTelemetryReconciliationRepository(
   private val connection: Connection,
 ) : TelemetryReconciliationRepository {
-  override fun reconcileStaleSessions(request: TelemetryReconciliationRequest): TelemetryReconciliationResult {
-    persistLegacyTelemetryRewrites(connection)
-    return reconcileStaleTelemetrySessions(connection, request)
-  }
+  override fun reconcileStaleSessions(request: TelemetryReconciliationRequest): TelemetryReconciliationResult =
+    reconcileStaleTelemetrySessions(connection, request)
 }
 
 internal class SQLiteWorkflowStatsRepository(
@@ -245,9 +242,7 @@ internal class SQLiteReviewRepository(
       """.trimIndent(),
     ).use { statement ->
       statement.bindAll(
-        runId,
-        findingId,
-        *LearningsRuntime.rejectedFindingOutcomeTypes.toTypedArray(),
+        listOf(runId, findingId) + LearningsRuntime.rejectedFindingOutcomeTypes,
       )
       statement.executeQuery().use { resultSet ->
         if (resultSet.next()) {

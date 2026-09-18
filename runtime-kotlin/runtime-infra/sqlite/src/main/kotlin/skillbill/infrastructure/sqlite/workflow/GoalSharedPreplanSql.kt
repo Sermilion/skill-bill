@@ -1,9 +1,8 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
@@ -67,7 +66,7 @@ internal class GoalSharedPreplanSql(
           checkpoint.identity.parentGoalWorkflowId,
           expectedPayloadSha256,
         )
-        s.bindAll(*values.toTypedArray())
+        s.bindAll(values)
         s.executeUpdate() > 0
       }
       if (!updated) {
@@ -113,7 +112,7 @@ internal class GoalSharedPreplanSql(
           provenance.phaseOutputContractVersion,
           identity.parentGoalWorkflowId,
           expectedPayloadSha256,
-        ).also { s.bindAll(*it.toTypedArray()) }
+        ).also { s.bindAll(it) }
         s.executeUpdate() > 0
       }
       if (!updated) {
@@ -233,7 +232,7 @@ internal fun Connection.insertSharedPreplanRow(checkpoint: SharedGoalPreplanChec
     checkpoint.provenance.phaseOutputContractId, checkpoint.provenance.phaseOutputContractVersion,
     checkpoint.payloadSha256, checkpoint.preplanPayload, checkpoint.repairEvidenceJson(),
   )
-  s.bindAll(*values.toTypedArray())
+  s.bindAll(values)
   s.executeUpdate() > 0
 }
 
@@ -270,7 +269,7 @@ internal fun Connection.restampSubtaskPlanProvenance(
       provenance.phaseOutputContractId,
       provenance.phaseOutputContractVersion,
       parentGoalWorkflowId,
-    ).also { s.bindAll(*it.toTypedArray()) }
+    ).also { s.bindAll(it) }
     s.executeUpdate()
   }
 }

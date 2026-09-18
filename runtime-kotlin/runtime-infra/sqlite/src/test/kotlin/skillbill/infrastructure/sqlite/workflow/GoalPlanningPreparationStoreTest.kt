@@ -1,15 +1,11 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.ports.diagnostics.RuntimeDiagnostics
-import java.time.Clock
-
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.goalrunner.model.GoalPlanningStatusState
-import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
-import skillbill.model.EnvironmentContext
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
 import java.nio.file.Files
@@ -100,7 +96,8 @@ class GoalPlanningPreparationStoreTest {
   fun `bounded status reads while another connection holds the writer lock`() {
     val tempDir = Files.createTempDirectory("skillbill-planning-status-contention")
     val dbPath = tempDir.resolve("metrics.db")
-    val database = sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
+    val database =
+      sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
     database.read { Unit }
 
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { writer ->

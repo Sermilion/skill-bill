@@ -185,7 +185,11 @@ internal fun testGoalRunner(wiring: GoalRunnerTestWiring): GoalRunner {
     wiring.runBoundaries.diagnostics,
   )
   val pauseBoundary = GoalRunnerPauseBoundary(wiring.runBoundaries.manifestStore)
-  val launchPrepare = GoalRunnerSubtaskLaunchPrepare(wiring.launchBoundaries, TestRepositoryEnclosingRoot)
+  val launchPrepare = GoalRunnerSubtaskLaunchPrepare(
+    wiring.launchBoundaries,
+    TestRepositoryEnclosingRoot,
+    wiring.runBoundaries.clock,
+  )
   val perRunLoopAssembler = GoalRunnerPerRunLoopAssembler(
     runBoundaries = wiring.runBoundaries,
     launchBoundaries = wiring.launchBoundaries,

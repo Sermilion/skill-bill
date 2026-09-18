@@ -1,9 +1,8 @@
 package skillbill.infrastructure.sqlite.review
-import skillbill.infrastructure.sqlite.core.bindAll
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
-
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.model.FindingOutcomeRow
 import skillbill.review.model.FindingOutcomeType
 import skillbill.review.model.ReviewFindingDetail
@@ -116,7 +115,7 @@ private class FindingSummaryAccumulator {
 internal fun queryLatestFindingOutcomes(connection: Connection, reviewRunId: String?): List<FindingOutcomeRow> {
   val filter = buildFindingOutcomeFilters(reviewRunId)
   return connection.prepareStatement(latestFindingOutcomesSql(filter)).use { statement ->
-    statement.bindAll(*filter.parameters.toTypedArray())
+    statement.bindAll(filter.parameters)
     statement.executeQuery().use { resultSet ->
       buildList {
         while (resultSet.next()) {
@@ -145,7 +144,10 @@ internal fun summarizeFindingRows(findingRows: List<FindingOutcomeRow>): ReviewF
   return summary.toStats()
 }
 
-internal fun shouldSkipReviewFinishedTelemetry(findingRows: List<FindingOutcomeRow>, reviewSummary: ReviewSummary): Boolean {
+internal fun shouldSkipReviewFinishedTelemetry(
+  findingRows: List<FindingOutcomeRow>,
+  reviewSummary: ReviewSummary,
+): Boolean {
   val summary = summarizeFindingRows(findingRows)
   val resolvedFindings = summary.acceptedFindings + summary.rejectedFindings
   return summary.totalFindings > 0 &&

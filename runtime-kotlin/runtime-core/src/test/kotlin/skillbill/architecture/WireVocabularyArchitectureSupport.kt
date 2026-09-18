@@ -140,10 +140,13 @@ internal object WireVocabularyArchitectureSupport {
     files: List<SourceFile>,
     governedKeys: Map<String, Set<String>>,
     keyValues: Set<String>,
-  ): List<String> =
-    WireVocabularyGovernedSeamInventory.seams
-      .filter { seam -> seam.governedRelativePathMarkers.any { marker -> files.any { file -> marker in file.relativePath } } }
-      .flatMap { seam ->
+  ): List<String> = WireVocabularyGovernedSeamInventory.seams
+    .filter { seam ->
+      seam.governedRelativePathMarkers.any { marker ->
+        files.any { file -> marker in file.relativePath }
+      }
+    }
+    .flatMap { seam ->
       WireVocabularyGovernedSeamInventory.schemaFieldsMissingKotlinOwner(
         governedKeys.getValue(seam.schemaRepoRelativePath),
         seam.schemaRepoRelativePath,

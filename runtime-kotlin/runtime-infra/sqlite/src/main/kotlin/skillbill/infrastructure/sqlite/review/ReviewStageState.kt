@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
-import java.time.Clock
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewFindingVerdict
@@ -14,7 +14,7 @@ import skillbill.review.model.ReviewStage
 import skillbill.review.model.ReviewStageBoundary
 import skillbill.review.model.ReviewStageReached
 import java.sql.Connection
-import skillbill.infrastructure.sqlite.core.bindAll
+import java.time.Clock
 
 internal fun recordFindingVerdicts(connection: Connection, reviewRunId: String, verdicts: List<ReviewFindingVerdict>) {
   reserveReviewRun(connection, reviewRunId)
@@ -161,7 +161,13 @@ internal fun recordStageBoundary(connection: Connection, reviewRunId: String, bo
       contract_version = excluded.contract_version
     """.trimIndent(),
   ).use { statement ->
-    statement.bindAll(reviewRunId, boundary.stage.wireValue, boundary.reached.wireValue, boundary.recordedAt, boundary.contractVersion)
+    statement.bindAll(
+      reviewRunId,
+      boundary.stage.wireValue,
+      boundary.reached.wireValue,
+      boundary.recordedAt,
+      boundary.contractVersion,
+    )
     statement.executeUpdate()
   }
 }
@@ -211,8 +217,14 @@ internal fun recordSpecProjectionReference(
       recorded_at = excluded.recorded_at
     """.trimIndent(),
   ).use { statement ->
-    statement.bindAll(reviewRunId, reference.specPath, reference.contentDigest, reference.absenceReason, clock.instant()
-.toString())
+    statement.bindAll(
+      reviewRunId,
+      reference.specPath,
+      reference.contentDigest,
+      reference.absenceReason,
+      clock.instant()
+        .toString(),
+    )
     statement.executeUpdate()
   }
 }

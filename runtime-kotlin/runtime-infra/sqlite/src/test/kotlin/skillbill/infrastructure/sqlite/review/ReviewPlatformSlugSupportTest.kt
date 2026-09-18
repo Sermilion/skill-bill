@@ -1,7 +1,5 @@
 package skillbill.infrastructure.sqlite.review
 
-import skillbill.infrastructure.sqlite.review.platformSlugFromRoutedSkill
-import skillbill.infrastructure.sqlite.review.reviewPlatformSlug
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

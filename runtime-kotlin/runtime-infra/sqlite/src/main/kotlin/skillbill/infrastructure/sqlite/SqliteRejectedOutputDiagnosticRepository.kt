@@ -205,7 +205,7 @@ private fun RejectedOutputDiagnosticSelector.bindAll(statement: PreparedStatemen
     attempt?.let(::add)
     repairTurn?.let(::add)
   }
-  statement.bindAll(*values.toTypedArray())
+  statement.bindAll(values)
 }
 
 private inline fun <T> persistence(operation: String, block: () -> T): T = try {
@@ -297,7 +297,7 @@ private fun Connection.queryProducerEvidence(lookup: ProducerEvidenceLookup): Pr
       add(lookup.generation)
       lookup.repairTurn?.let(::add)
     }
-    it.bindAll(*values.toTypedArray())
+    it.bindAll(values)
     it.executeQuery().use { row -> if (row.next()) row.toProducerEvidence() else null }
   }
 }

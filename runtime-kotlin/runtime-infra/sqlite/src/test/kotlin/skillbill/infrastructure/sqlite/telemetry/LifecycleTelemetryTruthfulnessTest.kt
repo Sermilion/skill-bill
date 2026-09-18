@@ -1,7 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry
 
-import java.time.Clock
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
@@ -19,6 +17,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRejectionMeasureme
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRejectionViolationClass
 import java.nio.file.Files
 import java.sql.Connection
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

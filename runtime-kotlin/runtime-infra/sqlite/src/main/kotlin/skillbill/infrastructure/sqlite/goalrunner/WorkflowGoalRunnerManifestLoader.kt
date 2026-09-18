@@ -90,7 +90,6 @@ internal class WorkflowGoalRunnerManifestLoader(
       )
       existingRecord?.requireRuntimeModeForEngineWrite()
       val existing = existingRecord?.toSnapshot()
-      existing?.let { migrateLegacyGoalRunnerControls(unitOfWork, it) }
       val base = existing ?: engine.openRecord(
         WorkflowFamily.TASK_RUNTIME.definition,
         generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, Random.Default),

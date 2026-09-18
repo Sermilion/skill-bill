@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.DatabasePaths
+import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -65,7 +65,11 @@ class DatabasePathsTest {
       ),
     ).forEach { resolved ->
       assertEquals(dbPath.toAbsolutePath().normalize(), resolved)
-      DatabaseRuntime.openReadDb(cliValue = resolved.toString(), environment = emptyMap(), userHome = workingDir).use { open ->
+      DatabaseRuntime.openReadDb(
+        cliValue = resolved.toString(),
+        environment = emptyMap(),
+        userHome = workingDir,
+      ).use { open ->
         assertTrue(
           tableNames(open.connection).containsAll(setOf("review_runs", "findings", "telemetry_outbox")),
           "A schema-less file must be migrated to schema-complete, not reported as an empty store.",
@@ -79,7 +83,11 @@ class DatabasePathsTest {
     val workingDir = Files.createTempDirectory("runtime-kotlin-absent-store")
     val dbPath = workingDir.resolve("review-metrics.db")
 
-    DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap(), userHome = workingDir).use { open ->
+    DatabaseRuntime.openReadDb(
+      cliValue = dbPath.toString(),
+      environment = emptyMap(),
+      userHome = workingDir,
+    ).use { open ->
       assertTrue(tableNames(open.connection).containsAll(setOf("review_runs", "findings")))
     }
   }
@@ -90,7 +98,11 @@ class DatabasePathsTest {
     val dbPath = workingDir.resolve("review-metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).close()
 
-    DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap(), userHome = workingDir).use { open ->
+    DatabaseRuntime.openReadDb(
+      cliValue = dbPath.toString(),
+      environment = emptyMap(),
+      userHome = workingDir,
+    ).use { open ->
       assertFailsWith<SQLException>("An already-complete store must not gain write capability.") {
         open.connection.createStatement().use { statement ->
           statement.executeUpdate("INSERT INTO review_runs (review_run_id, routed_skill) VALUES ('rvw-x', 's')")

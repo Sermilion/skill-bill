@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite.telemetry
 
-import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.model.FindingOutcomeType
 import java.sql.Connection
 

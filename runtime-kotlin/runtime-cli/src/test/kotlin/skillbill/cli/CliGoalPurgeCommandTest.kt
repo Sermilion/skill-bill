@@ -117,13 +117,12 @@ class CliGoalPurgeCommandTest {
     }
   }
 
-  private fun workflowCount(fixture: GoalCliFixture): Int =
-    ensureTestDatabase(fixture.dbPath).use { connection ->
-      connection.prepareStatement("SELECT COUNT(*) FROM feature_task_workflows").use { statement ->
-        statement.executeQuery().use { rows ->
-          check(rows.next())
-          rows.getInt(1)
-        }
+  private fun workflowCount(fixture: GoalCliFixture): Int = ensureTestDatabase(fixture.dbPath).use { connection ->
+    connection.prepareStatement("SELECT COUNT(*) FROM feature_task_workflows").use { statement ->
+      statement.executeQuery().use { rows ->
+        check(rows.next())
+        rows.getInt(1)
       }
     }
+  }
 }

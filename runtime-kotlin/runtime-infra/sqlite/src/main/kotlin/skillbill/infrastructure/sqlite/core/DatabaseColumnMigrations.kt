@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.core
 
-import skillbill.error.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxDeliveryIdentityMigration
 import java.sql.Connection
 
@@ -22,12 +21,7 @@ internal object DatabaseColumnMigrations {
   }
 
   fun healDiagnosticEvidenceKeys(connection: Connection) {
-    connection.inDatabaseTransaction(
-      dbPath = connection.databasePath(),
-      beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
-      operation = DatabaseAccessOperation.OPEN,
-      diagnostics = InternalSqliteDiagnostics,
-    ) { rekeyDiagnosticEvidenceByRepairTurn(this) }
+    rekeyDiagnosticEvidenceByRepairTurn(connection)
   }
 
   fun applyWorkListMetadata(connection: Connection) {

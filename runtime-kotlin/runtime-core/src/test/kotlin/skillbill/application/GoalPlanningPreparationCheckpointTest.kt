@@ -1,8 +1,5 @@
 package skillbill.application
 
-import skillbill.ports.diagnostics.RuntimeDiagnostics
-import java.time.Clock
-
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
@@ -11,6 +8,7 @@ import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimePhaseOutputSchemaValidator
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -20,6 +18,7 @@ import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
 import java.nio.file.Files
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

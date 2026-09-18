@@ -1,7 +1,5 @@
 package skillbill.infrastructure.sqlite
 
-import java.time.Clock
-
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateRow
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
@@ -13,6 +11,7 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.sql.Connection
+import java.time.Clock
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

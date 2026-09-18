@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite.review
-import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
-
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.review.model.GoalBlockedSubtaskSummary
 import skillbill.review.model.GoalModeStats

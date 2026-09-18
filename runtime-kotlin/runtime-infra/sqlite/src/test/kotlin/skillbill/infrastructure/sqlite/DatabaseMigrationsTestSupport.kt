@@ -1,11 +1,15 @@
 package skillbill.infrastructure.sqlite
 
 import org.junit.jupiter.api.Assumptions
+import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkListRowError
+import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
+import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
 import skillbill.infrastructure.sqlite.core.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.DatabaseSchema
 import skillbill.infrastructure.sqlite.worklist.SQLiteWorkListRepository
+import skillbill.review.context.model.CodeReviewExecutionMode
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -28,6 +32,42 @@ internal fun seedVersionKeyedLedger(dbPath: Path) {
           "INSERT INTO schema_migrations (version, name) VALUES (${migration.version}, '${migration.name}')",
         )
       }
+    }
+  }
+}
+
+internal fun seedLegacyGoalRunnerControlsMigrationFixture(dbPath: Path) {
+  DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    connection.createStatement().use { statement ->
+      statement.executeUpdate(
+        "DELETE FROM schema_migrations WHERE name = 'migrate-legacy-goal-runner-controls'",
+      )
+    }
+    val artifactsJson = JsonCodec.mapToJsonString(
+      mapOf(
+        GOAL_REVIEW_POLICY_ARTIFACT_KEY to mapOf(
+          "code_review_mode" to CodeReviewExecutionMode.INLINE.wireValue,
+        ),
+        GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY to listOf(
+          mapOf(
+            "subtask_id" to 2,
+            "commit_sha" to "legacy-commit",
+            "reason" to "accepted outside the normal review path",
+            "accepted_at" to "2026-09-17T10:00:00Z",
+          ),
+        ),
+      ),
+    )
+    connection.prepareStatement(
+      """
+      INSERT INTO feature_task_workflows (
+        workflow_id, mode, contract_version, workflow_status, current_step_id, steps_json, artifacts_json, issue_key
+      ) VALUES (?, 'runtime', '0.1', 'paused', 'plan', '[]', ?, 'SKILL-356')
+      """.trimIndent(),
+    ).use { statement ->
+      statement.setString(1, "wftr-legacy-goal-parent")
+      statement.setString(2, artifactsJson)
+      statement.executeUpdate()
     }
   }
 }
@@ -141,12 +181,25 @@ internal fun rejectedDiagnosticIdentitiesAndTurns(connection: Connection): List<
     }
   }
 
+internal fun clearProducerOutputEvidenceMigrationRecords(connection: Connection) {
+  connection.createStatement().use { statement ->
+    statement.executeUpdate(
+      """
+      DELETE FROM schema_migrations
+      WHERE name IN (
+        'rekey-producer-output-evidence-by-generation',
+        'rekey-producer-output-evidence-by-agent',
+        'rekey-diagnostic-evidence-by-repair-turn'
+      )
+      """.trimIndent(),
+    )
+  }
+}
+
 internal fun seedPreAgentProducerEvidenceForMigration28(dbPath: Path, payload: ByteArray, sha: String) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
     connection.createStatement().use { statement ->
-      statement.executeUpdate(
-        "DELETE FROM schema_migrations WHERE name = 'rekey-producer-output-evidence-by-agent'",
-      )
+      clearProducerOutputEvidenceMigrationRecords(connection)
       statement.executeUpdate("DROP TABLE producer_output_evidence")
       statement.executeUpdate(PRE_AGENT_PRODUCER_OUTPUT_EVIDENCE_SQL)
     }
@@ -432,7 +485,9 @@ internal fun createLegacyFeatureImplementSessionsDatabase(dbPath: Path) {
         VALUES (?, ?)
       """.trimIndent(),
     ).use { statement ->
-      DatabaseMigrations.migrations.forEach { migration ->
+      DatabaseMigrations.migrations.filterNot { migration ->
+        migration.name == "ensure-schema-columns-and-heals"
+      }.forEach { migration ->
         statement.setInt(1, migration.version)
         statement.setString(2, migration.name)
         statement.executeUpdate()
@@ -456,7 +511,9 @@ internal fun createLegacyFeatureTaskRuntimeSessionsDatabase(dbPath: Path) {
       )
     }
     connection.prepareStatement("INSERT INTO schema_migrations (version, name) VALUES (?, ?)").use { statement ->
-      DatabaseMigrations.migrations.forEach { migration ->
+      DatabaseMigrations.migrations.filterNot { migration ->
+        migration.name == "ensure-schema-columns-and-heals"
+      }.forEach { migration ->
         statement.setInt(1, migration.version)
         statement.setString(2, migration.name)
         statement.executeUpdate()
@@ -486,7 +543,9 @@ internal fun createLegacyLifecycleSessionsWithoutStartsDatabase(dbPath: Path) {
       )
     }
     connection.prepareStatement("INSERT INTO schema_migrations (version, name) VALUES (?, ?)").use { statement ->
-      DatabaseMigrations.migrations.forEach { migration ->
+      DatabaseMigrations.migrations.filterNot { migration ->
+        migration.name == "ensure-schema-columns-and-heals"
+      }.forEach { migration ->
         statement.setInt(1, migration.version)
         statement.setString(2, migration.name)
         statement.executeUpdate()
@@ -527,7 +586,9 @@ internal fun createLegacyGoalSubtaskEventsDatabase(dbPath: Path) {
       )
     }
     connection.prepareStatement("INSERT INTO schema_migrations (version, name) VALUES (?, ?)").use { statement ->
-      DatabaseMigrations.migrations.forEach { migration ->
+      DatabaseMigrations.migrations.filterNot { migration ->
+        migration.name == "ensure-schema-columns-and-heals"
+      }.forEach { migration ->
         statement.setInt(1, migration.version)
         statement.setString(2, migration.name)
         statement.executeUpdate()

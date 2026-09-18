@@ -1,9 +1,8 @@
 package skillbill.infrastructure.sqlite.worklist
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkListRowError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.work.model.LEGACY_FEATURE_TASK_PROSE_WORKFLOW_STATUSES
 import skillbill.ports.work.model.WorkItem

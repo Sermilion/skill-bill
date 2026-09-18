@@ -3,12 +3,12 @@ package skillbill.architecture
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
-import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
 import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
@@ -112,30 +112,27 @@ internal object WireVocabularyGovernedSeamInventory {
     else -> emptySet()
   }
 
-  private fun sqliteTelemetryMaterializationGovernedKeys(): Set<String> =
-    payloadKeyValues(
-      SharedPayloadKeys::class.java,
-      LifecycleTelemetryPayloadKeys::class.java,
-      GoalTelemetryPayloadKeys::class.java,
-      SqliteLifecycleTelemetryMaterializationPayloadKeys::class.java,
-    )
+  private fun sqliteTelemetryMaterializationGovernedKeys(): Set<String> = payloadKeyValues(
+    SharedPayloadKeys::class.java,
+    LifecycleTelemetryPayloadKeys::class.java,
+    GoalTelemetryPayloadKeys::class.java,
+    SqliteLifecycleTelemetryMaterializationPayloadKeys::class.java,
+  )
 
-  private fun sqliteReviewTelemetryGovernedKeys(): Set<String> =
-    payloadKeyValues(
-      SharedPayloadKeys::class.java,
-      SqliteReviewTelemetryPayloadKeys::class.java,
-      ReviewFindingPayloadKeys::class.java,
-    )
+  private fun sqliteReviewTelemetryGovernedKeys(): Set<String> = payloadKeyValues(
+    SharedPayloadKeys::class.java,
+    SqliteReviewTelemetryPayloadKeys::class.java,
+    ReviewFindingPayloadKeys::class.java,
+  )
 
-  private fun payloadKeyValues(vararg owners: Class<*>): Set<String> =
-    owners.flatMap { owner ->
-      owner.declaredFields
-        .filter { field -> field.type == String::class.java }
-        .map { field ->
-          field.isAccessible = true
-          field.get(null) as String
-        }
-    }.toSet()
+  private fun payloadKeyValues(vararg owners: Class<*>): Set<String> = owners.flatMap { owner ->
+    owner.declaredFields
+      .filter { field -> field.type == String::class.java }
+      .map { field ->
+        field.isAccessible = true
+        field.get(null) as String
+      }
+  }.toSet()
 
   private fun goalContinuationArtifactGovernedKeys(): Set<String> = setOf(
     SharedPayloadKeys.ISSUE_KEY,

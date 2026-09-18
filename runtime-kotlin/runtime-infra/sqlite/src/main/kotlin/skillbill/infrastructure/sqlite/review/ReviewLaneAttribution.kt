@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.review.ReviewFindingPayloadKeys
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.review.model.ReviewIntegrationPassRecord
 import skillbill.review.context.model.ReviewLaneReviewDisposition
 import skillbill.review.model.ImportedFinding
@@ -9,8 +11,6 @@ import skillbill.review.model.ReviewLaneResolutionState
 import skillbill.review.model.ReviewRunLane
 import skillbill.review.model.toStoredSegmentIdList
 import java.sql.Connection
-import skillbill.infrastructure.sqlite.core.bindAll
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 
 internal const val UNATTRIBUTED_LANE: String = "unattributed"
 private const val UNRESOLVED_ROUTED_SKILL: String = "unresolved"
@@ -96,7 +96,9 @@ internal fun fetchReviewRunLanes(connection: Connection, reviewRunId: String): L
                 ?: ReviewLaneReviewDisposition.INCOMPLETE,
               bundleCompositionDigest = resultSet.getString("bundle_composition_digest"),
               segmentAccountingJson = resultSet.getString("segment_accounting_json"),
-              unreviewedSegmentIds = resultSet.getString(SqliteReviewTelemetryPayloadKeys.UNREVIEWED_SEGMENT_IDS).orEmpty().toStoredSegmentIdList(),
+              unreviewedSegmentIds = resultSet.getString(
+                SqliteReviewTelemetryPayloadKeys.UNREVIEWED_SEGMENT_IDS,
+              ).orEmpty().toStoredSegmentIdList(),
               budgetDimension = resultSet.getString("budget_dimension"),
             ),
           )
@@ -133,7 +135,10 @@ internal fun fetchIntegrationPass(connection: Connection, reviewRunId: String): 
     }
   }
 
-internal fun queryReviewLaneEffectiveness(connection: Connection, reviewRunId: String?): List<ReviewLaneEffectivenessRow> {
+internal fun queryReviewLaneEffectiveness(
+  connection: Connection,
+  reviewRunId: String?,
+): List<ReviewLaneEffectivenessRow> {
   val counters = linkedMapOf<Triple<String, String, String>, MutableList<String>>()
   connection.prepareStatement(laneEffectivenessSql).use { statement ->
     statement.bindAll(reviewRunId, reviewRunId)
@@ -144,7 +149,9 @@ internal fun queryReviewLaneEffectiveness(connection: Connection, reviewRunId: S
           resultSet.getString("pack_slug") ?: UNATTRIBUTED_LANE,
           resultSet.getString("area") ?: UNATTRIBUTED_LANE,
         )
-        counters.getOrPut(key) { mutableListOf() } += resultSet.getString(SqliteReviewTelemetryPayloadKeys.OUTCOME_TYPE).orEmpty()
+        counters.getOrPut(key) {
+          mutableListOf()
+        } += resultSet.getString(SqliteReviewTelemetryPayloadKeys.OUTCOME_TYPE).orEmpty()
       }
     }
   }
@@ -182,7 +189,11 @@ internal fun updateFindingLaneAttribution(
   }
 }
 
-internal fun recordFindingLaneAttribution(connection: Connection, reviewRunId: String, attribution: Map<String, String>) {
+internal fun recordFindingLaneAttribution(
+  connection: Connection,
+  reviewRunId: String,
+  attribution: Map<String, String>,
+) {
   if (attribution.isEmpty()) return
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement(

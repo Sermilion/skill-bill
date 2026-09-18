@@ -1,14 +1,14 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
-import java.time.Clock
 import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.isTerminal
 import java.sql.Connection
 import java.sql.PreparedStatement
+import java.time.Clock
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.random.Random
@@ -243,7 +243,7 @@ private class SqlParameterBinder(
   }
 
   fun bind() {
-    statement.bindAll(*values.toTypedArray())
+    statement.bindAll(values)
   }
 }
 

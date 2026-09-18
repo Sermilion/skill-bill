@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.idestatus.model.WorktreeEditSource
 import skillbill.idestatus.model.WorktreeEditTick
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.idestatus.WorktreeEditJournalRepository
 import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
 import java.sql.Connection
@@ -138,5 +138,4 @@ internal class WorktreeEditJournalStore(
       null
     }
   }
-
 }

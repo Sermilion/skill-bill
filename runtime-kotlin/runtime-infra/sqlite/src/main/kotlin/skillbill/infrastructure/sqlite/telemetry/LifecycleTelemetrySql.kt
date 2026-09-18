@@ -1,15 +1,16 @@
 package skillbill.infrastructure.sqlite.telemetry
-import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import kotlinx.serialization.json.JsonElement
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.infrastructure.sqlite.core.bindAll
 import java.sql.Connection
 import java.sql.ResultSet
 
 internal fun Boolean.toSqlInt(): Int = if (this) 1 else 0
 
-internal fun listJson(items: List<Any?>): String = JsonCodec.mapToJsonString(mapOf(SqliteLifecycleTelemetryMaterializationPayloadKeys.ITEMS to items)).itemsArrayJson()
+internal fun listJson(items: List<Any?>): String = JsonCodec.mapToJsonString(
+  mapOf(SqliteLifecycleTelemetryMaterializationPayloadKeys.ITEMS to items),
+).itemsArrayJson()
 
 internal fun rowExists(connection: Connection, tableName: String, sessionId: String): Boolean =
   connection.prepareStatement("SELECT 1 FROM $tableName WHERE session_id = ?").use { statement ->

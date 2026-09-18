@@ -16,11 +16,12 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 
-internal fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestValidator): DecompositionManifest? =
-  decodeArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
-    ?.let {
-      validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
-    }
+internal fun WorkflowStateSnapshot.decompositionRuntime(
+  validator: DecompositionManifestValidator,
+): DecompositionManifest? = decodeArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
+  ?.let {
+    validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
+  }
 
 internal fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
   decodeArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get("mode") == "decompose"

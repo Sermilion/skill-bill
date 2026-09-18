@@ -1,11 +1,10 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.core.sqliteDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -51,7 +50,7 @@ internal fun PreparedStatement.bindOwnership(
     add(ownership.phaseId)
     add(ownership.phaseAttempt)
   }
-  bindAll(*values.toTypedArray())
+  bindAll(values)
   return values.size + 1
 }
 

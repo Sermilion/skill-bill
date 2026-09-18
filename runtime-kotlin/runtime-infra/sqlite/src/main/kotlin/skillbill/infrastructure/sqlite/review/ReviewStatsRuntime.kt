@@ -1,13 +1,13 @@
 package skillbill.infrastructure.sqlite.review
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.review.model.ReviewRepositoryStatsSnapshot
 import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
+import skillbill.review.model.FindingOutcomeRow
 import skillbill.review.model.GoalWorkflowStats
 import skillbill.review.model.ReviewFinishedTelemetry
-import skillbill.review.model.FindingOutcomeRow
 import skillbill.review.model.ReviewSummary
 import java.sql.Connection
-import skillbill.infrastructure.sqlite.core.bindAll
 
 internal object ReviewStatsRuntime {
   fun statsSnapshot(connection: Connection, reviewRunId: String?): ReviewRepositoryStatsSnapshot {

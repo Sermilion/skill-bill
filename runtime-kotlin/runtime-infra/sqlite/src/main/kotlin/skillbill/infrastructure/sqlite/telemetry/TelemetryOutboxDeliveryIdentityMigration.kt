@@ -1,9 +1,9 @@
 package skillbill.infrastructure.sqlite.telemetry
 
 import skillbill.infrastructure.sqlite.core.DatabaseColumnMigrations
+import skillbill.infrastructure.sqlite.core.bindAll
 import java.sql.Connection
 import java.util.UUID
-import skillbill.infrastructure.sqlite.core.bindAll
 
 internal object TelemetryOutboxDeliveryIdentityMigration {
   fun apply(connection: Connection) {

@@ -1,7 +1,4 @@
 package skillbill.infrastructure.sqlite.core
-import skillbill.infrastructure.sqlite.core.bindAll
-
-import java.time.Clock
 import skillbill.infrastructure.sqlite.telemetry.emitFeatureTaskRuntimeFinished
 import skillbill.infrastructure.sqlite.telemetry.emitFeatureVerifyFinished
 import skillbill.infrastructure.sqlite.telemetry.emitGoalIssueFinished
@@ -10,6 +7,7 @@ import skillbill.infrastructure.sqlite.telemetry.nextGoalStateEnteredAtSql
 import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.ports.telemetry.model.TelemetryReconciliationResult
 import java.sql.Connection
+import java.time.Clock
 import java.time.temporal.ChronoUnit
 
 internal const val STALE_SESSION_THRESHOLD_SECONDS: Long = 28_800L
@@ -176,7 +174,7 @@ private fun staleSessionIds(
     ORDER BY started_at, session_id
     """.trimIndent(),
   ).use { statement ->
-    statement.bindAll(*parameters.toTypedArray())
+    statement.bindAll(parameters)
     statement.executeQuery().use { resultSet ->
       buildList { while (resultSet.next()) add(resultSet.getString("session_id")) }
     }

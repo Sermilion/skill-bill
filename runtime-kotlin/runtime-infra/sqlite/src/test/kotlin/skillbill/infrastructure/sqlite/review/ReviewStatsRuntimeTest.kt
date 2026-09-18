@@ -6,12 +6,6 @@ import skillbill.application.learning.learningEntryDto
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
-import skillbill.infrastructure.sqlite.review.ReviewFinishedPayloadBuildRequest
-import skillbill.infrastructure.sqlite.review.ReviewRuntime
-import skillbill.infrastructure.sqlite.review.persistImportedReview
-import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
-import skillbill.infrastructure.sqlite.review.TriageRuntime
-import skillbill.review.ReviewParser
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.infrastructure.sqlite.telemetry.listJson
@@ -21,6 +15,7 @@ import skillbill.learnings.model.LearningSourceValidation
 import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.ports.review.toReviewFinishedTelemetryPayload
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.review.ReviewParser
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.review.model.ImportedReview

@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.review
 
-
 internal val reviewSummarySql =
   """
   SELECT

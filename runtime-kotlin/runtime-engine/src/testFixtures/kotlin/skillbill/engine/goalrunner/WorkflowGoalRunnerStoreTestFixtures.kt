@@ -3,6 +3,7 @@ package skillbill.engine.goalrunner
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerManifestStore
 import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerOutcomeStore
+import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerOutcomeStoreDependencies
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
@@ -60,15 +61,17 @@ fun sqliteWorkflowGoalRunnerOutcomeStore(
   childRepairExecutor: GoalRunnerChildRepairOperations,
 ): WorkflowGoalRunnerOutcomeStore = WorkflowGoalRunnerOutcomeStore(
   database = database,
-  workflowSnapshotValidator = workflowSnapshotValidator,
-  goalObservabilityEventValidator = artifactPorts.goalObservabilityEventValidator,
-  goalProgressEventValidator = artifactPorts.goalProgressEventValidator,
-  gitOperations = gitOperations,
-  phaseOutputValidator = artifactPorts.phaseOutputValidator,
-  workerSupervisor = workerSupervisor,
-  clock = clock,
-  decompositionManifestValidator = decompositionManifestValidator,
-  decompositionManifestStore = artifactPorts.decompositionManifestStore,
-  decompositionManifestWriter = decompositionManifestWriter,
-  childRepairExecutor = childRepairExecutor,
+  dependencies = WorkflowGoalRunnerOutcomeStoreDependencies(
+    workflowSnapshotValidator = workflowSnapshotValidator,
+    goalObservabilityEventValidator = artifactPorts.goalObservabilityEventValidator,
+    goalProgressEventValidator = artifactPorts.goalProgressEventValidator,
+    gitOperations = gitOperations,
+    phaseOutputValidator = artifactPorts.phaseOutputValidator,
+    workerSupervisor = workerSupervisor,
+    clock = clock,
+    decompositionManifestValidator = decompositionManifestValidator,
+    decompositionManifestStore = artifactPorts.decompositionManifestStore,
+    decompositionManifestWriter = decompositionManifestWriter,
+    childRepairExecutor = childRepairExecutor,
+  ),
 )

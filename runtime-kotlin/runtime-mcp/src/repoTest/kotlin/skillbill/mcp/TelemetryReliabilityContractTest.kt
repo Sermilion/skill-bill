@@ -2,19 +2,15 @@ package skillbill.mcp
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidTelemetryEventSchemaError
 import skillbill.goalrunner.model.GoalRunnerStopReason
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.review.ReviewFinishedPayloadBuildRequest
-import skillbill.infrastructure.sqlite.review.ReviewRuntime
-import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
-import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.ageTelemetryReliabilitySession
+import skillbill.infrastructure.sqlite.telemetryReliabilityEmittedEnvelope
+import skillbill.infrastructure.sqlite.telemetryReliabilityReviewFinishedEnvelope
 import skillbill.mcp.telemetry.TELEMETRY_EVENT_CONTRACT_VERSION
 import skillbill.mcp.telemetry.TelemetryEventSchemaPaths
 import skillbill.mcp.telemetry.TelemetryEventSchemaValidator
-import skillbill.ports.review.toReviewFinishedTelemetryPayload
-import skillbill.review.ReviewParser
+import skillbill.ports.telemetry.LifecycleTelemetryRepository
 import skillbill.review.normalizeTelemetrySlug
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
@@ -312,7 +308,7 @@ class TelemetryReliabilityContractTest {
         FeatureVerifyStartedRecord("fvs-reliability", 3, false, "SKILL-109 telemetry reliability"),
         "full",
       )
-      ageSession(connection, "feature_verify_sessions", "fvs-reliability", 600)
+      ageTelemetryReliabilitySession(connection, "feature_verify_sessions", "fvs-reliability", 600)
       store.featureVerifyFinished(
         FeatureVerifyFinishedRecord(
           "fvs-reliability",
@@ -336,7 +332,7 @@ class TelemetryReliabilityContractTest {
         FeatureTaskRuntimeStartedRecord("ftr-reliability", "MEDIUM", "SKILL-109", "reliability"),
         "full",
       )
-      ageSession(connection, "feature_task_runtime_sessions", "ftr-reliability", 540)
+      ageTelemetryReliabilitySession(connection, "feature_task_runtime_sessions", "ftr-reliability", 540)
       store.featureTaskRuntimeFinished(
         FeatureTaskRuntimeFinishedRecord(
           "ftr-reliability",
@@ -365,7 +361,7 @@ class TelemetryReliabilityContractTest {
         2,
       )
       store.qualityCheckStarted(started, "full")
-      ageSession(connection, "quality_check_sessions", started.sessionId, 420)
+      ageTelemetryReliabilitySession(connection, "quality_check_sessions", started.sessionId, 420)
       store.qualityCheckFinished(
         QualityCheckFinishedRecord(
           started.sessionId,
@@ -385,69 +381,27 @@ class TelemetryReliabilityContractTest {
       )
     }
 
-  private fun reviewFinishedEnvelope(): LinkedHashMap<String, Any?> {
-    val dbPath = Files.createTempDirectory("telemetry-reliability-review").resolve("metrics.db")
-    return DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val review = ReviewParser.parseReview(
-        """
-        Review session ID: rvs-reliability
-        Review run ID: rvw-reliability
-        Routed to: bill-kmp-code-review
-        Detected review scope: branch diff
-        Detected stack: KMP/Kotlin mixed workspace
-        Execution mode: delegated
+  private fun reviewFinishedEnvelope(): LinkedHashMap<String, Any?> = telemetryReliabilityReviewFinishedEnvelope(
+    """
+      Review session ID: rvs-reliability
+      Review run ID: rvw-reliability
+      Routed to: bill-kmp-code-review
+      Detected review scope: branch diff
+      Detected stack: KMP/Kotlin mixed workspace
+      Execution mode: delegated
 
-        ### 2. Risk Register
-        No findings.
-        """.trimIndent(),
-      )
-      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
-      linkedMapOf<String, Any?>().apply {
-        put("event_name", "skillbill_review_finished")
-        put("contract_version", TELEMETRY_EVENT_CONTRACT_VERSION)
-        putAll(
-          ReviewStatsRuntime.buildReviewFinishedPayload(
-            ReviewFinishedPayloadBuildRequest(
-              connection = connection,
-              reviewRunId = review.reviewRunId,
-              level = "full",
-              routedSkillPlatformSlugs = mapOf("bill-kmp-code-review" to "kmp"),
-            ),
-          ).toReviewFinishedTelemetryPayload().toPayload(),
-        )
-      }
-    }
-  }
+      ### 2. Risk Register
+      No findings.
+    """.trimIndent(),
+    TELEMETRY_EVENT_CONTRACT_VERSION,
+    mapOf("bill-kmp-code-review" to "kmp"),
+  )
 
   private fun emittedEnvelope(
     eventName: String,
-    emit: (LifecycleTelemetryStore, Connection) -> Unit,
-  ): LinkedHashMap<String, Any?> {
-    val dbPath = Files.createTempDirectory("telemetry-reliability-emitter").resolve("metrics.db")
-    return DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      emit(LifecycleTelemetryStore(connection), connection)
-      val payloadJson = connection.prepareStatement(
-        "SELECT payload_json FROM telemetry_outbox WHERE event_name = ? ORDER BY id DESC LIMIT 1",
-      ).use { statement ->
-        statement.setString(1, eventName)
-        statement.executeQuery().use { resultSet ->
-          assertTrue(resultSet.next(), "Expected a real outbox row for $eventName")
-          resultSet.getString("payload_json")
-        }
-      }
-      val parsed = requireNotNull(JsonCodec.parseObjectOrNull(payloadJson))
-      linkedMapOf<String, Any?>().apply {
-        val contractEventName = if (eventName == "skillbill_review_finished") {
-          eventName
-        } else {
-          eventName.removePrefix("skillbill_")
-        }
-        put("event_name", contractEventName)
-        put("contract_version", TELEMETRY_EVENT_CONTRACT_VERSION)
-        putAll(requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(parsed))))
-      }
-    }
-  }
+    emit: (LifecycleTelemetryRepository, Connection) -> Unit,
+  ): LinkedHashMap<String, Any?> =
+    telemetryReliabilityEmittedEnvelope(eventName, TELEMETRY_EVENT_CONTRACT_VERSION, emit)
 
   private fun goalStartedRecord(parentWorkflowId: String? = null): GoalStartedRecord = GoalStartedRecord(
     issueKey = "SKILL-109",
@@ -472,14 +426,4 @@ class TelemetryReliabilityContractTest {
     subtasksSkipped = 0,
     mode = "runtime",
   )
-
-  private fun ageSession(connection: Connection, tableName: String, sessionId: String, seconds: Int) {
-    connection.prepareStatement(
-      "UPDATE $tableName SET started_at = datetime('now', '-' || ? || ' seconds') WHERE session_id = ?",
-    ).use { statement ->
-      statement.setInt(1, seconds)
-      statement.setString(2, sessionId)
-      statement.executeUpdate()
-    }
-  }
 }

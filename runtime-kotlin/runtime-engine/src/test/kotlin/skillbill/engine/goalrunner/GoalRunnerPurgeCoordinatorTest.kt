@@ -13,9 +13,8 @@ import skillbill.engine.decomposition.encodeDecompositionManifestYaml
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
 import skillbill.engine.manifest
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
-import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.ensureTestDatabase
-import skillbill.model.EnvironmentContext
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.taskruntime.FeatureTaskRuntimeHeartbeat
@@ -83,7 +82,8 @@ class GoalRunnerPurgeCoordinatorTest {
     val database = sqliteDatabaseSessionFactory(
       userHome = userHome,
       dbPathOverride = dbPath.toString(),
-     environment = emptyMap())
+      environment = emptyMap(),
+    )
     ensureTestDatabase(dbPath).use { connection ->
       connection.prepareStatement(
         """

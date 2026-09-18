@@ -694,7 +694,6 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     assertEquals("completed_upstream_missing_output", evidence["wedge_class"])
     assertEquals("verify_findings", evidence["field"])
   }
-
 }
 
 internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {

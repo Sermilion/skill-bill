@@ -1,12 +1,11 @@
 package skillbill.infrastructure.sqlite.goal
 
-import skillbill.infrastructure.sqlite.core.bindAll
-
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.goalrunner.model.ReviewFindingOutcome
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
+import skillbill.infrastructure.sqlite.core.bindAll
 import java.sql.Connection
 
 internal class UnaddressedFindingsOutcomeRuntime(private val connection: Connection) {
