@@ -86,8 +86,9 @@ goalContinuationRecorder, args)` seam. `FeatureTaskRuntimeRunLoop` exposes only
 fields are internal to `FeatureTaskRuntimeRunLoopContext`.
 
 The named-family census is now PlanningBranch 0, Drive 2, ValidationGate 9,
-AttemptSettlement 3, Review 6, and PhaseAttempts 4 context extensions, down
-from 0, 13, 21, 13, 8, and 4 respectively. The remaining groups have these
+AttemptSettlement 3, Review 6, PhaseAttempts 4, and CommitPush 9 context
+extensions, down from 0, 13, 21, 13, 8, and 4 respectively for the pre-existing
+families. The remaining groups have these
 inputs:
 
 - PlanningBranch pure declarations and cap reasons take request facts, values,
@@ -132,6 +133,7 @@ table.
 | `FeatureTaskRuntimeRunLoopBackwardEdge.kt` | 0 | 0 |
 | `FeatureTaskRuntimeRunLoopCheckpoint.kt` | 0 | 0 |
 | `FeatureTaskRuntimeRunLoopCheckpointRemediation.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopCommitPush.kt` | 9 | 9 |
 | `FeatureTaskRuntimeRunLoopDrive.kt` | 2 | 2 |
 | `FeatureTaskRuntimeRunLoopLaunch.kt` | 2 | 2 |
 | `FeatureTaskRuntimeRunLoopModels.kt` | 0 | 0 |

@@ -44,7 +44,10 @@ object FeatureTaskRuntimeSubtaskFinalisationHandoff {
       ?: return invalid(
         "`produced_outputs.${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}` is absent",
       )
-    val message = result[FeatureTaskRuntimeCommitPushPayloadKeys.MESSAGE]?.toString()?.trim()?.takeIf(String::isNotBlank)
+    val message = result[FeatureTaskRuntimeCommitPushPayloadKeys.MESSAGE]
+      ?.toString()
+      ?.trim()
+      ?.takeIf(String::isNotBlank)
       ?: return invalid(
         "`${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}." +
           "${FeatureTaskRuntimeCommitPushPayloadKeys.MESSAGE}` is missing or blank",

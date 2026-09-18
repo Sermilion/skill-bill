@@ -20,13 +20,13 @@ class FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest {
       "The documented current census must equal its retained target.",
     )
     assertEquals(
-      26,
+      35,
       actual.values.sum(),
       "The run-loop context extension surface must not grow beyond the retained target.",
     )
     assertEquals(
       documented.values.sumOf { counts -> counts.target },
-      26,
+      35,
       "The retained orchestration target must remain explicit in ARCHITECTURE.md.",
     )
   }

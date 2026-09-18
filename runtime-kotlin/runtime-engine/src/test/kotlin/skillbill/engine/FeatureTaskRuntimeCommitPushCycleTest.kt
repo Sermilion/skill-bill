@@ -82,7 +82,11 @@ class FeatureTaskRuntimeCommitPushCycleTest {
       assertFalse("commit_push" in harness.launchedPromptPhaseOrder())
       val output = harness.recorder.loadPhaseRecords(WORKFLOW_ID)?.get("commit_push")?.outputArtifact.orEmpty()
       assertTrue(output.contains("commit_sha"), output)
-      assertTrue(git.createCommitMessages.any { it.startsWith("$RUNNER_TEST_ISSUE_KEY: one owner for every wire token") })
+      assertTrue(
+        git.createCommitMessages.any {
+          it.startsWith("$RUNNER_TEST_ISSUE_KEY: one owner for every wire token")
+        },
+      )
     } finally {
       repoRoot.toFile().deleteRecursively()
     }
