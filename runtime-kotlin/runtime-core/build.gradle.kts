@@ -21,9 +21,9 @@ dependencies {
   implementation(project(":runtime-domain"))
   implementation(project(":runtime-contracts"))
   testImplementation(libs.kotlinx.serialization.json)
-  implementation(project(":runtime-infra-fs"))
-  implementation(project(":runtime-infra-http"))
-  implementation(project(":runtime-infra-sqlite"))
+  implementation(project(":runtime-infra:fs"))
+  implementation(project(":runtime-infra:http"))
+  implementation(project(":runtime-infra:sqlite"))
   implementation(libs.kotlin.inject.runtime)
   ksp(libs.kotlin.inject.compiler)
 

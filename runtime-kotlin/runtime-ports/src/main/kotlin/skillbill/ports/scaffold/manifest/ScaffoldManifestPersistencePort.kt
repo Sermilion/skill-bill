@@ -14,7 +14,7 @@ import java.nio.file.Path
  * the YAML file IO (read, snapshot, write, restore). The pure-policy renderer in
  * `runtime-domain` produces the canonical YAML strings; this port persists them.
  *
- * IO ownership lives in `runtime-infra-fs`. Policy code depends only on this port.
+ * IO ownership lives in `runtime-infra/fs (`:runtime-infra:fs`)`. Policy code depends only on this port.
  */
 interface ScaffoldManifestPersistencePort {
   /** Reads the current text of a manifest (used for previewing manifest edits during dry runs). */

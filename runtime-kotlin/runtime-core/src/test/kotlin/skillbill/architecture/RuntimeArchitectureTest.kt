@@ -1,6 +1,7 @@
 package skillbill.architecture
 
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -8,6 +9,11 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class RuntimeArchitectureTest {
+  private val infraFsModule = RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:fs")
+
+  private fun infraFsPath(vararg segments: String): Path =
+    segments.fold(runtimeArchitectureRoot.resolve(infraFsModule)) { path, segment -> path.resolve(segment) }
+
   @Test
   fun `touched domain contract foundation stays free of concrete adapters`() {
     assertNoBannedImports(
@@ -43,15 +49,15 @@ class RuntimeArchitectureTest {
   private fun assertInfraFsSchemaValidatorFilesPresent() {
     assertRegularFiles(
       listOf(
-        "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/" +
+        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/" +
           "InstallPlanSchemaValidator.kt",
-        "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
+        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
           "WorkflowStateSchemaValidator.kt",
-        "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
+        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
           "DecompositionManifestSchemaValidator.kt",
-        "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
+        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
           "DecompositionManifestCoherenceValidator.kt",
-        "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
+        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
           "IdeStatusSchemaValidator.kt",
       ),
       present = true,
@@ -73,15 +79,15 @@ class RuntimeArchitectureTest {
   private fun assertLegacySchemaValidatorFilesAbsent() {
     assertRegularFiles(
       listOf(
-        "runtime-infra-fs/src/main/kotlin/skillbill/contracts/install/" +
+        "$infraFsModule/src/main/kotlin/skillbill/contracts/install/" +
           "InstallPlanSchemaValidator.kt",
-        "runtime-infra-fs/src/main/kotlin/skillbill/contracts/workflow/" +
+        "$infraFsModule/src/main/kotlin/skillbill/contracts/workflow/" +
           "WorkflowStateSchemaValidator.kt",
-        "runtime-infra-fs/src/main/kotlin/skillbill/contracts/workflow/" +
+        "$infraFsModule/src/main/kotlin/skillbill/contracts/workflow/" +
           "DecompositionManifestSchemaValidator.kt",
-        "runtime-infra-fs/src/main/kotlin/skillbill/contracts/workflow/" +
+        "$infraFsModule/src/main/kotlin/skillbill/contracts/workflow/" +
           "DecompositionManifestCoherenceValidator.kt",
-        "runtime-infra-fs/src/main/kotlin/skillbill/contracts/workflow/" +
+        "$infraFsModule/src/main/kotlin/skillbill/contracts/workflow/" +
           "IdeStatusSchemaValidator.kt",
         "runtime-contracts/src/main/kotlin/skillbill/contracts/install/" +
           "InstallPlanSchemaValidator.kt",
@@ -103,7 +109,7 @@ class RuntimeArchitectureTest {
   }
 
   private fun assertSchemaCopyTasksOwnedByInfraFs() {
-    val runtimeInfraFsBuild = Files.readString(runtimeArchitectureRoot.resolve("runtime-infra-fs/build.gradle.kts"))
+    val runtimeInfraFsBuild = Files.readString(infraFsPath("build.gradle.kts"))
     assertContains(runtimeInfraFsBuild, "copyWorkflowStateSchema")
     assertContains(runtimeInfraFsBuild, "copyInstallPlanSchema")
     assertContains(runtimeInfraFsBuild, "copyDecompositionManifestSchema")
@@ -401,9 +407,9 @@ class RuntimeArchitectureTest {
     assertContains(evaluation, "runtime-domain")
     assertContains(evaluation, "runtime-application")
     assertContains(evaluation, "runtime-ports")
-    assertContains(evaluation, "runtime-infra-fs")
-    assertContains(evaluation, "runtime-infra-sqlite")
-    assertContains(evaluation, "runtime-infra-http")
+    assertContains(evaluation, "runtime-infra:fs")
+    assertContains(evaluation, "runtime-infra:sqlite")
+    assertContains(evaluation, "runtime-infra:http")
     assertContains(evaluation, "runtime-cli")
     assertContains(evaluation, "runtime-mcp")
     assertContains(evaluation, "RuntimeContext")

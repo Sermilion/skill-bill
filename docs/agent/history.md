@@ -1,3 +1,9 @@
+## [2026-09-18] SKILL-354 subtask 1 — Nest runtime infrastructure Gradle modules
+
+Areas: runtime-kotlin/settings.gradle.kts, runtime-kotlin/runtime-infra/{fs,http,sqlite}, build-logic/convention, runtime-core architecture tests
+- Flat `runtime-infra-fs|http|sqlite` modules moved under `runtime-kotlin/runtime-infra/` as nested Gradle projects `:runtime-infra:fs`, `:runtime-infra:http`, and `:runtime-infra:sqlite` with jar basenames `runtime-infra-<name>-<version>.jar`.
+- `skillbill.governed-resources` convention plugin centralizes governed copy tasks; fs declares 33 copies as data with one missing-source template.
+
 ## [2026-09-14] SKILL-238 subtask 1 — Delete speculative leftovers
 Areas: docs/delegated-review, docs, scripts, platform-packs/typescript/addons, runtime-kotlin/{gradle,runtime-application/repoTest}, uninstall.sh, README.md
 - Deleted `docs/delegated-review/` in full, `scripts/split-runloop.py`, the three unshipped SKILL-116 TypeScript add-on scaffolds, the unused `jna` catalog version and library alias, and the expired GLM branch in `uninstall.sh`.

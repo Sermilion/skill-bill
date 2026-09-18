@@ -45,18 +45,18 @@ class ApplicationPackageAcyclicityArchitectureTest {
   }
 
   @Test
-  fun `runtime-infra-fs package cycles equal the recorded census`() {
-    assertPackageCyclesMatchBaseline("runtime-infra-fs")
+  fun `runtime-infra fs package cycles equal the recorded census`() {
+    assertPackageCyclesMatchBaseline("runtime-infra:fs")
   }
 
   @Test
-  fun `runtime-infra-http package cycles equal the recorded census`() {
-    assertPackageCyclesMatchBaseline("runtime-infra-http")
+  fun `runtime-infra http package cycles equal the recorded census`() {
+    assertPackageCyclesMatchBaseline("runtime-infra:http")
   }
 
   @Test
-  fun `runtime-infra-sqlite package cycles equal the recorded census`() {
-    assertPackageCyclesMatchBaseline("runtime-infra-sqlite")
+  fun `runtime-infra sqlite package cycles equal the recorded census`() {
+    assertPackageCyclesMatchBaseline("runtime-infra:sqlite")
   }
 
   @Test

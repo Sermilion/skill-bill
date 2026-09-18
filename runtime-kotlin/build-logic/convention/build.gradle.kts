@@ -101,5 +101,9 @@ gradlePlugin {
       id = "skillbill.runtime-image"
       implementationClass = "RuntimeImageConventionPlugin"
     }
+    register("governedResources") {
+      id = "skillbill.governed-resources"
+      implementationClass = "GovernedResourcesConventionPlugin"
+    }
   }
 }

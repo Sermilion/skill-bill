@@ -13,9 +13,10 @@ object RuntimeModuleCatalog {
       "runtime-core",
       "runtime-domain",
       "runtime-engine",
-      "runtime-infra-fs",
-      "runtime-infra-http",
-      "runtime-infra-sqlite",
+      "runtime-infra",
+      "runtime-infra:fs",
+      "runtime-infra:http",
+      "runtime-infra:sqlite",
       "runtime-cli",
       "runtime-mcp",
       "runtime-ports",
@@ -36,9 +37,9 @@ object RuntimeModuleCatalog {
         implementation = setOf(
           "runtime-domain",
           "runtime-contracts",
-          "runtime-infra-fs",
-          "runtime-infra-http",
-          "runtime-infra-sqlite",
+          "runtime-infra:fs",
+          "runtime-infra:http",
+          "runtime-infra:sqlite",
         ),
       ),
       "runtime-engine" to ModuleEdgeExpectation(
@@ -49,15 +50,19 @@ object RuntimeModuleCatalog {
         api = emptySet(),
         implementation = setOf("runtime-contracts"),
       ),
-      "runtime-infra-fs" to ModuleEdgeExpectation(
+      "runtime-infra" to ModuleEdgeExpectation(
+        api = emptySet(),
+        implementation = emptySet(),
+      ),
+      "runtime-infra:fs" to ModuleEdgeExpectation(
         api = emptySet(),
         implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
       ),
-      "runtime-infra-http" to ModuleEdgeExpectation(
+      "runtime-infra:http" to ModuleEdgeExpectation(
         api = emptySet(),
         implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
       ),
-      "runtime-infra-sqlite" to ModuleEdgeExpectation(
+      "runtime-infra:sqlite" to ModuleEdgeExpectation(
         api = emptySet(),
         implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
       ),
@@ -94,14 +99,15 @@ object RuntimeModuleCatalog {
 
   val testFixturesProjectDependenciesByModule: Map<String, Set<String>> =
     mapOf(
-      "runtime-application" to setOf("runtime-domain", "runtime-infra-fs", "runtime-infra-sqlite", "runtime-ports"),
+      "runtime-application" to setOf("runtime-domain", "runtime-infra:fs", "runtime-infra:sqlite", "runtime-ports"),
       "runtime-contracts" to emptySet(),
       "runtime-core" to emptySet(),
-      "runtime-engine" to setOf("runtime-application", "runtime-domain", "runtime-infra-sqlite", "runtime-ports"),
+      "runtime-engine" to setOf("runtime-application", "runtime-domain", "runtime-infra:sqlite", "runtime-ports"),
       "runtime-domain" to emptySet(),
-      "runtime-infra-fs" to emptySet(),
-      "runtime-infra-http" to emptySet(),
-      "runtime-infra-sqlite" to emptySet(),
+      "runtime-infra" to emptySet(),
+      "runtime-infra:fs" to emptySet(),
+      "runtime-infra:http" to emptySet(),
+      "runtime-infra:sqlite" to emptySet(),
       "runtime-cli" to emptySet(),
       "runtime-mcp" to emptySet(),
       "runtime-ports" to emptySet(),
@@ -142,9 +148,16 @@ object RuntimeModuleCatalog {
       "runtime-cli" to "skillbill.cli",
       "runtime-core" to "skillbill.di",
       "runtime-engine" to "skillbill.engine",
-      "runtime-infra-fs" to "skillbill.infrastructure.fs",
-      "runtime-infra-http" to "skillbill.infrastructure.http",
-      "runtime-infra-sqlite" to "skillbill.infrastructure.sqlite",
+      "runtime-infra:fs" to "skillbill.infrastructure.fs",
+      "runtime-infra:http" to "skillbill.infrastructure.http",
+      "runtime-infra:sqlite" to "skillbill.infrastructure.sqlite",
       "runtime-mcp" to "skillbill.mcp",
     )
+
+  fun gradleModuleIdToDirectoryPath(gradleModuleId: String): String = gradleModuleId.replace(':', '/')
+
+  fun gradleModuleIdToBaselineStem(gradleModuleId: String): String = gradleModuleId.replace(':', '-')
+
+  fun runtimeKotlinModuleDirectory(gradleModuleId: String): String =
+    "runtime-kotlin/${gradleModuleIdToDirectoryPath(gradleModuleId)}"
 }

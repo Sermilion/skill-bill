@@ -28,9 +28,10 @@
             <option value="$PROJECT_DIR$/runtime-contracts" />
             <option value="$PROJECT_DIR$/runtime-core" />
             <option value="$PROJECT_DIR$/runtime-domain" />
-            <option value="$PROJECT_DIR$/runtime-infra-fs" />
-            <option value="$PROJECT_DIR$/runtime-infra-http" />
-            <option value="$PROJECT_DIR$/runtime-infra-sqlite" />
+            <option value="$PROJECT_DIR$/runtime-infra" />
+            <option value="$PROJECT_DIR$/runtime-infra/fs" />
+            <option value="$PROJECT_DIR$/runtime-infra/http" />
+            <option value="$PROJECT_DIR$/runtime-infra/sqlite" />
             <option value="$PROJECT_DIR$/runtime-mcp" />
             <option value="$PROJECT_DIR$/runtime-ports" />
           </set>

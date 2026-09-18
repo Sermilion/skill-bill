@@ -54,7 +54,7 @@ class GovernedResourceCopyParityTest {
       "Initialize resource fixture",
     )
     git(fixtureRoot, "update-ref", "refs/remotes/origin/main", "HEAD")
-    runGradle(locateRuntimeKotlinRoot(), ":runtime-infra-fs:processResources")
+    runGradle(locateRuntimeKotlinRoot(), ":runtime-infra:fs:processResources")
   }
 
   @AfterAll
@@ -77,7 +77,7 @@ class GovernedResourceCopyParityTest {
         "skillbill/infrastructure/fs/contracts/producer-output-evidence-schema.yaml",
       )
     generatedResourceRoot().toFile().deleteRecursively()
-    runGradle(runtimeKotlin, ":runtime-infra-fs:processTestResources", "--rerun-tasks")
+    runGradle(runtimeKotlin, ":runtime-infra:fs:processTestResources", "--rerun-tasks")
     try {
       val tree = resourceTreeHashes(generatedResourceRoot())
       val expected = loadGoldenManifest().filterKeys { it !in mainOnly }
@@ -86,7 +86,7 @@ class GovernedResourceCopyParityTest {
         assertTrue(path !in tree.keys, "expected $path absent from test-only copy wiring")
       }
     } finally {
-      runGradle(runtimeKotlin, ":runtime-infra-fs:processResources", "--rerun-tasks")
+      runGradle(runtimeKotlin, ":runtime-infra:fs:processResources", "--rerun-tasks")
     }
   }
 
@@ -94,10 +94,10 @@ class GovernedResourceCopyParityTest {
   fun `incremental processResources keeps governed resource hashes`() {
     val runtimeKotlin = locateRuntimeKotlinRoot()
     generatedResourceRoot().toFile().deleteRecursively()
-    runGradle(runtimeKotlin, ":runtime-infra-fs:processResources", "--rerun-tasks")
+    runGradle(runtimeKotlin, ":runtime-infra:fs:processResources", "--rerun-tasks")
     val afterFirst = resourceTreeHashes(generatedResourceRoot())
     assertEquals(loadGoldenManifest(), afterFirst)
-    runGradle(runtimeKotlin, ":runtime-infra-fs:processResources")
+    runGradle(runtimeKotlin, ":runtime-infra:fs:processResources")
     assertEquals(afterFirst, resourceTreeHashes(generatedResourceRoot()))
   }
 
@@ -115,7 +115,7 @@ class GovernedResourceCopyParityTest {
       val result =
         runGradle(
           runtimeKotlin,
-          ":runtime-infra-fs:processResources",
+          ":runtime-infra:fs:processResources",
           "--rerun-tasks",
           expectFailure = true,
         )
@@ -130,7 +130,7 @@ class GovernedResourceCopyParityTest {
 
   @Test
   fun `governed resource registration exposes every legacy copy task`() {
-    val result = runGradle(locateRuntimeKotlinRoot(), ":runtime-infra-fs:tasks", "--all")
+    val result = runGradle(locateRuntimeKotlinRoot(), ":runtime-infra:fs:tasks", "--all")
     val expected =
       listOf(
         "copyAgentAddonSchema",
@@ -193,7 +193,7 @@ class GovernedResourceCopyParityTest {
   }
 
   private fun generatedResourceRoot(): Path = locateRuntimeKotlinRoot()
-    .resolve("runtime-infra-fs/build/generated/skillbill-infrastructure-fs")
+    .resolve("runtime-infra/fs/build/generated/fs")
 
   private fun resourceTreeHashes(root: Path): Map<String, String> {
     if (!Files.isDirectory(root)) {

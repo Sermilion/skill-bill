@@ -1,4 +1,4 @@
-# runtime-infra-fs decisions
+# runtime-infra/fs decisions
 
 ## SKILL-353 legitimate-absence fallbacks
 

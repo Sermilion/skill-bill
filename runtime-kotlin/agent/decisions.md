@@ -5,7 +5,7 @@ This file records architectural and implementation decisions that span the
 not the implementation detail.
 
 ## [2026-09-17] SKILL-353 subtask 3: platform-pack substance report Gradle task removed
-Context: SKILL-353 subtask 3 census. `platformPackSubstanceReport` and `PlatformPackSubstanceReportMain` were referenced only from `runtime-infra-fs/build.gradle.kts` and feature-spec investigation prose. No CI workflow, script, or operator doc invoked the task. `RepoValidationCollected` already calls `PlatformPackSubstanceAudit.audit` on the `skill-bill validate` path.
+Context: SKILL-353 subtask 3 census. `platformPackSubstanceReport` and `PlatformPackSubstanceReportMain` were referenced only from `runtime-infra/fs/build.gradle.kts` and feature-spec investigation prose. No CI workflow, script, or operator doc invoked the task. `RepoValidationCollected` already calls `PlatformPackSubstanceAudit.audit` on the `skill-bill validate` path.
 Decision: Delete the Gradle `platformPackSubstanceReport` task and `PlatformPackSubstanceReportMain.kt`. Relocate the audit implementation from `scaffold/substance/` to `scaffold/platformpack/substanceaudit/` with the same `PlatformPackSubstanceAudit` entry point. Do not add a CLI report command — no measured operator caller.
 Reason: The report task duplicated audit logic without a consumer; validate already enforces substance for well-formed repos.
 Alternatives considered: `skill-bill` CLI subcommand via `ScaffoldCatalogGateway` (rejected: census found no operator use). Delete `scaffold/substance/**` wholesale without relocating audit types (rejected: would break repo validation until types moved).
@@ -111,7 +111,7 @@ thread interrupt flag after `InterruptedException`. A JVM implementation in
 without passing through `runtime-core`.
 
 **Decision.** Keep `InterruptSignalPort` in `runtime-ports`. Implement
-`JvmInterruptSignalPort` in `runtime-infra-fs` and supply it only from
+`JvmInterruptSignalPort` in `runtime-infra/fs` and supply it only from
 `RuntimeComponent`. Application telemetry sync/drain APIs require callers to pass
 the port explicitly.
 
@@ -219,7 +219,7 @@ contract version bump, not a restored allow-list.
 **(a) `GoalRunnerManifestStore` is composed of four port-owned capability interfaces, superseding decision (a) of the audit-round-2 entry below.**
 The six seam names (`GoalRunnerManifestLookup`, `…PauseOps`, `…ExecutionLease`, `…ControlCommands`,
 `…PersistenceCommands`, `…ReviewCommands`) are now declared only once, `internal` in
-`runtime-infra-sqlite`, where the delegating store is assembled. `runtime-ports` declares the same
+`runtime-infra/sqlite`, where the delegating store is assembled. `runtime-ports` declares the same
 34 members — signatures and default values byte-identical — across
 `GoalRunnerManifestQueries`, `GoalRunnerManifestExecutionCommands`, `GoalRunnerManifestControlWrites`
 and `GoalRunnerManifestStateWrites`, split on the port's own read/lifecycle/control/state axis rather
@@ -227,14 +227,14 @@ than mirroring the adapter's five delegate classes. No consumer import, call sit
 Alternatives considered: flatten all 34 members onto `GoalRunnerManifestStore` (rejected: detekt
 `TooManyFunctions` caps an interface at 11 and the largest interface anywhere in the tree is 10, so
 the flat port only compiles behind a new `@Suppress` the gate forbids); keep the ports names and
-delete the `runtime-infra-sqlite` internals (rejected: it puts the adapter's delegation seams back
+delete the `runtime-infra/sqlite` internals (rejected: it puts the adapter's delegation seams back
 on the public port surface, which is what the criterion removes).
 
 **(b) A behaviourally identical ports/application pair collapses onto the ports copy.**
 `WorkflowRecordMapping` (`toSnapshot`, `toRecord`, the two session-summary `toPayload` mappers) and
 the `LoadedDecompositionManifest` / `ValidatedDecompositionManifestYaml` DTOs existed byte-identically
 in `runtime-ports` and `runtime-application`. The ports copy survives in both cases because
-`runtime-infra-sqlite` reads it and cannot see `runtime-application`. Duplicate main-source
+`runtime-infra/sqlite` reads it and cannot see `runtime-application`. Duplicate main-source
 basenames: 27 -> 24, none added.
 Alternatives considered: keep both and document them as distinct (rejected: the bodies were
 identical, so the pair was one type spelled twice, not two types).
@@ -259,14 +259,14 @@ in `skillbill.ports.review`).
 
 ## [2026-09-06] SKILL-233 subtask 2: ports hold interfaces and DTOs; path values leave `java.nio` at the domain edge
 Context: `runtime-ports` carried 24 non-interface behaviour files (1,541 lines) outside its `model` packages, and `runtime-domain` imported `java.nio.file` in 15 files. The prior SKILL-233 entry deferred both to this subtask.
-Decision: `skillbill.model.FileLocation` (a `@JvmInline value class` over the path string) is the domain- and port-facing path type; `skillbill.model.toPath` and `skillbill.ports.repository.toFileLocation` in `runtime-ports` are the only bridge to `java.nio.file.Path`, and adapters own the conversion. Behaviour clusters left `runtime-ports` for `runtime-infra-sqlite` (`skillbill.db.goalrunner`, `skillbill.db.workflow`, `skillbill.db.decomposition`) rather than `runtime-application`, because the only consumer of each was `runtime-infra-sqlite` and the two are siblings. `JvmSystemClock` landed in `runtime-contracts` (`skillbill.contracts.time`), not `runtime-domain`, because domain effect purity forbids `System.currentTimeMillis`. Files that were pure extensions over a port type in the same package were folded into the file declaring that type (`WorkflowGitOperations`, `GoalRunnerControlRepository`, `FeatureTaskExecutionIdentity`) instead of moved.
+Decision: `skillbill.model.FileLocation` (a `@JvmInline value class` over the path string) is the domain- and port-facing path type; `skillbill.model.toPath` and `skillbill.ports.repository.toFileLocation` in `runtime-ports` are the only bridge to `java.nio.file.Path`, and adapters own the conversion. Behaviour clusters left `runtime-ports` for `runtime-infra/sqlite` (`skillbill.db.goalrunner`, `skillbill.db.workflow`, `skillbill.db.decomposition`) rather than `runtime-application`, because the only consumer of each was `runtime-infra/sqlite` and the two are siblings. `JvmSystemClock` landed in `runtime-contracts` (`skillbill.contracts.time`), not `runtime-domain`, because domain effect purity forbids `System.currentTimeMillis`. Files that were pure extensions over a port type in the same package were folded into the file declaring that type (`WorkflowGitOperations`, `GoalRunnerControlRepository`, `FeatureTaskExecutionIdentity`) instead of moved.
 Reason: A port file that declares no interface is behaviour the inside cannot substitute. Moving that behaviour to the one adapter that calls it keeps the port surface substitutable without inventing a new shared module; `FileLocation` removes the filesystem dependency that forced the behaviour into ports in the first place.
-Alternatives considered: Move the clusters to `runtime-application` (rejected: `runtime-infra-sqlite` cannot see it). Introduce a shared module below both (rejected: no second consumer; a new module for one caller is not a boundary). Keep `java.nio.file.Path` in domain signatures and guard only the imports (rejected: the import is the symptom, the signature is the coupling).
-Consequence: The `skillbill.db.decomposition` copy shrank from seven files to one — infra-sqlite reached only six of the thirty-one declarations the ports copy carried, so the rest were deleted rather than relocated. Six near-duplicate basename pairs remain between `runtime-application` and `runtime-infra-sqlite` (`GoalContinuationArtifactCodec`, `GoalParentProjectionWriter`, `GoalRunnerWorkflowFamilyLookup`, `LegacyGoalRunnerControlMigration`, `DecompositionWorkflowRuntimeLookup`, `DecompositionWorkflowRuntimeLookupParentDiscovery`). They are distinct types: the copies diverge (3–31 differing lines each), each is live in its own module, and no module below both can hold them now that `runtime-ports` is interface-and-DTO only. Two call sites lost implicit CWD resolution of a relative path: `SkillRemoveErrorSanitizer.parseRepoRoot` and `InstallPlanPolicyChecks.validatePath` now compare the given text rather than a working-directory-resolved absolute path.
+Alternatives considered: Move the clusters to `runtime-application` (rejected: `runtime-infra/sqlite` cannot see it). Introduce a shared module below both (rejected: no second consumer; a new module for one caller is not a boundary). Keep `java.nio.file.Path` in domain signatures and guard only the imports (rejected: the import is the symptom, the signature is the coupling).
+Consequence: The `skillbill.db.decomposition` copy shrank from seven files to one — infra-sqlite reached only six of the thirty-one declarations the ports copy carried, so the rest were deleted rather than relocated. Six near-duplicate basename pairs remain between `runtime-application` and `runtime-infra/sqlite` (`GoalContinuationArtifactCodec`, `GoalParentProjectionWriter`, `GoalRunnerWorkflowFamilyLookup`, `LegacyGoalRunnerControlMigration`, `DecompositionWorkflowRuntimeLookup`, `DecompositionWorkflowRuntimeLookupParentDiscovery`). They are distinct types: the copies diverge (3–31 differing lines each), each is live in its own module, and no module below both can hold them now that `runtime-ports` is interface-and-DTO only. Two call sites lost implicit CWD resolution of a relative path: `SkillRemoveErrorSanitizer.parseRepoRoot` and `InstallPlanPolicyChecks.validatePath` now compare the given text rather than a working-directory-resolved absolute path.
 Revisit when: a third module needs one of the six duplicated clusters — that is the second consumer that would justify a shared module — or `DecompositionManifestStore` stops taking `java.nio.file.Path`, which would let the decomposition pair collapse.
 
 ## [2026-09-04] Deletion-elision path for goal-subtask review retired, not bypassed
-Context: SKILL-232 subtask 1 swept confirmed-unused `internal` declarations. `withinReviewInputBound` in `runtime-infra-fs` was unreferenced, and every other symbol in `GoalSubtaskReviewDeletionElision.kt` (`goalReviewDiffArguments`, `goalReviewNumstatArguments`, `ownedPathspecArguments`, `fitsReviewInputBound`, `deletionElidedDelta`, `deletionManifest`, `deletionManifestEntry`, `NUMSTAT_FIELD_COUNT`) was reachable only through it.
+Context: SKILL-232 subtask 1 swept confirmed-unused `internal` declarations. `withinReviewInputBound` in `runtime-infra/fs` was unreferenced, and every other symbol in `GoalSubtaskReviewDeletionElision.kt` (`goalReviewDiffArguments`, `goalReviewNumstatArguments`, `ownedPathspecArguments`, `fitsReviewInputBound`, `deletionElidedDelta`, `deletionManifest`, `deletionManifestEntry`, `NUMSTAT_FIELD_COUNT`) was reachable only through it.
 Decision: Delete the file whole rather than trimming the single unreferenced entry point. SKILL-224 (be9b56edb) replaced the materialized tracked delta in `GitGoalSubtaskReviewOperations.kt` with a scope-fingerprint string; `trackedDelta` is no longer a diff, so the byte-bound elision branch can never fire. Treat that redesign as retiring elision, not as a temporary bypass.
 Reason: A file whose only entry point is dead because an upstream representation changed is obsolete design, not an accidentally orphaned call site. Keeping it would preserve a numstat-parsing and deletion-manifest path that no producer can reach and that a future reader would mistake for live review-input bounding.
 Alternatives considered: Delete only `withinReviewInputBound` and leave the helpers (rejected: leaves eight symbols with no reachable caller, which the next sweep would delete anyway). Restore elision against the fingerprint representation (rejected: out of scope, and the fingerprint carries no byte size to bound against). Keep the file as documentation of the prior approach (rejected: git history already holds it).
@@ -308,7 +308,7 @@ Revisit when: a measured logical type legitimately cannot be split without harmi
 
 ## [2026-09-03] Shrink-only infra ambient-environment baselines
 Context: SKILL-231 subtask 1 records ambient-environment baselines for every module. The three `runtime-infra-*` modules legitimately read host environment variables and working-directory paths inside filesystem, HTTP, and SQLite adapters.
-Decision: `runtime-infra-fs`, `runtime-infra-http`, and `runtime-infra-sqlite` ambient-environment baselines are shrink-only ceilings, not targets that must reach zero. Reading the host environment is what an adapter does; the boundary is that a policy decision may not depend on an ambient read.
+Decision: `runtime-infra/fs`, `runtime-infra/http`, and `runtime-infra/sqlite` ambient-environment baselines are shrink-only ceilings, not targets that must reach zero. Reading the host environment is what an adapter does; the boundary is that a policy decision may not depend on an ambient read.
 Reason: Empty-by-rule baselines from the 2026-09-02 permanent-floor decision bind only the eight baselines that were already empty on main. Module baselines recorded in SKILL-231 are shrink-only ceilings that may only shrink.
 Alternatives considered: Force infra baselines to zero in this subtask (rejected: would require rewriting every adapter before measurement lands). Treat infra reads as permanent baseline entries with no shrink path (rejected: adapter refactors should still be able to narrow ambient coupling over time).
 Revisit when: a refactor removes the last ambient read from an infra module and the recorder empties that module's baseline.
@@ -851,11 +851,11 @@ must not re-decide it. The three row populations each get a distinct rule:
    rather than degrading or reinterpreting. Two distinct `mode` CHECK
    constraints spell `'prose'`, and **both must retain it**, for different
    reasons:
-   - `runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/db/core/DatabaseSchema.kt:359`
+   - `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/core/DatabaseSchema.kt:359`
      is the `feature_task_workflows` CHECK — the one this rule exists to
      protect. Retaining `'prose'` here is what avoids a SQLite table rebuild
      and keeps quarantined rows insert-compatible with their own history.
-   - `runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/db/core/DatabaseMigrations.kt:50`
+   - `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/core/DatabaseMigrations.kt:50`
      is the `feature_task_execution_identities` CHECK — a different table
      (`DatabaseMigrations.kt` never creates `feature_task_workflows`; it
      references it only as an FK target at lines 55 and 89). Retaining
@@ -883,7 +883,7 @@ it applies to reads, and section E's `feature-task-execution-identity-schema.yam
 `prose` enum ("Remove"). Where they conflict, this entry governs. Concretely, the
 mode **decode** path — `FeatureTaskWorkflowMode.PROSE`, its `wireValue` /
 `fromWireValue` lookup, and `decodeIdentityMode` in
-`runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/db/workflow/WorkflowStateStore.kt:560`
+`runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/workflow/WorkflowStateStore.kt:560`
 — and the identity-schema `prose` enum value **must both be retained as legacy
 read-only values**. A quarantined row must decode successfully so the refusal is
 raised as the typed runtime re-run error from rule 1 above, not as
@@ -898,7 +898,7 @@ which supersedes two further parent rows: `spec.md:107`
 (`FeatureImplementWorkflowDefinition` + `FeatureImplement*` stack → "Remove") and
 `spec.md:112` (`WorkItemKind.FEATURE_TASK_PROSE` → "Remove"), **as they apply to
 the work-list read path only**.
-`runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/db/worklist/SQLiteWorkListRepository.kt`
+`runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/worklist/SQLiteWorkListRepository.kt`
 maps `mode = 'prose'` to the wire kind `feature-task-prose` (line ~42) and builds
 `validWorkStates` (line ~120) from
 `FeatureImplementWorkflowDefinition.definition.workflowStatuses`. Deleting either
@@ -934,7 +934,7 @@ be confused for each other**:
 
 1. **The issue-key backfill branch**, `mode = 'prose' AND ...goal_continuation.enabled`
    inside `recoverGoalContinuationWorkflowIssueKeys` at
-   `runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/db/core/DatabaseColumnMigrations.kt:188`.
+   `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/core/DatabaseColumnMigrations.kt:188`.
    This is an `UPDATE` that backfills `issue_key` from `artifacts_json`; it is
    **not** a continuation-candidacy predicate and removing it does not stop any
    row from being resumed. It **must be retained**, because rule 1 guarantees
@@ -943,7 +943,7 @@ be confused for each other**:
    list with a null `issueKey`. Backfilling an identifier is a read-side repair,
    not a prose write path, so it does not violate the "no new prose writes" rule.
 2. **The real continuation candidacy path**, `findGoalChildFeatureTaskCandidates`
-   at `runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/db/workflow/WorkflowStateStore.kt:342`,
+   at `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/workflow/WorkflowStateStore.kt:342`,
    delegating to the private `findFeatureTaskCandidates` query at `:362-403`,
    which selects on `identities.route_scope` (`'goal_child'`) plus repository
    identity and issue key. It does inspect `workflows.mode`, but only in the
@@ -1257,7 +1257,7 @@ support), or measured contention shows 5s is the wrong timeout.
 
 Context: SKILL-52.4 F16 leaves contract DTOs/constants/helpers in
 `runtime-contracts` while concrete schema/coherence validators compile from
-`runtime-infra-fs` under the existing `skillbill.contracts.*` packages.
+`runtime-infra/fs` under the existing `skillbill.contracts.*` packages.
 Decision: Keep the split package and guard against adding new concrete
 `*SchemaValidator` / `*CoherenceValidator` declarations to `runtime-contracts`
 main source.
@@ -1267,12 +1267,12 @@ ownership pattern.
 Revisit when: Resource paths/import compatibility can be migrated cleanly, or
 JPMS/module packaging becomes an active target.
 
-## 2026-06-12 — Keep `runtime-infra-fs` as one adapter module
+## 2026-06-12 — Keep `runtime-infra/fs` as one adapter module
 
-Context: SKILL-52.4 F17 considered splitting `runtime-infra-fs` into smaller
+Context: SKILL-52.4 F17 considered splitting `runtime-infra/fs` into smaller
 Gradle modules after validator and filesystem/process ownership moved behind
 ports.
-Decision: Do not split `runtime-infra-fs` now; keep the filesystem, process,
+Decision: Do not split `runtime-infra/fs` now; keep the filesystem, process,
 schema-validation, rendering, git, and staging adapters in the current adapter
 module.
 Reason: The current module keeps cohesive adapter ownership without adding
@@ -1363,7 +1363,7 @@ an explicit `additive` module set (java.base/logging/management/naming/net.http/
 sql/xml/desktop, jdk.crypto.ec, jdk.unsupported) instead of relying on jdeps (which
 cannot resolve the automatic modules cleanly), and trim with `--strip-debug
 --no-header-files --no-man-pages --compress 2`. `java.net.http` is required by the
-telemetry HTTP client (`runtime-infra-http`), which the version/stdio smoke test
+telemetry HTTP client (`runtime-infra/http`), which the version/stdio smoke test
 does not exercise. Image name/zip derive from `project.version` + a canonical
 `<os>-<arch>` host token defined once, as a typed contract, in the
 `skillbill.runtime-image` convention plugin
@@ -1502,13 +1502,13 @@ pattern is intentional for install-plan.
 both the builder seam and the CLI emission seam) still holds, but the mechanics
 described above are stale: neither seam may import `InstallPlanSchemaValidator`
 directly, the validator no longer lives in `runtime-core`/`runtime-domain`
-(it moved to `runtime-infra-fs`), and both seams now validate through the
+(it moved to `runtime-infra/fs`), and both seams now validate through the
 injected domain-owned `InstallPlanWireValidator` port (the CLI seam routes via
 the thin application method `InstallService.validateInstallPlanWire`). See the
 2026-05-28 entry for the relocation and the 2026-05-29 external-schema entry for
 the source-of-truth and parity guarantee.
 
-## 2026-05-28 — Schema validators move from runtime-contracts to runtime-infra-fs, reached through domain ports
+## 2026-05-28 — Schema validators move from runtime-contracts to runtime-infra/fs, reached through domain ports
 
 **Context.** SKILL-52.3 closes the runtime hexagon leak: the foundational
 `runtime-contracts` leaf owned three networknt + Jackson + filesystem schema
@@ -1519,7 +1519,7 @@ policy invoked the concrete install-plan validator at runtime. A contract leaf
 and the domain should not own infrastructure-grade schema loading.
 
 **Decision.** Move all three schema validators and the coherence validator into
-`runtime-infra-fs` — the module that already owns `PlatformPackSchemaValidator`
+`runtime-infra/fs` — the module that already owns `PlatformPackSchemaValidator`
 and `NativeAgentCompositionSchemaValidator`. Reach them only through
 domain-owned ports that generalize the existing `WorkflowSnapshotValidator`
 pattern: `InstallPlanWireValidator` (runtime-domain `skillbill.install.model`)
@@ -1528,7 +1528,7 @@ Wire each port to an infra-fs adapter through `RuntimeComponent` with
 `@Provides @JvmSynthetic internal`, exactly like every other infra adapter.
 The pure `*SchemaPaths` and `*_CONTRACT_VERSION` constants stay in
 `runtime-contracts`; the networknt + Jackson dependencies and the three schema
-`Copy` tasks move with the validators to `runtime-infra-fs`. The library choice
+`Copy` tasks move with the validators to `runtime-infra/fs`. The library choice
 is unchanged.
 
 **Reason.** Keeping `Path`-free constants in contracts preserves the single
@@ -1547,9 +1547,9 @@ no longer pulls networknt/Jackson transitively.
 - 2026-05-18 "Platform-pack manifest validation moves to a canonical JSON
   Schema" added the validator dependencies to `runtime-core`; they later moved
   to `runtime-contracts`. This subtask moves all schema validators to
-  `runtime-infra-fs`, the module that already owns the platform-pack validator.
+  `runtime-infra/fs`, the module that already owns the platform-pack validator.
 
-**Note.** The infra-side adapters live in `runtime-infra-fs`, not
+**Note.** The infra-side adapters live in `runtime-infra/fs`, not
 `runtime-application`, because the application layer cannot depend on infra
 without inverting the hexagon. The former `runtime-application`
 `WorkflowSnapshotValidatorAdapter` is superseded by
@@ -1568,7 +1568,7 @@ Context: Each runtime contract schema (`install-plan`, `workflow-state`,
 runtime as a classpath resource by the JVM validators.
 
 Decision: Keep `orchestration/contracts/*.yaml` as the single canonical source
-of truth. `runtime-infra-fs` copies the five schema files
+of truth. `runtime-infra/fs` copies the five schema files
 (`copyInstallPlanSchema`, `copyWorkflowStateSchema`,
 `copyDecompositionManifestSchema`, `copyPlatformPackSchema`,
 `copyNativeAgentCompositionSchema`) and `runtime-mcp` copies the sixth
@@ -1783,8 +1783,8 @@ Machine-parseable rows: `path | symbol | rule | why`. Complexity rule names neve
 
 | path | symbol | rule | why |
 |------|--------|------|-----|
-| runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemExternalAddonOverlayApply.kt | asMutableMap | UNCHECKED_CAST | SnakeYAML returns an erased mutable map; ClassCastException guard keeps string-key overlay writes honest |
-| runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemExternalAddonOverlayApply.kt | asMutableList | UNCHECKED_CAST | SnakeYAML returns an erased mutable list; ClassCastException guard keeps manifest list overlay writes honest |
+| runtime-infra/fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemExternalAddonOverlayApply.kt | asMutableMap | UNCHECKED_CAST | SnakeYAML returns an erased mutable map; ClassCastException guard keeps string-key overlay writes honest |
+| runtime-infra/fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemExternalAddonOverlayApply.kt | asMutableList | UNCHECKED_CAST | SnakeYAML returns an erased mutable list; ClassCastException guard keeps manifest list overlay writes honest |
 | runtime-application/src/testFixtures/kotlin/skillbill/application/review/ReviewRecordingHarness.kt | recordingDatabase | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed args through erased invoke; casts mirror the repository contract |
 | runtime-core/src/test/kotlin/skillbill/application/ApplicationPersistencePortTestSupport.kt | noopPort | UNCHECKED_CAST | Dynamic port proxy returns typed facade from erased invoke |
 | runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt | noopPort | UNCHECKED_CAST | Dynamic port proxy returns typed facade from erased invoke |
@@ -1818,7 +1818,7 @@ production reachability problem look like a documentation problem.
 **(b) `GoalRunnerManifestStore` is one flat interface with no default bodies.**
 The six sub-interfaces (`GoalRunnerManifestLookup`, `…PauseOps`, `…ExecutionLease`,
 `…ControlCommands`, `…PersistenceCommands`, `…ReviewCommands`) are now `internal` declarations in
-`runtime-infra-sqlite`, where the delegating store is assembled. The port declares ~35 abstract
+`runtime-infra/sqlite`, where the delegating store is assembled. The port declares ~35 abstract
 members. Test fakes that relied on the removed default bodies extend
 `GoalRunnerManifestStoreDefaults` in `runtime-ports` testFixtures, which reproduces the former
 defaults exactly.
@@ -1833,7 +1833,7 @@ extend `UnitOfWorkDefaults` in `runtime-ports` testFixtures.
 **(d) `runtime-ports` imports no adapter machinery.**
 `AttemptLedgerWorkflowDecoding` was duplicated byte-for-byte in `runtime-ports` and
 `runtime-application`. It decodes `WorkflowStepState`, a `runtime-domain` type, and its consumers
-span `runtime-infra-fs`, `runtime-infra-sqlite`, and `runtime-application` — modules whose only
+span `runtime-infra/fs`, `runtime-infra/sqlite`, and `runtime-application` — modules whose only
 common visible ancestor is `runtime-domain`. Both copies are deleted and the single home is
 `skillbill.workflow.engine`. That removes the last `kotlinx.serialization` import from
 `runtime-ports` and one duplicate basename pair. `kotlin-inject` leaves the `runtime-ports` Gradle
@@ -1881,7 +1881,7 @@ parameters (`ReviewRepository`, `UnitOfWork`) became the narrowest function type
 `(String) -> List<ReviewFindingVerdict>`. Nine pairs (`AttemptLedgerDecoding`,
 `AttemptLedgerAccumulator`, `AttemptLedgerProgressEvents`, `GoalTerminalOutcomeDerivation`,
 `GoalObservabilityArtifacts`, and the DTOs they carry) were byte-identical modulo package and were
-reachable from `runtime-infra-sqlite` on the ports side and from `runtime-core` on the application
+reachable from `runtime-infra/sqlite` on the ports side and from `runtime-core` on the application
 side, so neither copy could be deleted in favour of the other: nine pure DTOs
 (`GoalRunnerObservabilityRecordRequest`, `GoalRunnerProgressEvent`, `GoalObservabilityProgressEvent`,
 `GoalRunnerAttemptLedgerSummary`, `BuildDeclaredGoalProgressEventArgs`, `GoalContinuation`,
@@ -1895,10 +1895,10 @@ duplication was being paid twice, once in code and once in `ARCHITECTURE.md`.
 `java.nio.charset.StandardCharsets` (8 files), and `RuntimeContractModuleImportRulesTest` now bans
 `java.io.`, `java.nio.charset.`, `com.fasterxml.`, `kotlinx.serialization.`, and `org.yaml.` in
 `runtime-domain` — a strict tightening with no baseline. `java.nio.file` remains in 15 files, which
-declare 85 Path-carrying types referenced from 306 files across nine modules (`runtime-infra-fs` 147,
+declare 85 Path-carrying types referenced from 306 files across nine modules (`runtime-infra/fs` 147,
 `runtime-application` 62, `runtime-domain` 45, `runtime-ports` 22, `runtime-cli` 16, `runtime-core`
-8, `runtime-infra-http` 3, `runtime-mcp` 2, `runtime-infra-sqlite` 1). Introducing `FileLocation` and
-pushing `Paths.get`/`normalize`/`resolve` into `runtime-infra-fs` changes call sites, not just
+8, `runtime-infra/http` 3, `runtime-mcp` 2, `runtime-infra/sqlite` 1). Introducing `FileLocation` and
+pushing `Paths.get`/`normalize`/`resolve` into `runtime-infra/fs` changes call sites, not just
 imports, so it cannot land behind a single green gate inside one phase.
 Consequence: the remaining 19 ports/application basename pairs stay. Twelve of them
 (`DecompositionManifest*`, `DecompositionWorkflowRuntimeLookup*`) depend on

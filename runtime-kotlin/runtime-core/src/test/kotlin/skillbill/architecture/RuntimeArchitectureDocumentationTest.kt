@@ -19,6 +19,11 @@ class RuntimeArchitectureDocumentationTest {
       }
     }
 
+  private fun modulePath(moduleId: String, vararg segments: String): Path =
+    segments.fold(
+      runtimeRoot.resolve(RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleId)),
+    ) { path, segment -> path.resolve(segment) }
+
   @Test
   fun `architecture document declares package ownership and dependency direction`() {
     val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
@@ -84,7 +89,7 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, "InstallPlanWireValidator")
     assertContains(architecture, "DecompositionManifestValidator")
     assertContains(architecture, "WorkflowSnapshotValidator")
-    assertContains(architecture, "runtime-infra-fs")
+    assertContains(architecture, "runtime-infra/fs")
     assertContains(architecture, "skillbill.install.model.InstallPlanWireValidator")
     assertContains(architecture, "Decomposition-manifest schema validation is owned by")
     assertContains(architecture, "skillbill.workflow.decomposition.DecompositionManifestValidator")
@@ -181,14 +186,16 @@ class RuntimeArchitectureDocumentationTest {
 
   @Test
   fun `substance audit disposition keeps validation ownership after report task deletion`() {
-    val buildScript = runtimeRoot.resolve("runtime-infra-fs/build.gradle.kts").readText()
+    val buildScript = modulePath("runtime-infra:fs", "build.gradle.kts").readText()
     val decisions = Files.readString(runtimeRoot.resolve("agent/decisions.md"))
-    val substanceRoot = runtimeRoot.resolve(
-      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/substance",
+    val substanceRoot = modulePath(
+      "runtime-infra:fs",
+      "src/main/kotlin/skillbill/infrastructure/fs/scaffold/substance",
     )
-    val auditEntryPoint = runtimeRoot.resolve(
-      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/platformpack/" +
-        "substanceaudit/PlatformPackSubstanceAudit.kt",
+    val auditEntryPoint = modulePath(
+      "runtime-infra:fs",
+      "src/main/kotlin/skillbill/infrastructure/fs/scaffold/platformpack/substanceaudit/" +
+        "PlatformPackSubstanceAudit.kt",
     )
 
     assertFalse(buildScript.contains("platformPackSubstanceReport"))
@@ -200,8 +207,14 @@ class RuntimeArchitectureDocumentationTest {
 
   @Test
   fun `infra fs retains its area source sets and verification task`() {
-    val buildScript = runtimeRoot.resolve("runtime-infra-fs/build.gradle.kts").readText()
+    val buildScript =
+      modulePath("runtime-infra:fs", "build.gradle.kts").readText() +
+        modulePath("runtime-infra:fs", "infra-fs-area-source-sets.gradle.kts").readText()
 
+    assertFalse(
+      buildScript.contains("kotlinx-serialization-json"),
+      "runtime-infra/fs must not reintroduce the unused JSON serialization dependency.",
+    )
     listOf(
       "Jvm",
       "Contracts",
@@ -226,7 +239,7 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(buildScript, "tasks.register(\"verifyInfraFsAreaCompile\")")
     assertTrue(
       Files.isDirectory(
-        runtimeRoot.resolve("runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs"),
+        modulePath("runtime-infra:fs", "src/main/kotlin/skillbill/infrastructure/fs"),
       ),
     )
   }
@@ -331,6 +344,46 @@ class RuntimeArchitectureDocumentationTest {
       architecture.fencedTextListAfter("The subsystem package set is:").toSet(),
       "ARCHITECTURE.md subsystem package list must match RuntimeModuleCatalog.declaredSubsystemPackages.",
     )
+  }
+
+  @Test
+  fun `module split documentation uses nested infrastructure names`() {
+    val repositoryRoot = ArchitectureScanSupport.runtimeRoot
+    val documentationFiles = listOf(
+      "runtime-kotlin/ARCHITECTURE.md",
+      "docs/code-principles.md",
+      "docs/internal-skills-architecture.md",
+      "docs/skill-source-generation.md",
+      "docs/agent/history.md",
+    ).map { relativePath -> repositoryRoot.resolve(relativePath) }
+    val directoryNames = listOf(
+      "runtime-infra/fs",
+      "runtime-infra/http",
+      "runtime-infra/sqlite",
+    )
+    val projectIds = listOf(
+      ":runtime-infra:fs",
+      ":runtime-infra:http",
+      ":runtime-infra:sqlite",
+    )
+
+    val documentation = documentationFiles.joinToString("\n", transform = Files::readString)
+    directoryNames.forEach { directory -> assertContains(documentation, directory) }
+    projectIds.forEach { projectId -> assertContains(documentation, projectId) }
+
+    val legacyNames = listOf(
+      "runtime-infra" + "-fs",
+      "runtime-infra" + "-http",
+      "runtime-infra" + "-sqlite",
+    )
+    val staleReferences =
+      documentationFiles.filterNot { it.fileName.toString() == "history.md" }.flatMap { path ->
+        val text = Files.readString(path)
+        legacyNames
+          .filter(text::contains)
+          .map { name -> "${repositoryRoot.relativize(path)} contains $name" }
+      }
+    assertEquals(emptyList(), staleReferences)
   }
 
   private fun String.fencedTextListAfter(marker: String): List<String> {

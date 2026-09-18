@@ -184,7 +184,7 @@ class FileSystemValidationGateRunnerTest {
         #!/bin/sh
         ROOT=$(pwd)
         printf '%s\n' "${'$'}ROOT/runtime-kotlin/runtime-application/src/main/kotlin/Foo.kt:12:1: Too many functions [TooManyFunctions]"
-        printf '%s\n' "${'$'}ROOT/runtime-kotlin/runtime-infra-sqlite/src/test/kotlin/Bar.kt:386:1: Line too long [MaxLineLength]"
+        printf '%s\n' "${'$'}ROOT/runtime-kotlin/runtime-infra/sqlite/src/test/kotlin/Bar.kt:386:1: Line too long [MaxLineLength]"
         exit 1
         """.trimIndent(),
       )
@@ -355,9 +355,9 @@ class FileSystemValidationGateRunnerTest {
         #!/bin/sh
         printf '%s\n' 'FAILURE: Build failed with an exception.'
         printf '%s\n' '* What went wrong:'
-        printf '%s\n' "Execution failed for task ':runtime-infra-fs:spotlessCheck'."
+        printf '%s\n' "Execution failed for task ':runtime-infra:fs:spotlessCheck'."
         printf '%s\n' "Violations detected in the following files:"
-        printf '%s\n' "runtime-kotlin/runtime-infra-fs/src/main/kotlin/Bar.kt"
+        printf '%s\n' "runtime-kotlin/runtime-infra/fs/src/main/kotlin/Bar.kt"
         exit 1
         """.trimIndent(),
       )
@@ -369,7 +369,7 @@ class FileSystemValidationGateRunnerTest {
         ),
       )
       val finding = result.findings.single()
-      assertEquals("runtime-infra-fs", finding.module)
+      assertEquals("runtime-infra:fs", finding.module)
       assertEquals("spotlessCheck", finding.ruleOrTestId)
       assertTrue(finding.message.contains("Violations detected"))
       assertTrue(finding.message.contains("Bar.kt"))
@@ -389,7 +389,7 @@ class FileSystemValidationGateRunnerTest {
         #!/bin/sh
         printf '%s\n' 'FAILURE: Build failed with an exception.'
         printf '%s\n' '* What went wrong:'
-        printf '%s\n' "Execution failed for task ':runtime-infra-fs:spotlessCheck'."
+        printf '%s\n' "Execution failed for task ':runtime-infra:fs:spotlessCheck'."
         exit 1
         """.trimIndent(),
       )
@@ -401,9 +401,9 @@ class FileSystemValidationGateRunnerTest {
         ),
       )
       val finding = result.findings.single()
-      assertEquals("runtime-infra-fs", finding.module)
+      assertEquals("runtime-infra:fs", finding.module)
       assertEquals("spotlessCheck", finding.ruleOrTestId)
-      assertEquals("Execution failed for task ':runtime-infra-fs:spotlessCheck'.", finding.message)
+      assertEquals("Execution failed for task ':runtime-infra:fs:spotlessCheck'.", finding.message)
       assertTrue(result.findings.none { it.ruleOrTestId == "unparseable_gate_failure" })
     } finally {
       repo.toFile().deleteRecursively()

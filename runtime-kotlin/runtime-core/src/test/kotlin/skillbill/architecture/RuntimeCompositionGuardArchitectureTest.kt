@@ -61,8 +61,8 @@ class RuntimeCompositionGuardArchitectureTest {
     val violations = ArchitectureScanSupport.directComponentConstructionViolations(
       boundClassNames = setOf("FileSystemScaffoldRepoValidation", "FileSystemScaffoldSourceLoader"),
       scanRoots = listOf(
-        "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/" +
-          "runtime/ScaffoldStandaloneEntrypoint.kt",
+        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:fs")}/src/main/kotlin/" +
+          "skillbill/infrastructure/fs/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
       ),
       compositionDiRoot = diRoot,
       sanctionedEntrypoints = PrincipleEnforcementInventory.sanctionedCompositionEntrypoints,

@@ -18,19 +18,20 @@ class InstallPolicyOwnershipArchitectureTest {
         workingDir
       }
     }
+  private val infraFsModule = RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:fs")
   private val approvedPolicyCallers = setOf(
-    "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/install/plan/InstallPlanBuilder.kt",
+    "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/install/plan/InstallPlanBuilder.kt",
   )
 
   private val approvedValidationSeams = mapOf(
-    "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/install/plan/InstallPlanBuilder.kt" to
+    "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/install/plan/InstallPlanBuilder.kt" to
       "validateInstallPlanWireSnapshot",
     "runtime-cli/src/main/kotlin/skillbill/cli/install/InstallCliPayloads.kt" to
       "installService.validateInstallPlanWire",
   )
 
   private val approvedValidatorAdapters = setOf(
-    "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
+    "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
   )
 
   @Test
@@ -56,7 +57,7 @@ class InstallPolicyOwnershipArchitectureTest {
       emptyList(),
       violations,
       "Install plan policy must stay pure: filesystem/process mechanics and infra-fs install implementation " +
-        "imports belong in runtime-infra-fs.",
+        "imports belong in runtime-infra:fs.",
     )
   }
 
@@ -122,8 +123,8 @@ class InstallPolicyOwnershipArchitectureTest {
     }
 
     val validatorOwnerFiles = setOf(
-      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
-      "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
+      "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
+      "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
     )
     val adapterFiles = adapterKotlinFiles()
     val violations = adapterFiles
@@ -170,7 +171,7 @@ class InstallPolicyOwnershipArchitectureTest {
     assertEquals(
       emptyList(),
       adapterPolicyOwnershipViolations(
-        "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/install/plan/InstallPlanBuilder.kt",
+        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/install/plan/InstallPlanBuilder.kt",
         """
         |import skillbill.install.policy.InstallPlanPolicy
         |import skillbill.install.model.validateInstallPlanWireSnapshot
@@ -245,9 +246,13 @@ class InstallPolicyOwnershipArchitectureTest {
   private fun adapterKotlinFiles(): List<Path> = listOf(
     runtimeRoot.resolve("runtime-cli/src/main/kotlin"),
     runtimeRoot.resolve("runtime-mcp/src/main/kotlin"),
-    runtimeRoot.resolve("runtime-infra-fs/src/main/kotlin"),
-    runtimeRoot.resolve("runtime-infra-http/src/main/kotlin"),
-    runtimeRoot.resolve("runtime-infra-sqlite/src/main/kotlin"),
+    runtimeRoot.resolve("$infraFsModule/src/main/kotlin"),
+    runtimeRoot.resolve(
+      "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:http")}/src/main/kotlin",
+    ),
+    runtimeRoot.resolve(
+      "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:sqlite")}/src/main/kotlin",
+    ),
   ).flatMap(::kotlinFilesUnder)
 
   private fun Path.toSlashPath(): String = toString().replace('\\', '/')

@@ -17,6 +17,7 @@ class DecompositionManifestArchitectureTest {
         workingDir
       }
     }
+  private val infraFsModule = RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:fs")
   private val domainDecompositionManifestRuntimeSeamTokens = listOf(
     "DecompositionManifestSchemaValidator",
     "validateYamlText",
@@ -59,7 +60,7 @@ class DecompositionManifestArchitectureTest {
 
     val infraStoreSeam = Files.readString(
       runtimeRoot.resolve(
-        "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/" +
+        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/" +
           "FileSystemDecompositionManifestFileStore.kt",
       ),
     )

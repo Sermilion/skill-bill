@@ -1,3 +1,13 @@
+## [2026-09-18] SKILL-354 subtask 1 — Nest runtime infrastructure modules and make governed resources a convention
+Areas: runtime-kotlin/{settings,build-logic/runtime-infra/{fs,http,sqlite},runtime-core architecture}, docs
+- Moved the filesystem, HTTP, and SQLite adapters under `runtime-infra/{fs,http,sqlite}` as nested Gradle projects and preserved `runtime-infra-<name>` archive names.
+- Added the governed-resources convention plugin; fs now declares 33 governed copies as data, with generated roots and resource-task wiring owned by the convention.
+- Catalog-driven module and baseline resolution keeps architecture tests aligned with the nested ids; documentation and generated-resource parity fixtures follow the new layout.
+- Pattern: nested module identity, archive naming, governed resource registration, and architecture baselines should share one catalog or convention rather than repeat path literals. reusable
+- Known limitation: fs area source sets remain in the fs module until subtask 2.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-17] Empty phase-output produced_outputs
 Areas: orchestration/contracts, runtime-kotlin/{runtime-infra-fs,runtime-engine/featuretask}
 - Envelope `produced_outputs` stays required as an object and now accepts `{}` when the phase has no structured payload.

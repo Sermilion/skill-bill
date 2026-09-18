@@ -40,18 +40,18 @@ class AmbientEnvironmentArchitectureTest {
   }
 
   @Test
-  fun `runtime-infra-fs ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra-fs")
+  fun `runtime-infra fs ambient environment sites equal the recorded census`() {
+    assertAmbientEnvironmentMatchesBaseline("runtime-infra:fs")
   }
 
   @Test
-  fun `runtime-infra-http ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra-http")
+  fun `runtime-infra http ambient environment sites equal the recorded census`() {
+    assertAmbientEnvironmentMatchesBaseline("runtime-infra:http")
   }
 
   @Test
-  fun `runtime-infra-sqlite ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra-sqlite")
+  fun `runtime-infra sqlite ambient environment sites equal the recorded census`() {
+    assertAmbientEnvironmentMatchesBaseline("runtime-infra:sqlite")
   }
 
   @Test

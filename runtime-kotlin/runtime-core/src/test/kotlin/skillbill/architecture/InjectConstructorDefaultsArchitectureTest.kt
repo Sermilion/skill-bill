@@ -36,18 +36,18 @@ class InjectConstructorDefaultsArchitectureTest {
   }
 
   @Test
-  fun `runtime-infra-fs inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra-fs")
+  fun `runtime-infra fs inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:fs")
   }
 
   @Test
-  fun `runtime-infra-http inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra-http")
+  fun `runtime-infra http inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:http")
   }
 
   @Test
-  fun `runtime-infra-sqlite inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra-sqlite")
+  fun `runtime-infra sqlite inject defaults equal the recorded census`() {
+    assertInjectDefaultsMatchBaseline("runtime-infra:sqlite")
   }
 
   @Test

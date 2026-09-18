@@ -22,18 +22,24 @@ object PrincipleEnforcementInventory {
   )
 
   val moduleArchitectureScanCases: List<ModuleArchitectureScanCase> =
-    RuntimeModuleCatalog.declaredGradleModules.map(::moduleArchitectureScanCase)
+    RuntimeModuleCatalog.declaredGradleModules
+      .filter { moduleName -> moduleName != "runtime-infra" }
+      .map(::moduleArchitectureScanCase)
 
-  private fun moduleArchitectureScanCase(moduleName: String): ModuleArchitectureScanCase = ModuleArchitectureScanCase(
-    moduleName = moduleName,
-    mainScanRoot = "runtime-kotlin/$moduleName/src/main/kotlin",
-    moduleSourceRoot = "runtime-kotlin/$moduleName/src",
-    packagePrefix = packagePrefixForModule(moduleName),
-    packageCycleBaseline = packageCycleBaselineForModule(moduleName),
-    ambientClockBaseline = ambientClockBaselineForModule(moduleName),
-    ambientEnvironmentBaseline = ambientEnvironmentBaselineForModule(moduleName),
-    injectDefaultsBaseline = injectDefaultsBaselineForModule(moduleName),
-  )
+  private fun moduleArchitectureScanCase(moduleName: String): ModuleArchitectureScanCase {
+    val directoryPath = RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)
+    val baselineStem = RuntimeModuleCatalog.gradleModuleIdToBaselineStem(moduleName)
+    return ModuleArchitectureScanCase(
+      moduleName = moduleName,
+      mainScanRoot = "runtime-kotlin/$directoryPath/src/main/kotlin",
+      moduleSourceRoot = "runtime-kotlin/$directoryPath/src",
+      packagePrefix = packagePrefixForModule(moduleName),
+      packageCycleBaseline = packageCycleBaselineForModule(moduleName, baselineStem),
+      ambientClockBaseline = ambientClockBaselineForModule(moduleName, baselineStem),
+      ambientEnvironmentBaseline = ambientEnvironmentBaselineForModule(moduleName, baselineStem),
+      injectDefaultsBaseline = injectDefaultsBaselineForModule(moduleName, baselineStem),
+    )
+  }
 
   private fun packagePrefixForModule(moduleName: String): String = when (moduleName) {
     "runtime-application" -> APPLICATION_PACKAGE_PREFIX
@@ -46,32 +52,32 @@ object PrincipleEnforcementInventory {
     else -> "skillbill."
   }
 
-  private fun packageCycleBaselineForModule(moduleName: String): String = when (moduleName) {
+  private fun packageCycleBaselineForModule(moduleName: String, baselineStem: String): String = when (moduleName) {
     "runtime-application" -> "application-package-cycle-baseline.txt"
     "runtime-cli" -> "runtime-cli-package-cycle-baseline.txt"
-    else -> "$moduleName-package-cycle-baseline.txt"
+    else -> "$baselineStem-package-cycle-baseline.txt"
   }
 
-  private fun ambientClockBaselineForModule(moduleName: String): String = when (moduleName) {
+  private fun ambientClockBaselineForModule(moduleName: String, baselineStem: String): String = when (moduleName) {
     "runtime-application" -> "runtime-application-ambient-clock-baseline.txt"
     "runtime-cli" -> "runtime-cli-ambient-clock-baseline.txt"
-    else -> "$moduleName-ambient-clock-baseline.txt"
+    else -> "$baselineStem-ambient-clock-baseline.txt"
   }
 
-  private fun ambientEnvironmentBaselineForModule(moduleName: String): String = when (moduleName) {
+  private fun ambientEnvironmentBaselineForModule(moduleName: String, baselineStem: String): String = when (moduleName) {
     "runtime-cli" -> "runtime-cli-ambient-environment-baseline.txt"
-    else -> "$moduleName-ambient-environment-baseline.txt"
+    else -> "$baselineStem-ambient-environment-baseline.txt"
   }
 
-  private fun injectDefaultsBaselineForModule(moduleName: String): String? = when (moduleName) {
+  private fun injectDefaultsBaselineForModule(moduleName: String, baselineStem: String): String? = when (moduleName) {
     "runtime-application" -> "inject-constructor-defaults-baseline.txt"
     "runtime-cli" -> "runtime-cli-inject-constructor-defaults-baseline.txt"
     "runtime-ports",
-    "runtime-infra-fs",
-    "runtime-infra-http",
-    "runtime-infra-sqlite",
+    "runtime-infra:fs",
+    "runtime-infra:http",
+    "runtime-infra:sqlite",
     "runtime-mcp",
-    -> "$moduleName-inject-constructor-defaults-baseline.txt"
+    -> "$baselineStem-inject-constructor-defaults-baseline.txt"
     else -> null
   }
 
@@ -82,8 +88,8 @@ object PrincipleEnforcementInventory {
   val spilloverFileNameExemptions: Set<String> = emptySet()
 
   val sanctionedCompositionEntrypoints: Set<String> = setOf(
-    "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/" +
-      "runtime/ScaffoldStandaloneEntrypoint.kt",
+    "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:fs")}/src/main/kotlin/" +
+      "skillbill/infrastructure/fs/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
   )
 
   val ambientEnvironmentExemptions: Set<String> = setOf(
@@ -138,8 +144,8 @@ object PrincipleEnforcementInventory {
   val parseBoundarySites: List<ArchitectureScanSupport.ParseBoundarySite> = listOf(
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/workflow/" +
-        "GoalRunnerControlStore.kt",
+      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:sqlite")}/src/main/kotlin/" +
+        "skillbill/infrastructure/sqlite/workflow/GoalRunnerControlStore.kt",
       functionNames = setOf(
         "decodeControlState",
         "decodeReviewPolicy",
@@ -217,8 +223,8 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/platformpack/" +
-        "ShellContentLoaderValidationGate.kt",
+      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:fs")}/src/main/kotlin/" +
+        "skillbill/infrastructure/fs/scaffold/platformpack/ShellContentLoaderValidationGate.kt",
       functionNames = setOf(
         "parseValidationGate",
         "parseValidationGateFindings",

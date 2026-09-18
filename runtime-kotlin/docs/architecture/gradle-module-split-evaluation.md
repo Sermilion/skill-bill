@@ -13,9 +13,9 @@ cleanly:
 - `runtime-domain`
 - `runtime-ports`
 - `runtime-application`
-- `runtime-infra-sqlite`
-- `runtime-infra-http`
-- `runtime-infra-fs`
+- `runtime-infra/sqlite (`:runtime-infra:sqlite`)`
+- `runtime-infra/http (`:runtime-infra:http`)`
+- `runtime-infra/fs (`:runtime-infra:fs`)`
 - `runtime-core`
 - `runtime-cli`
 - `runtime-mcp`
@@ -33,10 +33,10 @@ of all runtime implementation code.
   telemetry ports, and port-owned model types.
 - `runtime-application`: CLI/MCP-shared use cases, application model DTOs,
   contract mappers, and port-backed telemetry orchestration.
-- `runtime-infra-sqlite`: SQLite schema/migrations/stores/repositories and
+- `runtime-infra/sqlite (`:runtime-infra:sqlite`)`: SQLite schema/migrations/stores/repositories and
   SQL-backed review helpers.
-- `runtime-infra-http`: telemetry HTTP requester/client and proxy wire mapping.
-- `runtime-infra-fs`: telemetry config file adapter plus filesystem/process
+- `runtime-infra/http (`:runtime-infra:http`)`: telemetry HTTP requester/client and proxy wire mapping.
+- `runtime-infra/fs (`:runtime-infra:fs`)`: telemetry config file adapter plus filesystem/process
   ownership for install planning/apply/staging, governed scaffold/load/render,
   native-agent rendering/linking, launcher MCP registration, and skill-remove
   filesystem cascades.
@@ -58,9 +58,9 @@ composition surfaces.
 - `runtime-domain`
 - `runtime-ports`
 - `runtime-application`
-- `runtime-infra-sqlite`
-- `runtime-infra-http`
-- `runtime-infra-fs`
+- `runtime-infra/sqlite (`:runtime-infra:sqlite`)`
+- `runtime-infra/http (`:runtime-infra:http`)`
+- `runtime-infra/fs (`:runtime-infra:fs`)`
 - `runtime-cli`
 - `runtime-mcp`
 
@@ -90,7 +90,7 @@ No known package-level upward dependencies remain for the implemented split.
 - Runtime implementation packages formerly under `runtime-core`
   (`skillbill.install`, `skillbill.scaffold`, `skillbill.nativeagent`,
   `skillbill.launcher`, and concrete `skillbill.skillremove`) now live in
-  `runtime-infra-fs`. Workflow runtime-surface metadata lives in
+  `runtime-infra/fs (`:runtime-infra:fs`)`. Workflow runtime-surface metadata lives in
   `runtime-application`; `runtime-core` is limited to DI composition and module
   metadata while continuing to re-export the shared modules for existing
   CLI/MCP callers.
@@ -113,11 +113,11 @@ and useful now:
 - CLI and MCP are independently compiled adapter modules.
 - Contract, domain, port, application, SQLite, HTTP, and filesystem runtime
   layers compile as independent Gradle modules.
-- Module-owned SQLite tests now live with `runtime-infra-sqlite`, so tests can
+- Module-owned SQLite tests now live with `runtime-infra/sqlite (`:runtime-infra:sqlite`)`, so tests can
   exercise internal migration/schema details without weakening production
   encapsulation.
 - Module-owned install, scaffold, native-agent, launcher, and skill-remove tests
-  now live with `runtime-infra-fs`, so internal filesystem adapters remain
+  now live with `runtime-infra/fs (`:runtime-infra:fs`)`, so internal filesystem adapters remain
   covered without returning implementation packages to `runtime-core`.
 
 ## Deeper Split Readiness Criteria

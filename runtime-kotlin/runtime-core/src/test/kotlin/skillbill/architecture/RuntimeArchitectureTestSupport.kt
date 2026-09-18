@@ -15,19 +15,13 @@ internal val runtimeArchitectureRoot: Path =
   }
 
 internal val runtimeArchitectureSourceRoots: List<Path> =
-  listOf(
-    runtimeArchitectureRoot.resolve("runtime-application/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-contracts/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-core/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-domain/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-engine/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-infra-fs/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-infra-http/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-infra-sqlite/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-cli/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-mcp/src/main/kotlin"),
-    runtimeArchitectureRoot.resolve("runtime-ports/src/main/kotlin"),
-  )
+  RuntimeModuleCatalog.declaredGradleModules
+    .filter { moduleName -> moduleName != "runtime-infra" }
+    .map { moduleName ->
+      runtimeArchitectureRoot.resolve(
+        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin",
+      )
+    }
 
 internal fun engineInboundApiViolations(consumerSourceRoots: List<String>, allowedTypes: Set<String>): List<String> {
   val violations = mutableListOf<String>()
@@ -68,7 +62,9 @@ internal fun engineInboundApiViolationMessage(
 }
 
 internal fun mainPackageRootsForModule(moduleName: String): Set<String> {
-  val root = runtimeArchitectureRoot.resolve("$moduleName/src/main/kotlin")
+  val root = runtimeArchitectureRoot.resolve(
+    "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)}/src/main/kotlin",
+  )
   if (!Files.isDirectory(root)) return emptySet()
   return Files.walk(root).use { paths ->
     paths.filter { path -> Files.isRegularFile(path) && path.toString().endsWith(".kt") }
@@ -615,13 +611,20 @@ internal fun innerLayerTestSourceFiles(): List<SourceFile> =
   listOf("runtime-application", "runtime-domain", "runtime-ports")
     .flatMap { moduleName ->
       listOf("src/test/kotlin", "src/repoTest/kotlin", "src/jvmTest/kotlin", "src/commonTest/kotlin")
-        .map { sourceSet -> runtimeArchitectureRoot.resolve(moduleName.replace(':', '/')).resolve(sourceSet) }
+        .map { sourceSet ->
+          runtimeArchitectureRoot
+            .resolve(RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName))
+            .resolve(sourceSet)
+        }
         .filter(Files::isDirectory)
     }
     .flatMap { sourceRoot -> sourceFilesIn(sourceRoot) }
 
 internal fun mainSourceRoots(moduleName: String): List<Path> {
-  val sourceRoot = runtimeArchitectureRoot.resolve(moduleName.replace(':', '/')).resolve("src")
+  val sourceRoot =
+    runtimeArchitectureRoot
+      .resolve(RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName))
+      .resolve("src")
   if (!Files.isDirectory(sourceRoot)) return emptyList()
   return Files.list(sourceRoot).use { stream ->
     stream

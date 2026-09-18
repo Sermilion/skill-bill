@@ -9,7 +9,7 @@ import java.nio.file.Path
  * bundle stubs, etc.) atomically with rollback support. Pure-policy callers describe the file
  * they want written; the adapter owns directory creation and tracks every touched path.
  *
- * IO ownership stays in `runtime-infra-fs`.
+ * IO ownership stays in `runtime-infra/fs (`:runtime-infra:fs`)`.
  */
 interface ScaffoldGeneratedStagingPort {
   /**

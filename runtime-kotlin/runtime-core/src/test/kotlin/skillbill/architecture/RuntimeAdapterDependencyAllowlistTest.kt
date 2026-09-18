@@ -90,16 +90,18 @@ class RuntimeAdapterDependencyAllowlistTest {
   }
 
   @Test
-  fun `runtime-application declares no production dependency on runtime-infra-fs (SKILL-140 AC-005)`() {
+  fun `runtime-application declares no production dependency on runtime-infra fs (SKILL-140 AC-005)`() {
     assertEquals(
       false,
-      "runtime-infra-fs" in mainProjectDependencies("runtime-application"),
-      "runtime-application must not gain a production dependency on runtime-infra-fs.",
+      "runtime-infra:fs" in mainProjectDependencies("runtime-application"),
+      "runtime-application must not gain a production dependency on runtime-infra:fs.",
     )
   }
 
   private fun testFixturesProjectDependencies(moduleName: String): Set<String> {
-    val buildFile = runtimeRoot.resolve("${moduleName.replace(':', '/')}/build.gradle.kts")
+    val buildFile = runtimeRoot.resolve(
+      "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)}/build.gradle.kts",
+    )
     val source = Files.readString(buildFile)
     val testFixturesConfigurations = listOf("testFixturesImplementation", "testFixturesApi")
     val projectDependencies = mutableSetOf<String>()
@@ -114,7 +116,9 @@ class RuntimeAdapterDependencyAllowlistTest {
   }
 
   private fun mainProjectDependencies(moduleName: String): Set<String> {
-    val buildFile = runtimeRoot.resolve("${moduleName.replace(':', '/')}/build.gradle.kts")
+    val buildFile = runtimeRoot.resolve(
+      "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)}/build.gradle.kts",
+    )
     val source = Files.readString(buildFile)
     val testConfigurations =
       listOf(

@@ -55,7 +55,9 @@ class RuntimeContractModuleImportRulesTest {
   }
 
   private fun forbiddenImportViolations(module: String, forbiddenPrefixes: List<String>): List<String> {
-    val root = runtimeRoot.resolve("$module/src/main")
+    val root = runtimeRoot.resolve(
+      "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(module)}/src/main",
+    )
     if (!Files.isDirectory(root)) return emptyList()
     return Files.walk(root).use { paths ->
       paths.filter { Files.isRegularFile(it) && it.extension == "kt" }.toList()
