@@ -2,6 +2,7 @@ package skillbill.mcp.review
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.GovernedReviewEvidenceTransportError
+import skillbill.mcp.core.McpProtocolFramer
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import java.io.BufferedReader
 import java.io.BufferedWriter
@@ -25,21 +26,29 @@ internal class GovernedReviewEvidenceConnection(
   override fun close() {
     channel.close()
   }
-}
 
-internal fun connect(socketPath: Path, token: String): GovernedReviewEvidenceConnection {
-  val connection = openSocketChannel(socketPath)
-  val writer = Channels.newOutputStream(connection).bufferedWriter()
-  val reader = Channels.newInputStream(connection).bufferedReader()
-  writer.appendLine(
-    JsonCodec.mapToJsonString(
-      linkedMapOf("jsonrpc" to "2.0", "method" to "handshake", "params" to mapOf("token" to token)),
-    ),
-  )
-  writer.flush()
-  reader.readReviewEvidenceFrame()
-    ?: throw GovernedReviewEvidenceTransportError("Governed review evidence endpoint refused this launch's token.")
-  return GovernedReviewEvidenceConnection(connection, reader, writer)
+  companion object {
+    fun connect(socketPath: Path, token: String): GovernedReviewEvidenceConnection {
+      val connection = openSocketChannel(socketPath)
+      val writer = Channels.newOutputStream(connection).bufferedWriter()
+      val reader = Channels.newInputStream(connection).bufferedReader()
+      writer.appendLine(
+        JsonCodec.mapToJsonString(
+          linkedMapOf(
+            McpProtocolFramer.JSON_RPC_KEY to McpProtocolFramer.JSON_RPC_VERSION,
+            McpProtocolFramer.METHOD_KEY to "handshake",
+            McpProtocolFramer.PARAMS_KEY to mapOf("token" to token),
+          ),
+        ),
+      )
+      writer.flush()
+      reader.readReviewEvidenceFrame()
+        ?: throw GovernedReviewEvidenceTransportError(
+          "Governed review evidence endpoint refused this launch's token.",
+        )
+      return GovernedReviewEvidenceConnection(connection, reader, writer)
+    }
+  }
 }
 
 private fun openSocketChannel(socketPath: Path): SocketChannel = try {

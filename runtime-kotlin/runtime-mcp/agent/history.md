@@ -1,3 +1,13 @@
+## [2026-09-18] SKILL-357 subtask 1: one composition, one tool table, one framer
+Areas: runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-core, runtime-kotlin/runtime-application
+- Collapsed MCP startup and handlers onto one injected composition, preserving state across sequential stdio requests.
+- Replaced parallel tool registries with one ordered declaration list carrying schemas, handlers, and argument normalization. reusable
+- Centralized JSON-RPC framing and shared responses for stdio and governed review evidence transports. reusable
+- Added typed payload-key failures and explicit degradation records instead of silent defaults or fabricated measurements.
+- Known limitation: input-schema declaration ownership remains with SKILL-357 subtask 2.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-08-09] SKILL-175 remove prose MCP tools and telemetry (subtask 4)
 Areas: runtime-kotlin/runtime-mcp, orchestration/{contracts,telemetry-contract,workflow-contract}, docs, docs/cloudflare-telemetry-proxy
 - Deleted the prose MCP family end-to-end: `feature_task_prose_*`, hidden `feature_implement_*` aliases, and `goal_prose_*` from registry, dispatcher, lifecycle/goal handlers, input schemas, goldens, and stdio/parity tests — agents can no longer open a prose workflow through MCP.

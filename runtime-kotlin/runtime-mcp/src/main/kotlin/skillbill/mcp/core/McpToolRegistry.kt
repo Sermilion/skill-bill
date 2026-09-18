@@ -1,41 +1,44 @@
 package skillbill.mcp.core
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.contracts.telemetry.LifecycleSessionCompletion
-import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 
-data class McpToolSpec(
+internal data class McpTool(
   val name: String,
   val description: String,
   val inputSchema: Map<String, Any?> = openObjectSchema(),
+  val handler: McpToolHandler,
+  val normalize: ((Map<String, Any?>) -> Map<String, Any?>)? = null,
 ) {
   fun toPayload(): Map<String, Any?> = linkedMapOf(
-    "name" to name,
-    "description" to description,
-    "inputSchema" to inputSchema,
+    McpProtocolFramer.NAME_KEY to name,
+    McpProtocolFramer.DESCRIPTION_KEY to description,
+    McpProtocolFramer.INPUT_SCHEMA_KEY to inputSchema,
   )
 
   companion object {
     fun openObjectSchema(): Map<String, Any?> = mapOf(
-      "type" to "object",
-      "additionalProperties" to true,
+      McpProtocolFramer.SCHEMA_TYPE_KEY to "object",
+      McpProtocolFramer.SCHEMA_ADDITIONAL_PROPERTIES_KEY to true,
     )
 
     fun strictObjectSchema(
       required: List<String> = emptyList(),
       properties: Map<String, Map<String, Any?>> = emptyMap(),
     ): Map<String, Any?> = linkedMapOf(
-      "type" to "object",
-      "additionalProperties" to false,
-      "properties" to properties,
-      "required" to required,
+      McpProtocolFramer.SCHEMA_TYPE_KEY to "object",
+      McpProtocolFramer.SCHEMA_ADDITIONAL_PROPERTIES_KEY to false,
+      McpProtocolFramer.SCHEMA_PROPERTIES_KEY to properties,
+      McpProtocolFramer.SCHEMA_REQUIRED_KEY to required,
     )
   }
 }
 
-object McpToolRegistry {
-  private val toolNames: List<String> =
+internal typealias McpToolSpec = McpTool
+
+internal object McpToolRegistry {
+  private val orderedToolNames: List<String> =
     listOf(
       "doctor",
       "feature_task_phase_block",
@@ -54,7 +57,7 @@ object McpToolRegistry {
       "import_review",
       "new_skill_scaffold",
       "pr_description_generated",
-      "quality_check_finished",
+      McpToolPayloadKeys.QUALITY_CHECK_FINISHED,
       "quality_check_started",
       "resolve_learnings",
       "review_stats",
@@ -64,7 +67,7 @@ object McpToolRegistry {
       "update_check",
     )
 
-  private val descriptions: Map<String, String> =
+  private val toolDescriptions: Map<String, String> =
     mapOf(
       "doctor" to "Check skill-bill installation health.",
       "feature_task_phase_block" to
@@ -86,7 +89,7 @@ object McpToolRegistry {
       "import_review" to "Import code review output into the local telemetry store.",
       "new_skill_scaffold" to "Scaffold a new skill from a validated payload.",
       "pr_description_generated" to "Record PR description generation telemetry.",
-      "quality_check_finished" to "Record completion of a quality-check session.",
+      McpToolPayloadKeys.QUALITY_CHECK_FINISHED to "Record completion of a quality-check session.",
       "quality_check_started" to "Record start of a quality-check session.",
       "resolve_learnings" to "Resolve active learnings for a review context.",
       "review_stats" to "Show review acceptance metrics.",
@@ -96,7 +99,7 @@ object McpToolRegistry {
       "update_check" to "Check whether the installed skill-bill runtime is up to date.",
     )
 
-  private val inputSchemas: Map<String, Map<String, Any?>> =
+  private val schemas: Map<String, Map<String, Any?>> =
     mapOf(
       "feature_task_phase_complete" to objectSchema(
         required = listOf("workflow_id", "phase_id", "attempt", "value"),
@@ -224,7 +227,7 @@ object McpToolRegistry {
           "final_pr_body" to stringSchema(),
         ),
       ),
-      "quality_check_finished" to objectSchema(
+      McpToolPayloadKeys.QUALITY_CHECK_FINISHED to objectSchema(
         required = listOf(
           "final_failure_count",
           "iterations",
@@ -242,13 +245,6 @@ object McpToolRegistry {
         ),
         properties = mapOf(
           "final_failure_count" to integerSchema,
-          "final_failure_count_availability" to stringSchema(
-            enum = TelemetryMeasurementAvailability.entries.map(TelemetryMeasurementAvailability::wireValue),
-          ),
-          "completion" to stringSchema(
-            enum = LifecycleSessionCompletion.entries.map(LifecycleSessionCompletion::wireValue),
-          ),
-          "stale_reason" to stringSchema(),
           "iterations" to integerSchema,
           "result" to stringSchema(enum = listOf("pass", "fail", "skipped", "unsupported_stack")),
           "session_id" to stringSchema(),
@@ -301,9 +297,19 @@ object McpToolRegistry {
       "telemetry_remote_stats" to remoteStatsSchema(),
     )
 
-  val tools: List<McpToolSpec> =
-    toolNames.map { name ->
-      McpToolSpec(name, descriptions.getValue(name), inputSchemas[name] ?: McpToolSpec.openObjectSchema())
+  val tools: List<McpTool> =
+    orderedToolNames.map { name ->
+      McpTool(
+        name = name,
+        description = toolDescriptions.getValue(name),
+        inputSchema = schemas[name] ?: McpToolSpec.openObjectSchema(),
+        handler = McpToolDispatcher.handlerFor(name),
+        normalize = if (name == McpToolPayloadKeys.QUALITY_CHECK_FINISHED) {
+          McpToolDispatcher::normalizeQualityCheckFinished
+        } else {
+          null
+        },
+      )
     }
 
   fun toolNamed(name: String): McpToolSpec? = tools.firstOrNull { it.name == name }

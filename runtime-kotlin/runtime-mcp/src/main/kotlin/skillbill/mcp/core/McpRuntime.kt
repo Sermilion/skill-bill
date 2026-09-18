@@ -1,26 +1,71 @@
 package skillbill.mcp.core
 
 import skillbill.application.review.toReviewFinishedTelemetryPayload
-import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpLearningsSkippedContract
 import skillbill.contracts.mcp.McpOrchestratedPayloadContract
 import skillbill.contracts.mcp.McpReviewImportSkippedContract
 import skillbill.contracts.mcp.McpTriageSkippedContract
-import skillbill.mcp.learning.toMcpPayload
+import skillbill.application.learning.toLearningResolveContract
 import skillbill.mcp.review.toMcpMap
 import skillbill.mcp.scaffold.McpScaffoldRuntime
-import skillbill.mcp.shared.McpRuntimeContext
-import skillbill.mcp.shared.services
+import skillbill.mcp.shared.McpComponent
+import skillbill.mcp.shared.componentForLegacyContext
+import skillbill.contracts.system.UpdateCheckContract
 
-object McpRuntime {
+internal object McpRuntime {
   fun importReview(
     reviewText: String,
     orchestrated: Boolean = false,
-    context: McpRuntimeContext = McpRuntimeContext(),
+    context: Any,
+  ): Map<String, Any?> = importReview(reviewText, orchestrated, componentForLegacyContext(context))
+
+  fun triageFindings(
+    reviewRunId: String,
+    decisions: List<String>,
+    orchestrated: Boolean = false,
+    context: Any,
+  ): Map<String, Any?> = triageFindings(reviewRunId, decisions, orchestrated, componentForLegacyContext(context))
+
+  fun resolveLearnings(
+    repo: String? = null,
+    skill: String? = null,
+    reviewSessionId: String? = null,
+    context: Any,
+  ): Map<String, Any?> = resolveLearnings(repo, skill, reviewSessionId, componentForLegacyContext(context))
+
+  fun reviewStats(reviewRunId: String? = null, context: Any): Map<String, Any?> =
+    reviewStats(reviewRunId, componentForLegacyContext(context))
+
+  fun featureVerifyStats(context: Any): Map<String, Any?> =
+    featureVerifyStats(componentForLegacyContext(context))
+
+  fun goalStats(context: Any): Map<String, Any?> =
+    goalStats(componentForLegacyContext(context))
+
+  fun version(context: Any): Map<String, Any?> =
+    version(componentForLegacyContext(context))
+
+  fun doctor(context: Any): Map<String, Any?> =
+    doctor(componentForLegacyContext(context))
+
+  fun updateCheck(context: Any): Map<String, Any?> =
+    updateCheck(componentForLegacyContext(context))
+
+  fun newSkillScaffold(
+    payload: Map<String, Any?>,
+    dryRun: Boolean = false,
+    orchestrated: Boolean = false,
+    context: Any,
+  ): Map<String, Any?> =
+    newSkillScaffold(payload, dryRun, orchestrated, componentForLegacyContext(context))
+
+  fun importReview(
+    reviewText: String,
+    orchestrated: Boolean = false,
+    component: McpComponent,
   ): Map<String, Any?> {
-    val runtimeServices = services(context, stdinText = reviewText)
-    if (!runtimeServices.telemetryService.isEnabled()) {
-      val preview = runtimeServices.reviewService.previewImport("-")
+    if (!component.telemetryService.isEnabled()) {
+      val preview = component.reviewService.previewImport("-", stdinText = reviewText)
       return McpReviewImportSkippedContract(
         reason = "telemetry is disabled",
         reviewRunId = preview.reviewRunId,
@@ -28,15 +73,19 @@ object McpRuntime {
       ).toPayload()
     }
     val importResult =
-      runtimeServices.reviewService
-        .importReview("-", finishZeroFindingTelemetry = !orchestrated)
+      component.reviewService
+        .importReview(
+          "-",
+          finishZeroFindingTelemetry = !orchestrated,
+          stdinText = reviewText,
+        )
     val payload = importResult.toMcpMap().toMutableMap()
     val result = if (orchestrated) {
       val reviewRunId = importResult.preview.reviewRunId
-      runtimeServices.reviewService.markOrchestrated(reviewRunId)
+      component.reviewService.markOrchestrated(reviewRunId)
       val telemetryPayload =
         if (importResult.preview.findingCount == 0) {
-          runtimeServices.reviewService.reviewFinishedTelemetryPayload(reviewRunId)
+          component.reviewService.reviewFinishedTelemetryPayload(reviewRunId)
             ?.toReviewFinishedTelemetryPayload()
             ?.toPayload()
         } else {
@@ -46,7 +95,7 @@ object McpRuntime {
     } else {
       payload
     }
-    runtimeServices.telemetryService.autoSync()
+    component.telemetryService.autoSync()
     return result
   }
 
@@ -54,17 +103,16 @@ object McpRuntime {
     reviewRunId: String,
     decisions: List<String>,
     orchestrated: Boolean = false,
-    context: McpRuntimeContext = McpRuntimeContext(),
+    component: McpComponent,
   ): Map<String, Any?> {
-    val runtimeServices = services(context)
-    if (!runtimeServices.telemetryService.isEnabled()) {
+    if (!component.telemetryService.isEnabled()) {
       return McpTriageSkippedContract(reason = "telemetry is disabled", reviewRunId = reviewRunId).toPayload()
     }
     if (orchestrated) {
-      runtimeServices.reviewService.markOrchestrated(reviewRunId)
+      component.reviewService.markOrchestrated(reviewRunId)
     }
     val result =
-      runtimeServices.reviewService.triage(
+      component.reviewService.triage(
         reviewRunId,
         decisions,
         listOnly = false,
@@ -78,7 +126,7 @@ object McpRuntime {
     } else {
       result.toMcpMap()
     }
-    runtimeServices.telemetryService.autoSync()
+    component.telemetryService.autoSync()
     return payload
   }
 
@@ -86,51 +134,50 @@ object McpRuntime {
     repo: String? = null,
     skill: String? = null,
     reviewSessionId: String? = null,
-    context: McpRuntimeContext = McpRuntimeContext(),
+    component: McpComponent,
   ): Map<String, Any?> {
-    val runtimeServices = services(context)
-    if (!runtimeServices.telemetryService.isEnabled()) {
+    if (!component.telemetryService.isEnabled()) {
       return McpLearningsSkippedContract(reason = "telemetry is disabled").toPayload()
     }
-    return runtimeServices.learningService.resolve(repo, skill, reviewSessionId).toMcpPayload()
+    return component.learningService.resolve(repo, skill, reviewSessionId).toLearningResolveContract().toPayload()
   }
 
-  fun reviewStats(reviewRunId: String? = null, context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).reviewService.reviewStats(reviewRunId).toMcpMap()
+  fun reviewStats(reviewRunId: String? = null, component: McpComponent): Map<String, Any?> =
+    component.reviewService.reviewStats(reviewRunId).toMcpMap()
 
-  fun featureVerifyStats(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).reviewService.featureVerifyStats().toMcpMap()
+  fun featureVerifyStats(component: McpComponent): Map<String, Any?> =
+    component.reviewService.featureVerifyStats().toMcpMap()
 
-  fun goalStats(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).reviewService.goalStats().toMcpMap()
+  fun goalStats(component: McpComponent): Map<String, Any?> =
+    component.reviewService.goalStats().toMcpMap()
 
-  fun version(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).systemService.version().toPayload()
+  fun version(component: McpComponent): Map<String, Any?> =
+    component.systemService.version().toPayload()
 
-  fun doctor(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).systemService.doctor().toPayload()
+  fun doctor(component: McpComponent): Map<String, Any?> =
+    component.systemService.doctor().toPayload()
 
-  fun updateCheck(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> {
-    val result = services(context).updateCheckService.check(includePrereleases = false)
-    return mapOf(
-      SharedPayloadKeys.STATUS to result.status.wireName,
-      "installed_version" to result.installedVersion,
-      "latest_version" to result.latestVersion,
-      "recommended_install_command" to result.recommendedInstallCommand,
-      "reason" to result.reason,
-      "release_notes" to result.releaseNotes,
-    )
+  fun updateCheck(component: McpComponent): Map<String, Any?> {
+    val result = component.updateCheckService.check(includePrereleases = false)
+    return UpdateCheckContract(
+      status = result.status.wireName,
+      installedVersion = result.installedVersion,
+      latestVersion = result.latestVersion,
+      recommendedInstallCommand = result.recommendedInstallCommand,
+      reason = result.reason,
+      releaseNotes = result.releaseNotes,
+    ).toPayload()
   }
 
   fun newSkillScaffold(
     payload: Map<String, Any?>,
     dryRun: Boolean = false,
     orchestrated: Boolean = false,
-    context: McpRuntimeContext = McpRuntimeContext(),
+    component: McpComponent,
   ): Map<String, Any?> = McpScaffoldRuntime.newSkillScaffold(
     payload = payload,
     dryRun = dryRun,
     orchestrated = orchestrated,
-    context = context,
+    component = component,
   )
 }

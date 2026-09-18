@@ -9,18 +9,18 @@ internal fun stringSchema(
   description: String? = null,
   pattern: String? = null,
 ): Map<String, Any?> = buildMap {
-  put("type", "string")
+  put(McpProtocolFramer.SCHEMA_TYPE_KEY, "string")
   if (enum.isNotEmpty()) {
-    put("enum", enum)
+    put(McpProtocolFramer.SCHEMA_ENUM_KEY, enum)
   }
-  minLength?.let { put("minLength", it) }
-  description?.let { put("description", it) }
-  pattern?.let { put("pattern", it) }
+  minLength?.let { put(McpProtocolFramer.SCHEMA_MIN_LENGTH_KEY, it) }
+  description?.let { put(McpProtocolFramer.DESCRIPTION_KEY, it) }
+  pattern?.let { put(McpProtocolFramer.SCHEMA_PATTERN_KEY, it) }
 }
 
 internal fun arraySchema(items: Map<String, Any?>): Map<String, Any?> = mapOf(
-  "type" to "array",
-  "items" to items,
+  McpProtocolFramer.SCHEMA_TYPE_KEY to "array",
+  McpProtocolFramer.SCHEMA_ITEMS_KEY to items,
 )
 
 internal fun stepUpdateSchema(stepIdEnum: List<String>): Map<String, Any?> = McpToolSpec.strictObjectSchema(

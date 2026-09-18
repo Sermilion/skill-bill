@@ -10,7 +10,8 @@ import skillbill.mcp.lifecycle.featureVerifyStarted
 import skillbill.mcp.lifecycle.prDescriptionGenerated
 import skillbill.mcp.lifecycle.qualityCheckFinished
 import skillbill.mcp.lifecycle.qualityCheckStarted
-import skillbill.mcp.shared.McpRuntimeContext
+import skillbill.mcp.shared.McpComponent
+import skillbill.mcp.shared.componentForLegacyContext
 import skillbill.mcp.shared.McpRuntimeLifecycle
 import skillbill.mcp.shared.boolean
 import skillbill.mcp.shared.optionalString
@@ -25,92 +26,107 @@ import skillbill.mcp.workflow.workflowList
 import skillbill.mcp.workflow.workflowOpen
 import skillbill.mcp.workflow.workflowResume
 import skillbill.mcp.workflow.workflowUpdate
+import skillbill.error.InvalidMcpToolArgumentError
+import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.mcp.shared.map as argumentMap
 
-internal typealias McpToolHandler = (Map<String, Any?>, McpRuntimeContext) -> Map<String, Any?>
+internal typealias McpToolHandler = (Map<String, Any?>, McpComponent) -> Map<String, Any?>
 
-object McpToolDispatcher {
-  private val nativeHandlers: Map<String, McpToolHandler> =
-    mapOf(
-      "doctor" to { _, context -> McpRuntime.doctor(context) },
-      "feature_task_phase_block" to ::featureTaskPhaseBlock,
-      "feature_task_phase_complete" to ::featureTaskPhaseComplete,
-      "feature_verify_finished" to ::featureVerifyFinished,
-      "feature_verify_started" to ::featureVerifyStarted,
-      "feature_verify_stats" to { _, context -> McpRuntime.featureVerifyStats(context) },
-      "feature_verify_workflow_continue" to
-        { arguments, context -> workflowContinue(WorkflowFamilyKind.VERIFY, arguments, context) },
-      "feature_verify_workflow_get" to
-        { arguments, context -> workflowGet(WorkflowFamilyKind.VERIFY, arguments, context) },
-      "feature_verify_workflow_latest" to
-        { _, context -> McpWorkflowRuntime.latest(WorkflowFamilyKind.VERIFY, context) },
-      "feature_verify_workflow_list" to
-        { arguments, context -> workflowList(WorkflowFamilyKind.VERIFY, arguments, context) },
-      "feature_verify_workflow_open" to
-        { arguments, context -> workflowOpen(WorkflowFamilyKind.VERIFY, arguments, context) },
-      "feature_verify_workflow_resume" to
-        { arguments, context -> workflowResume(WorkflowFamilyKind.VERIFY, arguments, context) },
-      "feature_verify_workflow_update" to
-        { arguments, context -> workflowUpdate(WorkflowFamilyKind.VERIFY, arguments, context) },
-      "goal_stats" to { _, context -> McpRuntime.goalStats(context) },
-      "import_review" to ::importReview,
-      "new_skill_scaffold" to ::newSkillScaffold,
-      "pr_description_generated" to ::prDescriptionGenerated,
-      "quality_check_finished" to ::qualityCheckFinished,
-      "quality_check_started" to ::qualityCheckStarted,
-      "resolve_learnings" to ::resolveLearnings,
-      "review_stats" to
-        { arguments, context -> McpRuntime.reviewStats(arguments.optionalString("review_run_id"), context) },
-      "telemetry_proxy_capabilities" to { _, context -> McpRuntimeLifecycle.telemetryProxyCapabilities(context) },
-      "telemetry_remote_stats" to ::telemetryRemoteStats,
-      "triage_findings" to ::triageFindings,
-      "update_check" to { _, context -> McpRuntime.updateCheck(context) },
-    )
+internal object McpToolDispatcher {
+  fun call(
+    toolName: String,
+    arguments: Map<String, Any?>,
+    context: Any,
+  ): Map<String, Any?> = call(toolName, arguments, componentForLegacyContext(context))
+
+  internal fun handlerFor(toolName: String): McpToolHandler = when (toolName) {
+      "doctor" -> { _, context -> McpRuntime.doctor(context) }
+      "feature_task_phase_block" -> ::featureTaskPhaseBlock
+      "feature_task_phase_complete" -> ::featureTaskPhaseComplete
+      "feature_verify_finished" -> ::featureVerifyFinished
+      "feature_verify_started" -> ::featureVerifyStarted
+      "feature_verify_stats" -> { _, context -> McpRuntime.featureVerifyStats(context) }
+      "feature_verify_workflow_continue" ->
+        { arguments, context -> workflowContinue(WorkflowFamilyKind.VERIFY, arguments, context) }
+      "feature_verify_workflow_get" ->
+        { arguments, context -> workflowGet(WorkflowFamilyKind.VERIFY, arguments, context) }
+      "feature_verify_workflow_latest" ->
+        { _, context -> McpWorkflowRuntime.latest(WorkflowFamilyKind.VERIFY, context) }
+      "feature_verify_workflow_list" ->
+        { arguments, context -> workflowList(WorkflowFamilyKind.VERIFY, arguments, context) }
+      "feature_verify_workflow_open" ->
+        { arguments, context -> workflowOpen(WorkflowFamilyKind.VERIFY, arguments, context) }
+      "feature_verify_workflow_resume" ->
+        { arguments, context -> workflowResume(WorkflowFamilyKind.VERIFY, arguments, context) }
+      "feature_verify_workflow_update" ->
+        { arguments, context -> workflowUpdate(WorkflowFamilyKind.VERIFY, arguments, context) }
+      "goal_stats" -> { _, context -> McpRuntime.goalStats(context) }
+      "import_review" -> ::importReview
+      "new_skill_scaffold" -> ::newSkillScaffold
+      "pr_description_generated" -> ::prDescriptionGenerated
+      McpToolPayloadKeys.QUALITY_CHECK_FINISHED -> ::qualityCheckFinished
+      "quality_check_started" -> ::qualityCheckStarted
+      "resolve_learnings" -> ::resolveLearnings
+      "review_stats" ->
+        { arguments, context ->
+          McpRuntime.reviewStats(arguments.optionalString(McpToolPayloadKeys.REVIEW_RUN_ID), context)
+        }
+      "telemetry_proxy_capabilities" -> { _, context -> McpRuntimeLifecycle.telemetryProxyCapabilities(context) }
+      "telemetry_remote_stats" -> ::telemetryRemoteStats
+      "triage_findings" -> ::triageFindings
+      "update_check" -> { _, context -> McpRuntime.updateCheck(context) }
+      else -> throw InvalidMcpToolArgumentError(
+        toolName = toolName,
+        argumentKey = "tool",
+        detail = "unknown tool",
+      )
+    }
 
   fun call(
     toolName: String,
     arguments: Map<String, Any?>,
-    context: McpRuntimeContext = McpRuntimeContext(),
+    component: McpComponent,
   ): Map<String, Any?> {
-    val handler = nativeHandlers[toolName] ?: error("Unknown MCP tool '$toolName'.")
-    val normalizedArguments = normalizeTelemetryEnvelopeArguments(toolName, arguments)
+    val handler = handlerFor(toolName)
+    val normalizedArguments = McpToolRegistry.toolNamed(toolName)?.normalize?.invoke(arguments) ?: arguments
 
     TelemetryEventSchemaValidator.validate(
       envelope = telemetryEnvelope(toolName, normalizedArguments),
       eventName = toolName,
     )
-    return handler.invoke(normalizedArguments, context)
+    return handler.invoke(normalizedArguments, component)
   }
 
   internal fun telemetryEnvelope(toolName: String, arguments: Map<String, Any?>): Map<String, Any?> {
     val envelope = linkedMapOf<String, Any?>(
-      "event_name" to toolName,
+      McpToolPayloadKeys.EVENT_NAME to toolName,
       SharedPayloadKeys.CONTRACT_VERSION to TELEMETRY_EVENT_CONTRACT_VERSION,
     )
     arguments.forEach { (key, value) ->
 
-      if (key != "event_name" && key != "contract_version") {
+      if (key != McpToolPayloadKeys.EVENT_NAME && key != SharedPayloadKeys.CONTRACT_VERSION) {
         envelope[key] = value
       }
     }
     return envelope
   }
 
-  private fun normalizeTelemetryEnvelopeArguments(toolName: String, arguments: Map<String, Any?>): Map<String, Any?> {
-    if (toolName != "quality_check_finished") {
-      return arguments
+  internal fun normalizeQualityCheckFinished(arguments: Map<String, Any?>): Map<String, Any?> {
+    RUNTIME_OWNED_QUALITY_CHECK_KEYS.firstOrNull(arguments::containsKey)?.let { key ->
+      throw InvalidMcpToolArgumentError(McpToolPayloadKeys.QUALITY_CHECK_FINISHED, key, "is runtime-owned")
     }
-    val stack = normalizeQualityCheckStack(arguments["detected_stack"]?.toString())
-    val fallback = arguments["fallback"] == true || stack.fallback
+    val stack = arguments[McpToolPayloadKeys.DETECTED_STACK]?.toString()?.trim().orEmpty().ifBlank { "unknown" }
+    val fallback = arguments[McpToolPayloadKeys.FALLBACK] == true
     return arguments.toMutableMap().apply {
-      keys.removeAll(RUNTIME_OWNED_QUALITY_CHECK_KEYS)
-      put("routed_skill", normalizeQualityCheckRoutedSkill(arguments["routed_skill"]?.toString()))
-      put("detected_stack", stack.stack)
-      put("fallback", fallback)
-      val fallbackReason = arguments["fallback_reason"]?.toString()?.takeIf(String::isNotBlank) ?: stack.fallbackReason
+      put(McpToolPayloadKeys.ROUTED_SKILL, normalizeQualityCheckRoutedSkill(
+        arguments[McpToolPayloadKeys.ROUTED_SKILL]?.toString(),
+      ))
+      put(McpToolPayloadKeys.DETECTED_STACK, stack)
+      put(McpToolPayloadKeys.FALLBACK, fallback)
+      val fallbackReason = arguments[McpToolPayloadKeys.FALLBACK_REASON]?.toString()?.takeIf(String::isNotBlank)
       if (fallback && !fallbackReason.isNullOrBlank()) {
-        put("fallback_reason", fallbackReason)
+        put(McpToolPayloadKeys.FALLBACK_REASON, fallbackReason)
       }
     }
   }
@@ -120,12 +136,6 @@ private val RUNTIME_OWNED_QUALITY_CHECK_KEYS: Set<String> = setOf(
   LifecycleTelemetryPayloadKeys.COMPLETION,
   LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT_AVAILABILITY,
   LifecycleTelemetryPayloadKeys.STALE_REASON,
-)
-
-private class NormalizedQualityCheckStack(
-  val stack: String,
-  val fallback: Boolean,
-  val fallbackReason: String?,
 )
 
 private fun normalizeQualityCheckRoutedSkill(rawValue: String?): String {
@@ -143,61 +153,55 @@ private fun normalizeQualityCheckRoutedSkill(rawValue: String?): String {
   }
 }
 
-private fun normalizeQualityCheckStack(rawValue: String?): NormalizedQualityCheckStack {
-  val value = rawValue?.trim().orEmpty()
-  if (value.isEmpty()) {
-    return NormalizedQualityCheckStack(stack = "unknown", fallback = false, fallbackReason = null)
-  }
-  return NormalizedQualityCheckStack(stack = value, fallback = false, fallbackReason = null)
-}
-
-internal fun importReview(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
+internal fun importReview(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
   McpRuntime.importReview(
-    reviewText = arguments.string("review_text"),
-    orchestrated = arguments.boolean("orchestrated"),
-    context = context,
+    reviewText = arguments.string(McpToolPayloadKeys.REVIEW_TEXT),
+    orchestrated = arguments.boolean(McpToolPayloadKeys.ORCHESTRATED),
+    component = component,
   )
 
-internal fun triageFindings(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
+internal fun triageFindings(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
   McpRuntime.triageFindings(
-    reviewRunId = arguments.string("review_run_id"),
-    decisions = arguments.stringList("decisions"),
-    orchestrated = arguments.boolean("orchestrated"),
-    context = context,
+    reviewRunId = arguments.string(McpToolPayloadKeys.REVIEW_RUN_ID),
+    decisions = arguments.stringList(McpToolPayloadKeys.DECISIONS),
+    orchestrated = arguments.boolean(McpToolPayloadKeys.ORCHESTRATED),
+    component = component,
   )
 
-internal fun resolveLearnings(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
+internal fun resolveLearnings(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
   McpRuntime.resolveLearnings(
-    repo = arguments.optionalString("repo"),
-    skill = arguments.optionalString("skill"),
-    reviewSessionId = arguments.optionalString("review_session_id"),
-    context = context,
+    repo = arguments.optionalString(McpToolPayloadKeys.REPO),
+    skill = arguments.optionalString(McpToolPayloadKeys.SKILL),
+    reviewSessionId = arguments.optionalString(McpToolPayloadKeys.REVIEW_SESSION_ID),
+    component = component,
   )
 
-internal fun telemetryRemoteStats(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
+internal fun telemetryRemoteStats(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
   McpRuntimeLifecycle.telemetryRemoteStats(
     RemoteStatsRequest(
-      workflow = mapRemoteStatsWorkflow(arguments.string("workflow")),
-      since = arguments.string("since"),
-      dateFrom = arguments.string("date_from"),
-      dateTo = arguments.string("date_to"),
-      groupBy = arguments.string("group_by"),
+      workflow = mapRemoteStatsWorkflow(arguments.string(McpToolPayloadKeys.WORKFLOW)),
+      since = arguments.optionalString(McpToolPayloadKeys.SINCE).orEmpty(),
+      dateFrom = arguments.optionalString(McpToolPayloadKeys.DATE_FROM).orEmpty(),
+      dateTo = arguments.optionalString(McpToolPayloadKeys.DATE_TO).orEmpty(),
+      groupBy = arguments.optionalString(McpToolPayloadKeys.GROUP_BY).orEmpty(),
     ),
-    context,
+    component,
   )
 
 private fun mapRemoteStatsWorkflow(workflow: String): String = when (workflow) {
   "verify" -> "bill-feature-verify"
   "bill-feature-verify", "feature-task-runtime" -> workflow
-  else -> throw IllegalArgumentException(
-    "workflow must be one of: verify, bill-feature-verify, feature-task-runtime.",
+  else -> throw InvalidMcpToolArgumentError(
+    toolName = "telemetry_remote_stats",
+    argumentKey = "workflow",
+    detail = "must be one of: verify, bill-feature-verify, feature-task-runtime",
   )
 }
 
-internal fun newSkillScaffold(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
+internal fun newSkillScaffold(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
   McpRuntime.newSkillScaffold(
-    payload = arguments.argumentMap("payload"),
-    dryRun = arguments.boolean("dry_run"),
-    orchestrated = arguments.boolean("orchestrated"),
-    context = context,
+    payload = arguments.argumentMap(McpToolPayloadKeys.PAYLOAD),
+    dryRun = arguments.boolean(McpToolPayloadKeys.DRY_RUN),
+    orchestrated = arguments.boolean(McpToolPayloadKeys.ORCHESTRATED),
+    component = component,
   )

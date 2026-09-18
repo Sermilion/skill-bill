@@ -29,21 +29,21 @@ data class RemoteStatsQueryPayload(
   val groupBy: String = "",
 ) {
   fun toPayload(): Map<String, Any?> = buildMap {
-    put("workflow", workflow)
-    put("date_from", dateFrom)
-    put("date_to", dateTo)
+    put(TelemetryProxyPayloadKeys.WORKFLOW, workflow)
+    put(TelemetryProxyPayloadKeys.DATE_FROM, dateFrom)
+    put(TelemetryProxyPayloadKeys.DATE_TO, dateTo)
     if (groupBy.isNotBlank()) {
-      put("group_by", groupBy)
+      put(TelemetryProxyPayloadKeys.GROUP_BY, groupBy)
     }
   }
 }
 
 fun defaultProxyCapabilities(proxyUrl: String, capabilitiesUrl: String): Map<String, Any?> = mapOf(
   SharedPayloadKeys.CONTRACT_VERSION to "0",
-  "source" to "remote_proxy",
-  "proxy_url" to proxyUrl,
-  "capabilities_url" to capabilitiesUrl,
-  "supports_ingest" to true,
-  "supports_stats" to false,
-  "supported_workflows" to emptyList<String>(),
+  TelemetryProxyPayloadKeys.SOURCE to "remote_proxy",
+  TelemetryProxyPayloadKeys.PROXY_URL to proxyUrl,
+  TelemetryProxyPayloadKeys.CAPABILITIES_URL to capabilitiesUrl,
+  TelemetryProxyPayloadKeys.SUPPORTS_INGEST to true,
+  TelemetryProxyPayloadKeys.SUPPORTS_STATS to false,
+  TelemetryProxyPayloadKeys.SUPPORTED_WORKFLOWS to emptyList<String>(),
 )

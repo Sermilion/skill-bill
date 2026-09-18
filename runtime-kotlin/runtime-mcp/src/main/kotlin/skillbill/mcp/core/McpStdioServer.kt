@@ -1,95 +1,119 @@
 package skillbill.mcp.core
 
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.di.SkillBillVersion
+import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.error.ShellContentContractException
-import skillbill.mcp.shared.McpRuntimeContext
+import skillbill.error.InvalidMcpToolArgumentError
+import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpRuntimeLifecycle
+import skillbill.mcp.shared.componentForLegacyContext
+import skillbill.mcp.shared.validateDeclaredArguments
 
-private const val JSON_RPC_PARSE_ERROR = -32700
-private const val JSON_RPC_METHOD_NOT_FOUND = -32601
-
-object McpStdioServer {
-  fun run(context: McpRuntimeContext = McpRuntimeContext()) {
-    generateSequence(::readlnOrNull).forEach { line ->
-      handleLine(line, context)?.let(::println)
-    }
-  }
-
-  fun handleLine(line: String, context: McpRuntimeContext = McpRuntimeContext()): String? {
+internal object McpStdioServer {
+  internal fun handleLine(line: String): String? {
     val message = JsonCodec.parseObjectOrNull(line)
-    val id = message?.get("id")
-    val method = message?.get("method")?.let(JsonCodec::jsonElementToValue)?.toString().orEmpty()
+    val id = message?.get(McpProtocolFramer.ID_KEY)
+    val method = message?.get(McpProtocolFramer.METHOD_KEY)
+      ?.let(JsonCodec::jsonElementToValue)?.toString().orEmpty()
     return when {
-      message == null -> errorResponse(null, JSON_RPC_PARSE_ERROR, "Parse error")
+      message == null -> McpProtocolFramer.errorResponse(null, McpProtocolFramer.PARSE_ERROR, "Parse error")
       id == null -> null
-      method == "initialize" -> successResponse(id, initializeResult())
-      method == "tools/list" -> successResponse(id, toolsListResult())
-      method == "tools/call" -> callToolResponse(id, message.arguments(), context)
-      else -> errorResponse(id, JSON_RPC_METHOD_NOT_FOUND, "Method not found: $method")
-    }
-  }
-
-  private fun initializeResult(): Map<String, Any?> = linkedMapOf(
-    "protocolVersion" to "2025-11-25",
-    "capabilities" to mapOf(
-      "tools" to mapOf("listChanged" to false),
-    ),
-    "serverInfo" to mapOf(
-      "name" to "skill-bill",
-      "version" to SkillBillVersion.VALUE,
-    ),
-  )
-
-  private fun toolsListResult(): Map<String, Any?> = mapOf(
-    "tools" to McpToolRegistry.tools.map(McpToolSpec::toPayload),
-  )
-
-  private fun callToolResponse(id: JsonElement, params: Map<String, Any?>, context: McpRuntimeContext): String =
-    successResponse(id, callToolResult(params, context))
-
-  private fun callToolResult(params: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> {
-    val toolName = params["name"]?.toString().orEmpty()
-    val arguments = JsonCodec.anyToStringAnyMap(params["arguments"]).orEmpty()
-    validateStrictArguments(params)?.let { strictError ->
-      return mcpToolResult(
-        mapOf(SharedPayloadKeys.STATUS to "error", "tool" to toolName, "error" to strictError),
-        isError = true,
+      method == "initialize" -> McpProtocolFramer.successResponse(
+        id,
+        McpProtocolFramer.initialize("skill-bill"),
+      )
+      method == "ping" -> McpProtocolFramer.successResponse(id, emptyMap())
+      method == "tools/list" -> McpProtocolFramer.successResponse(
+        id,
+        McpProtocolFramer.toolsList(McpToolRegistry.tools.map(McpToolSpec::toPayload)),
+      )
+      method == "tools/call" -> callToolResponse(id, message.arguments(), null)
+      else -> McpProtocolFramer.errorResponse(
+        id,
+        McpProtocolFramer.METHOD_NOT_FOUND,
+        "Method not found: $method",
       )
     }
-    return dispatchMcpToolCall(toolName, arguments, context)
   }
 
-  private fun successResponse(id: JsonElement, result: Map<String, Any?>): String = JsonCodec.mapToJsonString(
-    linkedMapOf(
-      "jsonrpc" to "2.0",
-      "id" to id,
-      "result" to result,
-    ),
-  )
+  internal fun handleLine(line: String, context: Any): String? =
+    handleLine(line, componentForLegacyContext(context))
 
-  private fun errorResponse(id: JsonElement?, code: Int, message: String): String = JsonCodec.mapToJsonString(
-    linkedMapOf(
-      "jsonrpc" to "2.0",
-      "id" to id,
-      "error" to mapOf("code" to code, "message" to message),
-    ),
-  )
+  internal fun run(component: McpComponent) {
+    generateSequence(::readlnOrNull).forEach { line ->
+      handleLine(line, component)?.let(::println)
+    }
+  }
+
+  internal fun handleLine(line: String, component: McpComponent): String? {
+    val message = JsonCodec.parseObjectOrNull(line)
+    val id = message?.get(McpProtocolFramer.ID_KEY)
+    val method = message?.get(McpProtocolFramer.METHOD_KEY)
+      ?.let(JsonCodec::jsonElementToValue)?.toString().orEmpty()
+    return when {
+      message == null -> McpProtocolFramer.errorResponse(null, McpProtocolFramer.PARSE_ERROR, "Parse error")
+      id == null -> null
+      method == "initialize" -> McpProtocolFramer.successResponse(
+        id,
+        McpProtocolFramer.initialize("skill-bill"),
+      )
+      method == "ping" -> McpProtocolFramer.successResponse(id, emptyMap())
+      method == "tools/list" -> McpProtocolFramer.successResponse(
+        id,
+        McpProtocolFramer.toolsList(McpToolRegistry.tools.map(McpToolSpec::toPayload)),
+      )
+      method == "tools/call" -> callToolResponse(id, message.arguments(), component)
+      else -> McpProtocolFramer.errorResponse(
+        id,
+        McpProtocolFramer.METHOD_NOT_FOUND,
+        "Method not found: $method",
+      )
+    }
+  }
+
+  private fun callToolResponse(
+    id: kotlinx.serialization.json.JsonElement,
+    params: Map<String, Any?>,
+    component: McpComponent?,
+  ): String =
+    McpProtocolFramer.successResponse(id, callToolResult(params, component))
+
+  private fun callToolResult(params: Map<String, Any?>, component: McpComponent?): Map<String, Any?> {
+    val toolName = params["name"]?.toString().orEmpty()
+    val arguments = JsonCodec.anyToStringAnyMap(params["arguments"]).orEmpty()
+    try {
+      val schema = McpToolRegistry.toolNamed(toolName)?.inputSchema
+      if (schema != null) {
+        validateDeclaredArguments(toolName, arguments, schema)
+      }
+      validateStrictArguments(params)
+    } catch (error: Exception) {
+      return mcpToolErrorResult(toolName, error)
+    }
+    if (component == null) {
+      return try {
+        McpToolDispatcher.handlerFor(toolName)
+        mcpToolErrorResult(toolName, IllegalStateException("A component is required for tool calls."))
+      } catch (error: Exception) {
+        mcpToolErrorResult(toolName, error)
+      }
+    }
+    return dispatchMcpToolCall(toolName, arguments, component)
+  }
 
   private fun JsonObject.arguments(): Map<String, Any?> =
-    JsonCodec.anyToStringAnyMap(this["params"]?.let(JsonCodec::jsonElementToValue)).orEmpty()
+    JsonCodec.anyToStringAnyMap(this[McpProtocolFramer.PARAMS_KEY]?.let(JsonCodec::jsonElementToValue)).orEmpty()
 }
 
 private fun dispatchMcpToolCall(
   toolName: String,
   arguments: Map<String, Any?>,
-  context: McpRuntimeContext,
+  component: McpComponent,
 ): Map<String, Any?> {
   val outcome = runCatching {
-    val payload = McpToolDispatcher.call(toolName, arguments, context)
+    val payload = McpToolDispatcher.call(toolName, arguments, component)
     mcpToolResult(payload, isError = false)
   }
   if (outcome.isSuccess) return outcome.getOrThrow()
@@ -98,7 +122,7 @@ private fun dispatchMcpToolCall(
     is ShellContentContractException, is IllegalArgumentException, is IllegalStateException ->
       mcpToolErrorResult(toolName, error)
     is Exception -> {
-      McpRuntimeLifecycle.captureException(workflowPhase = toolName, error = error, context = context)
+      McpRuntimeLifecycle.captureException(workflowPhase = toolName, error = error, component = component)
       mcpToolErrorResult(toolName, error)
     }
     else -> throw error
@@ -106,27 +130,35 @@ private fun dispatchMcpToolCall(
 }
 
 private fun mcpToolErrorResult(toolName: String, error: Exception): Map<String, Any?> = mcpToolResult(
-  mapOf(SharedPayloadKeys.STATUS to "error", "tool" to toolName, "error" to error.message.orEmpty()),
+  mapOf(
+    SharedPayloadKeys.STATUS to "error",
+    McpToolPayloadKeys.TOOL to toolName,
+    McpToolPayloadKeys.ERROR to error.message.orEmpty(),
+  ),
   isError = true,
 )
 
 private fun mcpToolResult(payload: Map<String, Any?>, isError: Boolean): Map<String, Any?> = linkedMapOf(
-  "content" to listOf(
+  McpToolPayloadKeys.CONTENT to listOf(
     mapOf(
-      "type" to "text",
-      "text" to JsonCodec.mapToJsonString(payload),
+      McpToolPayloadKeys.TYPE to "text",
+      McpToolPayloadKeys.TEXT to JsonCodec.mapToJsonString(payload),
     ),
   ),
-  "isError" to isError,
+  McpToolPayloadKeys.IS_ERROR to isError,
 )
 
-private fun validateStrictArguments(params: Map<String, Any?>): String? {
+private fun validateStrictArguments(params: Map<String, Any?>) {
   val toolName = params["name"]?.toString().orEmpty()
   val arguments = JsonCodec.anyToStringAnyMap(params["arguments"]).orEmpty()
   val schema = McpToolRegistry.toolNamed(toolName)?.inputSchema
   val unknownArguments = schema?.let { unknownProperties(arguments, it, path = "") }.orEmpty()
-  return unknownArguments.takeIf { it.isNotEmpty() }?.let {
-    "Unknown argument(s) for $toolName: ${it.joinToString(", ")}"
+  unknownArguments.firstOrNull()?.let {
+    throw InvalidMcpToolArgumentError(
+      toolName = toolName,
+      argumentKey = it,
+      detail = "is not declared",
+    )
   }
 }
 

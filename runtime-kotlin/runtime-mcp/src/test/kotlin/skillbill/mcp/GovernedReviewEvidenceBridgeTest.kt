@@ -2,8 +2,16 @@ package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
 import skillbill.mcp.review.GovernedReviewEvidenceBridge
+import skillbill.mcp.review.GovernedReviewEvidenceConnection
+import skillbill.error.GovernedReviewEvidenceTransportError
+import skillbill.ports.review.model.GovernedReviewEvidenceCodec
+import java.net.UnixDomainSocketAddress
+import java.nio.channels.Channels
+import java.nio.channels.ServerSocketChannel
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class GovernedReviewEvidenceBridgeTest {
@@ -43,5 +51,52 @@ class GovernedReviewEvidenceBridgeTest {
 
     assertTrue(!forwarded)
     assertTrue(reply.contains("\"error\""))
+  }
+
+  @Test
+  fun `a forwarded response over the frame limit is rejected by a real unix socket`() {
+    val socketPath = Files.createTempFile("skillbill-evidence", ".sock")
+    Files.delete(socketPath)
+    val server = ServerSocketChannel.open(java.net.StandardProtocolFamily.UNIX)
+    server.bind(UnixDomainSocketAddress.of(socketPath))
+    val thread = Thread {
+      server.use {
+        it.accept().use { channel ->
+          val reader = Channels.newInputStream(channel).bufferedReader()
+          val writer = Channels.newOutputStream(channel).bufferedWriter()
+          reader.readLine()
+          writer.appendLine("x".repeat(GovernedReviewEvidenceCodec.RESPONSE_FRAME_BYTES + 1))
+          writer.flush()
+        }
+      }
+    }
+    thread.isDaemon = true
+    thread.start()
+    assertFailsWith<GovernedReviewEvidenceTransportError> {
+      GovernedReviewEvidenceConnection.connect(socketPath, "token").use { connection ->
+        connection.forward("{}")
+      }
+    }
+    thread.join(5_000)
+  }
+
+  @Test
+  fun `a handshake refusal is reported as a transport error`() {
+    val socketPath = Files.createTempFile("skillbill-evidence-refusal", ".sock")
+    Files.delete(socketPath)
+    val server = ServerSocketChannel.open(java.net.StandardProtocolFamily.UNIX)
+    server.bind(UnixDomainSocketAddress.of(socketPath))
+    val thread = Thread {
+      server.use {
+        it.accept().use { channel ->
+          Channels.newInputStream(channel).bufferedReader().readLine()
+        }
+      }
+    }
+    thread.start()
+    assertFailsWith<GovernedReviewEvidenceTransportError> {
+      GovernedReviewEvidenceConnection.connect(socketPath, "token")
+    }
+    thread.join()
   }
 }

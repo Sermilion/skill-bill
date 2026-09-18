@@ -10,21 +10,19 @@ import com.networknt.schema.PathType
 import com.networknt.schema.SchemaValidatorsConfig
 import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
-import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.error.InvalidTelemetryEventSchemaError
 import java.io.IOException
 import java.util.Locale
-import java.util.logging.Level
-import java.util.logging.Logger
 
-private val log: Logger = Logger.getLogger("skillbill.mcp.TelemetryEventSchemaValidator")
+internal const val TELEMETRY_EVENT_CONTRACT_VERSION: String = "1.11.0"
 
 private val LOCALE_STABLE_SCHEMA_CONFIG: SchemaValidatorsConfig =
   SchemaValidatorsConfig.builder().locale(Locale.ENGLISH).pathType(PathType.LEGACY).build()
 
-object TelemetryEventSchemaValidator {
+internal object TelemetryEventSchemaValidator {
   private val schema: JsonSchema by lazy { loadSchema() }
   private val mapper: ObjectMapper by lazy { ObjectMapper() }
 
@@ -37,7 +35,6 @@ object TelemetryEventSchemaValidator {
       return
     }
 
-    log.log(Level.WARNING, buildSchemaDriftLog(errors, instance, resolvedEventName))
     val sorted = errors.sortedWith(violationOrdering)
     val firstError = sorted.first()
     val instanceLocation = firstError.instanceLocation?.toString().orEmpty()
@@ -57,12 +54,12 @@ object TelemetryEventSchemaValidator {
 
   fun assertIdentity(yamlNode: JsonNode) {
     val loadedId = yamlNode.path("\$id").asText("")
-    if (loadedId != TelemetryEventSchemaPaths.EXPECTED_SCHEMA_ID) {
+    if (loadedId != EXPECTED_SCHEMA_ID) {
       throw InvalidTelemetryEventSchemaError(
         fieldPath = "\$id",
         eventName = null,
         reason = "Canonical telemetry-event schema identity mismatch: loaded '\$id' is '$loadedId' but " +
-          "expected '${TelemetryEventSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or shadowed copy of the " +
+          "expected '$EXPECTED_SCHEMA_ID'. A stale or shadowed copy of the " +
           "schema is on the classpath.",
       )
     }
@@ -76,23 +73,6 @@ object TelemetryEventSchemaValidator {
           "of date relative to the running runtime-mcp.",
       )
     }
-  }
-
-  private fun buildSchemaDriftLog(
-    errors: Set<ValidationMessage>,
-    instance: JsonNode,
-    resolvedEventName: String?,
-  ): String {
-    val sorted = errors.sortedWith(violationOrdering)
-    val topTwo = sorted.take(2)
-    val parts = topTwo.map { error ->
-      val location = error.instanceLocation?.toString().orEmpty()
-      val fieldPath = telemetryEventSchemaDottedFieldPath(location).ifBlank { "<root>" }
-      val offendingValue = extractOffendingValueFromTelemetryInstance(instance, location)
-      if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
-    }
-    return "Telemetry event '${resolvedEventName ?: "<unknown>"}' failed schema validation: " +
-      "violations=${parts.joinToString(", ")} totalViolations=${errors.size}"
   }
 
   private fun formatValidationReason(sorted: List<ValidationMessage>, instance: JsonNode): String {
@@ -144,7 +124,7 @@ object TelemetryEventSchemaValidator {
   }
 
   private fun validateQualityCheckFailureCountCoherence(envelope: Map<String, Any?>, resolvedEventName: String?) {
-    if (resolvedEventName != "quality_check_finished") return
+    if (resolvedEventName != McpToolPayloadKeys.QUALITY_CHECK_FINISHED) return
     if (!envelope.containsKey(LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT)) return
     if (envelope[LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT] != null) return
     if (envelope[LifecycleTelemetryPayloadKeys.COMPLETION] == LifecycleSessionCompletion.RECONCILER_STALE.wireValue) {
@@ -153,18 +133,19 @@ object TelemetryEventSchemaValidator {
     throw InvalidTelemetryEventSchemaError(
       fieldPath = LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT,
       eventName = resolvedEventName,
-      reason = "quality_check_finished may omit final_failure_count only on a " +
+      reason = "${McpToolPayloadKeys.QUALITY_CHECK_FINISHED} may omit final_failure_count only on a " +
         "${LifecycleSessionCompletion.RECONCILER_STALE.wireValue} terminal the runtime itself writes. A check " +
         "that reports its own terminal must carry the count it measured.",
     )
   }
 }
 
-internal const val TELEMETRY_EVENT_SCHEMA_CLASSPATH_RESOURCE: String =
-  TelemetryEventSchemaPaths.CLASSPATH_RESOURCE
-
-internal const val TELEMETRY_EVENT_SCHEMA_REPO_RELATIVE_PATH: String =
-  TelemetryEventSchemaPaths.REPO_RELATIVE_PATH
+private const val EXPECTED_SCHEMA_ID: String =
+  "https://skill-bill.dev/contracts/telemetry-event-schema.yaml"
+private const val SCHEMA_CLASSPATH_RESOURCE: String =
+  "skillbill/mcp/contracts/telemetry-event-schema.yaml"
+private const val SCHEMA_REPO_RELATIVE_PATH: String =
+  "orchestration/contracts/telemetry-event-schema.yaml"
 
 private fun loadSchema(): JsonSchema {
   var failure: Throwable? = null
@@ -176,22 +157,8 @@ private fun loadSchema(): JsonSchema {
     val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
     return factory.getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
   } catch (typed: InvalidTelemetryEventSchemaError) {
-    logSchemaLoadFailure(
-      log,
-      "telemetry-event",
-      TELEMETRY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      TELEMETRY_EVENT_SCHEMA_REPO_RELATIVE_PATH,
-      typed,
-    )
     failure = typed
   } catch (error: IOException) {
-    logSchemaLoadFailure(
-      log,
-      "telemetry-event",
-      TELEMETRY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      TELEMETRY_EVENT_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
     failure = InvalidTelemetryEventSchemaError(
       fieldPath = "",
       eventName = null,
@@ -199,13 +166,6 @@ private fun loadSchema(): JsonSchema {
       cause = error,
     )
   } catch (error: JsonProcessingException) {
-    logSchemaLoadFailure(
-      log,
-      "telemetry-event",
-      TELEMETRY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-      TELEMETRY_EVENT_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
     failure = error.let {
       InvalidTelemetryEventSchemaError(
         fieldPath = "",
@@ -220,20 +180,20 @@ private fun loadSchema(): JsonSchema {
 
 private fun readSchemaText(): String {
   TelemetryEventSchemaValidator::class.java.classLoader
-    .getResourceAsStream(TELEMETRY_EVENT_SCHEMA_CLASSPATH_RESOURCE)
+    .getResourceAsStream(SCHEMA_CLASSPATH_RESOURCE)
     ?.use { return it.readBytes().toString(Charsets.UTF_8) }
 
   throw InvalidTelemetryEventSchemaError(
     fieldPath = "",
     eventName = null,
     reason = "Canonical telemetry-event schema is missing from the runtime-mcp classpath at " +
-      "'$TELEMETRY_EVENT_SCHEMA_CLASSPATH_RESOURCE'. The on-disk source of truth lives at " +
-      "'$TELEMETRY_EVENT_SCHEMA_REPO_RELATIVE_PATH' — confirm `copyTelemetryEventSchema` ran during " +
+      "'$SCHEMA_CLASSPATH_RESOURCE'. The on-disk source of truth lives at " +
+      "'$SCHEMA_REPO_RELATIVE_PATH' — confirm `copyTelemetryEventSchema` ran during " +
       "`processResources` so the bytes were bundled into the runtime artifact.",
   )
 }
 
-fun extractOffendingValueFromTelemetryInstance(instance: JsonNode, instanceLocation: String): String {
+internal fun extractOffendingValueFromTelemetryInstance(instance: JsonNode, instanceLocation: String): String {
   val dotted = telemetryEventSchemaDottedFieldPath(instanceLocation)
   if (dotted.isBlank()) return ""
   var node: JsonNode = instance
@@ -263,7 +223,7 @@ fun extractOffendingValueFromTelemetryInstance(instance: JsonNode, instanceLocat
   }
 }
 
-fun telemetryEventSchemaDottedFieldPath(instanceLocation: String): String = when {
+internal fun telemetryEventSchemaDottedFieldPath(instanceLocation: String): String = when {
   instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
   instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
   instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')

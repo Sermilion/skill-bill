@@ -21,6 +21,7 @@ import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.work.WorkListService
 import skillbill.application.workflow.WorkflowService
 import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.FeatureTaskPhaseSettlementService
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunner
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
@@ -121,10 +122,12 @@ abstract class RuntimeComponent(
   abstract val repositoryEnclosingRootPort: RepositoryEnclosingRootPort
 
   abstract val featureTaskContinuationLookupService: FeatureTaskContinuationLookupService
+  abstract val featureTaskPhaseSettlementService: FeatureTaskPhaseSettlementService
   abstract val unaddressedFindingsLedgerService: UnaddressedFindingsLedgerService
 
   abstract val parallelCodeReviewRunner: ParallelCodeReviewRunner
   abstract val configResolutionService: ConfigResolutionService
+  abstract val clock: Clock
   abstract val externalAgentAddonSourceConfigPort: ExternalAgentAddonSourceConfigPort
   abstract val installService: InstallService
   abstract val externalAddonOverlayService: ExternalAddonOverlayService

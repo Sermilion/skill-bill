@@ -2,6 +2,7 @@ package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.ensureTestDatabase
+import skillbill.error.InvalidMcpToolArgumentError
 import skillbill.mcp.core.McpToolDispatcher
 import skillbill.mcp.shared.McpRuntimeContext
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
@@ -11,8 +12,26 @@ import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 
 class McpQualityCheckTelemetryNormalizationTest {
+  @Test
+  fun `quality check completion refuses runtime-owned telemetry keys`() {
+    val tempDir = Files.createTempDirectory("skillbill-mcp-quality-owned-key")
+    val context = McpRuntimeContext(environment = enabledTelemetryEnvironment(tempDir), userHome = tempDir)
+
+    val error = assertFailsWith<InvalidMcpToolArgumentError> {
+      McpToolDispatcher.call(
+        "quality_check_finished",
+        mapOf("completion" to "operator_completed"),
+        context,
+      )
+    }
+
+    assertEquals("quality_check_finished", error.toolName)
+    assertEquals("completion", error.argumentKey)
+  }
+
   @Test
   fun `quality check lifecycle normalizes routed skill stack fallback and blank routing`() {
     val tempDir = Files.createTempDirectory("skillbill-mcp-quality-normalization")

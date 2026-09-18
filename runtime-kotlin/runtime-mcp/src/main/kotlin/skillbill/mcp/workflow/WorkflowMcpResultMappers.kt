@@ -7,8 +7,22 @@ import skillbill.application.workflow.model.WorkflowListResult
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowResumeResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
+import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.goal.GoalObservabilityEventValidator
+
+internal fun WorkflowContinueResult.toMcpMap(): Map<String, Any?> = when (this) {
+  is WorkflowContinueResult.Standard -> toStandardMcpMap()
+  is WorkflowContinueResult.DecompositionStandard -> toDecompositionStandardMcpMap()
+  is WorkflowContinueResult.UnknownWorkflow -> toUnknownWorkflowMcpMap()
+  is WorkflowContinueResult.DecompositionMissingSubtaskWorkflow -> toDecompositionMissingSubtaskWorkflowMcpMap()
+  is WorkflowContinueResult.DecompositionBlockedSubtask -> toDecompositionBlockedSubtaskMcpMap()
+  is WorkflowContinueResult.DecompositionBlockedBranchStart -> toDecompositionBlockedBranchStartMcpMap()
+  is WorkflowContinueResult.DecompositionDone -> toDecompositionDoneMcpMap()
+  is WorkflowContinueResult.DecompositionSubtaskOutcome -> toDecompositionSubtaskOutcomeMcpMap()
+  is WorkflowContinueResult.DecompositionBlockedGit -> toDecompositionBlockedGitMcpMap()
+  is WorkflowContinueResult.Error -> toErrorMcpMap()
+}
 
 internal fun WorkflowOpenResult.toMcpMap(
   goalObservabilityEventValidator: GoalObservabilityEventValidator,
@@ -32,12 +46,13 @@ internal fun WorkflowUpdateResult.toMcpMap(): Map<String, Any?> = when (this) {
     WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload(),
   ).apply {
     launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload()) }
-    val workflowCommand = if (acknowledgement.workflowName == "bill-feature-verify") "verify-workflow" else "workflow"
-    val quotedDbPath = "'${dbPath.replace("'", "'\"'\"'")}'"
-    val quotedWorkflowId = "'${acknowledgement.workflowId.replace("'", "'\"'\"'")}'"
     put(
       "read_only_full_state_command",
-      "skill-bill --db $quotedDbPath $workflowCommand show $quotedWorkflowId --format json",
+      readOnlyFullStateCommand(
+        dbPath,
+        acknowledgement.workflowId,
+        acknowledgement.workflowName,
+      ),
     )
     put("db_path", dbPath)
   }
@@ -93,4 +108,11 @@ internal fun WorkflowResumeResult.toMcpMap(): Map<String, Any?> = when (this) {
     "error" to error,
     "db_path" to dbPath,
   )
+}
+
+internal fun readOnlyFullStateCommand(dbPath: String, workflowId: String, skillName: String): String {
+  val workflowCommand = if (skillName == "bill-feature-verify") "verify-workflow" else "workflow"
+  val quotedDbPath = "'${dbPath.replace("'", "'\"'\"'")}'"
+  val quotedWorkflowId = "'${workflowId.replace("'", "'\"'\"'")}'"
+  return "skill-bill --db $quotedDbPath $workflowCommand show $quotedWorkflowId --format json"
 }

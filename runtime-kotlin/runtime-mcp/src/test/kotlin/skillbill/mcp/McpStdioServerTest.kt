@@ -93,7 +93,10 @@ class McpStdioServerTest {
 
     assertEquals(true, result["isError"])
     assertEquals("resolve_learnings", errorPayload["tool"])
-    assertContains(errorPayload["error"].toString(), "Unknown argument(s) for resolve_learnings: unexpected")
+    assertContains(
+      errorPayload["error"].toString(),
+      "MCP tool 'resolve_learnings' argument 'unexpected': is not declared",
+    )
   }
 
   @Test
@@ -124,6 +127,9 @@ class McpStdioServerTest {
     val errorPayload = toolPayload(result)
 
     assertEquals(true, result["isError"])
-    assertContains(errorPayload["error"].toString(), "step_updates[0].unexpected")
+    assertContains(
+      errorPayload["error"].toString(),
+      "MCP tool 'feature_verify_workflow_update' argument 'step_updates[0].unexpected': is not declared",
+    )
   }
 }

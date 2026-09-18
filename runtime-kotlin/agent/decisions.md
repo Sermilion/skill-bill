@@ -1965,3 +1965,8 @@ Context: Review and telemetry persistence tests in `runtime-cli`, `runtime-core`
 Decision: Sanction `:runtime-infra:sqlite` `testFixtures` as the only cross-module SQLite test entry: `establishTemporarySchemaReadiness`, `ensureTestDatabase`, `sqliteSessionFactoryForTests`, `withLifecycleTelemetryStore`, `withTelemetryOutboxStore`, and `TelemetryOutboxTestHandle` / `telemetryOutboxOnConnection` for outbox assertions that need `listPending`. Consumer modules add `testImplementation(testFixtures(project(":runtime-infra:sqlite")))`.
 Reason: Keeps schema readiness and session-factory behaviour aligned with production while exposing only port types or fixture handles at module boundaries.
 Alternatives considered: Keeping stores public for tests (rejected: widens the DI surface). Duplicating fixture helpers per consumer module (rejected: drift from production readiness).
+
+## [2026-09-18] Omit unmeasured scaffold duration (SKILL-357)
+
+Scaffold telemetry omits `duration_seconds` because this adapter does not measure
+elapsed time. Reporting zero would present an unmeasured value as a measurement.

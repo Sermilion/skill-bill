@@ -1,9 +1,6 @@
 package skillbill.mcp.scaffold
 
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
-import skillbill.mcp.shared.McpRuntimeContext
-import skillbill.mcp.shared.mcpClock
+import skillbill.mcp.shared.McpComponent
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -13,16 +10,16 @@ import kotlin.coroutines.cancellation.CancellationException
 
 private const val NEW_SKILL_SESSION_ID_SUFFIX_LENGTH = 4
 
-object McpScaffoldRuntime {
+internal object McpScaffoldRuntime {
   fun newSkillScaffold(
     payload: Map<String, Any?>,
     dryRun: Boolean = false,
     orchestrated: Boolean = false,
-    context: McpRuntimeContext = McpRuntimeContext(),
+    component: McpComponent,
   ): Map<String, Any?> {
-    val runtimeComponent = RuntimeComponent::class.create(context.toRuntimeContext())
+    val runtimeComponent = component.runtimeComponent
     val resolvedRoot = runtimeComponent.resolvedEnvironmentContext.repositoryRoot
-    val sessionId = generateNewSkillSessionId(mcpClock(runtimeComponent))
+    val sessionId = generateNewSkillSessionId(component.clock)
     val outcome = runCatching {
       val request = parseMcpScaffoldCommandRequest(payload + ("repo_root" to resolvedRoot.toString()))
       val result = runtimeComponent.scaffoldGateway.scaffold(request, dryRun)

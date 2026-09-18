@@ -31,7 +31,10 @@ class McpStdioArgumentShapeUnifiedContractTest {
     val payload = decodeFirstTextContent(result)
     assertEquals("error", payload["status"])
     assertEquals("resolve_learnings", payload["tool"])
-    assertContains(payload["error"].toString(), "Unknown argument(s) for resolve_learnings: unexpected")
+    assertContains(
+      payload["error"].toString(),
+      "MCP tool 'resolve_learnings' argument 'unexpected': is not declared",
+    )
   }
 
   @Test

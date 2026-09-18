@@ -32,8 +32,8 @@ class ReviewService(
   private val reviewAttributionPort: ReviewAttributionPort,
   private val diagnostics: RuntimeDiagnostics,
 ) {
-  fun previewImport(input: String): ReviewPreviewResult {
-    val (text) = reviewInputSource.readInput(input, context.stdinText)
+  fun previewImport(input: String, stdinText: String? = null): ReviewPreviewResult {
+    val (text) = reviewInputSource.readInput(input, stdinText ?: context.stdinText)
     val review = ReviewParser.parseReview(text)
     return review.toReviewPreviewResult()
   }

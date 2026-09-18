@@ -6,63 +6,113 @@ import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
 import skillbill.mcp.telemetry.toMcpMap
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.telemetry.model.RemoteStatsRequest
 
-object McpRuntimeLifecycle {
+internal object McpRuntimeLifecycle {
   fun qualityCheckStarted(
     request: QualityCheckStartedRequest,
-    context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) {
+    context: Any,
+  ): Map<String, Any?> = qualityCheckStarted(request, componentForLegacyContext(context))
+
+  fun qualityCheckFinished(
+    request: QualityCheckFinishedRequest,
+    context: Any,
+  ): Map<String, Any?> = qualityCheckFinished(request, componentForLegacyContext(context))
+
+  fun featureVerifyStarted(
+    request: FeatureVerifyStartedRequest,
+    context: Any,
+  ): Map<String, Any?> = featureVerifyStarted(request, componentForLegacyContext(context))
+
+  fun featureVerifyFinished(
+    request: FeatureVerifyFinishedRequest,
+    context: Any,
+  ): Map<String, Any?> = featureVerifyFinished(request, componentForLegacyContext(context))
+
+  fun prDescriptionGenerated(
+    request: PrDescriptionGeneratedRequest,
+    context: Any,
+  ): Map<String, Any?> = prDescriptionGenerated(request, componentForLegacyContext(context))
+
+  fun telemetryRemoteStats(
+    request: RemoteStatsRequest,
+    context: Any,
+  ): Map<String, Any?> = telemetryRemoteStats(request, componentForLegacyContext(context))
+
+  fun telemetryProxyCapabilities(context: Any): Map<String, Any?> =
+    telemetryProxyCapabilities(componentForLegacyContext(context))
+
+  fun qualityCheckStarted(
+    request: QualityCheckStartedRequest,
+    component: McpComponent,
+  ): Map<String, Any?> = withAutoSync(component) {
     it.lifecycleTelemetryService.qualityCheckStarted(request).toPayload()
   }
 
   fun qualityCheckFinished(
     request: QualityCheckFinishedRequest,
-    context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) {
+    component: McpComponent,
+  ): Map<String, Any?> = withAutoSync(component) {
     it.lifecycleTelemetryService.qualityCheckFinished(request).toPayload()
   }
 
   fun featureVerifyStarted(
     request: FeatureVerifyStartedRequest,
-    context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) {
+    component: McpComponent,
+  ): Map<String, Any?> = withAutoSync(component) {
     it.lifecycleTelemetryService.featureVerifyStarted(request).toPayload()
   }
 
   fun featureVerifyFinished(
     request: FeatureVerifyFinishedRequest,
-    context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) {
+    component: McpComponent,
+  ): Map<String, Any?> = withAutoSync(component) {
     it.lifecycleTelemetryService.featureVerifyFinished(request).toPayload()
   }
 
   fun prDescriptionGenerated(
     request: PrDescriptionGeneratedRequest,
-    context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) {
+    component: McpComponent,
+  ): Map<String, Any?> = withAutoSync(component) {
     it.lifecycleTelemetryService.prDescriptionGenerated(request).toPayload()
   }
 
   fun telemetryRemoteStats(
     request: RemoteStatsRequest,
-    context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = services(context).telemetryService.remoteStats(request).toMcpMap()
+    component: McpComponent,
+  ): Map<String, Any?> = component.telemetryService.remoteStats(request).toMcpMap()
 
-  fun telemetryProxyCapabilities(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).telemetryService.capabilities().toMcpMap()
+  fun telemetryProxyCapabilities(component: McpComponent): Map<String, Any?> =
+    component.telemetryService.capabilities().toMcpMap()
 
-  fun captureException(workflowPhase: String, error: Exception, context: McpRuntimeContext) {
-    runCatching { services(context).telemetryService.captureException(workflowPhase, error) }
+  fun captureException(workflowPhase: String, error: Exception, component: McpComponent) {
+    recordCaptureFailure(
+      workflowPhase = workflowPhase,
+      capture = { component.telemetryService.captureException(workflowPhase, error) },
+      diagnostics = component.runtimeDiagnostics,
+    )
   }
 
   private fun withAutoSync(
-    context: McpRuntimeContext,
-    block: (McpRuntimeServices) -> Map<String, Any?>,
+    component: McpComponent,
+    block: (McpComponent) -> Map<String, Any?>,
   ): Map<String, Any?> {
-    val runtimeServices = services(context)
-    val payload = block(runtimeServices)
-    runtimeServices.telemetryService.autoSync()
+    val payload = block(component)
+    component.telemetryService.autoSync()
     return payload
+  }
+}
+
+internal fun recordCaptureFailure(
+  workflowPhase: String,
+  capture: () -> Unit,
+  diagnostics: RuntimeDiagnostics,
+) {
+  try {
+    capture()
+  } catch (captureError: Exception) {
+    val record = diagnostics::error
+    record("MCP telemetry capture failed for tool '$workflowPhase'.", captureError)
   }
 }

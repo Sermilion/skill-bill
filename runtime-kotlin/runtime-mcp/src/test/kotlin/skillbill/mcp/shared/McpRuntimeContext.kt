@@ -1,5 +1,7 @@
 package skillbill.mcp.shared
 
+import skillbill.di.RuntimeComponent
+import skillbill.di.create
 import skillbill.model.EnvironmentContext
 import skillbill.model.RuntimeContext
 import skillbill.ports.telemetry.RemoteTransportPort
@@ -13,6 +15,10 @@ data class McpRuntimeContext(
   val workflowGitOperations: WorkflowGitOperations? = null,
   val repositoryRoot: Path? = null,
 ) {
+  private val component: McpComponent by lazy {
+    McpComponent::class.create(RuntimeComponent::class.create(toRuntimeContext()))
+  }
+
   fun toRuntimeContext(stdinText: String? = null): RuntimeContext = RuntimeContext(
     stdinText = stdinText,
     environment = environment,
@@ -21,4 +27,6 @@ data class McpRuntimeContext(
     requester = requester,
     workflowGitOperations = workflowGitOperations,
   )
+
+  internal fun mcpComponent(): McpComponent = component
 }
