@@ -1,6 +1,8 @@
 package skillbill.di.featuretask
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.runtime.RuntimeSingleton
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimeReadinessEvidencePort
 import skillbill.engine.featuretask.review.core.FeatureTaskLastCommitReviewDriver
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.infrastructure.host.JdkFeatureTaskRuntimeWorkerSupervisor
@@ -42,4 +44,9 @@ internal interface RuntimeFeatureTaskProvides {
 
   @Provides @JvmSynthetic
   fun checkedOutBranchSource(source: FileSystemCheckedOutBranchSource): CheckedOutBranchSource = source
+
+  @Provides @JvmSynthetic
+  fun featureTaskRuntimeReadinessEvidencePort(
+    recorder: FeatureTaskRuntimePhaseRecorder,
+  ): FeatureTaskRuntimeReadinessEvidencePort = recorder
 }

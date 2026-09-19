@@ -4,8 +4,8 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.validation.PrCheckDiscovery
 import skillbill.ports.validation.model.PrCheckDiscoveryResult
-import skillbill.review.plan.ReviewStackRouting
 import skillbill.review.plan.ReviewPathMatcher
+import skillbill.review.plan.ReviewStackRouting
 import skillbill.review.plan.model.ReviewRoutingChangedFile
 import skillbill.review.plan.model.ReviewStackRoutingResult
 import skillbill.scaffold.model.PlatformManifest
@@ -42,7 +42,7 @@ class ReadinessCheckSelection(
     val workflowChecks = (discovery as PrCheckDiscoveryResult.Discovered).checks
     val selected = mutableListOf<ReadinessSelectedCheck>()
     workflowChecks.forEach { check ->
-      if (sourcePaths.any { path -> check.pathPatterns.any { pattern -> ReadinessPathRules.matchesFilter(path, pattern) } }) {
+      if (sourcePaths.any { path -> ReadinessPathRules.matchesAnyFilter(path, check.pathPatterns) }) {
         selected += ReadinessSelectedCheck(check.checkId, check.command, check.pathPatterns)
       }
     }
@@ -53,41 +53,40 @@ class ReadinessCheckSelection(
     return ReadinessCheckSelectionResult.Selected(selected.distinctBy(ReadinessSelectedCheck::checkId))
   }
 
-  fun invalidatedCheckIds(
-    selected: List<ReadinessSelectedCheck>,
-    changedPaths: List<String>,
-  ): Set<String> {
+  fun invalidatedCheckIds(selected: List<ReadinessSelectedCheck>, changedPaths: List<String>): Set<String> {
     val sourcePaths = changedPaths.filterNot(ReadinessPathRules::isBoundaryHistoryPath)
     return selected.filter { check ->
-      sourcePaths.any { path -> check.pathPatterns.any { pattern -> ReadinessPathRules.matchesFilter(path, pattern) } }
+      sourcePaths.any { path -> ReadinessPathRules.matchesAnyFilter(path, check.pathPatterns) }
     }.map(ReadinessSelectedCheck::checkId).toSet()
   }
 
   private fun packCollectAllCheck(sourcePaths: List<String>): ReadinessSelectedCheck? =
     sourcePaths.takeIf(List<String>::isNotEmpty)
-      ?.let { paths -> installedCatalog.manifests().takeIf(List<PlatformManifest>::isNotEmpty)?.let { manifests ->
-        val routing = ReviewStackRouting.route(
-          manifests,
-          paths.map { ReviewRoutingChangedFile(it, "") },
-        )
-        dominantRoutedPack(manifests, routing)?.let { dominant ->
-          dominant.validationGate?.let { gate ->
-            val argv = gate.collectAllFullGateCommand
-            val patterns = (dominant.routingSignals.path + dominant.routingSignals.strong).distinct()
-            argv.takeIf(List<String>::isNotEmpty)
-              ?.takeIf { patterns.isNotEmpty() }
-              ?.let {
-                ReadinessSelectedCheck(
-                  checkId = READINESS_PACK_COLLECT_ALL_CHECK_ID,
-                  command = argv.joinToString(" "),
-                  pathPatterns = patterns,
-                  gateArgv = argv,
-                  gateDeclaration = gate,
-                )
-              }
+      ?.let { paths ->
+        installedCatalog.manifests().takeIf(List<PlatformManifest>::isNotEmpty)?.let { manifests ->
+          val routing = ReviewStackRouting.route(
+            manifests,
+            paths.map { ReviewRoutingChangedFile(it, "") },
+          )
+          dominantRoutedPack(manifests, routing)?.let { dominant ->
+            dominant.validationGate?.let { gate ->
+              val argv = gate.collectAllFullGateCommand
+              val patterns = (dominant.routingSignals.path + dominant.routingSignals.strong).distinct()
+              argv.takeIf(List<String>::isNotEmpty)
+                ?.takeIf { patterns.isNotEmpty() }
+                ?.let {
+                  ReadinessSelectedCheck(
+                    checkId = READINESS_PACK_COLLECT_ALL_CHECK_ID,
+                    command = argv.joinToString(" "),
+                    pathPatterns = patterns,
+                    gateArgv = argv,
+                    gateDeclaration = gate,
+                  )
+                }
+            }
           }
         }
-      } }
+      }
 
   private fun dominantRoutedPack(
     manifests: List<PlatformManifest>,
@@ -105,6 +104,9 @@ class ReadinessCheckSelection(
 object ReadinessPathRules {
   fun isBoundaryHistoryPath(path: String): Boolean =
     path.endsWith("agent/history.md") || path.startsWith(".skill-bill/run-evidence/")
+
+  fun matchesAnyFilter(path: String, patterns: List<String>): Boolean =
+    patterns.any { pattern -> matchesFilter(path, pattern) }
 
   fun matchesFilter(path: String, pattern: String): Boolean {
     val normalizedPath = path.replace('\\', '/').trimStart('/')

@@ -14,11 +14,11 @@ import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunO
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseRunner
 import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopValidationGate
-import skillbill.engine.featuretask.validation.ReadinessCommitPushSettleResult
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.BRANCH_SETUP_AGENT_ID
 import skillbill.engine.featuretask.runner.STATUS_BLOCKED
 import skillbill.engine.featuretask.runner.phaseDeclaration
+import skillbill.engine.featuretask.validation.ReadinessCommitPushSettleResult
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
@@ -207,10 +207,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       }
   }
 
-  private fun runPrPhase(
-    context: FeatureTaskRuntimeRunLoopContext,
-    run: PhaseRun,
-  ): PhaseOutcome {
+  private fun runPrPhase(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): PhaseOutcome {
     val readiness = context.phaseGates.readinessGateCoordinator.verifyPrEntryIdentity(
       workflowId = context.request.workflowId,
       repoRoot = context.request.repoRoot,

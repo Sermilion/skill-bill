@@ -12,8 +12,7 @@ import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoop
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.readinessChangedPathsAgainstBase
-import skillbill.ports.workflow.gitops.stagedPaths
+import skillbill.ports.workflow.gitops.readiness.readinessChangedPathsAgainstBase
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
@@ -123,11 +122,7 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
   internal fun revalidated(
     outputValidator: FeatureTaskRuntimePhaseOutputValidator,
     phaseId: String,
-    envelope: Map<
-      String,
-
-      Any?,
-      >,
+    envelope: Map<String, Any?>,
   ): NormalizedFeatureTaskRuntimePhaseOutput = outputValidator
     .validatePhaseOutput(JsonCodec.mapToJsonString(envelope), sourceLabel = phaseId)
     .requireAcceptedOutput(phaseId)

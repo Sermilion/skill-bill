@@ -57,9 +57,8 @@ import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordi
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateProgressStore
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeReadinessGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
-import skillbill.engine.featuretask.validation.ReadinessCheckSelection
-import skillbill.infrastructure.workflow.github.GitHubPullRequestCheckDiscovery
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateProgressStore
+import skillbill.engine.featuretask.validation.ReadinessCheckSelection
 import skillbill.engine.featuretask.validation.ValidationGateResolver
 import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.error.core.RejectedOutputDiagnosticError.Absent
@@ -70,6 +69,7 @@ import skillbill.featurespec.model.FeatureSpecPreparationDecision
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
+import skillbill.infrastructure.workflow.github.GitHubPullRequestCheckDiscovery
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningBoundaryBodyResolver
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningContextDiscovery
 import skillbill.install.model.InstallAgent
@@ -103,6 +103,7 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSpecStatusWriter
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
@@ -116,10 +117,9 @@ import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
 import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
-import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.validation.PrCheckProcessRunner
-import skillbill.ports.validation.model.PrCheckRunResult
 import skillbill.ports.validation.ValidationGateRunner
+import skillbill.ports.validation.model.PrCheckRunResult
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
@@ -641,56 +641,55 @@ private fun validationGateBoundaries(
   deps: RuntimePhaseGatesDeps,
   validationGateResolver: ValidationGateResolver,
   validationGateRunner: ValidationGateRunner,
-): FeatureTaskRuntimePhaseGateValidationBoundaries =
-  FeatureTaskRuntimePhaseGateValidationBoundaries(
-    planningProjectionValidator = deps.planningProjectionValidator,
-    buildReceiptValidator = deps.buildReceiptValidator,
-    validationGateResolver = validationGateResolver,
-    validationGateRunner = validationGateRunner,
-    validationGateCoordinator = FeatureTaskRuntimeValidationGateCoordinator(
-      validationGateResolver,
-      validationGateRunner,
-      FeatureTaskRuntimeValidationGateProgressStore(deps.recorder),
-      defaultRepoLocalConfigPort(),
-      NoopRuntimeDiagnostics,
+): FeatureTaskRuntimePhaseGateValidationBoundaries = FeatureTaskRuntimePhaseGateValidationBoundaries(
+  planningProjectionValidator = deps.planningProjectionValidator,
+  buildReceiptValidator = deps.buildReceiptValidator,
+  validationGateResolver = validationGateResolver,
+  validationGateRunner = validationGateRunner,
+  validationGateCoordinator = FeatureTaskRuntimeValidationGateCoordinator(
+    validationGateResolver,
+    validationGateRunner,
+    FeatureTaskRuntimeValidationGateProgressStore(deps.recorder),
+    defaultRepoLocalConfigPort(),
+    NoopRuntimeDiagnostics,
+  ),
+  readinessGateCoordinator = FeatureTaskRuntimeReadinessGateCoordinator(
+    ReadinessCheckSelection(
+      InstalledPlatformPackCatalogPort { deps.validationGatePlatformManifests },
+      GitHubPullRequestCheckDiscovery(),
     ),
-    readinessGateCoordinator = FeatureTaskRuntimeReadinessGateCoordinator(
-      ReadinessCheckSelection(
-        InstalledPlatformPackCatalogPort { deps.validationGatePlatformManifests },
-        GitHubPullRequestCheckDiscovery(),
-      ),
-      validationGateRunner,
-      object : PrCheckProcessRunner {
-        override fun run(command: String, repoRoot: Path): PrCheckRunResult =
-          PrCheckRunResult(exitCode = 0, durationMs = 1)
-      },
-      defaultRepoLocalConfigPort(),
-      deps.recorder,
-      NoopRuntimeDiagnostics,
-    ),
-    buildGateCoordinator = FeatureTaskRuntimeBuildGateCoordinator(
-      validationGateResolver,
-      validationGateRunner,
-      FeatureTaskRuntimeBuildGateProgressStore(deps.recorder),
-      defaultRepoLocalConfigPort(),
-      NoopRuntimeDiagnostics,
-    ),
-    sharedEvidenceResolver = deps.sharedEvidenceResolver,
-    diffResolver = deps.diffResolver,
-    reviewDriver = deps.reviewDriver,
-    specIntentProjectionResolver = SpecIntentProjectionResolver(
+    validationGateRunner,
+    object : PrCheckProcessRunner {
+      override fun run(command: String, repoRoot: Path): PrCheckRunResult =
+        PrCheckRunResult(exitCode = 0, durationMs = 1)
+    },
+    defaultRepoLocalConfigPort(),
+    deps.recorder,
+    NoopRuntimeDiagnostics,
+  ),
+  buildGateCoordinator = FeatureTaskRuntimeBuildGateCoordinator(
+    validationGateResolver,
+    validationGateRunner,
+    FeatureTaskRuntimeBuildGateProgressStore(deps.recorder),
+    defaultRepoLocalConfigPort(),
+    NoopRuntimeDiagnostics,
+  ),
+  sharedEvidenceResolver = deps.sharedEvidenceResolver,
+  diffResolver = deps.diffResolver,
+  reviewDriver = deps.reviewDriver,
+  specIntentProjectionResolver = SpecIntentProjectionResolver(
+    TestDecompositionManifestStore,
+    testDecompositionManifestValidator,
+    SpecIntentProjectionExtractor(
+      ReviewContextEnvelopeValidator { _, _ -> },
       TestDecompositionManifestStore,
-      testDecompositionManifestValidator,
-      SpecIntentProjectionExtractor(
-        ReviewContextEnvelopeValidator { _, _ -> },
-        TestDecompositionManifestStore,
-      ),
     ),
-    findingVerificationBoundaryMemory = FeatureTaskRuntimeFindingVerificationBoundaryMemory(
-      FileSystemGoalPlanningContextDiscovery(JvmSystemClock),
-      FileSystemGoalPlanningBoundaryBodyResolver(),
-    ),
-  )
+  ),
+  findingVerificationBoundaryMemory = FeatureTaskRuntimeFindingVerificationBoundaryMemory(
+    FileSystemGoalPlanningContextDiscovery(JvmSystemClock),
+    FileSystemGoalPlanningBoundaryBodyResolver(),
+  ),
+)
 
 private fun defaultRepoLocalConfigPort(): RepoLocalConfigPort = object : RepoLocalConfigPort {
   override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =

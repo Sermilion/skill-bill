@@ -2,12 +2,12 @@ package skillbill.engine.featuretask.validation
 
 import skillbill.infrastructure.workflow.github.GitHubPullRequestCheckDiscovery
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import java.nio.file.Files
-import java.nio.file.Path
 
 class ReadinessCheckSelectionTest {
   @Test

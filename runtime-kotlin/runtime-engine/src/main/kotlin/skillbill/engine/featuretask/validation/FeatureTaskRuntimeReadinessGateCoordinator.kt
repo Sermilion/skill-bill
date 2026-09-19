@@ -143,7 +143,10 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
       request.baseBranch,
       request.workflowId,
     ) ?: run {
-      recordDegradation("readiness-commit-push-identity", "Could not resolve readiness tree identity before commit_push.")
+      recordDegradation(
+        "readiness-commit-push-identity",
+        "Could not resolve readiness tree identity before commit_push.",
+      )
       return CommitPushPreparation.Blocked(
         blocked("Readiness could not resolve repository identity before commit_push."),
       )
@@ -258,19 +261,18 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
   private fun executeCheckSafely(
     request: ReadinessCommitPushSettleRequest,
     check: ReadinessSelectedCheck,
-  ): FeatureTaskRuntimeReadinessCheckResult =
-    runCatching { executeCheck(request, check) }.getOrElse { error ->
-      recordDegradation(
-        "readiness-commit-push-execution",
-        "Selected check '${check.checkId}' could not execute: ${error.message.orEmpty()}",
-      )
-      FeatureTaskRuntimeReadinessCheckResult(
-        checkId = check.checkId,
-        command = check.command,
-        exitCode = 1,
-        status = FeatureTaskRuntimeReadinessCheckStatus.UNPERSISTED,
-      )
-    }
+  ): FeatureTaskRuntimeReadinessCheckResult = runCatching { executeCheck(request, check) }.getOrElse { error ->
+    recordDegradation(
+      "readiness-commit-push-execution",
+      "Selected check '${check.checkId}' could not execute: ${error.message.orEmpty()}",
+    )
+    FeatureTaskRuntimeReadinessCheckResult(
+      checkId = check.checkId,
+      command = check.command,
+      exitCode = 1,
+      status = FeatureTaskRuntimeReadinessCheckStatus.UNPERSISTED,
+    )
+  }
 
   private fun persistBlockedResult(
     request: ReadinessCommitPushSettleRequest,
@@ -292,18 +294,17 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     workflowId: String,
     identity: ReadinessTreeIdentity,
     evidence: FeatureTaskRuntimeReadinessEvidence,
-  ): ReadinessCommitPushSettleResult =
-    try {
-      evidence.requireReady("commit_push", identity.sourceTreeSha, identity.baseRefSha, identity.headSha)
-      if (persistEvidence(workflowId, evidence, "readiness-commit-push-persistence")) {
-        ReadinessCommitPushSettleResult.Ready
-      } else {
-        blocked("Readiness evidence could not be persisted before commit_push.")
-      }
-    } catch (error: InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError) {
-      persistEvidence(workflowId, evidence, "readiness-commit-push-persistence")
-      blocked(error.message.orEmpty())
+  ): ReadinessCommitPushSettleResult = try {
+    evidence.requireReady("commit_push", identity.sourceTreeSha, identity.baseRefSha, identity.headSha)
+    if (persistEvidence(workflowId, evidence, "readiness-commit-push-persistence")) {
+      ReadinessCommitPushSettleResult.Ready
+    } else {
+      blocked("Readiness evidence could not be persisted before commit_push.")
     }
+  } catch (error: InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError) {
+    persistEvidence(workflowId, evidence, "readiness-commit-push-persistence")
+    blocked(error.message.orEmpty())
+  }
 
   fun bindCommittedHead(
     workflowId: String,
@@ -442,7 +443,9 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
           status = FeatureTaskRuntimeReadinessCheckStatus.MISSING,
         )
       val argv = check.gateArgv ?: declaration.collectAllFullGateCommand
-      val wrapper = repoLocalConfig.readRepoLocalConfig(ReadRepoLocalConfigRequest(request.repoRoot)).config.validationGate.gradleWrapper
+      val wrapper = repoLocalConfig
+        .readRepoLocalConfig(ReadRepoLocalConfigRequest(request.repoRoot))
+        .config.validationGate.gradleWrapper
       val gateResult = validationGateRunner.run(
         ValidationGateRunRequest(
           repoRoot = request.repoRoot,
@@ -471,17 +474,16 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
   private fun ValidationGateRunResult.toReadinessResult(
     checkId: String,
     command: String,
-  ): FeatureTaskRuntimeReadinessCheckResult =
-    FeatureTaskRuntimeReadinessCheckResult(
-      checkId = checkId,
-      command = command,
-      exitCode = exitCode,
-      status = if (exitCode == 0) {
-        FeatureTaskRuntimeReadinessCheckStatus.PASSED
-      } else {
-        FeatureTaskRuntimeReadinessCheckStatus.FAILED
-      },
-    )
+  ): FeatureTaskRuntimeReadinessCheckResult = FeatureTaskRuntimeReadinessCheckResult(
+    checkId = checkId,
+    command = command,
+    exitCode = exitCode,
+    status = if (exitCode == 0) {
+      FeatureTaskRuntimeReadinessCheckStatus.PASSED
+    } else {
+      FeatureTaskRuntimeReadinessCheckStatus.FAILED
+    },
+  )
 
   private fun blocked(reason: String): ReadinessCommitPushSettleResult.Blocked =
     ReadinessCommitPushSettleResult.Blocked(
@@ -502,15 +504,13 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
   private fun identityMismatchReason(
     captured: FeatureTaskRuntimeReadinessEvidence,
     current: ReadinessTreeIdentity,
-  ): String =
-    "Readiness identity is stale: source tree captured '${captured.sourceTreeSha}' vs current " +
-      "'${current.sourceTreeSha}'; base captured '${captured.baseRefSha}' vs current " +
-      "'${current.baseRefSha}'; head captured '${captured.headSha}' vs current '${current.headSha}'."
+  ): String = "Readiness identity is stale: source tree captured '${captured.sourceTreeSha}' vs current " +
+    "'${current.sourceTreeSha}'; base captured '${captured.baseRefSha}' vs current " +
+    "'${current.baseRefSha}'; head captured '${captured.headSha}' vs current '${current.headSha}'."
 
   private fun recordDegradation(seam: String, reason: String) {
     emitFeatureTaskRuntimeEventSafely(diagnostics, "readiness-gate-$seam") {
       RuntimeDiagnosticsBestEffortWarning.record(diagnostics, reason)
     }
   }
-
 }

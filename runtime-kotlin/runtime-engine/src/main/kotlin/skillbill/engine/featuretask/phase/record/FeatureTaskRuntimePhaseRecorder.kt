@@ -232,7 +232,6 @@ class FeatureTaskRuntimePhaseRecorder @Inject constructor(
 
   fun persistBuildGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) =
     gateProgress.persistBuildGateProgress(workflowId, progress)
-
 }
 
 private interface FeatureTaskRuntimePhaseEvidenceApi {

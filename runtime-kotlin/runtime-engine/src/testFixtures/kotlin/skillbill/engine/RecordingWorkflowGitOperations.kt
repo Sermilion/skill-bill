@@ -2,9 +2,6 @@ package skillbill.engine
 
 import skillbill.ports.workflow.gitops.CheckpointHistoryGitOperations
 import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
-import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
-import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
-import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityPayloadCodec
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
 import skillbill.ports.workflow.gitops.RepositoryOwnedPathsGitOperations
 import skillbill.ports.workflow.gitops.RuntimePhaseFileManifestGitOperations
@@ -15,11 +12,14 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRe
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineResult
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputResult
+import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityPayloadCodec
 import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
@@ -337,12 +337,10 @@ class RecordingWorkflowGitOperations(
         ),
       )
 
-      override fun changedPathsAgainstBase(
-        repoRoot: Path,
-        baseBranch: String,
-      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(
-        value = ownedPathsValue.joinToString(separator = "\u0000"),
-      )
+      override fun changedPathsAgainstBase(repoRoot: Path, baseBranch: String): WorkflowGitOperationResult =
+        WorkflowGitOperationResult.Ok(
+          value = ownedPathsValue.joinToString(separator = "\u0000"),
+        )
     }
 
   override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations =
