@@ -53,9 +53,9 @@ internal object McpToolRegistry {
     mapOf(
       "doctor" to "Check skill-bill installation health.",
       "feature_task_phase_block" to
-        "Durable-block a prose feature-task phase (preplan|plan|implement|audit).",
+        "Durable-block a prose feature-task phase (preplan|plan|implement|simplify|audit).",
       "feature_task_phase_complete" to
-        "Complete a prose feature-task phase (preplan|plan|implement|audit) via durable settlement.",
+        "Complete a prose feature-task phase (preplan|plan|implement|simplify|audit) via durable settlement.",
       "feature_verify_finished" to "Record completion of a feature-verify session.",
       "feature_verify_stats" to "Show aggregate bill-feature-verify metrics.",
       "feature_verify_started" to "Record start of a feature-verify session.",

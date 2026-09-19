@@ -1,5 +1,14 @@
 # Boundary History — runtime-domain
 
+## [2026-09-19] SKILL-363 subtask 1 — Add the mandatory simplification phase
+Areas: runtime-domain/taskruntime, runtime-engine/featuretask, runtime-infra/skills, orchestration/contracts, README, skills catalog
+- Added the single-session `simplify` phase between `implement` and `audit`, with bounded subtask scope, receipt persistence, resume reconstruction, and audit-before-review routing.
+- Retired the standalone over-engineering skill source and catalog entry while preserving governed install and validation boundaries.
+- Pattern: keep mutating phase order, prompt scope, output validation, and recovery semantics explicit at the workflow boundary; use bounded receipts instead of free-form review transcripts. reusable
+- Known limitation: simplification is intentionally limited to high-confidence feature-local reductions and does not perform repository-wide scans or delegated review.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-17] SKILL-351 subtask 3 — Shrink surface and merge count-split units
 Areas: runtime-domain, runtime-contracts, runtime-core/architecture, runtime-engine/featuretask, runtime-infra-fs, runtime-infra-sqlite
 - Removed unused runtime declarations and merged canonicalizer and goal-observability helper families into responsibility-owned units; deleted the closed-key parity branch and retired the remote-stats runtime wrapper.

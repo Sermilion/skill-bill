@@ -51,7 +51,7 @@ equivalent local code when the evidence is clear.
 
 ## Constraints
 
-- Follow `runtime-kotlin/ARCHITECTURE.md`, `docs/code-principles.md`,
+- Follow `../../../runtime-kotlin/ARCHITECTURE.md`, `docs/code-principles.md`,
   `docs/observability-policy.md`, and AGENTS.md.
 - Keep the phase scoped to the feature-task subtask. It must not become a
   replacement for platform code review, correctness review, security review,

@@ -131,6 +131,7 @@ $defs:
           - preplan
           - plan
           - implement
+          - simplify
           - implement_fix
           - review
           - verify_findings
@@ -152,6 +153,7 @@ $defs:
                     - preplan
                     - plan
                     - implement
+                    - simplify
                     - implement_fix
                     - review
                     - verify_findings

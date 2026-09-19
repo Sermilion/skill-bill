@@ -4,6 +4,7 @@ import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.ports.repository.toFileLocation
+import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.AfterTest
@@ -23,6 +24,13 @@ class InstallPlanInternalSkillDiscoveryTest {
         }
       }
     }
+  }
+
+  @Test
+  fun `source installation discovery excludes the retired over-engineering skill`() {
+    val skills = discoverBaseSkills(repoRootFromTest().resolve("skills"))
+
+    assertTrue(skills.none { it.name == "bill-over-engineering-review" })
   }
 
   @Test

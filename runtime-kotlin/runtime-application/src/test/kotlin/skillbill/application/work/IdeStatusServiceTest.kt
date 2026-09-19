@@ -382,6 +382,7 @@ class IdeStatusServiceTest {
           "preplan" to phaseRecordWire("preplan", "completed", null),
           "plan" to phaseRecordWire("plan", "completed", null),
           "implement" to phaseRecordWire("implement", "completed", null),
+          "simplify" to phaseRecordWire("simplify", "completed", null),
           "audit" to phaseRecordWire("audit", "completed", null),
           "review" to phaseRecordWire(
             "review",
@@ -431,6 +432,7 @@ class IdeStatusServiceTest {
           "preplan" to phaseRecordWire("preplan", "completed", null),
           "plan" to phaseRecordWire("plan", "completed", null),
           "implement" to phaseRecordWire("implement", "completed", null),
+          "simplify" to phaseRecordWire("simplify", "completed", null),
           "audit" to phaseRecordWire("audit", "completed", null),
           "review" to phaseRecordWire(
             "review",

@@ -106,6 +106,8 @@ private fun mutatingProducedOutputsAddendum(
   val reconciliationRequirement =
     if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT) {
       ""
+    } else if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY) {
+      ""
     } else {
       "\n    - produced_outputs MUST include a reconciliation report: a \"reconciled_state\" object\n" +
         "      (or a \"reconciled_state\" entry) with \"reconciled\": true and concrete evidence that the\n" +

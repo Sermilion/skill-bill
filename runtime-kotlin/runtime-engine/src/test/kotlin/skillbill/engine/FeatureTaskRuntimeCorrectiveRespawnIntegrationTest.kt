@@ -1,6 +1,7 @@
 
 package skillbill.engine
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
+import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
@@ -176,6 +177,41 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
     assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
     assertEquals(1, auditLaunches)
     assertEquals(1, auditPrompts(harness).size)
+  }
+
+  @Test
+  fun `malformed simplify output blocks before audit and preserves the single-session boundary`() {
+    val malformed = completedPhaseBody(
+      "0.6",
+      "simplify",
+      "Missing simplification receipt.",
+      "{}",
+    )
+    var simplifyLaunches = 0
+    val harness = runnerHarness(
+      RuntimeHarnessConfig(
+        launcher = RuntimeRecordingLauncher { request ->
+          val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+          if (phaseId == "simplify") {
+            simplifyLaunches += 1
+            facts(malformed)
+          } else {
+            facts(defaultPhaseOutput(request))
+          }
+        },
+        validator = realFeatureTaskRuntimePhaseOutputValidator,
+      ),
+    )
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
+
+    assertEquals("simplify", blocked.lastIncompletePhase)
+    assertEquals(1, simplifyLaunches)
+    assertTrue("audit" !in harness.launchOrder())
+    assertEquals(
+      "invalid_output",
+      harness.recorder.loadPhaseRecords(WORKFLOW_ID)?.get("simplify")?.failureDisposition?.wireValue,
+    )
   }
 
   @Test

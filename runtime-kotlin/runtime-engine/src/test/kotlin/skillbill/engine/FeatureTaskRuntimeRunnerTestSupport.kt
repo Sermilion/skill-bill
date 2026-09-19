@@ -242,6 +242,7 @@ internal val PREPLAN_OUTPUT = seededProjectionEnvelope("preplan", PlanningProjec
 internal val PLAN_OUTPUT = seededProjectionEnvelope("plan", PlanningProjectionFixtures.PLAN_PROSE)
 internal val IMPLEMENT_OUTPUT =
   seededProjectionEnvelope("implement", PlanningProjectionFixtures.IMPLEMENT_PROSE)
+internal val SIMPLIFY_OUTPUT = validJsonOutput("simplify")
 
 private fun seededProjectionEnvelope(phaseId: String, producedOutputs: String): String =
   """{"contract_version":"0.3","phase_id":"$phaseId","status":"completed",""" +
@@ -252,6 +253,7 @@ internal val ALL_PHASES =
     "preplan",
     "plan",
     "implement",
+    "simplify",
     "audit",
     "review",
     "verify_findings",
@@ -1155,7 +1157,7 @@ internal val PLAN_FIX_CYCLE = FeatureTaskRuntimeTransitionDeclaration(
 internal const val IMPLEMENT_FIX_CAP = 2
 
 internal val IMPLEMENT_FIX_CYCLE = FeatureTaskRuntimeTransitionDeclaration(
-  forwardPhaseIds = listOf("preplan", "plan", "implement", "audit", "review"),
+  forwardPhaseIds = listOf("preplan", "plan", "implement", "simplify", "audit", "review"),
   backwardEdges = listOf(
     FeatureTaskRuntimeBackwardEdge(
       fromPhaseId = "review",

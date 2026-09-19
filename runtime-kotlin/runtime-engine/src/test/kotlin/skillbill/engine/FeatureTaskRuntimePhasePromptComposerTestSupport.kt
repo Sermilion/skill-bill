@@ -82,6 +82,7 @@ internal fun promptComposerBriefingFor(
           FeatureTaskRuntimePhaseOutput("preplan", 1, PROMPT_COMPOSER_PREPLAN_OUTPUT),
           FeatureTaskRuntimePhaseOutput("plan", 1, PROMPT_COMPOSER_PLAN_OUTPUT),
           FeatureTaskRuntimePhaseOutput("implement", 1, IMPLEMENT_OUTPUT),
+          FeatureTaskRuntimePhaseOutput("simplify", 1, SIMPLIFY_OUTPUT),
           FeatureTaskRuntimePhaseOutput("audit", 1, options.auditOutput),
           FeatureTaskRuntimePhaseOutput("review", 1, validJsonOutput("review")),
           verifyFindingsPhaseOutput(),

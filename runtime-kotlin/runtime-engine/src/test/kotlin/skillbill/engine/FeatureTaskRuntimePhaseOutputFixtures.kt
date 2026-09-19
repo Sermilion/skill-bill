@@ -140,6 +140,7 @@ internal fun validProducedOutputs(phaseId: String, commitPushChangedPaths: List<
     "preplan" -> preplanProducedOutputs()
     "plan" -> planProducedOutputs()
     "implement" -> implementProducedOutputs()
+    "simplify" -> PlanningProjectionFixtures.SIMPLIFY_PROSE
     "implement_fix" -> implementFixProducedOutputs()
     "review" -> """{"findings": []}"""
     "audit" -> """{"value": "{\"gaps\":[],\"non_blocking_findings\":[]}"}"""
@@ -203,6 +204,7 @@ internal val PLANNING_PROJECTION_EXEMPT_PHASES: Set<String> =
     "preplan",
     "plan",
     "implement",
+    "simplify",
     "review",
     "audit",
     "verify_findings",

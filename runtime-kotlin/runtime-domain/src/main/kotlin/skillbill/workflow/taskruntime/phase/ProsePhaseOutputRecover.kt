@@ -6,6 +6,7 @@ import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 internal object ProsePhaseOutputRecover {
   private val LEGACY_VALUE_KEYS: List<String> = listOf(
     "implementation_receipt",
+    "simplification_receipt",
     "executable_plan",
     "preplanning_digest",
     "gaps",

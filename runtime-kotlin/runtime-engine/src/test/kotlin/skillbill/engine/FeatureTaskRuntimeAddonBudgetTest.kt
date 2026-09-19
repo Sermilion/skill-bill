@@ -12,7 +12,18 @@ class FeatureTaskRuntimeAddonBudgetTest {
   fun `hydrated add-on content reaches every phase of the declared feature-task consumer`() {
     val selection = selection("small content")
 
-    listOf("preplan", "plan", "implement", "audit", "review", "validate", "write_history", "commit_push", "pr")
+    listOf(
+      "preplan",
+      "plan",
+      "implement",
+      "simplify",
+      "audit",
+      "review",
+      "validate",
+      "write_history",
+      "commit_push",
+      "pr",
+    )
       .forEach { phaseId ->
         assertEquals(
           selection,

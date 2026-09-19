@@ -8,6 +8,7 @@ object FeatureTaskRuntimePhaseProjectionShapes {
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN -> PREPLAN
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN -> PLAN
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT -> IMPLEMENT
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY -> SIMPLIFY
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX -> IMPLEMENT_FIX
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ->
       if (agentRunValidateFallback) {
@@ -81,6 +82,21 @@ object FeatureTaskRuntimePhaseProjectionShapes {
       "repository_checkpoint is runtime-owned: omit it entirely. Never invent a fingerprint. " +
       "Compilation and test execution belong exclusively to the validate phase; tests_executed stays []. " +
       "changed_paths are repository-relative; deviations entries are objects { \"ref\", \"note\" }.",
+  )
+
+  private val SIMPLIFY: String = prosePhaseOutputShape(
+    innerJsonExample =
+    "      { \"projection_kind\": \"simplification_receipt\",\n" +
+      "        \"contract_version\": \"0.1\",\n" +
+      "        \"changed_paths\": [\"path/Changed.kt\"],\n" +
+      "        \"reductions\": [ { \"path\": \"path/Changed.kt\", \"outcome\": \"addressed\",\n" +
+      "          \"note\": \"<one-line reduction>\" } ],\n" +
+      "        \"unresolved_items\": [],\n" +
+      "        \"reconciliation_evidence\": { \"reconciled\": true, \"evidence\": \"<tree at target>\" },\n" +
+      "        \"reconciled_state\": { \"reconciled\": true, \"evidence\": \"<tree at target>\" } }\n",
+    trailingNotes =
+    "      Outcome on each reduction is no_edit, addressed, or unresolved. repository_checkpoint is " +
+      "runtime-owned: omit it entirely. Never invent a fingerprint. Do not run builds or tests here.",
   )
 
   private val IMPLEMENT_FIX: String =

@@ -45,6 +45,7 @@ class FeatureTaskRuntimeQuarantineRegenerateTest {
     val surviving = listOf(
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY,
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
@@ -62,6 +63,7 @@ class FeatureTaskRuntimeQuarantineRegenerateTest {
     harness.seedPhase("preplan", "completed", 1, phaseAgent("preplan"), validJsonOutput("preplan"))
     harness.seedPhase("plan", "completed", 1, phaseAgent("plan"), validJsonOutput("plan"))
     harness.seedPhase("implement", "completed", 1, phaseAgent("implement"), legacyImplement)
+    harness.seedPhase("simplify", "completed", 1, phaseAgent("simplify"), SIMPLIFY_OUTPUT)
 
     val report = harness.runner.run(harness.request(truncated))
 

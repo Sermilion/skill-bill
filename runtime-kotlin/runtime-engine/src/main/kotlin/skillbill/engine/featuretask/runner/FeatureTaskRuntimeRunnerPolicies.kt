@@ -66,7 +66,11 @@ internal fun mutatingReconciliationGateReason(
   phaseId: String,
   outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
 ): String? {
-  if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT) return null
+  if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT ||
+    phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY
+  ) {
+    return null
+  }
   if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) return null
 
   if ((outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return null

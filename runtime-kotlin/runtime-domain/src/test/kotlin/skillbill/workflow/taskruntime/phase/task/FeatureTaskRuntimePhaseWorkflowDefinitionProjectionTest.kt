@@ -58,6 +58,10 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
     )
     assertEquals(
       listOf("changed_paths", "repository_checkpoint"),
+      fields(def.PHASE_SIMPLIFY, "subtask_scope"),
+    )
+    assertEquals(
+      listOf("changed_paths", "repository_checkpoint"),
       fields(def.PHASE_VALIDATE, "validation_request"),
     )
     assertEquals(
@@ -140,6 +144,8 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
   fun `the pipeline is audit-first and review is gated on a satisfied audit`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
     val ids = def.transitions.forwardPhaseIds
+    assertTrue(ids.indexOf(def.PHASE_IMPLEMENT) < ids.indexOf(def.PHASE_SIMPLIFY))
+    assertTrue(ids.indexOf(def.PHASE_SIMPLIFY) < ids.indexOf(def.PHASE_AUDIT))
     assertTrue(ids.indexOf(def.PHASE_IMPLEMENT) < ids.indexOf(def.PHASE_AUDIT))
     assertTrue(ids.indexOf(def.PHASE_AUDIT) < ids.indexOf(def.PHASE_REVIEW))
     assertTrue(ids.indexOf(def.PHASE_REVIEW) < ids.indexOf(def.PHASE_VERIFY_FINDINGS))
@@ -220,12 +226,13 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
       listOf(
         FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
         FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
         FeatureTaskRuntimePlanningProjectionContract.SHARED_REVIEW_EVIDENCE_ID,
       ),
       audit.projectionDeclarations.map { it.projectionContractId },
     )
     assertEquals(
-      listOf("plan_prose", "implement_prose"),
+      listOf("plan_prose", "implement_prose", "simplify_prose"),
       audit.projectionDeclarations
         .filter {
           it.projectionContractId ==

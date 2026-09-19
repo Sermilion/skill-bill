@@ -90,6 +90,29 @@ class FeatureTaskRuntimeImplementationContinuationTest {
   }
 
   @Test
+  fun `simplify continuation preserves completed receipt segments without replay instructions`() {
+    val continuation = assertNotNull(
+      featureTaskRuntimeImplementationContinuationFrom(
+        "simplify",
+        listOf(
+          attempt(sequenceNumber = 1, value = "simplification receipt segment").copy(
+            phaseId = "simplify",
+            prompt = "continue only the remaining owned path",
+          ),
+        ),
+        obligations(),
+      ),
+    )
+
+    val directive = implementationContinuationDirective("simplify", continuation)
+
+    assertTrue(directive.contains("Continue this simplification"))
+    assertTrue(directive.contains("simplification_receipt"))
+    assertTrue(directive.contains("do not re-apply changes already present"))
+    assertTrue(directive.contains("simplification receipt segment"))
+  }
+
+  @Test
   fun `the continuation directive is empty for a different phase or no continuation`() {
     val continuation = featureTaskRuntimeImplementationContinuationFrom(
       "implement",
