@@ -1,12 +1,12 @@
 package skillbill.engine.goalrunner.planning.attempt
 
-import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
-import skillbill.workflow.goal.model.GoalProgressOutcome
-import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.model.GoalPlanningAttemptRecordArgs
 import skillbill.engine.goalrunner.planning.model.GoalPlanningAttemptScope
+import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.engine.goalrunner.planning.model.GoalPlanningProduceAttemptArgs
+import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
+import skillbill.workflow.goal.model.GoalProgressOutcome
 
 internal data class PlanningProduceAdvanceArgs(
   val attemptArgs: GoalPlanningProduceAttemptArgs,

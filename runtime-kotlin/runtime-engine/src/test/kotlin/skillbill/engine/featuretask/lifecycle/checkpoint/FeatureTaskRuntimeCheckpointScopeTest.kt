@@ -1,15 +1,10 @@
 package skillbill.engine.featuretask.lifecycle.checkpoint
-import skillbill.engine.goalrunner.manifest
-
-
-
-
-import skillbill.engine.featuretask.lifecycle.subtask.decide
 import skillbill.engine.featuretask.lifecycle.continuation.matches
-import skillbill.engine.featuretask.runloop.core.reconcileCheckpointPathInventory
+import skillbill.engine.featuretask.lifecycle.subtask.decide
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointDecision
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointScopeInput
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommitIdentity
+import skillbill.engine.featuretask.runloop.core.reconcileCheckpointPathInventory
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains

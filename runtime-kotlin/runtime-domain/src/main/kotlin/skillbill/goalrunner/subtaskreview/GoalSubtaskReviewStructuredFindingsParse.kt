@@ -6,14 +6,13 @@ import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFindingsParse
-import skillbill.review.ReviewFindingActionability
-import skillbill.review.ReviewFindingFieldCodec
-import skillbill.review.context.model.requireRepositoryRelativePath
+import skillbill.review.context.model.execution.requireRepositoryRelativePath
+import skillbill.review.finding.ReviewFindingActionability
+import skillbill.review.finding.ReviewFindingFieldCodec
 import skillbill.review.model.RecordedVerdictFields
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
 import skillbill.review.model.ReviewFindingVerdict
-
 object GoalSubtaskReviewStructuredFindingsParse {
   fun structuredFindings(
     output: Any,

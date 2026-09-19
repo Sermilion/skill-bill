@@ -6,14 +6,13 @@ import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.error.InvalidAgentAddonSelectionError
+import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import java.nio.file.Files
 import java.nio.file.Path
-
 @Inject
 class AgentAddonSelectionResolver : AgentAddonSelectionPort {
   override fun resolveInitial(

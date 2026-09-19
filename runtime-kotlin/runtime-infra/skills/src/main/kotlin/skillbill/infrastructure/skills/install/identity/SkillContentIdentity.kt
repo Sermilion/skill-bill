@@ -2,15 +2,14 @@ package skillbill.infrastructure.skills.install.identity
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.InvalidSkillContentIdentityError
-import skillbill.error.SkillContentIdentityMismatchError
+import skillbill.error.shellcontent.InvalidSkillContentIdentityError
+import skillbill.error.shellcontent.SkillContentIdentityMismatchError
 import skillbill.infrastructure.contracts.sha256Hex
-import skillbill.infrastructure.skills.scaffold.validation.parseSkillFrontmatter
+import skillbill.infrastructure.skills.scaffold.validation.shape.parseSkillFrontmatter
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 internal const val SKILL_CONTENT_IDENTITY_CONTRACT_VERSION = "0.1"
 internal const val SKILL_CONTENT_IDENTITY_FILENAME = ".content-identity"
 

@@ -1,7 +1,5 @@
 package skillbill.engine.goalrunner.execution.core
 
-import skillbill.engine.goalrunner.execution.core.DefaultGoalRunnerExecutionCoordinator
-import skillbill.engine.goalrunner.execution.core.GoalRunnerExecutionAlreadyRunningException
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState

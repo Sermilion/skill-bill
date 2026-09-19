@@ -1,9 +1,8 @@
 package skillbill.infrastructure.skills.install.scaffold
 
 import skillbill.infrastructure.skills.install.plan.uninstallTargets
-import skillbill.infrastructure.skills.scaffold.runtime.ScaffoldTransaction
+import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldTransaction
 import java.io.IOException
-
 internal fun rollbackScaffoldInstallTargets(txn: ScaffoldTransaction, errors: MutableList<String>) {
   recordRollbackFailure(errors, "install rollback") {
     uninstallTargets(txn.installTargets)

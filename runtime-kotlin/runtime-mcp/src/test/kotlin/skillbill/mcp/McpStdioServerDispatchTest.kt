@@ -1,7 +1,7 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
-import skillbill.di.SkillBillVersion
+import skillbill.di.core.SkillBillVersion
 import skillbill.mcp.core.McpStdioServer
 import skillbill.mcp.shared.McpRuntimeContext
 import java.nio.file.Files
@@ -11,7 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class McpStdioServerDispatchTest {
   @Test
   fun `canonical leaves carry no deprecation language and legacy families are absent from the registry`() {

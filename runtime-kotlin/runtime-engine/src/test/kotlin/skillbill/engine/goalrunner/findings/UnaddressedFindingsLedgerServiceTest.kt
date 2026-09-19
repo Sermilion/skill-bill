@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.findings
 
-import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
-import skillbill.error.UnaddressedFindingsLedgerAbsentError
+import skillbill.error.shellcontent.InvalidUnaddressedFindingsLedgerSchemaError
+import skillbill.error.shellcontent.UnaddressedFindingsLedgerAbsentError
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.ports.db.DatabaseSessionFactory
@@ -12,10 +12,10 @@ import skillbill.ports.goalrunner.UnaddressedFindingsRepository
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
-import skillbill.ports.review.ReviewRepository
-import skillbill.ports.telemetry.LifecycleTelemetryRepository
-import skillbill.ports.telemetry.TelemetryOutboxRepository
-import skillbill.ports.telemetry.TelemetryReconciliationRepository
+import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
+import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import java.nio.file.Path
@@ -23,7 +23,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class UnaddressedFindingsLedgerServiceTest {
   @Test
   fun `an unknown issue key raises the typed absent error`() {

@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask.model.core
 import skillbill.engine.work.model.IdeStatusCurrentPhaseExecution
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
-
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
 data class FeatureTaskRuntimeStatusRequest(
   val workflowId: String,
 ) {

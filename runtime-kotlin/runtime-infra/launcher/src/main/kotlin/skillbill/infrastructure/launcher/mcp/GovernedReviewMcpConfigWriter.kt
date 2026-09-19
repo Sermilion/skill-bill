@@ -1,7 +1,7 @@
 package skillbill.infrastructure.launcher.mcp
 
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
-import skillbill.error.GovernedReviewEvidenceTransportError
+import skillbill.error.shellcontent.GovernedReviewEvidenceTransportError
 import skillbill.infrastructure.skills.install.mcp.McpTomlConfig
 import skillbill.infrastructure.skills.install.mcp.mutableStringAnyMap
 import skillbill.infrastructure.skills.install.mcp.readJsonObject
@@ -10,7 +10,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
-
 object GovernedReviewMcpConfigWriter {
   fun write(configPath: Path, bridgeCommand: List<String>, socketPath: Path, token: String, lane: String): Path {
     if (bridgeCommand.isEmpty()) {

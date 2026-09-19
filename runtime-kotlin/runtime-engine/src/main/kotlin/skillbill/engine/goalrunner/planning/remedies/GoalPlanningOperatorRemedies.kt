@@ -1,18 +1,17 @@
 package skillbill.engine.goalrunner.planning.remedies
 
-import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
+import skillbill.engine.goalrunner.planning.recovery.GoalPlanningProvenanceRecoverability
+import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
+import skillbill.engine.goalrunner.planning.recovery.classifyGoalPlanningRecovery
+import skillbill.engine.goalrunner.planning.recovery.contractVersionHardResetStopReason
+import skillbill.engine.goalrunner.planning.recovery.goalPlanningHardResetRemedy
+import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.model.GoalPlanningStatusReasons
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalPlanningStatusState
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
-import skillbill.engine.goalrunner.planning.recovery.GoalPlanningProvenanceRecoverability
-import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
-import skillbill.engine.goalrunner.planning.recovery.classifyGoalPlanningRecovery
-import skillbill.engine.goalrunner.planning.recovery.contractVersionHardResetStopReason
-import skillbill.engine.goalrunner.planning.recovery.goalPlanningHardResetRemedy
-
 fun goalPlanningIncludeSharedPreplanRemedy(issueKey: String, subtaskId: Int): String =
   "skill-bill goal replan $issueKey --subtask $subtaskId --include-shared-preplan"
 

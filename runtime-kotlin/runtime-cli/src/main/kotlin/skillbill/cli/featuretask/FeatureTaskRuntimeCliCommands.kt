@@ -8,23 +8,22 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.workflow.WorkflowService
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.drainTelemetryOnCompletion
-import skillbill.cli.kernel.invokingAgentResolutionHelp
-import skillbill.cli.kernel.resolveCliRepositoryRoot
+import skillbill.application.workflow.service.WorkflowService
+import skillbill.cli.kernel.agent.invokingAgentResolutionHelp
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.drainTelemetryOnCompletion
+import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.mcp.shared.int
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveInput
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveResult
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.model.FeatureTaskRouteScope
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
-
 abstract class FeatureTaskRuntimePhaseAgentCommand(
   name: String,
   help: String,

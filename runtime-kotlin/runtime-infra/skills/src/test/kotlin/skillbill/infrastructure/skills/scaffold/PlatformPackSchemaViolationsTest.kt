@@ -1,16 +1,15 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.error.ContractVersionMismatchError
-import skillbill.error.InvalidManifestSchemaError
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
+import skillbill.error.shellcontent.ContractVersionMismatchError
+import skillbill.error.shellcontent.InvalidManifestSchemaError
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class PlatformPackSchemaViolationsTest {
   @Test
   fun `missing machine readable routing path fails before preparation`() {

@@ -1,12 +1,12 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.error.InvalidScaffoldPayloadError
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.rendering.inferSkillDescription
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
-import skillbill.infrastructure.skills.scaffold.runtime.TemplateContext
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.policy.platformpack.model.PlatformPackManifestRenderRequest
@@ -19,7 +19,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class ScaffoldBaselineLayerPayloadTest {
   @Test
   fun `platform pack payload writes baseline layer composition to manifest`() = withIsolatedUserHome {

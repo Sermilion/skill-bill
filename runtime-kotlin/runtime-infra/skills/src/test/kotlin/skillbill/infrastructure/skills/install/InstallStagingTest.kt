@@ -1,24 +1,24 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.error.InvalidInstallStagingError
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.InvalidInstallStagingError
+import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.skills.install.plan.InstallContext
 import skillbill.infrastructure.skills.install.plan.installSkill
-import skillbill.infrastructure.skills.install.staging.StagedSymlinkTargetInput
-import skillbill.infrastructure.skills.install.staging.applicablePointers
-import skillbill.infrastructure.skills.install.staging.authoredFilesFor
-import skillbill.infrastructure.skills.install.staging.computeInstallContentHash
-import skillbill.infrastructure.skills.install.staging.generatedSupportPointersFor
-import skillbill.infrastructure.skills.install.staging.installedSkillStagingDir
-import skillbill.infrastructure.skills.install.staging.installedSkillsCacheRoot
-import skillbill.infrastructure.skills.install.staging.isContentManagedSkill
-import skillbill.infrastructure.skills.install.staging.resolveStagedSymlinkTarget
-import skillbill.infrastructure.skills.install.staging.stageInstalledSkill
+import skillbill.infrastructure.skills.install.staging.staging.StagedSymlinkTargetInput
+import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
+import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
+import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.staging.installedSkillStagingDir
+import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.install.staging.staging.isContentManagedSkill
+import skillbill.infrastructure.skills.install.staging.staging.resolveStagedSymlinkTarget
+import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
+import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
 import skillbill.infrastructure.skills.scaffold.authoring.renderWrapper
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
 import skillbill.infrastructure.skills.scaffold.pointer.renderPointer
-import skillbill.infrastructure.skills.scaffold.runtime.requiredSupportingFilesForSkill
-import skillbill.infrastructure.skills.scaffold.runtime.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import skillbill.install.model.AgentTarget
 import skillbill.install.model.RenderedSkill
 import skillbill.model.toPath
@@ -38,7 +38,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class InstallStagingTest {
   private val tempDirs = mutableListOf<Path>()
 

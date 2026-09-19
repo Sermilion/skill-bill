@@ -2,18 +2,17 @@ package skillbill.mcp.shared
 
 import me.tatarka.inject.annotations.Component
 import skillbill.application.learning.LearningService
-import skillbill.application.review.ReviewService
+import skillbill.application.review.service.ReviewService
 import skillbill.application.system.SystemService
-import skillbill.application.telemetry.LifecycleTelemetryService
-import skillbill.application.telemetry.TelemetryService
+import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
+import skillbill.application.telemetry.service.TelemetryService
 import skillbill.application.updatecheck.UpdateCheckService
-import skillbill.application.workflow.WorkflowService
-import skillbill.di.RuntimeComponent
+import skillbill.application.workflow.service.WorkflowService
+import skillbill.di.core.RuntimeComponent
 import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.time.Clock
-
 @Component
 internal abstract class McpComponent(
   @Component val runtimeComponent: RuntimeComponent,

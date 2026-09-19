@@ -1,10 +1,10 @@
 package skillbill.engine.goalrunner.planning.recovery
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.goalrunner.planning.context.GoalPlanningSpecCanonicalization
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.text.sha256HexUtf8
-import skillbill.engine.goalrunner.planning.context.GoalPlanningSpecCanonicalization
 
 internal sealed interface GoalPlanningProvenanceRecoverability {
   class Reuse(val provenance: GoalPlanningContractProvenance) : GoalPlanningProvenanceRecoverability

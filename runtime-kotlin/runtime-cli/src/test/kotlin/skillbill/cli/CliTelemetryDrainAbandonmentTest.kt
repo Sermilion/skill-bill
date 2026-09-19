@@ -1,11 +1,11 @@
 package skillbill.cli
 
-import skillbill.cli.kernel.drainTelemetryOnCompletion
+import skillbill.cli.kernel.cli.drainTelemetryOnCompletion
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
-import skillbill.ports.telemetry.RemoteTransportPort
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch

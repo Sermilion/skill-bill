@@ -1,12 +1,11 @@
 package skillbill.engine.featuretask.persist
 
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.SkillBillRuntimeException
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
 import kotlin.coroutines.cancellation.CancellationException
-
 class RuntimeOwnedFactUnavailable(
   message: String,
   cause: Throwable? = null,

@@ -1,7 +1,7 @@
 
 package skillbill.cli.skillremove
 
-import skillbill.cli.kernel.CliOutput
+import skillbill.cli.kernel.cli.CliOutput
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliFormat
 import skillbill.contracts.SharedPayloadKeys
@@ -12,7 +12,6 @@ import skillbill.domain.skillremove.model.SkillRemovalRequest
 import skillbill.domain.skillremove.model.SkillRemovalResult
 import skillbill.domain.skillremove.model.SkillRemovalTarget
 import java.nio.file.Path
-
 internal fun executeRemoveCommand(request: RemoveCommandExecutionRequest): CliExecutionResult {
   if (request.rawTarget == null) {
     return errorResult(removeUsageMessage(), request.format)

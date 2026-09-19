@@ -1,13 +1,12 @@
 package skillbill.workflow.goal.model
-import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
-import skillbill.review.context.model.CodeReviewExecutionMode
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class GoalSubtaskBlockerDispositionTest {
   private fun reservedPassOne(): GoalSubtaskReviewState = GoalSubtaskReviewState.initial(
     reviewBaseSha = "b".repeat(40),

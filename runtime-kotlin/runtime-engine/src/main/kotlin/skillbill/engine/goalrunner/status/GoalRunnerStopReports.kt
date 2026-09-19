@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.status
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.goalrunner.execution.core.StoppedReportArgs
 import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.goalrunner.model.GoalRunnerContinuationMode
 import skillbill.goalrunner.model.GoalRunnerLivenessSnapshot
@@ -14,10 +15,8 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-import skillbill.engine.goalrunner.execution.core.StoppedReportArgs
-
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 internal fun stopped(args: StoppedReportArgs): GoalRunnerRunReport.Stopped = GoalRunnerRunReport.Stopped(
   issueKey = args.issueKey,
   attemptedSubtasks = args.attempted,

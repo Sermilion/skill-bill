@@ -3,7 +3,7 @@ package skillbill.engine.featuretask.phase.core
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
+import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementAcknowledgment
 import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementBlockRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementCompleteRequest
@@ -11,16 +11,15 @@ import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementEnvelo
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpretation
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
-import skillbill.workflow.taskruntime.ProsePhaseOutputSynthesizer
-import skillbill.workflow.taskruntime.decodeValidationEvidenceFromArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
-import skillbill.workflow.taskruntime.model.SettlementEnvelopeRequest
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.artifact.decodeValidationEvidenceFromArtifact
+import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.feature.FeatureTaskRuntimeAuditRemainingAcInterpretation
+import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeAuditRemainingAcResult
+import skillbill.workflow.taskruntime.model.handoff.envelope.SettlementEnvelopeRequest
+import skillbill.workflow.taskruntime.phase.ProsePhaseOutputSynthesizer
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.Clock
-
 @Inject
 class FeatureTaskPhaseSettlementService(
   private val repository: FeatureTaskPhaseSettlementRepository,

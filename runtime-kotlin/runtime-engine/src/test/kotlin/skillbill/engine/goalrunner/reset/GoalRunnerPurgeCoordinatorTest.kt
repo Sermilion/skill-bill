@@ -1,23 +1,19 @@
 package skillbill.engine.goalrunner.reset
-import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
-import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
-import skillbill.engine.goalrunner.execution.core.testPhaseRecorder
-
-import skillbill.engine.goalrunner.InMemoryGoalManifestStore
-import skillbill.engine.goalrunner.RecordingOutcomeStore
-import skillbill.engine.goalrunner.manifest
-
-
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
+import skillbill.contracts.workflow.identity.task.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
 import skillbill.engine.decomposition.encodeDecompositionManifestYaml
-import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
+import skillbill.engine.goalrunner.InMemoryGoalManifestStore
+import skillbill.engine.goalrunner.RecordingOutcomeStore
+import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
+import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
+import skillbill.engine.goalrunner.execution.core.testPhaseRecorder
 import skillbill.engine.goalrunner.manifest
+import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
@@ -43,7 +39,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class GoalRunnerPurgeCoordinatorTest {
   @Test
   fun `live parent execution lease refuses purge`() {

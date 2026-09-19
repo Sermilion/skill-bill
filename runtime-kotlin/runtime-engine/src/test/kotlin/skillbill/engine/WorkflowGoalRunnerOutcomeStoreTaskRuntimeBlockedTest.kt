@@ -2,7 +2,7 @@ package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.decodeWorkflowArtifacts
+import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
@@ -13,7 +13,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
   @Test
   fun `stored blocked outcome with standing durable cause is returned with reason text byte-identical`() {

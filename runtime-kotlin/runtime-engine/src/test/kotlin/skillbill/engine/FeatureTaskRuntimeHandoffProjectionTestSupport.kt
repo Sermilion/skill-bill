@@ -1,9 +1,8 @@
 package skillbill.engine
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffProjectionValidator
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionValue
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
-
+import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffProjectionValidator
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionValue
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
 internal fun FeatureTaskRuntimePhaseLaunchBriefing.upstreamReceipt(producingPhaseId: String): String? =
   handoffEnvelope.projections
     .firstOrNull { projection ->

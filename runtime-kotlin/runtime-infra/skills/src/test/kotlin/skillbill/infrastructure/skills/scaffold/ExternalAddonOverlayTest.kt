@@ -2,8 +2,8 @@
 package skillbill.infrastructure.skills.scaffold
 
 import org.junit.jupiter.api.io.TempDir
-import skillbill.error.ExternalAddonOverlayError
-import skillbill.infrastructure.skills.FileSystemExternalAddonOverlay
+import skillbill.error.core.ExternalAddonOverlayError
+import skillbill.infrastructure.skills.externaladdon.FileSystemExternalAddonOverlay
 import skillbill.install.model.ExternalAddonSource
 import skillbill.ports.install.addon.ExternalAddonOverlayPort
 import skillbill.ports.install.addon.model.ExternalAddonOverlayRequest
@@ -15,7 +15,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class ExternalAddonOverlayTest {
   @TempDir
   lateinit var work: Path

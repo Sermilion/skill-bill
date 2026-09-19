@@ -1,11 +1,13 @@
 package skillbill.engine.goalrunner.repair
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
-import skillbill.engine.featuretask.phase.core.decodePhaseRecords
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.featuretask.lifecycle.remediation.diagnoseUnsettledCompletedUpstreamPhaseId
 import skillbill.engine.featuretask.lifecycle.remediation.featureSizeFromArtifacts
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.engine.featuretask.phase.core.decodePhaseRecords
+import skillbill.engine.goalrunner.execution.support.GoalRunnerStaleBlockedOutcomeContext
+import skillbill.engine.goalrunner.execution.support.diagnoseStaleBlockedOutcome
 import skillbill.engine.goalrunner.model.GoalRunnerChildWedgeDiagnosis
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeClass
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeFinding
@@ -15,16 +17,13 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
-import skillbill.workflow.taskruntime.decodeGoalContinuationArtifactFromArtifact
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.artifact.decodeGoalContinuationArtifactFromArtifact
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY
 import java.nio.file.Path
 import java.time.Clock
-import skillbill.engine.goalrunner.execution.support.GoalRunnerStaleBlockedOutcomeContext
-import skillbill.engine.goalrunner.execution.support.diagnoseStaleBlockedOutcome
-
 const val PASSED_VALIDATION_DEPTH: String = "validation_depth_present"
 const val PASSED_QUALITY_GATE_SELECTION: String = "quality_gate_selection_present"
 const val PASSED_REVIEW_BASE: String = "review_base_reachable"

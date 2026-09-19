@@ -4,20 +4,19 @@ import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.goalrunner.execution.core.EmptyOrStoppedArgs
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
-import skillbill.engine.planningprojection.producerProjectionGateReason
-import skillbill.error.GoalRunnerLaunchAuthorizationDeniedException
-import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
-import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
-import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.model.GoalPlanningProduceAttemptArgs
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
 import skillbill.engine.goalrunner.planning.outcome.emptyOrStopped
 import skillbill.engine.goalrunner.planning.outcome.launchedAgentId
 import skillbill.engine.goalrunner.planning.outcome.projectionRejectedReason
 import skillbill.engine.goalrunner.planning.outcome.stdoutFor
 import skillbill.engine.goalrunner.planning.outcome.stopped
-
+import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
+import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
+import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
+import skillbill.engine.planningprojection.producerProjectionGateReason
+import skillbill.error.goalrunner.GoalRunnerLaunchAuthorizationDeniedException
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 fun DefaultGoalPlanningSweep.projectionGateReason(payload: String, phaseId: String): String? {
   val envelope = JsonCodec.parseObjectOrNull(payload)
     ?.let(JsonCodec::jsonElementToValue)

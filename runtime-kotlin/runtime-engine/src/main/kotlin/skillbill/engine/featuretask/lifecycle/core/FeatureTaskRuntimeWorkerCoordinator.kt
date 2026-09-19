@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask.lifecycle.core
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.runtime.RuntimeSingleton
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -14,7 +14,6 @@ import skillbill.workflow.model.workflowStatus
 import java.time.Clock
 import java.time.Duration
 import java.util.UUID
-
 @RuntimeSingleton
 @Inject
 class FeatureTaskRuntimeWorkerCoordinator(

@@ -1,10 +1,4 @@
 package skillbill.engine.goalrunner
-import skillbill.engine.goalrunner.execution.support.withWorkflowId
-
-import skillbill.engine.InMemoryRuntimeWorkflowRepository
-import skillbill.engine.RuntimeFakeDatabaseSessionFactory
-
-
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.application.RecordingSpecScratchStore
@@ -12,23 +6,26 @@ import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.testHarnessClock
 import skillbill.contracts.JsonCodec
+import skillbill.engine.InMemoryRuntimeWorkflowRepository
+import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
-import skillbill.engine.goalrunner.launch.GoalRunnerLaunchReconciler
-import skillbill.engine.goalrunner.persist.GoalRunnerLedgerContext
-import skillbill.engine.goalrunner.persist.GoalRunnerLedgerRecorder
-import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilityEmitter
-import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilitySignal
-import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilitySubject
-import skillbill.engine.goalrunner.telemetry.GoalRunnerProgressEventEmitter
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.execution.core.GoalRunnerProgressReader
-import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
 import skillbill.engine.goalrunner.execution.core.SubtaskLaunchRequestArgs
-import skillbill.engine.goalrunner.launch.TestNoopGoalRunnerSubtaskLauncher
-import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.execution.core.goalRunnerDeps
+import skillbill.engine.goalrunner.execution.core.testActivityStampWriter
+import skillbill.engine.goalrunner.execution.core.testGoalRunner
+import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
+import skillbill.engine.goalrunner.execution.core.testPhaseRecorder
+import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerManifestStore
+import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
+import skillbill.engine.goalrunner.execution.core.testWorktreeEditJournalWriter
+import skillbill.engine.goalrunner.execution.support.withWorkflowId
+import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
+import skillbill.engine.goalrunner.launch.GoalRunnerLaunchReconciler
+import skillbill.engine.goalrunner.launch.TestNoopGoalRunnerSubtaskLauncher
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptRequest
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptResult
 import skillbill.engine.goalrunner.model.GoalRunnerEventSink
@@ -37,15 +34,14 @@ import skillbill.engine.goalrunner.model.GoalRunnerResetRequest
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
-import skillbill.engine.goalrunner.execution.core.testActivityStampWriter
-import skillbill.engine.goalrunner.execution.core.testGoalRunner
-import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
-import skillbill.engine.goalrunner.execution.core.testPhaseRecorder
-import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerManifestStore
-import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
-import skillbill.engine.goalrunner.execution.core.testWorktreeEditJournalWriter
-import skillbill.error.GoalRunnerLaunchAuthorizationDeniedException
-import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
+import skillbill.engine.goalrunner.persist.GoalRunnerLedgerContext
+import skillbill.engine.goalrunner.persist.GoalRunnerLedgerRecorder
+import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilityEmitter
+import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilitySignal
+import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilitySubject
+import skillbill.engine.goalrunner.telemetry.GoalRunnerProgressEventEmitter
+import skillbill.error.goalrunner.GoalRunnerLaunchAuthorizationDeniedException
+import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
@@ -108,10 +104,10 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
-import skillbill.ports.review.ReviewRepository
-import skillbill.ports.telemetry.LifecycleTelemetryRepository
-import skillbill.ports.telemetry.TelemetryOutboxRepository
-import skillbill.ports.telemetry.TelemetryReconciliationRepository
+import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
+import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
@@ -133,7 +129,7 @@ import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
@@ -155,8 +151,8 @@ import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -174,7 +170,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import skillbill.goalrunner.model.GoalPlanningStatusState.NOT_STARTED as GoalPlanningStatusStateNOT_STARTED
-
 class GoalRunnerTest {
   @Test
   fun `sqlite goal runner resume preserves completed subtask state`() {

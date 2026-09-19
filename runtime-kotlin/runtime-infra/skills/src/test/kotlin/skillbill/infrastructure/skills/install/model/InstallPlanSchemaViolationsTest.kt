@@ -1,13 +1,12 @@
 package skillbill.infrastructure.skills.install.model
 
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
-import skillbill.error.InvalidInstallPlanSchemaError
+import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class InstallPlanSchemaViolationsTest {
   private class ValidInstallPlanFixture {
     val skills: MutableList<MutableMap<String, Any?>> = mutableListOf(

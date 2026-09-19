@@ -2,27 +2,26 @@ package skillbill.engine.goalrunner.status
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.contracts.workflow.WorktreeEditJournalPayloadKeys
+import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
+import skillbill.contracts.workflow.payload.WorktreeEditJournalPayloadKeys
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.lifecycle.continuation.agentAttributionFromPhaseState
-import skillbill.engine.featuretask.review.core.auditGapIterationCount
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.review.core.auditGapIterationCount
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.validation.ValidationGateResolver
 import skillbill.engine.featuretask.validation.durableValidationChangedPaths
 import skillbill.engine.featuretask.validation.requiredValidationGateCommand
 import skillbill.engine.featuretask.validation.resolveRequiredValidationCommand
-import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.engine.goalrunner.execution.core.asWorkerOwnership
 import skillbill.engine.goalrunner.manifest.pruneEligibleCheckpointRefsForManifest
 import skillbill.engine.goalrunner.manifest.reconcileGoalManifest
 import skillbill.engine.goalrunner.manifest.toAcceptedSubtasks
-import skillbill.engine.goalrunner.planning.context.goalPlanningImmutableDecompositionHash
-import skillbill.engine.goalrunner.planning.recovery.GoalPlanningStatusReasonCoherence
+import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.engine.goalrunner.planning.model.GoalPlanningStatusAlignRequest
-import skillbill.error.ShellContentContractException
+import skillbill.engine.goalrunner.planning.recovery.GoalPlanningStatusReasonCoherence
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
@@ -53,15 +52,14 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.decompositionStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.decodeValidationEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
+import skillbill.workflow.taskruntime.artifact.decodeValidationEvidenceFromArtifact
+import skillbill.workflow.taskruntime.artifact.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.io.IOException
 import java.nio.file.Path
 import java.time.Clock
-
 private const val MAX_STATUS_ERROR_LENGTH = 240
 
 @Inject

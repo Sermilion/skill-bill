@@ -1,13 +1,11 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeOutputVerification
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class FeatureTaskRuntimeReviewVerdictActionabilityTest {
   @Test
   fun `a refuted major does not force changes_requested when only minors remain actionable`() {

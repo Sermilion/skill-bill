@@ -1,13 +1,7 @@
 package skillbill.engine.featuretask.runloop.core
 
-
-
-
-import skillbill.engine.featuretask.runloop.core.PendingReentry
-import skillbill.engine.featuretask.runloop.observability.paused
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeOperatorBlockRetry
-
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
 internal sealed class FeatureTaskRuntimeRunLoopTerminalOutcome {
   data class Blocked(val report: FeatureTaskRuntimeRunReport.Blocked) : FeatureTaskRuntimeRunLoopTerminalOutcome()
 

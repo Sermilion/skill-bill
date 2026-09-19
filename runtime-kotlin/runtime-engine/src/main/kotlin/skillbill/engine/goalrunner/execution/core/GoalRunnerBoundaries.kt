@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.execution.core
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
+import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweep
@@ -13,7 +13,6 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.specscratch.SpecScratchStore
 import java.time.Clock
-
 @Inject
 data class GoalRunnerRunBoundaries(
   val manifestStore: GoalRunnerManifestStore,

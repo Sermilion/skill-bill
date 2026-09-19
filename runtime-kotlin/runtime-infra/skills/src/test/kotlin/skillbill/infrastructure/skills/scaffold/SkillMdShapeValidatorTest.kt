@@ -1,13 +1,12 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.error.InvalidSkillMdShapeError
-import skillbill.infrastructure.skills.scaffold.validation.validateSkillMdShape
+import skillbill.error.shellcontent.InvalidSkillMdShapeError
+import skillbill.infrastructure.skills.scaffold.validation.shape.validateSkillMdShape
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
-
 class SkillMdShapeValidatorTest {
   @Test
   fun `valid content_md with rich body markdown passes when body shape is not enforced`() {

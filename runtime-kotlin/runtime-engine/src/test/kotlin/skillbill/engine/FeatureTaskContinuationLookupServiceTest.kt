@@ -1,6 +1,4 @@
 package skillbill.engine
-import skillbill.engine.goalrunner.manifest
-
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
@@ -8,18 +6,19 @@ import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
 import skillbill.application.testRepositoryRoot
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.WorkflowService
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
-import skillbill.application.workflow.openFeatureTask
+import skillbill.application.workflow.persist.openFeatureTask
+import skillbill.application.workflow.service.WorkflowService
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
-import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
-import skillbill.error.LegacyProseWorkflowError
+import skillbill.engine.goalrunner.manifest
+import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
+import skillbill.error.shellcontent.LegacyProseWorkflowError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
@@ -36,7 +35,7 @@ import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -44,7 +43,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskContinuationLookupServiceTest {
   @Test
   fun `lookup returns no match without mutating workflow state`() {

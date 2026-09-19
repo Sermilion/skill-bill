@@ -5,10 +5,9 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import skillbill.error.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.infrastructure.skills.scaffold.manifest.appendReadmeCatalogRow
 import java.nio.file.Path
-
 class ReadmeCatalogAppendTest {
 
   private val readmeWithCatalog = """

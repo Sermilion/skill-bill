@@ -3,12 +3,11 @@ package skillbill.infrastructure.contracts
 import com.networknt.schema.JsonSchema
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.PRODUCER_OUTPUT_EVIDENCE_CONTRACT_VERSION
-import skillbill.contracts.workflow.ProducerOutputEvidenceSchemaPaths
-import skillbill.error.InvalidProducerOutputEvidenceSchemaError
+import skillbill.contracts.workflow.identity.output.PRODUCER_OUTPUT_EVIDENCE_CONTRACT_VERSION
+import skillbill.contracts.workflow.identity.output.ProducerOutputEvidenceSchemaPaths
+import skillbill.error.shellcontent.InvalidProducerOutputEvidenceSchemaError
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
-
 @Inject
 class ProducerOutputEvidenceSchemaValidator : ProducerOutputEvidenceValidator {
   override fun validate(evidence: ProducerOutputEvidence) {

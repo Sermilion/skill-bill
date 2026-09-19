@@ -1,12 +1,5 @@
 package skillbill.engine.featuretask.runloop.state
 
-
-import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
-import skillbill.engine.featuretask.runloop.core.ReconstructFixLoopBudgetBasesArgs
-import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.lifecycle.continuation.matches
-import skillbill.engine.featuretask.runner.serializeTokenData
 import skillbill.application.testHarnessClock
 import skillbill.engine.IMPLEMENT_OUTPUT
 import skillbill.engine.PLAN_OUTPUT
@@ -14,8 +7,13 @@ import skillbill.engine.PREPLAN_OUTPUT
 import skillbill.engine.RuntimeHarnessConfig
 import skillbill.engine.WORKFLOW_ID
 import skillbill.engine.auditGapsFoundOutput
-import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.runloop.core.ReconstructFixLoopBudgetBasesArgs
+import skillbill.engine.featuretask.runner.serializeTokenData
 import skillbill.engine.runnerHarness
 import skillbill.engine.satisfiedAuditLauncher
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
@@ -27,11 +25,11 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -39,7 +37,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeRunStateReconstructionTest {
   @Test
   fun `completed phase and output views cannot mutate run state`() {

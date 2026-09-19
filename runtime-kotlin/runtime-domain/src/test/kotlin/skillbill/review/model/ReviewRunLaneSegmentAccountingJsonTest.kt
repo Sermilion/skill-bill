@@ -1,12 +1,11 @@
 package skillbill.review.model
 
-import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.review.context.model.ReviewLaneSegmentAccounting
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
-
 class ReviewRunLaneSegmentAccountingJsonTest {
   @Test
   fun `empty and legacy encoded rows preserve the storage boundary`() {

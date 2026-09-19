@@ -1,9 +1,9 @@
 package skillbill.engine.goalrunner.execution.core
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.engine.goalrunner.execution.support.GoalRunnerIterationPendingState
 import skillbill.engine.goalrunner.launch.GoalRunnerLaunchReconciler
 import skillbill.engine.goalrunner.launch.GoalRunnerSubtaskLaunchPrepare
-import skillbill.engine.goalrunner.execution.support.GoalRunnerIterationPendingState
 
 @Inject
 class GoalRunnerPerRunLoopAssembler(

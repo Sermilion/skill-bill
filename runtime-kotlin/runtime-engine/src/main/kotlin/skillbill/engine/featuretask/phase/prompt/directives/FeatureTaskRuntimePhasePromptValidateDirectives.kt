@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask.phase.prompt.directives
 import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 private const val VALIDATE_PHASE_FORBIDDEN_EXTRAS: String =
   "Do not run `skill-bill validate`, `npx agnix`, `scripts/validate_agent_configs`, or any other " +
     "repo-root checklist. Those commands are not this phase. "

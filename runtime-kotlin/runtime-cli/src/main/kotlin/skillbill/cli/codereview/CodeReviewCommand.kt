@@ -9,28 +9,27 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.long
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.review.ParallelCodeReviewRunner
-import skillbill.application.review.RequestedReviewMode
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
-import skillbill.application.review.toReviewAccountingPayload
+import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunner
+import skillbill.application.review.service.RequestedReviewMode
+import skillbill.application.review.stats.toReviewAccountingPayload
 import skillbill.application.reviewevidence.model.DiffResolutionException
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.invokingAgentResolutionHelp
-import skillbill.cli.kernel.requireInvokingAgentId
-import skillbill.cli.kernel.resolveCliRepositoryRoot
+import skillbill.cli.kernel.agent.invokingAgentResolutionHelp
+import skillbill.cli.kernel.agent.requireInvokingAgentId
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.JsonCodec
-import skillbill.error.ReviewAggregationIntegrityError
-import skillbill.error.ShellContentContractException
+import skillbill.error.shellcontent.ReviewAggregationIntegrityError
+import skillbill.error.shellcontent.ShellContentContractException
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
-
 @Inject
 class CodeReviewCommand(
   private val runner: ParallelCodeReviewRunner,

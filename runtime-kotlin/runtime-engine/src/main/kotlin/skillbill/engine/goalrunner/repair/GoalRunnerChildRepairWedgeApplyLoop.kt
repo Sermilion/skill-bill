@@ -1,16 +1,16 @@
 package skillbill.engine.goalrunner.repair
+import skillbill.application.workflow.decomposition.updateGoalParentForBlockedPhaseRetry
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.application.workflow.updateGoalParentForBlockedPhaseRetry
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowArtifactPatches
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.lifecycle.remediation.buildCompletedUpstreamMissingOutputRepair
-import skillbill.engine.featuretask.phase.core.decodePhaseLedger
-import skillbill.engine.featuretask.phase.core.decodePhaseRecords
 import skillbill.engine.featuretask.lifecycle.remediation.diagnoseUnsettledCompletedUpstreamPhaseId
 import skillbill.engine.featuretask.lifecycle.remediation.featureSizeFromArtifacts
 import skillbill.engine.featuretask.model.subtask.CompletedUpstreamRepairRequest
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowArtifactPatches
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.engine.featuretask.phase.core.decodePhaseLedger
+import skillbill.engine.featuretask.phase.core.decodePhaseRecords
 import skillbill.engine.goalrunner.model.GoalContinuation
 import skillbill.engine.goalrunner.model.GoalRunnerAppliedRepair
 import skillbill.engine.goalrunner.model.GoalRunnerChildRepairApplyRequest
@@ -38,14 +38,13 @@ import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeGoalContinuationArtifactFromArtifact
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.decodeGoalContinuationArtifactFromArtifact
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import java.nio.file.Path
 import java.time.Clock
-
 class GoalRunnerChildRepairWedgeApplyLoop(
   private val engine: WorkflowEngine,
   private val workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,

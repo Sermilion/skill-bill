@@ -1,10 +1,9 @@
 package skillbill.infrastructure.workflow.goalplanning
 
-import skillbill.error.GoalVerificationBoundaryCapExceededError
+import skillbill.error.shellcontent.GoalVerificationBoundaryCapExceededError
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryBody
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import java.nio.file.Path
-
 internal data class BoundaryBodyResolutionState(
   val bodies: MutableList<GoalPlanningBoundaryBody>,
   val unresolved: MutableList<String>,

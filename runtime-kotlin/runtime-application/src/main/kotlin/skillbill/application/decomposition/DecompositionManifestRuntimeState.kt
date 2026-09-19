@@ -4,7 +4,7 @@ import skillbill.application.decomposition.model.DecompositionManifestFileCandid
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -13,7 +13,6 @@ import skillbill.workflow.decomposition.runtime.invalidManifest
 import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
-
 fun archivedDecompositionManifest(repoRoot: Path, manifestPath: Path): Boolean {
   val relative = runCatching { repoRoot.normalize().relativize(manifestPath.normalize()).toString() }
     .getOrDefault(manifestPath.toString())

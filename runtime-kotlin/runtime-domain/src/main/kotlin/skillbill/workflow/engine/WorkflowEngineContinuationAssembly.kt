@@ -1,6 +1,6 @@
 package skillbill.workflow.engine
 
-import skillbill.contracts.workflow.WorkflowContinueSessionSummary
+import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.ResolvedRequiredArtifact
 import skillbill.workflow.engine.model.WorkflowContinuationFieldMap
 import skillbill.workflow.engine.model.WorkflowContinueDecision
@@ -16,7 +16,6 @@ import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-
 internal val workflowResumableStepStatuses =
   setOf(WorkflowStepStatus.RUNNING, WorkflowStepStatus.BLOCKED, WorkflowStepStatus.PENDING)
 

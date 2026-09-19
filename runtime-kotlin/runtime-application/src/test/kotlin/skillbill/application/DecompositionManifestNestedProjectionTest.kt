@@ -4,7 +4,7 @@ import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.model.DecompositionPlanningSubtaskOptions
 import skillbill.contracts.decomposition.DecompositionPlanningResult
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,7 +12,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-
 class DecompositionManifestNestedProjectionTest {
   @Test
   fun `workflow update rejects decomposition when parent spec is already a decomposed subtask`() {

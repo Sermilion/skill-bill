@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
@@ -9,15 +8,16 @@ import skillbill.contracts.JsonCodec
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProducerOutputRead
-import skillbill.engine.featuretask.model.review.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.phase.ProducerOutputQueryArgs
-import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.engine.featuretask.model.review.FeatureTaskRuntimeRejectedOutputWrite
+import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
+import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticFailureClass
+import skillbill.workflow.taskruntime.artifact.asTelemetryPayload
+import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -26,7 +26,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeDiagnosticDegradationTest {
   @Test
   fun `three repair turns of one attempt each retain their own evidence row`() {

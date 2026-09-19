@@ -1,18 +1,17 @@
 package skillbill.engine
 
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffEnvelope
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjection
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionField
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionValue
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffPromptVisibility
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjection
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionField
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionValue
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class FeatureTaskRuntimePhaseLaunchBriefingSerializationTest {
   @Test
   fun `retired gap memory is ignored and omitted when a legacy briefing is saved again`() {

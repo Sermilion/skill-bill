@@ -1,11 +1,10 @@
 package skillbill.infrastructure.launcher.review
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidGovernedReviewEvidenceRequestError
+import skillbill.error.core.InvalidGovernedReviewEvidenceRequestError
 import skillbill.ports.review.model.ReviewEvidenceRequest
-import skillbill.review.context.model.ReviewEvidenceLimits
-import skillbill.review.context.model.ReviewExpansionRecord
-
+import skillbill.review.context.model.hunk.ReviewEvidenceLimits
+import skillbill.review.context.model.packet.ReviewExpansionRecord
 internal object GovernedReviewEvidenceCodecWireParsing {
   fun evidenceRequest(
     lane: String,

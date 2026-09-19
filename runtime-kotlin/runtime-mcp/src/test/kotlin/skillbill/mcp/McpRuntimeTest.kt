@@ -1,6 +1,6 @@
 package skillbill.mcp
 
-import skillbill.application.review.toFeatureTaskRuntimeStatsPayload
+import skillbill.application.review.stats.toFeatureTaskRuntimeStatsPayload
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFinishedRequest
 import skillbill.application.telemetry.model.FeatureTaskRuntimeStartedRequest
 import skillbill.application.telemetry.model.FeatureVerifyFinishedRequest
@@ -14,10 +14,10 @@ import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
-import skillbill.di.SkillBillVersion
+import skillbill.di.core.SkillBillVersion
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.sqlite.ensureTestDatabase
-import skillbill.infrastructure.workflow.GitWorkflowGitOperations
+import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.mcp.core.McpRuntime
 import skillbill.mcp.core.importReview
 import skillbill.mcp.core.newSkillScaffold
@@ -45,7 +45,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class McpRuntimeTest {
   @Test
   fun `workflow open retains context as its fourth positional argument`() {

@@ -1,12 +1,9 @@
 package skillbill.engine.featuretask.phase.record
 
-
-
-
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
-import skillbill.engine.featuretask.phase.core.decomposeTerminalFromWorkflowArtifacts
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.model.WorkflowFamily
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.engine.featuretask.phase.core.decomposeTerminalFromWorkflowArtifacts
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.save
@@ -15,12 +12,11 @@ import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decomposeTerminalFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
-
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.decomposeTerminalFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDecomposeTerminal
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 @Inject
 class FeatureTaskRuntimeDecomposeTerminalRecorder(
   private val database: DatabaseSessionFactory,

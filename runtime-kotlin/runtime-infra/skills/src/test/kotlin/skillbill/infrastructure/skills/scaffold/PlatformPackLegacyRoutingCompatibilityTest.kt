@@ -1,12 +1,11 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class PlatformPackLegacyRoutingCompatibilityTest {
   @Test
   fun `omitted routed lane metadata preserves legacy manifest behavior`() {

@@ -3,12 +3,11 @@ package skillbill.infrastructure.contracts
 import com.networknt.schema.JsonSchema
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.REJECTED_OUTPUT_DIAGNOSTIC_CONTRACT_VERSION
-import skillbill.contracts.workflow.RejectedOutputDiagnosticSchemaPaths
-import skillbill.error.InvalidRejectedOutputDiagnosticSchemaError
+import skillbill.contracts.workflow.identity.output.REJECTED_OUTPUT_DIAGNOSTIC_CONTRACT_VERSION
+import skillbill.contracts.workflow.identity.output.RejectedOutputDiagnosticSchemaPaths
+import skillbill.error.shellcontent.InvalidRejectedOutputDiagnosticSchemaError
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
-
 @Inject
 class RejectedOutputDiagnosticSchemaValidator : RejectedOutputDiagnosticMetadataValidator {
   override fun validate(metadata: RejectedOutputDiagnostic) {

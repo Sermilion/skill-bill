@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit
 
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
@@ -11,7 +11,6 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 import kotlin.io.path.relativeTo
-
 internal const val SHINGLE_WIDTH = 5
 
 internal fun auditPlatformPacks(

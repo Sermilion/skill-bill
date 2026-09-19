@@ -3,10 +3,10 @@ package skillbill.engine.work
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
-import skillbill.engine.featuretask.runner.OPERATOR_DECISION_QUALITY_GATE_PHASE_IDS
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeOperatorDecisionPause
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
+import skillbill.engine.featuretask.runner.OPERATOR_DECISION_QUALITY_GATE_PHASE_IDS
 import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.engine.work.model.IdeStatusCandidate
@@ -19,7 +19,7 @@ import skillbill.engine.work.model.IdeStatusProgress
 import skillbill.engine.work.model.IdeStatusSnapshot
 import skillbill.engine.work.model.IdeStatusStep
 import skillbill.engine.work.model.IdeStatusWorkflowFamily
-import skillbill.error.ShellContentContractException
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalPlanningStatusState
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
@@ -33,7 +33,6 @@ import skillbill.workflow.model.workflowStepStatus
 import java.io.IOException
 import java.nio.file.Path
 import java.time.Instant
-
 internal data class IdeStatusProjectionContext(
   val unitOfWork: UnitOfWork,
   val repositoryIdentity: String,

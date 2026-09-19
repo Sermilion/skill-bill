@@ -1,0 +1,166 @@
+package skillbill.application.review.parallel.planning
+import skillbill.application.review.model.ReviewRubricProjection
+import skillbill.application.review.model.ReviewWorkerKind.GENERIC
+import skillbill.application.review.packet.body
+import skillbill.application.review.packet.hunks
+import skillbill.application.review.packet.root
+import skillbill.application.review.parallel.core.code.review.bundled.review
+import skillbill.application.review.parallel.core.code.review.evidence.files
+import skillbill.application.review.parallel.core.code.review.runner.all
+import skillbill.application.review.parallel.core.code.review.runner.evidence
+import skillbill.application.review.parallel.core.code.review.runner.manifests
+import skillbill.application.review.parallel.core.code.review.runner.ownedPathsBySlug
+import skillbill.application.review.parallel.core.code.review.runner.planning
+import skillbill.application.review.parallel.core.code.review.runner.roots
+import skillbill.application.review.parallel.core.code.review.runner.routedManifests
+import skillbill.application.review.parallel.core.code.review.runner.specialists
+import skillbill.application.review.parallel.core.review.manifests
+import skillbill.application.review.parallel.verification.path
+import skillbill.application.review.preparation.body
+import skillbill.application.review.review.evidence
+import skillbill.application.review.review.hunkId
+import skillbill.application.review.review.manifests
+import skillbill.application.review.review.resolve
+import skillbill.application.review.service.review
+import skillbill.application.review.spec.evidence
+import skillbill.application.review.spec.path
+import skillbill.application.review.spec.resolve
+import skillbill.application.review.verification.path
+import skillbill.application.reviewevidence.model.ReviewChangedFileEvidence
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
+import skillbill.ports.review.model.ReviewOwnedFileEvidence
+import skillbill.ports.review.preparation.ReviewRubricResolver
+import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
+import skillbill.review.plan.ReviewCrossRootLaneReconciliation
+import skillbill.review.plan.ReviewLaneInclusionPolicy
+import skillbill.review.plan.ReviewLaunchPlanPolicy
+import skillbill.review.plan.ReviewPerAreaFallbackExclusion
+import skillbill.review.plan.ReviewStackRouting
+import skillbill.review.plan.model.ReviewLaunchLane
+import skillbill.review.plan.model.ReviewReconciledLane
+import skillbill.review.plan.model.ReviewRootLanes
+import skillbill.review.plan.model.ReviewRoutingChangedFile
+import skillbill.scaffold.model.PlatformManifest
+
+class ParallelCodeReviewRunnerRubricPlanning(
+  private val reviewRubricResolver: ReviewRubricResolver,
+  private val installedPackCatalog: InstalledPlatformPackCatalogPort,
+) {
+  internal fun resolvePlannedRubrics(
+    evidence: ReviewDiffEvidence,
+    routedManifests: List<PlatformManifest>,
+    manifests: List<PlatformManifest>,
+    ownedPathsBySlug: Map<String, Set<String>>,
+  ): List<PlannedReviewRubric> = if (routedManifests.isEmpty()) {
+    resolveWithoutRoutedManifests(evidence)
+  } else {
+    resolveWithRoutedManifests(evidence, routedManifests, manifests, ownedPathsBySlug)
+  }
+
+  private fun resolveWithoutRoutedManifests(evidence: ReviewDiffEvidence): List<PlannedReviewRubric> {
+    val installed = installedPackCatalog.manifests()
+    if (installed.isEmpty()) return horizontalPlannedRubrics(evidence)
+    val routing = ReviewStackRouting.route(
+      installed,
+      evidence.files.map { ReviewRoutingChangedFile(it.path, it.changedContent) },
+    )
+    return if (routing.routedSlugs.isEmpty()) {
+      horizontalPlannedRubrics(evidence)
+    } else {
+      resolveWithRoutedManifests(
+        evidence,
+        installed.filter { it.slug in routing.routedSlugs },
+        installed,
+        routing.ownedPathsBySlug,
+      )
+    }
+  }
+
+  private fun resolveWithRoutedManifests(
+    evidence: ReviewDiffEvidence,
+    routedManifests: List<PlatformManifest>,
+    manifests: List<PlatformManifest>,
+    ownedPathsBySlug: Map<String, Set<String>>,
+  ): List<PlannedReviewRubric> {
+    val depthOffsets = ReviewCrossRootLaneReconciliation
+      .compositionDepthOffsets(routedManifests.map { it.slug }, manifests)
+    val rootLanes = routedManifests.map { root ->
+      val rootOwnedPaths = ownedPathsBySlug[root.slug].orEmpty()
+      val rootFiles = evidence.files.filter { it.path in rootOwnedPaths }
+      val selectedAreas = ReviewLaunchPlanPolicy.composedAreas(root.slug, manifests)
+      val lanes = ReviewLaunchPlanPolicy.flatten(root.slug, manifests, selectedAreas).lanes.also { lanes ->
+        require(lanes.isNotEmpty()) {
+          "Routed pack '${root.slug}' resolved no declared flattened specialist worker."
+        }
+      }.map { lane ->
+        val ownedPaths = if (lane.required) rootOwnedPaths.toList() else laneOwnedPaths(lane, rootFiles)
+        lane.copy(
+          ownedPaths = ownedPaths.distinct().sorted(),
+          changedHunkIds = evidence.hunks.filter { it.path in ownedPaths }.map { it.hunkId },
+        )
+      }
+      ReviewRootLanes(depthOffsets[root.slug] ?: 0, lanes)
+    }
+    val exclusion = ReviewPerAreaFallbackExclusion.partition(rootLanes, manifests)
+    return ReviewCrossRootLaneReconciliation
+      .reconcile(exclusion.roots, exclusion.excludedFallbackLanesByArea)
+      .filter { it.lane.ownedPaths.isNotEmpty() }
+      .map { reconciled -> toPlannedRubric(evidence, reconciled, manifests) }
+  }
+
+  private fun toPlannedRubric(
+    evidence: ReviewDiffEvidence,
+    reconciled: ReviewReconciledLane,
+    manifests: List<PlatformManifest>,
+  ): PlannedReviewRubric {
+    val lane = reconciled.lane
+    require(
+      reconciled.inputs.filter { it.packSlug == lane.packSlug }.all {
+        it.area == lane.area && it.skillName == lane.skillName && it.addOns == lane.addOns
+      },
+    ) {
+      "Conflicting ownership for specialist '${lane.skillName}'."
+    }
+    val owner = manifests.single { it.slug == lane.packSlug }
+    val ownedEvidence = evidence.ownedFiles(lane.ownedPaths.toSet()).map {
+      ReviewOwnedFileEvidence(it.path, it.changedContent)
+    }
+    val resolvedOwner = reviewRubricResolver.resolve(owner, ownedEvidence, lane.skillName)
+    val resolved = resolvedOwner
+      .specialists.singleOrNull { it.area == lane.area }
+      ?: resolvedOwner
+    return PlannedReviewRubric(
+      descriptor = lane.copy(addOns = resolved.selectedAddOns),
+      rubric = ReviewRubricProjection(lane.skillName, resolved.body, resolved.area ?: lane.area),
+      originLayerChains = reconciled.inputs.flatMap { it.originLayerChains }.distinct(),
+    )
+  }
+
+  private fun horizontalPlannedRubrics(evidence: ReviewDiffEvidence): List<PlannedReviewRubric> {
+    val rubric = reviewRubricResolver.resolve(null)
+    return listOf(
+      PlannedReviewRubric(
+        ReviewLaunchLane(
+          rubric.rubricId,
+          "horizontal",
+          rubric.area ?: "generic",
+          0,
+          listOf("horizontal"),
+          true,
+          emptyList(),
+          0,
+          "horizontal base behavior",
+          ownedPaths = evidence.hunks.map { it.path }.distinct().sorted(),
+          changedHunkIds = evidence.hunks.map { it.hunkId },
+        ),
+        ReviewRubricProjection(rubric.rubricId, rubric.body, rubric.area),
+        workerKind = GENERIC,
+      ),
+    )
+  }
+
+  private fun laneOwnedPaths(lane: ReviewLaunchLane, files: List<ReviewChangedFileEvidence>): List<String> =
+    files.filter { file ->
+      ReviewLaneInclusionPolicy.ownsChangedFile(lane, file.path, file.changedContent)
+    }.map { it.path }
+}

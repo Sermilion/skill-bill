@@ -1,0 +1,95 @@
+package skillbill.infrastructure.workflow.git.checkpoint
+import skillbill.infrastructure.workflow.decomposition.repoRoot
+import skillbill.infrastructure.workflow.feature.error
+import skillbill.infrastructure.workflow.feature.repoRoot
+import skillbill.infrastructure.workflow.featuretask.error
+import skillbill.infrastructure.workflow.featuretask.expected
+import skillbill.infrastructure.workflow.featuretask.repoRoot
+import skillbill.infrastructure.workflow.git.goal.error
+import skillbill.infrastructure.workflow.git.goal.exitCode
+import skillbill.infrastructure.workflow.git.goal.expected
+import skillbill.infrastructure.workflow.git.goal.message
+import skillbill.infrastructure.workflow.git.goal.value
+import skillbill.infrastructure.workflow.git.local.git
+import skillbill.infrastructure.workflow.git.protected.git
+import skillbill.infrastructure.workflow.git.repository.exitCode
+import skillbill.infrastructure.workflow.git.repository.git
+import skillbill.infrastructure.workflow.git.repository.repoRoot
+import skillbill.infrastructure.workflow.git.scoped.git
+import skillbill.infrastructure.workflow.git.suppression.git
+import skillbill.infrastructure.workflow.git.workflow.error
+import skillbill.infrastructure.workflow.git.workflow.exitCode
+import skillbill.infrastructure.workflow.git.workflow.git
+import skillbill.infrastructure.workflow.git.workflow.repoRoot
+import skillbill.infrastructure.workflow.git.workflow.value
+import skillbill.infrastructure.workflow.process.gitTimedOutError
+import skillbill.infrastructure.workflow.process.runGitCommand
+import skillbill.infrastructure.workflow.process.runGitProcess
+import skillbill.infrastructure.workflow.review.broker.error
+import skillbill.infrastructure.workflow.review.specialists.coordinate.expected
+import skillbill.infrastructure.workflow.review.specialists.system.repoRoot
+import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.workflow.gitops.ProtectedBranches
+import java.nio.file.Path
+
+internal fun gitCheckpointProtectedBranchFailure(repoRoot: Path): WorkflowGitOperationResult? {
+  val branch = runGitCommand(repoRoot, "branch", "--show-current")
+  if (branch !is WorkflowGitOperationResult.Ok) {
+    return WorkflowGitOperationResult.Failed(
+      error = "Could not read the current branch; refusing to amend. ${branch.error}".trim(),
+    )
+  }
+  val protected = ProtectedBranches.protectedName(branch.value) ?: return null
+  return WorkflowGitOperationResult.Failed(
+    error = "HEAD is on protected branch '$protected'; refusing to amend shared history.",
+  )
+}
+
+internal fun gitCheckpointOwnedHeadFailure(repoRoot: Path, expected: String): WorkflowGitOperationResult? {
+  if (expected.isBlank()) {
+    return WorkflowGitOperationResult.Failed(error = "An owned HEAD sha is required to amend.")
+  }
+  val head = runGitCommand(repoRoot, "rev-parse", "--verify", "--quiet", "HEAD")
+  val currentHead = head.value.orEmpty().trim()
+  if (head !is WorkflowGitOperationResult.Ok || currentHead.isBlank()) {
+    return WorkflowGitOperationResult.Failed(error = "HEAD does not name a commit; nothing to amend.")
+  }
+  if (currentHead == expected) return null
+  return WorkflowGitOperationResult.Failed(
+    error = "HEAD is '$currentHead' but the caller owns '$expected'; refusing to amend an unowned commit.",
+  )
+}
+
+internal fun gitCheckpointStagedContentFailure(repoRoot: Path, currentHead: String): WorkflowGitOperationResult? {
+  val staged = runGitProcess(repoRoot, listOf("diff", "--cached", "--quiet"))
+  if (staged.timedOut || staged.readFailure != null) {
+    return WorkflowGitOperationResult.Failed(
+      error = staged.readFailure?.message ?: gitTimedOutError(listOf("diff", "--cached")),
+    )
+  }
+  if (staged.exitCode != 0) return null
+  return WorkflowGitOperationResult.Failed(
+    error = "The index carries no staged content; refusing to amend '$currentHead'.",
+  )
+}
+
+internal fun gitCheckpointValidatedRef(namespacePrefix: String, refName: String): String? {
+  val prefix = namespacePrefix.trim().removeSuffix("/")
+  val ref = refName.trim()
+  if (prefix.isBlank() || !ref.startsWith("$prefix/")) return null
+  if (ref.endsWith("/") || ref.endsWith(".lock")) return null
+  val segmentRejected = ref.split('/').any { segment ->
+    segment in GIT_CHECKPOINT_REF_NAME_REJECTED_SEGMENTS || segment.endsWith(".lock") || segment.contains("..")
+  }
+  val charRejected = ref.any { char ->
+    char.isWhitespace() || char.isISOControl() || char in GIT_CHECKPOINT_REF_NAME_REJECTED_CHARS
+  }
+  return ref.takeIf { !segmentRejected && !charRejected }
+}
+
+internal fun gitCheckpointRejectedRef(namespacePrefix: String, refName: String) = WorkflowGitOperationResult.Failed(
+  error = "Ref '${refName.trim()}' is not a valid ref inside namespace '${namespacePrefix.trim()}'.",
+)
+
+internal val GIT_CHECKPOINT_REF_NAME_REJECTED_SEGMENTS = setOf("", ".", "..")
+internal val GIT_CHECKPOINT_REF_NAME_REJECTED_CHARS = setOf(':', '?', '*', '[', '\\', '~', '^')

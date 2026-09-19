@@ -5,10 +5,9 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import skillbill.infrastructure.skills.scaffold.platformpack.ReadmeCatalogEdits
-import skillbill.infrastructure.skills.scaffold.platformpack.ReadmeEditOutcome
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.ReadmeCatalogEdits
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.ReadmeEditOutcome
 import java.nio.file.Path
-
 class ReadmeCatalogEditsTest {
   @Test
   fun `removeCatalogRow removes table row and reports Applied`(@TempDir tempDir: Path) {

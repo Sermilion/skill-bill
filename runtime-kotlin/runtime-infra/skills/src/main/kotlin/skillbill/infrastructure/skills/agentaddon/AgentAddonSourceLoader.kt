@@ -6,7 +6,7 @@ import skillbill.agentaddon.model.AgentAddonCatalogueInspection
 import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.agentaddon.model.AgentAddonDeclaration
 import skillbill.contracts.JsonCodec
-import skillbill.error.MissingAgentAddonDeclarationError
+import skillbill.error.shellcontent.MissingAgentAddonDeclarationError
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files
@@ -15,7 +15,6 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
 import kotlin.io.path.name
-
 private const val AGENT_ADDONS_DIRECTORY = "agent-addons"
 private const val MANIFEST_FILE = "agent-addon.yaml"
 private const val CONTENT_FILE = "content.md"

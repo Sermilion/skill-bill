@@ -4,15 +4,15 @@ import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
-import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
-import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
 import skillbill.engine.goalrunner.planning.outcome.resolvedGovernedPath
 import skillbill.engine.goalrunner.planning.outcome.stopped
+import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningIncompatibleProvenanceStopReason
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningRemedySubtaskId
 import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
+import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 
 internal fun DefaultGoalPlanningSweep.freshPlanningPacket(
   shared: GoalPlanningSharedContext,

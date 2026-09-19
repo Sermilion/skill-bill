@@ -14,7 +14,7 @@ import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.mcp.model.InstallMcpRegistrationRequest
 import skillbill.ports.install.mcp.model.InstallMcpRegistrationResult
 import skillbill.ports.install.mcp.model.InstallMcpUnregistrationRequest
-import skillbill.ports.telemetry.TelemetryLevelMutator
+import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 
 internal val installTestWireValidator: InstallPlanWireValidator = InstallPlanSchemaValidator()
 

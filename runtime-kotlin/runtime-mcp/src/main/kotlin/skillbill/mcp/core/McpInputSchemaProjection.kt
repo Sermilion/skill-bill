@@ -9,10 +9,9 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
-import skillbill.error.InvalidTelemetryEventSchemaError
+import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import skillbill.mcp.shared.McpProtocolFramer
 import skillbill.mcp.telemetry.TelemetryEventSchemaValidator
-
 internal object McpInputSchemaProjection {
   private val mapper: ObjectMapper = ObjectMapper()
 

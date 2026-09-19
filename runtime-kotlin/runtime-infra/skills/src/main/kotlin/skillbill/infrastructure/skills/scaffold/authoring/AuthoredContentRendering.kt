@@ -1,10 +1,9 @@
 package skillbill.infrastructure.skills.scaffold.authoring
 
-import skillbill.error.SkillBillRuntimeException
-import skillbill.infrastructure.skills.scaffold.validation.markdownBodyAfterFrontmatter
+import skillbill.error.core.SkillBillRuntimeException
+import skillbill.infrastructure.skills.scaffold.validation.shape.markdownBodyAfterFrontmatter
 import java.nio.file.Files
 import java.nio.file.Path
-
 private const val FRONTMATTER_PREFIX_LENGTH = 4
 private val MARKDOWN_HEADING_PATTERN = Regex("""^(#{1,6})(\s+.*)$""")
 private val TITLE_HEADING_PATTERN = Regex("""^#\s+\S.*$""")

@@ -1,15 +1,11 @@
 package skillbill.engine.featuretask.review.core
 
-
-
-
+import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeContinuationKind
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
-import skillbill.engine.featuretask.lifecycle.continuation.reviewState
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
-
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 fun reviewFixCapExhaustion(
   ledger: List<FeatureTaskRuntimePhaseLedgerEntry>?,
   goalReviewCapReached: Boolean?,

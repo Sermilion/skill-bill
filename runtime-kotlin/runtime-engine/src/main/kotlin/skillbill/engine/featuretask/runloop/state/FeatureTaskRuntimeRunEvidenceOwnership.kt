@@ -1,11 +1,7 @@
 package skillbill.engine.featuretask.runloop.state
 
-
-
-
 import skillbill.engine.featuretask.lifecycle.checkpoint.normalizeForAliasComparison
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeRunEvidenceAddress
-
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeRunEvidenceAddress
 object FeatureTaskRuntimeRunEvidenceOwnership {
   private val storeRoot = normalizeForAliasComparison(FeatureTaskRuntimeRunEvidenceAddress.STORE_ROOT)
 

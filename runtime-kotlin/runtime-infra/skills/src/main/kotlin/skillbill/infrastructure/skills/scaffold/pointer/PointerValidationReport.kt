@@ -1,7 +1,7 @@
 package skillbill.infrastructure.skills.scaffold.pointer
 
-import skillbill.error.ShellContentContractException
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
+import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import java.io.File
@@ -10,7 +10,6 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.relativeTo
-
 private const val POINTER_FILE_MAX_BYTES: Long = 500L
 private val POINTER_CONTENT_PATTERN: Regex = Regex("^(\\.{1,2}/)+[^\\s]+\\.md$")
 

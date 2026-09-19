@@ -2,7 +2,7 @@ package skillbill.mcp
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.error.InvalidTelemetryEventSchemaError
+import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.mcp.core.McpToolRegistry
 import skillbill.mcp.telemetry.TELEMETRY_EVENT_CONTRACT_VERSION
@@ -16,7 +16,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class GoalTelemetryEmissionEventParityTest {
 
   private val schemaNode: JsonNode by lazy {

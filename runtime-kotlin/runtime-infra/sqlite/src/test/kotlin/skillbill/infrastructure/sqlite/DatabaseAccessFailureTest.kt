@@ -1,9 +1,9 @@
 package skillbill.infrastructure.sqlite
 
 import org.sqlite.SQLiteException
-import skillbill.error.DatabaseAccessError
-import skillbill.error.DatabaseAccessOperation
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.error.core.DatabaseAccessError
+import skillbill.error.core.DatabaseAccessOperation
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -14,7 +14,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class DatabaseAccessFailureTest {
   @Test
   fun `unopenable database on the read path raises the typed error with the resolved path`() {

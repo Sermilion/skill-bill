@@ -1,6 +1,8 @@
 package skillbill.engine.goalrunner.execution.core
 
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
+import skillbill.engine.goalrunner.persist.GoalRunnerLedgerRecorder
+import skillbill.engine.goalrunner.telemetry.GoalRunnerProgressEventEmitter
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -26,8 +28,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import skillbill.engine.goalrunner.persist.GoalRunnerLedgerRecorder
-import skillbill.engine.goalrunner.telemetry.GoalRunnerProgressEventEmitter
 
 class RuntimeArchitectureProbeTest {
   private val clock = Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC)

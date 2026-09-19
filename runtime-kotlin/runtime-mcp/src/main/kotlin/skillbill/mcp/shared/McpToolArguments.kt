@@ -1,8 +1,7 @@
 package skillbill.mcp.shared
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidMcpToolArgumentError
-
+import skillbill.error.core.InvalidMcpToolArgumentError
 internal fun Map<String, Any?>.string(name: String): String =
   optionalString(name) ?: throw InvalidMcpToolArgumentError("<unknown>", name, "is required")
 

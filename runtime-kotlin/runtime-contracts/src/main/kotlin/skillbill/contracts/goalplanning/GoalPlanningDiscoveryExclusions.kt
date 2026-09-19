@@ -4,8 +4,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.packaged.PackagedYamlMappingFailure
 import skillbill.contracts.packaged.loadPackagedYamlRootMapping
 import skillbill.contracts.packaged.requireUniqueStringItems
-import skillbill.error.InvalidGoalPlanningDiscoveryExclusionsSchemaError
-
+import skillbill.error.shellcontent.InvalidGoalPlanningDiscoveryExclusionsSchemaError
 object GoalPlanningDiscoveryExclusions {
   const val CONTRACT_VERSION = "0.3"
   const val RESOURCE_PATH = "skillbill/infrastructure/contracts/goal-planning-discovery-exclusions.yaml"

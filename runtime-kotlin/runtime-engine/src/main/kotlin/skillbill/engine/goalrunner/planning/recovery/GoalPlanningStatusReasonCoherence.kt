@@ -3,10 +3,10 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
-import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
+import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
-import skillbill.engine.goalrunner.planning.model.GoalPlanningStatusAlignRequest
 import skillbill.engine.goalrunner.planning.context.goalPlanningImmutableDecompositionHash
+import skillbill.engine.goalrunner.planning.model.GoalPlanningStatusAlignRequest
 import skillbill.engine.goalrunner.planning.remedies.alignPlanningStatusWithLaunchRecoverability
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningRemedySubtaskId
 import skillbill.engine.goalrunner.planning.remedies.statusRecoverabilityOrRefuse
@@ -18,7 +18,6 @@ import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.text.sha256HexUtf8
 import java.nio.file.Path
-
 fun interface GoalPlanningStatusReasonCoherence {
   fun align(request: GoalPlanningStatusAlignRequest): GoalPlanningStatusSnapshot
 

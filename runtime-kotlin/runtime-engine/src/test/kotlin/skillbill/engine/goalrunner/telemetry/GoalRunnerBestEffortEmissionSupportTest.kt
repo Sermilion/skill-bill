@@ -2,10 +2,10 @@ package skillbill.engine.goalrunner.telemetry
 
 import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
 import skillbill.engine.goalrunner.model.GoalRunnerObservabilityWorkerRole
+import skillbill.engine.goalrunner.status.GoalRunnerStatusDurableReadTracker
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import skillbill.engine.goalrunner.status.GoalRunnerStatusDurableReadTracker
 
 class GoalRunnerBestEffortEmissionSupportTest {
   @Test

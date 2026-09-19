@@ -1,13 +1,11 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
 import skillbill.engine.featuretask.runloop.core.resolveLaunchRejectionAttribution
-import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class FeatureTaskRuntimeLaunchRejectionAttributionTest {
   @Test
   fun `audit rejection uses the rejected projection contract and its current producer iteration`() {

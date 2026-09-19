@@ -13,10 +13,9 @@ import com.networknt.schema.ValidationMessage
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
-import skillbill.error.InvalidTelemetryEventSchemaError
+import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import java.io.IOException
 import java.util.Locale
-
 internal const val TELEMETRY_EVENT_CONTRACT_VERSION: String = "1.12.0"
 
 private val LOCALE_STABLE_SCHEMA_CONFIG: SchemaValidatorsConfig =

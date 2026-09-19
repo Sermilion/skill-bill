@@ -2,7 +2,7 @@ package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliExecutionResult
-import skillbill.di.SkillBillVersion
+import skillbill.di.core.SkillBillVersion
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import java.sql.DriverManager
 import kotlin.test.Test
@@ -11,7 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
-
 class CliGoalSharedPreplanReplanTest {
   @Test
   fun `include-shared-preplan lists cascade then relaunch regenerates without reopening terminals`() {

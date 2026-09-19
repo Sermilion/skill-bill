@@ -7,12 +7,11 @@ import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.scaffold.model.ValidationGateCompilerDiagnosticsFormat
 import skillbill.scaffold.model.ValidationGateExecutedWorkFormat
 import skillbill.scaffold.model.ValidationGateFindingsFormat
-import skillbill.workflow.taskruntime.model.ValidationGateRunOutcome
-import skillbill.workflow.taskruntime.unparseableGateFailureMessage
+import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
+import skillbill.workflow.taskruntime.validation.unparseableGateFailureMessage
 import java.nio.file.Path
 import java.time.Instant
 import kotlin.coroutines.cancellation.CancellationException
-
 internal fun FileSystemValidationGateRunner.deriveOutcome(
   exitCode: Int,
   findings: List<ValidationGateFinding>,

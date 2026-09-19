@@ -1,13 +1,13 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationCommandResult
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationCommandResult
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
 import java.nio.file.Files
 import java.sql.Connection
 import java.time.Instant

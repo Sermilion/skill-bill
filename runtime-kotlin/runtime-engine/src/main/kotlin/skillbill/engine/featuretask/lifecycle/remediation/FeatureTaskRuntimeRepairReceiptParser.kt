@@ -1,20 +1,16 @@
 package skillbill.engine.featuretask.lifecycle.remediation
 
-
-
-
-import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
-import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
+import skillbill.engine.featuretask.lifecycle.continuation.reviewState
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
+import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.taskruntime.decodeRepairReceiptFromArtifactWithObservations
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.coversCarriedFindings
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeRemediationRoundNumber
-import skillbill.workflow.taskruntime.validateRepairReceiptWireEntries
-
+import skillbill.workflow.taskruntime.artifact.decodeRepairReceiptFromArtifactWithObservations
+import skillbill.workflow.taskruntime.artifact.validateRepairReceiptWireEntries
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.taskruntime.model.repair.task.coversCarriedFindings
+import skillbill.workflow.taskruntime.model.repair.task.featureTaskRuntimeRemediationRoundNumber
 fun featureTaskRuntimeParseRepairReceiptOrNull(
   producedOutputs: Map<String, Any?>,
   remediationBaseSha: String,

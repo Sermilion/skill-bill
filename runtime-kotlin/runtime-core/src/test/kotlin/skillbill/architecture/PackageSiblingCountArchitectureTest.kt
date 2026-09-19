@@ -33,7 +33,8 @@ class PackageSiblingCountArchitectureTest {
             sourceFile.fileName.toString() != "GoalRunnerStatusService.kt" &&
             sourceFile.fileName.toString() != "GoalRepositoryIdentity.kt"
         },
-      "Status, preflight, repair, launch, manifest, execution, and telemetry types must not remain in the goal-runner area root.",
+      "Status, preflight, repair, launch, manifest, execution, " +
+        "and telemetry types must not remain in the goal-runner area root.",
     )
     assertEquals(
       emptyList(),
@@ -42,7 +43,8 @@ class PackageSiblingCountArchitectureTest {
           sourceFile.parent == goalRunnerPlanningRoot &&
             sourceFile.fileName.toString() != "GoalPlanningLogService.kt"
         },
-      "Planning context, attempt, sweep, outcome, recovery, and remedy types must not remain in the planning area root.",
+      "Planning context, attempt, sweep, outcome, recovery, and " +
+        "remedy types must not remain in the planning area root.",
     )
     assertTrue(
       sourceRoots.all { sourceRoot ->
@@ -55,6 +57,7 @@ class PackageSiblingCountArchitectureTest {
 
     val counts = ArchitectureScanSupport.productionPackageSiblingCounts(sourceRoots)
     val remainderInventory = PrincipleEnforcementInventory.packageSiblingCountRemainderInventory
+    assertEquals(emptyMap(), remainderInventory)
     assertEquals(
       emptyList(),
       ArchitectureScanSupport.productionPackageSiblingCountViolations(
@@ -126,6 +129,57 @@ class PackageSiblingCountArchitectureTest {
   }
 
   @Test
+  fun `intellij plugin retains its layer package roots`() {
+    val pluginRoot = ArchitectureScanSupport.runtimeRoot.resolve(
+      "intellij-plugin/src/main/kotlin/dev/skillbill/intellij",
+    )
+    val requiredLayers = setOf("domain", "application", "presentation", "ui", "infrastructure")
+    val missingLayers = requiredLayers.filterNot { layer ->
+      pluginRoot.resolve(layer).toFile().isDirectory
+    }
+    assertEquals(emptyList(), missingLayers)
+  }
+
+  @Test
+  fun `task-runtime and application review models stay data-only below their parent boundaries`() {
+    val modelAreas = listOf(
+      Triple(
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model",
+        "skillbill.workflow.taskruntime.model",
+        "skillbill.workflow.taskruntime",
+      ),
+      Triple(
+        "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/review/model",
+        "skillbill.application.review.model",
+        "skillbill.application.review",
+      ),
+    )
+    val violations = modelAreas.flatMap { (relativeRoot, modelPackage, parentPackage) ->
+      val modelRoot = ArchitectureScanSupport.runtimeRoot.resolve(relativeRoot)
+      ArchitectureScanSupport.kotlinFilesUnder(modelRoot).flatMap { sourceFile ->
+        val source = sourceFile.readText()
+        val declaredPackage = ArchitectureScanSupport.declaredPackage(source).orEmpty()
+        if (declaredPackage != modelPackage && !declaredPackage.startsWith("$modelPackage.")) {
+          emptyList()
+        } else {
+          val parentImports = ArchitectureScanSupport.declaredImports(source)
+            .filter { imported ->
+              imported == parentPackage ||
+                (imported.startsWith("$parentPackage.") && !imported.startsWith("$modelPackage."))
+            }
+            .map { imported -> "${sourceFile.fileName}: imports $imported" }
+          val injected = Regex("""(?m)^\s*@Inject\b""")
+            .find(source)
+            ?.let { listOf("${sourceFile.fileName}: declares an injected model service") }
+            .orEmpty()
+          parentImports + injected
+        }
+      }
+    }
+    assertEquals(emptyList(), violations)
+  }
+
+  @Test
   fun `goal-runner model sources stay data-only and below their parent boundary`() {
     val modelRoot = ArchitectureScanSupport.runtimeRoot.resolve(
       "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner/model",
@@ -189,6 +243,33 @@ class PackageSiblingCountArchitectureTest {
             }
           }
         }
+    }
+    assertEquals(emptyList(), misplaced)
+  }
+
+  @Test
+  fun `runtime test sources remain co-located with their declared packages`() {
+    val sourceSetRoots = PrincipleEnforcementInventory.productionPackageSiblingCountSourceRoots
+      .mapNotNull { sourceRoot ->
+        val moduleRoot = ArchitectureScanSupport.runtimeRoot.resolve(sourceRoot).parent.parent.parent
+        listOf(
+          moduleRoot.resolve("src/test/kotlin"),
+          moduleRoot.resolve("src/testFixtures/kotlin"),
+          moduleRoot.resolve("src/repoTest/kotlin"),
+        ).filter { sourceSetRoot -> sourceSetRoot.toFile().isDirectory }
+      }
+      .flatten()
+    val misplaced = sourceSetRoots.flatMap { sourceSetRoot ->
+      ArchitectureScanSupport.kotlinFilesUnder(sourceSetRoot).mapNotNull { sourceFile ->
+        val packageName = ArchitectureScanSupport.declaredPackage(sourceFile.readText())
+          ?: return@mapNotNull null
+        val expectedDirectory = sourceSetRoot.resolve(packageName.replace('.', '/'))
+        if (sourceFile.parent == expectedDirectory) {
+          null
+        } else {
+          "${sourceSetRoot.relativize(sourceFile)} declares $packageName"
+        }
+      }
     }
     assertEquals(emptyList(), misplaced)
   }

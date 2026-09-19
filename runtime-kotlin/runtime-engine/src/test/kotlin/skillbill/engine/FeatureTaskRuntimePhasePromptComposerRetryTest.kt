@@ -1,12 +1,11 @@
 
 package skillbill.engine
 
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeOperatorBlockRetry
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimePhasePromptComposerRetryTest {
 
   @Test

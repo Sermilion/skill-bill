@@ -5,12 +5,11 @@ import kotlinx.serialization.json.JsonObject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
-import skillbill.error.ShellContentContractException
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpProtocolFramer
 import skillbill.mcp.shared.McpRuntimeLifecycle
 import skillbill.mcp.shared.componentForLegacyContext
-
 internal object McpStdioServer {
   internal fun handleLine(line: String): String? {
     val message = JsonCodec.parseObjectOrNull(line)

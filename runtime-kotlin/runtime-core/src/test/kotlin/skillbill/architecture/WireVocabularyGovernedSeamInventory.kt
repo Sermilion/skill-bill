@@ -12,9 +12,9 @@ import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
 import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
-import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
-import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
-import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.featuretask.DecompositionManifestSchemaPaths
+import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.assertTrue
@@ -70,7 +70,7 @@ internal object WireVocabularyGovernedSeamInventory {
       seamId = "feature-task-runtime-goal-continuation-artifact",
       schemaRepoRelativePath = GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY,
       governedRelativePathMarkers = listOf(
-        "taskruntime/model/FeatureTaskRuntimeGoalContinuationArtifact",
+        "taskruntime/model/persistence/task/runtime/goal/FeatureTaskRuntimeGoalContinuationArtifact",
         "infrastructure/sqlite/goalrunner/GoalContinuationArtifactCodec",
       ),
     ),

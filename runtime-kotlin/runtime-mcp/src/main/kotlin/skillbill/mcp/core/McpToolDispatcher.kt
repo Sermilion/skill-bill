@@ -4,7 +4,7 @@ import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
-import skillbill.error.InvalidMcpToolArgumentError
+import skillbill.error.core.InvalidMcpToolArgumentError
 import skillbill.mcp.featuretask.featureTaskPhaseBlock
 import skillbill.mcp.featuretask.featureTaskPhaseComplete
 import skillbill.mcp.lifecycle.featureVerifyFinished
@@ -30,7 +30,6 @@ import skillbill.mcp.workflow.workflowResume
 import skillbill.mcp.workflow.workflowUpdate
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.mcp.shared.map as argumentMap
-
 internal typealias McpToolHandler = (Map<String, Any?>, McpComponent) -> Map<String, Any?>
 
 internal object McpToolDispatcher {

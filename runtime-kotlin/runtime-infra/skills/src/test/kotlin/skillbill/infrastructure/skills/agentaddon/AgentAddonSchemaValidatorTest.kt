@@ -1,9 +1,8 @@
 package skillbill.infrastructure.skills.agentaddon
 
-import skillbill.error.InvalidAgentAddonSchemaError
+import skillbill.error.shellcontent.InvalidAgentAddonSchemaError
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
-
 class AgentAddonSchemaValidatorTest {
   private val validator = AgentAddonSchemaValidator()
 

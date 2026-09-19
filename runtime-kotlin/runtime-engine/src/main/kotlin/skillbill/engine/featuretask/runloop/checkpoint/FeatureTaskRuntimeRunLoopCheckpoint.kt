@@ -1,50 +1,45 @@
 package skillbill.engine.featuretask.runloop.checkpoint
 
-
-
-
-import skillbill.engine.featuretask.runloop.core.CheckpointCommitMessageArgs
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.lifecycle.checkpoint.CheckpointScopePreparation
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMessage
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMetadata
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointScope
-import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseSafetyPolicy
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoop
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopPlanningBranch
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
+import skillbill.engine.featuretask.lifecycle.checkpoint.phaseWrittenPaths
 import skillbill.engine.featuretask.lifecycle.subtask.FeatureTaskRuntimeSubtaskCommitHeadState
 import skillbill.engine.featuretask.lifecycle.subtask.FeatureTaskRuntimeSubtaskCommitResolver
-import skillbill.engine.featuretask.runloop.output.INVENTORY_EXTENDING_PHASES
+import skillbill.engine.featuretask.lifecycle.subtask.SubtaskCommitPreservationRequest
+import skillbill.engine.featuretask.lifecycle.subtask.decide
+import skillbill.engine.featuretask.lifecycle.subtask.writeSubtaskCommitPreservingHistory
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointDecision
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointScopeInput
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.phase.AppendCheckpointIdentityArgs
+import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommitIdentity
+import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
+import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseSafetyPolicy
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.runloop.core.CheckpointCommitMessageArgs
+import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
+import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopPlanningBranch
 import skillbill.engine.featuretask.runloop.core.OWNED_PATH_DELIMITER
 import skillbill.engine.featuretask.runloop.core.RecordCheckpointIdentityArgs
 import skillbill.engine.featuretask.runloop.core.RemediationCheckpointCommit
 import skillbill.engine.featuretask.runloop.core.SubtaskCommitLedgerState
-import skillbill.engine.featuretask.lifecycle.subtask.SubtaskCommitPreservationRequest
-import skillbill.engine.featuretask.lifecycle.subtask.decide
 import skillbill.engine.featuretask.runloop.core.isFeatureSpecPathForIssue
-import skillbill.engine.featuretask.lifecycle.checkpoint.phaseWrittenPaths
 import skillbill.engine.featuretask.runloop.core.reconcileCheckpointPathInventory
-import skillbill.engine.featuretask.lifecycle.subtask.writeSubtaskCommitPreservingHistory
-import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.model.phase.AppendCheckpointIdentityArgs
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointDecision
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointScopeInput
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommitIdentity
+import skillbill.engine.featuretask.runloop.output.INVENTORY_EXTENDING_PHASES
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.gitops.headCommitMessage
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.restoreIndexState
 import skillbill.ports.workflow.gitops.stagedPaths
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeBackwardEdge
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 object FeatureTaskRuntimeRunLoopCheckpoint {
   internal fun resolveCheckpointScope(
     context: FeatureTaskRuntimeRunLoopContext,

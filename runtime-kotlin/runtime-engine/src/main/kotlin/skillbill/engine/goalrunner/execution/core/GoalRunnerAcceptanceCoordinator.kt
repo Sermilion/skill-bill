@@ -1,10 +1,10 @@
 package skillbill.engine.goalrunner.execution.core
 
+import skillbill.engine.goalrunner.manifest.reconcileGoalManifest
+import skillbill.engine.goalrunner.manifest.toResetSnapshot
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptRequest
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptResult
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptanceEvidence
-import skillbill.engine.goalrunner.manifest.reconcileGoalManifest
-import skillbill.engine.goalrunner.manifest.toResetSnapshot
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance

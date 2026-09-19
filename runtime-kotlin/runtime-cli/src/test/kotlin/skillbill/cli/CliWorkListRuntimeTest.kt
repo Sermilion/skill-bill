@@ -8,8 +8,8 @@ import skillbill.cli.work.padTerminalEnd
 import skillbill.cli.work.terminalDisplayWidth
 import skillbill.cli.work.toTerminalSafeText
 import skillbill.cli.work.truncateTerminalDisplayWidth
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.model.EnvironmentContext
 import skillbill.model.OptionalCallbacks
@@ -23,7 +23,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-
 class CliWorkListRuntimeTest {
   @Test
   fun `work list renders empty tables and stable empty json through the global database override`() {

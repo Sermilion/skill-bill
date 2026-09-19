@@ -172,18 +172,14 @@ class ImplementationOwnershipArchitectureTest {
   fun `runtime core imports concrete infrastructure only from composition files`() {
     val runtimeCoreSourceFiles = kotlinFilesUnder(runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin"))
     val diDir = runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di")
-    val compositionFiles = Files.list(diDir).use { stream ->
-      stream
-        .filter { path -> path.isRegularFile() && path.extension == "kt" }
-        .filter { path ->
-          val name = path.fileName.toString()
-          name == "RuntimeComponent.kt" ||
-            name.endsWith("Bindings.kt") ||
-            name.endsWith("Provides.kt")
-        }
-        .toList()
-        .toSet()
-    }
+    val compositionFiles = kotlinFilesUnder(diDir)
+      .filter { path ->
+        val name = path.fileName.toString()
+        name == "RuntimeComponent.kt" ||
+          name.endsWith("Bindings.kt") ||
+          name.endsWith("Provides.kt")
+      }
+      .toSet()
     val concreteInfrastructureViolations = runtimeCoreSourceFiles
       .filterNot { sourceFile -> sourceFile in compositionFiles }
       .flatMap { sourceFile ->
@@ -349,7 +345,9 @@ class ImplementationOwnershipArchitectureTest {
       "RuntimeScaffoldValidationProvides.kt",
       "RuntimeDiagnosticsProvides.kt",
     ).joinToString("\n") { fileName ->
-      runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/$fileName").readText()
+      kotlinFilesUnder(runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di"))
+        .single { path -> path.fileName.toString() == fileName }
+        .readText()
     }
 
     listOf(

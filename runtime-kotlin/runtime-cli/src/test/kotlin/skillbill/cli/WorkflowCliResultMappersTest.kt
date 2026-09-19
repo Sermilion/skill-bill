@@ -1,17 +1,17 @@
 package skillbill.cli
 
-import skillbill.application.workflow.WorkflowWireProjections
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
-import skillbill.cli.goal.toGoalDiffStatCliMap
-import skillbill.cli.goal.toGoalSelectedDiffHunksCliMap
+import skillbill.application.workflow.persist.WorkflowWireProjections
+import skillbill.cli.goal.run.toGoalDiffStatCliMap
+import skillbill.cli.goal.run.toGoalSelectedDiffHunksCliMap
 import skillbill.cli.kernel.toPayload
 import skillbill.cli.workflow.toCliMap
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.WorkflowContinueSessionSummary
-import skillbill.error.InvalidGoalObservabilityEventSchemaError
-import skillbill.infrastructure.contracts.workflow.GoalObservabilityEventSchemaValidator
+import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
+import skillbill.error.shellcontent.InvalidGoalObservabilityEventSchemaError
+import skillbill.infrastructure.contracts.workflow.goal.observability.GoalObservabilityEventSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -25,8 +25,8 @@ import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

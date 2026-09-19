@@ -1,8 +1,8 @@
 package skillbill.application
 
 import skillbill.application.idestatus.AgentActivityStampWriter
-import skillbill.application.review.SpecIntentProjectionExtractor
-import skillbill.application.review.SpecIntentSourceUnavailable
+import skillbill.application.review.spec.SpecIntentProjectionExtractor
+import skillbill.application.review.spec.SpecIntentSourceUnavailable
 import skillbill.application.runtimepersistence.RuntimeOwnedFactUnavailable
 import skillbill.application.runtimepersistence.RuntimeOwnedPersistenceBoundary
 import skillbill.application.system.SystemService
@@ -13,12 +13,12 @@ import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.telemetry.RemoteTransportPort
-import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
+import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.review.context.ReviewContextEnvelopeValidator
-import skillbill.review.context.model.ReviewContextBudgetPolicy
+import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.io.IOException
@@ -32,7 +32,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-
 class ApplicationCooperativeFailureBoundaryTest {
   @Test
   fun `spec read cancellation propagates instead of becoming unavailable`() {

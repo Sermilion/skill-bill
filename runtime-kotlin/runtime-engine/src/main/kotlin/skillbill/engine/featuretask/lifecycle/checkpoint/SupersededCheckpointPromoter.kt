@@ -1,8 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.checkpoint
 
-
-
-
 import skillbill.engine.featuretask.lifecycle.subtask.FeatureTaskRuntimeSubtaskCommitAmend
 import skillbill.engine.featuretask.lifecycle.subtask.FeatureTaskRuntimeSubtaskCommitCreate
 import skillbill.engine.featuretask.lifecycle.subtask.FeatureTaskRuntimeSubtaskCommitDecision

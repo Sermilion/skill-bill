@@ -1,40 +1,36 @@
 package skillbill.engine.featuretask.review.core
 
-
-
-
-import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.agentaddon.model.AgentAddonPromptFormatter
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
-import skillbill.application.review.RuntimeOwnedReviewMode
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
+import skillbill.application.review.service.RuntimeOwnedReviewMode
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
-import skillbill.review.context.model.CodeReviewExecutionMode
-import skillbill.review.context.model.ReviewIntegrationTerminalOutcome
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.ReviewIntegrationTerminalOutcome
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewFindingCitationDiagnosticKeys
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewPassSequence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewPassSequence
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import java.nio.file.Path
 import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.time.Duration
-
 fun interface FeatureTaskRuntimeReviewDriver {
   fun run(request: ParallelCodeReviewRequest): ParallelCodeReviewResult
 }

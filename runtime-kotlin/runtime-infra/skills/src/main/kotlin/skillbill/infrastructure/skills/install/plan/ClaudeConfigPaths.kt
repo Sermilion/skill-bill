@@ -1,5 +1,6 @@
 package skillbill.infrastructure.skills.install.plan
 
+import skillbill.infrastructure.skills.nativeagent.support.CLAUDE_CONFIG_DIR_ENV
 import java.nio.file.Path
 import skillbill.infrastructure.skills.nativeagent.support.claudeConfigRoots as nativeAgentClaudeConfigRoots
 

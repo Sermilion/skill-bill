@@ -3,8 +3,8 @@ package skillbill.mcp
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidGoalObservabilityEventSchemaError
-import skillbill.infrastructure.contracts.workflow.GoalObservabilityEventSchemaValidator
+import skillbill.error.shellcontent.InvalidGoalObservabilityEventSchemaError
+import skillbill.infrastructure.contracts.workflow.goal.observability.GoalObservabilityEventSchemaValidator
 import skillbill.mcp.workflow.toMcpMap
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
@@ -13,7 +13,7 @@ import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

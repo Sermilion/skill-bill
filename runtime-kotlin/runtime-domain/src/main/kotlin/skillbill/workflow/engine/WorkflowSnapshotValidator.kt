@@ -1,8 +1,7 @@
 package skillbill.workflow.engine
 
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-
 /**
  * SKILL-52.2 Subtask 4: domain-owned validator port for the canonical
  * workflow-state snapshot map.

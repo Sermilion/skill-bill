@@ -1,11 +1,11 @@
 package skillbill.engine.featuretask.lifecycle.core
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairOutcome
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.omittedCarriedFindings
-import skillbill.workflow.taskruntime.model.validateDispositionCoverage
+import skillbill.workflow.taskruntime.artifact.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairOutcome
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.taskruntime.model.repair.task.omittedCarriedFindings
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
+import skillbill.workflow.taskruntime.model.validation.validateDispositionCoverage
 import kotlin.test.assertTrue
 object FeatureTaskRuntimeCensusCoverageTestSupport {
   fun verifyDisposition(findingId: String, disposition: String = "verified"): Map<String, String> = mapOf(

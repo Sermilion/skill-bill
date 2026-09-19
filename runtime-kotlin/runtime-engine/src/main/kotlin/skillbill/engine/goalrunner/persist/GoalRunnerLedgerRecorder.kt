@@ -1,6 +1,7 @@
 package skillbill.engine.goalrunner.persist
 
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
+import skillbill.engine.goalrunner.telemetry.GoalRunnerBestEffortEmission
 import skillbill.goalrunner.model.GoalAttemptLaunchOutcome
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalAttemptLedgerEntry
@@ -12,7 +13,6 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequ
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
-import skillbill.engine.goalrunner.telemetry.GoalRunnerBestEffortEmission
 
 class GoalRunnerLedgerRecorder(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,

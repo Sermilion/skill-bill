@@ -1,16 +1,14 @@
 package skillbill.engine.goalrunner.execution.core
-import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.execution.support.toPullRequestRequest
-
-
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import skillbill.engine.goalrunner.manifest
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class GoalRunnerPullRequestFormattingTest {
   @Test

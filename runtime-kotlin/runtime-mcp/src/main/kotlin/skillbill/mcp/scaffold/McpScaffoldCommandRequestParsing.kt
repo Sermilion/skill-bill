@@ -1,7 +1,5 @@
 package skillbill.mcp.scaffold
-
-import skillbill.error.InvalidScaffoldPayloadError
-
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 internal fun parseStringList(args: Map<String, Any?>, key: String): List<String> {
   val raw = args[key]
     ?: throw InvalidScaffoldPayloadError(

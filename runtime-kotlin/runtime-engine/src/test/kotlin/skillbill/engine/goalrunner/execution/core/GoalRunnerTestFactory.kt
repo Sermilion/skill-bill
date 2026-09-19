@@ -1,23 +1,24 @@
 package skillbill.engine.goalrunner.execution.core
-import skillbill.engine.goalrunner.manifest.TestNoopGoalPlanningManifestStore
-
-
 import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.application.realPlanningProjectionValidator
-import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
+import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
+import skillbill.engine.goalrunner.GoalRunner
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
-import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
+import skillbill.engine.goalrunner.launch.GoalRunnerLaunchReconciler
+import skillbill.engine.goalrunner.launch.GoalRunnerSubtaskLaunchPrepare
+import skillbill.engine.goalrunner.manifest.TestNoopGoalPlanningManifestStore
 import skillbill.engine.goalrunner.planning.attempt.GoalPlanningAttemptRecorder
+import skillbill.engine.goalrunner.planning.model.GoalPlanningBurstSchedule
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRefreshLiveness
 import skillbill.engine.goalrunner.planning.remedies.GoalPlanningRejectionRecorder
+import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepCheckpointBoundaries
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepLaunchBoundaries
-import skillbill.engine.goalrunner.planning.model.GoalPlanningBurstSchedule
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.concurrency.SequentialBoundedWorkFanOutPort
 import skillbill.ports.db.DatabaseSessionFactory
@@ -33,11 +34,11 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
-import skillbill.ports.review.ReviewRepository
+import skillbill.ports.review.repository.ReviewRepository
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
-import skillbill.ports.telemetry.LifecycleTelemetryRepository
-import skillbill.ports.telemetry.TelemetryOutboxRepository
-import skillbill.ports.telemetry.TelemetryReconciliationRepository
+import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
+import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.time.NoopRuntimeTimingPort
 import skillbill.ports.time.RuntimeTimingPort
 import skillbill.ports.work.EmptyWorkListRepository
@@ -47,14 +48,10 @@ import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.specscratch.SpecScratchStore
 import skillbill.ports.workflow.specscratch.UnavailableSpecScratchStore
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Path
 import java.time.Clock
-import skillbill.engine.goalrunner.GoalRunner
-import skillbill.engine.goalrunner.launch.GoalRunnerLaunchReconciler
-import skillbill.engine.goalrunner.launch.GoalRunnerSubtaskLaunchPrepare
-
 internal fun testActivityStampWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
 ): AgentActivityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics)

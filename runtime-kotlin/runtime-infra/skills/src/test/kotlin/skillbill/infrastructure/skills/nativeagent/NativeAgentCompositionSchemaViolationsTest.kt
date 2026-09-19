@@ -1,11 +1,10 @@
 package skillbill.infrastructure.skills.nativeagent
 
-import skillbill.error.InvalidNativeAgentCompositionSchemaError
+import skillbill.error.shellcontent.InvalidNativeAgentCompositionSchemaError
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionSchemaValidator
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
-
 class NativeAgentCompositionSchemaViolationsTest {
 
   private val validBundleYaml: String = """

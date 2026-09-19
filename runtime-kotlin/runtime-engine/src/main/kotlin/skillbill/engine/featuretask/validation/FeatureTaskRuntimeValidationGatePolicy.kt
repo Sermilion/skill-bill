@@ -3,13 +3,12 @@ import skillbill.config.model.applyValidationGateGradleWrapper
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.validation.model.ValidationGateCyclePhase
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
-import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.scaffold.model.ValidationGateDeclaration
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
-import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
-
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
+import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 internal fun validationGateArgv(
   declaration: ValidationGateDeclaration,
   cyclePhase: ValidationGateCyclePhase,

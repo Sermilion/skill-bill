@@ -7,12 +7,12 @@ import skillbill.infrastructure.skills.install.plan.installSkill
 import skillbill.infrastructure.skills.install.plan.resolveInstallEnvironment
 import skillbill.infrastructure.skills.install.plan.resolveInstallHome
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.runtime.ADD_ON_INSTALL_NOTE
-import skillbill.infrastructure.skills.scaffold.runtime.PLATFORM_PACK_INSTALL_NOTE
-import skillbill.infrastructure.skills.scaffold.runtime.ScaffoldPlan
-import skillbill.infrastructure.skills.scaffold.runtime.ScaffoldTransaction
-import skillbill.infrastructure.skills.scaffold.runtime.noAgentsNote
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.runtime.service.ADD_ON_INSTALL_NOTE
+import skillbill.infrastructure.skills.scaffold.runtime.service.PLATFORM_PACK_INSTALL_NOTE
+import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldPlan
+import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldTransaction
+import skillbill.infrastructure.skills.scaffold.runtime.service.noAgentsNote
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.install.model.InstallTransaction
@@ -23,7 +23,6 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
 import java.nio.file.Files
 import java.nio.file.Path
-
 internal fun performScaffoldInstall(
   txn: ScaffoldTransaction,
   plan: ScaffoldPlan,

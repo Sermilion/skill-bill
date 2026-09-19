@@ -1,15 +1,14 @@
 package skillbill.engine.goalrunner.execution.support
+import skillbill.engine.goalrunner.persist.DurableChildRecoveryClass
+import skillbill.engine.goalrunner.persist.classifyDurableChild
+import skillbill.engine.goalrunner.persist.recommendedDurableChildRecoveryCommand
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalRunnerLaunchFacts
 import skillbill.goalrunner.model.GoalRunnerLivenessSnapshot
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.workflow.model.DecompositionStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.engine.goalrunner.persist.DurableChildRecoveryClass
-import skillbill.engine.goalrunner.persist.classifyDurableChild
-import skillbill.engine.goalrunner.persist.recommendedDurableChildRecoveryCommand
-
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 fun reAttemptCauseFor(reason: GoalRunnerStopReason, childLoopIterations: Map<String, Int>): String? {
   val hasRegeneration = childLoopIterations.keys.any {
     FeatureTaskRuntimePhaseWorkflowDefinition.isRegenerationLoopId(it)

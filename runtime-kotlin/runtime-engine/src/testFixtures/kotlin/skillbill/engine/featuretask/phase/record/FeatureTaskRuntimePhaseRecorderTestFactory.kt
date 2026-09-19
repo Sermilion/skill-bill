@@ -2,9 +2,8 @@ package skillbill.engine.featuretask.phase.record
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import java.time.Clock
-
 fun featureTaskRuntimePhaseRecorder(
   database: DatabaseSessionFactory,
   workflowSnapshotValidator: WorkflowSnapshotValidator,

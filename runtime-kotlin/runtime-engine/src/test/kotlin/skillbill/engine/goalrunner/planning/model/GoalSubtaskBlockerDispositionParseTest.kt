@@ -1,13 +1,12 @@
 package skillbill.engine.goalrunner.planning.model
 
-import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
+import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDispositionVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class GoalSubtaskBlockerDispositionParseTest {
   private fun output(vararg dispositions: Map<String, Any?>): Map<String, Any?> =
     mapOf("produced_outputs" to mapOf("blocker_dispositions" to dispositions.toList()))

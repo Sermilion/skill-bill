@@ -1,9 +1,8 @@
 package skillbill.engine.featuretask.validation
 
 import skillbill.engine.featuretask.validation.model.ValidationGateCyclePhase
-import skillbill.error.InvalidValidationGateDeclarationError
+import skillbill.error.shellcontent.InvalidValidationGateDeclarationError
 import skillbill.scaffold.model.ValidationGateDeclaration
-
 internal fun buildGateArgv(
   declaration: ValidationGateDeclaration,
   cyclePhase: ValidationGateCyclePhase,

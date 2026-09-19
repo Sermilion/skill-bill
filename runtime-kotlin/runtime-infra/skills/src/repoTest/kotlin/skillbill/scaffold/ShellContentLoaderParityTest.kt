@@ -1,15 +1,15 @@
 package skillbill.scaffold
 
-import skillbill.error.ContractVersionMismatchError
-import skillbill.error.InvalidManifestSchemaError
-import skillbill.error.InvalidReviewSkillStructureError
-import skillbill.error.InvalidSkillMdShapeError
-import skillbill.error.MissingContentFileError
-import skillbill.error.MissingManifestError
-import skillbill.error.MissingRequiredSectionError
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
-import skillbill.infrastructure.skills.scaffold.runtime.SHELL_CONTRACT_VERSION
-import skillbill.infrastructure.skills.scaffold.validation.validateSkillMdShape
+import skillbill.error.shellcontent.ContractVersionMismatchError
+import skillbill.error.shellcontent.InvalidManifestSchemaError
+import skillbill.error.shellcontent.InvalidReviewSkillStructureError
+import skillbill.error.shellcontent.InvalidSkillMdShapeError
+import skillbill.error.shellcontent.MissingContentFileError
+import skillbill.error.shellcontent.MissingManifestError
+import skillbill.error.shellcontent.MissingRequiredSectionError
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
+import skillbill.infrastructure.skills.scaffold.validation.shape.validateSkillMdShape
 import skillbill.model.toPath
 import skillbill.testing.repoRootFromTest
 import skillbill.testing.seedConformingPlatformPack
@@ -21,7 +21,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class ShellContentLoaderParityTest {
   @Test
   fun `loads valid pack through manifest driven shell contract`() {

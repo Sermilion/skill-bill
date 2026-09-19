@@ -1,9 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.branch
 
-
-
-
-import skillbill.engine.featuretask.lifecycle.subtask.decide
 import skillbill.application.decomposition.defaultFeatureBranch
 import skillbill.contracts.issuekey.issueAndFeature
 import skillbill.workflow.gitops.ProtectedBranches

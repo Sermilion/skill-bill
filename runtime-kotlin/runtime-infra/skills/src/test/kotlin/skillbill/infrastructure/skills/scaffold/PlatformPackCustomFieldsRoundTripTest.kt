@@ -1,8 +1,8 @@
 package skillbill.infrastructure.skills.scaffold
 
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.skills.scaffold.platformpack.anchoredTopLevelFieldNames
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.anchoredTopLevelFieldNames
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -10,7 +10,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class PlatformPackCustomFieldsRoundTripTest {
 
   @Test

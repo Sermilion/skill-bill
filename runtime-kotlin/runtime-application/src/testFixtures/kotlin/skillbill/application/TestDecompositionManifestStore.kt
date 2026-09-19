@@ -9,7 +9,7 @@ import skillbill.application.decomposition.model.DecompositionManifestWriteReque
 import skillbill.application.decomposition.model.DecompositionManifestWriteResult
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
-import skillbill.contracts.workflow.WorkflowArtifactKeys
+import skillbill.contracts.workflow.payload.WorkflowArtifactKeys
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
@@ -19,7 +19,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
-
 object TestDecompositionManifestStore : DecompositionManifestStore {
   override fun readText(path: Path): String = Files.readString(path)
 

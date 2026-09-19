@@ -4,7 +4,7 @@ import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 
 fun GoalRunnerManifestStore.effectiveAgentAddonSelection(
   parentWorkflowId: String,

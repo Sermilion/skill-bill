@@ -13,8 +13,8 @@ import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanWireValidator
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.system.HostPlatformPort
-import skillbill.ports.telemetry.TelemetryConfigStore
-import skillbill.ports.telemetry.TelemetryLevelMutator
+import skillbill.ports.telemetry.transport.TelemetryConfigStore
+import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 import java.nio.file.Path
 import skillbill.infrastructure.skills.install.plan.codexAgentsPath as planCodexAgentsPath
 

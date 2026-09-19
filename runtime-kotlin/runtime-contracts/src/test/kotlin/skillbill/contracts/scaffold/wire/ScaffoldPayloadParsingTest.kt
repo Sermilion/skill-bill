@@ -1,10 +1,9 @@
 package skillbill.contracts.scaffold.wire
 
-import skillbill.error.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class ScaffoldPayloadParsingTest {
   @Test
   fun `present wrong type description fails before defaulting to empty`() {

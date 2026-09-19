@@ -1,12 +1,11 @@
 package skillbill.workflow.verify
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
+import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjectionDeclaration
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-
 object FeatureVerifyWorkflowDefinition {
   private val criteriaFields = setOf(
     "acceptance_criteria",

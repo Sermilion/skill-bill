@@ -1,7 +1,7 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidTelemetryEventSchemaError
+import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import skillbill.mcp.core.McpStdioServer
 import skillbill.mcp.core.McpToolDispatcher
 import skillbill.mcp.shared.McpRuntimeContext
@@ -12,7 +12,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class McpStdioArgumentShapeUnifiedContractTest {
 
   @Test

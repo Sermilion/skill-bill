@@ -1,15 +1,23 @@
 package skillbill.engine.featuretask.runloop.core
 
-
-
-
+import skillbill.application.diagnostics.RejectedOutputDiagnosticService
+import skillbill.application.review.model.ParallelCodeReviewRequest
+import skillbill.application.review.model.ParallelCodeReviewResult
+import skillbill.application.review.model.StackDetectionException
+import skillbill.application.review.model.UsageValidationException
+import skillbill.application.review.service.RuntimeOwnedReviewMode
+import skillbill.application.reviewevidence.model.DiffResolutionException
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMessage
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
+import skillbill.engine.featuretask.lifecycle.continuation.reviewState
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.persist.RuntimeOwnedFactUnavailable
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseFileManifest
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseSafetyPolicy
-import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimePhaseStartReentry
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewCycleContext
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverAgents
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverCycle
@@ -19,55 +27,31 @@ import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverPa
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverWorkspace
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewEnvelope
 import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpointRemediation
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimePhaseStartReentry
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputPersistence
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
-import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
-import skillbill.engine.featuretask.runloop.core.PersistPhaseArgs
-import skillbill.engine.featuretask.runloop.core.PhaseReviewCompletionOutcomeArgs
-import skillbill.engine.featuretask.runloop.core.PhaseReviewPersistenceArgs
-import skillbill.engine.featuretask.runloop.core.PhaseRun
-import skillbill.engine.featuretask.runloop.core.PhaseStateWriteArgs
-import skillbill.engine.featuretask.runloop.core.ReviewDriverAttempt
-import skillbill.engine.featuretask.runloop.core.ReviewDriverFailed
-import skillbill.engine.featuretask.runloop.core.ReviewDriverReady
-import skillbill.engine.featuretask.persist.RuntimeOwnedFactUnavailable
-import skillbill.engine.featuretask.runloop.core.RuntimeOwnedReviewBlocked
-import skillbill.engine.featuretask.runloop.core.RuntimeOwnedReviewLaunch
-import skillbill.engine.featuretask.runloop.core.RuntimeOwnedReviewPrep
-import skillbill.engine.featuretask.runloop.core.RuntimeOwnedReviewReady
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
-import skillbill.engine.featuretask.lifecycle.continuation.reviewState
-import skillbill.application.diagnostics.RejectedOutputDiagnosticService
-import skillbill.application.review.RuntimeOwnedReviewMode
-import skillbill.application.review.model.ParallelCodeReviewRequest
-import skillbill.application.review.model.ParallelCodeReviewResult
-import skillbill.application.review.model.StackDetectionException
-import skillbill.application.review.model.UsageValidationException
-import skillbill.application.reviewevidence.model.DiffResolutionException
-import skillbill.contracts.JsonCodec
-import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.error.UnreadableSpecIntentProjectionError
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+import skillbill.error.shellcontent.UnreadableSpecIntentProjectionError
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.repositoryFingerprint
-import skillbill.review.context.model.ReviewContextBudgetExceededException
+import skillbill.review.context.model.hunk.ReviewContextBudgetExceededException
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
-import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewPassSequence
-import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.requireAcceptedOutput
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewPassSequence
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
-
 internal data class RuntimeOwnedReviewPreparationArgs(
   val request: FeatureTaskRuntimeRunRequest,
   val recorder: FeatureTaskRuntimePhaseRecorder,

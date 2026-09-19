@@ -6,10 +6,9 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
 import kotlin.coroutines.cancellation.CancellationException
-
 internal object StrictPhaseOutputParser {
   private val strictJsonMapper: ObjectMapper by lazy {
     ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)

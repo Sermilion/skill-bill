@@ -1,11 +1,8 @@
 package skillbill.engine.featuretask.phase.prompt.compose
 
-
-
 import skillbill.engine.featuretask.phase.prompt.directives.forAuditRetry
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
-
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 fun composePhasePrompt(inputs: FeatureTaskRuntimePhasePromptComposeInputs): String =
   phasePromptSections(inputs).filter(String::isNotBlank).joinToString(separator = "\n\n")
 

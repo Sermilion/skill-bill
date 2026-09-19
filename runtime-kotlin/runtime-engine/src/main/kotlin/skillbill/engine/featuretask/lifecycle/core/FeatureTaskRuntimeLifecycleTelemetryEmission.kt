@@ -1,22 +1,17 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
-
-
-import skillbill.engine.featuretask.review.core.auditGapIterationCount
-import skillbill.engine.featuretask.runloop.observability.paused
-import skillbill.application.telemetry.LifecycleTelemetryService
+import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
 import skillbill.application.telemetry.model.FeatureTaskRuntimeAgentContext
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFinishedRequest
-import skillbill.application.telemetry.normalizedBlockedReason
+import skillbill.application.telemetry.service.normalizedBlockedReason
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCrashReconciliationResult
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFindingVerificationTelemetry
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFinishedTelemetryContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRegenerationTelemetry
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.review.core.auditGapIterationCount
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-
 internal fun emitFeatureTaskRuntimeFinished(
   lifecycleTelemetryService: LifecycleTelemetryService,
   report: FeatureTaskRuntimeRunReport,

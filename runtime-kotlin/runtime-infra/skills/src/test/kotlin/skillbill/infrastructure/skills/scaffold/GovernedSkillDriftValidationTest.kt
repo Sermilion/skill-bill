@@ -4,7 +4,7 @@ import skillbill.infrastructure.skills.scaffold.authoring.AuthoringRenderBlock
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringRenderResult
 import skillbill.infrastructure.skills.scaffold.authoring.renderWrapper
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
-import skillbill.infrastructure.skills.scaffold.validation.validateGovernedSkillDrift
+import skillbill.infrastructure.skills.scaffold.validation.shape.validateGovernedSkillDrift
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.AfterTest
@@ -12,7 +12,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class GovernedSkillDriftValidationTest {
   private val tempRoot: Path = Files.createTempDirectory("skillbill-governed-drift-")
 

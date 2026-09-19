@@ -1,11 +1,10 @@
 package skillbill.mcp.scaffold
 
 import skillbill.contracts.scaffold.wire.optionalList
-import skillbill.error.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.CodeReviewCompositionScope
-
 internal fun parseBaselineLayers(args: Map<String, Any?>): List<CodeReviewBaselineLayer> {
   val raw = optionalList(args, "baseline_layers") ?: return emptyList()
   if (raw.isEmpty()) {

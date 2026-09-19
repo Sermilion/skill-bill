@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeContinuationKind
 import skillbill.engine.featuretask.runloop.observability.featureTaskRuntimeStartContinuationKind
 import kotlin.test.Test

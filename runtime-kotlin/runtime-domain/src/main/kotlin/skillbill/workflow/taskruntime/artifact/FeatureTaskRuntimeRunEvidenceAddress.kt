@@ -1,0 +1,20 @@
+package skillbill.workflow.taskruntime.artifact
+import skillbill.workflow.taskruntime.feature.artifact
+import skillbill.workflow.taskruntime.feature.map
+import skillbill.workflow.taskruntime.phase.map
+import skillbill.workflow.taskruntime.phase.raw
+
+private const val SAFE_SEGMENT_PUNCTUATION: String = "._-"
+
+object FeatureTaskRuntimeRunEvidenceAddress {
+  const val STORE_ROOT: String = ".skill-bill/run-evidence"
+
+  fun pathSegment(raw: String): String {
+    val sanitized = raw.map { char ->
+      if (char.isLetterOrDigit() || char in SAFE_SEGMENT_PUNCTUATION) char else '_'
+    }.joinToString("")
+    return if (sanitized.isBlank() || sanitized.all { it == '.' }) "_$sanitized" else sanitized
+  }
+
+  fun workflowStoreRoot(workflowId: String): String = "$STORE_ROOT/${pathSegment(workflowId)}"
+}

@@ -8,7 +8,7 @@ object PrincipleEnforcementInventory {
   const val RUNTIME_CLI_SRC: String = "runtime-kotlin/runtime-cli/src"
   const val SPILLOVER_FILE_NAME_BASELINE: String = "spillover-file-name-baseline.txt"
   const val RUNTIME_COMPONENT_SOURCE: String =
-    "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt"
+    "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeComponent.kt"
 
   data class ModuleArchitectureScanCase(
     val moduleName: String,
@@ -99,7 +99,7 @@ object PrincipleEnforcementInventory {
 
   val ambientEnvironmentExemptions: Set<String> = setOf(
     "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/core/Main.kt",
-    "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeBootstrapBindings.kt",
+    "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeBootstrapBindings.kt",
   )
 
   val enforceableRules: List<String> = listOf(
@@ -155,7 +155,7 @@ object PrincipleEnforcementInventory {
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
       "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:sqlite")}/src/main/kotlin/" +
-        "skillbill/infrastructure/sqlite/workflow/GoalRunnerControlStore.kt",
+        "skillbill/infrastructure/sqlite/workflow/goalrunner/runner/GoalRunnerControlStore.kt",
       functionNames = setOf(
         "decodeControlState",
         "decodeReviewPolicy",
@@ -172,7 +172,7 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/phase/" +
         "FeatureTaskRuntimePhaseOutputValidationModels.kt",
       functionNames = setOf(
         "fromWire",
@@ -184,31 +184,32 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/handoff/task/" +
         "FeatureTaskRuntimeHandoffSourceRef.kt",
       functionNames = setOf("fromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/handoff/task/" +
         "FeatureTaskRuntimeHandoffProjectionValue.kt",
       functionNames = setOf("fromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/handoff/task/" +
         "FeatureTaskRuntimeHandoffModels.kt",
       functionNames = setOf("fromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/" +
+        "task/runtime/run/" +
         "FeatureTaskRuntimeRunInvariantPromptFields.kt",
       functionNames = setOf("fromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/core/" +
         "FeatureTaskRuntimeRepositoryCheckpoint.kt",
       functionNames = setOf("fromWire"),
     ),
@@ -234,7 +235,7 @@ object PrincipleEnforcementInventory {
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
       "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
-        "skillbill/infrastructure/skills/scaffold/platformpack/ShellContentLoaderValidationGate.kt",
+        "skillbill/infrastructure/skills/scaffold/platformpack/loader/ShellContentLoaderValidationGate.kt",
       functionNames = setOf(
         "parseValidationGate",
         "parseValidationGateFindings",
@@ -260,19 +261,20 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/artifact/" +
         "DurableArtifactMapReader.kt",
       functionNames = setOf("durableArtifactMapReader"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/" +
+        "task/runtime/goal/" +
         "FeatureTaskRuntimeGoalContinuationArtifact.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/phase/" +
         "FeatureTaskRuntimePhaseLedgerPersistenceModels.kt",
       functionNames = setOf("fromArtifactMap", "fromWire", "fromWireValue"),
     ),
@@ -290,37 +292,39 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/core/" +
         "FeatureTaskRuntimeResolvedBranch.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/handoff/task/" +
         "FeatureTaskRuntimeHandoffEnvelope.kt",
       functionNames = setOf("fromEnvelopeMap", "projectionFromWire", "fieldFromWire", "handoffReader"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/" +
+        "task/runtime/implementation/" +
         "FeatureTaskRuntimeImplementationAttemptModels.kt",
       functionNames = setOf("fromArtifactMap", "featureTaskRuntimeImplementationAttemptsFromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/" +
+        "task/runtime/goal/" +
         "FeatureTaskRuntimeGoalContinuationPersistenceModels.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/core/" +
         "FeatureTaskRuntimeDecomposeTerminal.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/phase/" +
         "FeatureTaskRuntimePhaseRecord.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
@@ -522,38 +526,7 @@ object PrincipleEnforcementInventory {
         "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin"
       } + "intellij-plugin/src/main/kotlin"
 
-  val packageSiblingCountRemainderInventory: Map<String, String> = mapOf(
-    "skillbill.application.review" to "Application review noun families are owned by subtask 3.",
-    "skillbill.application.telemetry" to "Application telemetry noun families are owned by subtask 3.",
-    "skillbill.application.workflow" to "Application workflow noun families are owned by subtask 3.",
-    "skillbill.cli.goal" to "CLI goal noun families are owned by subtask 3.",
-    "skillbill.cli.install" to "CLI install noun families are owned by subtask 3.",
-    "skillbill.cli.kernel" to "CLI kernel noun families are owned by subtask 3.",
-    "skillbill.cli.scaffold" to "CLI scaffold noun families are owned by subtask 3.",
-    "skillbill.contracts.workflow" to "Contract workflow noun families are owned by subtask 3.",
-    "skillbill.di" to "The composition-root taxonomy is owned by subtask 3.",
-    "skillbill.error" to "Error taxonomy noun families are owned by subtask 3.",
-    "skillbill.infrastructure.contracts.workflow" to "Infrastructure contract workflow noun families are owned by subtask 3.",
-    "skillbill.infrastructure.launcher.process" to "Launcher process noun families are owned by subtask 3.",
-    "skillbill.infrastructure.skills" to "Infrastructure skills noun families are owned by subtask 3.",
-    "skillbill.infrastructure.skills.install.nativeagent" to "Native-agent install noun families are owned by subtask 3.",
-    "skillbill.infrastructure.skills.install.staging" to "Install staging noun families are owned by subtask 3.",
-    "skillbill.infrastructure.skills.scaffold.platformpack" to "Platform-pack scaffold noun families are owned by subtask 3.",
-    "skillbill.infrastructure.skills.scaffold.runtime" to "Scaffold runtime noun families are owned by subtask 3.",
-    "skillbill.infrastructure.skills.scaffold.validation" to "Scaffold validation noun families are owned by subtask 3.",
-    "skillbill.infrastructure.sqlite.core" to "SQLite core noun families are owned by subtask 3.",
-    "skillbill.infrastructure.sqlite.goalrunner" to "SQLite goalrunner noun families are owned by subtask 3.",
-    "skillbill.infrastructure.sqlite.review" to "SQLite review noun families are owned by subtask 3.",
-    "skillbill.infrastructure.sqlite.telemetry" to "SQLite telemetry noun families are owned by subtask 3.",
-    "skillbill.infrastructure.sqlite.workflow" to "SQLite workflow noun families are owned by subtask 3.",
-    "skillbill.infrastructure.workflow" to "Infrastructure workflow noun families are owned by subtask 3.",
-    "skillbill.ports.review" to "Review port noun families are owned by subtask 3.",
-    "skillbill.ports.telemetry" to "Telemetry port noun families are owned by subtask 3.",
-    "skillbill.review" to "Review taxonomy noun families are owned by subtask 3.",
-    "skillbill.review.context.model" to "Review context model noun families are owned by subtask 3.",
-    "skillbill.workflow.taskruntime" to "Workflow taskruntime noun families are owned by subtask 3.",
-    "skillbill.workflow.taskruntime.model" to "Workflow taskruntime models are owned by subtask 3.",
-  )
+  val packageSiblingCountRemainderInventory: Map<String, String> = emptyMap()
 
   val packageClusteringSourceRoots: List<String> = productionPackageSiblingCountSourceRoots
 

@@ -1,7 +1,7 @@
 package skillbill.cli
 
-import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 
 internal class RecordingTelemetryRequester(
   private val failure: (() -> Nothing)? = null,

@@ -1,21 +1,17 @@
 package skillbill.engine.featuretask.phase.planning
 
-
-
-
+import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.prepare.FeatureSpecPreparationRuntime
 import skillbill.engine.featuretask.prepare.FeatureSpecPreparationWriter
-import me.tatarka.inject.annotations.Inject
 import skillbill.featurespec.model.FeatureSpecPreparationIntake
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
 import skillbill.featurespec.model.FeatureSpecWriteRequest
 import skillbill.featurespec.model.FeatureSpecWriteResult
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposePlanOutcome
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeSubtask
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDecomposePlanOutcome
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDecomposeSubtask
 import java.nio.file.Path
-
 @Inject
 class FeatureTaskRuntimeDecompositionPlanner(
   private val preparationRuntime: FeatureSpecPreparationRuntime,

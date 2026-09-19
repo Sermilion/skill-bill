@@ -3,11 +3,10 @@ import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticFailureClass
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProjectionFailureClassification
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-
+import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionFailureClassification
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 data class GoalReviewPhaseCompletionRequest(
   val phaseState: FeatureTaskRuntimePhaseStateRequest,
   val verdict: FeatureTaskRuntimeVerdict,

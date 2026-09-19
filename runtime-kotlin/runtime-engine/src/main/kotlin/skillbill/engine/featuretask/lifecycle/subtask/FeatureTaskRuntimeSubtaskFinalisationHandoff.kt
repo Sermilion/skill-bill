@@ -1,22 +1,18 @@
 package skillbill.engine.featuretask.lifecycle.subtask
 
-
-
-
-import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.FeatureTaskRuntimeCommitPushPayloadKeys
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeCommitPushPayloadKeys
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushHandoff
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushHandoffInvalid
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushHandoffResult
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushHandoffValid
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushReceipt
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.engine.featuretask.runner.STATUS_COMPLETED
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 object FeatureTaskRuntimeSubtaskFinalisationHandoff {
   internal fun runtimeOwnedOutput(receipt: FeatureTaskRuntimeCommitPushReceipt): String {
     val result = linkedMapOf<String, Any?>()

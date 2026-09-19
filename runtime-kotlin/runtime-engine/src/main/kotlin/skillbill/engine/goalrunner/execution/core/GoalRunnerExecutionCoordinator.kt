@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.execution.core
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.SkillBillRuntimeException
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
@@ -19,7 +19,6 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import java.time.Clock
 import java.time.Duration
-
 interface GoalRunnerExecutionCoordinator {
   fun <T> runOwned(parentWorkflowId: String, block: () -> T): T
 

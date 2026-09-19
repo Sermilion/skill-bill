@@ -1,9 +1,8 @@
 package skillbill.engine.featuretask.model.phase
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseHandoff
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference
-import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionDeclaration
-
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseHandoff
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeSharedReviewEvidenceReference
 data class FeatureTaskRuntimeBriefingProjectionInputs(
   val handoff: FeatureTaskRuntimePhaseHandoff,
   val declarations: List<PhaseHandoffProjectionDeclaration>,

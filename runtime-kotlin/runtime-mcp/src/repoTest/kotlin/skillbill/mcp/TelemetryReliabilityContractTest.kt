@@ -2,7 +2,7 @@ package skillbill.mcp
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.error.InvalidTelemetryEventSchemaError
+import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.infrastructure.sqlite.ageTelemetryReliabilitySession
 import skillbill.infrastructure.sqlite.telemetryReliabilityEmittedEnvelope
@@ -10,8 +10,8 @@ import skillbill.infrastructure.sqlite.telemetryReliabilityReviewFinishedEnvelop
 import skillbill.mcp.telemetry.TELEMETRY_EVENT_CONTRACT_VERSION
 import skillbill.mcp.telemetry.TelemetryEventSchemaPaths
 import skillbill.mcp.telemetry.TelemetryEventSchemaValidator
-import skillbill.ports.telemetry.LifecycleTelemetryRepository
-import skillbill.review.normalizeTelemetrySlug
+import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
+import skillbill.review.attribution.normalizeTelemetrySlug
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
@@ -30,7 +30,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class TelemetryReliabilityContractTest {
 
   private val schemaNode: JsonNode by lazy {

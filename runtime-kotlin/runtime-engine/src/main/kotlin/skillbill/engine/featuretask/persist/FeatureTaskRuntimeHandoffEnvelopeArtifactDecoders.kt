@@ -1,20 +1,16 @@
 package skillbill.engine.featuretask.persist
 
-
-
-
-import skillbill.engine.featuretask.phase.core.schemaError
-import skillbill.engine.featuretask.phase.core.decodeStrictKeyedArtifactMap
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
-import skillbill.error.InvalidFeatureTaskRuntimePersistenceSchemaError
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.decodeDeliveredProjectionRecordFromArtifact
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDeliveredProjectionRecord
-
+import skillbill.engine.featuretask.phase.core.decodeStrictKeyedArtifactMap
+import skillbill.engine.featuretask.phase.core.schemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePersistenceSchemaError
+import skillbill.workflow.taskruntime.artifact.decodeDeliveredProjectionRecordFromArtifact
+import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDeliveredProjectionRecord
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 internal fun phaseBriefingsFrom(
   artifacts: Map<String, Any?>,
   validateEnvelope: (Map<String, Any?>) -> Unit = {},

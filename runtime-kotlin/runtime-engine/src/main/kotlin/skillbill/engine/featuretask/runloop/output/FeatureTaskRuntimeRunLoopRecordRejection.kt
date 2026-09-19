@@ -1,21 +1,15 @@
 package skillbill.engine.featuretask.runloop.output
 
-
-
-
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProducerOutputRead
+import skillbill.engine.featuretask.model.phase.ProducerOutputQueryArgs
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.core.AttemptResult
 import skillbill.engine.featuretask.runloop.core.BlockAndPersistPayload
 import skillbill.engine.featuretask.runloop.core.CapturedPhaseOutput
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopAttemptSettlement
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopLaunch
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
-import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopValidationGate
-import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runloop.core.GateOutput
-import skillbill.engine.featuretask.runner.LaunchResult
 import skillbill.engine.featuretask.runloop.core.PauseAndPersistInPhaseArgs
 import skillbill.engine.featuretask.runloop.core.PersistPhaseArgs
 import skillbill.engine.featuretask.runloop.core.PhaseOutcome
@@ -25,23 +19,25 @@ import skillbill.engine.featuretask.runloop.core.RecordRejectedOutputArgs
 import skillbill.engine.featuretask.runloop.core.RecordRejection
 import skillbill.engine.featuretask.runloop.core.RecordRejectionAttemptArgs
 import skillbill.engine.featuretask.runloop.core.RejectedOutputTargetingOverrides
-import skillbill.engine.featuretask.runner.SCHEMA_GATE_DETAIL_MAX_CHARS
-import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.runloop.core.SettleRecordRejectionArgs
 import skillbill.engine.featuretask.runloop.core.UnattributableRecordRejectionArgs
 import skillbill.engine.featuretask.runloop.core.WriteUnattributableRejectedEvidenceArgs
-import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.featuretask.runloop.core.defaultRejectedOutputTargetingArgs
 import skillbill.engine.featuretask.runloop.core.phaseBlockArgs
 import skillbill.engine.featuretask.runloop.core.withDisposition
-import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProducerOutputRead
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.engine.featuretask.model.phase.ProducerOutputQueryArgs
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopAttemptSettlement
+import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopValidationGate
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
+import skillbill.engine.featuretask.runner.LaunchResult
+import skillbill.engine.featuretask.runner.SCHEMA_GATE_DETAIL_MAX_CHARS
+import skillbill.engine.featuretask.runner.STATUS_RUNNING
+import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 object FeatureTaskRuntimeRunLoopRecordRejection {
   internal fun blockUnattributableRecordRejection(
     request: FeatureTaskRuntimeRunRequest,

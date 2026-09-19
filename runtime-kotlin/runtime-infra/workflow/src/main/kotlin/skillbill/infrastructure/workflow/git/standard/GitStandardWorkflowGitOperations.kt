@@ -1,0 +1,18 @@
+package skillbill.infrastructure.workflow.git.standard
+import skillbill.infrastructure.workflow.git.checkpoint.git
+import skillbill.infrastructure.workflow.git.local.git
+import skillbill.infrastructure.workflow.git.protected.git
+import skillbill.infrastructure.workflow.git.repository.git
+import skillbill.infrastructure.workflow.git.scoped.git
+import skillbill.infrastructure.workflow.git.suppression.git
+import skillbill.infrastructure.workflow.git.workflow.git
+import skillbill.ports.workflow.gitops.WorkflowGitBranchOperations
+import skillbill.ports.workflow.gitops.WorkflowGitCommitHistoryOperations
+import skillbill.ports.workflow.gitops.WorkflowGitRemoteOperations
+import skillbill.ports.workflow.gitops.WorkflowGitWorktreeOperations
+
+internal object GitStandardWorkflowGitOperations :
+  WorkflowGitBranchOperations by GitStandardWorkflowGitBranchOperations,
+  WorkflowGitRemoteOperations by GitStandardWorkflowGitRemoteOperations,
+  WorkflowGitCommitHistoryOperations by GitStandardWorkflowGitCommitHistoryOperations,
+  WorkflowGitWorktreeOperations by GitStandardWorkflowGitWorktreeOperations

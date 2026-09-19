@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyStatus
 import java.nio.file.Files
@@ -9,7 +9,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
   @Test
   fun `apply materializes selected platform pack manifests under each agent skill root`() {

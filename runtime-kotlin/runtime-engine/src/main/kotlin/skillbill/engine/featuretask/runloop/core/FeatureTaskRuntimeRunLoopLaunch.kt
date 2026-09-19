@@ -1,44 +1,31 @@
 package skillbill.engine.featuretask.runloop.core
 
-
-
-
-import skillbill.engine.featuretask.runloop.core.CapturedPhaseOutput
+import skillbill.application.review.spec.toProjectionPayload
+import skillbill.contracts.JsonCodec
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProjectionRejection
+import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseFileManifest
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseSafetyPolicy
+import skillbill.engine.featuretask.phase.core.toMeasurementFailureClassification
+import skillbill.engine.featuretask.phase.prompt.directives.PriorAttemptCorrection
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.review.finding.promptSection
+import skillbill.engine.featuretask.review.finding.resolvedBodiesPromptSection
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputPersistence
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputVerification
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
-import skillbill.engine.featuretask.runloop.core.FindingsOwedKind
-import skillbill.engine.featuretask.runloop.core.LaunchMeasurementContextReady
-import skillbill.engine.featuretask.runloop.core.LaunchPreparation
-import skillbill.engine.featuretask.runloop.core.LaunchPreparationRejected
-import skillbill.engine.featuretask.runloop.core.LaunchRejectionMeasurementContext
-import skillbill.engine.featuretask.runner.LaunchResult
-import skillbill.engine.featuretask.runloop.core.PhaseRun
-import skillbill.engine.featuretask.runloop.core.PreparedLaunch
-import skillbill.engine.featuretask.runloop.core.PreparedLaunchReady
-import skillbill.engine.featuretask.phase.prompt.directives.PriorAttemptCorrection
 import skillbill.engine.featuretask.runloop.state.featureTaskRuntimeChildOutput
+import skillbill.engine.featuretask.runner.LaunchResult
 import skillbill.engine.featuretask.runner.infraFailureReason
-import skillbill.engine.featuretask.runloop.observability.paused
-import skillbill.engine.featuretask.review.finding.promptSection
 import skillbill.engine.featuretask.runner.providerLimitPauseReason
 import skillbill.engine.featuretask.runner.providerLimitSignal
-import skillbill.engine.featuretask.review.finding.resolvedBodiesPromptSection
-import skillbill.engine.featuretask.phase.core.toMeasurementFailureClassification
-import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
-import skillbill.application.review.toProjectionPayload
-import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
-import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProjectionRejection
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
-import skillbill.error.InvalidFeatureTaskRuntimePhaseBriefingFramingError
-import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseBriefingFramingError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.verificationBoundaryFindingPaths
@@ -54,23 +41,22 @@ import skillbill.ports.workflow.gitops.repositoryCheckpointFingerprint
 import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.ports.workflow.gitops.runtimePhaseChangedPathsBetweenCommits
 import skillbill.ports.workflow.gitops.runtimePhaseHeadCommit
-import skillbill.review.context.model.ReviewContextBudgetPolicy
-import skillbill.review.context.model.SpecIntentProjectionResolveRequest
-import skillbill.review.context.model.SpecIntentResolution
+import skillbill.review.context.model.execution.SpecIntentProjectionResolveRequest
+import skillbill.review.context.model.execution.SpecIntentResolution
+import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.telemetry.estimation.estimateTokens
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProjectionFailureClassification
-import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.envelopeWireMap
+import skillbill.workflow.taskruntime.model.audit.QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionFailureClassification
+import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
-
 object FeatureTaskRuntimeRunLoopLaunch {
   internal fun findingPathsForBoundaryMemory(finding: StructuredGoalReviewFinding): List<String> =
     GoalSubtaskReviewSummaryReducer.verificationBoundaryFindingPaths(finding)

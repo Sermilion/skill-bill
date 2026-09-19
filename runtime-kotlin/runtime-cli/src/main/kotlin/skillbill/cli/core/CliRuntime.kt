@@ -6,16 +6,15 @@ import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parsers.CommandLineParser
-import skillbill.cli.kernel.CliRunState
+import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.cli.model.CliStdoutCompletion
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
-import skillbill.error.DatabaseAccessError
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
+import skillbill.error.core.DatabaseAccessError
 import java.nio.file.Path
-
 object CliRuntime {
   fun run(arguments: List<String>, context: CliRuntimeContext = CliRuntimeContext()): CliExecutionResult {
     val rootFlags = RootFlagProbeCommand()

@@ -1,14 +1,13 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimeImplementationObligations
 import skillbill.engine.featuretask.phase.core.featureTaskRuntimeImplementationContinuationFrom
 import skillbill.engine.featuretask.phase.prompt.directives.implementationContinuationDirective
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttempt
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttemptStatus
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.FeatureTaskRuntimeImplementationAttempt
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.FeatureTaskRuntimeImplementationAttemptStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

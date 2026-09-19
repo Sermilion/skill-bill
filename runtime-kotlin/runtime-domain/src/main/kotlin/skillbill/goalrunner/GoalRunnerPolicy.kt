@@ -18,8 +18,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
-
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 object GoalRunnerQualityGateSelectionResolver {
   fun resolve(manifest: DecompositionManifest, subtaskId: Int): FeatureTaskRuntimeQualityGateSelection {
     val lastNonSkippedId = manifest.subtasks.lastOrNull {

@@ -3,14 +3,13 @@ package skillbill.cli.featuretask
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
-import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.diagnostics.RejectedOutputDiagnosticCliSession
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticCliResult
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.mcp.shared.int
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
-
 @Inject
 class RejectedOutputInspectCliCommand(
   private val session: RejectedOutputDiagnosticCliSession,

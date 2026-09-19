@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.execution.core
 
+import skillbill.engine.goalrunner.execution.support.GoalRunnerValidationQualityPendingState
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStoreDefaults
@@ -11,7 +12,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import skillbill.engine.goalrunner.execution.support.GoalRunnerValidationQualityPendingState
 
 class GoalRunnerSessionIsolationTest {
   @Test

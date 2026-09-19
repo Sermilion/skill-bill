@@ -1,10 +1,8 @@
 package skillbill.workflow.decomposition.model
-
-import skillbill.contracts.workflow.DECOMPOSITION_MANIFEST_VALIDATION_CONTRACT_VERSION
-import skillbill.error.FailureWireCode
-import skillbill.error.InvalidDecompositionManifestSchemaError
-import skillbill.error.failureWireByValue
-
+import skillbill.contracts.workflow.featuretask.DECOMPOSITION_MANIFEST_VALIDATION_CONTRACT_VERSION
+import skillbill.error.core.FailureWireCode
+import skillbill.error.core.failureWireByValue
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 const val DECOMPOSITION_MANIFEST_VALIDATION_VERSION: String =
   DECOMPOSITION_MANIFEST_VALIDATION_CONTRACT_VERSION
 

@@ -4,8 +4,8 @@ import org.yaml.snakeyaml.Yaml
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoringTarget
 import skillbill.infrastructure.skills.scaffold.rendering.canonicalSeverityCloser
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
-import skillbill.infrastructure.skills.scaffold.validation.ReviewSkillStructureValidator
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
+import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator
 import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
 import java.nio.file.Files
 import java.nio.file.Path
@@ -14,7 +14,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class ScaffoldReviewStructureAcceptanceTest {
   @Test
   fun `platform pack scaffolder emits the complete review structure`() = withReviewStructureUserHome {

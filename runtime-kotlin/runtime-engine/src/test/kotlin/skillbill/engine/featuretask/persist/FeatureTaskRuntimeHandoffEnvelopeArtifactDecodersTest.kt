@@ -1,11 +1,10 @@
 package skillbill.engine.featuretask.persist
-import skillbill.error.InvalidFeatureTaskRuntimePersistenceSchemaError
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePersistenceSchemaError
+import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
-
 class FeatureTaskRuntimeHandoffEnvelopeArtifactDecodersTest {
   @Test
   fun `delivered projection read translates schema failure with consumer identity and migration guidance`() {

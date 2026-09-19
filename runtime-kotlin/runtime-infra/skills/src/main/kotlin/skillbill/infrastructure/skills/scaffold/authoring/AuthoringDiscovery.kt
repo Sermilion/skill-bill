@@ -1,11 +1,11 @@
 package skillbill.infrastructure.skills.scaffold.authoring
 
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.host.jvm.rollbackDeleteIfExists
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
-import skillbill.infrastructure.skills.scaffold.platformpack.addonUsageFor
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.runtime.displayNameFromSlug
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.addonUsageFor
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.displayNameFromSlug
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import java.io.IOException

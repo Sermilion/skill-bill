@@ -1,21 +1,21 @@
 package skillbill.infrastructure.skills.install.reconcile
 
-import skillbill.error.ReconciliationConflictError
+import skillbill.error.shellcontent.ReconciliationConflictError
 import skillbill.infrastructure.contracts.newSha256Digest
 import skillbill.infrastructure.skills.agentaddon.discoverAgentAddons
 import skillbill.infrastructure.skills.install.plan.discoverPlatformManifests
 import skillbill.infrastructure.skills.install.plan.enumerateInstallPlanSkills
-import skillbill.infrastructure.skills.install.staging.INSTALL_CACHE_KEY_BYTES
-import skillbill.infrastructure.skills.install.staging.InstallContentHashInputs
-import skillbill.infrastructure.skills.install.staging.InternalStagingPreparation
-import skillbill.infrastructure.skills.install.staging.agentAddonPointersForSkill
-import skillbill.infrastructure.skills.install.staging.applicablePointers
-import skillbill.infrastructure.skills.install.staging.authoredFilesFor
-import skillbill.infrastructure.skills.install.staging.authoredStagingNames
-import skillbill.infrastructure.skills.install.staging.computeInstallContentHash
-import skillbill.infrastructure.skills.install.staging.generatedSupportPointersFor
-import skillbill.infrastructure.skills.install.staging.prepareInternalStaging
-import skillbill.infrastructure.skills.install.staging.validateAgentAddonPointerNamespace
+import skillbill.infrastructure.skills.install.staging.staging.agentAddonPointersForSkill
+import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
+import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
+import skillbill.infrastructure.skills.install.staging.staging.authoredStagingNames
+import skillbill.infrastructure.skills.install.staging.staging.content.INSTALL_CACHE_KEY_BYTES
+import skillbill.infrastructure.skills.install.staging.staging.content.InstallContentHashInputs
+import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalStagingPreparation
+import skillbill.infrastructure.skills.install.staging.staging.sidecar.prepareInternalStaging
+import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
+import skillbill.infrastructure.skills.install.staging.staging.validateAgentAddonPointerNamespace
 import skillbill.install.model.BaselineManifest
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
@@ -39,7 +39,6 @@ import skillbill.scaffold.model.PlatformManifest
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-
 internal const val SKILLS_PREFIX = "skills/"
 internal const val PLATFORM_PACKS_PREFIX = "platform-packs/"
 internal const val AGENT_ADDONS_PREFIX = "agent-addons/"

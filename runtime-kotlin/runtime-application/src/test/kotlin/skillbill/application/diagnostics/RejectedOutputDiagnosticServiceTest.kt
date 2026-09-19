@@ -2,8 +2,8 @@ package skillbill.application.diagnostics
 
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticConfig
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
-import skillbill.error.InvalidRejectedOutputDiagnosticSchemaError
-import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.error.core.RejectedOutputDiagnosticError
+import skillbill.error.shellcontent.InvalidRejectedOutputDiagnosticSchemaError
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
@@ -19,7 +19,6 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
-
 class RejectedOutputDiagnosticServiceTest {
   private val now = Instant.parse("2026-07-28T10:00:00Z")
 

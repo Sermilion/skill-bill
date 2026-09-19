@@ -1,7 +1,7 @@
 package skillbill.application.evidence
 
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeSharedReviewEvidenceResolver
-import skillbill.error.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
+import skillbill.error.featuretask.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceDeriver
@@ -11,9 +11,9 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolut
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolveOutcome.CHECKPOINT_CHANGE_REDERIVATION
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolveOutcome.DERIVATION
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolveOutcome.REUSE
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceDiffPayloadRef
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceArtifact
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceDiffPayloadRef
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,7 +22,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
   private val repoRoot: Path = Path.of(".")
 

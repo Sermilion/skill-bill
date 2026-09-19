@@ -1,9 +1,8 @@
 package skillbill.engine.featuretask.lifecycle.core
-import skillbill.error.InvalidReviewContextSchemaError
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import java.nio.file.Path
-
 object FeatureTaskRuntimeUnreadableDiffResolver : DiffResolverPort {
   override fun runProcess(args: List<String>, workDir: Path): String? = null
 

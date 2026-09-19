@@ -2,7 +2,7 @@ package skillbill.infrastructure.workflow.goalplanning
 
 import skillbill.contracts.goalplanning.GoalVerificationBoundaryCaps
 import skillbill.contracts.time.JvmSystemClock
-import skillbill.error.GoalVerificationBoundaryCapExceededError
+import skillbill.error.shellcontent.GoalVerificationBoundaryCapExceededError
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryBodyResolutionCaps
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeading
 import java.nio.file.Files
@@ -12,7 +12,6 @@ import java.time.ZoneOffset
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class FileSystemGoalPlanningVerificationBodyResolverTest {
   @Test
   fun `over budget verification resolution raises the named cap error`() {

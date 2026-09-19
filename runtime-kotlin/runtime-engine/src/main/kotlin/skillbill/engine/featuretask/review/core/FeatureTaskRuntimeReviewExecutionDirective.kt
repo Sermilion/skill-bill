@@ -1,11 +1,7 @@
 package skillbill.engine.featuretask.review.core
 
-
-
-
 import skillbill.engine.featuretask.phase.prompt.directives.ReviewExecutionDirectiveInputs
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 internal fun reviewExecutionDirective(phaseId: String, inputs: ReviewExecutionDirectiveInputs): String {
   if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) {
     return ""

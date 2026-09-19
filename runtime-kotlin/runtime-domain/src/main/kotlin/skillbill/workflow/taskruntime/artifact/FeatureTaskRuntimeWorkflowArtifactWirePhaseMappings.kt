@@ -1,0 +1,97 @@
+package skillbill.workflow.taskruntime.artifact
+import skillbill.contracts.JsonCodec
+import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.taskruntime.feature.artifact
+import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticSignal
+import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeDiagnosticSignalsFromWire
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
+import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeDiagnosticDegradationMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRejectionMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeSharedEvidenceMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.toArtifactMap
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
+import skillbill.workflow.taskruntime.model.phase.featureTaskRuntimeDecomposePlanOutcomeOrNull
+import skillbill.workflow.taskruntime.model.phase.featureTaskRuntimeIsDecompositionPackage
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
+import skillbill.workflow.taskruntime.phase.raw
+
+fun FeatureTaskRuntimeFindingVerificationDisposition.asWorkflowArtifactEntry(): Any = toArtifactMap()
+
+fun decodeFindingVerificationDispositionFromArtifact(
+  raw: Any?,
+  path: String = "finding_verification",
+): FeatureTaskRuntimeFindingVerificationDisposition? =
+  JsonCodec.anyToStringAnyMap(raw)?.let { FeatureTaskRuntimeFindingVerificationDisposition.fromArtifactMap(it, path) }
+
+internal fun decodeFindingVerificationDispositionFromArtifact(
+  raw: Map<String, Any?>,
+  path: String = "finding_verification",
+): FeatureTaskRuntimeFindingVerificationDisposition =
+  FeatureTaskRuntimeFindingVerificationDisposition.fromArtifactMap(raw, path)
+
+fun FeatureTaskRuntimeDiagnosticSignal.asWorkflowArtifactEntry(): Any = toArtifactMap()
+
+fun decodeDiagnosticSignalsFromArtifact(raw: Any?): List<FeatureTaskRuntimeDiagnosticSignal> =
+  featureTaskRuntimeDiagnosticSignalsFromWire(raw)
+
+fun FeatureTaskRuntimePhaseOutputRepairEvidence.asWorkflowArtifactEntry(): Any = toArtifactMap()
+
+fun decodePhaseOutputRepairEvidenceFromArtifact(raw: Any?): FeatureTaskRuntimePhaseOutputRepairEvidence? =
+  JsonCodec.anyToStringAnyMap(raw)?.let(FeatureTaskRuntimePhaseOutputRepairEvidence::fromArtifactMap)
+
+internal fun decodePhaseOutputRepairEvidenceFromArtifact(
+  raw: Map<String, Any?>,
+): FeatureTaskRuntimePhaseOutputRepairEvidence = FeatureTaskRuntimePhaseOutputRepairEvidence.fromArtifactMap(raw)
+
+fun FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.asWorkflowArtifactEntry(): Any = toArtifactMap()
+
+fun decodeVerificationBoundaryHeadingProvenanceFromArtifact(
+  raw: Any?,
+  path: String,
+): FeatureTaskRuntimeVerificationBoundaryHeadingProvenance? = JsonCodec.anyToStringAnyMap(raw)?.let {
+  FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.fromArtifactMap(it, path)
+}
+
+internal fun decodeVerificationBoundaryHeadingProvenanceFromArtifact(
+  raw: Map<String, Any?>,
+  path: String,
+): FeatureTaskRuntimeVerificationBoundaryHeadingProvenance =
+  FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.fromArtifactMap(raw, path)
+
+fun PhaseHandoffProjectionDeclaration.asWorkflowArtifactEntry(): Any = toArtifactMap()
+
+fun decodePhaseHandoffProjectionDeclarationFromArtifact(
+  raw: Any?,
+  foundationValidator: FeatureTaskRuntimeWireArtifactValidator,
+): PhaseHandoffProjectionDeclaration? =
+  JsonCodec.anyToStringAnyMap(raw)?.let { PhaseHandoffProjectionDeclaration.fromArtifactMap(it, foundationValidator) }
+
+internal fun decodePhaseHandoffProjectionDeclarationFromArtifact(
+  raw: Map<String, Any?>,
+  foundationValidator: FeatureTaskRuntimeWireArtifactValidator,
+): PhaseHandoffProjectionDeclaration = PhaseHandoffProjectionDeclaration.fromArtifactMap(raw, foundationValidator)
+
+fun phaseOutputEnvelopeFromArtifact(raw: Any?): Any? = JsonCodec.anyToStringAnyMap(raw)
+
+fun NormalizedFeatureTaskRuntimePhaseOutput.envelopeWireMap(): FeatureTaskRuntimeWorkflowArtifactMap =
+  FeatureTaskRuntimeWorkflowArtifactMap.from(envelopePayload())
+
+fun isDecompositionPackagePhaseOutput(phaseOutput: Any?): Boolean =
+  JsonCodec.anyToStringAnyMap(phaseOutput)?.let { featureTaskRuntimeIsDecompositionPackage(it) } == true
+
+fun decomposePlanOutcomeFromPhaseOutput(phaseOutput: Any?, specSource: SpecSource) =
+  JsonCodec.anyToStringAnyMap(phaseOutput)?.let {
+    featureTaskRuntimeDecomposePlanOutcomeOrNull(it, specSource)
+  }
+
+fun FeatureTaskRuntimeProjectionMeasurement.asTelemetryPayload(): Any = toTelemetryMap()
+
+fun FeatureTaskRuntimeSharedEvidenceMeasurement.asTelemetryPayload(): Any = toTelemetryMap()
+
+fun FeatureTaskRuntimeRejectionMeasurement.asTelemetryPayload(): Any = toTelemetryMap()
+
+fun FeatureTaskRuntimeDiagnosticDegradationMeasurement.asTelemetryPayload(): Any = toTelemetryMap()

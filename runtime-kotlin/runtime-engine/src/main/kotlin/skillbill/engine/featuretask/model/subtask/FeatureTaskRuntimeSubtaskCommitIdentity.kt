@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.subtask
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointRefName
 internal const val SUBTASK_TRAILER_KEY = "Skill-Bill-Subtask"
 
 data class FeatureTaskRuntimeSubtaskCommitIdentity(val issueKey: String, val subtaskId: String) {
@@ -10,7 +11,7 @@ data class FeatureTaskRuntimeSubtaskCommitIdentity(val issueKey: String, val sub
   val trailer: String get() = "$SUBTASK_TRAILER_KEY: $issueKey/$subtaskId"
 
   fun checkpointRefName(sequenceNumber: Int): String =
-    skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointRefName(issueKey, subtaskId, sequenceNumber)
+    featureTaskRuntimeCheckpointRefName(issueKey, subtaskId, sequenceNumber)
 
   fun matches(commitMessage: String): Boolean = parse(commitMessage) == this
 

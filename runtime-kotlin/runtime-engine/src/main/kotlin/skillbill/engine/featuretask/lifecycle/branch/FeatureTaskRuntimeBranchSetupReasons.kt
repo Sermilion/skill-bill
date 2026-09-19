@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.branch
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 val featureTaskRuntimeBranchSetupGuardPhase: String =
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT
 

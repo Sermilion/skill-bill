@@ -1,8 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.manifest
-
-import skillbill.error.InvalidScaffoldPayloadError
-
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 private val AREAS_EMPTY_INLINE_PATTERN =
   Regex("^declared_code_review_areas:\\s*\\[\\s*\\]\\s*$", RegexOption.MULTILINE)
 private val AREAS_LIST_PATTERN =

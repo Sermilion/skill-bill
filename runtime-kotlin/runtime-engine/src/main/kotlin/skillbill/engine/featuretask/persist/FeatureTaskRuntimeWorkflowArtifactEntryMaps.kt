@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask.persist
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidWorkflowStateSchemaError
-
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 fun workflowArtifactEntryMap(entry: Any): Map<String, Any?> = JsonCodec.anyToStringAnyMap(entry)
   ?: throw InvalidWorkflowStateSchemaError("workflow artifact entry must be an object")
 

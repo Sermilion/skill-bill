@@ -1,15 +1,11 @@
 package skillbill.engine.featuretask.phase.core
 
-
-
-
-import skillbill.engine.featuretask.lifecycle.checkpoint.isRuntimePrivatePath
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.featuretask.lifecycle.checkpoint.isRuntimePrivatePath
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 internal data class FeatureTaskRuntimePhaseFileManifest(
   val before: List<String>,
   val after: List<String>,

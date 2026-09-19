@@ -1,23 +1,16 @@
 package skillbill.engine.featuretask.runloop.settlement
 
-
-
-
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeNonOutputAttempt
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimePhaseStartReentry
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopLaunch
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputPersistence
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputVerification
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRecordRejection
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
-import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runloop.core.FixLoopBranchContext
 import skillbill.engine.featuretask.runloop.core.FixLoopOutcomeArgs
 import skillbill.engine.featuretask.runloop.core.PhaseAttemptAccumulatorContext
@@ -30,21 +23,25 @@ import skillbill.engine.featuretask.runloop.core.PhaseStateRequestArgs
 import skillbill.engine.featuretask.runloop.core.PhaseStateRequestAttachments
 import skillbill.engine.featuretask.runloop.core.PhaseStateWriteArgs
 import skillbill.engine.featuretask.runloop.core.RepositoryCheckpointResolutionArgs
-import skillbill.engine.featuretask.runner.STATUS_COMPLETED
-import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.runloop.core.ValidationGateCycleRequestArgs
 import skillbill.engine.featuretask.runloop.core.ValidationGateRepairArgs
 import skillbill.engine.featuretask.runloop.core.ValidationGateTriageArgs
-import skillbill.engine.featuretask.runloop.observability.featureTaskRuntimeStartContinuationKind
-import skillbill.engine.featuretask.runloop.observability.paused
 import skillbill.engine.featuretask.runloop.core.phaseAttemptAccumulatorContext
 import skillbill.engine.featuretask.runloop.core.phaseBlockArgs
 import skillbill.engine.featuretask.runloop.core.recordRejectionAttemptArgs
-import skillbill.contracts.JsonCodec
-import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimePhaseStartReentry
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
+import skillbill.engine.featuretask.runloop.observability.featureTaskRuntimeStartContinuationKind
+import skillbill.engine.featuretask.runloop.observability.paused
+import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputPersistence
+import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputVerification
+import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRecordRejection
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeNonOutputAttempt
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
+import skillbill.engine.featuretask.runner.STATUS_COMPLETED
+import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLauncher
@@ -59,19 +56,18 @@ import skillbill.engine.featuretask.validation.resolveRequiredValidationCommand
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
-import skillbill.workflow.taskruntime.decodeValidationEvidenceFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
-import skillbill.workflow.taskruntime.model.requireAcceptedOutput
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
-import skillbill.workflow.taskruntime.validateBuildReceipt
-
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.artifact.decodeValidationEvidenceFromArtifact
+import skillbill.workflow.taskruntime.artifact.envelopeWireMap
+import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.artifact.validateBuildReceipt
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 internal class RuntimeOwnedValidationSettlement(
   private val request: FeatureTaskRuntimeRunRequest,
   private val state: FeatureTaskRuntimeRunState,

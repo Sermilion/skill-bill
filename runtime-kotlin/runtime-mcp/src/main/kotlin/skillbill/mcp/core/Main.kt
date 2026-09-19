@@ -1,7 +1,7 @@
 package skillbill.mcp.core
 
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.mcp.review.GovernedReviewEvidenceBridge
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.create
@@ -10,7 +10,6 @@ import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
 import skillbill.model.TransportContext
 import skillbill.model.WorkflowOpsContext
-
 fun main() {
   val environment = System.getenv()
   if (GovernedReviewEvidenceBridge.enabled(environment)) {

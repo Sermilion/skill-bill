@@ -1,9 +1,9 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.error.InvalidWorkListRowError
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.error.shellcontent.InvalidWorkListRowError
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.worklist.SQLiteWorkListRepository
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.nio.file.Files
 import java.sql.Connection
@@ -12,7 +12,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class SQLiteWorkListRepositoryTest {
   @Test
   fun `work list sorts parsed instants exactly before applying its limit and excludes child goal rows`() {

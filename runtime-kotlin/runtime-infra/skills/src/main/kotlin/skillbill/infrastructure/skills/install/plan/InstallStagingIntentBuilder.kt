@@ -1,19 +1,19 @@
 package skillbill.infrastructure.skills.install.plan
 
 import skillbill.infrastructure.skills.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
-import skillbill.infrastructure.skills.install.staging.GeneratedSupportPointer
-import skillbill.infrastructure.skills.install.staging.InstallContentHashInputs
-import skillbill.infrastructure.skills.install.staging.InternalStagingPreparation
-import skillbill.infrastructure.skills.install.staging.agentAddonPointersForSkill
-import skillbill.infrastructure.skills.install.staging.applicablePointers
-import skillbill.infrastructure.skills.install.staging.authoredFilesFor
-import skillbill.infrastructure.skills.install.staging.authoredStagingNames
-import skillbill.infrastructure.skills.install.staging.computeInstallContentHash
-import skillbill.infrastructure.skills.install.staging.generatedSupportPointersFor
-import skillbill.infrastructure.skills.install.staging.installedSkillStagingDir
-import skillbill.infrastructure.skills.install.staging.installedSkillsCacheRoot
-import skillbill.infrastructure.skills.install.staging.prepareInternalStaging
-import skillbill.infrastructure.skills.install.staging.validateAgentAddonPointerNamespace
+import skillbill.infrastructure.skills.install.staging.staging.agentAddonPointersForSkill
+import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
+import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
+import skillbill.infrastructure.skills.install.staging.staging.authoredStagingNames
+import skillbill.infrastructure.skills.install.staging.staging.content.InstallContentHashInputs
+import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.staging.installedSkillStagingDir
+import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalStagingPreparation
+import skillbill.infrastructure.skills.install.staging.staging.sidecar.prepareInternalStaging
+import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
+import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
+import skillbill.infrastructure.skills.install.staging.staging.validateAgentAddonPointerNamespace
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
@@ -26,7 +26,6 @@ import skillbill.scaffold.model.PointerSpec
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 private data class StagingIntentContext(
   val request: InstallPlanRequest,
   val platformManifests: List<PlatformManifest>,

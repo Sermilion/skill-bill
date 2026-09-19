@@ -5,14 +5,13 @@ import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.optional
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.workflow.WorkflowService
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.resolveCliRepositoryRoot
+import skillbill.application.workflow.service.WorkflowService
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
-import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
-
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 private const val FEATURE_TASK_RUNTIME_DEPRECATION_NOTE: String =
   "feature-task-runtime is a deprecated alias for feature-task. Use feature-task; behavior is unchanged.\n"
 

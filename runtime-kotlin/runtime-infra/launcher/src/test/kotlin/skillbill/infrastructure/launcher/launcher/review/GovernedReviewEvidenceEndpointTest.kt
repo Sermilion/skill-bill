@@ -1,11 +1,11 @@
 package skillbill.infrastructure.launcher.launcher.review
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.GovernedReviewEvidenceTransportError
+import skillbill.error.shellcontent.GovernedReviewEvidenceTransportError
 import skillbill.infrastructure.launcher.mcp.GovernedReviewMcpConfigWriter
 import skillbill.infrastructure.launcher.review.GovernedReviewEvidenceEndpoint
 import skillbill.infrastructure.launcher.review.bridgeCommand
-import skillbill.ports.review.ReviewEvidenceBroker
+import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewEvidenceResult
@@ -13,9 +13,9 @@ import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewToolCall
 import skillbill.ports.review.model.ReviewToolCallResult
-import skillbill.review.context.model.ForbiddenReviewOperation
-import skillbill.review.context.model.ReviewBudgetOutcome
-import skillbill.review.context.model.ReviewExpansionRecord
+import skillbill.review.context.model.execution.ForbiddenReviewOperation
+import skillbill.review.context.model.hunk.ReviewBudgetOutcome
+import skillbill.review.context.model.packet.ReviewExpansionRecord
 import java.net.UnixDomainSocketAddress
 import java.nio.channels.Channels
 import java.nio.channels.SocketChannel
@@ -27,7 +27,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class GovernedReviewEvidenceEndpointTest {
   private class RecordingBroker : ReviewEvidenceBroker {
     val reads = mutableListOf<ReviewEvidenceBatchRequest>()

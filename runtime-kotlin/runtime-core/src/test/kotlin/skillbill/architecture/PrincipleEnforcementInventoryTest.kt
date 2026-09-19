@@ -14,7 +14,7 @@ class PrincipleEnforcementInventoryTest {
     assertEquals(
       setOf(
         "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/core/Main.kt",
-        "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeBootstrapBindings.kt",
+        "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeBootstrapBindings.kt",
       ),
       PrincipleEnforcementInventory.ambientEnvironmentExemptions,
     )

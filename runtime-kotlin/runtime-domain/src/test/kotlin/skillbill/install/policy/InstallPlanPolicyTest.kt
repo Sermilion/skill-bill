@@ -1,7 +1,7 @@
 package skillbill.install.policy
 
-import skillbill.error.InvalidInstallPlanSchemaError
-import skillbill.error.MissingBaselinePlatformSelectionError
+import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
+import skillbill.error.shellcontent.MissingBaselinePlatformSelectionError
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentDefaultTarget
 import skillbill.install.model.InstallAgentSelection
@@ -37,7 +37,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class InstallPlanPolicyTest {
   @Test
   fun `manual plan draft resolves selected platform skills agent defaults and MCP intent`() {

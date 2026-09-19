@@ -1,17 +1,13 @@
 package skillbill.engine.featuretask.review.core
 
-
-
-
-import skillbill.engine.featuretask.review.finding.FeatureTaskRuntimeFindingVerificationRecorder
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.persist.RuntimeOwnedPersistenceBoundary
+import skillbill.engine.featuretask.review.finding.FeatureTaskRuntimeFindingVerificationRecorder
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
-
+import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 class FeatureTaskRuntimeReviewCheckpointRecorder(
   database: DatabaseSessionFactory,
   workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,

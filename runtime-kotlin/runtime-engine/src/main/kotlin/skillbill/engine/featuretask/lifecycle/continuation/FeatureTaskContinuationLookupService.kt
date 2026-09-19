@@ -1,14 +1,12 @@
 package skillbill.engine.featuretask.lifecycle.continuation
 
-
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLiveness
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupQuery
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
-import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
-import skillbill.error.LegacyProseWorkflowError
+import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
+import skillbill.error.shellcontent.LegacyProseWorkflowError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.persistence.UnitOfWork
@@ -23,8 +21,7 @@ import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 @Inject
 class FeatureTaskContinuationLookupService(
   private val database: DatabaseSessionFactory,

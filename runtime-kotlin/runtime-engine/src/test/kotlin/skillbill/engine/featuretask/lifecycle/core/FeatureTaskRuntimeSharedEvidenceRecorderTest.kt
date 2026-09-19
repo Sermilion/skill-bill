@@ -1,20 +1,19 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.testHarnessClock
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffEnvelope
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceMeasurement
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceOutcome
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeSharedEvidenceMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeSharedEvidenceOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class FeatureTaskRuntimeSharedEvidenceRecorderTest {
   @Test
   fun `exactly one derivation and N-1 reuse events are emitted for N consumers at an unchanged fingerprint`() {

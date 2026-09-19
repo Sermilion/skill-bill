@@ -1,11 +1,10 @@
 package skillbill.scaffold
 import skillbill.infrastructure.skills.nativeagent.testNativeAgentCompositionContext
-import skillbill.infrastructure.skills.scaffold.runtime.RepoValidationRuntime
+import skillbill.infrastructure.skills.scaffold.runtime.validation.RepoValidationRuntime
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class RepoValidationPlatformPackTest {
   @Test
   fun `repo validation rejects generated wrapper boilerplate headings in content_md`() {

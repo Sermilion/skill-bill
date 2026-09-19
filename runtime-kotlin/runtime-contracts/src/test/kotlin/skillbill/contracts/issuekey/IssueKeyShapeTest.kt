@@ -1,12 +1,11 @@
 package skillbill.contracts.issuekey
 
-import skillbill.error.InvalidIssueKeySchemaError
+import skillbill.error.shellcontent.InvalidIssueKeySchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class IssueKeyShapeTest {
   @Test
   fun `effective issue-key bounds load from the packaged schema document`() {

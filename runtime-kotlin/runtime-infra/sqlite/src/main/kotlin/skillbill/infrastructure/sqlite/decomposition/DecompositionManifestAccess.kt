@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite.decomposition
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestFileCandidate
 import skillbill.ports.workflow.decomposition.runtime.model.LoadedDecompositionManifest
@@ -15,7 +15,6 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
-
 internal fun loadDecompositionManifest(
   path: Path,
   fileStore: DecompositionManifestStore,

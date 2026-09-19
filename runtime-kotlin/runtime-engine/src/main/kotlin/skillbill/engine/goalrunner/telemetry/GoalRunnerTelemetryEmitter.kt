@@ -1,11 +1,11 @@
 package skillbill.engine.goalrunner.telemetry
 
-import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
+import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
 import skillbill.application.telemetry.model.GoalFinishedRequest
 import skillbill.application.telemetry.model.GoalIssueFinishedRequest
 import skillbill.application.telemetry.model.GoalStartedRequest
 import skillbill.application.telemetry.model.GoalSubtaskFinishedRequest
-import skillbill.application.telemetry.normalizedBlockedReason
+import skillbill.application.telemetry.service.normalizedBlockedReason
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
@@ -16,7 +16,6 @@ import skillbill.workflow.model.decompositionStatus
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-
 class GoalRunnerTelemetryEmitter(
   private val telemetry: GoalLifecycleTelemetryEmitter,
   private val clock: Clock,

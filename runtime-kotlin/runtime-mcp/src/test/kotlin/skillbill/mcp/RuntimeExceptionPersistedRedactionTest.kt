@@ -1,6 +1,6 @@
 package skillbill.mcp
 
-import skillbill.application.telemetry.enqueueRuntimeException
+import skillbill.application.telemetry.service.enqueueRuntimeException
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.sqlite.telemetryOutboxOnConnection
 import java.nio.file.Files
@@ -8,7 +8,6 @@ import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class RuntimeExceptionPersistedRedactionTest {
   private val callerMessage = "reading /home/dev/checkout/SKILL-163/spec.md failed"
 

@@ -1,19 +1,16 @@
 package skillbill.engine.featuretask.lifecycle.continuation
 
-
-
-import skillbill.application.workflow.goalContinuationFor
+import skillbill.application.workflow.decomposition.goalContinuationFor
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupQuery
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
-import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskRouteScope
-
 fun executeFeatureTaskContinuationLookup(
   query: FeatureTaskContinuationLookupQuery,
   unitOfWork: UnitOfWork,

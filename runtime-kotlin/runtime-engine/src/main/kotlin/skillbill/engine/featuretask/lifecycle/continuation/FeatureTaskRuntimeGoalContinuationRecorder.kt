@@ -1,18 +1,14 @@
 package skillbill.engine.featuretask.lifecycle.continuation
 
-
-
-
-import skillbill.engine.featuretask.review.goal.FeatureTaskRuntimeGoalReviewInputBuilder
-import skillbill.engine.featuretask.review.goal.FeatureTaskRuntimeGoalReviewPassRecorder
+import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.lifecycle.remediation.FeatureTaskRuntimeRemediationBaseReconciler
 import skillbill.engine.featuretask.lifecycle.remediation.RemediationDegradationSignal
-import skillbill.engine.featuretask.persist.RuntimeOwnedPersistenceBoundary
-import skillbill.engine.featuretask.runner.reviewBaseline
-import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewInputPreparation
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewPassReservation
 import skillbill.engine.featuretask.model.subtask.RemediationBaseCoherenceResult
+import skillbill.engine.featuretask.persist.RuntimeOwnedPersistenceBoundary
+import skillbill.engine.featuretask.review.goal.FeatureTaskRuntimeGoalReviewInputBuilder
+import skillbill.engine.featuretask.review.goal.FeatureTaskRuntimeGoalReviewPassRecorder
 import skillbill.goalrunner.model.FeatureTaskRuntimeGoalContinuationOutcome
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -25,12 +21,11 @@ import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationFieldAdoption
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationFieldAdoption
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import java.nio.file.Path
 import java.time.Clock
-
 @Inject
 class FeatureTaskRuntimeGoalContinuationRecorder(
   private val database: DatabaseSessionFactory,

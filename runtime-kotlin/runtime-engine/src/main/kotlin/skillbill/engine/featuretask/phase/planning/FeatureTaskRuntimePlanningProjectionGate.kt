@@ -1,17 +1,13 @@
 package skillbill.engine.featuretask.phase.planning
 
-
-
-
-import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePlanningProjectionContract
-
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePlanningProjectionContract
 internal fun producerProjectionGateReason(
   phaseId: String,
   outputMap: FeatureTaskRuntimeWorkflowArtifactMap,

@@ -1,7 +1,5 @@
 package skillbill.engine.featuretask.phase.core
-
-import skillbill.workflow.taskruntime.model.MAX_BOUNDED_POINTER_LENGTH
-
+import skillbill.workflow.taskruntime.model.handoff.task.MAX_BOUNDED_POINTER_LENGTH
 object FeatureTaskRuntimeSchemaFailureCorrections {
 
   fun unreconciledReceipt(priorSchemaFailure: String): String {

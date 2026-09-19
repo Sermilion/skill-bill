@@ -1,9 +1,9 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.error.InvalidAgentAddonSchemaError
-import skillbill.error.InvalidScaffoldPayloadError
-import skillbill.error.MissingRequiredSectionError
-import skillbill.error.RetiredScaffoldKindError
+import skillbill.error.shellcontent.InvalidAgentAddonSchemaError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.MissingRequiredSectionError
+import skillbill.error.shellcontent.RetiredScaffoldKindError
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderRequest
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
@@ -14,17 +14,17 @@ import skillbill.infrastructure.skills.scaffold.authoring.renderWrapper
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
 import skillbill.infrastructure.skills.scaffold.authoring.validateTarget
 import skillbill.infrastructure.skills.scaffold.manifest.appendCodeReviewArea
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.rendering.baselineReviewContent
 import skillbill.infrastructure.skills.scaffold.rendering.canonicalSeverityCloser
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.rendering.inferSkillDescription
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
 import skillbill.infrastructure.skills.scaffold.rendering.renderNativeAgentSourceStub
-import skillbill.infrastructure.skills.scaffold.runtime.TemplateContext
-import skillbill.infrastructure.skills.scaffold.runtime.requiredSupportingFilesForSkill
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
+import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import skillbill.model.toPath
 import skillbill.scaffold.policy.platformpack.model.PlatformPackManifestRenderRequest
 import skillbill.scaffold.policy.platformpack.renderPlatformPackManifest
@@ -39,7 +39,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class ScaffoldServiceParityTest {
   @Test
   fun `horizontal subagent specialists emit runtime notes and native stubs`() = withIsolatedUserHome {

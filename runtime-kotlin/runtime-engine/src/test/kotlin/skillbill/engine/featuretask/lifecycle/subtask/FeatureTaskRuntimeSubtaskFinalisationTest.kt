@@ -1,12 +1,7 @@
 package skillbill.engine.featuretask.lifecycle.subtask
-import skillbill.engine.goalrunner.manifest
-
-
-import skillbill.engine.featuretask.lifecycle.continuation.commitShaFromPhasePayload
-
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMessage
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMetadata
-import skillbill.engine.featuretask.runloop.observability.blocked
+import skillbill.engine.featuretask.lifecycle.continuation.commitShaFromPhasePayload
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushHandoff
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushHandoffInvalid
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushHandoffValid
@@ -14,7 +9,8 @@ import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommi
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskFinalisationBlocked
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskFinalisationResult
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskFinalised
-import skillbill.infrastructure.workflow.GitWorkflowGitOperations
+import skillbill.engine.featuretask.runloop.observability.blocked
+import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import java.nio.file.Files
 import java.nio.file.Path
@@ -25,7 +21,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 private const val GIT_TIMEOUT_SECONDS = 60L
 
 class FeatureTaskRuntimeSubtaskFinalisationTest {

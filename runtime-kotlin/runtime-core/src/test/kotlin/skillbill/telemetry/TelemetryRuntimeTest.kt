@@ -5,8 +5,8 @@ import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.transport.TelemetryClient
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetryDeliveryReport
@@ -21,7 +21,6 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 private val SYNC_NOW: Instant = Instant.parse("2026-09-15T10:00:00Z")
 
 class TelemetryRuntimeTest {

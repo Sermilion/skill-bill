@@ -4,14 +4,13 @@ import skillbill.application.telemetry.model.TelemetryOutboxStatusSnapshot
 import skillbill.application.telemetry.model.TelemetryStatusResult
 import skillbill.application.telemetry.model.TelemetrySyncStatusResult
 import skillbill.ports.concurrency.InterruptSignalPort
-import skillbill.ports.telemetry.TelemetryClient
-import skillbill.ports.telemetry.TelemetryOutboxRepository
+import skillbill.ports.telemetry.transport.TelemetryClient
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.telemetry.model.SyncResult
 import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Path
 import java.time.Instant
 import kotlin.coroutines.cancellation.CancellationException
-
 object TelemetrySyncRuntime {
   fun disabledSync(settings: TelemetrySettings): SyncResult = disabledSyncResult(settings)
 

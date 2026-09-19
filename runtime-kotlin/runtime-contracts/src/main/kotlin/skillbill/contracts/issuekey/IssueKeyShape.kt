@@ -3,8 +3,7 @@ package skillbill.contracts.issuekey
 import skillbill.contracts.packaged.PackagedYamlMappingFailure
 import skillbill.contracts.packaged.loadPackagedYamlRootMapping
 import skillbill.contracts.packaged.packagedPositiveInt
-import skillbill.error.InvalidIssueKeySchemaError
-
+import skillbill.error.shellcontent.InvalidIssueKeySchemaError
 const val ISSUE_KEY_SCHEMA_ID: String = "https://skill-bill.dev/contracts/issue-key-schema.yaml"
 const val ISSUE_KEY_SCHEMA_RESOURCE: String = "skillbill/infrastructure/contracts/issue-key-schema.yaml"
 const val ISSUE_KEY_SCHEMA_REPO_PATH: String = "orchestration/contracts/issue-key-schema.yaml"

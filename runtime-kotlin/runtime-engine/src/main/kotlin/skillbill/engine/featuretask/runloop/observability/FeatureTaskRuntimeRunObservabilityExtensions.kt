@@ -1,10 +1,9 @@
 package skillbill.engine.featuretask.runloop.observability
 
-import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLedgerRequest
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 fun FeatureTaskRuntimeRunObservability.fixLoopIteration(
   phaseId: String,
   resolvedAgentId: String,

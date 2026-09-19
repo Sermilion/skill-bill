@@ -8,8 +8,8 @@ import skillbill.engine.work.model.IdeStatusRequest
 import skillbill.engine.work.model.IdeStatusResult
 import skillbill.engine.work.model.IdeStatusSnapshot
 import skillbill.engine.work.model.IdeStatusWorkflowFamily
-import skillbill.error.InvalidWorkListRowError
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkListRowError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.idestatus.IdeStatusValidator
 import skillbill.ports.idestatus.model.IdeStatusRepositoryResolution
@@ -21,7 +21,6 @@ import skillbill.ports.work.model.WorkItemKind
 import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
 import java.time.Clock
-
 @Inject
 class IdeStatusService(
   private val database: DatabaseSessionFactory,

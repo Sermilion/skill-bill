@@ -1,7 +1,5 @@
 package skillbill.architecture
-
-import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
-
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 private val wireVocabularyEnumPattern = Regex("""enum\s+class\s+([A-Za-z0-9_]+)([^\{]*)\{""")
 private val wireVocabularyObjectPattern = Regex("""object\s+([A-Za-z0-9_]*(?:Keys|PayloadKeys))\s*\{""")
 private val wireVocabularyEnumEntryPattern = Regex("""(?m)^\s*[A-Z][A-Z0-9_]*\s*\(\s*"([^"]+)"""")

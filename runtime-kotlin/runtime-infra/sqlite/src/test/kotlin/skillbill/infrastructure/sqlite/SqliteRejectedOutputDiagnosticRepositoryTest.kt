@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.error.RejectedOutputDiagnosticError
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.error.core.RejectedOutputDiagnosticError
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
@@ -15,7 +15,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class SqliteRejectedOutputDiagnosticRepositoryTest {
   @Test
   fun `round trip preserves binary response and metadata`() {

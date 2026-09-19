@@ -1,3 +1,12 @@
+## [2026-09-19] SKILL-361 subtask 3 — Nest remaining runtime packages under the sibling-count ceiling
+Areas: runtime-kotlin/{runtime-domain,runtime-application,runtime-infra,runtime-cli,runtime-contracts,runtime-core,runtime-ports}, intellij-plugin, runtime-kotlin architecture
+- Nested the remaining mixed runtime package families and matching tests by noun responsibility, leaving the `PrincipleEnforcementInventory` remainder empty and preserving module boundaries and plugin layer names.
+- Pattern: use census-driven package moves, keep public inputs/results in area-owned `model` packages, and place architecture ownership at the runtime-kotlin boundary. reusable
+- Reusable census and import-repair scripts support repeatable package relocation and sibling-count verification. reusable
+- Known limitation: cross-package import repair and full compile proof remain outstanding for the validation-owned follow-up.
+Feature flag: N/A
+Acceptance criteria: 5/6 implemented
+
 ## [2026-09-19] SKILL-361 subtask 1 — Nest feature-task packages and add sibling-count guard
 Areas: runtime-kotlin/{runtime-engine,runtime-core,runtime-application,runtime-cli,runtime-mcp}, architecture docs
 - Nested feature-task production and matching test types by noun family, keeping public inputs and results in area-owned model packages without changing module edges or behavior.

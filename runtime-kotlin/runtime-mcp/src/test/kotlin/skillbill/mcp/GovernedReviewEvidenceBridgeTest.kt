@@ -2,7 +2,7 @@ package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
-import skillbill.error.GovernedReviewEvidenceTransportError
+import skillbill.error.shellcontent.GovernedReviewEvidenceTransportError
 import skillbill.mcp.review.GovernedReviewEvidenceBridge
 import skillbill.mcp.review.GovernedReviewEvidenceConnection
 import java.net.StandardProtocolFamily
@@ -14,7 +14,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class GovernedReviewEvidenceBridgeTest {
   @Test
   fun `the bridge advertises exactly the two governed operations`() {

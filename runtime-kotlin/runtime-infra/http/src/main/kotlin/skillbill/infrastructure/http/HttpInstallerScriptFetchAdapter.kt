@@ -1,12 +1,12 @@
 package skillbill.infrastructure.http
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.error.TelemetryProxyRequestFailureError
+import skillbill.error.core.TelemetryProxyRequestFailureError
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.process.InstallerScriptFetchPort
 import skillbill.ports.process.model.InstallerScriptFetchRequest
 import skillbill.ports.process.model.InstallerScriptFetchResult
-import skillbill.ports.telemetry.RemoteTransportPort
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

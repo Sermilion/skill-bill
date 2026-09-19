@@ -374,10 +374,7 @@ object ArchitectureScanSupport {
     .filter { count -> count.fileCount > count.ceiling && count.packageName !in remainderInventory }
     .map { count -> packageSiblingCountViolationMessage(count) }
 
-  fun packageSiblingCountViolationMessage(
-    packageName: String,
-    fileCount: Int,
-  ): String? {
+  fun packageSiblingCountViolationMessage(packageName: String, fileCount: Int): String? {
     val ceiling = if (packageName.substringAfterLast('.') == "model") 20 else 12
     if (fileCount <= ceiling) return null
     return packageSiblingCountViolationMessage(

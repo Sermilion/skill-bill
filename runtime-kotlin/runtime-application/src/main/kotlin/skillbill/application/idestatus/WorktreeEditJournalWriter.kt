@@ -3,7 +3,7 @@ package skillbill.application.idestatus
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.getOrElseUnlessCooperative
 import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
-import skillbill.contracts.workflow.WorktreeEditJournalPayloadKeys
+import skillbill.contracts.workflow.payload.WorktreeEditJournalPayloadKeys
 import skillbill.idestatus.model.WorktreeEditSource
 import skillbill.idestatus.model.WorktreeEditTick
 import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
@@ -15,7 +15,6 @@ import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
 import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
 import java.nio.file.Path
 import java.time.Clock
-
 @Inject
 class WorktreeEditJournalWriter(
   private val database: DatabaseSessionFactory,

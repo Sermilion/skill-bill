@@ -1,10 +1,9 @@
 package skillbill.workflow.engine
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.error.MalformedJsonTextError
+import skillbill.error.core.MalformedJsonTextError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
-
 internal fun decodeSteps(rawValue: String): List<Map<String, Any?>> {
   val parsed = parseDurableJson(rawValue, "stepsJson") as? List<*>
     ?: throw InvalidWorkflowStateSchemaError("Workflow state stepsJson must decode to a JSON array.")

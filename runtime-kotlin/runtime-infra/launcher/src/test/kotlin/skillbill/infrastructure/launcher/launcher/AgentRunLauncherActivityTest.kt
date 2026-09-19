@@ -5,8 +5,8 @@ import skillbill.goalrunner.model.GoalRunnerLivenessState
 import skillbill.infrastructure.host.jvm.testGateJvmResolver
 import skillbill.infrastructure.launcher.agentrun.WorktreeActivityProbe
 import skillbill.infrastructure.launcher.agentrun.headlessAgentRunAdapters
-import skillbill.infrastructure.launcher.process.AgentRunActivityProbe
-import skillbill.infrastructure.launcher.process.JvmAgentRunProcessRunner
+import skillbill.infrastructure.launcher.process.launch.AgentRunActivityProbe
+import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressSnapshot
@@ -29,7 +29,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-
 class AgentRunLauncherActivityTest {
   @Test
   fun `declared live long operation survives past former idle window and is classified working`() {

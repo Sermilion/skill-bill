@@ -3,11 +3,10 @@ import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.RepositoryOwnedPathsGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 private const val NUL: Char = '\u0000'
 
 private class OwnedPathsGitOperations(private val result: WorkflowGitOperationResult) :

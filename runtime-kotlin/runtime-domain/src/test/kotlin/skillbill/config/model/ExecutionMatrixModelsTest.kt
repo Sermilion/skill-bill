@@ -1,12 +1,11 @@
 package skillbill.config.model
 
 import skillbill.install.model.InstallAgent
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
-
 class ExecutionMatrixModelsTest {
   @Test
   fun `parses a full matrix with phase tier override`() {

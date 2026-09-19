@@ -2,14 +2,13 @@ package skillbill.infrastructure.launcher.agentrun
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.GovernedReviewLaunchCapabilityError
+import skillbill.error.shellcontent.GovernedReviewLaunchCapabilityError
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
-import skillbill.review.context.model.ReviewConversationIsolation
+import skillbill.review.context.model.launch.ReviewConversationIsolation
 import java.nio.file.Path
-
 internal fun launchPrompt(request: SkillRunRequest): String = requireNotNull(request.promptOverride) {
   "launchPrompt requires a promptOverride; goal-continuation runs spawn skill-bill directly."
 }

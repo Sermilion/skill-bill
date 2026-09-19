@@ -1,12 +1,11 @@
 package skillbill.engine
 
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeAttemptBudgetsTest {
   @Test
   fun `output-gate retries cap at one and process-failure stays at three`() {

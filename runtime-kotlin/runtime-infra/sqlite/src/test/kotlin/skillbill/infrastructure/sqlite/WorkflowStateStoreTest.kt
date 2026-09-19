@@ -1,14 +1,14 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
-import skillbill.error.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.error.ProseFeatureTaskWorkflowWriteRefusedError
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.workflow.FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION
-import skillbill.infrastructure.sqlite.workflow.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
-import skillbill.infrastructure.sqlite.workflow.WorkflowStateRow
-import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
+import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.ProseFeatureTaskWorkflowWriteRefusedError
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.workflow.workflow.FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION
+import skillbill.infrastructure.sqlite.workflow.workflow.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
+import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateRow
+import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
@@ -26,7 +26,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class WorkflowStateStoreTest {
   @Test
   fun `identity-less goal parent is excluded from standalone candidates so lookup can reach goal continuation`() {

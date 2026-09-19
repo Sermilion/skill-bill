@@ -2,13 +2,12 @@ package skillbill.workflow.engine
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.WorkflowWirePayloadKeys
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.error.MalformedJsonTextError
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.error.core.MalformedJsonTextError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowStepStatus
-
 fun WorkflowStateSnapshot.progressToken(): String = listOf(
   workflowId,
   workflowStatus.wireValue,

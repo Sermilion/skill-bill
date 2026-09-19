@@ -2,10 +2,10 @@ package skillbill.infrastructure.host
 
 import skillbill.config.model.RepoLocalConfig
 import skillbill.config.model.SpecType
-import skillbill.error.MalformedRepoLocalConfigError
+import skillbill.error.shellcontent.MalformedRepoLocalConfigError
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.review.context.model.ReviewContextBudgetPolicy
+import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -13,7 +13,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class FileSystemRepoLocalConfigTest {
   private val adapter = FileSystemRepoLocalConfig(RecordingDiagnostics())
 

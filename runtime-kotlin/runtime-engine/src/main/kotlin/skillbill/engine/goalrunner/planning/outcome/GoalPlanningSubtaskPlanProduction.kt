@@ -1,7 +1,15 @@
 package skillbill.engine.goalrunner.planning.outcome
 import skillbill.engine.goalrunner.execution.core.ProduceMissingPlansArgs
+import skillbill.engine.goalrunner.planning.attempt.producePhase
+import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseContext
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
+import skillbill.engine.goalrunner.planning.model.GoalPlanningProduceAttemptArgs
+import skillbill.engine.goalrunner.planning.model.GoalPlanningProducePhaseArgs
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
+import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
+import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
+import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
+import skillbill.engine.goalrunner.planning.sweep.produceMissingPlansLoop
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
@@ -10,21 +18,7 @@ import skillbill.text.sha256HexUtf8
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
-import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseContext
-import skillbill.engine.goalrunner.planning.model.GoalPlanningProduceAttemptArgs
-import skillbill.engine.goalrunner.planning.model.GoalPlanningProducePhaseArgs
-import skillbill.engine.goalrunner.planning.attempt.producePhase
-import skillbill.engine.goalrunner.planning.outcome.invariantReadReason
-import skillbill.engine.goalrunner.planning.outcome.persistenceReason
-import skillbill.engine.goalrunner.planning.outcome.resolvedSubSpecPath
-import skillbill.engine.goalrunner.planning.outcome.stopped
-import skillbill.engine.goalrunner.planning.outcome.unresolvedSpecReason
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
-import skillbill.engine.goalrunner.planning.sweep.produceMissingPlansLoop
-
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 internal fun DefaultGoalPlanningSweep.produceMissingPlans(args: ProduceMissingPlansArgs): GoalPlanningSweepOutcome {
   val shared = args.shared
   val descriptors = runCatching {

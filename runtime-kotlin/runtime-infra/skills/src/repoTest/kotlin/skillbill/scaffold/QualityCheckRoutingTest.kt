@@ -1,7 +1,7 @@
 package skillbill.scaffold
 
-import skillbill.error.MissingValidationGateError
-import skillbill.infrastructure.skills.scaffold.platformpack.routeQualityCheck
+import skillbill.error.shellcontent.MissingValidationGateError
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.routeQualityCheck
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test
@@ -12,7 +12,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class QualityCheckRoutingTest {
   @Test
   fun `every maintained dominant stack routes to bill-code-check with pack slug unchanged`() {

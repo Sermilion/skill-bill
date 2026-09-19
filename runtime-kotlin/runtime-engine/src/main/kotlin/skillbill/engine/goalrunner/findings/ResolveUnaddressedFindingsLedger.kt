@@ -1,10 +1,8 @@
 package skillbill.engine.goalrunner.findings
 
-import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
-import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
-import skillbill.error.UnaddressedFindingsLedgerAbsentError
+import skillbill.error.shellcontent.InvalidUnaddressedFindingsLedgerSchemaError
+import skillbill.error.shellcontent.UnaddressedFindingsLedgerAbsentError
 import skillbill.goalrunner.model.UnaddressedFindingsLedger
-
 fun resolveUnaddressedFindingsLedger(
   service: UnaddressedFindingsLedgerService?,
   issueKey: String,

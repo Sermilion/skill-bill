@@ -9,7 +9,7 @@ import skillbill.engine.work.model.IdeStatusSnapshot
 import skillbill.engine.work.model.IdeStatusStep
 import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.goalrunner.model.GoalPlanningStatusState
-import skillbill.infrastructure.contracts.workflow.IdeStatusSchemaValidator
+import skillbill.infrastructure.contracts.workflow.goal.status.IdeStatusSchemaValidator
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import java.nio.file.Files
 import java.nio.file.Path
@@ -18,7 +18,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class CliWorkStatusTest {
   @Test
   fun `work status emits schema-valid idle json for a git repo with empty database`() {

@@ -1,8 +1,8 @@
 package skillbill.infrastructure.skills.agentaddon
 
-import skillbill.error.InvalidAgentAddonAgentIdError
-import skillbill.error.InvalidAgentAddonSchemaError
-import skillbill.error.MissingAgentAddonDeclarationError
+import skillbill.error.core.InvalidAgentAddonAgentIdError
+import skillbill.error.shellcontent.InvalidAgentAddonSchemaError
+import skillbill.error.shellcontent.MissingAgentAddonDeclarationError
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files
@@ -11,7 +11,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class AgentAddonSourceLoaderTest {
 
   @Test

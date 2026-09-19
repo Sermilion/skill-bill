@@ -1,17 +1,15 @@
 package skillbill.ports.review.model
-
-import skillbill.ports.review.ReviewBuildTestFactsPort
-import skillbill.ports.review.ReviewGuidancePort
-import skillbill.ports.review.ReviewLaneSelectionPort
-import skillbill.ports.review.ReviewLearningsPort
-import skillbill.ports.review.ReviewScopeResolverPort
-import skillbill.ports.review.ReviewStackRoutingPort
-import skillbill.review.context.model.ReviewChangedHunk
-import skillbill.review.context.model.ReviewCommitCoverageFact
-import skillbill.review.context.model.ReviewCommitLaneRoutingMatrix
-import skillbill.review.context.model.ReviewCommitUnit
-import skillbill.review.context.model.ReviewLaneDecision
-
+import skillbill.ports.review.preparation.ReviewBuildTestFactsPort
+import skillbill.ports.review.preparation.ReviewGuidancePort
+import skillbill.ports.review.preparation.ReviewLaneSelectionPort
+import skillbill.ports.review.preparation.ReviewLearningsPort
+import skillbill.ports.review.preparation.ReviewScopeResolverPort
+import skillbill.ports.review.preparation.ReviewStackRoutingPort
+import skillbill.review.context.model.commit.ReviewCommitCoverageFact
+import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
+import skillbill.review.context.model.commit.ReviewCommitUnit
+import skillbill.review.context.model.execution.ReviewLaneDecision
+import skillbill.review.context.model.hunk.ReviewChangedHunk
 data class ReviewScopeFacts(
   val repositoryIdentity: String,
   val baseRevision: String,

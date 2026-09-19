@@ -1,16 +1,16 @@
 package skillbill.scaffold
 
-import skillbill.error.ContractVersionMismatchError
-import skillbill.error.InvalidManifestSchemaError
-import skillbill.error.MissingManifestError
-import skillbill.infrastructure.skills.scaffold.platformpack.SKILL_CLASSES_DIR
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverSkillClasses
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
-import skillbill.infrastructure.skills.scaffold.platformpack.resolveSkillClass
+import skillbill.error.shellcontent.ContractVersionMismatchError
+import skillbill.error.shellcontent.InvalidManifestSchemaError
+import skillbill.error.shellcontent.MissingManifestError
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.SKILL_CLASSES_DIR
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.discoverSkillClasses
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.resolveSkillClass
 import skillbill.infrastructure.skills.scaffold.rendering.renderCeremonySection
-import skillbill.infrastructure.skills.scaffold.runtime.SHELL_CONTRACT_VERSION
-import skillbill.infrastructure.skills.scaffold.runtime.requiredSupportingFilesForSkill
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
+import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.SkillClassManifest
 import skillbill.scaffold.model.SkillClassMatcher
@@ -22,7 +22,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 private val LEGACY_POINTER_GOLDEN: Map<String, Set<String>> = mapOf(
   "bill-code-review" to setOf(
     "telemetry-contract.md",

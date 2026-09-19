@@ -1,15 +1,13 @@
 package skillbill.engine.goalrunner.planning.recovery
-import skillbill.engine.goalrunner.manifest
+import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
 import skillbill.engine.goalrunner.planning.remedies.alignPlanningStatusWithLaunchRecoverability
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningIncludeSharedPreplanRemedy
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningIncompatibleProvenanceStopReason
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningMissingSharedContextPacketStopReason
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningPreparationStateReadStopReason
 import skillbill.engine.goalrunner.planning.remedies.statusRecoverabilityOrRefuse
-
-import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
-import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
-import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
+import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.model.GoalPlanningStatusReasons
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalPlanningStatusState
@@ -23,7 +21,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class GoalPlanningStatusReasonCoherenceTest {
   @Test
   fun `invalid provenance overlays resume claim with the exact replan remedy`() {

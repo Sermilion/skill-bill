@@ -1,10 +1,10 @@
 package skillbill.infrastructure.skills.install.apply
 
-import skillbill.infrastructure.skills.install.nativeagent.InstallNativeAgentOperations
-import skillbill.infrastructure.skills.install.nativeagent.NativeAgentLinkOutcome
-import skillbill.infrastructure.skills.install.nativeagent.NativeAgentLinkOverrides
-import skillbill.infrastructure.skills.install.nativeagent.NativeAgentLinkRequest
-import skillbill.infrastructure.skills.install.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentOperations
+import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOutcome
+import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOverrides
+import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
+import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.InstallAgent
@@ -18,7 +18,6 @@ import skillbill.install.model.NativeAgentProviderId
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Path
-
 internal fun applyNativeAgents(
   plan: InstallPlan,
   failures: MutableList<InstallApplyIssue>,

@@ -1,20 +1,16 @@
 package skillbill.engine.featuretask.lifecycle.branch
 
-
-
-
+import me.tatarka.inject.annotations.Inject
+import skillbill.engine.featuretask.lifecycle.subtask.decide
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
-import skillbill.engine.featuretask.lifecycle.subtask.decide
-import me.tatarka.inject.annotations.Inject
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.captureGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.repositoryOwnedPaths
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
-
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 @Inject
 class FeatureTaskRuntimeBranchSetupRunner(
   private val recorder: FeatureTaskRuntimePhaseRecorder,

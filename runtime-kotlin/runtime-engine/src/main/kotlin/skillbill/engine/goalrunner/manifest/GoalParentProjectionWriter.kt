@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.manifest
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.workflow.decompositionRuntime
+import skillbill.application.workflow.decomposition.decompositionRuntime
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
@@ -17,7 +17,6 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-
 class GoalParentProjectionWriter(
   private val engine: WorkflowEngine,
   private val validator: DecompositionManifestValidator,

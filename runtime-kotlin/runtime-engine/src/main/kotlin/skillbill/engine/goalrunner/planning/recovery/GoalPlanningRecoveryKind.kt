@@ -1,11 +1,10 @@
 package skillbill.engine.goalrunner.planning.recovery
 
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.goalrunner.persist.staleChildPlanningRecoveryCommand
-import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
-import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
-
+import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 internal enum class GoalPlanningRecoveryKind {
   HARD_RESET,
   SCOPED_REPLAN,

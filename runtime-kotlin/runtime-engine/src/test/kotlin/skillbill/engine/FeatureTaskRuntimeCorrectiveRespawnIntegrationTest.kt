@@ -3,7 +3,7 @@ package skillbill.engine
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
-import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.install.model.SupportedAgent.CLAUDE
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import kotlin.test.Test
@@ -12,7 +12,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 private fun completedPhaseBody(
   contractVersion: String,
   phaseId: String,

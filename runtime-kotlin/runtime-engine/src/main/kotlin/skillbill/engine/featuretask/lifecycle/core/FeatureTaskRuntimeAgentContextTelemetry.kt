@@ -1,11 +1,8 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
-
-import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
 import skillbill.application.telemetry.model.FeatureTaskRuntimeAgentContext
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 fun featureTaskRuntimeAgentContext(
   records: Map<String, FeatureTaskRuntimePhaseRecord>?,
 ): FeatureTaskRuntimeAgentContext {

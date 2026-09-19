@@ -1,7 +1,5 @@
 package skillbill.workflow.goal.model
-
-import skillbill.workflow.taskruntime.model.normalizeIdentityPart
-
+import skillbill.workflow.taskruntime.model.repair.task.normalizeIdentityPart
 fun withoutRefutedFindings(
   findings: List<GoalSubtaskReviewCompactFinding>,
   refutedFindingIds: Set<String>,

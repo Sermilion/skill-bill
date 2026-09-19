@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask.phase.briefing
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeBriefingProjectionInputs
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionInputs
-
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
 fun briefingProjectionInputs(
   inputs: FeatureTaskRuntimeBriefingProjectionInputs,
 ): FeatureTaskRuntimeHandoffProjectionInputs = FeatureTaskRuntimeHandoffProjectionInputs(

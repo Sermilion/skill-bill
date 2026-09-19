@@ -1,15 +1,14 @@
 package skillbill.infrastructure.skills.agentaddon
 
 import skillbill.agentaddon.model.AgentAddonConsumer
-import skillbill.error.AgentAddonSelectionDriftError
-import skillbill.error.InvalidAgentAddonSelectionError
+import skillbill.error.shellcontent.AgentAddonSelectionDriftError
+import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class AgentAddonSelectionResolverTest {
   @Test
   fun `initial resolution preserves requested order and hashes exact bytes`() {

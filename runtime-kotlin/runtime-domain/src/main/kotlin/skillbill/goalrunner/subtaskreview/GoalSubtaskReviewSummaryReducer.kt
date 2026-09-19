@@ -9,15 +9,14 @@ import skillbill.goalrunner.model.normalizedUnaddressedFindingSeverity
 import skillbill.goalrunner.subtaskreview.model.GoalSubtaskReviewOutputOutcome
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
-import skillbill.review.ReviewFindingActionability
+import skillbill.review.finding.ReviewFindingActionability
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_PASS_VERDICTS
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.model.withStableFindingRefs
-
+import skillbill.workflow.taskruntime.model.repair.task.withStableFindingRefs
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 object GoalSubtaskReviewSummaryReducer {
   internal const val REJECTED_VERIFICATION_REASON_MAX_UTF8_BYTES: Int =
     GoalSubtaskReviewVerificationRejection.REJECTED_VERIFICATION_REASON_MAX_UTF8_BYTES

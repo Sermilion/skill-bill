@@ -1,16 +1,16 @@
 package skillbill.infrastructure.sqlite
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.error.DatabaseAccessOperation
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.core.DatabaseTransactionBeginMode
-import skillbill.infrastructure.sqlite.core.DatabaseTransactionSpec
-import skillbill.infrastructure.sqlite.core.OpenDatabase
-import skillbill.infrastructure.sqlite.core.attachSqliteDiagnostics
-import skillbill.infrastructure.sqlite.core.databaseAccessError
-import skillbill.infrastructure.sqlite.core.detachSqliteDiagnostics
-import skillbill.infrastructure.sqlite.core.inDatabaseTransaction
-import skillbill.infrastructure.sqlite.core.requireResolvedEnvironmentContext
+import skillbill.error.core.DatabaseAccessOperation
+import skillbill.infrastructure.sqlite.core.ops.DatabaseTransactionBeginMode
+import skillbill.infrastructure.sqlite.core.ops.DatabaseTransactionSpec
+import skillbill.infrastructure.sqlite.core.ops.attachSqliteDiagnostics
+import skillbill.infrastructure.sqlite.core.ops.detachSqliteDiagnostics
+import skillbill.infrastructure.sqlite.core.ops.inDatabaseTransaction
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.core.schema.OpenDatabase
+import skillbill.infrastructure.sqlite.core.schema.databaseAccessError
+import skillbill.infrastructure.sqlite.core.schema.requireResolvedEnvironmentContext
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -19,7 +19,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.SQLException
 import java.time.Clock
-
 @Inject
 class SQLiteDatabaseSessionFactory(
   context: EnvironmentContext,

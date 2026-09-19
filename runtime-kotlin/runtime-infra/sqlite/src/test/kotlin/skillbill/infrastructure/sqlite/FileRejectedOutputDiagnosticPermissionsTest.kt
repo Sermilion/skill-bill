@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.error.core.RejectedOutputDiagnosticError
 import java.io.IOException
 import java.net.URI
 import java.nio.file.FileSystems
@@ -11,7 +11,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class FileRejectedOutputDiagnosticPermissionsTest {
   @Test
   fun `applyRestrictivePermissions skips when posix view is unavailable`() {

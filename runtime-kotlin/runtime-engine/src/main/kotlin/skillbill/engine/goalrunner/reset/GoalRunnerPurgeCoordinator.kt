@@ -5,10 +5,14 @@ import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
 import skillbill.engine.decomposition.encodeDecompositionManifestYaml
 import skillbill.engine.decomposition.findMatchingDecompositionManifests
 import skillbill.engine.featuretask.lifecycle.checkpoint.pruneGoalPurgeCheckpointRefs
-import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
-import skillbill.engine.goalrunner.model.GoalRunnerPurgeResult
 import skillbill.engine.goalrunner.goalRepositoryIdentity
 import skillbill.engine.goalrunner.manifest.resetManifest
+import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
+import skillbill.engine.goalrunner.model.GoalRunnerPurgeResult
+import skillbill.engine.goalrunner.status.GoalRunnerStatusDurableReadTracker
+import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionAssembler
+import skillbill.engine.goalrunner.status.resolveChildExecutionLiveness
+import skillbill.engine.goalrunner.status.resolveParentExecutionLiveness
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
@@ -20,10 +24,6 @@ import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.requireAccepted
 import java.nio.file.Path
-import skillbill.engine.goalrunner.status.GoalRunnerStatusDurableReadTracker
-import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionAssembler
-import skillbill.engine.goalrunner.status.resolveChildExecutionLiveness
-import skillbill.engine.goalrunner.status.resolveParentExecutionLiveness
 
 @Inject
 class GoalRunnerPurgeCoordinator(

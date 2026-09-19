@@ -1,10 +1,9 @@
 package skillbill.ports.validation.model
 
 import skillbill.scaffold.model.ValidationGateDeclaration
-import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
-import skillbill.workflow.taskruntime.model.ValidationGateRunOutcome
+import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
+import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import java.nio.file.Path
-
 data class ValidationGateFinding(
   val module: String,
   val ruleOrTestId: String,

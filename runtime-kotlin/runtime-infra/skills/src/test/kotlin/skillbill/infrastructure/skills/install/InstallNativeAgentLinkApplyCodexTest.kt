@@ -1,11 +1,11 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.error.InvalidNativeAgentLinkInventoryDecodeError
-import skillbill.error.MissingInstalledNativeAgentError
+import skillbill.error.core.InvalidNativeAgentLinkInventoryDecodeError
+import skillbill.error.shellcontent.MissingInstalledNativeAgentError
 import skillbill.infrastructure.skills.install.apply.currentNativeAgentApplyCacheRoot
-import skillbill.infrastructure.skills.install.nativeagent.NativeAgentLinkInventory
+import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventory
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
-import skillbill.infrastructure.workflow.FileSystemReviewNativeAgentPreflight
+import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewNativeAgentPreflight
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyStatus
 import skillbill.install.model.NativeAgentApplyStatus
@@ -20,7 +20,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupport() {
   @Test
   fun `inventory rejects a logical name whose installed filename identifies another worker`() {

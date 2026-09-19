@@ -1,22 +1,18 @@
 package skillbill.engine.featuretask.lifecycle.remediation
 
-
-
-
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeCensusCoverageTestSupport.assertRepairOmits
-import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairOutcome
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptEntry
-import skillbill.workflow.taskruntime.model.omittedCarriedFindings
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairOutcome
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceiptEntry
+import skillbill.workflow.taskruntime.model.repair.task.omittedCarriedFindings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeRepairReceiptParserTest {
   private val sha = "b".repeat(40)
   private val otherSha = "c".repeat(40)

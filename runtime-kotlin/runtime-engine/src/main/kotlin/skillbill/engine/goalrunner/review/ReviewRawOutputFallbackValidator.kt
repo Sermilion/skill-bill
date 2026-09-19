@@ -1,10 +1,9 @@
 package skillbill.engine.goalrunner.review
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidationResult
-import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
-
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 object ReviewRawOutputFallbackValidator : FeatureTaskRuntimePhaseOutputValidator {
   override fun validatePhaseOutput(
     phaseOutputText: String,

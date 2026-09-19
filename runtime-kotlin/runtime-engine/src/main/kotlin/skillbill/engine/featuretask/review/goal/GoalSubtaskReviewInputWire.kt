@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask.review.goal
-import skillbill.contracts.workflow.GoalSubtaskReviewInputPayloadKeys
+import skillbill.contracts.workflow.identity.subtask.GoalSubtaskReviewInputPayloadKeys
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
-
 internal fun goalReviewInputArtifactMap(input: GoalSubtaskReviewInput): Map<String, Any?> = linkedMapOf(
   GoalSubtaskReviewInputPayloadKeys.REVIEW_BASE_SHA to input.reviewBaseSha,
   GoalSubtaskReviewInputPayloadKeys.CURRENT_HEAD_SHA to input.currentHeadSha,

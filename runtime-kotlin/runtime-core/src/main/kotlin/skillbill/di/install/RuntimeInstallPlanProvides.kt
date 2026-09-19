@@ -1,0 +1,57 @@
+package skillbill.di.install
+import me.tatarka.inject.annotations.Provides
+import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator
+import skillbill.infrastructure.skills.externaladdon.FileExternalAddonSourceConfigStore
+import skillbill.infrastructure.skills.externaladdon.FileSystemExternalAddonOverlay
+import skillbill.infrastructure.skills.install.FileSystemInstallApplyExecution
+import skillbill.infrastructure.skills.install.FileSystemInstallPlanningFacts
+import skillbill.infrastructure.skills.install.FileSystemInstallPlatformSkillMaterialization
+import skillbill.infrastructure.skills.install.FileSystemInstallSelectionPersistence
+import skillbill.infrastructure.skills.install.FileSystemInstallStagingIntent
+import skillbill.infrastructure.skills.install.FileSystemUninstallFileSystemGateway
+import skillbill.infrastructure.skills.skillremove.FileSystemSkillRemoveFileSystem
+import skillbill.install.model.InstallPlanWireValidator
+import skillbill.ports.install.addon.ExternalAddonOverlayPort
+import skillbill.ports.install.addon.ExternalAddonSourceConfigPort
+import skillbill.ports.install.apply.InstallApplyExecutionPort
+import skillbill.ports.install.plan.InstallPlanningFactsPort
+import skillbill.ports.install.plan.InstallPlatformSkillMaterializationPort
+import skillbill.ports.install.plan.InstallStagingIntentPort
+import skillbill.ports.install.selection.InstallSelectionPersistencePort
+import skillbill.ports.skillremove.SkillRemoveFileSystem
+import skillbill.ports.system.UninstallPathsPort
+
+internal interface RuntimeInstallPlanProvides {
+  @Provides @JvmSynthetic
+  fun installPlanningFactsPort(adapter: FileSystemInstallPlanningFacts): InstallPlanningFactsPort = adapter
+
+  @Provides @JvmSynthetic
+  fun installPlatformSkillMaterializationPort(
+    adapter: FileSystemInstallPlatformSkillMaterialization,
+  ): InstallPlatformSkillMaterializationPort = adapter
+
+  @Provides @JvmSynthetic
+  fun installStagingIntentPort(adapter: FileSystemInstallStagingIntent): InstallStagingIntentPort = adapter
+
+  @Provides @JvmSynthetic
+  fun installApplyExecutionPort(adapter: FileSystemInstallApplyExecution): InstallApplyExecutionPort = adapter
+
+  @Provides @JvmSynthetic
+  fun installSelectionPersistencePort(adapter: FileSystemInstallSelectionPersistence): InstallSelectionPersistencePort =
+    adapter
+
+  @Provides @JvmSynthetic
+  fun installPlanWireValidator(validator: InstallPlanSchemaValidator): InstallPlanWireValidator = validator
+
+  @Provides @JvmSynthetic
+  fun externalAddonOverlayPort(adapter: FileSystemExternalAddonOverlay): ExternalAddonOverlayPort = adapter
+
+  @Provides @JvmSynthetic
+  fun externalAddonSourceConfigPort(store: FileExternalAddonSourceConfigStore): ExternalAddonSourceConfigPort = store
+
+  @Provides @JvmSynthetic
+  fun uninstallPathsPort(gateway: FileSystemUninstallFileSystemGateway): UninstallPathsPort = gateway
+
+  @Provides @JvmSynthetic
+  fun skillRemoveFileSystem(fileSystem: FileSystemSkillRemoveFileSystem): SkillRemoveFileSystem = fileSystem
+}

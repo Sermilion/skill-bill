@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.workflow.WorkflowStateRow
-import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateRow
+import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
@@ -16,7 +16,6 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 internal fun assertRuntimeAndVerifyStateTransitions(
   store: WorkflowStateStore,
   initial: WorkflowStateRow,

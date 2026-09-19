@@ -2,18 +2,17 @@ package skillbill.engine.goalrunner.preflight
 
 import skillbill.application.continuation.model.GoalContinuationCandidate
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
+import skillbill.engine.goalrunner.model.GoalContinuation
 import skillbill.engine.goalrunner.model.GoalPreflightLookupInput
 import skillbill.engine.goalrunner.model.GoalPreflightRequest
 import skillbill.engine.goalrunner.model.GoalPreflightResult
-import skillbill.error.InvalidDecompositionManifestSchemaError
-import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
-import skillbill.engine.goalrunner.model.GoalContinuation
-
 class GoalPreflightLookupResolver(
   private val gateBlockBuilder: GoalPreflightGateBlockBuilder,
 ) {

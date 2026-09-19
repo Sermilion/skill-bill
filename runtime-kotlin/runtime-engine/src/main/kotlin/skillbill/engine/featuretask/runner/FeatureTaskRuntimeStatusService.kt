@@ -1,35 +1,31 @@
 package skillbill.engine.featuretask.runner
 
-
-
-
+import me.tatarka.inject.annotations.Inject
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
+import skillbill.engine.featuretask.lifecycle.continuation.agentAttributionFromPhaseState
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeDecomposeTerminalStatus
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeDegradedDiagnosticStatus
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimePhaseStatus
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusProjection
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimeCurrentPhaseExecutionContext
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimeCurrentPhaseExecutionDeriver
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimeDecomposeTerminalRecorder
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunStateReconstruction
-import skillbill.engine.featuretask.lifecycle.continuation.agentAttributionFromPhaseState
-import me.tatarka.inject.annotations.Inject
-import skillbill.contracts.JsonCodec
-import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeDecomposeTerminalStatus
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeDegradedDiagnosticStatus
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimePhaseStatus
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusProjection
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
-import skillbill.workflow.taskruntime.model.orLegacyValidate
-
+import skillbill.workflow.taskruntime.artifact.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDecomposeTerminal
+import skillbill.workflow.taskruntime.model.core.orLegacyValidate
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 @Inject
 class FeatureTaskRuntimeStatusService(
   val recorder: FeatureTaskRuntimePhaseRecorder,

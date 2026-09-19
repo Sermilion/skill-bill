@@ -12,16 +12,15 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceDeriver
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceRequest
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolution
-import skillbill.review.context.model.REVIEW_SYNTHETIC_COMMIT_PREFIX
-import skillbill.review.context.model.ReviewCommitSource
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceDiffPayloadRef
+import skillbill.review.context.model.commit.REVIEW_SYNTHETIC_COMMIT_PREFIX
+import skillbill.review.context.model.commit.ReviewCommitSource
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceArtifact
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceDiffPayloadRef
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-
 class SharedReviewEvidenceResolutionTest {
   private val repoRoot: Path = Path.of(".")
   private val range = ReviewCommitRange("base", "head")

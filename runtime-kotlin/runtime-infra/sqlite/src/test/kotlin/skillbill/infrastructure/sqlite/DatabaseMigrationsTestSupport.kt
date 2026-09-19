@@ -2,14 +2,14 @@ package skillbill.infrastructure.sqlite
 
 import org.junit.jupiter.api.Assumptions
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidWorkListRowError
+import skillbill.error.shellcontent.InvalidWorkListRowError
 import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
 import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
-import skillbill.infrastructure.sqlite.core.DatabaseMigrations
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.core.DatabaseSchema
+import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.core.schema.DatabaseSchema
 import skillbill.infrastructure.sqlite.worklist.SQLiteWorkListRepository
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection

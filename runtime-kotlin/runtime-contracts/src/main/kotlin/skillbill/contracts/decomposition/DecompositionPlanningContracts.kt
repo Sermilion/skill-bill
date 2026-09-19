@@ -1,10 +1,9 @@
 package skillbill.contracts.decomposition
 
 import skillbill.contracts.JsonPayloadContract
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import java.math.BigDecimal
 import java.math.BigInteger
-
 const val DECOMPOSITION_PLANNING_CONTRACT_VERSION: String = "1"
 
 data class DecompositionPlanningDependencyWire(

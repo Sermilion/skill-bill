@@ -1,8 +1,8 @@
 package skillbill.contracts.goalplanning
 
 import org.yaml.snakeyaml.Yaml
-import skillbill.error.InvalidGoalPlanningDiscoveryExclusionsSchemaError
-import skillbill.error.ShellContentContractException
+import skillbill.error.shellcontent.InvalidGoalPlanningDiscoveryExclusionsSchemaError
+import skillbill.error.shellcontent.ShellContentContractException
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -12,7 +12,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class GoalPlanningDiscoveryExclusionsTest {
   @Test
   fun `shipped contract is staged on the classpath and denies platform pack agent memory`() {

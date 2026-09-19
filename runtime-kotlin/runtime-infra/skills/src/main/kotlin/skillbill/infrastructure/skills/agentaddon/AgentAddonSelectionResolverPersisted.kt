@@ -5,13 +5,12 @@ import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.error.AgentAddonSelectionDriftError
-import skillbill.error.InvalidAgentAddonSelectionError
+import skillbill.error.shellcontent.AgentAddonSelectionDriftError
+import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.Path
-
 internal fun verifyPersistedAgentAddonSelection(
   request: PersistedAgentAddonSelectionVerifyRequest,
 ): HydratedAgentAddonSelection {

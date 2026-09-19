@@ -1,24 +1,22 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
-import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewCycleContext
-import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewEnvelope
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
+import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewCycleContext
+import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewEnvelope
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewStructuredFindingsParse
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.model.ParallelReviewMergeResult
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewFindingCitationDiagnostic
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-
 class FeatureTaskRuntimeMalformedCitationIngestionTest {
   @Test
   fun `review envelope assembly keeps surviving findings and records citation diagnostics`() {

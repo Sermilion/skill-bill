@@ -1,15 +1,11 @@
 package skillbill.engine.featuretask.phase.prompt.directives
 
-
-
-
-import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimeSchemaFailureCorrections
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimeSchemaFailureCorrections
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
-
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 fun retryCorrectionDirective(
   briefing: FeatureTaskRuntimePhaseLaunchBriefing,
   priorSchemaFailure: String?,

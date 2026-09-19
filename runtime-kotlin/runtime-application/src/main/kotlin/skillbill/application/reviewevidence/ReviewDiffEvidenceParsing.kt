@@ -2,8 +2,7 @@ package skillbill.application.reviewevidence
 
 import skillbill.application.reviewevidence.model.ReviewChangedFileEvidence
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
-import skillbill.review.context.model.ReviewChangedHunk
-
+import skillbill.review.context.model.hunk.ReviewChangedHunk
 internal fun parseAttributableReviewDiffEvidence(diff: String): ReviewDiffEvidence? =
   diffRecords(diff).takeIf { it.isNotEmpty() }?.let {
     runCatching { parseReviewDiffEvidence(it.joinToString("\n")) }.getOrNull()

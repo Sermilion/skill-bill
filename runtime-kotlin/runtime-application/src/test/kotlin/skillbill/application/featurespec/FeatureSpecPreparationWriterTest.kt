@@ -7,8 +7,8 @@ import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.prepare.FeatureSpecPreparationWriter
-import skillbill.error.InvalidDecompositionManifestSchemaError
-import skillbill.error.InvalidFeatureSpecPreparationRequestError
+import skillbill.error.core.InvalidFeatureSpecPreparationRequestError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.featurespec.model.FeatureSpecPreparationDecision
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
@@ -32,7 +32,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class FeatureSpecPreparationWriterTest {
   private val writer = FeatureSpecPreparationWriter(
     decompositionManifestValidator = testDecompositionManifestValidator,

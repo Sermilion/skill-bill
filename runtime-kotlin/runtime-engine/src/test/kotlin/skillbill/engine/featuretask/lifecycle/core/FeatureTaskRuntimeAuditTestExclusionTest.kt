@@ -1,12 +1,10 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
 import skillbill.engine.featuretask.phase.prompt.directives.phaseDirectives
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeAuditTestExclusionTest {
   @Test
   fun `repair and follow-up audit directives carry no build or test execution instruction`() {

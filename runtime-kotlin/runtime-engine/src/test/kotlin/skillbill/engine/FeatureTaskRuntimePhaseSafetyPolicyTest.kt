@@ -1,7 +1,4 @@
 package skillbill.engine
-import skillbill.engine.goalrunner.manifest
-
-
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseSafetyPolicy
 import kotlin.test.Test
 import kotlin.test.assertEquals

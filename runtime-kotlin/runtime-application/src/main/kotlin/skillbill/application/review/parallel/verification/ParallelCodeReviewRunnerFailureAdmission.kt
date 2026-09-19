@@ -1,0 +1,242 @@
+package skillbill.application.review.parallel.verification
+import skillbill.application.agentoutput.agentFailureExcerpt
+import skillbill.application.review.model.ReviewSpecialistLaunchRequest
+import skillbill.application.review.packet.assignment
+import skillbill.application.review.packet.first
+import skillbill.application.review.packet.launch
+import skillbill.application.review.parallel.core.code.review.bundled.finding
+import skillbill.application.review.parallel.core.code.review.bundled.review
+import skillbill.application.review.parallel.core.code.review.claim.findings
+import skillbill.application.review.parallel.core.code.review.claim.first
+import skillbill.application.review.parallel.core.code.review.end.finding
+import skillbill.application.review.parallel.core.code.review.end.first
+import skillbill.application.review.parallel.core.code.review.evidence.accounting
+import skillbill.application.review.parallel.core.code.review.inline.accounting
+import skillbill.application.review.parallel.core.code.review.inline.failureReason
+import skillbill.application.review.parallel.core.code.review.inline.findings
+import skillbill.application.review.parallel.core.code.review.integration.finding
+import skillbill.application.review.parallel.core.code.review.runner.INLINE_FINDING_PARSE_SEAM
+import skillbill.application.review.parallel.core.code.review.runner.NO_OP_RESUME_TERMINAL_STATUS
+import skillbill.application.review.parallel.core.code.review.runner.PARALLEL_REVIEW_FIRST_SOURCE_LINE
+import skillbill.application.review.parallel.core.code.review.runner.PARALLEL_REVIEW_REGISTER_ABSENCE_EXCERPT_MAX_LENGTH
+import skillbill.application.review.parallel.core.code.review.runner.PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH
+import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewInlineParentLaunch
+import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewSoftRegisterAdmission
+import skillbill.application.review.parallel.core.code.review.runner.accounting
+import skillbill.application.review.parallel.core.code.review.runner.agentId
+import skillbill.application.review.parallel.core.code.review.runner.assignedPaths
+import skillbill.application.review.parallel.core.code.review.runner.assignment
+import skillbill.application.review.parallel.core.code.review.runner.citationDiagnostics
+import skillbill.application.review.parallel.core.code.review.runner.droppedCandidateDiagnostic
+import skillbill.application.review.parallel.core.code.review.runner.expansions
+import skillbill.application.review.parallel.core.code.review.runner.findings
+import skillbill.application.review.parallel.core.code.review.runner.launch
+import skillbill.application.review.parallel.core.code.review.runner.rejectedCandidateCount
+import skillbill.application.review.parallel.core.code.review.runner.seam
+import skillbill.application.review.parallel.core.code.review.runner.selected
+import skillbill.application.review.parallel.core.code.review.spec.first
+import skillbill.application.review.parallel.core.review.assignment
+import skillbill.application.review.parallel.core.review.first
+import skillbill.application.review.parallel.core.review.launch
+import skillbill.application.review.parallel.planning.agentId
+import skillbill.application.review.parallel.planning.lane
+import skillbill.application.review.parallel.planning.originLayerChains
+import skillbill.application.review.parallel.planning.selected
+import skillbill.application.review.preparation.assignment
+import skillbill.application.review.preparation.facts
+import skillbill.application.review.preparation.first
+import skillbill.application.review.preparation.launch
+import skillbill.application.review.review.exitStatus
+import skillbill.application.review.review.facts
+import skillbill.application.review.review.interrupted
+import skillbill.application.review.review.lane
+import skillbill.application.review.review.spawnFailed
+import skillbill.application.review.review.stdout
+import skillbill.application.review.review.stdoutTruncated
+import skillbill.application.review.review.timedOut
+import skillbill.application.review.service.parse
+import skillbill.application.review.service.review
+import skillbill.application.review.spec.citationDiagnostics
+import skillbill.application.review.spec.facts
+import skillbill.application.review.spec.finding
+import skillbill.application.review.spec.findings
+import skillbill.application.review.spec.lane
+import skillbill.application.review.spec.launch
+import skillbill.application.review.spec.reason
+import skillbill.application.review.spec.stdout
+import skillbill.application.review.stats.lane
+import skillbill.application.review.verification.citationDiagnostics
+import skillbill.application.review.verification.facts
+import skillbill.application.review.verification.finding
+import skillbill.application.review.verification.findings
+import skillbill.application.review.verification.launch
+import skillbill.application.review.verification.stdout
+import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.review.model.ParallelReviewLaneOutcome
+import skillbill.ports.review.model.ReviewLaneAccounting
+import skillbill.review.context.model.accounting.ReviewAccountingTerminalOutcome
+import skillbill.review.context.model.hunk.ReviewRegisterParseSeamException
+import skillbill.review.context.model.packet.ReviewLaneAssembledBundle
+import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
+import skillbill.review.model.ParallelReviewParseResult
+import skillbill.review.model.ParallelReviewRawFinding
+import skillbill.review.parallel.ParallelReviewFindingParser
+import kotlin.coroutines.cancellation.CancellationException
+
+class ParallelCodeReviewRunnerFailureAdmission(
+  private val registerParse: (String) -> ParallelReviewParseResult,
+) {
+  internal fun softAdmitFindings(
+    stdout: String,
+    launch: ParallelCodeReviewInlineParentLaunch,
+  ): ParallelCodeReviewSoftRegisterAdmission = try {
+    val parsed = parseLaneRegisterSeam(stdout, launch.assignment.lane, registerParse)
+    ParallelCodeReviewSoftRegisterAdmission(
+      findings = attributeInlineFindings(parsed, launch.selected),
+      droppedCandidateDiagnostic = rejectedCandidateDiagnostic(parsed),
+      rejectedCandidateCount = parsed.rejections.size,
+      citationDiagnostics = parsed.citationDiagnostics,
+    )
+  } catch (cancellation: CancellationException) {
+    throw cancellation
+  } catch (_: ReviewRegisterParseSeamException) {
+    ParallelCodeReviewSoftRegisterAdmission(emptyList(), null, 0, emptyList())
+  }
+
+  private fun attributeInlineFindings(
+    parsed: ParallelReviewParseResult,
+    selected: List<ReviewSpecialistLaunchRequest>,
+  ): List<ParallelReviewRawFinding> {
+    val fallbackLane = selected.minByOrNull { it.assignment.laneDecision.orderIndex }
+    val fallbackPath = fallbackLane?.assignment?.assignedPaths?.firstOrNull()
+      ?: ParallelReviewFindingParser.UNASSIGNED_REPOSITORY_PATH
+    return parsed.findings.map { finding ->
+      val findingPath = finding.repositoryPath
+      val pathOwners = selected.filter { launch ->
+        findingPath != null && launch.assignment.assignedPaths.any { path -> path == findingPath }
+      }.distinctBy { it.assignment.laneDecision.specialistSkillName }
+      val owner = resolveInlineFindingOwner(finding.specialistSkillName, pathOwners, selected)
+        ?: fallbackLane
+      val path = when {
+        findingPath != null &&
+          findingPath != ParallelReviewFindingParser.UNASSIGNED_REPOSITORY_PATH -> findingPath
+        else -> fallbackPath
+      }
+      val line = finding.line ?: PARALLEL_REVIEW_FIRST_SOURCE_LINE
+      finding.copy(
+        specialistSkillName = owner?.assignment?.laneDecision?.specialistSkillName
+          ?: finding.specialistSkillName,
+        originLayerChains = owner?.assignment?.laneDecision?.originLayerChains.orEmpty(),
+        repositoryPath = path,
+        line = line,
+        location = "$path:$line",
+      )
+    }
+  }
+
+  private fun resolveInlineFindingOwner(
+    declaredSpecialist: String?,
+    pathOwners: List<ReviewSpecialistLaunchRequest>,
+    selected: List<ReviewSpecialistLaunchRequest>,
+  ): ReviewSpecialistLaunchRequest? {
+    val selectedByName = selected.distinctBy { it.assignment.laneDecision.specialistSkillName }
+    if (declaredSpecialist != null) {
+      selectedByName.singleOrNull { it.assignment.laneDecision.specialistSkillName == declaredSpecialist }
+        ?.let { return it }
+    }
+    return pathOwners.minByOrNull { it.assignment.laneDecision.orderIndex }
+  }
+
+  fun laneFailureReason(facts: AgentRunLaunchFacts): String? = when {
+    facts.timedOut -> "agent timed out"
+    facts.spawnFailed -> buildString {
+      append("agent process failed to spawn")
+      agentFailureExcerpt(
+        facts.stderr,
+        facts.stdout,
+        PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH,
+      )?.let { excerpt ->
+        append(" — ${excerpt.lineSequence().first().take(PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH)}")
+      }
+    }
+    facts.interrupted -> "agent was interrupted"
+    facts.exitStatus == null -> "agent exited with unknown status"
+    facts.exitStatus != 0 -> buildString {
+      append("agent exited with status ${facts.exitStatus}")
+      agentFailureExcerpt(
+        facts.stderr,
+        facts.stdout,
+        PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH,
+      )?.let { excerpt ->
+        append(" — ${excerpt.lineSequence().first().take(PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH)}")
+      }
+    }
+    facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
+    else -> null
+  }
+
+  private fun rejectedCandidateDiagnostic(parsed: ParallelReviewParseResult): String? {
+    val rejection = parsed.rejections.firstOrNull() ?: return null
+    return "dropped ${parsed.rejections.size} of ${parsed.candidateCount} [F-XXX] candidate line(s); " +
+      "first at line ${rejection.linePosition} rejected as ${rejection.reason.wireValue}: " +
+      rejection.lineText.take(PARALLEL_REVIEW_REGISTER_ABSENCE_EXCERPT_MAX_LENGTH)
+  }
+}
+
+internal fun parseLaneRegisterSeam(
+  stdout: String,
+  lane: String,
+  parse: (String) -> ParallelReviewParseResult = ParallelReviewFindingParser::parse,
+): ParallelReviewParseResult = try {
+  parse(stdout)
+} catch (thrown: IllegalArgumentException) {
+  throw ReviewRegisterParseSeamException(seam = INLINE_FINDING_PARSE_SEAM, lane = lane, cause = thrown)
+} catch (thrown: IllegalStateException) {
+  throw ReviewRegisterParseSeamException(seam = INLINE_FINDING_PARSE_SEAM, lane = lane, cause = thrown)
+}
+
+internal fun parallelCodeReviewNoOpResumeOutcome(agentId: String) = ParallelReviewLaneOutcome(
+  success = true,
+  rawOutput = "",
+  accounting = ReviewLaneAccounting(
+    lane = agentId,
+    evidenceBytes = 0,
+    expansions = emptyList(),
+    toolCalls = 0,
+    modelTurns = 0,
+    resultBytes = 0,
+    terminalStatus = NO_OP_RESUME_TERMINAL_STATUS.wireValue,
+    reviewDisposition = ReviewLaneReviewDisposition.COMPLETE,
+    bundleCompositionDigest = ReviewLaneAssembledBundle.EMPTY.compositionDigest,
+  ),
+  reviewDisposition = ReviewLaneReviewDisposition.COMPLETE,
+  bundleCompositionDigest = ReviewLaneAssembledBundle.EMPTY.compositionDigest,
+)
+
+internal fun parallelCodeReviewInlineTerminalStatus(
+  facts: AgentRunLaunchFacts,
+  disposition: ReviewLaneReviewDisposition,
+): ReviewAccountingTerminalOutcome = when {
+  disposition == ReviewLaneReviewDisposition.INCOMPLETE -> ReviewAccountingTerminalOutcome.INCOMPLETE
+  facts.timedOut -> ReviewAccountingTerminalOutcome.TIMEOUT
+  facts.interrupted -> ReviewAccountingTerminalOutcome.INTERRUPTED
+  facts.spawnFailed -> ReviewAccountingTerminalOutcome.SPAWN_FAILURE
+  facts.exitStatus != 0 -> ReviewAccountingTerminalOutcome.PROCESS_FAILURE
+  else -> ReviewAccountingTerminalOutcome.COMPLETED
+}
+
+internal fun parallelCodeReviewCaptureLane(lane: () -> ParallelReviewLaneOutcome): ParallelReviewLaneOutcome {
+  val outcome = runCatching { lane() }
+  if (outcome.isSuccess) return outcome.getOrThrow()
+  val error = outcome.exceptionOrNull()!!
+  val terminal = when (error) {
+    is ReviewRegisterParseSeamException, is CancellationException, is InterruptedException -> error
+    is Exception -> return ParallelReviewLaneOutcome(
+      success = false,
+      rawOutput = "",
+      failureReason = "lane launch threw ${error::class.simpleName}: ${error.message ?: "no detail"}",
+    )
+    else -> error
+  }
+  throw terminal
+}

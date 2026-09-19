@@ -2,7 +2,7 @@ package skillbill.application.diagnostics
 
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticConfig
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
-import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
@@ -16,7 +16,6 @@ import java.io.IOException
 import java.security.MessageDigest
 import java.time.Clock
 import java.time.Instant
-
 class RejectedOutputDiagnosticService(
   private val repository: RejectedOutputDiagnosticRepository,
   private val permissions: RejectedOutputDiagnosticPermissions,

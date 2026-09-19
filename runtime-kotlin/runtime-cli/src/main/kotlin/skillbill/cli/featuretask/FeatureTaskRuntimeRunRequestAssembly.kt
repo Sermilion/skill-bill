@@ -3,12 +3,12 @@ package skillbill.cli.featuretask
 import com.github.ajalt.clikt.core.UsageError
 import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
-import skillbill.application.review.RuntimeOwnedReviewMode
 import skillbill.application.review.model.CodeReviewExecutionMode
-import skillbill.cli.kernel.parseAgentAddonSelection
-import skillbill.cli.kernel.refuseUnavailableAgentLaunchers
-import skillbill.cli.kernel.refuseUnsupportedModelDirectives
-import skillbill.cli.kernel.resolveCliRepositoryRoot
+import skillbill.application.review.service.RuntimeOwnedReviewMode
+import skillbill.cli.kernel.agent.parseAgentAddonSelection
+import skillbill.cli.kernel.agent.refuseUnavailableAgentLaunchers
+import skillbill.cli.kernel.agent.refuseUnsupportedModelDirectives
+import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeAgentResolver
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeModelResolver
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeAgentAssignment
@@ -17,10 +17,9 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
-
 internal fun FeatureTaskRuntimePhaseAgentCommand.prepareRuntimeRun(
   deps: FeatureTaskRuntimeRunDependencies,
   resolvedRepoRoot: Path = resolveCliRepositoryRoot(repoRoot, deps.inputs),

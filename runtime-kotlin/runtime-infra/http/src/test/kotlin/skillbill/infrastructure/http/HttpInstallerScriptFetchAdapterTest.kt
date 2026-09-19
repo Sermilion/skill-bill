@@ -3,8 +3,8 @@ package skillbill.infrastructure.http
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.process.model.InstallerScriptFetchRequest
 import skillbill.ports.process.model.InstallerScriptFetchResult
-import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

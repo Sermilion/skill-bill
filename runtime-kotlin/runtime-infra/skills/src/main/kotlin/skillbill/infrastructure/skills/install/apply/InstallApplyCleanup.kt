@@ -1,7 +1,7 @@
 package skillbill.infrastructure.skills.install.apply
 
 import skillbill.infrastructure.skills.install.plan.platformSkills
-import skillbill.infrastructure.skills.install.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
@@ -11,7 +11,6 @@ import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
-
 internal fun cleanupExistingSkillBillLinks(
   plan: InstallPlan,
   platformManifests: List<PlatformManifest>,

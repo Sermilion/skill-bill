@@ -9,11 +9,10 @@ import skillbill.domain.skillremove.model.SkillRemovalRequest
 import skillbill.domain.skillremove.model.SkillRemovalResult
 import skillbill.domain.skillremove.model.SkillRemovalTarget
 import skillbill.domain.skillremove.refuseSkillRemoval
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.SkillBillRuntimeException
 import skillbill.ports.skillremove.SkillRemoveFileSystem
 import java.nio.file.Paths
 import kotlin.coroutines.cancellation.CancellationException
-
 @Inject
 class SkillRemove(
   private val fileSystem: SkillRemoveFileSystem,

@@ -1,25 +1,21 @@
 package skillbill.engine.goalrunner.execution.core
-import skillbill.engine.goalrunner.execution.support.withWorkflowId
-
+import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
+import skillbill.application.telemetry.lifecycle.toRecord
+import skillbill.application.telemetry.model.GoalFinishedRequest
+import skillbill.application.telemetry.model.GoalIssueFinishedRequest
+import skillbill.application.telemetry.model.GoalStartedRequest
+import skillbill.application.telemetry.model.GoalSubtaskFinishedRequest
+import skillbill.engine.goalrunner.GoalRunner
 import skillbill.engine.goalrunner.InMemoryGoalManifestStore
 import skillbill.engine.goalrunner.RecordingOutcomeStore
 import skillbill.engine.goalrunner.RecordingPullRequestPort
 import skillbill.engine.goalrunner.RecordingSubtaskLauncher
 import skillbill.engine.goalrunner.completeOutcome
+import skillbill.engine.goalrunner.execution.support.withWorkflowId
 import skillbill.engine.goalrunner.launchFacts
 import skillbill.engine.goalrunner.manifest
-
-import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
-import skillbill.application.telemetry.model.GoalFinishedRequest
-import skillbill.application.telemetry.model.GoalIssueFinishedRequest
-import skillbill.application.telemetry.model.GoalStartedRequest
-import skillbill.application.telemetry.model.GoalSubtaskFinishedRequest
-import skillbill.application.telemetry.toRecord
-import skillbill.engine.goalrunner.GoalRunner
-import skillbill.engine.goalrunner.execution.core.goalRunnerDeps
 import skillbill.engine.goalrunner.model.GoalRunnerEventSink
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.engine.goalrunner.execution.core.testGoalRunner
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import java.nio.file.Path
 import java.time.Clock
@@ -29,8 +25,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
-import skillbill.engine.goalrunner.telemetry.GoalRunnerTelemetryEmitter
-
 class GoalModeAttributionUnitTest {
 
   @Test

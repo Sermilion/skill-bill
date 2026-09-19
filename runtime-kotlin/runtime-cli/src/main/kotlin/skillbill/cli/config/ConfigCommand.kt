@@ -5,16 +5,15 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.config.ConfigResolutionService
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.DocumentedNoOpCliCommand
-import skillbill.cli.kernel.resolveCliRepositoryRoot
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.DocumentedNoOpCliCommand
+import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.config.model.SpecType
 import skillbill.config.model.parseSpecType
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.ShellContentContractException
-
+import skillbill.error.shellcontent.ShellContentContractException
 @Inject
 class ConfigCommand(
   resolveSpecTypeCommand: ConfigResolveSpecTypeCommand,

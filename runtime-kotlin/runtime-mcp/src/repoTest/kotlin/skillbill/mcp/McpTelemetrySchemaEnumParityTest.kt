@@ -11,14 +11,13 @@ import skillbill.mcp.core.McpToolRegistry
 import skillbill.mcp.telemetry.TelemetryEventSchemaPaths
 import skillbill.testing.repoRootFromTest
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class McpTelemetrySchemaEnumParityTest {
   private val runtimeInternalEmissionEvents =
     setOf(

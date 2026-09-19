@@ -2,10 +2,9 @@ package skillbill.infrastructure.launcher.review
 
 import skillbill.contracts.review.GovernedReviewEvidencePayloadKeys
 import skillbill.ports.review.model.ReviewEvidenceResult
-import skillbill.review.context.model.ForbiddenReviewOperation
-import skillbill.review.context.model.ReviewBudgetOutcome
-import skillbill.review.context.model.ReviewExpansionRecord
-
+import skillbill.review.context.model.execution.ForbiddenReviewOperation
+import skillbill.review.context.model.hunk.ReviewBudgetOutcome
+import skillbill.review.context.model.packet.ReviewExpansionRecord
 internal object GovernedReviewEvidenceCodecWirePayloads {
   fun expansionPayload(record: ReviewExpansionRecord): Map<String, Any?> = linkedMapOf(
     GovernedReviewEvidencePayloadKeys.EXPANSION_ID to record.expansionId,

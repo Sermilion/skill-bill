@@ -2,26 +2,25 @@ package skillbill.engine.goalrunner.planning.attempt
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseSafetyPolicy
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
-import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
-import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.goalrunner.model.GoalRunnerStopReason
-import skillbill.ports.time.model.RuntimeWaitResult
-import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.requireAcceptedOutput
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.ZERO
-import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.model.GoalPlanningProduceAttemptArgs
 import skillbill.engine.goalrunner.planning.model.GoalPlanningProducePhaseArgs
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.engine.goalrunner.planning.outcome.malformedReason
 import skillbill.engine.goalrunner.planning.outcome.stopped
 import skillbill.engine.goalrunner.planning.outcome.unexpectedPlanningFailureReason
 import skillbill.engine.goalrunner.planning.outcome.unsuccessfulStatusReason
-
+import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
+import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.goalrunner.model.GoalRunnerStopReason
+import skillbill.ports.time.model.RuntimeWaitResult
+import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.taskruntime.artifact.envelopeWireMap
+import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.ZERO
 internal fun DefaultGoalPlanningSweep.producePhase(args: GoalPlanningProducePhaseArgs): GoalPlanningPhaseProduction {
   val attemptArgs = args.attempt
   val phase = attemptArgs.phase

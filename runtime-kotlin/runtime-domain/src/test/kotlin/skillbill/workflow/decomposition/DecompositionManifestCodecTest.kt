@@ -1,7 +1,7 @@
 package skillbill.workflow.decomposition
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
@@ -10,7 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class DecompositionManifestCodecTest {
   @Test
   fun `codec decodes manifest wire values without schema validation`() {

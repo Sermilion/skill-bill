@@ -1,12 +1,12 @@
 package skillbill.application
 
-import skillbill.application.review.parseLaneRegisterSeam
+import skillbill.application.review.parallel.verification.parseLaneRegisterSeam
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
-import skillbill.review.context.model.CodeReviewExecutionMode
-import skillbill.review.context.model.ReviewRegisterParseSeamException
+import skillbill.review.context.model.hunk.ReviewRegisterParseSeamException
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -15,7 +15,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class ParallelCodeReviewRegisterSeamTest {
   @Test
   fun `a zero-exit lane without a findings register settles without failing the lane`() {

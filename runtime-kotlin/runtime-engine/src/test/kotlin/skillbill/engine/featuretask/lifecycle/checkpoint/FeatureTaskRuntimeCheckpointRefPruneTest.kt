@@ -1,12 +1,8 @@
 package skillbill.engine.featuretask.lifecycle.checkpoint
-import skillbill.engine.goalrunner.manifest
-
-
-
-import skillbill.engine.featuretask.lifecycle.subtask.push
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointRefPruneRequest
+import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.manifest.pruneEligibleCheckpointRefsForManifest
-import skillbill.infrastructure.workflow.GitWorkflowGitOperations
+import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.deleteCheckpointRef
 import skillbill.ports.workflow.gitops.listCheckpointRefs
@@ -15,8 +11,8 @@ import skillbill.ports.workflow.gitops.updateCheckpointRef
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointRefName
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointRefName
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -27,7 +23,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeCheckpointRefPruneTest {
   private lateinit var repo: Path
   private val git: WorkflowGitOperations = GitWorkflowGitOperations()

@@ -2,8 +2,8 @@ package skillbill.application
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult.Ok
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.model.EnvironmentContext
 import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext

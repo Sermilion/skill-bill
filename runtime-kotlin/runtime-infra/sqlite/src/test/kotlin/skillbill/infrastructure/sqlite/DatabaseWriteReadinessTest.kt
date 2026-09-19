@@ -2,12 +2,12 @@ package skillbill.infrastructure.sqlite
 
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
-import skillbill.error.DatabaseAccessError
-import skillbill.error.DatabaseAccessOperation
-import skillbill.infrastructure.sqlite.core.DatabaseIdentity
-import skillbill.infrastructure.sqlite.core.DatabaseMigration
-import skillbill.infrastructure.sqlite.core.DatabaseMigrations
-import skillbill.infrastructure.sqlite.core.DatabaseWriteReadinessGate
+import skillbill.error.core.DatabaseAccessError
+import skillbill.error.core.DatabaseAccessOperation
+import skillbill.infrastructure.sqlite.core.migration.DatabaseMigration
+import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.schema.DatabaseIdentity
+import skillbill.infrastructure.sqlite.core.schema.DatabaseWriteReadinessGate
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
@@ -23,7 +23,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 @Execution(ExecutionMode.SAME_THREAD)
 class DatabaseWriteReadinessTest {
   @Test

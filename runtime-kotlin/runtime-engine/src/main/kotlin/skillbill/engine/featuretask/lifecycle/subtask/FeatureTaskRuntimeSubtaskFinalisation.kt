@@ -1,8 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.subtask
 
-
-
-
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMessage
 import skillbill.engine.featuretask.lifecycle.checkpoint.SupersededCheckpointPromoter
 import skillbill.engine.featuretask.lifecycle.checkpoint.pruneSubtaskCheckpointRefs

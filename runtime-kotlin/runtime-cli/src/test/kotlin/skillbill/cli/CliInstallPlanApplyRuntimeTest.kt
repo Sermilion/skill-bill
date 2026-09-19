@@ -1,15 +1,15 @@
 package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
-import skillbill.cli.install.installApplyPayload
-import skillbill.cli.install.installPlanPayload
-import skillbill.cli.kernel.CliOutput
+import skillbill.cli.install.apply.installApplyPayload
+import skillbill.cli.install.core.installPlanPayload
+import skillbill.cli.kernel.cli.CliOutput
 import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
-import skillbill.error.InvalidInstallPlanSchemaError
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
+import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.sqlite.SqliteTestDatabasePaths
 import skillbill.infrastructure.sqlite.sqliteSessionFactoryForTests
 import skillbill.install.model.InstallAgent
@@ -48,7 +48,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class CliInstallPlanApplyRuntimeTest {
   @Test
   fun `install plan maps manual agents platforms telemetry and mcp choices`() {

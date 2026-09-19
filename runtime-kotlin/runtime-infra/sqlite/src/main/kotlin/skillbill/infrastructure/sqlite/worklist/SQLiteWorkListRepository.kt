@@ -1,13 +1,13 @@
 package skillbill.infrastructure.sqlite.worklist
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.InvalidWorkListRowError
-import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.error.shellcontent.InvalidWorkListRowError
+import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.work.model.LEGACY_FEATURE_TASK_PROSE_WORKFLOW_STATUSES
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.sql.Connection
 import java.sql.ResultSet
@@ -17,7 +17,6 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
-
 internal class SQLiteWorkListRepository(
   private val connection: Connection,
 ) : WorkListRepository {

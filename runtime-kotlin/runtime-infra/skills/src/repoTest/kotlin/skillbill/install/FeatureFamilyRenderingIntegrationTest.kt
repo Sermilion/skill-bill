@@ -1,8 +1,8 @@
 package skillbill.install
 
-import skillbill.infrastructure.skills.install.staging.StageInstalledSkillInput
-import skillbill.infrastructure.skills.install.staging.stageInstalledSkill
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
+import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
+import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
@@ -14,7 +14,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class FeatureFamilyRenderingIntegrationTest {
   private val tempDirs = mutableListOf<Path>()
 

@@ -1,6 +1,6 @@
 package skillbill.cli
 
-import skillbill.cli.kernel.CliOutput
+import skillbill.cli.kernel.cli.CliOutput
 import skillbill.cli.model.CliFormat
 import skillbill.cli.telemetry.toCliMap
 import skillbill.telemetry.model.TelemetryOpenDocument
@@ -9,7 +9,6 @@ import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class TelemetryCliResultMappersTest {
   @Test
   fun `remote stats mapper preserves explicit null capabilities`() {

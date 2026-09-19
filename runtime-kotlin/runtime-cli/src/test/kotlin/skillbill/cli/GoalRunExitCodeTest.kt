@@ -1,9 +1,8 @@
 package skillbill.cli
 
-import skillbill.cli.goal.goalRunExitCode
+import skillbill.cli.goal.core.goalRunExitCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class GoalRunExitCodeTest {
   @Test
   fun `complete exits 0`() {

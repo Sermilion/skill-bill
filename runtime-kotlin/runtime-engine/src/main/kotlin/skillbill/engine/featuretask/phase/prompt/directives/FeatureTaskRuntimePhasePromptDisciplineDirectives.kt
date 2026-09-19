@@ -1,7 +1,5 @@
 package skillbill.engine.featuretask.phase.prompt.directives
-
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 fun mutatingPhaseIdempotencyDirective(phaseId: String): String {
   if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) {
     return ""

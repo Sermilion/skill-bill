@@ -1,12 +1,10 @@
 package skillbill.engine.goalrunner.status
-import skillbill.engine.goalrunner.goalTestPhaseRecorder
-
 import skillbill.engine.goalrunner.RecordingOutcomeStore
-import skillbill.engine.goalrunner.manifest
-
 import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
-import skillbill.engine.goalrunner.model.GoalRunnerStopStatus
 import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
+import skillbill.engine.goalrunner.goalTestPhaseRecorder
+import skillbill.engine.goalrunner.manifest
+import skillbill.engine.goalrunner.model.GoalRunnerStopStatus
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_REQUEST
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
 import skillbill.goalrunner.model.GoalRunnerControlState

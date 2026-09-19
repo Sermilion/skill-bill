@@ -1,37 +1,36 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
+import skillbill.agentaddon.model.AgentAddonPromptFormatter
+import skillbill.agentaddon.model.HydratedAgentAddonSelection
+import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
+import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
+import skillbill.application.review.model.ParallelCodeReviewRequest
+import skillbill.application.review.review.RecordedWorkerResponse
+import skillbill.application.review.review.ReviewHarnessConfig
+import skillbill.application.review.review.ReviewRecorder
+import skillbill.application.review.review.diffForPaths
+import skillbill.application.review.review.reviewHarness
+import skillbill.application.review.review.sparseReviewPack
+import skillbill.application.review.spec.ReviewSpecAdjudicationRunner
+import skillbill.application.review.verification.ReviewClaimVerificationRunner
+import skillbill.application.reviewevidence.model.ParallelReviewScope
+import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewCycleContext
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverAgents
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverMapper
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverPass
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverWorkspace
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewEnvelope
-import skillbill.agentaddon.model.AgentAddonPromptFormatter
-import skillbill.agentaddon.model.HydratedAgentAddonSelection
-import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
-import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.application.review.RecordedWorkerResponse
-import skillbill.application.review.ReviewClaimVerificationRunner
-import skillbill.application.review.ReviewHarnessConfig
-import skillbill.application.review.ReviewRecorder
-import skillbill.application.review.ReviewSpecAdjudicationRunner
-import skillbill.application.review.diffForPaths
-import skillbill.application.review.model.ParallelCodeReviewRequest
-import skillbill.application.review.reviewHarness
-import skillbill.application.review.sparseReviewPack
-import skillbill.application.reviewevidence.model.ParallelReviewScope
-import skillbill.contracts.JsonCodec
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.model.ParallelReviewMergeResult
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewScopeDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -39,7 +38,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeReviewDelegationTest {
   @Test
   fun `child-owned review resolves worktree-from-base without a supplied diff blob`() {

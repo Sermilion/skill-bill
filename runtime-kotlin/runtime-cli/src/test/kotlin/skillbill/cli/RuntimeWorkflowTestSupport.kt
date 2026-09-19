@@ -11,16 +11,15 @@ import skillbill.cli.model.CliRuntimeContext
 import skillbill.cli.workflow.toCliMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
-import skillbill.contracts.workflow.WorkflowArtifactKeys
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
+import skillbill.contracts.workflow.payload.WorkflowArtifactKeys
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import kotlin.test.assertIs
-
 internal fun installFakeRuntimeMcpBin(home: Path): Path {
   val bin = home.resolve(".skill-bill").resolve("runtime").resolve("runtime-mcp").resolve("bin").resolve("runtime-mcp")
   Files.createDirectories(bin.parent)

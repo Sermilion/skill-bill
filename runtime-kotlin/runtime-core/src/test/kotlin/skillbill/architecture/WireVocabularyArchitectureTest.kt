@@ -1,6 +1,6 @@
 package skillbill.architecture
 
-import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
+import skillbill.contracts.workflow.featuretask.DecompositionManifestSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

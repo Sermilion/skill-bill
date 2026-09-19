@@ -1,13 +1,12 @@
 package skillbill.engine.featuretask.model.phase
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_LAUNCH_BRIEFING_CONTRACT_VERSION
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeHandoffEnvelopeFromArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffEnvelope
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
-
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_LAUNCH_BRIEFING_CONTRACT_VERSION
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.decodeHandoffEnvelopeFromArtifact
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
 data class FeatureTaskRuntimePhaseLaunchBriefing(
   val phaseId: String,
   val specReference: String,

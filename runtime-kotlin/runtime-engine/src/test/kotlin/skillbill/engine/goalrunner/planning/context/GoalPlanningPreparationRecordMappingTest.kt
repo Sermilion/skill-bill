@@ -1,6 +1,4 @@
 package skillbill.engine.goalrunner.planning.context
-import skillbill.engine.goalrunner.manifest
-
 import skillbill.engine.goalplanning.toEnvelopeMap
 import skillbill.engine.goalplanning.toGoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance

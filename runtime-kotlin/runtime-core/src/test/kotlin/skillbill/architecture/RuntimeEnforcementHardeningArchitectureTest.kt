@@ -130,8 +130,7 @@ class RuntimeEnforcementHardeningArchitectureTest {
       """
       package skillbill.application
 
-import skillbill.contracts.install.InstallPlanSchemaValidator as IPV
-import skillbill.contracts.workflow.DecompositionManifestCoherenceValidator as DMCV
+import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as IPV
 
       class Leaky
       """.trimIndent()

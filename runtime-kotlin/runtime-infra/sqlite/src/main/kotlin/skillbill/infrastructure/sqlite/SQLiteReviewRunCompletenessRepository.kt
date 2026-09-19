@@ -1,24 +1,24 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.review.ensureTerminalReviewState
-import skillbill.infrastructure.sqlite.review.fetchFindingVerdicts
-import skillbill.infrastructure.sqlite.review.fetchIntegrationPass
-import skillbill.infrastructure.sqlite.review.fetchReviewPassClaims
-import skillbill.infrastructure.sqlite.review.fetchReviewRunLanes
-import skillbill.infrastructure.sqlite.review.fetchSpecProjectionReference
-import skillbill.infrastructure.sqlite.review.fetchStageBoundaries
-import skillbill.infrastructure.sqlite.review.queryReviewLaneEffectiveness
-import skillbill.infrastructure.sqlite.review.recordFindingLaneAttribution
-import skillbill.infrastructure.sqlite.review.recordFindingVerdicts
-import skillbill.infrastructure.sqlite.review.recordIntegrationPass
-import skillbill.infrastructure.sqlite.review.recordReviewPassClaims
-import skillbill.infrastructure.sqlite.review.recordSpecProjectionReference
-import skillbill.infrastructure.sqlite.review.recordStageBoundary
-import skillbill.infrastructure.sqlite.review.replaceReviewRunLanes
-import skillbill.ports.review.ReviewRunCompletenessRepository
-import skillbill.ports.review.ReviewRunLaneCompletenessRepository
-import skillbill.ports.review.ReviewRunStageCompletenessRepository
+import skillbill.infrastructure.sqlite.review.stage.fetchFindingVerdicts
+import skillbill.infrastructure.sqlite.review.stage.fetchReviewPassClaims
+import skillbill.infrastructure.sqlite.review.stage.fetchSpecProjectionReference
+import skillbill.infrastructure.sqlite.review.stage.fetchStageBoundaries
+import skillbill.infrastructure.sqlite.review.stage.lane.fetchIntegrationPass
+import skillbill.infrastructure.sqlite.review.stage.lane.fetchReviewRunLanes
+import skillbill.infrastructure.sqlite.review.stage.lane.queryReviewLaneEffectiveness
+import skillbill.infrastructure.sqlite.review.stage.lane.recordFindingLaneAttribution
+import skillbill.infrastructure.sqlite.review.stage.lane.recordIntegrationPass
+import skillbill.infrastructure.sqlite.review.stage.lane.replaceReviewRunLanes
+import skillbill.infrastructure.sqlite.review.stage.recordFindingVerdicts
+import skillbill.infrastructure.sqlite.review.stage.recordReviewPassClaims
+import skillbill.infrastructure.sqlite.review.stage.recordSpecProjectionReference
+import skillbill.infrastructure.sqlite.review.stage.recordStageBoundary
+import skillbill.infrastructure.sqlite.review.stage.telemetry.ensureTerminalReviewState
 import skillbill.ports.review.model.ReviewIntegrationPassRecord
+import skillbill.ports.review.repository.ReviewRunCompletenessRepository
+import skillbill.ports.review.repository.ReviewRunLaneCompletenessRepository
+import skillbill.ports.review.repository.ReviewRunStageCompletenessRepository
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewExecutionMode
 import skillbill.review.model.ReviewFindingVerdict
@@ -29,7 +29,6 @@ import skillbill.review.model.ReviewSpecProjectionReference
 import skillbill.review.model.ReviewStageBoundary
 import java.sql.Connection
 import java.time.Clock
-
 internal class SQLiteReviewRunLaneCompletenessRepository(
   private val connection: Connection,
 ) : ReviewRunLaneCompletenessRepository {

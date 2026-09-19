@@ -7,12 +7,11 @@ import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-import skillbill.review.ParallelReviewFindingParser
-import skillbill.review.ParallelReviewMerger
-import skillbill.review.context.model.ReviewLaneReviewDisposition
+import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewLaneResult
 import skillbill.review.model.ParallelReviewMergeResult
-
+import skillbill.review.parallel.ParallelReviewFindingParser
+import skillbill.review.parallel.ParallelReviewMerger
 class FeatureTaskLastCommitReviewDriver(
   private val subtaskLauncher: GoalRunnerSubtaskLauncher,
 ) : FeatureTaskRuntimeReviewDriver {

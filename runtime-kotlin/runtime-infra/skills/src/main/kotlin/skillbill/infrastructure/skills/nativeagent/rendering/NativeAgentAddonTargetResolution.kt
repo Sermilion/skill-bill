@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.nativeagent.rendering
 
-import skillbill.error.MissingContentFileError
+import skillbill.error.shellcontent.MissingContentFileError
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTarget
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTargetSource
 import skillbill.infrastructure.skills.nativeagent.composition.displayPath
@@ -13,7 +13,6 @@ import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPoint
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.name
-
 internal const val NATIVE_AGENT_ADDON_ENTRYPOINT_SLOT = "entrypoint"
 
 internal data class ComposedAddonTarget(

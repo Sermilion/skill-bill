@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.error.DatabaseAccessError
-import skillbill.error.DatabaseAccessOperation
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.error.core.DatabaseAccessError
+import skillbill.error.core.DatabaseAccessOperation
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.model.WorkflowStateRecord
@@ -22,7 +22,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class SQLiteDatabaseSessionFactoryTest {
   @Test
   fun `transaction maps write SQLException to DatabaseAccessError`() {

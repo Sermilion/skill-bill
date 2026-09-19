@@ -1,10 +1,10 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.error.InvalidScaffoldPayloadError
-import skillbill.error.RetiredScaffoldKindError
-import skillbill.error.ScaffoldPayloadVersionMismatchError
-import skillbill.error.UnknownPreShellFamilyError
-import skillbill.error.UnknownSkillKindError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.RetiredScaffoldKindError
+import skillbill.error.shellcontent.ScaffoldPayloadVersionMismatchError
+import skillbill.error.shellcontent.UnknownPreShellFamilyError
+import skillbill.error.shellcontent.UnknownSkillKindError
 import skillbill.infrastructure.skills.scaffold.payload.detectKind
 import skillbill.infrastructure.skills.scaffold.payload.optionalSpecialistSubagents
 import skillbill.infrastructure.skills.scaffold.payload.rejectBaselineLayersForNonPlatformPack
@@ -12,7 +12,7 @@ import skillbill.infrastructure.skills.scaffold.payload.rejectLeafSubagentSpecia
 import skillbill.infrastructure.skills.scaffold.payload.resolvePlatformPackDefaults
 import skillbill.infrastructure.skills.scaffold.payload.resolvePlatformPackSelection
 import skillbill.infrastructure.skills.scaffold.payload.validatePayloadVersion
-import skillbill.infrastructure.skills.scaffold.runtime.PRE_SHELL_FAMILIES
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.PRE_SHELL_FAMILIES
 import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA
@@ -23,7 +23,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class ScaffoldPayloadMapPolicyTest {
   @Test
   fun `validatePayloadVersion accepts the canonical wire version`() {

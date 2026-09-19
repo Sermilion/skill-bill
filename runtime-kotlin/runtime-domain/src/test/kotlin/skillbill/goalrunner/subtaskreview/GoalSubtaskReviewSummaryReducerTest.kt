@@ -2,17 +2,16 @@ package skillbill.goalrunner.subtaskreview
 
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
-import skillbill.review.ReviewFindingFieldCodec
+import skillbill.review.finding.ReviewFindingFieldCodec
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.text.Utf8Text
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class GoalSubtaskReviewSummaryReducerTest {
   @Test
   fun `user-directed review skip has no unresolved findings`() {

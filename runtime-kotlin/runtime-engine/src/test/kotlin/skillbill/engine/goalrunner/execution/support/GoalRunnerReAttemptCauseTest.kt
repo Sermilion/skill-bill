@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.execution.support
 
-import skillbill.engine.goalrunner.execution.support.reAttemptCauseFor
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import kotlin.test.Test
 import kotlin.test.assertEquals

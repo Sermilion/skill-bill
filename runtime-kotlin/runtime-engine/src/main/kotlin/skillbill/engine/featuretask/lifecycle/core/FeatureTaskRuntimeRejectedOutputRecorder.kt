@@ -1,20 +1,17 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
-
-
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProducerOutputRead
-import skillbill.engine.featuretask.model.review.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.phase.ProducerOutputQueryArgs
+import skillbill.engine.featuretask.model.review.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.review.RejectedOutputDiagnosticDegradeRequest
 import skillbill.engine.featuretask.model.review.RejectedOutputDiagnosticPersistRequest
-import skillbill.error.InvalidProducerOutputEvidenceSchemaError
-import skillbill.error.InvalidRejectedOutputDiagnosticSchemaError
-import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.error.core.RejectedOutputDiagnosticError
+import skillbill.error.shellcontent.InvalidProducerOutputEvidenceSchemaError
+import skillbill.error.shellcontent.InvalidRejectedOutputDiagnosticSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
@@ -22,18 +19,17 @@ import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.evidenceKey
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeDiagnosticSignalsFromArtifact
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticDegradationMeasurement
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticFailureClass
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticSignal
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRejectionMeasurement
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeAppendDiagnosticSignal
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeRejectionCapOf
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeRejectionViolationClassOf
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.decodeDiagnosticSignalsFromArtifact
+import skillbill.workflow.taskruntime.model.audit.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
+import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticSignal
+import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeAppendDiagnosticSignal
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeDiagnosticDegradationMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRejectionMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.featureTaskRuntimeRejectionCapOf
+import skillbill.workflow.taskruntime.model.handoff.task.featureTaskRuntimeRejectionViolationClassOf
 import java.time.Clock
-
 private fun RejectedOutputDiagnosticError.degradableFailureClass(): FeatureTaskRuntimeDiagnosticFailureClass? =
   when (this) {
     is RejectedOutputDiagnosticError.Conflict -> FeatureTaskRuntimeDiagnosticFailureClass.CONFLICT

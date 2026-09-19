@@ -1,0 +1,75 @@
+package skillbill.infrastructure.skills.install
+import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.host.jvm.atomicWriteString
+import skillbill.infrastructure.skills.externaladdon.empty
+import skillbill.infrastructure.skills.externaladdon.request
+import skillbill.infrastructure.skills.scaffold.path
+import skillbill.infrastructure.skills.scaffold.skills
+import skillbill.install.model.BaselineManifest
+import skillbill.ports.install.baseline.BaselineManifestPersistencePort
+import skillbill.ports.install.baseline.model.ReadBaselineManifestRequest
+import skillbill.ports.install.baseline.model.ReadBaselineManifestResult
+import skillbill.ports.install.baseline.model.WriteBaselineManifestRequest
+import skillbill.ports.install.baseline.model.WriteBaselineManifestResult
+import java.io.IOException
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
+
+@Inject
+class FileSystemBaselineManifestPersistence : BaselineManifestPersistencePort {
+  override fun readBaseline(request: ReadBaselineManifestRequest): ReadBaselineManifestResult {
+    val manifestPath = baselineManifestPath(request.installHome)
+    if (!Files.exists(manifestPath)) {
+      return ReadBaselineManifestResult(manifest = BaselineManifest.empty(), existed = false)
+    }
+    val size = baselineRecordSize(manifestPath)
+    if (size > MAX_BASELINE_MANIFEST_BYTES) {
+      throw unreadableBaseline(manifestPath, "Manifest exceeds the maximum size of $MAX_BASELINE_MANIFEST_BYTES bytes")
+    }
+    val manifest = parseBaselineManifestPayload(manifestPath, readBaselinePayload(manifestPath))
+    return ReadBaselineManifestResult(manifest = manifest, existed = true)
+  }
+
+  override fun writeBaseline(request: WriteBaselineManifestRequest): WriteBaselineManifestResult {
+    val manifestPath = baselineManifestPath(request.installHome)
+    manifestPath.parent?.let(Files::createDirectories)
+    val payload = request.manifest.toBaselineManifestJson()
+    val durablePayload = payload + "\n"
+    if (durablePayload.toByteArray(StandardCharsets.UTF_8).size > MAX_BASELINE_MANIFEST_BYTES) {
+      throw unreadableBaseline(manifestPath, "Manifest exceeds the maximum size of $MAX_BASELINE_MANIFEST_BYTES bytes")
+    }
+
+    parseBaselineManifestPayload(manifestPath, payload)
+    writeBaselineRecord(manifestPath, durablePayload)
+    return WriteBaselineManifestResult(path = manifestPath)
+  }
+}
+
+private fun writeBaselineRecord(path: Path, payload: String) {
+  atomicWriteString(path, payload)
+}
+
+private fun baselineRecordSize(path: Path): Long = try {
+  Files.size(path)
+} catch (error: IOException) {
+  throw unreadableBaseline(path, "size lookup failed", error)
+} catch (error: SecurityException) {
+  throw unreadableBaseline(path, "size lookup denied", error)
+}
+
+private fun readBaselinePayload(path: Path): String = try {
+  Files.readString(path)
+} catch (error: IOException) {
+  throw unreadableBaseline(path, "read failed", error)
+} catch (error: SecurityException) {
+  throw unreadableBaseline(path, "read denied", error)
+}
+
+private fun baselineManifestPath(installHome: Path): Path = installHome
+  .resolve(".skill-bill")
+  .resolve(BASELINE_MANIFEST_FILE_NAME)
+  .toAbsolutePath()
+  .normalize()
+
+private const val MAX_BASELINE_MANIFEST_BYTES = 1024 * 1024

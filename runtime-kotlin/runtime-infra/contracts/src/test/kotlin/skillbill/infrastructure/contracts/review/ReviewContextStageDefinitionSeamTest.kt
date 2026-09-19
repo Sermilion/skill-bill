@@ -1,10 +1,9 @@
 package skillbill.infrastructure.contracts.review
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
-import skillbill.error.InvalidReviewContextSchemaError
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class ReviewContextStageDefinitionSeamTest {
   @Test
   fun `each new parse seam names its definition on an invalid payload`() {

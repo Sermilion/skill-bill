@@ -1,13 +1,12 @@
 package skillbill.workflow.goal.model
 
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
+import skillbill.contracts.workflow.goal.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.invalidGoalObservabilityEvent
-import skillbill.workflow.taskruntime.model.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.toStringKeyedArtifactMap
-import skillbill.workflow.taskruntime.validateGoalObservabilityEvent
-
+import skillbill.workflow.taskruntime.artifact.validateGoalObservabilityEvent
+import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
+import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
 fun goalObservabilityLatestEventFromArtifacts(
   artifacts: Any,
   validator: GoalObservabilityEventValidator,

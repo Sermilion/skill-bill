@@ -1,29 +1,27 @@
 package skillbill.engine.featuretask.review.finding
 
-
+import skillbill.application.testHarnessClock
+import skillbill.application.testWorkflowSnapshotValidator
+import skillbill.application.workflow.model.WorkflowFamily
+import skillbill.application.workflow.persist.decodeWorkflowArtifacts
+import skillbill.engine.InMemoryRuntimeWorkflowRepository
+import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
-import skillbill.application.testHarnessClock
-import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.decodeWorkflowArtifacts
-import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.engine.InMemoryRuntimeWorkflowRepository
-import skillbill.engine.RuntimeFakeDatabaseSessionFactory
-import skillbill.error.InvalidFeatureTaskRuntimeFindingVerificationRecordError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeFindingVerificationRecordError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-
 class FeatureTaskRuntimeFindingVerificationDurableDecodeTest {
   @Test
   fun `durable finding verification checkpoint round-trips valid dispositions`() {

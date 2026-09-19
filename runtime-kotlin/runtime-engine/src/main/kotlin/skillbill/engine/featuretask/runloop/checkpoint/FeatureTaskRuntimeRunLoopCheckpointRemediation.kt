@@ -1,44 +1,39 @@
 package skillbill.engine.featuretask.runloop.checkpoint
 
-
-
-
-import skillbill.engine.featuretask.runloop.core.CheckpointCommitMessageArgs
-import skillbill.engine.featuretask.runloop.core.CommitCheckpointArgs
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchSetup
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMessage
+import skillbill.engine.featuretask.lifecycle.checkpoint.adoptionWarning
+import skillbill.engine.featuretask.lifecycle.checkpoint.isRuntimePrivatePath
+import skillbill.engine.featuretask.lifecycle.continuation.appendRemediationRollbackDegradationEvidence
+import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
+import skillbill.engine.featuretask.lifecycle.remediation.RemediationDegradationSignal
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointDecision
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommitIdentity
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoop
+import skillbill.engine.featuretask.runloop.core.CheckpointCommitMessageArgs
+import skillbill.engine.featuretask.runloop.core.CommitCheckpointArgs
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopLaunch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopPlanningBranch
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRepairReceipt
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
 import skillbill.engine.featuretask.runloop.core.OWNED_PATH_DELIMITER
 import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.runloop.core.RemediationCheckpointCommit
-import skillbill.engine.featuretask.lifecycle.remediation.RemediationDegradationSignal
-import skillbill.engine.featuretask.lifecycle.checkpoint.adoptionWarning
-import skillbill.engine.featuretask.lifecycle.continuation.appendRemediationRollbackDegradationEvidence
-import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
-import skillbill.engine.featuretask.lifecycle.checkpoint.isRuntimePrivatePath
-import skillbill.contracts.JsonCodec
-import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointDecision
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommitIdentity
+import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRepairReceipt
 import skillbill.ports.workflow.gitops.captureIndexState
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.pathContentIdentities
 import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.ports.workflow.gitops.stagePaths
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
-
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 object FeatureTaskRuntimeRunLoopCheckpointRemediation {
   internal fun concurrentlyModifiedOwnedPaths(
     request: FeatureTaskRuntimeRunRequest,

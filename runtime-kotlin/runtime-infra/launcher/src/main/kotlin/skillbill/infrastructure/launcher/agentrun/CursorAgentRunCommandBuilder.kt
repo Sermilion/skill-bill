@@ -1,6 +1,6 @@
 package skillbill.infrastructure.launcher.agentrun
 
-import skillbill.infrastructure.launcher.process.AgentRunIdlePolicy
+import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.SkillRunRequest

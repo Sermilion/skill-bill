@@ -12,7 +12,7 @@ import skillbill.application.decomposition.repoRelativePath
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
-import skillbill.error.InvalidFeatureSpecPreparationRequestError
+import skillbill.error.core.InvalidFeatureSpecPreparationRequestError
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
 import skillbill.featurespec.model.FeatureSpecWriteRequest
@@ -21,7 +21,6 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.SpecSource
 import java.nio.file.Path
-
 @Inject
 class FeatureSpecPreparationWriter(
   private val decompositionManifestValidator: DecompositionManifestValidator,

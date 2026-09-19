@@ -5,13 +5,12 @@ import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementAcknowledgment
 import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementBlockRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementCompleteRequest
-import skillbill.error.InvalidMcpToolArgumentError
+import skillbill.error.core.InvalidMcpToolArgumentError
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.optionalInt
 import skillbill.mcp.shared.optionalString
 import skillbill.mcp.shared.string
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 internal fun featureTaskPhaseComplete(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
   component.featureTaskPhaseSettlementService.complete(
     FeatureTaskPhaseSettlementCompleteRequest(

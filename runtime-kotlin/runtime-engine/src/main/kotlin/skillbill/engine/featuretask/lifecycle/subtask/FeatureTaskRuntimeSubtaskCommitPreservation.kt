@@ -1,8 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.subtask
 
-
-
-
 import skillbill.engine.featuretask.lifecycle.checkpoint.featureTaskRuntimeSubtaskCheckpointRefPrefix
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.amendHeadCommit
@@ -10,9 +7,8 @@ import skillbill.ports.workflow.gitops.deleteCheckpointRefsUnderPrefix
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.resolveCheckpointRef
 import skillbill.ports.workflow.gitops.updateCheckpointRef
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
 import java.nio.file.Path
-
 internal fun WorkflowGitOperations.writeSubtaskCommitPreservingHistory(
   request: SubtaskCommitPreservationRequest,
 ): WorkflowGitOperationResult {

@@ -1,7 +1,6 @@
 package skillbill.engine.goalrunner.persist
 
 import skillbill.engine.goalrunner.execution.support.recoverySafeAction
-
 import skillbill.engine.goalrunner.planning.recovery.goalPlanningHardResetRemedy
 import skillbill.engine.recovery.DurableChildRecoveryClass
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress

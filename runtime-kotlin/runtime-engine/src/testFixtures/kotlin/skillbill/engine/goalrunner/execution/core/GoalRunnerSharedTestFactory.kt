@@ -14,15 +14,22 @@ import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.config.model.RepoLocalConfig
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.validation.ValidationGateResolver
-import skillbill.engine.goalrunner.planning.hydration.GoalChildPlanningHydratorPortAdapter
-import skillbill.engine.goalrunner.planning.recovery.GoalPlanningStatusReasonCoherence
+import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.persist.OutcomeStoreTestArtifactPorts
 import skillbill.engine.goalrunner.persist.sqliteWorkflowGoalRunnerManifestStore
 import skillbill.engine.goalrunner.persist.sqliteWorkflowGoalRunnerOutcomeStore
+import skillbill.engine.goalrunner.planning.hydration.GoalChildPlanningHydratorPortAdapter
+import skillbill.engine.goalrunner.planning.recovery.GoalPlanningStatusReasonCoherence
+import skillbill.engine.goalrunner.repair.GoalRunnerChildRepairOperations
 import skillbill.engine.goalrunner.repair.NoopGoalRunnerChildRepairStore
+import skillbill.engine.goalrunner.reset.GoalRunnerPurgeCoordinator
+import skillbill.engine.goalrunner.reset.GoalRunnerResetReplanCoordinator
+import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionAssembler
+import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionDataSources
+import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionValidationDependencies
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.config.model.ReadRepoLocalConfigResult
@@ -44,16 +51,8 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import java.time.Clock
-import skillbill.engine.goalrunner.GoalRunnerStatusService
-import skillbill.engine.goalrunner.repair.GoalRunnerChildRepairOperations
-import skillbill.engine.goalrunner.reset.GoalRunnerPurgeCoordinator
-import skillbill.engine.goalrunner.reset.GoalRunnerResetReplanCoordinator
-import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionAssembler
-import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionDataSources
-import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionValidationDependencies
-
 fun goalRunnerDefaultPhaseRecorder(): FeatureTaskRuntimePhaseRecorder = testPhaseRecorder(
   FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
   testWorkflowSnapshotValidator,

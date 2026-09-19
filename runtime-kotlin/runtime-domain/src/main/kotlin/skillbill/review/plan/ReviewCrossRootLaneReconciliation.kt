@@ -1,11 +1,10 @@
 package skillbill.review.plan
 
-import skillbill.error.AmbiguousLaneOwnershipError
+import skillbill.error.shellcontent.AmbiguousLaneOwnershipError
 import skillbill.review.plan.model.ReviewLaunchLane
 import skillbill.review.plan.model.ReviewReconciledLane
 import skillbill.review.plan.model.ReviewRootLanes
 import skillbill.scaffold.model.PlatformManifest
-
 object ReviewCrossRootLaneReconciliation {
   fun compositionDepthOffsets(
     routedSlugs: Collection<String>,

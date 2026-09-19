@@ -1,18 +1,17 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringTarget
 import skillbill.infrastructure.skills.scaffold.authoring.coerceFullContentText
 import skillbill.infrastructure.skills.scaffold.authoring.mutateContent
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
-import skillbill.infrastructure.skills.scaffold.runtime.TemplateContext
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class AuthoringContentMutationTest {
   @Test
   fun `renderContentBody rejects content body that already carries frontmatter`() {

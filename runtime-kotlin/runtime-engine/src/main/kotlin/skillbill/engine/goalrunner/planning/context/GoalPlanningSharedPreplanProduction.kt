@@ -6,22 +6,22 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
+import skillbill.engine.goalrunner.planning.attempt.producePhase
+import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseContext
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
+import skillbill.engine.goalrunner.planning.model.GoalPlanningProduceAttemptArgs
+import skillbill.engine.goalrunner.planning.model.GoalPlanningProducePhaseArgs
+import skillbill.engine.goalrunner.planning.outcome.canonicalRepository
+import skillbill.engine.goalrunner.planning.outcome.resolvedGovernedPath
+import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
+import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
+import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.text.sha256HexUtf8
 import java.nio.file.Path
-import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseContext
-import skillbill.engine.goalrunner.planning.model.GoalPlanningProduceAttemptArgs
-import skillbill.engine.goalrunner.planning.model.GoalPlanningProducePhaseArgs
-import skillbill.engine.goalrunner.planning.attempt.producePhase
-import skillbill.engine.goalrunner.planning.outcome.canonicalRepository
-import skillbill.engine.goalrunner.planning.outcome.resolvedGovernedPath
-import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
 
 internal fun produceSharedPreplan(
   sweep: DefaultGoalPlanningSweep,

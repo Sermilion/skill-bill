@@ -1,10 +1,6 @@
 package skillbill.engine.goalrunner.persist
-import skillbill.engine.goalrunner.RecordingOutcomeStore
-
 import skillbill.application.testHarnessClock
-import skillbill.engine.goalrunner.persist.GoalRunnerBackwardEdge
-import skillbill.engine.goalrunner.persist.GoalRunnerLedgerContext
-import skillbill.engine.goalrunner.persist.GoalRunnerLedgerRecorder
+import skillbill.engine.goalrunner.RecordingOutcomeStore
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLedgerSequenceWatermarks

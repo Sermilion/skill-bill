@@ -1,16 +1,12 @@
 package skillbill.engine.featuretask.review.core
 
-
-
-
 import skillbill.engine.featuretask.lifecycle.checkpoint.reviewUntrackedExclusions
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.repositoryOwnedPaths
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import java.nio.file.Path
-
 private const val SCOPED_REVIEW_PATH_DELIMITER: Char = '\u0000'
 
 object FeatureTaskRuntimeScopedReviewBaseline {

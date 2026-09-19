@@ -1,12 +1,12 @@
 package skillbill.mcp.shared
 
 import skillbill.application.learning.LearningService
-import skillbill.application.review.ReviewService
+import skillbill.application.review.service.ReviewService
 import skillbill.application.system.SystemService
-import skillbill.application.telemetry.LifecycleTelemetryService
-import skillbill.application.telemetry.TelemetryService
+import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
+import skillbill.application.telemetry.service.TelemetryService
 import skillbill.application.updatecheck.UpdateCheckService
-import skillbill.application.workflow.WorkflowService
+import skillbill.application.workflow.service.WorkflowService
 import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
 internal class McpRuntimeServices(private val component: McpComponent) {
   val learningService: LearningService get() = component.learningService

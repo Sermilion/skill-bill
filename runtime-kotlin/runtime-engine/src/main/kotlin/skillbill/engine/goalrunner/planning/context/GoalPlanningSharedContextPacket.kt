@@ -5,12 +5,11 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
 import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
-
 object GoalPlanningSharedContextPacket {
   const val VERSION = "0.4"
   const val LEGACY_VERSION_0_3 = "0.3"

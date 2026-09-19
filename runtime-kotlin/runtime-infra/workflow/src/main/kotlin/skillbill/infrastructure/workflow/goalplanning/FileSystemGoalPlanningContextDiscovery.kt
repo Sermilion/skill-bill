@@ -3,7 +3,7 @@ package skillbill.infrastructure.workflow.goalplanning
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
 import skillbill.contracts.goalplanning.GoalVerificationBoundaryCaps
-import skillbill.error.GoalVerificationBoundaryCapExceededError
+import skillbill.error.shellcontent.GoalVerificationBoundaryCapExceededError
 import skillbill.ports.goalrunner.planning.GoalPlanningContextDiscovery
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeading
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeadingKind
@@ -13,7 +13,6 @@ import java.nio.file.Path
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneOffset
-
 @Inject
 class FileSystemGoalPlanningContextDiscovery(
   private val clock: Clock,

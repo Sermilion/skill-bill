@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.core
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.telemetry.LifecycleTelemetryService
+import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
 import skillbill.application.telemetry.model.FeatureTaskRuntimeCorrelation
 import skillbill.application.telemetry.model.FeatureTaskRuntimeStartedRequest
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
@@ -8,7 +8,6 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFinishedTelemet
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-
 @Inject
 class FeatureTaskRuntimeLifecycleTelemetry(
   private val lifecycleTelemetryService: LifecycleTelemetryService,

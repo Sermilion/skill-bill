@@ -1,13 +1,13 @@
 package skillbill.infrastructure.launcher
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.error.MissingInstalledNativeAgentError
-import skillbill.infrastructure.skills.install.nativeagent.NativeAgentLinkInventory
-import skillbill.infrastructure.skills.install.nativeagent.NativeAgentLinkInventoryEntry
+import skillbill.error.shellcontent.MissingInstalledNativeAgentError
+import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventory
+import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventoryEntry
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.SupportedAgent
 import skillbill.model.EnvironmentContext
-import skillbill.ports.review.ReviewLaunchAgentStagingPort
+import skillbill.ports.review.launch.ReviewLaunchAgentStagingPort
 import skillbill.ports.review.model.ReviewLaunchAgentStagingRequest
 import java.io.IOException
 import java.nio.file.Files

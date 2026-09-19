@@ -1,0 +1,144 @@
+package skillbill.infrastructure.sqlite.review.stats.health
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.infrastructure.sqlite.core.ops.bindAll
+import skillbill.infrastructure.sqlite.review.accounting.Map
+import skillbill.infrastructure.sqlite.review.accounting.raw
+import skillbill.infrastructure.sqlite.review.accounting.toPayload
+import skillbill.infrastructure.sqlite.review.core.Map
+import skillbill.infrastructure.sqlite.review.review.review
+import skillbill.infrastructure.sqlite.review.stage.Map
+import skillbill.infrastructure.sqlite.review.stage.and.review
+import skillbill.infrastructure.sqlite.review.stage.finished.review
+import skillbill.infrastructure.sqlite.review.stage.finished.stats
+import skillbill.infrastructure.sqlite.review.stage.review
+import skillbill.infrastructure.sqlite.review.stage.runtime.review
+import skillbill.infrastructure.sqlite.review.stats.Map
+import skillbill.infrastructure.sqlite.review.stats.ReviewFinishedPayloadBuildRequest
+import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime
+import skillbill.infrastructure.sqlite.review.stats.buildReviewFinishedPayload
+import skillbill.infrastructure.sqlite.review.stats.connection
+import skillbill.infrastructure.sqlite.review.stats.finding.apply
+import skillbill.infrastructure.sqlite.review.stats.health
+import skillbill.infrastructure.sqlite.review.stats.recorded.review
+import skillbill.infrastructure.sqlite.review.stats.recorded.stats
+import skillbill.infrastructure.sqlite.review.stats.review
+import skillbill.infrastructure.sqlite.review.stats.stats
+import skillbill.infrastructure.sqlite.review.stats.task.stats
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.enqueueTelemetry
+import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
+import skillbill.review.model.REVIEW_FINISHED_LEGACY_CONTRACT_VERSION
+import skillbill.review.model.REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME
+import skillbill.review.model.REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION
+import java.sql.Connection
+
+internal fun migrateLegacyTelemetryOutboxLedger(connection: Connection) {
+  connection.prepareStatement(
+    """
+    UPDATE telemetry_outbox
+    SET payload_json = json_set(payload_json, '$.contract_version', ?)
+    WHERE synced_at IS NULL
+      AND event_name != 'skillbill_review_finished'
+      AND json_extract(payload_json, '$.contract_version') = ?
+    """.trimIndent(),
+  ).use { statement ->
+    statement.bindAll(REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION, REVIEW_FINISHED_LEGACY_CONTRACT_VERSION)
+    statement.executeUpdate()
+  }
+  connection.prepareStatement(
+    """
+    SELECT id, payload_json
+    FROM telemetry_outbox
+    WHERE event_name = 'skillbill_review_finished'
+      AND synced_at IS NULL
+    ORDER BY id
+    """.trimIndent(),
+  ).use { statement ->
+    statement.executeQuery().use { resultSet ->
+      while (resultSet.next()) {
+        migrateLegacyReviewFinishedRow(connection, resultSet.getLong("id"), resultSet.getString("payload_json"))
+      }
+    }
+  }
+}
+
+internal fun materializeReviewFinishedPayload(connection: Connection, payload: Map<String, Any?>): Map<String, Any?> {
+  if (payload.isEmpty() || !isLegacyReviewFinished(payload)) return payload
+  val reviewRunId = payload.stringHealthValue("review_run_id")
+  if (reviewRunId.isBlank()) return payload
+  if (reviewRunRowExists(connection, reviewRunId)) {
+    return regenerateReviewFinishedPayload(connection, payload, reviewRunId)
+  }
+  return if (payload[SharedPayloadKeys.CONTRACT_VERSION]?.toString() == REVIEW_FINISHED_LEGACY_CONTRACT_VERSION) {
+    emptyMap()
+  } else {
+    payload
+  }
+}
+
+private fun migrateLegacyReviewFinishedRow(connection: Connection, outboxId: Long, raw: String) {
+  val payload = parseHealthJsonObject(raw)
+  if (payload.isEmpty() || !isLegacyReviewFinished(payload)) return
+  val reviewRunId = payload.stringHealthValue("review_run_id")
+  if (reviewRunId.isBlank() || !reviewRunRowExists(connection, reviewRunId)) return
+  val rewritten = regenerateReviewFinishedPayload(connection, payload, reviewRunId)
+  rewriteOutboxPayload(connection, outboxId, rewritten)
+  enqueueTelemetry(
+    connection,
+    REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME,
+    linkedMapOf(
+      SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME to REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME,
+      SharedPayloadKeys.CONTRACT_VERSION to REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION,
+      ReviewVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,
+      SqliteReviewTelemetryPayloadKeys.FROM_VERSION to (
+        payload[SharedPayloadKeys.CONTRACT_VERSION]?.toString() ?: REVIEW_FINISHED_LEGACY_CONTRACT_VERSION
+        ),
+      SqliteReviewTelemetryPayloadKeys.TO_VERSION to REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION,
+    ),
+  )
+}
+
+private fun isLegacyReviewFinished(payload: Map<String, Any?>): Boolean {
+  val version = payload[SharedPayloadKeys.CONTRACT_VERSION]?.toString()
+  return version == REVIEW_FINISHED_LEGACY_CONTRACT_VERSION ||
+    !payload.containsKey("verification") ||
+    !payload.containsKey("adjudication") ||
+    !payload.containsKey("refutation_rate_by_stage") ||
+    !payload.containsKey("rejected_verdict_counts") ||
+    !payload.containsKey("severity_adjustment_counts") ||
+    !payload.containsKey("resolved_tier")
+}
+
+private fun regenerateReviewFinishedPayload(
+  connection: Connection,
+  payload: Map<String, Any?>,
+  reviewRunId: String,
+): Map<String, Any?> {
+  val regenerated = ReviewStatsRuntime.buildReviewFinishedPayload(
+    ReviewFinishedPayloadBuildRequest(connection = connection, reviewRunId = reviewRunId),
+  )
+    .toReviewFinishedTelemetryPayload()
+    .toPayload()
+  return LinkedHashMap(payload).apply {
+    putAll(regenerated)
+    put(SharedPayloadKeys.CONTRACT_VERSION, REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION)
+  }
+}
+
+private fun reviewRunRowExists(connection: Connection, reviewRunId: String): Boolean =
+  connection.prepareStatement("SELECT 1 FROM review_runs WHERE review_run_id = ?").use { statement ->
+    statement.bindAll(reviewRunId)
+    statement.executeQuery().use { resultSet -> resultSet.next() }
+  }
+
+private fun rewriteOutboxPayload(connection: Connection, outboxId: Long, payload: Map<String, Any?>) {
+  connection.prepareStatement(
+    "UPDATE telemetry_outbox SET payload_json = ? WHERE id = ?",
+  ).use { statement ->
+    statement.bindAll(JsonCodec.mapToJsonString(payload), outboxId)
+    statement.executeUpdate()
+  }
+}

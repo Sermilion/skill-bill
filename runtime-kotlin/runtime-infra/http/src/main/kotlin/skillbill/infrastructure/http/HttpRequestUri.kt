@@ -1,8 +1,7 @@
 package skillbill.infrastructure.http
 
-import skillbill.error.TelemetryProxyRequestFailureError
+import skillbill.error.core.TelemetryProxyRequestFailureError
 import java.net.URI
-
 internal const val HTTP_BOUNDED_DETAIL_MAX_LENGTH: Int = 300
 
 internal fun httpRequestUri(url: String): URI = try {

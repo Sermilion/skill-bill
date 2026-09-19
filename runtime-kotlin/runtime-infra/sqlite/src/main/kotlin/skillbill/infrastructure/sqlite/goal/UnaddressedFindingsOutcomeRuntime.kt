@@ -5,9 +5,8 @@ import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.goalrunner.model.ReviewFindingOutcome
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
-import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.infrastructure.sqlite.core.ops.bindAll
 import java.sql.Connection
-
 internal class UnaddressedFindingsOutcomeRuntime(private val connection: Connection) {
   fun recordOutcomes(outcomes: List<ReviewFindingOutcomeRecord>) {
     if (outcomes.isEmpty()) return

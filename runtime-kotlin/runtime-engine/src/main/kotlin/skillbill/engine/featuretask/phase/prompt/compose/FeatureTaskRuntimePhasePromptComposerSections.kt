@@ -1,8 +1,7 @@
 package skillbill.engine.featuretask.phase.prompt.compose
 
-
-
-
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeImplementationContinuation
+import skillbill.engine.featuretask.model.phase.PhasePromptHeaderInputs
 import skillbill.engine.featuretask.phase.prompt.directives.ReviewExecutionDirectiveInputs
 import skillbill.engine.featuretask.phase.prompt.directives.auditRetryFocusDirective
 import skillbill.engine.featuretask.phase.prompt.directives.ceremonyDirective
@@ -20,15 +19,12 @@ import skillbill.engine.featuretask.phase.prompt.directives.operatorBlockRetryDi
 import skillbill.engine.featuretask.phase.prompt.directives.outputContract
 import skillbill.engine.featuretask.phase.prompt.directives.phasePromptHeader
 import skillbill.engine.featuretask.phase.prompt.directives.retryCorrectionDirective
-import skillbill.engine.featuretask.review.core.reviewExecutionDirective
 import skillbill.engine.featuretask.phase.prompt.directives.runtimeOwnedValidateFinishedDirective
 import skillbill.engine.featuretask.phase.prompt.directives.terminalRetryDirective
 import skillbill.engine.featuretask.phase.prompt.directives.testValueDisciplineDirective
 import skillbill.engine.featuretask.phase.prompt.directives.validationGateFindingsDirective
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeImplementationContinuation
-import skillbill.engine.featuretask.model.phase.PhasePromptHeaderInputs
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.engine.featuretask.review.core.reviewExecutionDirective
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> = listOf(
   phasePromptHeader(
     PhasePromptHeaderInputs(

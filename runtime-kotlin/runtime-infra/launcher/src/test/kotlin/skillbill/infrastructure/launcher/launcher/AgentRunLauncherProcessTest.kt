@@ -4,8 +4,8 @@ import skillbill.contracts.time.JvmSystemClock
 import skillbill.infrastructure.host.jvm.testGateJvmResolver
 import skillbill.infrastructure.launcher.agentrun.FileSystemAgentRunLauncher
 import skillbill.infrastructure.launcher.agentrun.headlessAgentRunAdapters
-import skillbill.infrastructure.launcher.process.AgentRunProcessResult
-import skillbill.infrastructure.launcher.process.JvmAgentRunProcessRunner
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessResult
+import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.AgentRunOutputStream
@@ -18,7 +18,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
-
 class AgentRunLauncherProcessTest {
   @Test
   fun `a phase-briefing prompt override drives the per-agent CLI for stdin-delivered agents`() {

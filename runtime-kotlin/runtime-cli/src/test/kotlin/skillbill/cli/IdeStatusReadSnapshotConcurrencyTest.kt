@@ -1,7 +1,7 @@
 package skillbill.cli
 
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.engine.work.IdeStatusProjector
 import skillbill.engine.work.IdeStatusService
 import skillbill.engine.work.model.IdeStatusProblemCode
@@ -42,7 +42,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class IdeStatusReadSnapshotConcurrencyTest {
   private val observedAt: Instant = Instant.parse("2026-08-06T12:00:00Z")
 

@@ -4,13 +4,12 @@ import skillbill.application.assertNoRawResponseSpan
 import skillbill.application.assertPrivateDiagnosticRejection
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
-import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeRejectionConstraintPrivacyTest {
   private val rawSpan = "smuggled-response-body-fragment"
   private val valueBearingReason = "status: does not have a value in the enumeration — offending value: $rawSpan"

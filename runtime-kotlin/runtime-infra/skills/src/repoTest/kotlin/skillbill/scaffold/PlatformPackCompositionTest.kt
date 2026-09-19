@@ -1,10 +1,10 @@
 package skillbill.scaffold
 
-import skillbill.error.AmbiguousLaneOwnershipError
-import skillbill.error.InvalidManifestSchemaError
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
+import skillbill.error.shellcontent.AmbiguousLaneOwnershipError
+import skillbill.error.shellcontent.InvalidManifestSchemaError
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.CodeReviewCompositionScope
 import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
@@ -17,7 +17,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-
 class PlatformPackCompositionTest {
   @Test
   fun `buildPack parses code review composition into typed manifest values`() {

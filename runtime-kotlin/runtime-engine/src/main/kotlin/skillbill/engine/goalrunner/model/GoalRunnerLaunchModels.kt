@@ -3,7 +3,7 @@ package skillbill.engine.goalrunner.model
 import skillbill.application.agentoutput.topLevelJsonObjectCandidates
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.ImplementationReturnContractPayloadKeys
+import skillbill.contracts.workflow.identity.implementationreturn.ImplementationReturnContractPayloadKeys
 import skillbill.goalrunner.goalContinuationTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerStopReason
@@ -11,7 +11,6 @@ import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
-
 internal data class GoalRunnerLaunchReconciliation(
   val refreshed: GoalRunnerManifestState,
   val reconciled: GoalRunnerReconciledOutcome,

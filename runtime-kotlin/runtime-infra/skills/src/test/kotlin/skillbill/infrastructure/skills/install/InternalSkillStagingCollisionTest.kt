@@ -1,20 +1,20 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.error.InternalSkillSidecarCollisionError
-import skillbill.error.InvalidAuthoredSkillSidecarError
-import skillbill.error.InvalidInternalSkillClassificationError
+import skillbill.error.shellcontent.InternalSkillSidecarCollisionError
+import skillbill.error.shellcontent.InvalidAuthoredSkillSidecarError
+import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import skillbill.infrastructure.skills.install.apply.nativeAgentSourceRoots
 import skillbill.infrastructure.skills.install.apply.standaloneInstallableSkills
 import skillbill.infrastructure.skills.install.plan.InstallContext
 import skillbill.infrastructure.skills.install.plan.installSkill
-import skillbill.infrastructure.skills.install.staging.InternalSidecarCompanion
-import skillbill.infrastructure.skills.install.staging.InternalSidecarTarget
-import skillbill.infrastructure.skills.install.staging.StageInstalledSkillInput
-import skillbill.infrastructure.skills.install.staging.promoteInstallStagingDir
-import skillbill.infrastructure.skills.install.staging.stageInstalledSkill
-import skillbill.infrastructure.skills.install.staging.validateInternalSidecarFileNames
+import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
+import skillbill.infrastructure.skills.install.staging.staging.promoteInstallStagingDir
+import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalSidecarCompanion
+import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalSidecarTarget
+import skillbill.infrastructure.skills.install.staging.staging.sidecar.validateInternalSidecarFileNames
+import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.nativeagent.testNativeAgentCompositionContext
-import skillbill.infrastructure.skills.scaffold.runtime.RepoValidationRuntime
+import skillbill.infrastructure.skills.scaffold.runtime.validation.RepoValidationRuntime
 import skillbill.install.model.AgentTarget
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
@@ -27,7 +27,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-
 class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
   @Test
   fun `selected pack child authored companion installs flat beside its rendered wrapper`() {

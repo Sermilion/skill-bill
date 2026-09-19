@@ -4,15 +4,14 @@ import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
-import skillbill.error.InvalidAgentAddonSelectionError
-import skillbill.error.LegacyProseWorkflowError
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
+import skillbill.error.shellcontent.LegacyProseWorkflowError
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_REQUEST
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_STOP_AFTER_SUBTASK
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.workflow.model.FeatureTaskWorkflowMode
-
 fun workflowFamilyFor(workflowStates: WorkflowStateRepository, workflowId: String): WorkflowFamily? {
   val featureTaskRow = workflowStates.getFeatureTaskWorkflow(workflowId)
   if (featureTaskRow != null) {

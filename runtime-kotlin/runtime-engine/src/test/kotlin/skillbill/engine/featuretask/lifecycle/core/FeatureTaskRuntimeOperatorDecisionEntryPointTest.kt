@@ -1,13 +1,11 @@
 package skillbill.engine.featuretask.lifecycle.core
 
-
 import skillbill.engine.featuretask.persist.stepUpdatesFrom
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phaseartifacts.asPendingForOperatorResume
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class FeatureTaskRuntimeOperatorDecisionEntryPointTest {
   @Test
   fun `every declared decision has a stable wire value the CLI can parse`() {

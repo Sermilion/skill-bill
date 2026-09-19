@@ -2,7 +2,7 @@ package skillbill.infrastructure.launcher.launcher
 
 import skillbill.infrastructure.launcher.agentrun.AgentRunOutputDecoder
 import skillbill.infrastructure.launcher.agentrun.CursorAgentRunCommandBuilder
-import skillbill.infrastructure.launcher.process.AgentRunIdlePolicy
+import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
 import skillbill.infrastructure.launcher.review.CursorReviewStreamError
 import skillbill.infrastructure.launcher.review.CursorReviewStreamMalformedError
 import kotlin.test.Test

@@ -13,14 +13,13 @@ import skillbill.ports.validation.ValidationGateRunner
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
-import skillbill.workflow.taskruntime.gateStdoutExcerpt
+import skillbill.workflow.taskruntime.validation.gateStdoutExcerpt
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import javax.xml.parsers.DocumentBuilderFactory
-
 @Inject
 class FileSystemValidationGateRunner(
   private val clock: Clock,

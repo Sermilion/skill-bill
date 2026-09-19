@@ -1,8 +1,7 @@
 package skillbill.infrastructure.skills.install.apply
 
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.SkillBillRuntimeException
 import java.nio.file.Path
-
 internal class InstallSymlinkException(
   val linkPath: Path,
   val guidance: String,

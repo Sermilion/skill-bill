@@ -4,10 +4,10 @@ import skillbill.infrastructure.skills.install.identity.suppliedSkillContentIden
 import skillbill.infrastructure.skills.scaffold.authoring.InternalSkillDeclaration
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.infrastructure.skills.scaffold.authoring.requireValidInternalSkillClassification
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.platformpack.validatePlatformPack
-import skillbill.infrastructure.skills.scaffold.runtime.SHELL_CONTRACT_VERSION
-import skillbill.infrastructure.skills.scaffold.validation.ReviewSkillStructureValidator
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.validatePlatformPack
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
+import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.model.toPath
@@ -17,7 +17,6 @@ import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 internal fun discoverPlatformManifests(
   platformPacksRoot: Path,
   enforceContractVersion: Boolean = true,

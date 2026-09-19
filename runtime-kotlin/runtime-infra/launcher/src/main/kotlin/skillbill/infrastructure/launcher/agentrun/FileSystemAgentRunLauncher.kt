@@ -1,8 +1,8 @@
 package skillbill.infrastructure.launcher.agentrun
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.launcher.process.AgentRunProcessRunner
-import skillbill.infrastructure.launcher.process.JvmAgentRunProcessRunner
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRunner
+import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
@@ -11,7 +11,6 @@ import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.db.DatabaseSessionFactory
 import java.nio.file.Path
-
 class FileSystemAgentRunLauncher internal constructor(
   processRunner: AgentRunProcessRunner,
   executableLookup: ExecutableLookup = PathExecutableLookup(),

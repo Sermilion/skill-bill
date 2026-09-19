@@ -2,20 +2,24 @@ package skillbill.engine.goalrunner.execution.core
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.resolvedParentSpecPath
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointRefPruneRequest
 import skillbill.engine.featuretask.lifecycle.checkpoint.pruneCompletedSubtaskCheckpointRefs
-import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
-import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
-import skillbill.error.UnaddressedFindingsLedgerAbsentError
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointRefPruneRequest
 import skillbill.engine.goalrunner.execution.support.MAX_REPORTED_FINALIZE_DIRTY_PATHS
 import skillbill.engine.goalrunner.execution.support.isFeatureSpecPath
 import skillbill.engine.goalrunner.execution.support.parseGitPorcelainPaths
 import skillbill.engine.goalrunner.execution.support.protectedBranchName
 import skillbill.engine.goalrunner.execution.support.toPullRequestRequest
-import skillbill.engine.goalrunner.findings.resolveUnaddressedFindingsLedger
+import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
+import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
+import skillbill.engine.goalrunner.persist.GoalRunnerLedgerContext
+import skillbill.engine.goalrunner.persist.GoalRunnerLedgerRecorder
 import skillbill.engine.goalrunner.status.completed
 import skillbill.engine.goalrunner.status.stopped
+import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilityEmitter
+import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilitySignal
+import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilitySubject
+import skillbill.error.shellcontent.InvalidUnaddressedFindingsLedgerSchemaError
+import skillbill.error.shellcontent.UnaddressedFindingsLedgerAbsentError
 import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerRunReport
@@ -30,14 +34,8 @@ import skillbill.ports.workflow.gitops.stagePaths
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
-import skillbill.engine.goalrunner.persist.GoalRunnerLedgerContext
-import skillbill.engine.goalrunner.persist.GoalRunnerLedgerRecorder
-import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilityEmitter
-import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilitySignal
-import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilitySubject
-
 @Inject
 class GoalRunnerFinalization(
   boundaries: GoalRunnerFinalizationBoundaries,

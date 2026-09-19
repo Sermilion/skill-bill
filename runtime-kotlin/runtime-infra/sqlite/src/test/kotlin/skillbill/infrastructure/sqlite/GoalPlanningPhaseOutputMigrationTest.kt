@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
-import skillbill.infrastructure.sqlite.core.DatabaseMigrations
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
+import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import java.nio.file.Files
 import java.sql.Connection
 import java.sql.SQLException
@@ -10,7 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class GoalPlanningPhaseOutputMigrationTest {
   @Test
   fun `forward migration preserves compatible goal planning rows and tightens both tables`() {

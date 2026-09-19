@@ -1,10 +1,10 @@
 package skillbill.review.plan
 
 import org.junit.jupiter.api.Test
-import skillbill.error.AmbiguousLaneOwnershipError
-import skillbill.error.IncompatibleCompositionContractError
-import skillbill.error.MissingCompositionLayerError
-import skillbill.error.ReviewCompositionCycleError
+import skillbill.error.shellcontent.AmbiguousLaneOwnershipError
+import skillbill.error.shellcontent.IncompatibleCompositionContractError
+import skillbill.error.shellcontent.MissingCompositionLayerError
+import skillbill.error.shellcontent.ReviewCompositionCycleError
 import skillbill.model.FileLocation
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewComposition
@@ -18,7 +18,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class ReviewLaunchPlanPolicyTest {
   @Test
   fun `kmp flattens kotlin baseline into ten direct specialists`() {

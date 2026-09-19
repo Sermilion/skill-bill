@@ -4,12 +4,11 @@ import skillbill.application.agentoutput.stderrExcerpt
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.planning.model.GoalPlanningEmptyTurnEvidence
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
-import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
+import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
+import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.model.GoalRunnerLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import kotlin.time.Duration
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
-
 fun exhaustedCause(facts: AgentRunLaunchFacts, planningBudget: Duration?): String = when {
   facts.spawnFailed -> stderrExcerpt(facts.stderr, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
     ?.let { excerpt -> "the planning agent failed to spawn — $excerpt" }

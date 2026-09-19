@@ -1,18 +1,17 @@
 package skillbill.cli.featuretask
 
 import com.github.ajalt.clikt.core.UsageError
-import skillbill.application.workflow.WorkflowService
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
-import skillbill.application.workflow.openFeatureTask
+import skillbill.application.workflow.persist.openFeatureTask
+import skillbill.application.workflow.service.WorkflowService
 import skillbill.cli.model.CliRunInputs
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEventSink
 import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
-
 internal fun WorkflowService.openRuntimeWorkflowId(
   issueKey: String?,
   specPath: String,

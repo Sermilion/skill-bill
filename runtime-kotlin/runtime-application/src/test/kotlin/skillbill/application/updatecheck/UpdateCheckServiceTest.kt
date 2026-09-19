@@ -6,9 +6,9 @@ import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.telemetry.RemoteTransportPort
-import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
+import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Files
 import java.nio.file.Path
@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-
 class UpdateCheckServiceTest {
   private val installedVersion = "0.3.0-SNAPSHOT"
 

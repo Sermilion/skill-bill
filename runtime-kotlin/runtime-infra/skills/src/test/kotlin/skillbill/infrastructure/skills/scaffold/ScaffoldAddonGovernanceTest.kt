@@ -1,11 +1,11 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.error.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.infrastructure.skills.scaffold.manifest.renderGovernedAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.rendering.inferSkillDescription
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
-import skillbill.infrastructure.skills.scaffold.runtime.TemplateContext
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.policy.platformpack.model.PlatformPackManifestRenderRequest
 import skillbill.scaffold.policy.platformpack.renderPlatformPackManifest
 import java.nio.file.Files
@@ -16,7 +16,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class ScaffoldAddonGovernanceTest {
   @Test
   fun `add-on scaffold rejects explicit consumer dirs that are not declared skills`() = withIsolatedUserHome {

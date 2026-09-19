@@ -1,10 +1,9 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.infrastructure.skills.scaffold.platformpack.anchoredTopLevelFieldNames
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.anchoredTopLevelFieldNames
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class PlatformPackSchemaAnchoredBijectionTest {
 
   private val expectedAnchoredFields: Set<String> = setOf(

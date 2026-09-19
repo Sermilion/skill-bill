@@ -1,6 +1,6 @@
 package skillbill.infrastructure.launcher.agentrun
 
-import skillbill.infrastructure.launcher.process.AgentRunActivityProbe
+import skillbill.infrastructure.launcher.process.launch.AgentRunActivityProbe
 import java.io.IOException
 import java.nio.file.FileVisitResult
 import java.nio.file.Files

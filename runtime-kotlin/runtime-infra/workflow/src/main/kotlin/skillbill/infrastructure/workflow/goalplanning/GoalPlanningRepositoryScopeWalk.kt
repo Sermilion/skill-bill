@@ -1,10 +1,9 @@
 package skillbill.infrastructure.workflow.goalplanning
 
 import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
-import skillbill.review.context.model.requireRepositoryRelativePath
+import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import java.nio.file.Files
 import java.nio.file.Path
-
 internal fun goalPlanningCanonicalRoot(repoRoot: Path): Path =
   repoRoot.toRealPathOrNull() ?: repoRoot.toAbsolutePath().normalize()
 

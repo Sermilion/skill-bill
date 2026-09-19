@@ -3,16 +3,15 @@ package skillbill.cli.featuretask
 import com.github.ajalt.clikt.core.UsageError
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.application.review.model.CodeReviewExecutionMode
-import skillbill.cli.kernel.requireInvokingAgentId
+import skillbill.cli.kernel.agent.requireInvokingAgentId
 import skillbill.config.model.CompactionSettings
 import skillbill.config.model.PhaseModelDirective
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeAgentAssignment
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
-
 internal fun parsePhaseAgents(rawAssignments: List<String>): Map<String, String> {
   val parsed = LinkedHashMap<String, String>()
   rawAssignments.forEach { assignment ->

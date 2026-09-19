@@ -1,12 +1,11 @@
 package skillbill.engine.featuretask.phase.briefing
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowQueries
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffEnvelope
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseHandoff
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpointPolicy
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariantPromptField
-import skillbill.workflow.taskruntime.model.canonicalAcceptanceCriterionRef
-
+import skillbill.workflow.taskruntime.model.audit.canonicalAcceptanceCriterionRef
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseHandoff
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeRunInvariantPromptField
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowQueries
 fun StringBuilder.appendRepositoryCheckpoint(
   handoff: FeatureTaskRuntimePhaseHandoff,
   envelope: FeatureTaskRuntimeHandoffEnvelope,

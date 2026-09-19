@@ -1,11 +1,10 @@
 package skillbill.workflow.engine
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStepStatus
-
 internal fun validateWorkflowOpen(definition: WorkflowDefinition, currentStepId: String): String? =
   validateWorkflowEnum(currentStepId, definition.stepIds, "current_step_id")
 

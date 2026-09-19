@@ -1,0 +1,99 @@
+package skillbill.application.review.service
+import skillbill.application.review.parallel.core.code.review.bundled.review
+import skillbill.application.review.parallel.core.code.review.end.reviewRunId
+import skillbill.application.review.parallel.core.code.review.runner.reviewRunId
+import skillbill.application.review.parallel.core.review.error
+import skillbill.application.review.parallel.planning.reviewRunId
+import skillbill.application.review.parallel.verification.error
+import skillbill.application.review.parallel.verification.reviewRunId
+import skillbill.application.review.preparation.error
+import skillbill.application.review.review.database
+import skillbill.application.review.review.diagnostics
+import skillbill.application.review.spec.diagnostics
+import skillbill.application.review.spec.error
+import skillbill.application.review.verification.diagnostics
+import skillbill.model.EnvironmentContext
+import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.review.preparation.ReviewAttributionPort
+import skillbill.ports.review.preparation.ReviewInputSource
+import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
+import skillbill.review.plan.model.ReviewLaunchPlan
+import skillbill.telemetry.model.TelemetrySettings
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class ReviewServicePreviewImportTest {
+  @Test
+  fun `previewImport reads stdinText argument instead of environment stdin`() {
+    val contextStdin =
+      """
+      Review run ID: rvw-context-stdin
+      Review session ID: rvs-context
+      ### 2. Risk Register
+      No findings.
+      """.trimIndent()
+    val argumentStdin =
+      """
+      Review run ID: rvw-argument-stdin
+      Review session ID: rvs-argument
+      ### 2. Risk Register
+      No findings.
+      """.trimIndent()
+    var capturedStdin: String? = null
+    val inputSource =
+      object : ReviewInputSource {
+        override fun readInput(inputPath: String, stdinText: String?): Pair<String, String?> {
+          capturedStdin = stdinText
+          return stdinText.orEmpty() to null
+        }
+      }
+    val service =
+      ReviewService(
+        context = EnvironmentContext(stdinText = contextStdin),
+        database = PreviewImportBlockingDatabase,
+        settingsProvider = PreviewImportTelemetrySettings,
+        reviewInputSource = inputSource,
+        reviewAttributionPort = PreviewImportReviewAttribution,
+        diagnostics = PreviewImportDiagnostics,
+      )
+
+    val preview = service.previewImport("-", stdinText = argumentStdin)
+
+    assertEquals(argumentStdin, capturedStdin)
+    assertEquals("rvw-argument-stdin", preview.reviewRunId)
+  }
+}
+
+private object PreviewImportBlockingDatabase : DatabaseSessionFactory {
+  override fun resolveDbPath(): Path = error("previewImport must not touch the database")
+
+  override fun databaseExists(): Boolean = error("previewImport must not touch the database")
+
+  override fun <T> read(block: (UnitOfWork) -> T): T = error("previewImport must not touch the database")
+
+  override fun <T> transaction(block: (UnitOfWork) -> T): T = error("previewImport must not touch the database")
+
+  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = error("previewImport must not touch the database")
+}
+
+private object PreviewImportTelemetrySettings : TelemetrySettingsProvider {
+  override fun load(materialize: Boolean): TelemetrySettings = error("previewImport must not load telemetry settings")
+}
+
+private object PreviewImportReviewAttribution : ReviewAttributionPort {
+  override fun routedSkillPlatformSlugs(): Map<String, String> = emptyMap()
+
+  override fun composedLaunchPlan(routedPackSlug: String): ReviewLaunchPlan = ReviewLaunchPlan(
+    routedPackSlug,
+    emptyList(),
+  )
+}
+
+private object PreviewImportDiagnostics : RuntimeDiagnostics {
+  override fun warning(message: String, error: Throwable?) = Unit
+
+  override fun error(message: String, error: Throwable?) = Unit
+}

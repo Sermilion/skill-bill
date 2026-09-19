@@ -5,12 +5,11 @@ import skillbill.application.review.model.GoalStatsResult
 import skillbill.application.review.model.ImportedReviewResult
 import skillbill.application.review.model.ReviewStatsResult
 import skillbill.application.review.model.TriageResult
-import skillbill.application.review.toFeatureVerifyStatsPayload
-import skillbill.application.review.toGoalStatsPayload
-import skillbill.application.review.toImportedReviewContract
-import skillbill.application.review.toReviewStatsPayload
-import skillbill.application.review.toTriagePayload
-
+import skillbill.application.review.service.toImportedReviewContract
+import skillbill.application.review.service.toTriagePayload
+import skillbill.application.review.stats.toFeatureVerifyStatsPayload
+import skillbill.application.review.stats.toGoalStatsPayload
+import skillbill.application.review.stats.toReviewStatsPayload
 internal fun ImportedReviewResult.toMcpMap(): Map<String, Any?> = toImportedReviewContract().toPayload()
 
 internal fun TriageResult.toMcpMap(): Map<String, Any?> = toTriagePayload().toPayload()

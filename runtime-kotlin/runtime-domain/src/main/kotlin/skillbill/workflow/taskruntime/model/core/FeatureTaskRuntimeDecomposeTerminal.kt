@@ -1,0 +1,58 @@
+package skillbill.workflow.taskruntime.model.core
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.workflow.taskruntime.model.handoff.Map
+import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.taskruntime.model.persistence.artifact.requiredString
+import skillbill.workflow.taskruntime.model.persistence.artifact.requiredStringList
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
+import skillbill.workflow.taskruntime.model.phase.Map
+import skillbill.workflow.taskruntime.model.phase.raw
+import skillbill.workflow.taskruntime.model.validation.Map
+import skillbill.workflow.taskruntime.model.validation.raw
+
+const val FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY: String =
+  "feature_task_runtime_decompose_terminal"
+
+const val FEATURE_TASK_RUNTIME_DECOMPOSE_GUIDANCE: String =
+  "Work the first subtask first, then continue through the ordered spec_subtask_*.md files."
+
+data class FeatureTaskRuntimeDecomposeTerminal(
+  val reason: String,
+  val parentSpecPath: String,
+  val decompositionManifestPath: String,
+  val subtaskSpecPaths: List<String>,
+) {
+  init {
+    require(reason.isNotBlank()) { "FeatureTaskRuntimeDecomposeTerminal.reason must be non-blank." }
+    require(parentSpecPath.isNotBlank()) { "FeatureTaskRuntimeDecomposeTerminal.parentSpecPath must be non-blank." }
+    require(decompositionManifestPath.isNotBlank()) {
+      "FeatureTaskRuntimeDecomposeTerminal.decompositionManifestPath must be non-blank."
+    }
+    require(subtaskSpecPaths.isNotEmpty()) {
+      "FeatureTaskRuntimeDecomposeTerminal.subtaskSpecPaths must not be empty."
+    }
+  }
+
+  val subtaskCount: Int get() = subtaskSpecPaths.size
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+    "reason" to reason,
+    DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecPath,
+    "decomposition_manifest_path" to decompositionManifestPath,
+    "subtask_spec_paths" to subtaskSpecPaths,
+    "subtask_count" to subtaskCount,
+    "guidance" to FEATURE_TASK_RUNTIME_DECOMPOSE_GUIDANCE,
+  )
+
+  companion object {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal {
+      val reader = durableArtifactMapReader(raw)
+      return FeatureTaskRuntimeDecomposeTerminal(
+        reason = reader.requiredString("reason"),
+        parentSpecPath = reader.requiredString(DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH),
+        decompositionManifestPath = reader.requiredString("decomposition_manifest_path"),
+        subtaskSpecPaths = reader.requiredStringList("subtask_spec_paths"),
+      )
+    }
+  }
+}

@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.phase.prompt.directives
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 fun nonValidatePhaseValidationOwnershipDirective(phaseId: String): String {
   if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ||
     phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD

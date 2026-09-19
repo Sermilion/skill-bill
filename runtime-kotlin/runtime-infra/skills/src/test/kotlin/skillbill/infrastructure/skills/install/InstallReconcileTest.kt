@@ -1,11 +1,10 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.error.ContractVersionMismatchError
-import skillbill.infrastructure.skills.FileSystemBaselineManifestPersistence
+import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
 import skillbill.infrastructure.skills.install.reconcile.computeReconciliationPlan
-import skillbill.infrastructure.skills.scaffold.platformpack.platformPackSchemaLog
-import skillbill.infrastructure.skills.scaffold.runtime.SHELL_CONTRACT_VERSION
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.platformPackSchemaLog
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.install.model.BaselineManifest
 import skillbill.install.model.ReconciliationPlan
 import skillbill.install.model.SkillReconciliationOutcome
@@ -22,7 +21,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 private const val STALE_CONTRACT_VERSION: String = "0.9"
 
 class InstallReconcileTest : InstallApplyTestSupport() {

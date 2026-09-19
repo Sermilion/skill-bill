@@ -1,12 +1,12 @@
 package skillbill.infrastructure.contracts.phaseoutput
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.infrastructure.contracts.FeatureTaskRuntimePhaseOutputSchemaValidator
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidationResult
+import skillbill.workflow.taskruntime.artifact.envelopeWireMap
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
 import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertEquals

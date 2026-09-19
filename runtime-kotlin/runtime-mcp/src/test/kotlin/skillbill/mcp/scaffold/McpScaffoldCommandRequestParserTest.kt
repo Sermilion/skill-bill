@@ -1,9 +1,9 @@
 package skillbill.mcp.scaffold
 
-import skillbill.error.InvalidScaffoldPayloadError
-import skillbill.error.RetiredScaffoldKindError
-import skillbill.error.ScaffoldPayloadVersionMismatchError
-import skillbill.error.UnknownSkillKindError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.RetiredScaffoldKindError
+import skillbill.error.shellcontent.ScaffoldPayloadVersionMismatchError
+import skillbill.error.shellcontent.UnknownSkillKindError
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.CodeReviewCompositionScope
 import skillbill.scaffold.model.command.ScaffoldCommandRequest
@@ -11,7 +11,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class McpScaffoldCommandRequestParserTest {
   @Test
   fun `parses horizontal skill request with all fields`() {

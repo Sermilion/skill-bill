@@ -1,7 +1,7 @@
 package skillbill.application.work
 import skillbill.application.idestatus.toStatusWireMap
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
+import skillbill.contracts.workflow.identity.status.IDE_STATUS_CONTRACT_VERSION
 import skillbill.engine.work.model.IdeStatusCurrentSubtask
 import skillbill.engine.work.model.IdeStatusFreshness
 import skillbill.engine.work.model.IdeStatusLifecycleState
@@ -13,7 +13,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-
 class IdeStatusTimestampTest {
   @Test
   fun `started_at stays stable across repeated wire maps`() {

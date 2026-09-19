@@ -1,7 +1,5 @@
 package skillbill.contracts.scaffold.wire
-
-import skillbill.error.InvalidScaffoldPayloadError
-
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 fun requireString(map: Map<String, Any?>, key: String): String {
   val value = map[key] as? String
     ?: throw InvalidScaffoldPayloadError(

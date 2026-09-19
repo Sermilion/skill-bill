@@ -1,14 +1,13 @@
 package skillbill.ports.idestatus.model
 
-import skillbill.contracts.workflow.GOAL_PLANNING_WAVE_CAP
-import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
+import skillbill.contracts.workflow.identity.status.GOAL_PLANNING_WAVE_CAP
+import skillbill.contracts.workflow.identity.status.IDE_STATUS_CONTRACT_VERSION
 import skillbill.goalrunner.model.GoalPlanningStatusState
 import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant
-
 enum class IdeStatusWorkflowFamily(val wireValue: String) {
   FEATURE_TASK_RUNTIME("feature-task-runtime"),
   FEATURE_VERIFY("feature-verify"),

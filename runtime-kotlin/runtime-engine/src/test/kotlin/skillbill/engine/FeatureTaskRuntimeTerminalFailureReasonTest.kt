@@ -1,7 +1,7 @@
 package skillbill.engine
 
 import skillbill.application.RecordingLifecycleTelemetryRepository
-import skillbill.application.telemetry.LifecycleTelemetryService
+import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
 import skillbill.engine.featuretask.lifecycle.core.blockedReasonOf
 import skillbill.engine.featuretask.lifecycle.core.emitFeatureTaskRuntimeFinishedError
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFinishedTelemetryContext
@@ -11,7 +11,6 @@ import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeTerminalFailureReasonTest {
   @Test
   fun `a paused run reports why it stopped instead of an empty reason`() {

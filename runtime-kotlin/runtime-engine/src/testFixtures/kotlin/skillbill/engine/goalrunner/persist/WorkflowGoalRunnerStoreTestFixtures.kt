@@ -1,9 +1,10 @@
 package skillbill.engine.goalrunner.persist
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
-import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerManifestStore
-import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerOutcomeStore
-import skillbill.infrastructure.sqlite.goalrunner.WorkflowGoalRunnerOutcomeStoreDependencies
+import skillbill.engine.goalrunner.repair.GoalRunnerChildRepairOperations
+import skillbill.infrastructure.sqlite.goalrunner.manifest.WorkflowGoalRunnerManifestStore
+import skillbill.infrastructure.sqlite.goalrunner.outcome.WorkflowGoalRunnerOutcomeStore
+import skillbill.infrastructure.sqlite.goalrunner.outcome.WorkflowGoalRunnerOutcomeStoreDependencies
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
@@ -19,10 +20,8 @@ import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.GoalProgressEventValidator
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.goal.NoopGoalProgressEventValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.time.Clock
-import skillbill.engine.goalrunner.repair.GoalRunnerChildRepairOperations
-
 data class OutcomeStoreTestArtifactPorts(
   val goalObservabilityEventValidator: GoalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
   val goalProgressEventValidator: GoalProgressEventValidator = NoopGoalProgressEventValidator,

@@ -1,0 +1,97 @@
+package skillbill.infrastructure.workflow.git.standard
+import skillbill.infrastructure.workflow.decomposition.repoRoot
+import skillbill.infrastructure.workflow.feature.error
+import skillbill.infrastructure.workflow.feature.repoRoot
+import skillbill.infrastructure.workflow.featuretask.error
+import skillbill.infrastructure.workflow.featuretask.repoRoot
+import skillbill.infrastructure.workflow.git.checkpoint.branch
+import skillbill.infrastructure.workflow.git.checkpoint.git
+import skillbill.infrastructure.workflow.git.goal.branch
+import skillbill.infrastructure.workflow.git.goal.error
+import skillbill.infrastructure.workflow.git.goal.value
+import skillbill.infrastructure.workflow.git.local.git
+import skillbill.infrastructure.workflow.git.protected.git
+import skillbill.infrastructure.workflow.git.repository.git
+import skillbill.infrastructure.workflow.git.repository.repoRoot
+import skillbill.infrastructure.workflow.git.scoped.git
+import skillbill.infrastructure.workflow.git.suppression.git
+import skillbill.infrastructure.workflow.git.workflow.branch
+import skillbill.infrastructure.workflow.git.workflow.error
+import skillbill.infrastructure.workflow.git.workflow.git
+import skillbill.infrastructure.workflow.git.workflow.repoRoot
+import skillbill.infrastructure.workflow.git.workflow.value
+import skillbill.infrastructure.workflow.process.runGitCommand
+import skillbill.infrastructure.workflow.process.runGitForActivity
+import skillbill.infrastructure.workflow.process.withValue
+import skillbill.infrastructure.workflow.review.broker.error
+import skillbill.infrastructure.workflow.review.specialists.system.repoRoot
+import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import java.nio.file.Path
+
+internal fun gitCheckoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult {
+  val normalizedBranch = branch.trim()
+  if (normalizedBranch.isBlank()) {
+    return WorkflowGitOperationResult.Failed(error = "Branch name is required.")
+  }
+  val existing = runGitCommand(repoRoot, "rev-parse", "--verify", "--quiet", normalizedBranch)
+  return if (existing is WorkflowGitOperationResult.Ok) {
+    gitCheckoutPreservingLocalChanges(repoRoot, listOf("checkout", "--merge", normalizedBranch))
+      .withValue(normalizedBranch)
+  } else {
+    val base = baseBranch?.trim().orEmpty()
+    if (base.isBlank()) {
+      gitCheckoutPreservingLocalChanges(repoRoot, listOf("checkout", "--merge", "-b", normalizedBranch))
+        .withValue(normalizedBranch)
+    } else {
+      gitCheckoutPreservingLocalChanges(repoRoot, listOf("checkout", "--merge", "-b", normalizedBranch, base))
+        .withValue(normalizedBranch)
+    }
+  }
+}
+
+internal fun gitCheckoutPreservingLocalChanges(repoRoot: Path, args: List<String>): WorkflowGitOperationResult {
+  val existingConflictMarkers = gitConflictMarkerPaths(repoRoot)
+  val previouslyStaged = gitStagedPaths(repoRoot)
+  if (previouslyStaged.isNotEmpty()) {
+    val cleared = runGitCommand(repoRoot, "reset", "--quiet")
+    if (cleared !is WorkflowGitOperationResult.Ok) return cleared
+  }
+  val outcome = gitMergeCheckout(repoRoot, args, existingConflictMarkers)
+  if (previouslyStaged.isEmpty()) return outcome
+  val restaged = runGitCommand(repoRoot, listOf("add", "--all", "--") + previouslyStaged)
+  return if (restaged is WorkflowGitOperationResult.Ok) outcome else restaged
+}
+
+private fun gitMergeCheckout(
+  repoRoot: Path,
+  args: List<String>,
+  existingConflictMarkers: List<String>,
+): WorkflowGitOperationResult {
+  val checkout = runGitCommand(repoRoot, args)
+  val paths = gitConflictMarkerPaths(repoRoot).filterNot(existingConflictMarkers::contains)
+  if (paths.isEmpty()) return checkout
+  val resolved = runGitCommand(repoRoot, listOf("checkout", "--theirs", "--") + paths)
+  if (resolved !is WorkflowGitOperationResult.Ok) return checkout
+  val staged = runGitCommand(repoRoot, listOf("add", "--all", "--") + paths)
+  return if (staged is WorkflowGitOperationResult.Ok) {
+    WorkflowGitOperationResult.Ok(value = checkout.value)
+  } else {
+    staged
+  }
+}
+
+internal fun gitStagedPaths(repoRoot: Path): List<String> {
+  val staged = runGitCommand(repoRoot, "diff", "--cached", "--name-only", "-z", "HEAD")
+  if (staged !is WorkflowGitOperationResult.Ok) return emptyList()
+  return staged.value.split('\u0000').filter(String::isNotBlank)
+}
+
+internal fun gitConflictMarkerPaths(repoRoot: Path): List<String> {
+  val check = runGitForActivity(repoRoot, listOf("diff", "--check"))
+  if (check is WorkflowGitOperationResult.Ok) return emptyList()
+  val markerPattern = Regex("""^(.*):\d+: leftover conflict marker$""")
+  return check.error.lineSequence()
+    .mapNotNull { line -> markerPattern.matchEntire(line)?.groupValues?.get(1) }
+    .distinct()
+    .toList()
+}

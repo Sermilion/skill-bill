@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.install.apply
 
-import skillbill.infrastructure.skills.install.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
 import skillbill.install.model.InstallAgentLinkStatus
 import skillbill.install.model.InstallAgentSkillLinkOutcome
 import skillbill.install.model.InstallAgentTarget
@@ -13,7 +13,6 @@ import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 internal fun linkPlannedSkill(
   skill: InstallPlanSkill,
   stagingDir: Path,

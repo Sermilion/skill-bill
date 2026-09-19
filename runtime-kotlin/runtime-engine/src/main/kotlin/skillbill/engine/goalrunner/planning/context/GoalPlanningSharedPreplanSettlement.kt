@@ -1,26 +1,25 @@
 package skillbill.engine.goalrunner.planning.context
 
 import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
-import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
+import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
-import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
-import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
-import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.engine.goalrunner.planning.model.RefreshStaleSharedPreplanArgs
 import skillbill.engine.goalrunner.planning.model.SharedPreplanSettlementArgs
 import skillbill.engine.goalrunner.planning.model.StaleSharedPreplanSettlementArgs
+import skillbill.engine.goalrunner.planning.outcome.preSweepStopped
+import skillbill.engine.goalrunner.planning.outcome.preparationStateReadReason
+import skillbill.engine.goalrunner.planning.outcome.stopped
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningProvenanceRecoverability
 import skillbill.engine.goalrunner.planning.recovery.classifyGoalPlanningProvenanceRecoverability
 import skillbill.engine.goalrunner.planning.recovery.preplanProsePromptHash
 import skillbill.engine.goalrunner.planning.recovery.preplanProseValueHash
 import skillbill.engine.goalrunner.planning.recovery.refuseRefreshReason
-import skillbill.engine.goalrunner.planning.outcome.preparationStateReadReason
-import skillbill.engine.goalrunner.planning.outcome.preSweepStopped
-import skillbill.engine.goalrunner.planning.outcome.stopped
 import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
-
+import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
+import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
+import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 internal sealed class SharedPreplanSettlement {
   class Ready(
     val provenance: GoalPlanningContractProvenance,

@@ -1,9 +1,9 @@
 package skillbill.infrastructure.skills.install.plan
 
-import skillbill.error.InvalidInternalSkillClassificationError
+import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import skillbill.infrastructure.host.jvm.rollbackDeleteIfExists
-import skillbill.infrastructure.skills.install.staging.StagedSymlinkTargetInput
-import skillbill.infrastructure.skills.install.staging.resolveStagedSymlinkTarget
+import skillbill.infrastructure.skills.install.staging.staging.StagedSymlinkTargetInput
+import skillbill.infrastructure.skills.install.staging.staging.resolveStagedSymlinkTarget
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.install.model.AgentTarget
 import skillbill.install.model.InstallPlanSkill
@@ -16,7 +16,6 @@ import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.Path
 import skillbill.infrastructure.skills.nativeagent.support.detectCodexAgentsTargets as nativeDetectCodexAgentsTargets
-
 internal val SUPPORTED_AGENTS: List<SupportedAgent> = SupportedAgent.entries
 
 internal val CODEX_AGENTS_KIND: String = SupportedAgent.CODEX.nativeAgentsKind

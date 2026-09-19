@@ -1,10 +1,9 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.review.loadReviewAccounting
-import skillbill.infrastructure.sqlite.review.upsertReviewAccounting
+import skillbill.infrastructure.sqlite.review.accounting.loadReviewAccounting
+import skillbill.infrastructure.sqlite.review.accounting.upsertReviewAccounting
 import skillbill.ports.review.model.ReviewAccountingRecord
 import java.sql.Connection
-
 class ReviewAccountingTestHandle internal constructor(
   private val connection: Connection,
 ) {

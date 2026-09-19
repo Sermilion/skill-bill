@@ -1,10 +1,10 @@
 package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
-import skillbill.cli.goal.GOAL_EXIT_BLOCKED
+import skillbill.cli.goal.core.GOAL_EXIT_BLOCKED
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.di.SkillBillVersion
+import skillbill.di.core.SkillBillVersion
 import skillbill.ports.agentrun.ExecutableLookup
 import java.sql.DriverManager
 import kotlin.test.Test
@@ -13,7 +13,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
-
 class CliGoalRuntimeExecutionTest {
   @Test
   fun `goal status help documents diff observability cost controls`() {

@@ -1,9 +1,8 @@
 package skillbill.review.model
 
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
-import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.review.context.model.requireRepositoryRelativePath
-
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+import skillbill.review.context.model.execution.requireRepositoryRelativePath
 enum class ReviewStage(val wireValue: String) {
   REVIEW("review"),
   VERIFICATION("verification"),

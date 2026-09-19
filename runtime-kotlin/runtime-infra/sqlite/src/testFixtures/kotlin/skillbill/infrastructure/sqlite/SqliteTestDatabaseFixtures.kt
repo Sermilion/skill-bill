@@ -1,13 +1,13 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.core.DatabasePaths
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
-import skillbill.infrastructure.sqlite.telemetry.SkillBillRuntimeVersion
-import skillbill.infrastructure.sqlite.workflow.GoalPlanningPreparationStore
+import skillbill.infrastructure.sqlite.core.schema.DatabasePaths
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.telemetry.redaction.SkillBillRuntimeVersion
+import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.GoalPlanningPreparationStore
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
-import skillbill.ports.telemetry.LifecycleTelemetryRepository
+import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -15,7 +15,6 @@ import java.sql.DriverManager
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-
 object SqliteTestDatabasePaths {
   const val DB_ENVIRONMENT_KEY: String = DatabasePaths.DB_ENVIRONMENT_KEY
 

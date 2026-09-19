@@ -6,7 +6,7 @@ import skillbill.infrastructure.launcher.agentrun.CodexAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.CursorAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.JunieAgentRunCommandBuilder
 import skillbill.install.model.InstallAgent
-import skillbill.ports.review.ReviewLaunchIsolationResolver
+import skillbill.ports.review.launch.ReviewLaunchIsolationResolver
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 
 @Inject

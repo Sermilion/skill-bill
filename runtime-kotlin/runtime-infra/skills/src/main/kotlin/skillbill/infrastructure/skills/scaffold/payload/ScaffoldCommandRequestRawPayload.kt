@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.payload
 
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
@@ -8,7 +8,6 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_HORIZONTAL
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
-
 internal fun ScaffoldCommandRequest.toRawScaffoldPayload(): Map<String, Any?> {
   val base = linkedMapOf<String, Any?>(
     "scaffold_payload_version" to scaffoldPayloadVersion,

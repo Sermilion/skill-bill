@@ -1,16 +1,12 @@
 package skillbill.engine.featuretask.phase.prompt.directives
 
-
-
-
-import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseProjectionShapes
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseProjectionShapes
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
 import skillbill.review.model.ReviewIssueCategory
 import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing, agentRunValidateFallback: Boolean): String {
   val phaseId = briefing.phaseId
   return """

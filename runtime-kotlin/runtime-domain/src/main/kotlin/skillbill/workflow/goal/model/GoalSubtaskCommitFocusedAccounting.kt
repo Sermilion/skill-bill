@@ -1,9 +1,7 @@
 package skillbill.workflow.goal.model
-
-import skillbill.review.context.model.ReviewIntegrationTerminalOutcome
-import skillbill.workflow.taskruntime.model.asExactIntOrNull
-import skillbill.workflow.taskruntime.model.asExactLongOrNull
-
+import skillbill.review.context.model.launch.ReviewIntegrationTerminalOutcome
+import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.taskruntime.model.persistence.artifact.asExactLongOrNull
 data class GoalSubtaskCommitFocusedAccounting(
   val commitSequenceDigest: String,
   val commitCount: Int,

@@ -1,25 +1,23 @@
 package skillbill.engine.goalrunner.telemetry
-import skillbill.engine.goalrunner.execution.support.withWorkflowId
-
-import skillbill.engine.goalrunner.InMemoryGoalManifestStore
-import skillbill.engine.goalrunner.RecordingOutcomeStore
-import skillbill.engine.goalrunner.RecordingPullRequestPort
-import skillbill.engine.goalrunner.RecordingSubtaskLauncher
-import skillbill.engine.goalrunner.completeOutcome
-import skillbill.engine.goalrunner.launchFacts
-import skillbill.engine.goalrunner.manifest
-
-import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
+import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
 import skillbill.application.telemetry.model.GoalFinishedRequest
 import skillbill.application.telemetry.model.GoalIssueFinishedRequest
 import skillbill.application.telemetry.model.GoalStartedRequest
 import skillbill.application.telemetry.model.GoalSubtaskFinishedRequest
 import skillbill.engine.goalrunner.GoalRunner
+import skillbill.engine.goalrunner.InMemoryGoalManifestStore
+import skillbill.engine.goalrunner.RecordingOutcomeStore
+import skillbill.engine.goalrunner.RecordingPullRequestPort
+import skillbill.engine.goalrunner.RecordingSubtaskLauncher
+import skillbill.engine.goalrunner.completeOutcome
 import skillbill.engine.goalrunner.execution.core.goalRunnerDeps
+import skillbill.engine.goalrunner.execution.core.testGoalRunner
+import skillbill.engine.goalrunner.execution.support.withWorkflowId
+import skillbill.engine.goalrunner.launchFacts
+import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.model.GoalRunnerEventSink
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.engine.goalrunner.execution.core.testGoalRunner
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
@@ -36,7 +34,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class GoalRunnerTelemetryTest {
   @Test
   fun `preflight policy block emits one started and one blocked finished for the same segment`() {

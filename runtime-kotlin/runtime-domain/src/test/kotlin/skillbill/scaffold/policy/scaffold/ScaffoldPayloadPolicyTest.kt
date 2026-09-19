@@ -1,11 +1,10 @@
 package skillbill.scaffold.policy.scaffold
 
-import skillbill.error.InvalidScaffoldPayloadError
-import skillbill.error.RetiredScaffoldKindError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.RetiredScaffoldKindError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class ScaffoldPayloadPolicyTest {
   @Test
   fun `active creation kinds exclude retired partial scaffold kinds`() {
