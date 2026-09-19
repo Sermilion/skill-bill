@@ -350,6 +350,7 @@ class FeatureTaskRuntimeValidationGateCoordinator(
           SharedPayloadKeys.SUMMARY to "Validation satisfied by runtime-owned gate execution.",
           SharedPayloadKeys.VERDICT to FeatureTaskRuntimeVerdict.SATISFIED.wireValue,
           SharedPayloadKeys.PRODUCED_OUTPUTS to mapOf(
+            SharedPayloadKeys.VALUE to "The runtime confirmed the pack validation gate passed.",
             ValidationEvidencePayloadKeys.VALIDATION_RESULT to validationResult,
           ),
         ),

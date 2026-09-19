@@ -615,18 +615,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
         """"${SharedPayloadKeys.PRODUCED_OUTPUTS}":{}}""",
     )
 
-  internal fun qualityCheckCompletionOutput(run: PhaseRun, iteration: Int): FeatureTaskRuntimePhaseOutput =
-    FeatureTaskRuntimePhaseOutput(
-      phaseId = run.phaseId,
-      iteration = iteration,
-      payload =
-      """{"${SharedPayloadKeys.CONTRACT_VERSION}":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION",""" +
-        """"${SharedPayloadKeys.PHASE_ID}":"${run.phaseId}",""" +
-        """"${SharedPayloadKeys.STATUS}":"completed",""" +
-        """"${SharedPayloadKeys.SUMMARY}":"bill-code-check completed.",""" +
-        """"${SharedPayloadKeys.PRODUCED_OUTPUTS}":{"${SharedPayloadKeys.VALUE}":"finished"}}""",
-    )
-
   internal fun gateTriageSegmentOutput(
     run: PhaseRun,
     iteration: Int,

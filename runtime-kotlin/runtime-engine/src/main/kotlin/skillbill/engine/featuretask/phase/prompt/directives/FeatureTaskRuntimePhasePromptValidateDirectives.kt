@@ -17,6 +17,7 @@ fun runtimeOwnedValidateAgentPhaseTask(): String {
   return "Invoke `bill-code-check` exactly once. It routes to the dominant platform pack and owns " +
     "the collect-all check, repairs, confirmation, and terminal result. Do not run a pack command " +
     "directly, do not spawn delegated subagents, and stop when `bill-code-check` finishes. " +
+    "The runtime independently confirms the result and starts a fresh validate session if checks still fail. " +
     VALIDATE_PHASE_FORBIDDEN_EXTRAS +
     "Never silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped " +
     "tests; fix root causes instead."
@@ -67,6 +68,8 @@ fun runtimeOwnedValidateFinishedDirective(phaseId: String): String {
     Invoke `bill-code-check` exactly once. It routes to the dominant platform pack and owns the
     collect-all check, repairs, confirmation, and terminal result. Do not emit a phase envelope or
     validation evidence, do not run pack commands directly, and stop when `bill-code-check` finishes.
+    The runtime independently confirms the result before marking validate complete. A failed
+    confirmation starts another validate session within the repair budget.
   """.trimIndent()
 }
 
