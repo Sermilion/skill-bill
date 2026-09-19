@@ -12,11 +12,14 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRe
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineResult
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputResult
+import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityPayloadCodec
 import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
@@ -44,6 +47,11 @@ class RecordingWorkflowGitOperations(
   val repositoryFingerprintSequence = ArrayDeque<String>()
   var repositoryFingerprintValue: String? = null
   var repositoryFingerprintCalls: Int = 0
+  var readinessTreeIdentity: ReadinessTreeIdentity = ReadinessTreeIdentity(
+    sourceTreeSha = "a".repeat(40),
+    baseRefSha = "b".repeat(40),
+    headSha = "c".repeat(40),
+  )
   val createCommitMessages = mutableListOf<String>()
   var createCommitResult: WorkflowGitOperationResult? = null
   var localBranchHasUnpushedCommitsValue: Boolean = true
@@ -314,6 +322,24 @@ class RecordingWorkflowGitOperations(
       override fun ownedPaths(repoRoot: Path): WorkflowGitOperationResult = ownedPathsResult
         ?: WorkflowGitOperationResult.Ok(
           value = ownedPathsValue.joinToString(separator = "") { "$it\u0000" },
+        )
+    }
+
+  override val readinessTreeIdentityOperations: ReadinessTreeIdentityGitOperations =
+    object : ReadinessTreeIdentityGitOperations {
+      override fun resolveReadinessTreeIdentity(
+        repoRoot: Path,
+        baseBranch: String,
+        workflowId: String,
+      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(
+        value = ReadinessTreeIdentityPayloadCodec.encode(
+          readinessTreeIdentity.copy(headSha = headCommitShaValue.ifBlank { readinessTreeIdentity.headSha }),
+        ),
+      )
+
+      override fun changedPathsAgainstBase(repoRoot: Path, baseBranch: String): WorkflowGitOperationResult =
+        WorkflowGitOperationResult.Ok(
+          value = ownedPathsValue.joinToString(separator = "\u0000"),
         )
     }
 

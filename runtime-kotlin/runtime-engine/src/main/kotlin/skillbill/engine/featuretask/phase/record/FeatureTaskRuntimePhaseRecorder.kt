@@ -58,7 +58,11 @@ class FeatureTaskRuntimePhaseRecorder @Inject constructor(
   workflowSnapshotValidator,
   wireArtifactValidator,
   clock,
-) {
+),
+  FeatureTaskRuntimeReadinessEvidencePort by FeatureTaskRuntimeGateProgressRecorder(
+    database,
+    FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator),
+  ) {
   private val workflowPersistence = FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator)
   private val runtimeOwnedPersistence = RuntimeOwnedPersistenceBoundary(database, diagnostics)
   private val rejectedOutput = FeatureTaskRuntimeRejectedOutputRecorder(

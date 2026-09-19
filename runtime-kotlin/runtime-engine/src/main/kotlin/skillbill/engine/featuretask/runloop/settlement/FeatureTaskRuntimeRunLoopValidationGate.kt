@@ -44,6 +44,7 @@ import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
+import skillbill.engine.featuretask.validation.ReadinessPostValidateCaptureRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLauncher
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairResult
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentTriageLauncher
@@ -77,6 +78,32 @@ internal class RuntimeOwnedValidationSettlement(
   private val phaseGates: FeatureTaskRuntimePhaseGates,
   private val session: FeatureTaskRuntimeRunLoopSession,
 ) {
+  private fun captureReadinessFragmentAfterValidate(run: PhaseRun) {
+    val changedPaths = FeatureTaskRuntimeRunLoopValidationGate.validationChangedPaths(
+      phaseGates,
+      recorder,
+      goalContinuationRecorder,
+      session,
+      run,
+    ).orEmpty()
+    val resolution = phaseGates.validationGateResolver.resolve(changedPaths)
+    if (resolution !is ValidationGateResolution.Declared) return
+    val packCommand = phaseGates.validationGateCoordinator.requiredValidationCommand(
+      request.repoRoot,
+      request.workflowId,
+      resolution.declaration,
+    )
+    phaseGates.readinessGateCoordinator.capturePostValidateFragment(
+      ReadinessPostValidateCaptureRequest(
+        workflowId = request.workflowId,
+        repoRoot = request.repoRoot,
+        baseBranch = recorder.loadResolvedBranch(request.workflowId)?.baseBranch ?: "main",
+        packCommand = packCommand,
+        changedPaths = changedPaths,
+        gitOperations = phaseGates.gitOperations,
+      ),
+    )
+  }
   internal fun settle(
     run: PhaseRun,
     iteration: Int,
@@ -158,6 +185,7 @@ internal class RuntimeOwnedValidationSettlement(
       )
     }
     observability.completed(run.phaseId, run.resolvedAgent.resolvedAgentId, iteration)
+    captureReadinessFragmentAfterValidate(run)
     return PhaseOutcome.completed(
       FeatureTaskRuntimePhaseOutput(
         run.phaseId,

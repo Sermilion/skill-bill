@@ -46,7 +46,7 @@ base-ref freshness checks, and focused regression tests.
 
 ## Constraints
 
-- Follow `runtime-kotlin/ARCHITECTURE.md`, `docs/code-principles.md`,
+- Follow `../../../runtime-kotlin/ARCHITECTURE.md`, `docs/code-principles.md`,
   `docs/observability-policy.md`, and AGENTS.md.
 - Keep check selection manifest- and workflow-driven; do not hard-code a
   permanent platform list or duplicate workflow path tables in prompts.

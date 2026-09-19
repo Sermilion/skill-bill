@@ -20,9 +20,15 @@ internal fun gitTimedOutError(args: List<String>): String =
 internal fun runGitCommand(repoRoot: Path, vararg args: String): WorkflowGitOperationResult =
   runGitCommand(repoRoot, args.toList())
 
-internal fun runGitCommand(repoRoot: Path, args: List<String>): WorkflowGitOperationResult {
+internal fun runGitCommand(repoRoot: Path, env: Map<String, String>, vararg args: String): WorkflowGitOperationResult =
+  runGitCommand(repoRoot, env, args.toList())
+
+internal fun runGitCommand(repoRoot: Path, args: List<String>): WorkflowGitOperationResult =
+  runGitCommand(repoRoot, emptyMap(), args)
+
+internal fun runGitCommand(repoRoot: Path, env: Map<String, String>, args: List<String>): WorkflowGitOperationResult {
   val argList = args
-  val result = runGitProcess(repoRoot, argList)
+  val result = runGitProcess(repoRoot, argList, stdin = null, extraEnvironment = env)
   return when {
     result.timedOut -> WorkflowGitOperationResult.Failed(
       error = gitTimedOutError(argList),
@@ -67,8 +73,12 @@ internal fun runGitCommandWithStdin(repoRoot: Path, args: List<String>, stdin: B
   }
 }
 
-internal fun runGitProcess(repoRoot: Path, args: List<String>, stdin: ByteArray? = null): GitProcessResult =
-  invokeGitProcess(repoRoot, args, stdin)
+internal fun runGitProcess(
+  repoRoot: Path,
+  args: List<String>,
+  stdin: ByteArray? = null,
+  extraEnvironment: Map<String, String> = emptyMap(),
+): GitProcessResult = invokeGitProcess(repoRoot, args, stdin, extraEnvironment)
 
 internal data class GitProcessResult(
   val output: String,

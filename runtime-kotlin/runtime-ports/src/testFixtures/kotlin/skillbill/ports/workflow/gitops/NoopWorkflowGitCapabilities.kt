@@ -3,6 +3,7 @@ package skillbill.ports.workflow.gitops
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowScopedPathContentsResult
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
 import java.nio.file.Path
 
 internal const val HASH_RADIX_HEX: Int = 16
@@ -49,6 +50,19 @@ object NoopRuntimePhaseFileManifestGitOperations : RuntimePhaseFileManifestGitOp
 object UnavailableRepositoryOwnedPathsGitOperations : RepositoryOwnedPathsGitOperations {
   override fun ownedPaths(repoRoot: Path): WorkflowGitOperationResult =
     error("WorkflowGitOperations must provide a repository owned-paths implementation.")
+}
+
+object UnavailableReadinessTreeIdentityGitOperations : ReadinessTreeIdentityGitOperations {
+  override fun resolveReadinessTreeIdentity(
+    repoRoot: Path,
+    baseBranch: String,
+    workflowId: String,
+  ): WorkflowGitOperationResult = error("WorkflowGitOperations must provide a readiness tree identity implementation.")
+
+  override fun changedPathsAgainstBase(repoRoot: Path, baseBranch: String): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Failed(
+      error = "WorkflowGitOperations must provide readiness changed-path discovery.",
+    )
 }
 
 object UnavailableRepositoryFingerprintGitOperations : RepositoryFingerprintGitOperations {

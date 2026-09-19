@@ -1,5 +1,23 @@
 # featuretask runtime boundary decisions
 
+## [2026-09-19] SKILL-364 sibling readiness evidence contract
+Context: Validate-owned `validation_evidence` records pack gate commands only; commit and PR progression needed a separate durable record for tree identity, base ref, workflow-selected checks, and per-check results without bumping the validation contract.
+Decision: Add `readiness_evidence` as a sibling contract and workflow artifact (`FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_ARTIFACT_KEY`). Validate still owns pack collect-all execution; commit_push owns readiness settlement and persistence.
+Reason: Mixing PR/plugin readiness into validation evidence would break Issue 341 / 0AC-16 settlement and blur phase ownership.
+Revisit when: a single envelope can subsume both without a contract bump.
+
+## [2026-09-19] SKILL-364 write-tree identity versus checkpoint fingerprint
+Context: `repositoryCheckpointFingerprint` hashes owned paths for validate receipts; commit readiness must ignore boundary `agent/history.md` and this run's `.skill-bill/run-evidence/<workflow-id>/` paths.
+Decision: `source_tree_sha` is `git write-tree` on a copied index with those paths removed; `base_ref_sha` is `origin/<baseBranch>`. Checkpoint fingerprint semantics stay unchanged.
+Reason: History and run-evidence are allowed post-validate output; folding them into source identity would force needless reruns or accept unvalidated source edits.
+Revisit when: checkpoint fingerprint is retired or run-evidence addressing changes.
+
+## [2026-09-19] SKILL-364 failed commit_push readiness rerun is needs_user_action
+Context: A failed or missing selected check at commit_push must not reopen validate or add repair occupancy.
+Decision: Readiness failures block commit_push with `needs_user_action`; resume retries readiness on the same dirty tree with `last_resumable_step=commit_push`.
+Reason: Validate already spent its repair budget; commit_push is the PR-readiness boundary.
+Revisit when: readiness gains its own bounded repair loop.
+
 ## [2026-09-18] commit_push does not launch an agent
 Context: Agents emitted two phase-output envelopes on `commit_push`, and the schema gate blocked a non-retrying phase. The only agent field the runtime consumed was a commit subject; staging, commit, push, and `commit_sha` were already runtime-owned.
 Decision: `commit_push` skips the agent launch. The runtime stages every dirty non-ignored path, commits with a subject from the issue key and subtask name, pushes, and persists `commit_sha`. Downstream readers still use `commit_push_result.commit_sha`.

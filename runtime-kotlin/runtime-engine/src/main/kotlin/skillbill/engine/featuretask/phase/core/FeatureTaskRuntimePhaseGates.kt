@@ -21,6 +21,7 @@ class FeatureTaskRuntimePhaseGates(
   val validationGateResolver = validation.validationGateResolver
   val validationGateRunner = validation.validationGateRunner
   val validationGateCoordinator = validation.validationGateCoordinator
+  val readinessGateCoordinator = validation.readinessGateCoordinator
   val buildGateCoordinator = validation.buildGateCoordinator
   val sharedEvidenceResolver = validation.sharedEvidenceResolver
   val diffResolver = validation.diffResolver

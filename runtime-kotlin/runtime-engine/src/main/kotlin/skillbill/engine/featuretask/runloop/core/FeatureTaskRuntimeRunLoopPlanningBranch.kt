@@ -18,6 +18,7 @@ import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.BRANCH_SETUP_AGENT_ID
 import skillbill.engine.featuretask.runner.STATUS_BLOCKED
 import skillbill.engine.featuretask.runner.phaseDeclaration
+import skillbill.engine.featuretask.validation.ReadinessCommitPushSettleResult
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
@@ -159,43 +160,66 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       state = state,
       observability = observability,
     )
-    return when (
-      val prepared = FeatureTaskRuntimeRunLoopPhaseRunner.prepareGoalReviewRun(
-        context = goalReviewContext(context, run, state, observability),
-        run = run,
-        observability = observability,
-      )
-    ) {
-      is GoalReviewRunReady -> when {
-        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
-          FeatureTaskRuntimeRunLoopPhaseRunner.runDeclaredReviewDriverCycle(
-            context = gateContext,
-            run = prepared.run,
-            state = state,
-            observability = observability,
-          )
-        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ->
-          with(FeatureTaskRuntimeRunLoopValidationGate) {
-            gateContext.runPhaseAttempts(prepared.run.copy(agentRunValidateFallback = true))
-          }
-        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD ->
-          with(FeatureTaskRuntimeRunLoopValidationGate) {
-            gateContext.runDeclaredBuildGateCycle(prepared.run)
-          }
-        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH ->
-          with(FeatureTaskRuntimeRunLoopCommitPush) {
-            gateContext.runDeclaredCommitPushCycle(prepared.run)
-          }
-        else ->
-          with(FeatureTaskRuntimeRunLoopValidationGate) {
-            gateContext.runPhaseAttempts(prepared.run)
-          }
-      }
+    val prepared = FeatureTaskRuntimeRunLoopPhaseRunner.prepareGoalReviewRun(
+      context = goalReviewContext(context, run, state, observability),
+      run = run,
+      observability = observability,
+    )
+    return when (prepared) {
+      is GoalReviewRunReady -> runPreparedPhaseReady(gateContext, prepared.run, state, observability)
       GoalReviewRunPreparation.CarryForward ->
         FeatureTaskRuntimeRunLoopPhaseRunner.settleCarriedForwardGoalReview(
           context = goalReviewContext(context, run, state, observability),
         )
       is GoalReviewRunPreparation.Blocked -> PhaseOutcome.blocked(prepared.reason)
+    }
+  }
+
+  private fun runPreparedPhaseReady(
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+    state: FeatureTaskRuntimeRunState,
+    observability: FeatureTaskRuntimeRunObservability,
+  ): PhaseOutcome = when (run.phaseId) {
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
+      FeatureTaskRuntimeRunLoopPhaseRunner.runDeclaredReviewDriverCycle(
+        context = context,
+        run = run,
+        state = state,
+        observability = observability,
+      )
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ->
+      with(FeatureTaskRuntimeRunLoopValidationGate) {
+        context.runPhaseAttempts(run.copy(agentRunValidateFallback = true))
+      }
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD ->
+      with(FeatureTaskRuntimeRunLoopValidationGate) {
+        context.runDeclaredBuildGateCycle(run)
+      }
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH ->
+      with(FeatureTaskRuntimeRunLoopCommitPush) {
+        context.runDeclaredCommitPushCycle(run)
+      }
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR -> runPrPhase(context, run)
+    else ->
+      with(FeatureTaskRuntimeRunLoopValidationGate) {
+        context.runPhaseAttempts(run)
+      }
+  }
+
+  private fun runPrPhase(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): PhaseOutcome {
+    val readiness = context.phaseGates.readinessGateCoordinator.verifyPrEntryIdentity(
+      workflowId = context.request.workflowId,
+      repoRoot = context.request.repoRoot,
+      baseBranch = context.recorder.loadResolvedBranch(context.request.workflowId)?.baseBranch ?: "main",
+      gitOperations = context.phaseGates.gitOperations,
+    )
+    return if (readiness is ReadinessCommitPushSettleResult.Blocked) {
+      PhaseOutcome.blocked(readiness.reason)
+    } else {
+      with(FeatureTaskRuntimeRunLoopValidationGate) {
+        context.runPhaseAttempts(run)
+      }
     }
   }
 

@@ -14,6 +14,7 @@ import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayl
 import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.contracts.workflow.featuretask.DecompositionManifestSchemaPaths
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeReadinessEvidenceSchemaPaths
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
@@ -52,6 +53,18 @@ internal object WireVocabularyGovernedSeamInventory {
       schemaRepoRelativePath = DecompositionManifestBundleJournalSchemaPaths.REPO_RELATIVE_PATH,
       governedRelativePathMarkers = listOf(
         "DecompositionManifestBundleJournal",
+      ),
+    ),
+    GovernedPayloadSeam(
+      seamId = "feature-task-runtime-readiness-evidence",
+      schemaRepoRelativePath = FeatureTaskRuntimeReadinessEvidenceSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "workflow/taskruntime/model/validation/FeatureTaskRuntimeReadinessEvidence",
+        "workflow/taskruntime/artifact/FeatureTaskRuntimeWorkflowArtifactWire",
+        "contracts/workflow/identity/evidence/ReadinessEvidencePayloadKeys",
+        "engine/featuretask/validation/FeatureTaskRuntimeReadinessGateCoordinator",
+        "engine/featuretask/validation/ReadinessCheckSelection",
+        "engine/featuretask/phase/record/FeatureTaskRuntimeGateProgressRecorder",
       ),
     ),
     GovernedPayloadSeam(
@@ -120,6 +133,9 @@ internal object WireVocabularyGovernedSeamInventory {
       loadRepoSchema(schemaRepoRelativePath),
     )
     FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH -> phaseOutputEnvelopeGovernedKeys(
+      loadRepoSchema(schemaRepoRelativePath),
+    )
+    FeatureTaskRuntimeReadinessEvidenceSchemaPaths.REPO_RELATIVE_PATH -> readinessEvidenceGovernedKeys(
       loadRepoSchema(schemaRepoRelativePath),
     )
     GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY -> goalContinuationArtifactGovernedKeys()
@@ -191,6 +207,12 @@ internal object WireVocabularyGovernedSeamInventory {
 
   private fun phaseOutputEnvelopeGovernedKeys(schema: JsonNode): Set<String> =
     propertyNames(schema.path("properties")).toSet()
+
+  private fun readinessEvidenceGovernedKeys(schema: JsonNode): Set<String> =
+    propertyNames(schema.path("properties")).toSet() +
+      propertyNames(
+        schema.path("properties").path("check_results").path("items").path("properties"),
+      )
 
   private fun propertyNames(propertiesNode: JsonNode): List<String> {
     if (!propertiesNode.isObject) return emptyList()

@@ -22,6 +22,7 @@ import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepair
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceiptDecodeObservations
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceiptDecoded
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
@@ -106,6 +107,16 @@ internal fun decodeValidationGateExecutionEvidenceFromArtifact(
   FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(raw, sourceLabel)
 
 fun FeatureTaskRuntimeValidationEvidence.asWorkflowArtifactEntry(): Any = toArtifactMap()
+
+fun FeatureTaskRuntimeReadinessEvidence.asWorkflowArtifactEntry(): Any = toArtifactMap()
+
+fun decodeReadinessEvidenceFromArtifact(raw: Any?, sourceLabel: String): FeatureTaskRuntimeReadinessEvidence? =
+  JsonCodec.anyToStringAnyMap(raw)?.let { FeatureTaskRuntimeReadinessEvidence.fromArtifactMap(it, sourceLabel) }
+
+internal fun decodeReadinessEvidenceFromArtifact(
+  raw: Map<String, Any?>,
+  sourceLabel: String,
+): FeatureTaskRuntimeReadinessEvidence = FeatureTaskRuntimeReadinessEvidence.fromArtifactMap(raw, sourceLabel)
 
 fun decodeValidationEvidenceFromArtifact(raw: Any?, sourceLabel: String): FeatureTaskRuntimeValidationEvidence? =
   JsonCodec.anyToStringAnyMap(raw)?.let { FeatureTaskRuntimeValidationEvidence.fromArtifactMap(it, sourceLabel) }
