@@ -1,15 +1,6 @@
 package skillbill.infrastructure.skills.file
 import skillbill.contracts.JsonCodec
 import skillbill.error.core.ExternalAddonConfigError
-import skillbill.infrastructure.skills.externaladdon.file
-import skillbill.infrastructure.skills.externaladdon.map
-import skillbill.infrastructure.skills.externaladdon.payload
-import skillbill.infrastructure.skills.externaladdon.sources
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.install.payload
-import skillbill.infrastructure.skills.nativeagent.sources
-import skillbill.infrastructure.skills.scaffold.path
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.model.toPath
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY

@@ -5,10 +5,6 @@ import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.feature.inputs
-import skillbill.workflow.taskruntime.feature.map
-import skillbill.workflow.taskruntime.feature.reason
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeCompactReferenceKind
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionField
@@ -18,30 +14,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhase
 import skillbill.workflow.taskruntime.model.handoff.task.REPOSITORY_CHECKPOINT_FIELD
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDispositionVerdict
-import skillbill.workflow.taskruntime.phase.entries
-import skillbill.workflow.taskruntime.phase.map
-import skillbill.workflow.taskruntime.phase.planning.declaredFieldNames
-import skillbill.workflow.taskruntime.phase.planning.projectionContractId
-import skillbill.workflow.taskruntime.phase.task.BOUNDARY_CANDIDATES
-import skillbill.workflow.taskruntime.phase.task.BUILD_RECEIPT
-import skillbill.workflow.taskruntime.phase.task.CHANGE_RECEIPT
-import skillbill.workflow.taskruntime.phase.task.COMMIT_RECEIPT
-import skillbill.workflow.taskruntime.phase.task.COMMIT_REQUEST
-import skillbill.workflow.taskruntime.phase.task.FINDINGS_VERIFICATION_DISPOSITIONS
-import skillbill.workflow.taskruntime.phase.task.FINDINGS_VERIFICATION_INPUT
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.phase.task.HISTORY_RECEIPT
-import skillbill.workflow.taskruntime.phase.task.PHASE_PROSE
-import skillbill.workflow.taskruntime.phase.task.PHASE_REVIEW
-import skillbill.workflow.taskruntime.phase.task.PR_REQUEST
-import skillbill.workflow.taskruntime.phase.task.PhaseProjectionContract
-import skillbill.workflow.taskruntime.phase.task.REPAIR_PLAN
-import skillbill.workflow.taskruntime.phase.task.REVIEW_CLEARANCE
-import skillbill.workflow.taskruntime.phase.task.REVIEW_REPAIR_REQUEST
-import skillbill.workflow.taskruntime.phase.task.VALIDATION_RECEIPT
-import skillbill.workflow.taskruntime.phase.task.VALIDATION_REQUEST
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.validation.output
 
 internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
   private val phaseProjectionContractIds: Set<String> = setOf(

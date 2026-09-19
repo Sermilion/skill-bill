@@ -1,22 +1,5 @@
 package skillbill.workflow.taskruntime.model.persistence.artifact
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.audit.entries
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.fieldPath
-import skillbill.workflow.taskruntime.model.feature.artifact
-import skillbill.workflow.taskruntime.model.feature.entries
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.entries
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.repair.task.entries
-import skillbill.workflow.taskruntime.model.repair.task.key
-import skillbill.workflow.taskruntime.model.review.artifact
-import skillbill.workflow.taskruntime.model.review.message
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.entries
 import java.math.BigDecimal
 import java.math.BigInteger
 

@@ -1,7 +1,6 @@
 package skillbill.error.featuretask
 
 import skillbill.error.core.SkillBillRuntimeException
-import skillbill.error.core.error
 class FeatureTaskRuntimeSubtaskCommitReconciliationError(
   val workflowId: String,
   val issueKey: String,

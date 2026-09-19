@@ -1,11 +1,7 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.native
 import skillbill.infrastructure.skills.install.apply.createNewSymlinkWithGuidance
 import skillbill.infrastructure.skills.install.apply.createReplacementSymlinkWithGuidance
-import skillbill.infrastructure.skills.install.nativeagent.inventory.beforeMutation
 import skillbill.infrastructure.skills.install.nativeagent.inventory.isCanonicalNativeAgentArtifactTarget
-import skillbill.infrastructure.skills.install.nativeagent.inventory.parent
-import skillbill.infrastructure.skills.install.nativeagent.inventory.path
-import skillbill.infrastructure.skills.install.nativeagent.inventory.root
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.AgentTarget
 import skillbill.model.toPath

@@ -1,12 +1,5 @@
 package skillbill.infrastructure.skills.install
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.skills.externaladdon.entries
-import skillbill.infrastructure.skills.externaladdon.keys
-import skillbill.infrastructure.skills.externaladdon.name
-import skillbill.infrastructure.skills.externaladdon.rawPath
-import skillbill.infrastructure.skills.file.rawPath
-import skillbill.infrastructure.skills.scaffold.path
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallTelemetryLevel
 import skillbill.install.model.McpRegistrationChoice

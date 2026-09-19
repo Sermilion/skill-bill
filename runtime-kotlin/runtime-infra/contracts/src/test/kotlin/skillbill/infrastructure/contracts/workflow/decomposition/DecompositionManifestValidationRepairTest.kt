@@ -1,11 +1,4 @@
 package skillbill.infrastructure.contracts.workflow.decomposition
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.reason
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.yamlText
-import skillbill.infrastructure.contracts.workflow.goal.observability.yamlText
-import skillbill.infrastructure.contracts.workflow.goal.planning.reason
-import skillbill.infrastructure.contracts.workflow.goal.planning.yamlText
-import skillbill.infrastructure.contracts.workflow.goal.progress.yamlText
-import skillbill.infrastructure.contracts.workflow.goal.status.yamlText
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation

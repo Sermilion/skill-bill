@@ -1,19 +1,7 @@
 package skillbill.workflow.taskruntime.model.repair
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
-import skillbill.workflow.taskruntime.model.handoff.budget
-import skillbill.workflow.taskruntime.model.handoff.task.itemCount
-import skillbill.workflow.taskruntime.model.handoff.task.wireValue
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.prior.body
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairBudget
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
-import skillbill.workflow.taskruntime.model.repair.task.body
-import skillbill.workflow.taskruntime.model.repair.task.budget
-import skillbill.workflow.taskruntime.model.repair.task.context
-import skillbill.workflow.taskruntime.model.repair.task.maxPromptUtf8Bytes
-import skillbill.workflow.taskruntime.model.repair.task.projection
-import skillbill.workflow.taskruntime.model.repair.task.requireCollectionWithinLimit
-import skillbill.workflow.taskruntime.model.validation.wireValue
 data class CorrectiveRepairPromptProjection(
   val availability: CorrectiveRepairResponseAvailability,
   val inclusionReason: CorrectiveRepairInclusionReason,

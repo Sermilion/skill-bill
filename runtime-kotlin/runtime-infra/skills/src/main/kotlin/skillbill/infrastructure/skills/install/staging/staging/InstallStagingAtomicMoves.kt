@@ -1,8 +1,5 @@
 package skillbill.infrastructure.skills.install.staging.staging
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.bytes
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.name
-import skillbill.infrastructure.skills.install.staging.staging.support.name
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption

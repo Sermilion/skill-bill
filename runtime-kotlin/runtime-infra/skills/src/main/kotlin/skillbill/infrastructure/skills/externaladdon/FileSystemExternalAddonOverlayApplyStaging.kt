@@ -1,10 +1,6 @@
 package skillbill.infrastructure.skills.externaladdon
 import org.yaml.snakeyaml.Yaml
 import skillbill.error.core.ExternalAddonOverlayError
-import skillbill.infrastructure.skills.file.map
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.install.manifestPath
-import skillbill.infrastructure.skills.scaffold.skills
 import java.nio.file.Files
 import java.nio.file.Path
 

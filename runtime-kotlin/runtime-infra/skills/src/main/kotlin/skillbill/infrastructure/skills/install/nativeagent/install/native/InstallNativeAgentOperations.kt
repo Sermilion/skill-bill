@@ -1,10 +1,7 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.native
 import skillbill.infrastructure.host.jvm.resolveUserHome
-import skillbill.infrastructure.skills.install.nativeagent.install.agent.provider
-import skillbill.infrastructure.skills.install.nativeagent.install.agent.request
 import skillbill.infrastructure.skills.install.nativeagent.install.cursor.uninstallCursorAgentMarkdown
 import skillbill.infrastructure.skills.install.nativeagent.install.junie.uninstallJunieAgentMarkdown
-import skillbill.infrastructure.skills.install.nativeagent.inventory.provider
 import skillbill.infrastructure.skills.install.plan.CLAUDE_AGENTS_KIND
 import skillbill.infrastructure.skills.install.plan.CURSOR_AGENTS_KIND
 import skillbill.infrastructure.skills.install.plan.JUNIE_AGENTS_KIND

@@ -1,13 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.redaction
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.tableName
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.goal.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.measurement.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.quality.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.connection
-import skillbill.infrastructure.sqlite.telemetry.outbox.connection
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection

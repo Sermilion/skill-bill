@@ -1,7 +1,4 @@
 package skillbill.infrastructure.skills.install.nativeagent.inventory
-import skillbill.infrastructure.skills.install.nativeagent.install.native.entries
-import skillbill.infrastructure.skills.install.nativeagent.install.native.home
-import skillbill.infrastructure.skills.install.nativeagent.install.native.managedRoots
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.SupportedAgent
 import java.nio.file.Files

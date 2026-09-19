@@ -1,7 +1,5 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.sqlite.goalrunner.control.outcome
-import skillbill.infrastructure.sqlite.goalrunner.manifest.outcome
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor

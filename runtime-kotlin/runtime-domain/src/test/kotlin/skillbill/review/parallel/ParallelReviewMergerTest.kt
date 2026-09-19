@@ -1,9 +1,5 @@
 
 package skillbill.review.parallel
-import skillbill.review.attribution.contains
-import skillbill.review.finding.citations
-import skillbill.review.finding.findings
-import skillbill.review.finding.map
 import skillbill.review.model.ParallelReviewLaneResult
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ParallelReviewSeverity
@@ -12,7 +8,6 @@ import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
 import skillbill.review.model.ReviewSeverityAdjustmentDirection
-import skillbill.review.review.review
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

@@ -4,12 +4,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import me.tatarka.inject.annotations.Inject
 import skillbill.cli.install.apply.completeNativeAgentLinkOutcome
-import skillbill.cli.install.apply.platformPacksRoot
 import skillbill.cli.install.apply.refuseInstallMutationDuringGoalContinuation
-import skillbill.cli.install.apply.skillsRoot
-import skillbill.cli.install.core.outcome
-import skillbill.cli.install.core.platformPacksRoot
-import skillbill.cli.install.core.skillsRoot
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.model.CliRunInputs

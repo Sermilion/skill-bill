@@ -1,5 +1,4 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.sorted
 import java.nio.file.Path
 
 internal fun parseDeclaredAreaFileEntries(

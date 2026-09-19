@@ -2,17 +2,8 @@ package skillbill.infrastructure.sqlite.core.schema
 import org.sqlite.SQLiteConfig
 import skillbill.error.core.DatabaseAccessError
 import skillbill.error.core.DatabaseAccessOperation
-import skillbill.infrastructure.sqlite.core.migration.apply
-import skillbill.infrastructure.sqlite.core.migration.attribution.apply
-import skillbill.infrastructure.sqlite.core.migration.column.apply
-import skillbill.infrastructure.sqlite.core.migration.ledger.exists
 import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
-import skillbill.infrastructure.sqlite.core.migration.migrations.apply
-import skillbill.infrastructure.sqlite.core.migration.operation
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics
-import skillbill.infrastructure.sqlite.core.ops.diagnostics
-import skillbill.infrastructure.sqlite.core.ops.message
-import skillbill.infrastructure.sqlite.core.ops.operation
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.nio.file.Files
 import java.nio.file.Path

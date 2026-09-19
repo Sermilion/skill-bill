@@ -1,6 +1,4 @@
 package skillbill.workflow.taskruntime.validation
-import skillbill.workflow.taskruntime.feature.outcome
-import skillbill.workflow.taskruntime.handoff.validation
 
 const val GATE_STDOUT_EXCERPT_MAX_CHARS: Int = 3_000
 

@@ -5,18 +5,6 @@ import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeCommitPushPayloadKeys
 import skillbill.workflow.engine.model.WorkflowDefinition
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.artifact.phaseId
-import skillbill.workflow.taskruntime.handoff.budget
-import skillbill.workflow.taskruntime.handoff.checkpointPolicy
-import skillbill.workflow.taskruntime.handoff.consumerPhaseId
-import skillbill.workflow.taskruntime.handoff.declaredFieldNames
-import skillbill.workflow.taskruntime.handoff.fields
-import skillbill.workflow.taskruntime.handoff.projectionContractId
-import skillbill.workflow.taskruntime.handoff.projectionName
-import skillbill.workflow.taskruntime.handoff.promptVisibility
-import skillbill.workflow.taskruntime.handoff.required
-import skillbill.workflow.taskruntime.handoff.sourceRef
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDelivery
@@ -29,14 +17,6 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Feature
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePlanningProjectionContract
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeSharedReviewEvidenceReference
 import skillbill.workflow.taskruntime.phase.planning.UpstreamPlanningProjectionSpec
-import skillbill.workflow.taskruntime.phase.planning.consumerPhaseId
-import skillbill.workflow.taskruntime.phase.planning.declaredFieldNames
-import skillbill.workflow.taskruntime.phase.planning.delivery
-import skillbill.workflow.taskruntime.phase.planning.projectionContractId
-import skillbill.workflow.taskruntime.phase.planning.projectionContractVersion
-import skillbill.workflow.taskruntime.phase.planning.projectionName
-import skillbill.workflow.taskruntime.phase.planning.sourceRef
-import skillbill.workflow.taskruntime.review.definition
 
 internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
   private fun upstreamPlanningProjection(spec: UpstreamPlanningProjectionSpec): PhaseHandoffProjectionDeclaration =

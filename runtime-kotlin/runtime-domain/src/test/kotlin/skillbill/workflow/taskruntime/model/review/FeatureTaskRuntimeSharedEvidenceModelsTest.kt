@@ -1,11 +1,4 @@
 package skillbill.workflow.taskruntime.model.review
-import skillbill.workflow.taskruntime.model.core.baseRef
-import skillbill.workflow.taskruntime.model.core.fingerprint
-import skillbill.workflow.taskruntime.model.core.headRef
-import skillbill.workflow.taskruntime.model.feature.fingerprint
-import skillbill.workflow.taskruntime.model.phase.baseRef
-import skillbill.workflow.taskruntime.model.phase.headRef
-import skillbill.workflow.taskruntime.model.validation.fingerprint
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

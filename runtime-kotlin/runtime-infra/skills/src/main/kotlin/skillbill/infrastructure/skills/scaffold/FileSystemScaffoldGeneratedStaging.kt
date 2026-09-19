@@ -3,8 +3,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.error.shellcontent.SkillAlreadyExistsError
 import skillbill.infrastructure.host.jvm.rollbackDeleteEmptyDirectory
 import skillbill.infrastructure.host.jvm.rollbackDeleteRegularFileOrSymlink
-import skillbill.infrastructure.skills.externaladdon.dir
-import skillbill.infrastructure.skills.externaladdon.request
 import skillbill.ports.scaffold.staging.ScaffoldGeneratedStagingPort
 import skillbill.ports.scaffold.staging.model.ScaffoldStageFileRequest
 import skillbill.ports.scaffold.staging.model.ScaffoldStageFileResult

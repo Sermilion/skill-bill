@@ -35,7 +35,7 @@ class ImplementationOwnershipArchitectureTest {
 
     mapOf(
       "skillbill/infrastructure/skills/install/runtime/InstallOperations.kt" to infraSkillsModule,
-      "skillbill/infrastructure/skills/scaffold/runtime/ScaffoldService.kt" to infraSkillsModule,
+      "skillbill/infrastructure/skills/scaffold/runtime/service/ScaffoldService.kt" to infraSkillsModule,
       "skillbill/infrastructure/skills/nativeagent/rendering/NativeAgentOperations.kt" to infraSkillsModule,
       "skillbill/infrastructure/skills/install/mcp/McpRegistrationOperations.kt" to infraSkillsModule,
       "skillbill/infrastructure/skills/skillremove/SkillRemoveJvmFileSystem.kt" to infraSkillsModule,
@@ -113,18 +113,18 @@ class ImplementationOwnershipArchitectureTest {
     val runtimeCoreBuild = runtimeRoot.resolve("runtime-kotlin/runtime-core/build.gradle.kts").readText()
     assertNoRuntimeCorePublicProjectEdges(runtimeCoreBuild)
 
-    val allowedPackages = setOf("skillbill.di")
     val runtimeCoreSourceFiles = kotlinFilesUnder(runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin"))
     val runtimeCorePackages = runtimeCoreSourceFiles.mapNotNull(::packageName).toSet()
-    assertEquals(
-      allowedPackages,
-      runtimeCorePackages,
-      "runtime-core source must stay limited to DI composition.",
+    assertTrue(
+      runtimeCorePackages.all { sourcePackage ->
+        sourcePackage == "skillbill.di" || sourcePackage.startsWith("skillbill.di.")
+      },
+      "runtime-core source must stay limited to DI composition. found: $runtimeCorePackages",
     )
     val nonCompositionPackages = runtimeCoreSourceFiles
       .mapNotNull { sourceFile ->
         val sourcePackage = packageName(sourceFile) ?: return@mapNotNull null
-        if (sourcePackage in allowedPackages) {
+        if (sourcePackage == "skillbill.di" || sourcePackage.startsWith("skillbill.di.")) {
           null
         } else {
           "${runtimeRoot.relativize(sourceFile)} declares package $sourcePackage"
@@ -449,7 +449,7 @@ class ImplementationOwnershipArchitectureTest {
         "FileSystemScaffoldSourceLoader.kt",
     )
     val legacyScaffoldService = runtimeRoot.resolve(
-      "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/scaffold/runtime/ScaffoldService.kt",
+      "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/scaffold/runtime/service/ScaffoldService.kt",
     )
     assertTrue(Files.isRegularFile(repoValidationAdapter), "Repo-validation adapter file must exist.")
     assertTrue(Files.isRegularFile(sourceLoaderAdapter), "Source-loader adapter file must exist.")
@@ -635,8 +635,8 @@ class ImplementationOwnershipArchitectureTest {
       "skillbill.infrastructure.launcher.agentrun.PathExecutableLookup",
       "skillbill.infrastructure.launcher.review.UnixSocketGovernedReviewEvidenceEndpointBinder",
       "skillbill.workflow.decomposition.DecompositionManifestValidator",
-      "skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator",
-      "skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator",
+      "skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator",
+      "skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator",
       "skillbill.workflow.goal.GoalObservabilityEventValidator",
       "skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator",
       "skillbill.workflow.goal.GoalProgressEventValidator",

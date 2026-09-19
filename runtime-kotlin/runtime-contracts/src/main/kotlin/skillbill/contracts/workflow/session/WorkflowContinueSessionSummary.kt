@@ -1,6 +1,5 @@
 package skillbill.contracts.workflow.session
 import skillbill.contracts.JsonPayloadContract
-import skillbill.contracts.workflow.workflow.SESSION_ID
 
 data class WorkflowContinueSessionSummary(
   val sessionId: String? = null,

@@ -1,6 +1,5 @@
 package skillbill.infrastructure.workflow.featuretask
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.workflow.git.workflow.specPath
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.review.spec.GovernedSpecSectionParser
 import skillbill.review.spec.GovernedSpecSectionParser.ACCEPTANCE_CRITERIA_PREFIX

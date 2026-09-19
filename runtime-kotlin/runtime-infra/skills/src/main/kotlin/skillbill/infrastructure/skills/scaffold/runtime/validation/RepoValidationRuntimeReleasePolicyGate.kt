@@ -1,8 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
 import skillbill.infrastructure.contracts.sha256Hex
-import skillbill.infrastructure.skills.scaffold.runtime.service.metadata
-import skillbill.infrastructure.skills.scaffold.runtime.service.repoRoot
-import skillbill.infrastructure.skills.scaffold.runtime.service.scaffold
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.nio.file.Files
 import java.nio.file.Path

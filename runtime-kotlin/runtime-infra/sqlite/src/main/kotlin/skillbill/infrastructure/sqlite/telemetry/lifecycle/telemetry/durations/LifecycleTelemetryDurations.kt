@@ -2,13 +2,7 @@ package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.durations
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics
 import skillbill.infrastructure.sqlite.core.ops.recordDegradedValue
-import skillbill.infrastructure.sqlite.telemetry.feature.row
-import skillbill.infrastructure.sqlite.telemetry.goal.Map
-import skillbill.infrastructure.sqlite.telemetry.goal.row
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.row
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.maps.Map
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.maps.stringOrEmpty
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.Map
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException

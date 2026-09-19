@@ -1,8 +1,5 @@
 package skillbill.application.workflow.decomposition
 import skillbill.application.continuation.model.GoalContinuationCandidate
-import skillbill.application.workflow.persist.summary
-import skillbill.application.workflow.persist.workflowId
-import skillbill.application.workflow.service.workflowId
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.DecompositionManifestValidator

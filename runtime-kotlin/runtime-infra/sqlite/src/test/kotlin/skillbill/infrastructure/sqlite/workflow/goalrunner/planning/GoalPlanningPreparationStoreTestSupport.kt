@@ -1,9 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
 import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID
-import skillbill.infrastructure.sqlite.workflow.decomposition.normalizedIssueKey
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflow
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.subtaskId
-import skillbill.infrastructure.sqlite.workflow.goalrunner.subtask.subtaskId
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance

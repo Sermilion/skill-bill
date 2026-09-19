@@ -94,7 +94,7 @@ object PrincipleEnforcementInventory {
 
   val sanctionedCompositionEntrypoints: Set<String> = setOf(
     "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
-      "skillbill/infrastructure/skills/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
+      "skillbill/infrastructure/skills/scaffold/runtime/service/standalone/ScaffoldStandaloneEntrypoint.kt",
   )
 
   val ambientEnvironmentExemptions: Set<String> = setOf(

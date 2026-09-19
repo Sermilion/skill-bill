@@ -1,4 +1,4 @@
-package skillbill.application.review.parallel.core.code.review.runner
+package skillbill.application.review.parallel.core.code.review.runner.model
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.spec.SpecIntentProjectionResolver
@@ -22,7 +22,7 @@ import skillbill.review.model.ParallelReviewParseResult
 import java.time.Clock
 
 @Inject
-class ParallelCodeReviewRunnerBoundaries(
+data class ParallelCodeReviewRunnerBoundaries(
   val diffResolver: DiffResolverPort,
   val repoLocalConfig: RepoLocalConfigPort,
   val reviewContextEnvelopeValidator: ReviewContextEnvelopeValidator,

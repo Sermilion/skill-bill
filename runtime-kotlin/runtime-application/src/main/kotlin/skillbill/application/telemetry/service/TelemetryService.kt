@@ -10,11 +10,6 @@ import skillbill.application.telemetry.settings.telemetryMutationResult
 import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
 import skillbill.application.telemetry.sync.syncResult
-import skillbill.application.telemetry.telemetry.cancelled
-import skillbill.application.telemetry.telemetry.interrupted
-import skillbill.application.telemetry.telemetry.outbox
-import skillbill.application.telemetry.telemetry.service
-import skillbill.application.telemetry.telemetry.unitOfWork
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics

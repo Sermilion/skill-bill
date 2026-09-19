@@ -1,6 +1,4 @@
 package skillbill.error.shellcontent
-import skillbill.error.core.error
-import skillbill.error.core.message
 
 class InvalidAgentAddonSchemaError(
   val sourceLabel: String,

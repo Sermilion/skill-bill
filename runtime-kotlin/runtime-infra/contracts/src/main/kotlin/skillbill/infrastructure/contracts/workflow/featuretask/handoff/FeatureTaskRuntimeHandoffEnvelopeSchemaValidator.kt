@@ -9,25 +9,6 @@ import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKi
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
-import skillbill.infrastructure.contracts.workflow.decomposition.error
-import skillbill.infrastructure.contracts.workflow.decomposition.instanceLocation
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.checkpoint.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.implementation.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.envelope
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.message
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.projection.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.shared.error
-import skillbill.infrastructure.contracts.workflow.goal.observability.error
-import skillbill.infrastructure.contracts.workflow.goal.observability.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.planning.error
-import skillbill.infrastructure.contracts.workflow.goal.planning.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.planning.reason
-import skillbill.infrastructure.contracts.workflow.goal.progress.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.status.instanceLocation
-import skillbill.infrastructure.contracts.workflow.schema.error
-import skillbill.infrastructure.contracts.workflow.workflow.instanceLocation
 
 object FeatureTaskRuntimeHandoffEnvelopeSchemaValidator {
   fun validate(envelope: Map<String, Any?>, workflowId: String? = null) {

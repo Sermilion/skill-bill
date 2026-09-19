@@ -1,6 +1,4 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store
-import skillbill.infrastructure.sqlite.telemetry.feature.record
-import skillbill.infrastructure.sqlite.telemetry.feature.store
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.enqueueTelemetry
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.LifecycleTelemetryFeatureTaskSessionAdapter
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.LifecycleTelemetryFeatureVerifySessionAdapter
@@ -8,8 +6,6 @@ import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.goal.Lifecy
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.measurement.LifecycleTelemetryMeasurementAdapter
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.prDescriptionPayload
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.quality.LifecycleTelemetryQualityCheckSessionAdapter
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.truthfulness.store
-import skillbill.infrastructure.sqlite.telemetry.redaction.store
 import skillbill.ports.telemetry.lifecycle.FeatureTaskRuntimeLifecycleTelemetryRepository
 import skillbill.ports.telemetry.lifecycle.FeatureTaskRuntimeTelemetryMeasurementRepository
 import skillbill.ports.telemetry.lifecycle.FeatureVerifyLifecycleTelemetryRepository

@@ -17,7 +17,6 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.validation.ValidationGateResolver
-import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.persist.OutcomeStoreTestArtifactPorts
 import skillbill.engine.goalrunner.persist.sqliteWorkflowGoalRunnerManifestStore
 import skillbill.engine.goalrunner.persist.sqliteWorkflowGoalRunnerOutcomeStore
@@ -30,6 +29,7 @@ import skillbill.engine.goalrunner.reset.GoalRunnerResetReplanCoordinator
 import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionAssembler
 import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionDataSources
 import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionValidationDependencies
+import skillbill.engine.goalrunner.status.GoalRunnerStatusService
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.config.model.ReadRepoLocalConfigResult

@@ -1,8 +1,5 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.entry
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.sorted
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.CodeReviewBaselineLayer

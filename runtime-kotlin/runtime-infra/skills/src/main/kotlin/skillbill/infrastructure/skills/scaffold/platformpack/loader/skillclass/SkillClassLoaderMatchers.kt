@@ -2,9 +2,6 @@ package skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
 import skillbill.error.shellcontent.InvalidManifestSchemaError
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.entry
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.required
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.pattern
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.SkillClassManifest
 import skillbill.scaffold.model.SkillClassMatcher

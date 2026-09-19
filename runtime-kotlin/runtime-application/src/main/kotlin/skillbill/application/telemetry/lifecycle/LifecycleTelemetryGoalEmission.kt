@@ -6,11 +6,8 @@ import skillbill.application.telemetry.model.GoalStartedRequest
 import skillbill.application.telemetry.model.GoalSubtaskFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
-import skillbill.application.telemetry.service.level
 import skillbill.application.telemetry.service.normalizedBlockedReason
-import skillbill.application.telemetry.service.status
 import skillbill.application.telemetry.settings.telemetrySettingsOrNull
-import skillbill.application.telemetry.telemetry.unitOfWork
 import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics

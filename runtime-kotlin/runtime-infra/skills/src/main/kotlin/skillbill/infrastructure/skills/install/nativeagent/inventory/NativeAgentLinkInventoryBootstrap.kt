@@ -1,9 +1,6 @@
 package skillbill.infrastructure.skills.install.nativeagent.inventory
 import skillbill.error.core.InvalidNativeAgentLinkInventoryDecodeError
 import skillbill.infrastructure.contracts.sha256Hex
-import skillbill.infrastructure.skills.install.nativeagent.install.native.beforeMutation
-import skillbill.infrastructure.skills.install.nativeagent.install.native.entries
-import skillbill.infrastructure.skills.install.nativeagent.install.native.installedPath
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import java.io.IOException
 import java.nio.file.Files

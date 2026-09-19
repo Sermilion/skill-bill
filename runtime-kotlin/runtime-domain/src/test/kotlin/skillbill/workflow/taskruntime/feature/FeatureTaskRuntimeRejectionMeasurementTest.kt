@@ -1,11 +1,8 @@
 package skillbill.workflow.taskruntime.feature
-import skillbill.workflow.taskruntime.artifact.phaseId
-import skillbill.workflow.taskruntime.handoff.expected
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRejectionMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRejectionViolationClass
 import skillbill.workflow.taskruntime.model.handoff.task.featureTaskRuntimeRejectionCapOf
 import skillbill.workflow.taskruntime.model.handoff.task.featureTaskRuntimeRejectionViolationClassOf
-import skillbill.workflow.taskruntime.validation.expected
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

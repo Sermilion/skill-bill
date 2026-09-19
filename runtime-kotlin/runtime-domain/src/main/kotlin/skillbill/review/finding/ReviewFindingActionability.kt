@@ -5,13 +5,6 @@ import skillbill.review.model.ReviewFindingRegisterOutcome
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewStage
-import skillbill.review.parallel.citations
-import skillbill.review.parallel.claimVerdict
-import skillbill.review.parallel.finding
-import skillbill.review.parallel.findingRef
-import skillbill.review.parallel.scopeDisposition
-import skillbill.review.parallel.severityAdjustment
-import skillbill.review.review.review
 
 object ReviewFindingActionability {
   fun isActionable(claimVerdict: ReviewClaimVerdict?, scopeDisposition: ReviewScopeDisposition? = null): Boolean {

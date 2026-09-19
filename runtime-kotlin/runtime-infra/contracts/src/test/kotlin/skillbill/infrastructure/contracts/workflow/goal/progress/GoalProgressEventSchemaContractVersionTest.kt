@@ -3,8 +3,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.goal.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.goal.GoalProgressEventSchemaPaths
-import skillbill.infrastructure.contracts.workflow.decomposition.path
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.validation.path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

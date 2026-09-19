@@ -5,7 +5,6 @@ import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
 import skillbill.application.telemetry.service.TelemetryLevelMutationService
 import skillbill.application.telemetry.settings.DefaultTelemetrySettingsProvider
 import skillbill.di.core.SkillBillVersion
-import skillbill.di.core.VALUE
 import skillbill.infrastructure.host.FileTelemetryConfigStore
 import skillbill.infrastructure.http.HttpTelemetryClient
 import skillbill.ports.telemetry.transport.TelemetryClient

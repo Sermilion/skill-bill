@@ -1,9 +1,5 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.entry
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.list
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.pack
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.CONTENT_BODY_FILENAME
 import skillbill.infrastructure.skills.scaffold.validation.shape.parseSkillFrontmatter
 import skillbill.infrastructure.skills.scaffold.validation.shape.validateAuthoredContent

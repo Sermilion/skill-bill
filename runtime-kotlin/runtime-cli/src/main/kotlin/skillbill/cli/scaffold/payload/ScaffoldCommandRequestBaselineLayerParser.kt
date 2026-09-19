@@ -1,9 +1,4 @@
 package skillbill.cli.scaffold.payload
-import skillbill.cli.scaffold.commands.map
-import skillbill.cli.scaffold.commands.payload
-import skillbill.cli.scaffold.commands.platform
-import skillbill.cli.scaffold.wizard.payload
-import skillbill.cli.scaffold.wizard.platform
 import skillbill.contracts.scaffold.wire.optionalList
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.scaffold.model.CodeReviewBaselineLayer

@@ -4,16 +4,6 @@ import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERS
 import skillbill.error.core.InvalidNativeAgentLinkInventoryWriteError
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing
-import skillbill.infrastructure.skills.install.nativeagent.install.agent.provider
-import skillbill.infrastructure.skills.install.nativeagent.install.agent.request
-import skillbill.infrastructure.skills.install.nativeagent.install.native.afterTemporaryCreation
-import skillbill.infrastructure.skills.install.nativeagent.install.native.beforeMutation
-import skillbill.infrastructure.skills.install.nativeagent.install.native.entries
-import skillbill.infrastructure.skills.install.nativeagent.install.native.home
-import skillbill.infrastructure.skills.install.nativeagent.install.native.installedPath
-import skillbill.infrastructure.skills.install.nativeagent.install.native.logicalName
-import skillbill.infrastructure.skills.install.nativeagent.install.native.managedRoots
-import skillbill.infrastructure.skills.install.nativeagent.install.native.provider
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption

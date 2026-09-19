@@ -1,9 +1,4 @@
 package skillbill.review.context.model.launch
-import skillbill.review.context.model.packet.entries
-import skillbill.review.context.model.packet.launch
-import skillbill.review.context.model.packet.wireValue
-import skillbill.review.context.model.review.launch
-import skillbill.review.context.model.review.value
 
 enum class CodeReviewExecutionMode(val wireValue: String) {
   AUTO("auto"),

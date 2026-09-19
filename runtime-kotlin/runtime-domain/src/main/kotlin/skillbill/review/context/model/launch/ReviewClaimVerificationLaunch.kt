@@ -1,13 +1,8 @@
 package skillbill.review.context.model.launch
-import skillbill.review.context.model.execution.normalized
 import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewDependencyAllowlist
-import skillbill.review.context.model.hunk.normalized
 import skillbill.review.context.model.packet.ReviewContextPacket
-import skillbill.review.context.model.packet.launch
-import skillbill.review.context.model.packet.normalized
-import skillbill.review.context.model.review.launch
 import skillbill.review.model.ParallelReviewMergedFinding
 
 data class ReviewCitedRegion(

@@ -1,13 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.manifest
 import skillbill.error.shellcontent.MissingValidationGateError
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPacks
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.repoRoot
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.routingSignals
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.matches
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.repoRoot
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.slug
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
 

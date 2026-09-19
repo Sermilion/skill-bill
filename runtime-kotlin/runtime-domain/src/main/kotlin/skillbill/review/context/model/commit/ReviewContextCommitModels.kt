@@ -1,21 +1,11 @@
 package skillbill.review.context.model.commit
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
-import skillbill.review.context.model.execution.path
 import skillbill.review.context.model.execution.sha256
 import skillbill.review.context.model.hunk.REVIEW_MIN_COMMIT_COUNT
 import skillbill.review.context.model.hunk.REVIEW_MIN_ORDER_INDEX
 import skillbill.review.context.model.hunk.REVIEW_SYNTHETIC_UNIT_ORDER_INDEX
 import skillbill.review.context.model.hunk.ReviewChangedHunk
-import skillbill.review.context.model.hunk.commitScope
-import skillbill.review.context.model.hunk.hunkId
-import skillbill.review.context.model.hunk.newStart
-import skillbill.review.context.model.hunk.oldStart
-import skillbill.review.context.model.hunk.packetCanonical
-import skillbill.review.context.model.hunk.path
-import skillbill.review.context.model.launch.path
-import skillbill.review.context.model.packet.distinct
-import skillbill.review.context.model.packet.hunkId
 const val REVIEW_SYNTHETIC_COMMIT_PREFIX: String = "synthetic:"
 
 enum class ReviewCommitSource {

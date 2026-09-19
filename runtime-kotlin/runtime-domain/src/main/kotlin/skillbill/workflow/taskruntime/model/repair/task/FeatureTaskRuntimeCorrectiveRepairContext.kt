@@ -1,14 +1,9 @@
 package skillbill.workflow.taskruntime.model.repair.task
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.handoff.task.DEFAULT
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.repair.CorrectiveRepairCapturedResponse
 import skillbill.workflow.taskruntime.model.repair.CorrectiveRepairDiagnosticLocator
 import skillbill.workflow.taskruntime.model.repair.CorrectiveRepairPromptProjection
-import skillbill.workflow.taskruntime.model.repair.Exact
-import skillbill.workflow.taskruntime.model.repair.from
-import skillbill.workflow.taskruntime.model.repair.utf8ByteCount
 const val FEATURE_TASK_RUNTIME_CORRECTIVE_REPAIR_CONTEXT_CONTRACT_VERSION: String = "0.1"
 
 data class FeatureTaskRuntimeCorrectiveRepairContext(

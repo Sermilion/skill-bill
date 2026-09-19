@@ -1,5 +1,4 @@
 package skillbill.application.telemetry.lifecycle
-import skillbill.application.telemetry.service.clock
 import java.security.SecureRandom
 import java.time.Clock
 import java.time.ZoneOffset

@@ -7,13 +7,6 @@ import skillbill.contracts.nativeagent.NativeAgentLinkInventorySchemaPaths
 import skillbill.error.shellcontent.InvalidNativeAgentLinkInventorySchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
-import skillbill.infrastructure.skills.install.nativeagent.install.agent.request
-import skillbill.infrastructure.skills.install.nativeagent.install.native.afterTemporaryCreation
-import skillbill.infrastructure.skills.install.nativeagent.install.native.beforeMutation
-import skillbill.infrastructure.skills.install.nativeagent.install.native.desired
-import skillbill.infrastructure.skills.install.nativeagent.install.native.home
-import skillbill.infrastructure.skills.install.nativeagent.install.native.managedRoots
-import skillbill.infrastructure.skills.install.nativeagent.install.native.target
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import java.nio.channels.FileChannel
 import java.nio.file.Files

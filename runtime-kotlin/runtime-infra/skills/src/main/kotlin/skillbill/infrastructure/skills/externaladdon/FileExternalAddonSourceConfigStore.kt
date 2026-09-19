@@ -4,10 +4,6 @@ import skillbill.error.core.ExternalAddonConfigError
 import skillbill.infrastructure.host.readTelemetryConfigFile
 import skillbill.infrastructure.host.resolveTelemetryConfigPath
 import skillbill.infrastructure.host.writeTelemetryConfigFile
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.install.environment
-import skillbill.infrastructure.skills.scaffold.path
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.install.model.ExternalAddonSource
 import skillbill.model.toPath
 import skillbill.ports.install.addon.ExternalAddonSourceConfigPort

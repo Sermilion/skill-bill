@@ -1,19 +1,9 @@
 package skillbill.review.context.model.hunk
-import skillbill.review.context.model.bundle.hunkIds
-import skillbill.review.context.model.commit.hunkIds
-import skillbill.review.context.model.commit.source
 import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
-import skillbill.review.context.model.execution.kind
-import skillbill.review.context.model.execution.path
 import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.execution.sha256
-import skillbill.review.context.model.launch.path
-import skillbill.review.context.model.packet.distinct
-import skillbill.review.context.model.packet.hunk
-import skillbill.review.context.model.packet.hunkIds
-import skillbill.review.context.model.packet.outcome
 const val REVIEW_RULE_EXCERPT_MAX_CHARS: Int = 2_000
 data class ReviewRevision(val sessionId: String, val runRevision: Int) {
   init {

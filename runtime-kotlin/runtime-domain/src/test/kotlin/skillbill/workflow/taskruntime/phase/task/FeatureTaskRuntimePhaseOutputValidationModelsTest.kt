@@ -1,11 +1,6 @@
 package skillbill.workflow.taskruntime.phase.task
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.workflow.taskruntime.artifact.envelope
-import skillbill.workflow.taskruntime.feature.envelope
-import skillbill.workflow.taskruntime.feature.reason
-import skillbill.workflow.taskruntime.handoff.contractVersion
-import skillbill.workflow.taskruntime.handoff.envelope
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
@@ -14,8 +9,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
 import skillbill.workflow.taskruntime.model.phase.requireAccepted
-import skillbill.workflow.taskruntime.phase.envelope
-import skillbill.workflow.taskruntime.validation.line
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

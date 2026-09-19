@@ -10,17 +10,8 @@ import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_REQUEST
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_STOP_AFTER_SUBTASK
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
-import skillbill.infrastructure.sqlite.goalrunner.goal.dbPath
 import skillbill.infrastructure.sqlite.goalrunner.manifest.SavedManifestProjection
 import skillbill.infrastructure.sqlite.goalrunner.manifest.mergeConcurrentGoalProgress
-import skillbill.infrastructure.sqlite.goalrunner.manifest.repositoryIdentity
-import skillbill.infrastructure.sqlite.goalrunner.manifest.state
-import skillbill.infrastructure.sqlite.goalrunner.manifest.validator
-import skillbill.infrastructure.sqlite.goalrunner.outcome.issueKey
-import skillbill.infrastructure.sqlite.goalrunner.outcome.state
-import skillbill.infrastructure.sqlite.goalrunner.outcome.subtaskId
-import skillbill.infrastructure.sqlite.goalrunner.outcome.workflowId
-import skillbill.infrastructure.sqlite.goalrunner.outcome.workflowStates
 import skillbill.infrastructure.sqlite.workflow.decomposition.decompositionRuntime
 import skillbill.infrastructure.sqlite.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization

@@ -1,4 +1,4 @@
-package skillbill.engine.goalrunner
+package skillbill.engine.goalrunner.status
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
@@ -20,8 +20,6 @@ import skillbill.engine.goalrunner.model.GoalRunnerStopVerbResult
 import skillbill.engine.goalrunner.repair.GoalRunnerRepairCoordinator
 import skillbill.engine.goalrunner.reset.GoalRunnerPurgeCoordinator
 import skillbill.engine.goalrunner.reset.GoalRunnerResetReplanCoordinator
-import skillbill.engine.goalrunner.status.GoalRunnerStatusControlVerbs
-import skillbill.engine.goalrunner.status.GoalRunnerStatusProjectionAssembler
 import skillbill.goalrunner.model.GoalRunnerAcceptedSubtask
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
 import skillbill.model.RepositoryRoot

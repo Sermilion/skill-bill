@@ -1,17 +1,6 @@
 package skillbill.application.review.review
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.model.ReviewSnapshotPruneResult
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.core.review.error
-import skillbill.application.review.parallel.verification.error
-import skillbill.application.review.parallel.verification.path
-import skillbill.application.review.preparation.error
-import skillbill.application.review.service.error
-import skillbill.application.review.service.review
-import skillbill.application.review.service.snapshot
-import skillbill.application.review.spec.error
-import skillbill.application.review.spec.path
-import skillbill.application.review.verification.path
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.review.evidence.ReviewSnapshotGateway

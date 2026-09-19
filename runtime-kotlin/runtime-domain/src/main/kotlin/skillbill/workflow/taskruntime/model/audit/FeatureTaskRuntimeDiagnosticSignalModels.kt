@@ -2,35 +2,7 @@ package skillbill.workflow.taskruntime.model.audit
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.map
-import skillbill.workflow.taskruntime.model.core.raw
-import skillbill.workflow.taskruntime.model.feature.map
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.handoff.task.wireValue
 import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.map
-import skillbill.workflow.taskruntime.model.persistence.artifact.optionalInt
-import skillbill.workflow.taskruntime.model.persistence.artifact.requiredInt
-import skillbill.workflow.taskruntime.model.persistence.artifact.requiredString
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.phase.map
-import skillbill.workflow.taskruntime.model.phase.raw
-import skillbill.workflow.taskruntime.model.repair.task.entry
-import skillbill.workflow.taskruntime.model.repair.task.existing
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.map
-import skillbill.workflow.taskruntime.model.validation.raw
-import skillbill.workflow.taskruntime.model.validation.wireValue
 
 const val FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY: String =
   "feature_task_runtime_diagnostic_signals"

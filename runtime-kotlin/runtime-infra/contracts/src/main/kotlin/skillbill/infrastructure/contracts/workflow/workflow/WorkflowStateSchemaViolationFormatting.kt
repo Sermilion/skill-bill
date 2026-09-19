@@ -1,40 +1,6 @@
 package skillbill.infrastructure.contracts.workflow.workflow
 import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.ValidationMessage
-import skillbill.infrastructure.contracts.workflow.decomposition.error
-import skillbill.infrastructure.contracts.workflow.decomposition.errors
-import skillbill.infrastructure.contracts.workflow.decomposition.instance
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.error
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.errors
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.instance
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.checkpoint.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.checkpoint.errors
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.checkpoint.instance
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.implementation.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.implementation.errors
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.implementation.instance
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.errors
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.instance
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.errors
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.instance
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.message
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.projection.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.quarantine.errors
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.quarantine.instance
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.shared.error
-import skillbill.infrastructure.contracts.workflow.goal.observability.error
-import skillbill.infrastructure.contracts.workflow.goal.observability.errors
-import skillbill.infrastructure.contracts.workflow.goal.observability.instance
-import skillbill.infrastructure.contracts.workflow.goal.planning.error
-import skillbill.infrastructure.contracts.workflow.goal.planning.errors
-import skillbill.infrastructure.contracts.workflow.goal.planning.instance
-import skillbill.infrastructure.contracts.workflow.goal.progress.errors
-import skillbill.infrastructure.contracts.workflow.goal.progress.instance
-import skillbill.infrastructure.contracts.workflow.goal.status.errors
-import skillbill.infrastructure.contracts.workflow.goal.status.instance
-import skillbill.infrastructure.contracts.workflow.schema.error
 
 internal val workflowStateSchemaViolationOrdering: Comparator<ValidationMessage> = compareBy(
   { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },

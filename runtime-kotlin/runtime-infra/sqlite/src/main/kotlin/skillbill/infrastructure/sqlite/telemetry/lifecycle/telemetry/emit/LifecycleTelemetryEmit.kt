@@ -3,12 +3,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
-import skillbill.infrastructure.sqlite.telemetry.feature.record
-import skillbill.infrastructure.sqlite.telemetry.goal.Map
-import skillbill.infrastructure.sqlite.telemetry.goal.payload
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.maps.Map
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.maps.stringOrEmpty
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.Map
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.featureTaskRuntimeFinishedPayload
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.featureTaskRuntimeStartedPayload
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.featureVerifyFinishedPayload
@@ -17,10 +12,7 @@ import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.qu
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.qualityCheckStartedPayload
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.lifecycleRow
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.markLifecycleEmitted
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.truthfulness.payload
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
-import skillbill.infrastructure.sqlite.telemetry.redaction.payload
-import skillbill.infrastructure.sqlite.telemetry.redaction.reviewRunId
 import skillbill.infrastructure.sqlite.telemetry.redaction.telemetryRedactionSalt
 import skillbill.review.model.REVIEW_STAGE_DEGRADATION_EVENT_NAME
 import skillbill.review.model.ReviewStageDegradationMeasurement

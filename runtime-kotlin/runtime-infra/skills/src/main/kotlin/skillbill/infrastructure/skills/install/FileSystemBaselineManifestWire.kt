@@ -2,11 +2,6 @@ package skillbill.infrastructure.skills.install
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.UnreadableBaselineManifestError
-import skillbill.infrastructure.skills.externaladdon.key
-import skillbill.infrastructure.skills.externaladdon.keys
-import skillbill.infrastructure.skills.externaladdon.message
-import skillbill.infrastructure.skills.scaffold.path
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.install.model.BaselineManifest
 import java.nio.file.Path
 

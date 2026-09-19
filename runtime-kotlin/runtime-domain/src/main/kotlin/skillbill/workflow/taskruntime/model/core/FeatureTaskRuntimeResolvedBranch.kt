@@ -1,20 +1,7 @@
 package skillbill.workflow.taskruntime.model.core
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.audit.error
-import skillbill.workflow.taskruntime.model.handoff.Map
 import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.optionalBoolean
-import skillbill.workflow.taskruntime.model.persistence.artifact.optionalString
-import skillbill.workflow.taskruntime.model.persistence.artifact.optionalStringList
-import skillbill.workflow.taskruntime.model.persistence.artifact.requiredString
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.phase.raw
-import skillbill.workflow.taskruntime.model.repair.task.error
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.raw
 
 data class FeatureTaskRuntimeResolvedBranch(
   val branch: String,

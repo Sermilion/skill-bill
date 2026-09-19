@@ -1,11 +1,5 @@
 package skillbill.workflow.taskruntime.model.repair
-import skillbill.workflow.taskruntime.model.handoff.budget
-import skillbill.workflow.taskruntime.model.handoff.task.DEFAULT
-import skillbill.workflow.taskruntime.model.repair.task.DEFAULT
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairBudget
-import skillbill.workflow.taskruntime.model.repair.task.budget
-import skillbill.workflow.taskruntime.model.repair.task.label
-import skillbill.workflow.taskruntime.model.repair.task.maxResponseUtf8Bytes
 data class CorrectiveRepairDiagnosticLocator(
   val identity: String,
 ) {

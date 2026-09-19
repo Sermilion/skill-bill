@@ -16,7 +16,6 @@ import skillbill.application.workflow.service.WorkflowService
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
-import skillbill.engine.goalrunner.manifest
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.shellcontent.LegacyProseWorkflowError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics

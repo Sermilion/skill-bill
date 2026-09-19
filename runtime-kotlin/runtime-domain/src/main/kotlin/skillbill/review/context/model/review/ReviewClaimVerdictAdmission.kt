@@ -1,6 +1,4 @@
 package skillbill.review.context.model.review
-import skillbill.review.context.model.commit.reason
-import skillbill.review.context.model.execution.reason
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewFindingCitation

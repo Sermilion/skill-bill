@@ -1,12 +1,5 @@
 package skillbill.infrastructure.skills.scaffold
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.skills.externaladdon.packRoot
-import skillbill.infrastructure.skills.externaladdon.payload
-import skillbill.infrastructure.skills.externaladdon.plan
-import skillbill.infrastructure.skills.externaladdon.request
-import skillbill.infrastructure.skills.file.payload
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.install.payload
 import skillbill.infrastructure.skills.install.scaffold.performScaffoldInstall
 import skillbill.infrastructure.skills.install.scaffold.rollbackScaffoldInstallTargets
 import skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldRepoValidation

@@ -2,17 +2,6 @@ package skillbill.infrastructure.sqlite.telemetry.redaction
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.telemetry.feature.row
-import skillbill.infrastructure.sqlite.telemetry.goal.row
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.row
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.goal.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.measurement.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.quality.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime.List
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.connection
-import skillbill.infrastructure.sqlite.telemetry.outbox.connection
 import skillbill.review.model.FindingOutcomeType
 import java.sql.Connection
 

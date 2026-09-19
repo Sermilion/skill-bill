@@ -1,8 +1,4 @@
 package skillbill.cli.scaffold.payload
-import skillbill.cli.scaffold.commands.key
-import skillbill.cli.scaffold.commands.map
-import skillbill.cli.scaffold.commands.payload
-import skillbill.cli.scaffold.wizard.payload
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 
 internal fun parseStringList(payload: Map<String, Any?>, key: String): List<String> {

@@ -1,6 +1,4 @@
 package skillbill.cli.scaffold.wizard
-import skillbill.cli.scaffold.commands.name
-import skillbill.cli.scaffold.payload.value
 import skillbill.scaffold.model.command.isRetiredPartialScaffoldCommandKindAlias
 import skillbill.scaffold.model.command.rejectRetiredPartialScaffoldCommandKind
 

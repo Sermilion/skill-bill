@@ -1,15 +1,4 @@
 package skillbill.cli.goal.status
-import skillbill.cli.goal.control.issueKey
-import skillbill.cli.goal.control.status
-import skillbill.cli.goal.core.Map
-import skillbill.cli.goal.core.issueKey
-import skillbill.cli.goal.core.status
-import skillbill.cli.goal.purge.Map
-import skillbill.cli.goal.purge.issueKey
-import skillbill.cli.goal.purge.status
-import skillbill.cli.goal.run.blockedCount
-import skillbill.cli.goal.run.issueKey
-import skillbill.cli.goal.run.pendingCount
 import skillbill.contracts.workflow.payload.WorktreeEditJournalPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
 import skillbill.idestatus.model.WorktreeEditSummary

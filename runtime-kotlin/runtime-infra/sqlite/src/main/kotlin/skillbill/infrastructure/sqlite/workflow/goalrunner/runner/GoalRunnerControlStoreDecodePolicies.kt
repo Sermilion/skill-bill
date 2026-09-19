@@ -5,11 +5,6 @@ import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflow
-import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.raw
-import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.reason
-import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.subtaskId
-import skillbill.infrastructure.sqlite.workflow.goalrunner.subtask.subtaskId
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.review.context.model.launch.CodeReviewExecutionMode

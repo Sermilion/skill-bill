@@ -2,8 +2,6 @@ package skillbill.cli.install.apply
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.install.ExternalAddonOverlayService
-import skillbill.cli.install.core.apply
-import skillbill.cli.install.nativeagent.source
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot

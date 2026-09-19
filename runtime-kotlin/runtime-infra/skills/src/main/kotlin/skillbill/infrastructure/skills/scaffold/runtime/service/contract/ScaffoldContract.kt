@@ -1,17 +1,8 @@
 
 package skillbill.infrastructure.skills.scaffold.runtime.service.contract
 import skillbill.error.shellcontent.MissingSupportingFileTargetError
-import skillbill.infrastructure.skills.scaffold.runtime.service.name
-import skillbill.infrastructure.skills.scaffold.runtime.service.pack
-import skillbill.infrastructure.skills.scaffold.runtime.service.repoRoot
-import skillbill.infrastructure.skills.scaffold.runtime.service.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.service.slug
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.infrastructure.skills.scaffold.runtime.service.support.featureAddonPointerSpecsFor
-import skillbill.infrastructure.skills.scaffold.runtime.validation.name
-import skillbill.infrastructure.skills.scaffold.runtime.validation.packs
-import skillbill.infrastructure.skills.scaffold.runtime.validation.slug
-import skillbill.infrastructure.skills.scaffold.runtime.validation.target
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
 import kotlin.io.path.relativeTo

@@ -1,16 +1,4 @@
 package skillbill.application.review.preparation
-import skillbill.application.review.packet.entries
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.core.code.review.end.expected
-import skillbill.application.review.parallel.core.code.review.evidence.entries
-import skillbill.application.review.parallel.core.code.review.runner.seam
-import skillbill.application.review.parallel.planning.preparation
-import skillbill.application.review.parallel.verification.boundaries
-import skillbill.application.review.parallel.verification.verdicts
-import skillbill.application.review.review.boundaries
-import skillbill.application.review.review.verdicts
-import skillbill.application.review.service.review
-import skillbill.application.review.verification.verdicts
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewStage

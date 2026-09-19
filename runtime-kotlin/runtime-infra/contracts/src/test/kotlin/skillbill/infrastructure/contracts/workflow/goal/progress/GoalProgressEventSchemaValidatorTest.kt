@@ -2,17 +2,6 @@ package skillbill.infrastructure.contracts.workflow.goal.progress
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.goal.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
-import skillbill.infrastructure.contracts.workflow.decomposition.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.checkpoint.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.implementation.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.quarantine.validate
-import skillbill.infrastructure.contracts.workflow.goal.observability.validate
-import skillbill.infrastructure.contracts.workflow.goal.planning.validate
-import skillbill.infrastructure.contracts.workflow.goal.status.validate
-import skillbill.infrastructure.contracts.workflow.workflow.validate
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome

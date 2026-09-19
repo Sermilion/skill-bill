@@ -1,10 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
 import skillbill.error.shellcontent.MissingManifestError
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.contractVersion
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.repoRoot
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.sorted
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.validate
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator
 import skillbill.infrastructure.skills.scaffold.validation.review.validateReviewSkillStructure

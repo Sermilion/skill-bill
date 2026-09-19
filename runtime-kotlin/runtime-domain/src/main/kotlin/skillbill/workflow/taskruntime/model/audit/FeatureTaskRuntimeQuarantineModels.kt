@@ -2,28 +2,8 @@ package skillbill.workflow.taskruntime.model.audit
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.raw
-import skillbill.workflow.taskruntime.model.handoff.Map
 import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.optionalBoolean
-import skillbill.workflow.taskruntime.model.persistence.artifact.optionalString
-import skillbill.workflow.taskruntime.model.persistence.artifact.requiredInt
-import skillbill.workflow.taskruntime.model.persistence.artifact.requiredString
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.keys
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.phase.raw
-import skillbill.workflow.taskruntime.model.repair.task.entry
-import skillbill.workflow.taskruntime.model.repair.task.error
-import skillbill.workflow.taskruntime.model.review.message
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.raw
 
 const val FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY: String =
   "feature_task_runtime_quarantined_records"

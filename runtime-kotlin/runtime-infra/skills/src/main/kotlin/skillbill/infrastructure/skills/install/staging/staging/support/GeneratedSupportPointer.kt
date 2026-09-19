@@ -1,17 +1,4 @@
 package skillbill.infrastructure.skills.install.staging.staging.support
-import skillbill.infrastructure.skills.install.staging.staging.content.repoRoot
-import skillbill.infrastructure.skills.install.staging.staging.content.sourceSkillDir
-import skillbill.infrastructure.skills.install.staging.staging.installed.repoRoot
-import skillbill.infrastructure.skills.install.staging.staging.installed.skillsRoot
-import skillbill.infrastructure.skills.install.staging.staging.installed.sourceSkillDir
-import skillbill.infrastructure.skills.install.staging.staging.repoRoot
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.repoRoot
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.selectedPlatformManifests
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.skillName
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.skillsRoot
-import skillbill.infrastructure.skills.install.staging.staging.skillName
-import skillbill.infrastructure.skills.install.staging.staging.sourceSkillDir
-import skillbill.infrastructure.skills.install.staging.staging.staging
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.requireSupportingFileTarget
 import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import skillbill.scaffold.model.PlatformManifest

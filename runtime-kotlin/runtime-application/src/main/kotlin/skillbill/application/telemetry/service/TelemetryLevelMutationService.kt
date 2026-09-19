@@ -2,12 +2,6 @@ package skillbill.application.telemetry.service
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.config.TelemetryConfigMutations
 import skillbill.application.telemetry.config.clearsPendingOutbox
-import skillbill.application.telemetry.lifecycle.level
-import skillbill.application.telemetry.lifecycle.settings
-import skillbill.application.telemetry.telemetry.outbox
-import skillbill.application.telemetry.telemetry.service
-import skillbill.application.telemetry.telemetry.settings
-import skillbill.application.telemetry.telemetry.unitOfWork
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.telemetry.model.TelemetryLevelMutationResult
 import skillbill.ports.telemetry.transport.TelemetryConfigStore

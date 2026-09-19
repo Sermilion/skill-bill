@@ -1,8 +1,6 @@
 package skillbill.review.review
-import skillbill.review.attribution.contains
 import skillbill.review.model.ReviewExecutionMode
 import skillbill.review.parsing.ReviewParser
-import skillbill.review.parsing.parseReview
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

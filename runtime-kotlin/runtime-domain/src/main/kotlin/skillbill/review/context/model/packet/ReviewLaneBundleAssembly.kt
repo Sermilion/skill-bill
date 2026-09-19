@@ -1,29 +1,12 @@
 package skillbill.review.context.model.packet
 import skillbill.review.context.model.commit.ReviewAssignment
-import skillbill.review.context.model.commit.assignedBundle
-import skillbill.review.context.model.commit.assignedHunks
-import skillbill.review.context.model.commit.digest
 import skillbill.review.context.model.execution.SHA256_HEX
-import skillbill.review.context.model.execution.assignment
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
-import skillbill.review.context.model.execution.path
 import skillbill.review.context.model.hunk.REVIEW_BUNDLE_SEGMENT_ID_PAD_WIDTH
 import skillbill.review.context.model.hunk.REVIEW_MIN_ORDER_INDEX
 import skillbill.review.context.model.hunk.REVIEW_MIN_SEGMENT_MEASURED_BYTES
 import skillbill.review.context.model.hunk.ReviewChangedHunk
-import skillbill.review.context.model.hunk.digest
-import skillbill.review.context.model.hunk.maxLaneLaunchBytes
-import skillbill.review.context.model.hunk.newStart
-import skillbill.review.context.model.hunk.oldStart
-import skillbill.review.context.model.hunk.packetCanonical
-import skillbill.review.context.model.hunk.path
-import skillbill.review.context.model.launch.assignment
-import skillbill.review.context.model.launch.packet
-import skillbill.review.context.model.launch.path
-import skillbill.review.context.model.review.assignment
-import skillbill.review.context.model.review.packet
-import skillbill.review.context.model.review.value
 import java.security.MessageDigest
 
 data class ReviewLaneAssembledEntry(
@@ -141,7 +124,7 @@ data class ReviewLaneBundleSegmentation(
     get() = if (unreviewableEntries.isEmpty()) {
       emptyList()
     } else {
-      listOf(UNREVIEWABLE_SEGMENT_ID)
+      listOf(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID)
     }
 
   val incomplete: Boolean get() = unreviewableEntries.isNotEmpty()

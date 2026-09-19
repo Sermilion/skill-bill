@@ -6,15 +6,6 @@ import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PROJECTION_
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_REJECTION_MEASUREMENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECTION_CONTRACT_VERSION
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.wireValue
 
 const val FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE: String =
   "restart the active run or use the documented out-of-band migration procedure"

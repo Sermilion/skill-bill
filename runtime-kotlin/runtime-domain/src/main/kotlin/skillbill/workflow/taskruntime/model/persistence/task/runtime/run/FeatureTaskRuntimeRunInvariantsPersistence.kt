@@ -6,42 +6,8 @@ import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_RUN_INVARIA
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.taskruntime.model.audit.error
-import skillbill.workflow.taskruntime.model.audit.fromWire
-import skillbill.workflow.taskruntime.model.audit.map
-import skillbill.workflow.taskruntime.model.core.fromWire
-import skillbill.workflow.taskruntime.model.core.map
-import skillbill.workflow.taskruntime.model.core.raw
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.feature.map
-import skillbill.workflow.taskruntime.model.handoff.envelope.fromWire
-import skillbill.workflow.taskruntime.model.handoff.name
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.handoff.task.fromWire
-import skillbill.workflow.taskruntime.model.handoff.task.name
-import skillbill.workflow.taskruntime.model.handoff.task.wireValue
-import skillbill.workflow.taskruntime.model.persistence.artifact.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.contentSha256
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.slug
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.sourceIdentity
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.map
-import skillbill.workflow.taskruntime.model.phase.fromWire
-import skillbill.workflow.taskruntime.model.phase.map
-import skillbill.workflow.taskruntime.model.phase.name
-import skillbill.workflow.taskruntime.model.phase.raw
-import skillbill.workflow.taskruntime.model.repair.fromWire
-import skillbill.workflow.taskruntime.model.repair.task.error
-import skillbill.workflow.taskruntime.model.repair.task.fromWire
-import skillbill.workflow.taskruntime.model.repair.task.key
-import skillbill.workflow.taskruntime.model.review.fromWire
-import skillbill.workflow.taskruntime.model.review.message
-import skillbill.workflow.taskruntime.model.validation.fromWire
-import skillbill.workflow.taskruntime.model.validation.map
-import skillbill.workflow.taskruntime.model.validation.raw
-import skillbill.workflow.taskruntime.model.validation.wireValue
 
 const val FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY: String = "feature_task_runtime_run_invariants"
 internal fun FeatureTaskRuntimeRunInvariants.toArtifactMap(): Map<String, Any?> = linkedMapOf(

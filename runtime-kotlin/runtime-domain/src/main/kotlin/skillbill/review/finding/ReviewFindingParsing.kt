@@ -1,21 +1,11 @@
 package skillbill.review.finding
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.review.attribution.contains
-import skillbill.review.attribution.text
-import skillbill.review.attribution.value
 import skillbill.review.model.ImportedFinding
-import skillbill.review.parallel.confidence
-import skillbill.review.parallel.description
-import skillbill.review.parallel.finding
-import skillbill.review.parallel.location
-import skillbill.review.parallel.match
-import skillbill.review.parallel.severity
 import skillbill.review.parsing.findingPattern
 import skillbill.review.parsing.findingProvenancePattern
 import skillbill.review.parsing.findingSpecialistsProvenancePattern
 import skillbill.review.parsing.specialistReviewsPattern
 import skillbill.review.parsing.summaryPatterns
-import skillbill.review.review.review
 
 fun requireMatch(pattern: Regex, text: String, errorMessage: String): String =
   pattern.find(text)?.groups?.get(SharedPayloadKeys.VALUE)?.value ?: throw IllegalArgumentException(errorMessage)

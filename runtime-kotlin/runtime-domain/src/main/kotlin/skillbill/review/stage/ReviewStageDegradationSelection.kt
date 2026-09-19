@@ -1,7 +1,4 @@
 package skillbill.review.stage
-import skillbill.review.attribution.value
-import skillbill.review.finding.findings
-import skillbill.review.finding.value
 import skillbill.review.model.ReviewEvidenceBoundaryAccounting
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewPassClaimSnapshot
@@ -13,11 +10,6 @@ import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewStageDegradationSelectionRequest
 import skillbill.review.model.ReviewStageReached
 import skillbill.review.model.ReviewVerificationNonSuccess
-import skillbill.review.parallel.entries
-import skillbill.review.parallel.findings
-import skillbill.review.parsing.reviewRunId
-import skillbill.review.review.accounting
-import skillbill.review.review.review
 
 object ReviewStageDegradationSelection {
   private val workerFailureReasons: Map<String, ReviewStageDegradationReason> = mapOf(

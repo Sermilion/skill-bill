@@ -3,22 +3,13 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.review.attribution.normalizeRoutedSkill
 import skillbill.review.attribution.resolveExecutionMode
 import skillbill.review.attribution.resolveReviewIssueCategory
-import skillbill.review.attribution.text
-import skillbill.review.attribution.value
 import skillbill.review.finding.extractSpecialistReviews
 import skillbill.review.finding.extractSummaryValue
-import skillbill.review.finding.finding
-import skillbill.review.finding.findings
-import skillbill.review.finding.map
 import skillbill.review.finding.parseReviewFindings
 import skillbill.review.finding.requireMatch
-import skillbill.review.finding.value
 import skillbill.review.model.ImportedReview
 import skillbill.review.model.ReviewExecutionMode
 import skillbill.review.model.ReviewIssueCategory
-import skillbill.review.parallel.finding
-import skillbill.review.parallel.findings
-import skillbill.review.review.review
 
 object ReviewParser {
   fun parseReview(text: String): ImportedReview {

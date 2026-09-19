@@ -1,10 +1,4 @@
 package skillbill.infrastructure.sqlite.telemetry.outbox
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.goal.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.measurement.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.quality.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.connection
 import java.sql.Connection
 
 internal object TelemetryOutboxLastErrorMigration {

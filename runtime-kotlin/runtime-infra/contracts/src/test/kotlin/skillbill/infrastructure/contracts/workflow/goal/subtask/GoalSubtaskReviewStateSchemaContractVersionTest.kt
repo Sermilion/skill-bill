@@ -2,12 +2,6 @@ package skillbill.infrastructure.contracts.workflow.goal.subtask
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.identity.subtask.GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.subtask.GoalSubtaskReviewStateSchemaPaths
-import skillbill.infrastructure.contracts.workflow.decomposition.path
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.stream
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.validation.path
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.worker.stream
-import skillbill.infrastructure.contracts.workflow.featuretask.schema.stream
-import skillbill.infrastructure.contracts.workflow.issue.stream
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

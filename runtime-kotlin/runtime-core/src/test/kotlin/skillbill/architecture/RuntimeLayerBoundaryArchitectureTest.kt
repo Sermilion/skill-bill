@@ -463,7 +463,7 @@ class RuntimeLayerBoundaryArchitectureTest {
     )
     val boundariesSource = Files.readString(
       sourcePath(
-        "skillbill/application/review/parallel/core/code/review/runner/" +
+        "skillbill/application/review/parallel/core/code/review/runner/model/" +
           "ParallelCodeReviewRunnerBoundaries.kt",
       ),
     )

@@ -1,13 +1,4 @@
 package skillbill.application.workflow.persist
-import skillbill.application.workflow.decomposition.artifacts
-import skillbill.application.workflow.decomposition.sessionSummary
-import skillbill.application.workflow.decomposition.snapshot
-import skillbill.application.workflow.decomposition.steps
-import skillbill.application.workflow.decomposition.workflowId
-import skillbill.application.workflow.decomposition.workflowStatus
-import skillbill.application.workflow.service.artifacts
-import skillbill.application.workflow.service.resume
-import skillbill.application.workflow.service.workflowId
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys

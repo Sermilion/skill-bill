@@ -2,7 +2,6 @@ package skillbill.engine.goalrunner.preflight
 
 import skillbill.application.continuation.model.GoalContinuationCandidate
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
-import skillbill.engine.goalrunner.model.GoalContinuation
 import skillbill.engine.goalrunner.model.GoalPreflightLookupInput
 import skillbill.engine.goalrunner.model.GoalPreflightRequest
 import skillbill.engine.goalrunner.model.GoalPreflightResult

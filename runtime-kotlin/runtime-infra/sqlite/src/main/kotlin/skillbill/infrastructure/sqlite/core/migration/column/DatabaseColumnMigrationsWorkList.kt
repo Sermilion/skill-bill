@@ -1,7 +1,4 @@
 package skillbill.infrastructure.sqlite.core.migration.column
-import skillbill.infrastructure.sqlite.core.migration.ledger.tableExists
-import skillbill.infrastructure.sqlite.core.ops.tableName
-import skillbill.infrastructure.sqlite.core.schema.connection
 import java.sql.Connection
 
 internal object DatabaseColumnMigrationsWorkList {

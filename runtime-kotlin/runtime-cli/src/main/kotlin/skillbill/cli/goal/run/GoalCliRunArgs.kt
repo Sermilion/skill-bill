@@ -1,5 +1,4 @@
 package skillbill.cli.goal.run
-import skillbill.cli.goal.status.List
 import skillbill.cli.model.CliRunInputs
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort

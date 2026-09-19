@@ -1,7 +1,6 @@
 package dev.skillbill.intellij.domain
 
 import java.time.Instant
-import skillbill.contracts.workflow.identity.status.IDE_STATUS_CONTRACT_VERSION
 
 
 sealed class SkillBillStatusOutcome {

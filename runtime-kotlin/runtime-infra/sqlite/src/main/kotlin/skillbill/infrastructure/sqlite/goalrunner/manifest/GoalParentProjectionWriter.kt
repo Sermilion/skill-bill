@@ -3,14 +3,6 @@ import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
 import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
-import skillbill.infrastructure.sqlite.goalrunner.control.Map
-import skillbill.infrastructure.sqlite.goalrunner.control.existing
-import skillbill.infrastructure.sqlite.goalrunner.control.issueKey
-import skillbill.infrastructure.sqlite.goalrunner.outcome.artifactsPatch
-import skillbill.infrastructure.sqlite.goalrunner.outcome.existing
-import skillbill.infrastructure.sqlite.goalrunner.outcome.issueKey
-import skillbill.infrastructure.sqlite.goalrunner.outcome.workflowId
-import skillbill.infrastructure.sqlite.goalrunner.outcome.workflowStates
 import skillbill.infrastructure.sqlite.workflow.decomposition.decompositionRuntime
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.workflow.model.WorkflowFamily

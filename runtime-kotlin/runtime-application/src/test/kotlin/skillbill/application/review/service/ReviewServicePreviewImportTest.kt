@@ -1,17 +1,4 @@
 package skillbill.application.review.service
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.core.code.review.end.reviewRunId
-import skillbill.application.review.parallel.core.code.review.runner.reviewRunId
-import skillbill.application.review.parallel.core.review.error
-import skillbill.application.review.parallel.planning.reviewRunId
-import skillbill.application.review.parallel.verification.error
-import skillbill.application.review.parallel.verification.reviewRunId
-import skillbill.application.review.preparation.error
-import skillbill.application.review.review.database
-import skillbill.application.review.review.diagnostics
-import skillbill.application.review.spec.diagnostics
-import skillbill.application.review.spec.error
-import skillbill.application.review.verification.diagnostics
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics

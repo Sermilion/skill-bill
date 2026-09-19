@@ -1,7 +1,6 @@
 package skillbill.workflow.taskruntime.artifact
 import skillbill.contracts.JsonCodec
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.taskruntime.feature.artifact
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticSignal
 import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeDiagnosticSignalsFromWire
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
@@ -17,7 +16,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.featureTaskRuntimeDecomposePlanOutcomeOrNull
 import skillbill.workflow.taskruntime.model.phase.featureTaskRuntimeIsDecompositionPackage
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
-import skillbill.workflow.taskruntime.phase.raw
 
 fun FeatureTaskRuntimeFindingVerificationDisposition.asWorkflowArtifactEntry(): Any = toArtifactMap()
 

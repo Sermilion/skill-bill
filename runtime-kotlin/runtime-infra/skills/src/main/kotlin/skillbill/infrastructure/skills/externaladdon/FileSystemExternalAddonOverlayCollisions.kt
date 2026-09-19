@@ -1,8 +1,6 @@
 package skillbill.infrastructure.skills.externaladdon
 import skillbill.error.core.ExternalAddonOverlayError
 import skillbill.error.shellcontent.InvalidManifestSchemaError
-import skillbill.infrastructure.skills.install.outcome
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.scaffold.model.GovernedAddonSelection
 import skillbill.scaffold.model.PointerSpec
 import java.nio.file.Files

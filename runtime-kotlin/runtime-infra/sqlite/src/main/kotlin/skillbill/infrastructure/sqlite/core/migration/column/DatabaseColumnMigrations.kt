@@ -1,11 +1,8 @@
 package skillbill.infrastructure.sqlite.core.migration.column
 import skillbill.infrastructure.sqlite.core.migration.attribution.ReviewAttributionBackfillMigration
-import skillbill.infrastructure.sqlite.core.migration.attribution.backfillExecutionModes
 import skillbill.infrastructure.sqlite.core.migration.evidence.rekeyDiagnosticEvidenceByRepairTurn
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.core.ops.tableName
 import skillbill.infrastructure.sqlite.core.schema.DatabaseReviewColumnMigrations
-import skillbill.infrastructure.sqlite.core.schema.connection
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxDeliveryIdentityMigration
 import java.sql.Connection
 

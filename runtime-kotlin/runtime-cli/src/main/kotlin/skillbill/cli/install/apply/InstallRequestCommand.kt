@@ -4,17 +4,6 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
-import skillbill.cli.install.core.apply
-import skillbill.cli.install.core.inputs
-import skillbill.cli.install.core.state
-import skillbill.cli.install.mcp.agent
-import skillbill.cli.install.mcp.inputs
-import skillbill.cli.install.mcp.state
-import skillbill.cli.install.nativeagent.agent
-import skillbill.cli.install.nativeagent.inputs
-import skillbill.cli.install.nativeagent.path
-import skillbill.cli.install.nativeagent.source
-import skillbill.cli.install.nativeagent.state
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot

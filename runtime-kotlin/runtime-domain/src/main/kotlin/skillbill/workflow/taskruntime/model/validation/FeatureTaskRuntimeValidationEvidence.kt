@@ -2,31 +2,6 @@ package skillbill.workflow.taskruntime.model.validation
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
-import skillbill.workflow.taskruntime.model.audit.error
-import skillbill.workflow.taskruntime.model.audit.map
-import skillbill.workflow.taskruntime.model.audit.reason
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.map
-import skillbill.workflow.taskruntime.model.core.raw
-import skillbill.workflow.taskruntime.model.core.reason
-import skillbill.workflow.taskruntime.model.feature.map
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.persistence.artifact.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.reason
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.keys
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.phase.map
-import skillbill.workflow.taskruntime.model.phase.raw
-import skillbill.workflow.taskruntime.model.phase.reason
-import skillbill.workflow.taskruntime.model.phase.sourceLabel
-import skillbill.workflow.taskruntime.model.repair.task.error
-import skillbill.workflow.taskruntime.model.repair.task.reason
-import skillbill.workflow.taskruntime.model.review.message
 
 private const val MAX_VALIDATION_RESULTS = 50
 

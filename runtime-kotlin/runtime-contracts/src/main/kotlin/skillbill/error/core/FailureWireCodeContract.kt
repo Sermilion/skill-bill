@@ -1,11 +1,8 @@
 package skillbill.error.core
 
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
-import skillbill.error.featuretask.coarseFailureKind
-import skillbill.error.featuretask.fromWire
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.shellcontent.ShellContentContractException
-import skillbill.error.shellcontent.value
 import kotlin.enums.EnumEntries
 
 interface FailureWireCode {

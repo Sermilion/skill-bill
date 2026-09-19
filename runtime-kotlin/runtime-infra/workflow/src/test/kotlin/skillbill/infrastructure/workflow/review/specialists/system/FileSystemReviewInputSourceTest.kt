@@ -1,6 +1,4 @@
 package skillbill.infrastructure.workflow.review.specialists.system
-import skillbill.infrastructure.workflow.featuretask.text
-import skillbill.infrastructure.workflow.git.standard.text
 import skillbill.model.EnvironmentContext
 import java.nio.file.Files
 import kotlin.test.Test

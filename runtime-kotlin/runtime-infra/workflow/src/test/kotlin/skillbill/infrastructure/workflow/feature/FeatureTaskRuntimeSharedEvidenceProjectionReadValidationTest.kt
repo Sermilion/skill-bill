@@ -1,17 +1,7 @@
 package skillbill.infrastructure.workflow.feature
 import skillbill.error.featuretask.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
-import skillbill.infrastructure.workflow.featuretask.ENVELOPE_FILE_NAME
 import skillbill.infrastructure.workflow.featuretask.FileSystemFeatureTaskRuntimeSharedEvidenceStore
-import skillbill.infrastructure.workflow.featuretask.artifact
 import skillbill.infrastructure.workflow.featuretask.artifactDir
-import skillbill.infrastructure.workflow.featuretask.fingerprint
-import skillbill.infrastructure.workflow.featuretask.outcome
-import skillbill.infrastructure.workflow.featuretask.workflowId
-import skillbill.infrastructure.workflow.git.checkpoint.message
-import skillbill.infrastructure.workflow.git.goal.message
-import skillbill.infrastructure.workflow.git.repository.fingerprint
-import skillbill.infrastructure.workflow.git.standard.outcome
-import skillbill.infrastructure.workflow.review.broker.outcome
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceRequest
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolveOutcome
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint

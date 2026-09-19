@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.native
 import skillbill.infrastructure.host.jvm.resolveUserHome
-import skillbill.infrastructure.skills.install.nativeagent.inventory.home
 import skillbill.infrastructure.skills.nativeagent.discovery.discoverNativeAgentFilesByDir
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import java.nio.file.Path

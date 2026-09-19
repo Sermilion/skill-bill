@@ -1,15 +1,5 @@
 package skillbill.infrastructure.sqlite.review.core
 import skillbill.error.shellcontent.ShellContentContractException
-import skillbill.infrastructure.sqlite.review.accounting.List
-import skillbill.infrastructure.sqlite.review.review.review
-import skillbill.infrastructure.sqlite.review.stage.and.review
-import skillbill.infrastructure.sqlite.review.stage.finished.review
-import skillbill.infrastructure.sqlite.review.stage.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.review
-import skillbill.infrastructure.sqlite.review.stats.health.identity
-import skillbill.infrastructure.sqlite.review.stats.recorded.review
-import skillbill.infrastructure.sqlite.review.stats.review
-import skillbill.infrastructure.sqlite.review.stats.workflow.identity
 
 internal class InvalidGoalTelemetryRowError(
   internal val rowIdentity: String,

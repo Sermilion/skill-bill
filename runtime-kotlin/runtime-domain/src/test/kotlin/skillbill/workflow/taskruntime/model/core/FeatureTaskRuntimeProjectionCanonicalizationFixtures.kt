@@ -1,9 +1,4 @@
 package skillbill.workflow.taskruntime.model.core
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.validation.Map
 
 object FeatureTaskRuntimeProjectionCanonicalizationFixtures {
   private val NESTED_CLOSED_OBJECTS: Map<String, Any?> = mapOf(

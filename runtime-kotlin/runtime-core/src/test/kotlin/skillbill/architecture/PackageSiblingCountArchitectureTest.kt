@@ -9,6 +9,29 @@ class PackageSiblingCountArchitectureTest {
   @Test
   fun `production package census stays within ceilings outside the remainder inventory`() {
     val sourceRoots = PrincipleEnforcementInventory.productionPackageSiblingCountSourceRoots
+    assertEngineAreaRootsKeepOnlyFacades()
+    assertTrue(
+      sourceRoots.all { sourceRoot ->
+        ArchitectureScanSupport.kotlinFilesUnder(
+          ArchitectureScanSupport.runtimeRoot.resolve(sourceRoot),
+        ).isNotEmpty()
+      },
+      "Every production source root must contribute Kotlin files to the sibling census.",
+    )
+    val counts = ArchitectureScanSupport.productionPackageSiblingCounts(sourceRoots)
+    val remainderInventory = PrincipleEnforcementInventory.packageSiblingCountRemainderInventory
+    assertEquals(emptyMap(), remainderInventory)
+    assertEquals(
+      emptyList(),
+      ArchitectureScanSupport.productionPackageSiblingCountViolations(
+        sourceRoots = sourceRoots,
+        remainderInventory = remainderInventory.keys,
+      ),
+    )
+    assertCensusCoversNestedEnginePackages(counts, remainderInventory)
+  }
+
+  private fun assertEngineAreaRootsKeepOnlyFacades() {
     val featureTaskRoot = ArchitectureScanSupport.runtimeRoot.resolve(
       "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask",
     )
@@ -46,25 +69,12 @@ class PackageSiblingCountArchitectureTest {
       "Planning context, attempt, sweep, outcome, recovery, and " +
         "remedy types must not remain in the planning area root.",
     )
-    assertTrue(
-      sourceRoots.all { sourceRoot ->
-        ArchitectureScanSupport.kotlinFilesUnder(
-          ArchitectureScanSupport.runtimeRoot.resolve(sourceRoot),
-        ).isNotEmpty()
-      },
-      "Every production source root must contribute Kotlin files to the sibling census.",
-    )
+  }
 
-    val counts = ArchitectureScanSupport.productionPackageSiblingCounts(sourceRoots)
-    val remainderInventory = PrincipleEnforcementInventory.packageSiblingCountRemainderInventory
-    assertEquals(emptyMap(), remainderInventory)
-    assertEquals(
-      emptyList(),
-      ArchitectureScanSupport.productionPackageSiblingCountViolations(
-        sourceRoots = sourceRoots,
-        remainderInventory = remainderInventory.keys,
-      ),
-    )
+  private fun assertCensusCoversNestedEnginePackages(
+    counts: List<ArchitectureScanSupport.PackageSiblingCount>,
+    remainderInventory: Map<String, String>,
+  ) {
     assertTrue(
       counts.any { count -> count.packageName == "skillbill.engine.featuretask.lifecycle.core" },
       "The sibling census must scan the moved feature-task production packages.",

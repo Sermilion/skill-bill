@@ -3,9 +3,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.error.shellcontent.MissingInstallSelectionRecordError
 import skillbill.error.shellcontent.UnreadableInstallSelectionRecordError
 import skillbill.infrastructure.host.jvm.atomicWriteString
-import skillbill.infrastructure.skills.externaladdon.request
-import skillbill.infrastructure.skills.scaffold.path
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.install.model.SharedInstallSelection
 import skillbill.ports.install.selection.InstallSelectionPersistencePort
 import skillbill.ports.install.selection.model.ReadLatestSuccessfulInstallSelectionRequest

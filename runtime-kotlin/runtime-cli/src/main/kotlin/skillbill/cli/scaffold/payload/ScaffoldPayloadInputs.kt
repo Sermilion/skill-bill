@@ -1,17 +1,6 @@
 package skillbill.cli.scaffold.payload
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.scaffold.commands.NewAddonPayloadArgs
-import skillbill.cli.scaffold.commands.addonLocationPath
-import skillbill.cli.scaffold.commands.body
-import skillbill.cli.scaffold.commands.bodyFile
-import skillbill.cli.scaffold.commands.clock
-import skillbill.cli.scaffold.commands.consumerSkillDirs
-import skillbill.cli.scaffold.commands.format
-import skillbill.cli.scaffold.commands.name
-import skillbill.cli.scaffold.commands.payloadPath
-import skillbill.cli.scaffold.commands.platform
-import skillbill.cli.scaffold.commands.state
-import skillbill.cli.scaffold.wizard.platform
 import skillbill.contracts.JsonCodec
 import java.nio.file.Path
 import java.time.Clock

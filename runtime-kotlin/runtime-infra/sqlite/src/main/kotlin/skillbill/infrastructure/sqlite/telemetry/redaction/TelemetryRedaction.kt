@@ -1,6 +1,4 @@
 package skillbill.infrastructure.sqlite.telemetry.redaction
-import skillbill.infrastructure.sqlite.telemetry.goal.issueKey
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.issueKey
 import java.security.MessageDigest
 
 internal const val REDACTED_ISSUE_KEY_PREFIX = "iss_"

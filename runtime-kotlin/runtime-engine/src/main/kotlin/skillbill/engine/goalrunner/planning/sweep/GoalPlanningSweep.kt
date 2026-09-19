@@ -9,6 +9,7 @@ import skillbill.engine.goalrunner.planning.context.currentProvenance
 import skillbill.engine.goalrunner.planning.context.gatherSharedContext
 import skillbill.engine.goalrunner.planning.context.planningPacketFrom
 import skillbill.engine.goalrunner.planning.context.settleSharedPreplan
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSharedContext
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.engine.goalrunner.planning.model.SharedPreplanSettlementArgs
 import skillbill.engine.goalrunner.planning.outcome.canonicalRepository
@@ -18,14 +19,10 @@ import skillbill.engine.goalrunner.planning.outcome.produceMissingPlans
 import skillbill.engine.goalrunner.planning.outcome.sharedContextReason
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningMissingSharedContextPacketStopReason
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningRemedySubtaskId
-import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.repository.RepositoryEnclosingRootPort
-import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.decomposition.model.SpecSource
-import java.nio.file.Path
 
 fun interface GoalPlanningSweep {
   fun prepare(state: GoalRunnerManifestState, request: GoalRunnerRunRequest): GoalPlanningSweepOutcome
@@ -34,24 +31,6 @@ fun interface GoalPlanningSweep {
     val NONE: GoalPlanningSweep = GoalPlanningSweep { _, _ -> GoalPlanningSweepOutcome.PreparedAll() }
   }
 }
-
-internal data class GoalPlanningSharedContext(
-  val issueKey: String,
-  val normalizedIssueKey: String,
-  val parentWorkflowId: String,
-  val manifest: DecompositionManifest,
-  val controlState: GoalRunnerControlState,
-  val repositoryIdentity: String,
-  val parentSpec: String,
-  val parentSpecHash: String,
-  val decompositionManifestHash: String,
-  val repoRoot: Path,
-  val invokedAgentId: String,
-  val configuredAgentOverrideId: String?,
-  val specSource: SpecSource,
-  val parentSpecPath: Path,
-  val planningPacket: Map<String, Any?>,
-)
 
 @Inject
 class DefaultGoalPlanningSweep(

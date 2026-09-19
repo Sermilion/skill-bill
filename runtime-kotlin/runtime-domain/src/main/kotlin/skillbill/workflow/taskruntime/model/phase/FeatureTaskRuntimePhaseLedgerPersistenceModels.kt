@@ -2,37 +2,8 @@ package skillbill.workflow.taskruntime.model.phase
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.audit.entries
-import skillbill.workflow.taskruntime.model.audit.error
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.raw
-import skillbill.workflow.taskruntime.model.feature.entries
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.handoff.envelope.value
-import skillbill.workflow.taskruntime.model.handoff.task.iteration
-import skillbill.workflow.taskruntime.model.handoff.task.value
-import skillbill.workflow.taskruntime.model.handoff.task.wireValue
 import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.optionalInt
-import skillbill.workflow.taskruntime.model.persistence.artifact.optionalString
-import skillbill.workflow.taskruntime.model.persistence.artifact.requiredInt
-import skillbill.workflow.taskruntime.model.persistence.artifact.requiredString
-import skillbill.workflow.taskruntime.model.persistence.artifact.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.value
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.requireKnownFeatureTaskRuntimePhaseId
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
-import skillbill.workflow.taskruntime.model.repair.task.entries
-import skillbill.workflow.taskruntime.model.repair.task.error
-import skillbill.workflow.taskruntime.model.repair.task.value
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.entries
-import skillbill.workflow.taskruntime.model.validation.raw
-import skillbill.workflow.taskruntime.model.validation.wireValue
 
 enum class FeatureTaskRuntimePhaseExecutionOrigin(val wireValue: String) {
   AGENT_EXECUTED("agent-executed"),

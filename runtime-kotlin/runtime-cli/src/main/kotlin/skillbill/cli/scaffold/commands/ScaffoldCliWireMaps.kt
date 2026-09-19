@@ -1,7 +1,4 @@
 package skillbill.cli.scaffold.commands
-import skillbill.cli.scaffold.payload.content
-import skillbill.cli.scaffold.payload.layer
-import skillbill.cli.scaffold.wizard.platform
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.scaffold.catalog.model.ScaffoldExplainSkill
 import skillbill.ports.scaffold.model.ScaffoldReviewComposition

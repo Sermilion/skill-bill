@@ -1,17 +1,8 @@
 package skillbill.infrastructure.sqlite.core.migration
 import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
-import skillbill.infrastructure.sqlite.core.migration.column.healDiagnosticEvidenceKeys
-import skillbill.infrastructure.sqlite.core.migration.column.healWorkListMetadata
 import skillbill.infrastructure.sqlite.core.schema.DatabaseReviewColumnMigrations
 import skillbill.infrastructure.sqlite.core.schema.DatabaseReviewFindingColumnMigrations
 import skillbill.infrastructure.sqlite.core.schema.DatabaseReviewLedgerSchema
-import skillbill.infrastructure.sqlite.core.schema.connection
-import skillbill.infrastructure.sqlite.core.schema.ensureFindingLaneColumns
-import skillbill.infrastructure.sqlite.core.schema.ensureReviewFindingOutcomeColumns
-import skillbill.infrastructure.sqlite.core.schema.ensureReviewFindingOutcomeKeyColumns
-import skillbill.infrastructure.sqlite.core.schema.ensureReviewRunLaneDispositionColumns
-import skillbill.infrastructure.sqlite.core.schema.reviewFindingOutcomeStatements
-import skillbill.infrastructure.sqlite.core.schema.reviewRunLaneStatements
 import java.sql.Connection
 
 internal fun persistGoalPlanningRepairEvidence(connection: Connection) {

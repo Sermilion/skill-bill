@@ -1,14 +1,5 @@
 package skillbill.infrastructure.skills.install
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.skills.externaladdon.map
-import skillbill.infrastructure.skills.externaladdon.plan
-import skillbill.infrastructure.skills.externaladdon.platformPacksRoot
-import skillbill.infrastructure.skills.externaladdon.request
-import skillbill.infrastructure.skills.externaladdon.result
-import skillbill.infrastructure.skills.externaladdon.skipped
-import skillbill.infrastructure.skills.file.home
-import skillbill.infrastructure.skills.file.map
-import skillbill.infrastructure.skills.file.result
 import skillbill.infrastructure.skills.install.apply.InstallCleanupOperations
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
 import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentOperations
@@ -23,10 +14,6 @@ import skillbill.infrastructure.skills.install.reconcile.computeReconciliationPl
 import skillbill.infrastructure.skills.install.runtime.InstallOperations
 import skillbill.infrastructure.skills.install.runtime.linkInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
-import skillbill.infrastructure.skills.scaffold.home
-import skillbill.infrastructure.skills.scaffold.path
-import skillbill.infrastructure.skills.scaffold.result
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.install.agent.InstallAgentTargetPort
 import skillbill.ports.install.agent.model.ClaudeConfigRootsRequest

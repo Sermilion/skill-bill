@@ -1,5 +1,4 @@
 package skillbill.workflow.taskruntime.model.repair.task
-import skillbill.workflow.taskruntime.model.core.task
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REASON_MAX_LENGTH
 data class FeatureTaskRuntimeOperatorBlockRetry(
   val phaseId: String,

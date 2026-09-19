@@ -1,11 +1,7 @@
 package skillbill.infrastructure.sqlite.core.migration.attribution
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
-import skillbill.infrastructure.sqlite.core.migration.column.ensureReviewRunColumns
-import skillbill.infrastructure.sqlite.core.migration.column.reviewRunColumnNames
-import skillbill.infrastructure.sqlite.core.migration.column.reviewRunsTableExists
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.core.schema.connection
 import skillbill.review.attribution.EXECUTION_MODE_DELEGATED
 import skillbill.review.attribution.UNRESOLVED_ATTRIBUTION
 import skillbill.review.attribution.canonicalPackSkillNames

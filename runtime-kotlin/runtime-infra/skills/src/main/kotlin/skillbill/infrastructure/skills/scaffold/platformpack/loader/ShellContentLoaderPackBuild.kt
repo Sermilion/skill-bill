@@ -2,10 +2,8 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.contractVersion
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.anchoredTopLevelFieldNames
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.declaredSkillRelativeDirs
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.validate
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.telemetry.model.CustomFieldMap

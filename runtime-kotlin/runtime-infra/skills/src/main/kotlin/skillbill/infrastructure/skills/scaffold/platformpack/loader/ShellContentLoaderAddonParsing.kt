@@ -1,7 +1,5 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.sorted
 import skillbill.scaffold.model.FeatureAddonUsage
 import skillbill.scaffold.model.GovernedAddonActivation
 import skillbill.scaffold.model.GovernedAddonSelection

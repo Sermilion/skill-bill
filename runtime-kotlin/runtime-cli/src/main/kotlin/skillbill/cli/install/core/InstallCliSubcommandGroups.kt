@@ -17,8 +17,6 @@ import skillbill.cli.install.nativeagent.NativeAgentClaudeCliCommands
 import skillbill.cli.install.nativeagent.NativeAgentCodexCliCommands
 import skillbill.cli.install.nativeagent.NativeAgentCursorCliCommands
 import skillbill.cli.install.nativeagent.NativeAgentJunieCliCommands
-import skillbill.cli.install.nativeagent.link
-import skillbill.cli.install.nativeagent.unlink
 
 @Inject
 class InstallPlanCliSubcommands(

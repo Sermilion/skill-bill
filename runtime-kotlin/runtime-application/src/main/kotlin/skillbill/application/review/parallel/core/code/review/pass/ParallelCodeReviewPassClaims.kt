@@ -1,15 +1,4 @@
 package skillbill.application.review.parallel.core.code.review.pass
-import skillbill.application.review.parallel.core.code.review.bundled.finding
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.core.code.review.end.finding
-import skillbill.application.review.parallel.core.code.review.integration.finding
-import skillbill.application.review.parallel.core.code.review.runner.existing
-import skillbill.application.review.parallel.verification.existing
-import skillbill.application.review.review.existing
-import skillbill.application.review.review.incoming
-import skillbill.application.review.service.review
-import skillbill.application.review.spec.finding
-import skillbill.application.review.verification.finding
 import skillbill.review.model.ParallelReviewMergedFinding
 
 internal fun unionReviewPassClaims(

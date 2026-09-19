@@ -2,29 +2,7 @@ package skillbill.workflow.taskruntime.model.validation
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeFindingVerificationRecordError
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.raw
 import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.handoff.envelope.value
-import skillbill.workflow.taskruntime.model.handoff.task.value
-import skillbill.workflow.taskruntime.model.handoff.task.wireValue
-import skillbill.workflow.taskruntime.model.persistence.artifact.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.field
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.keys
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.phase.raw
-import skillbill.workflow.taskruntime.model.repair.task.entry
-import skillbill.workflow.taskruntime.model.repair.task.value
-import skillbill.workflow.taskruntime.model.review.path
 
 enum class FeatureTaskRuntimeFindingVerificationDispositionVerdict(val wireValue: String) {
   VERIFIED("verified"),

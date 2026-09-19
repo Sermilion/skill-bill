@@ -1,11 +1,4 @@
 package skillbill.infrastructure.sqlite.review.stage.sql
-import skillbill.infrastructure.sqlite.review.review.review
-import skillbill.infrastructure.sqlite.review.stage.and.review
-import skillbill.infrastructure.sqlite.review.stage.finished.review
-import skillbill.infrastructure.sqlite.review.stage.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.review
-import skillbill.infrastructure.sqlite.review.stats.recorded.review
-import skillbill.infrastructure.sqlite.review.stats.review
 
 internal val reviewSummarySql =
   """

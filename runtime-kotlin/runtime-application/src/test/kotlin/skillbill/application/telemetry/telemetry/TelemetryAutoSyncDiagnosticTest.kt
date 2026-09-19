@@ -1,17 +1,8 @@
 package skillbill.application.telemetry.telemetry
-import skillbill.application.telemetry.lifecycle.clock
-import skillbill.application.telemetry.lifecycle.level
 import skillbill.application.telemetry.service.RUNTIME_EXCEPTION_EVENT
 import skillbill.application.telemetry.service.TELEMETRY_BACKGROUND_SYNC_FAILURE_SIGNATURE
 import skillbill.application.telemetry.service.TelemetryLevelMutationService
 import skillbill.application.telemetry.service.TelemetryService
-import skillbill.application.telemetry.service.autoSync
-import skillbill.application.telemetry.service.clock
-import skillbill.application.telemetry.service.configStore
-import skillbill.application.telemetry.service.level
-import skillbill.application.telemetry.service.levelMutationService
-import skillbill.application.telemetry.service.sync
-import skillbill.application.telemetry.service.telemetryClient
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics

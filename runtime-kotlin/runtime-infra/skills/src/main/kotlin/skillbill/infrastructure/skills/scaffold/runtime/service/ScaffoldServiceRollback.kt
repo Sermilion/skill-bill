@@ -5,9 +5,7 @@ import skillbill.infrastructure.host.jvm.rollbackDeleteEmptyDirectory
 import skillbill.infrastructure.host.jvm.rollbackDeleteIfExists
 import skillbill.infrastructure.host.jvm.rollbackDeleteRegularFileOrSymlink
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.platform
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.validation.message
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

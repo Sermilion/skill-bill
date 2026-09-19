@@ -6,14 +6,7 @@ import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.persist.decodeWorkflowArtifacts
-import skillbill.application.workflow.persist.workflowId
 import skillbill.application.workflow.service.decompositionRuntimeArtifactsJson
-import skillbill.application.workflow.service.gitOperations
-import skillbill.application.workflow.service.outcome
-import skillbill.application.workflow.service.reason
-import skillbill.application.workflow.service.request
-import skillbill.application.workflow.service.unitOfWork
-import skillbill.application.workflow.service.workflowId
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.ports.workflow.gitops.WorkflowGitOperations

@@ -1,8 +1,4 @@
 package skillbill.application.telemetry.validation
-import skillbill.application.telemetry.lifecycle.auditResult
-import skillbill.application.telemetry.lifecycle.completionStatus
-import skillbill.application.telemetry.lifecycle.historyHelpfulness
-import skillbill.application.telemetry.lifecycle.historyRelevance
 import skillbill.application.telemetry.model.FeatureVerifyFinishedRequest
 
 val auditResults = listOf("all_pass", "had_gaps", "skipped")

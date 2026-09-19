@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner.manifest
-import skillbill.engine.goalrunner.manifest
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStoreDefaults
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState

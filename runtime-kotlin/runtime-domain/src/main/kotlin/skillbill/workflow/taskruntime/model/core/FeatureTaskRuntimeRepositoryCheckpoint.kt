@@ -1,27 +1,7 @@
 package skillbill.workflow.taskruntime.model.core
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.workflow.taskruntime.model.audit.entries
-import skillbill.workflow.taskruntime.model.feature.entries
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.handoff.envelope.value
 import skillbill.workflow.taskruntime.model.handoff.task.MAX_REPOSITORY_FINGERPRINT_LENGTH
 import skillbill.workflow.taskruntime.model.handoff.task.unrecognizedHandoffWireValue
-import skillbill.workflow.taskruntime.model.handoff.task.value
-import skillbill.workflow.taskruntime.model.handoff.task.wireValue
-import skillbill.workflow.taskruntime.model.persistence.artifact.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.repair.task.entries
-import skillbill.workflow.taskruntime.model.repair.task.value
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.entries
-import skillbill.workflow.taskruntime.model.validation.wireValue
 
 enum class FeatureTaskRuntimeRepositoryCheckpointPolicy(val wireValue: String) {
   NOT_REQUIRED("not_required"),

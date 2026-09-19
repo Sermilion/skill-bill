@@ -7,10 +7,6 @@ import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.name
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.slug
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import java.util.logging.Logger
 

@@ -1,13 +1,10 @@
 package skillbill.workflow.taskruntime.handoff
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.artifact.phaseId
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
-import skillbill.workflow.taskruntime.model.core.validate
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDelivery
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionShape
@@ -21,23 +18,8 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeResol
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
 import skillbill.workflow.taskruntime.noop.NoopFeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.phase.planning.delivery
-import skillbill.workflow.taskruntime.phase.planning.projectionContractVersion
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowQueries
-import skillbill.workflow.taskruntime.phase.task.PHASE_AUDIT
-import skillbill.workflow.taskruntime.phase.task.PHASE_BUILD
-import skillbill.workflow.taskruntime.phase.task.PHASE_COMMIT_PUSH
-import skillbill.workflow.taskruntime.phase.task.PHASE_IMPLEMENT
-import skillbill.workflow.taskruntime.phase.task.PHASE_PLAN
-import skillbill.workflow.taskruntime.phase.task.PHASE_PR
-import skillbill.workflow.taskruntime.phase.task.PHASE_VALIDATE
-import skillbill.workflow.taskruntime.phase.task.PHASE_WRITE_HISTORY
-import skillbill.workflow.taskruntime.phase.task.fields
-import skillbill.workflow.taskruntime.phase.task.phaseDeclaration
-import skillbill.workflow.taskruntime.phase.task.phaseDeclarationForQualityGate
-import skillbill.workflow.taskruntime.phase.task.upstream
-import skillbill.workflow.taskruntime.validation.block
 import kotlin.test.assertTrue
 
 internal const val HANDOFF_VALIDATOR_TEST_CONSUMER: String = "implement"

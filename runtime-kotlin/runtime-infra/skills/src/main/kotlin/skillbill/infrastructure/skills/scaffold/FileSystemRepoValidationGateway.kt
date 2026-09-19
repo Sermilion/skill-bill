@@ -1,14 +1,7 @@
 package skillbill.infrastructure.skills.scaffold
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.skills.externaladdon.config
-import skillbill.infrastructure.skills.externaladdon.map
-import skillbill.infrastructure.skills.externaladdon.message
-import skillbill.infrastructure.skills.externaladdon.name
-import skillbill.infrastructure.skills.externaladdon.sourcePath
-import skillbill.infrastructure.skills.file.map
 import skillbill.infrastructure.skills.nativeagent.FileSystemNativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext
-import skillbill.infrastructure.skills.nativeagent.issues
 import skillbill.infrastructure.skills.nativeagent.validatePlannedNativeAgentWorkers
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoredContentBody
 import skillbill.infrastructure.skills.scaffold.runtime.validation.ReleaseRefMetadata

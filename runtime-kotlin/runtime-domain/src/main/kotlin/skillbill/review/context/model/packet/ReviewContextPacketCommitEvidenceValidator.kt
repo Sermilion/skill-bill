@@ -1,21 +1,6 @@
 package skillbill.review.context.model.packet
-import skillbill.review.context.model.accounting.commitCount
-import skillbill.review.context.model.bundle.hunkIds
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitUnit
-import skillbill.review.context.model.commit.baseRevision
-import skillbill.review.context.model.commit.commitCount
-import skillbill.review.context.model.commit.commitSha
-import skillbill.review.context.model.commit.headRevision
-import skillbill.review.context.model.commit.hunkIds
-import skillbill.review.context.model.commit.isSynthetic
-import skillbill.review.context.model.commit.orderIndex
-import skillbill.review.context.model.commit.parentSha
-import skillbill.review.context.model.commit.source
-import skillbill.review.context.model.execution.orderIndex
-import skillbill.review.context.model.launch.packet
-import skillbill.review.context.model.review.first
-import skillbill.review.context.model.review.packet
 internal object ReviewContextPacketCommitEvidenceValidator {
   fun validate(packet: ReviewContextPacket, ownedHunks: Set<String>) {
     validateCommitUnitsPresent(packet.commitUnits)

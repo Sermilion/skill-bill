@@ -1,21 +1,7 @@
 package skillbill.infrastructure.sqlite.review.stats
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
-import skillbill.infrastructure.sqlite.review.accounting.Map
-import skillbill.infrastructure.sqlite.review.core.Map
-import skillbill.infrastructure.sqlite.review.review.review
-import skillbill.infrastructure.sqlite.review.stage.Map
-import skillbill.infrastructure.sqlite.review.stage.and.review
-import skillbill.infrastructure.sqlite.review.stage.finished.review
-import skillbill.infrastructure.sqlite.review.stage.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.review
-import skillbill.infrastructure.sqlite.review.stats.health.Map
-import skillbill.infrastructure.sqlite.review.stats.recorded.review
 import skillbill.infrastructure.sqlite.review.stats.workflow.buildGoalStats
 import skillbill.infrastructure.sqlite.review.stats.workflow.goalIdentityAvailability
-import skillbill.infrastructure.sqlite.review.stats.workflow.parentWorkflowId
-import skillbill.infrastructure.sqlite.review.stats.workflow.resumed
-import skillbill.infrastructure.sqlite.review.stats.workflow.status
-import skillbill.infrastructure.sqlite.review.stats.workflow.workflowId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

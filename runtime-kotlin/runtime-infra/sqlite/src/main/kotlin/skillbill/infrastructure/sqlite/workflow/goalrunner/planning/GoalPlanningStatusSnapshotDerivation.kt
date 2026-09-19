@@ -3,8 +3,6 @@ import skillbill.contracts.workflow.identity.status.GOAL_PLANNING_WAVE_CAP
 import skillbill.goalrunner.model.GoalPlanningStatusReasons
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalPlanningStatusState
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflow
-import skillbill.infrastructure.sqlite.workflow.goalrunner.subtask.shared
 
 internal fun planningStatusSnapshot(
   orderedSubtaskIds: List<Int>,

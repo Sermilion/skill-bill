@@ -1,11 +1,6 @@
-package skillbill.infrastructure.skills.scaffold
+package skillbill.infrastructure.skills.scaffold.manifest.persistence
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
-import skillbill.infrastructure.skills.externaladdon.addonSlug
-import skillbill.infrastructure.skills.externaladdon.manifestPath
-import skillbill.infrastructure.skills.externaladdon.platform
-import skillbill.infrastructure.skills.externaladdon.request
-import skillbill.infrastructure.skills.install.manifestPath
 import skillbill.infrastructure.skills.scaffold.manifest.appendCodeReviewArea
 import skillbill.infrastructure.skills.scaffold.manifest.appendGovernedAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.manifest.renderGovernedAddonManifestRegistration

@@ -1,24 +1,5 @@
 package skillbill.workflow.taskruntime.model.repair.task
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
-import skillbill.workflow.taskruntime.model.audit.reason
-import skillbill.workflow.taskruntime.model.core.fieldPath
-import skillbill.workflow.taskruntime.model.core.raw
-import skillbill.workflow.taskruntime.model.core.reason
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.handoff.envelope.value
-import skillbill.workflow.taskruntime.model.handoff.task.maxUtf8Bytes
-import skillbill.workflow.taskruntime.model.handoff.task.value
-import skillbill.workflow.taskruntime.model.persistence.artifact.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.field
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.reason
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.prior.isEmpty
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.value
-import skillbill.workflow.taskruntime.model.phase.payloadFreeReason
-import skillbill.workflow.taskruntime.model.phase.raw
-import skillbill.workflow.taskruntime.model.phase.reason
-import skillbill.workflow.taskruntime.model.validation.raw
-import skillbill.workflow.taskruntime.model.validation.reason
 
 private val COMPACT_SYMBOL = Regex("^[A-Za-z_][A-Za-z0-9_$-]*(?:\\.[A-Za-z_][A-Za-z0-9_$-]*)?$")
 private val COMPACT_IDENTIFIER = Regex("^[A-Za-z_][A-Za-z0-9_$-]*$")

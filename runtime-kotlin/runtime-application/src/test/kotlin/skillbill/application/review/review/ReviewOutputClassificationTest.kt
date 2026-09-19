@@ -1,11 +1,6 @@
 package skillbill.application.review.review
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.preparation.fixture
 import skillbill.application.review.service.ReviewOutputAdmission
-import skillbill.application.review.service.admission
 import skillbill.application.review.service.classifyReviewOutput
-import skillbill.application.review.service.processOutcome
-import skillbill.application.review.service.review
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.review.model.ReviewProcessOutcome

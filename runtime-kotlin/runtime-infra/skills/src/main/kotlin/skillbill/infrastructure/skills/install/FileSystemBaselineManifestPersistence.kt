@@ -1,10 +1,6 @@
 package skillbill.infrastructure.skills.install
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.host.jvm.atomicWriteString
-import skillbill.infrastructure.skills.externaladdon.empty
-import skillbill.infrastructure.skills.externaladdon.request
-import skillbill.infrastructure.skills.scaffold.path
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.install.model.BaselineManifest
 import skillbill.ports.install.baseline.BaselineManifestPersistencePort
 import skillbill.ports.install.baseline.model.ReadBaselineManifestRequest

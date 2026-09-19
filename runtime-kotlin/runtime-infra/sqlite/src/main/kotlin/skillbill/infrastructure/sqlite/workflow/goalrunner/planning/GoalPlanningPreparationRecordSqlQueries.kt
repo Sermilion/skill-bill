@@ -3,14 +3,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
-import skillbill.infrastructure.sqlite.workflow.decomposition.normalizedIssueKey
-import skillbill.infrastructure.sqlite.workflow.decomposition.record
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflow
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.Map
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.subtaskId
-import skillbill.infrastructure.sqlite.workflow.goalrunner.subtask.subtaskId
-import skillbill.infrastructure.sqlite.workflow.workflow.rows
-import skillbill.infrastructure.sqlite.workflow.workflow.statement
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationStatus

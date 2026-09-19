@@ -1,5 +1,4 @@
 package skillbill.infrastructure.skills.scaffold.validation.review
-import skillbill.infrastructure.skills.scaffold.validation.shape.headings
 import java.nio.file.Path
 
 internal fun baselineHeadingSequenceViolation(file: Path, required: List<String>): ReviewSkillStructureViolation? =

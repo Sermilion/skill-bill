@@ -1,7 +1,4 @@
 package skillbill.application.telemetry.service
-import skillbill.application.telemetry.lifecycle.level
-import skillbill.application.telemetry.telemetry.outbox
-import skillbill.application.telemetry.telemetry.service
 import skillbill.contracts.JsonCodec
 import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 

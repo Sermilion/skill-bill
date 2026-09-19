@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.core.schema
 import skillbill.error.core.DatabaseAccessOperation
-import skillbill.infrastructure.sqlite.core.migration.ledger.exists
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes

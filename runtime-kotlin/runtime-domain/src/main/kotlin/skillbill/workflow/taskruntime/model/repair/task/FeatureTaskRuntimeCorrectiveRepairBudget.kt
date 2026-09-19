@@ -1,6 +1,4 @@
 package skillbill.workflow.taskruntime.model.repair.task
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.handoff.task.itemCount
 
 data class FeatureTaskRuntimeCorrectiveRepairBudget(
   val maxResponseUtf8Bytes: Int,

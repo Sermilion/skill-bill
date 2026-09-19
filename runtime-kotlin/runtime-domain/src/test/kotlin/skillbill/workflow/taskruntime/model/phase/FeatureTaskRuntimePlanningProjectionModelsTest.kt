@@ -1,17 +1,6 @@
 
 package skillbill.workflow.taskruntime.model.phase
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.taskruntime.model.audit.phaseId
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.handoff.envelope.phaseId
-import skillbill.workflow.taskruntime.model.handoff.task.phaseId
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.phaseId
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.phaseId
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.repair.task.phaseId
-import skillbill.workflow.taskruntime.model.validation.Map
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

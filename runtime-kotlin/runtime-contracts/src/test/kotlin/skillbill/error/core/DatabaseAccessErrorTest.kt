@@ -1,5 +1,4 @@
 package skillbill.error.core
-import skillbill.error.shellcontent.operation
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

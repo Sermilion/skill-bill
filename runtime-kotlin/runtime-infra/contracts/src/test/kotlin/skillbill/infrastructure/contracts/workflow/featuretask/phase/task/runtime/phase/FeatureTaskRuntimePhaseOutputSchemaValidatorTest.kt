@@ -2,8 +2,6 @@ package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runti
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimePhaseOutputSchemaValidator
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.reason
-import skillbill.infrastructure.contracts.workflow.goal.planning.reason
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
 import kotlin.test.Test

@@ -2,12 +2,6 @@ package skillbill.cli.scaffold.wizard
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.scaffold.commands.assistedPlatformProfile
-import skillbill.cli.scaffold.commands.inputs
-import skillbill.cli.scaffold.commands.slug
-import skillbill.cli.scaffold.commands.state
-import skillbill.cli.scaffold.commands.strongSignals
-import skillbill.cli.scaffold.payload.inputs
-import skillbill.cli.scaffold.payload.kind
 import skillbill.install.model.InstallAgent
 
 internal fun addOnWizardPayload(state: CliRunState, inputs: CliRunInputs): Map<String, Any?> = buildMap {

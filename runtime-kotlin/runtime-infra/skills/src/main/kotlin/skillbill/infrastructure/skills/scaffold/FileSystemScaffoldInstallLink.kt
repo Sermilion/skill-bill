@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.scaffold
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.skills.externaladdon.request
 import skillbill.infrastructure.skills.install.plan.InstallContext
 import skillbill.infrastructure.skills.install.plan.detectAgents
 import skillbill.infrastructure.skills.install.plan.installSkill

@@ -2,16 +2,6 @@ package skillbill.infrastructure.sqlite.review.stage
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.infrastructure.sqlite.SQLiteReviewRunCompletenessRepository
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
-import skillbill.infrastructure.sqlite.review.accounting.List
-import skillbill.infrastructure.sqlite.review.review.dbPath
-import skillbill.infrastructure.sqlite.review.review.review
-import skillbill.infrastructure.sqlite.review.stage.and.review
-import skillbill.infrastructure.sqlite.review.stage.finished.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.review
-import skillbill.infrastructure.sqlite.review.stats.connection
-import skillbill.infrastructure.sqlite.review.stats.health.severity
-import skillbill.infrastructure.sqlite.review.stats.recorded.review
-import skillbill.infrastructure.sqlite.review.stats.review
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewClaimVerdict

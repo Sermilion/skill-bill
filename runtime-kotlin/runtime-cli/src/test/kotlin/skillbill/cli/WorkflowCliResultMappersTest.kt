@@ -6,7 +6,7 @@ import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.cli.goal.run.toGoalDiffStatCliMap
 import skillbill.cli.goal.run.toGoalSelectedDiffHunksCliMap
-import skillbill.cli.kernel.toPayload
+import skillbill.cli.kernel.payload.toPayload
 import skillbill.cli.workflow.toCliMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary

@@ -14,9 +14,6 @@ import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.scaffold.payload.authoringResult
 import skillbill.cli.scaffold.payload.completeRenderText
-import skillbill.cli.scaffold.payload.payload
-import skillbill.cli.scaffold.payload.result
-import skillbill.cli.scaffold.wizard.payload
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.UnsupportedScaffoldGateway

@@ -6,10 +6,10 @@ import skillbill.engine.goalrunner.planning.model.GoalPlanningAttemptScope
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.engine.goalrunner.planning.model.GoalPlanningRejectionRecord
 import skillbill.engine.goalrunner.planning.model.GoalPlanningRejectionRecordArgs
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSharedContext
 import skillbill.engine.goalrunner.planning.outcome.exhaustedDeclineReason
 import skillbill.engine.goalrunner.planning.outcome.stopped
 import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.goal.model.GoalProgressEventKind

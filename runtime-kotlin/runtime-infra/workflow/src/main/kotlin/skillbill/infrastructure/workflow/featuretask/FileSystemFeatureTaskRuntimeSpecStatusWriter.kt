@@ -1,9 +1,5 @@
 package skillbill.infrastructure.workflow.featuretask
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.workflow.filesystem.matches
-import skillbill.infrastructure.workflow.git.goal.value
-import skillbill.infrastructure.workflow.git.workflow.specPath
-import skillbill.infrastructure.workflow.git.workflow.value
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSpecStatusWriter
 import java.nio.file.Files
 import java.nio.file.Path

@@ -3,13 +3,6 @@ import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.declaredCodeReviewSkillNames
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
-import skillbill.infrastructure.skills.scaffold.runtime.service.contentFile
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.issues
-import skillbill.infrastructure.skills.scaffold.runtime.service.name
-import skillbill.infrastructure.skills.scaffold.runtime.service.packRoot
-import skillbill.infrastructure.skills.scaffold.runtime.service.root
-import skillbill.infrastructure.skills.scaffold.runtime.service.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.service.skillFile
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.nio.file.Files
 import java.nio.file.Path

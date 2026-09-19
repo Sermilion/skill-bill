@@ -1,10 +1,8 @@
 package skillbill.error.featuretask
 
 import skillbill.error.core.FailureWireCode
-import skillbill.error.core.error
 import skillbill.error.core.failureWireByValue
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
-import skillbill.error.shellcontent.value
 enum class FeatureTaskRuntimePhaseOutputFailureCode(
   override val wireValue: String,
 ) : FailureWireCode {

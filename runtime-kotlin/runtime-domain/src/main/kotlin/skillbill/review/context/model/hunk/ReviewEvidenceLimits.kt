@@ -1,7 +1,5 @@
 package skillbill.review.context.model.hunk
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
-import skillbill.review.context.model.packet.hunk
-import skillbill.review.context.model.review.value
 
 object ReviewEvidenceLimits {
   const val FIELD_CHARACTERS: Int = 1024

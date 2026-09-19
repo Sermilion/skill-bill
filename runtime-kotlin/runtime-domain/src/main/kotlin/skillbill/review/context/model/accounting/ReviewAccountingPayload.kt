@@ -1,40 +1,6 @@
 package skillbill.review.context.model.accounting
 import skillbill.contracts.review.ReviewAccountingPayloadKeys
-import skillbill.review.context.model.commit.commitCount
-import skillbill.review.context.model.commit.expansions
-import skillbill.review.context.model.commit.focusedPairCount
-import skillbill.review.context.model.commit.lane
-import skillbill.review.context.model.commit.lanes
-import skillbill.review.context.model.commit.packetDigest
-import skillbill.review.context.model.commit.reviewId
-import skillbill.review.context.model.commit.routingDigest
-import skillbill.review.context.model.execution.findingCount
-import skillbill.review.context.model.execution.lane
-import skillbill.review.context.model.hunk.assignmentDigest
-import skillbill.review.context.model.hunk.lane
-import skillbill.review.context.model.hunk.packetDigest
-import skillbill.review.context.model.launch.assignmentDigest
-import skillbill.review.context.model.launch.commitSequenceDigest
-import skillbill.review.context.model.launch.findingCount
-import skillbill.review.context.model.launch.incompleteLanes
-import skillbill.review.context.model.launch.lane
-import skillbill.review.context.model.launch.unreviewedSegmentIds
-import skillbill.review.context.model.launch.wireValue
 import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
-import skillbill.review.context.model.packet.accounting
-import skillbill.review.context.model.packet.assignmentDigest
-import skillbill.review.context.model.packet.bundleCompositionDigest
-import skillbill.review.context.model.packet.commitSequenceDigest
-import skillbill.review.context.model.packet.compositionDigest
-import skillbill.review.context.model.packet.entryCount
-import skillbill.review.context.model.packet.lane
-import skillbill.review.context.model.packet.measuredBytes
-import skillbill.review.context.model.packet.reviewId
-import skillbill.review.context.model.packet.segmentId
-import skillbill.review.context.model.packet.segments
-import skillbill.review.context.model.packet.unreviewedSegmentIds
-import skillbill.review.context.model.packet.wireValue
-import skillbill.review.context.model.review.lane
 
 fun ReviewAccountingSummary.toBoundedPayload(): Map<String, Any?> = linkedMapOf(
   ReviewAccountingPayloadKeys.CONTRACT_VERSION to contractVersion,

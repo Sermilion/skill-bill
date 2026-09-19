@@ -2,9 +2,6 @@ package skillbill.infrastructure.sqlite.review.stats.workflow
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
-import skillbill.infrastructure.sqlite.review.accounting.List
-import skillbill.infrastructure.sqlite.review.accounting.Map
-import skillbill.infrastructure.sqlite.review.core.Map
 import skillbill.infrastructure.sqlite.review.core.requireBooleanInt
 import skillbill.infrastructure.sqlite.review.core.requireEnum
 import skillbill.infrastructure.sqlite.review.core.requireNonBlankString
@@ -12,26 +9,9 @@ import skillbill.infrastructure.sqlite.review.core.requireNonNegativeInt
 import skillbill.infrastructure.sqlite.review.core.requireNonNegativeLong
 import skillbill.infrastructure.sqlite.review.core.requirePositiveInt
 import skillbill.infrastructure.sqlite.review.core.requirePresentString
-import skillbill.infrastructure.sqlite.review.review.review
-import skillbill.infrastructure.sqlite.review.stage.Map
-import skillbill.infrastructure.sqlite.review.stage.and.review
-import skillbill.infrastructure.sqlite.review.stage.finished.review
-import skillbill.infrastructure.sqlite.review.stage.finished.stats
-import skillbill.infrastructure.sqlite.review.stage.map
-import skillbill.infrastructure.sqlite.review.stage.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.review
-import skillbill.infrastructure.sqlite.review.stats.Map
 import skillbill.infrastructure.sqlite.review.stats.average
 import skillbill.infrastructure.sqlite.review.stats.collectRows
-import skillbill.infrastructure.sqlite.review.stats.connection
-import skillbill.infrastructure.sqlite.review.stats.finding.filter
-import skillbill.infrastructure.sqlite.review.stats.health.Map
 import skillbill.infrastructure.sqlite.review.stats.rate
-import skillbill.infrastructure.sqlite.review.stats.recorded.review
-import skillbill.infrastructure.sqlite.review.stats.recorded.stats
-import skillbill.infrastructure.sqlite.review.stats.review
-import skillbill.infrastructure.sqlite.review.stats.stats
-import skillbill.infrastructure.sqlite.review.stats.task.stats
 import skillbill.review.model.GoalBlockedSubtaskSummary
 import skillbill.review.model.GoalModeStats
 import skillbill.review.model.GoalRunSummary
@@ -115,7 +95,7 @@ internal fun buildGoalStats(runRows: List<Map<String, Any?>>, subtaskRows: List<
   )
 }
 
-private fun goalIdentityAvailability(runs: List<GoalRunRow>): TelemetryMeasurementAvailability {
+internal fun goalIdentityAvailability(runs: List<GoalRunRow>): TelemetryMeasurementAvailability {
   val unattributed = runs.count { it.parentWorkflowId == null }
   return when {
     unattributed == 0 -> TelemetryMeasurementAvailability.MEASURED

@@ -6,12 +6,13 @@ import skillbill.infrastructure.skills.install.identity.installedSkillContentIde
 import skillbill.infrastructure.skills.install.identity.requireMatchingSkillContentIdentity
 import skillbill.infrastructure.skills.install.identity.suppliedSkillContentIdentity
 import skillbill.infrastructure.skills.install.staging.staging.ReuseInstallStagingInput
-import skillbill.infrastructure.skills.install.staging.staging.agentAddonPointersForSkill
 import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
 import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
-import skillbill.infrastructure.skills.install.staging.staging.authoredStagingNames
 import skillbill.infrastructure.skills.install.staging.staging.content.InstallContentHashInputs
+import skillbill.infrastructure.skills.install.staging.staging.content.agentAddonPointersForSkill
+import skillbill.infrastructure.skills.install.staging.staging.content.authoredStagingNames
 import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.staging.content.validateAgentAddonPointerNamespace
 import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillStagingDir
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
@@ -23,7 +24,6 @@ import skillbill.infrastructure.skills.install.staging.staging.sidecar.prepareIn
 import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
 import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
-import skillbill.infrastructure.skills.install.staging.staging.validateAgentAddonPointerNamespace
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind

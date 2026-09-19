@@ -8,11 +8,7 @@ import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatform
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.APPROVED_CODE_REVIEW_AREAS
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELLED_FAMILIES
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.displayName
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.skillName
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.validation.contentFile
-import skillbill.infrastructure.skills.scaffold.runtime.validation.skillName
 import skillbill.ports.system.HostPlatformPort
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON

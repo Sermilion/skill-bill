@@ -1,6 +1,4 @@
 package skillbill.application.telemetry.service
-import skillbill.application.telemetry.lifecycle.fallback
-import skillbill.application.telemetry.telemetry.service
 
 private val blockedReasonPrefixes = setOf(
   "limit",

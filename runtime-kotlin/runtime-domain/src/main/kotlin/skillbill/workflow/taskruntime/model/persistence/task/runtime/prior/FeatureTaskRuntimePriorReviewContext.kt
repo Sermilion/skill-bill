@@ -1,26 +1,6 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.prior
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.taskruntime.model.core.evidence
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.handoff.envelope.verdict
-import skillbill.workflow.taskruntime.model.handoff.task.text
-import skillbill.workflow.taskruntime.model.handoff.task.wireValue
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
-import skillbill.workflow.taskruntime.model.phase.evidence
-import skillbill.workflow.taskruntime.model.phase.line
-import skillbill.workflow.taskruntime.model.repair.task.carried
-import skillbill.workflow.taskruntime.model.repair.task.finding
-import skillbill.workflow.taskruntime.model.repair.task.findingId
-import skillbill.workflow.taskruntime.model.repair.task.label
-import skillbill.workflow.taskruntime.model.repair.task.severity
-import skillbill.workflow.taskruntime.model.repair.task.text
-import skillbill.workflow.taskruntime.model.review.severity
-import skillbill.workflow.taskruntime.model.review.verdict
-import skillbill.workflow.taskruntime.model.validation.disposition
-import skillbill.workflow.taskruntime.model.validation.findingId
-import skillbill.workflow.taskruntime.model.validation.verdict
-import skillbill.workflow.taskruntime.model.validation.wireValue
 
 const val PRIOR_REVIEW_CONTEXT_MAX_FINDINGS: Int = 60
 const val PRIOR_REVIEW_CONTEXT_MAX_DISPOSITIONS: Int = 50

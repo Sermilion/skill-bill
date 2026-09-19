@@ -4,38 +4,10 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.audit.phaseId
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.fingerprint
-import skillbill.workflow.taskruntime.model.core.raw
-import skillbill.workflow.taskruntime.model.core.toEnvelopeMap
-import skillbill.workflow.taskruntime.model.feature.fingerprint
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.handoff.envelope.phaseId
-import skillbill.workflow.taskruntime.model.handoff.producerIteration
 import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.handoff.task.REPOSITORY_CHECKPOINT_FIELD
-import skillbill.workflow.taskruntime.model.handoff.task.fromEnvelopeMap
-import skillbill.workflow.taskruntime.model.handoff.task.phaseId
-import skillbill.workflow.taskruntime.model.handoff.task.producerIteration
-import skillbill.workflow.taskruntime.model.handoff.task.projections
-import skillbill.workflow.taskruntime.model.handoff.task.repositoryCheckpoint
-import skillbill.workflow.taskruntime.model.handoff.task.toEnvelopeMap
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.phaseId
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.field
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.phaseId
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.keys
-import skillbill.workflow.taskruntime.model.repair.identity
-import skillbill.workflow.taskruntime.model.repair.task.identity
-import skillbill.workflow.taskruntime.model.repair.task.phaseId
-import skillbill.workflow.taskruntime.model.review.fingerprint
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.fingerprint
-import skillbill.workflow.taskruntime.model.validation.raw
 
 data class FeatureTaskRuntimeDeliveredProjectionRecord(
   val workflowId: String,

@@ -1,7 +1,4 @@
 package skillbill.workflow.taskruntime.validation
-import skillbill.workflow.taskruntime.feature.evidence
-import skillbill.workflow.taskruntime.handoff.validation
-import skillbill.workflow.taskruntime.phase.task.evidence
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

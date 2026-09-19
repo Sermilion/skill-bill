@@ -1,9 +1,5 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.native
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing
-import skillbill.infrastructure.skills.install.nativeagent.install.agent.journal
-import skillbill.infrastructure.skills.install.nativeagent.inventory.beforeMutation
-import skillbill.infrastructure.skills.install.nativeagent.inventory.parent
-import skillbill.infrastructure.skills.install.nativeagent.inventory.path
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
 import java.nio.file.Files

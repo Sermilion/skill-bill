@@ -2,42 +2,7 @@ package skillbill.workflow.taskruntime.model.handoff.task
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.workflow.taskruntime.model.audit.map
-import skillbill.workflow.taskruntime.model.audit.phaseId
-import skillbill.workflow.taskruntime.model.audit.producingPhaseId
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.map
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.feature.map
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.handoff.envelope.phaseId
-import skillbill.workflow.taskruntime.model.handoff.envelope.value
-import skillbill.workflow.taskruntime.model.handoff.name
-import skillbill.workflow.taskruntime.model.handoff.producingPhaseId
-import skillbill.workflow.taskruntime.model.persistence.artifact.map
-import skillbill.workflow.taskruntime.model.persistence.artifact.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.phaseId
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.field
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.phaseId
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.map
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.phase.iteration
-import skillbill.workflow.taskruntime.model.phase.map
-import skillbill.workflow.taskruntime.model.phase.name
-import skillbill.workflow.taskruntime.model.phase.phaseId
-import skillbill.workflow.taskruntime.model.repair.task.phaseId
-import skillbill.workflow.taskruntime.model.repair.task.value
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.map
-import skillbill.workflow.taskruntime.model.validation.wireValue
 
 data class FeatureTaskRuntimeHandoffProjection(
   val projectionName: String,

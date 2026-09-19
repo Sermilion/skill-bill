@@ -1,11 +1,4 @@
 package skillbill.infrastructure.skills.scaffold.runtime.service
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.area
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.displayName
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.family
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.platform
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.skillName
-import skillbill.infrastructure.skills.scaffold.runtime.validation.contentFile
-import skillbill.infrastructure.skills.scaffold.runtime.validation.skillName
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.CodeReviewBaselineLayer

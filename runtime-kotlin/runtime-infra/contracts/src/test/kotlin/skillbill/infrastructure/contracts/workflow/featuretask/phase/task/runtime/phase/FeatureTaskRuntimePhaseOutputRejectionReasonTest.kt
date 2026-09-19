@@ -2,10 +2,6 @@ package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runti
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.reason
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.persistence.split
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.message
-import skillbill.infrastructure.contracts.workflow.goal.planning.reason
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

@@ -1,14 +1,7 @@
 package skillbill.review.stage
-import skillbill.review.attribution.value
-import skillbill.review.finding.value
 import skillbill.review.model.ReviewEvidenceBoundaryAccounting
 import skillbill.review.model.ReviewStageDegradationMeasurement
 import skillbill.review.model.ReviewStageDegradationReason
-import skillbill.review.parallel.entries
-import skillbill.review.parallel.reason
-import skillbill.review.parsing.reviewRunId
-import skillbill.review.review.accounting
-import skillbill.review.review.review
 
 internal fun evidenceBoundaryUnboundRecord(
   reviewRunId: String,

@@ -1,10 +1,7 @@
 package skillbill.workflow.taskruntime.phase.planning
-import skillbill.workflow.taskruntime.artifact.List
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDelivery
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.phase.task.PhaseProjectionContract
-import skillbill.workflow.taskruntime.phase.task.VERSION
 
 internal data class UpstreamPlanningProjectionSpec(
   val consumerPhaseId: String,

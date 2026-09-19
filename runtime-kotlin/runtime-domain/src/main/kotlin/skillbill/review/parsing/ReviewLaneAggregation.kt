@@ -1,11 +1,8 @@
 package skillbill.review.parsing
 import skillbill.error.shellcontent.ReviewAggregationIntegrityError
 import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
-import skillbill.review.finding.map
 import skillbill.review.model.ReviewCoverageReport
 import skillbill.review.model.ReviewLaneAggregationInput
-import skillbill.review.parallel.sorted
-import skillbill.review.review.review
 
 object ReviewLaneAggregation {
   fun requireCompleteLaneResults(

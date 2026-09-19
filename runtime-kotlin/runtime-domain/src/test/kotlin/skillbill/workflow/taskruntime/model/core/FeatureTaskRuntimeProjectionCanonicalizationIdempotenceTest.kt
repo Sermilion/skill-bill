@@ -1,6 +1,4 @@
 package skillbill.workflow.taskruntime.model.core
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.prior.isEmpty
-import skillbill.workflow.taskruntime.model.repair.task.isEmpty
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

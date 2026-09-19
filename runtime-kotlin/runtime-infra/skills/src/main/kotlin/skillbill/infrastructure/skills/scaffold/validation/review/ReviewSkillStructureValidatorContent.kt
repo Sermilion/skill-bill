@@ -1,7 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.validation.review
 import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentBundle
-import skillbill.infrastructure.skills.scaffold.validation.shape.fileName
-import skillbill.infrastructure.skills.scaffold.validation.shape.pack
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

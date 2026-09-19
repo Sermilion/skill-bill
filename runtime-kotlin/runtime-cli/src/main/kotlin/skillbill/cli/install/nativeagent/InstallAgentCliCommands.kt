@@ -6,15 +6,6 @@ import com.github.ajalt.clikt.parameters.options.required
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.scaffold.InstallAgentService
 import skillbill.cli.install.apply.refuseInstallMutationDuringGoalContinuation
-import skillbill.cli.install.apply.skipped
-import skillbill.cli.install.core.claudeAgentsPath
-import skillbill.cli.install.core.claudeRoots
-import skillbill.cli.install.core.cleanupAgentTarget
-import skillbill.cli.install.core.codexAgentsPath
-import skillbill.cli.install.core.codexRoots
-import skillbill.cli.install.core.cursorAgentsPath
-import skillbill.cli.install.core.junieAgentsPath
-import skillbill.cli.install.mcp.removed
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.model.CliRunInputs

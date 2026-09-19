@@ -3,15 +3,6 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.fieldPath
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.reason
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.fieldPath
-import skillbill.infrastructure.contracts.workflow.goal.observability.fieldPath
-import skillbill.infrastructure.contracts.workflow.goal.planning.fieldPath
-import skillbill.infrastructure.contracts.workflow.goal.planning.reason
-import skillbill.infrastructure.contracts.workflow.goal.progress.fieldPath
-import skillbill.infrastructure.contracts.workflow.goal.status.fieldPath
-import skillbill.infrastructure.contracts.workflow.workflow.fieldPath
 import java.math.BigDecimal
 import java.math.BigInteger
 

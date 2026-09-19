@@ -4,12 +4,8 @@ import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeRequiredArtifactPresenceResolver
-import skillbill.workflow.taskruntime.feature.map
-import skillbill.workflow.taskruntime.handoff.contractVersion
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimePhaseIds
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.phase.entries
-import skillbill.workflow.taskruntime.phase.map
 
 internal object FeatureTaskRuntimePhaseWorkflowGraph {
   val definition: WorkflowDefinition = WorkflowDefinition(

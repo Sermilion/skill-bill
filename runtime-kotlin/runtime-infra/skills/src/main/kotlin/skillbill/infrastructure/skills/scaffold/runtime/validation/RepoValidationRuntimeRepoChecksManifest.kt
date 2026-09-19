@@ -2,13 +2,7 @@ package skillbill.infrastructure.skills.scaffold.runtime.validation
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.ORCHESTRATION_PLAYBOOKS
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.issues
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.validatePointerTargetParity
-import skillbill.infrastructure.skills.scaffold.runtime.service.name
-import skillbill.infrastructure.skills.scaffold.runtime.service.packRoot
-import skillbill.infrastructure.skills.scaffold.runtime.service.root
-import skillbill.infrastructure.skills.scaffold.runtime.service.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.service.skillFile
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files

@@ -1,7 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
 import skillbill.error.core.ExternalAddonOverlayError
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.scaffold.skills
 
 internal fun fragmentFieldMessage(slug: String, field: String, extra: Set<String>, allowed: String): String =
   "External addon source for platform '$slug': $field has unexpected keys ${extra.sorted()} " +

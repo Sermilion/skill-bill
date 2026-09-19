@@ -1,9 +1,4 @@
 package skillbill.review.context.model.accounting
-import skillbill.review.context.model.launch.wireValue
-import skillbill.review.context.model.packet.accounting
-import skillbill.review.context.model.packet.entries
-import skillbill.review.context.model.packet.wireValue
-import skillbill.review.context.model.review.value
 enum class ReviewAccountingTerminalOutcome(val wireValue: String) {
   COMPLETED("completed"),
   INCOMPLETE("incomplete"),

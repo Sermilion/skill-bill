@@ -1,13 +1,6 @@
 package skillbill.infrastructure.skills.install
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.MalformedInstallSelectionRecordError
-import skillbill.infrastructure.skills.externaladdon.entry
-import skillbill.infrastructure.skills.externaladdon.key
-import skillbill.infrastructure.skills.externaladdon.map
-import skillbill.infrastructure.skills.externaladdon.message
-import skillbill.infrastructure.skills.file.map
-import skillbill.infrastructure.skills.scaffold.path
-import skillbill.infrastructure.skills.scaffold.skills
 import java.nio.file.Path
 
 internal fun requireExactKeys(path: Path, actualKeys: Set<String>, expectedKeys: Set<String>, objectName: String) {

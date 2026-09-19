@@ -1,5 +1,4 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature
-import skillbill.infrastructure.sqlite.telemetry.feature.record
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.emitFeatureVerifyFinished
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.emitFeatureVerifyStarted
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.save.TerminalSaveOutcome

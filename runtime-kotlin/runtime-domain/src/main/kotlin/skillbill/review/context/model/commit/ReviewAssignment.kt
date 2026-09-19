@@ -1,44 +1,16 @@
 package skillbill.review.context.model.commit
-import skillbill.review.context.model.accounting.assignmentDigest
-import skillbill.review.context.model.bundle.EMPTY
 import skillbill.review.context.model.bundle.ReviewLaneBundle
-import skillbill.review.context.model.bundle.canonical
-import skillbill.review.context.model.bundle.hunkIds
 import skillbill.review.context.model.execution.ReviewLaneDecision
 import skillbill.review.context.model.execution.SHA256_HEX
-import skillbill.review.context.model.execution.canonical
 import skillbill.review.context.model.execution.canonicalFieldList
-import skillbill.review.context.model.execution.included
-import skillbill.review.context.model.execution.normalized
-import skillbill.review.context.model.execution.orderIndex
 import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.execution.sha256
-import skillbill.review.context.model.hunk.EMPTY
 import skillbill.review.context.model.hunk.ReviewBaselineUntrackedPolicy
 import skillbill.review.context.model.hunk.ReviewDependencyAllowlist
 import skillbill.review.context.model.hunk.ReviewEvidenceTarget
 import skillbill.review.context.model.hunk.ReviewRevision
 import skillbill.review.context.model.hunk.ReviewRuleReference
-import skillbill.review.context.model.hunk.assignmentDigest
-import skillbill.review.context.model.hunk.canonical
-import skillbill.review.context.model.hunk.normalized
-import skillbill.review.context.model.hunk.ruleId
-import skillbill.review.context.model.launch.assignmentDigest
-import skillbill.review.context.model.packet.EMPTY
 import skillbill.review.context.model.packet.ReviewExpansionRecord
-import skillbill.review.context.model.packet.assignmentDigest
-import skillbill.review.context.model.packet.canonical
-import skillbill.review.context.model.packet.commitSha
-import skillbill.review.context.model.packet.distinct
-import skillbill.review.context.model.packet.entries
-import skillbill.review.context.model.packet.expansionId
-import skillbill.review.context.model.packet.focused
-import skillbill.review.context.model.packet.hunkIds
-import skillbill.review.context.model.packet.normalized
-import skillbill.review.context.model.packet.orderIndex
-import skillbill.review.context.model.packet.requestedPath
-import skillbill.review.context.model.packet.sequence
-import skillbill.review.context.model.review.included
 data class ReviewAssignment(
   val reviewId: String,
   val packetDigest: String,

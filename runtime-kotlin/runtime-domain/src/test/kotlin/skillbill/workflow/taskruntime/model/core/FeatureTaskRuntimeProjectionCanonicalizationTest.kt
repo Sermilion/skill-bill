@@ -1,22 +1,5 @@
 
 package skillbill.workflow.taskruntime.model.core
-import skillbill.workflow.taskruntime.model.audit.map
-import skillbill.workflow.taskruntime.model.feature.map
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.persistence.artifact.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.prior.isEmpty
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.keys
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.phase.dependsOn
-import skillbill.workflow.taskruntime.model.phase.map
-import skillbill.workflow.taskruntime.model.repair.task.isEmpty
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.map
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

@@ -1,6 +1,4 @@
 package skillbill.infrastructure.sqlite.core.schema
-import skillbill.infrastructure.sqlite.core.migration.migrations.dbPath
-import skillbill.infrastructure.sqlite.core.ops.dbPath
 import java.nio.file.Path
 
 internal class DatabaseWriteReadinessGate(

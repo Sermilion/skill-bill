@@ -7,11 +7,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.install.InstallService
 import skillbill.application.scaffold.InstallAgentService
 import skillbill.cli.install.apply.refuseInstallMutationDuringGoalContinuation
-import skillbill.cli.install.apply.result
-import skillbill.cli.install.core.agentPath
-import skillbill.cli.install.core.linkSkill
-import skillbill.cli.install.core.result
-import skillbill.cli.install.mcp.result
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.model.CliExecutionResult

@@ -1,10 +1,7 @@
 package skillbill.application.workflow.service
-import skillbill.application.workflow.decomposition.issueKey
-import skillbill.application.workflow.decomposition.workflowStatus
 import skillbill.application.workflow.model.FeatureTaskIdentityRepairArgs
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.application.workflow.persist.buildUpdateOk
-import skillbill.application.workflow.workflow.definition
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get

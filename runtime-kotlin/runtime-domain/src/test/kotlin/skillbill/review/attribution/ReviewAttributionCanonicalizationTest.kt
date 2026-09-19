@@ -1,11 +1,7 @@
 package skillbill.review.attribution
-import skillbill.review.finding.map
 import skillbill.review.model.CanonicalScope
 import skillbill.review.model.ReviewAttributionResolutionError
 import skillbill.review.model.ReviewExecutionMode
-import skillbill.review.parallel.entries
-import skillbill.review.review.raw
-import skillbill.review.review.review
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

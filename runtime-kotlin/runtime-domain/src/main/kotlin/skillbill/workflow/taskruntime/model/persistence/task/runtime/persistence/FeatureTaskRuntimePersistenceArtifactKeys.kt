@@ -1,5 +1,4 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence
-import skillbill.workflow.taskruntime.model.core.task
 
 const val FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY: String = "feature_task_runtime_phase_records"
 const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY: String = "feature_task_runtime_phase_ledger"

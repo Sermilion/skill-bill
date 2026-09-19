@@ -2,7 +2,6 @@ package skillbill.error.shellcontent
 
 import skillbill.error.core.FailureWireCode
 import skillbill.error.core.coarseFailureKindForPhaseOutputWireCode
-import skillbill.error.core.error
 import skillbill.error.featuretask.InvalidFeatureTaskRuntimeHandoffProjectionContext
 enum class FeatureTaskRuntimePhaseOutputFailureKind(
   override val wireValue: String,

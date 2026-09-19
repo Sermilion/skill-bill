@@ -6,6 +6,7 @@ import skillbill.infrastructure.skills.install.apply.standaloneInstallableSkills
 import skillbill.infrastructure.skills.install.plan.InstallContext
 import skillbill.infrastructure.skills.install.plan.installSkill
 import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
+import skillbill.infrastructure.skills.install.staging.staging.installed.stageInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.sidecar.discoverInternalSidecarTargets
 import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.writeInternalSidecarFiles

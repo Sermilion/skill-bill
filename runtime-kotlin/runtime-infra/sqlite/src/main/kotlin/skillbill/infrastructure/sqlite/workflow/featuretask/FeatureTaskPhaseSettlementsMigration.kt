@@ -1,11 +1,4 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
-import skillbill.infrastructure.sqlite.workflow.goalrunner.child.connection
-import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.connection
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.connection
-import skillbill.infrastructure.sqlite.workflow.goalrunner.shared.connection
-import skillbill.infrastructure.sqlite.workflow.goalrunner.subtask.connection
-import skillbill.infrastructure.sqlite.workflow.workflow.connection
-import skillbill.infrastructure.sqlite.workflow.workflow.statement
 import java.sql.Connection
 
 internal object FeatureTaskPhaseSettlementsMigration {

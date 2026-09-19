@@ -1,16 +1,6 @@
 package skillbill.review.parallel
-import skillbill.review.attribution.candidate
-import skillbill.review.attribution.head
 import skillbill.review.context.model.execution.structuredString
 import skillbill.review.finding.ReviewFindingActionability
-import skillbill.review.finding.conservativeClaimVerdict
-import skillbill.review.finding.conservativeScopeDisposition
-import skillbill.review.finding.direction
-import skillbill.review.finding.justification
-import skillbill.review.finding.map
-import skillbill.review.finding.path
-import skillbill.review.finding.recordedFields
-import skillbill.review.finding.registerOutcome
 import skillbill.review.model.ParallelReviewLaneResult
 import skillbill.review.model.ParallelReviewMergeResult
 import skillbill.review.model.ParallelReviewMergedFinding
@@ -23,10 +13,6 @@ import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewLaneFindingVerdict
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
-import skillbill.review.parsing.result
-import skillbill.review.review.integration
-import skillbill.review.review.result
-import skillbill.review.review.review
 
 object ParallelReviewMerger {
 

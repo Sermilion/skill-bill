@@ -1,22 +1,10 @@
 package skillbill.workflow.taskruntime.validation
-import skillbill.workflow.taskruntime.artifact.phaseId
-import skillbill.workflow.taskruntime.handoff.context
-import skillbill.workflow.taskruntime.handoff.declaration
-import skillbill.workflow.taskruntime.handoff.validation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeCapExhaustionBehavior
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionContext
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.phase.task.PHASE_IMPLEMENT_FIX
-import skillbill.workflow.taskruntime.phase.task.PHASE_REVIEW
-import skillbill.workflow.taskruntime.phase.task.PHASE_VALIDATE
-import skillbill.workflow.taskruntime.phase.task.PHASE_VERIFY_FINDINGS
-import skillbill.workflow.taskruntime.phase.task.REVIEW_FIX_LOOP_ID
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.phase.verdict
-import skillbill.workflow.taskruntime.semantic.nextTransition
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 

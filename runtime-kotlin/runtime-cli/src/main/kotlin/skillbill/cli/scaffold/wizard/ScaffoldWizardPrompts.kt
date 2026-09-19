@@ -1,12 +1,6 @@
 package skillbill.cli.scaffold.wizard
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliRunInputs
-import skillbill.cli.scaffold.commands.inputs
-import skillbill.cli.scaffold.commands.map
-import skillbill.cli.scaffold.commands.platform
-import skillbill.cli.scaffold.commands.state
-import skillbill.cli.scaffold.payload.inputs
-import skillbill.cli.scaffold.payload.orEmpty
 
 internal fun promptRequired(state: CliRunState, inputs: CliRunInputs, label: String): String {
   val value = promptOptional(state, inputs, label)

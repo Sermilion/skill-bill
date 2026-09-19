@@ -1,15 +1,5 @@
 package skillbill.infrastructure.workflow.featuretask
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
-import skillbill.infrastructure.workflow.decomposition.read
-import skillbill.infrastructure.workflow.filesystem.path
-import skillbill.infrastructure.workflow.git.scoped.read
-import skillbill.infrastructure.workflow.git.standard.path
-import skillbill.infrastructure.workflow.git.standard.text
-import skillbill.infrastructure.workflow.git.suppression.path
-import skillbill.infrastructure.workflow.git.workflow.path
-import skillbill.infrastructure.workflow.git.workflow.read
-import skillbill.infrastructure.workflow.review.broker.path
-import skillbill.infrastructure.workflow.review.specialists.system.path
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import java.nio.file.Files
 import kotlin.test.Test

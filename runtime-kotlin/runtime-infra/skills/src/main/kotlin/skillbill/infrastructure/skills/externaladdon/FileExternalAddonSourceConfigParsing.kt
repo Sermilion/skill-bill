@@ -1,12 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
 import skillbill.error.core.ExternalAddonConfigError
-import skillbill.infrastructure.skills.file.configPath
-import skillbill.infrastructure.skills.file.kind
-import skillbill.infrastructure.skills.file.map
-import skillbill.infrastructure.skills.file.rawPath
-import skillbill.infrastructure.skills.file.resolvedPath
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.scaffold.skills
 import java.nio.file.Files
 import java.nio.file.Path
 

@@ -1,19 +1,11 @@
 package skillbill.workflow.taskruntime.handoff
 import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.feature.inputs
-import skillbill.workflow.taskruntime.feature.map
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeCompactReferenceKind
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionField
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionValue
-import skillbill.workflow.taskruntime.phase.map
-import skillbill.workflow.taskruntime.phase.planning.declaredFieldNames
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.phase.task.fields
-import skillbill.workflow.taskruntime.phase.value
 
 internal object FeatureTaskRuntimeHandoffProjectionEnvelopeWire {
   const val REPOSITORY_CHECKPOINT_FIELD: String = "repository_checkpoint"

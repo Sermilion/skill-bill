@@ -1,11 +1,4 @@
 package skillbill.review.context.model.execution
-import skillbill.review.context.model.commit.digest
-import skillbill.review.context.model.hunk.digest
-import skillbill.review.context.model.hunk.path
-import skillbill.review.context.model.launch.path
-import skillbill.review.context.model.launch.values
-import skillbill.review.context.model.packet.digest
-import skillbill.review.context.model.review.value
 import java.security.MessageDigest
 
 internal val SHA256_HEX = Regex("[a-f0-9]{64}")

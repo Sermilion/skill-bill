@@ -3,38 +3,15 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
-import skillbill.infrastructure.sqlite.review.accounting.List
-import skillbill.infrastructure.sqlite.review.accounting.Map
-import skillbill.infrastructure.sqlite.review.core.Map
-import skillbill.infrastructure.sqlite.review.review.review
-import skillbill.infrastructure.sqlite.review.review.rows
-import skillbill.infrastructure.sqlite.review.stage.Map
-import skillbill.infrastructure.sqlite.review.stage.and.review
-import skillbill.infrastructure.sqlite.review.stage.finished.review
-import skillbill.infrastructure.sqlite.review.stage.finished.stats
-import skillbill.infrastructure.sqlite.review.stage.intValue
-import skillbill.infrastructure.sqlite.review.stage.map
-import skillbill.infrastructure.sqlite.review.stage.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.review
-import skillbill.infrastructure.sqlite.review.stats.Map
 import skillbill.infrastructure.sqlite.review.stats.average
 import skillbill.infrastructure.sqlite.review.stats.booleanValue
 import skillbill.infrastructure.sqlite.review.stats.collectRows
-import skillbill.infrastructure.sqlite.review.stats.connection
 import skillbill.infrastructure.sqlite.review.stats.durationSeconds
-import skillbill.infrastructure.sqlite.review.stats.finding.filter
-import skillbill.infrastructure.sqlite.review.stats.health.Map
 import skillbill.infrastructure.sqlite.review.stats.intValue
 import skillbill.infrastructure.sqlite.review.stats.nullableIntValue
 import skillbill.infrastructure.sqlite.review.stats.parseJsonList
 import skillbill.infrastructure.sqlite.review.stats.rate
-import skillbill.infrastructure.sqlite.review.stats.recorded.review
-import skillbill.infrastructure.sqlite.review.stats.recorded.stats
-import skillbill.infrastructure.sqlite.review.stats.review
-import skillbill.infrastructure.sqlite.review.stats.stats
 import skillbill.infrastructure.sqlite.review.stats.stringValue
-import skillbill.infrastructure.sqlite.review.stats.task.stats
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.durations.durationSeconds
 import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
 import java.sql.Connection
@@ -84,7 +61,7 @@ internal fun buildFeatureTaskRuntimeStats(rows: List<Map<String, Any?>>): Featur
 
 internal const val STALE_COMPLETION_STATUS: String = "stale"
 
-private fun phaseOutcomeCounts(rows: List<Map<String, Any?>>): Map<String, Int> {
+internal fun phaseOutcomeCounts(rows: List<Map<String, Any?>>): Map<String, Int> {
   val counts = featureTaskRuntimePhaseOutcomes.associateWith { 0 }.toMutableMap()
   rows.forEach { row ->
     val outcomes = JsonCodec.parseObjectOrNull(row.stringValue("phase_outcomes"))

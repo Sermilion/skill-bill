@@ -9,11 +9,6 @@ import skillbill.goalrunner.model.FeatureTaskRuntimeGoalContinuationOutcome
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.artifact.phaseId
-import skillbill.workflow.taskruntime.handoff.branch
-import skillbill.workflow.taskruntime.handoff.qualityGateSelection
-import skillbill.workflow.taskruntime.handoff.validationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
@@ -30,11 +25,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.phase.entries
-import skillbill.workflow.taskruntime.phase.failureDisposition
-import skillbill.workflow.taskruntime.phase.status
-import skillbill.workflow.taskruntime.validation.index
-import skillbill.workflow.taskruntime.validation.line
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

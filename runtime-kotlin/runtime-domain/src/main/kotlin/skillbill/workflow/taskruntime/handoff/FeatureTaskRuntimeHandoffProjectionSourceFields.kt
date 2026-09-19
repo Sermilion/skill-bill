@@ -1,9 +1,5 @@
 package skillbill.workflow.taskruntime.handoff
 import skillbill.contracts.JsonCodec
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.feature.inputs
-import skillbill.workflow.taskruntime.feature.ledger
-import skillbill.workflow.taskruntime.feature.map
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionField
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
@@ -12,15 +8,8 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHando
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeRunInvariantPromptField
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
-import skillbill.workflow.taskruntime.phase.entries
-import skillbill.workflow.taskruntime.phase.map
-import skillbill.workflow.taskruntime.phase.planning.sourceRef
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowQueries
-import skillbill.workflow.taskruntime.phase.task.REPAIR_LEDGER_PROJECTION_NAME
-import skillbill.workflow.taskruntime.phase.task.ceremonyScaling
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.validation.output
 
 internal fun upstreamPhaseOutputFields(
   inputs: FeatureTaskRuntimeHandoffProjectionInputs,

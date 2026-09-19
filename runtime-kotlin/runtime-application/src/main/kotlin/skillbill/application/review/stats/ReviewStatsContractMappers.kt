@@ -3,12 +3,6 @@ import skillbill.application.review.model.FeatureTaskRuntimeStatsResult
 import skillbill.application.review.model.FeatureVerifyStatsResult
 import skillbill.application.review.model.GoalStatsResult
 import skillbill.application.review.model.ReviewStatsResult
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.core.code.review.end.reviewRunId
-import skillbill.application.review.parallel.core.code.review.runner.reviewRunId
-import skillbill.application.review.parallel.planning.reviewRunId
-import skillbill.application.review.parallel.verification.reviewRunId
-import skillbill.application.review.service.review
 import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 fun ReviewStatsResult.toReviewStatsPayload(): JsonPayloadContract = MapPayloadContract(

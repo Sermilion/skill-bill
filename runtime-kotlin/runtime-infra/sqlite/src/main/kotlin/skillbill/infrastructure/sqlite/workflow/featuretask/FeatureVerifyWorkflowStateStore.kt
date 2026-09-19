@@ -1,14 +1,9 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.Map
-import skillbill.infrastructure.sqlite.workflow.workflow.Set
 import skillbill.infrastructure.sqlite.workflow.workflow.getWorkflowRow
 import skillbill.infrastructure.sqlite.workflow.workflow.getWorkflowRows
 import skillbill.infrastructure.sqlite.workflow.workflow.listWorkflowRows
-import skillbill.infrastructure.sqlite.workflow.workflow.row
-import skillbill.infrastructure.sqlite.workflow.workflow.statement
 import skillbill.infrastructure.sqlite.workflow.workflow.upsertWorkflowRow
-import skillbill.infrastructure.sqlite.workflow.workflow.workflowId
 import skillbill.ports.workflow.FeatureVerifyWorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord

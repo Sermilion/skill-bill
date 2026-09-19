@@ -1,10 +1,7 @@
-package skillbill.infrastructure.skills.nativeagent
-import skillbill.infrastructure.skills.externaladdon.config
-import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentSource
-import skillbill.infrastructure.skills.nativeagent.composition.composeNativeAgentSource
+package skillbill.infrastructure.skills.nativeagent.composition
+import skillbill.infrastructure.skills.nativeagent.FileSystemNativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoredContentBody
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import java.nio.file.Path

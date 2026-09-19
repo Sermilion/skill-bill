@@ -6,27 +6,12 @@ import skillbill.workflow.engine.model.ResolvedRequiredArtifact
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.feature.artifact
-import skillbill.workflow.taskruntime.feature.map
-import skillbill.workflow.taskruntime.feature.outputArtifact
-import skillbill.workflow.taskruntime.feature.snapshot
-import skillbill.workflow.taskruntime.handoff.qualityGateSelection
-import skillbill.workflow.taskruntime.handoff.value
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.phase.entries
-import skillbill.workflow.taskruntime.phase.map
-import skillbill.workflow.taskruntime.phase.status
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.phase.task.PHASE_BUILD
-import skillbill.workflow.taskruntime.phase.task.PHASE_COMMIT_PUSH
-import skillbill.workflow.taskruntime.phase.task.PHASE_VALIDATE
-import skillbill.workflow.taskruntime.phase.task.PHASE_WRITE_HISTORY
-import skillbill.workflow.taskruntime.phase.task.artifacts
-import skillbill.workflow.taskruntime.phase.value
 
 object FeatureTaskRuntimeRequiredArtifactPresenceResolver : RequiredArtifactPresenceResolver {
   override fun missingRequiredArtifacts(

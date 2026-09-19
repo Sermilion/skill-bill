@@ -3,10 +3,7 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import me.tatarka.inject.annotations.Inject
-import skillbill.cli.install.apply.mcp
 import skillbill.cli.install.apply.refuseInstallMutationDuringGoalContinuation
-import skillbill.cli.install.core.registerMcp
-import skillbill.cli.install.core.unregisterMcp
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.model.CliRunInputs

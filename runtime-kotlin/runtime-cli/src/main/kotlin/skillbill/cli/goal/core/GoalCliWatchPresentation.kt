@@ -1,14 +1,5 @@
 package skillbill.cli.goal.core
-import skillbill.cli.goal.control.apply
-import skillbill.cli.goal.control.payload
-import skillbill.cli.goal.purge.payload
-import skillbill.cli.goal.run.payload
 import skillbill.cli.goal.status.appendDiffStatusLines
-import skillbill.cli.goal.status.event
-import skillbill.cli.goal.status.maxRefreshes
-import skillbill.cli.goal.status.payload
-import skillbill.cli.goal.status.refresh
-import skillbill.cli.goal.status.refreshCount
 import skillbill.contracts.SharedPayloadKeys
 
 internal fun Map<String, Any?>.withWatchRefresh(refreshIndex: Int): Map<String, Any?> =

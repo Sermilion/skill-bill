@@ -1,7 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.manifest
 import skillbill.scaffold.model.ValidationGateCompilerDiagnosticsFormat
 import skillbill.scaffold.model.ValidationGateCompilerDiagnosticsLocator
 import skillbill.scaffold.model.ValidationGateDeclaration

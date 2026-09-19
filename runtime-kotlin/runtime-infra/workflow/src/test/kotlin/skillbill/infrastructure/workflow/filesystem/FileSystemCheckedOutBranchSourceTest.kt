@@ -1,6 +1,4 @@
 package skillbill.infrastructure.workflow.filesystem
-import skillbill.infrastructure.workflow.featuretask.prefix
-import skillbill.infrastructure.workflow.git.checkpoint.prefix
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

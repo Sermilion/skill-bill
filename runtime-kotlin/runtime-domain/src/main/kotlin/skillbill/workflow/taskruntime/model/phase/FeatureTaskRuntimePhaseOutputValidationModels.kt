@@ -5,39 +5,9 @@ import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputStructuralRepair
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputStructuralRepairSource
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.workflow.taskruntime.model.audit.entries
-import skillbill.workflow.taskruntime.model.audit.error
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.raw
-import skillbill.workflow.taskruntime.model.feature.entries
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.handoff.envelope.value
-import skillbill.workflow.taskruntime.model.handoff.source
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.handoff.task.value
-import skillbill.workflow.taskruntime.model.handoff.task.wireValue
 import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.requiredInt
-import skillbill.workflow.taskruntime.model.persistence.artifact.requiredString
 import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
-import skillbill.workflow.taskruntime.model.persistence.artifact.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.keys
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
-import skillbill.workflow.taskruntime.model.repair.task.entries
-import skillbill.workflow.taskruntime.model.repair.task.error
-import skillbill.workflow.taskruntime.model.repair.task.label
-import skillbill.workflow.taskruntime.model.repair.task.value
-import skillbill.workflow.taskruntime.model.review.message
-import skillbill.workflow.taskruntime.model.validation.Map
-import skillbill.workflow.taskruntime.model.validation.entries
-import skillbill.workflow.taskruntime.model.validation.raw
-import skillbill.workflow.taskruntime.model.validation.wireValue
 const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION: String =
   FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_CONTRACT_VERSION
 

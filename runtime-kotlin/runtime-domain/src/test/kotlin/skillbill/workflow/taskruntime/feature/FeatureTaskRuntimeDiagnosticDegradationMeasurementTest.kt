@@ -1,5 +1,4 @@
 package skillbill.workflow.taskruntime.feature
-import skillbill.workflow.taskruntime.artifact.phaseId
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeDiagnosticDegradationMeasurement
 import kotlin.test.Test

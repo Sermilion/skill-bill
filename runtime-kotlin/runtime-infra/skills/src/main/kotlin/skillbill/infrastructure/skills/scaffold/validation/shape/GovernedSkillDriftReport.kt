@@ -6,8 +6,6 @@ import skillbill.infrastructure.skills.scaffold.authoring.discoverTargets
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoringTarget
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.pointer.renderPointer
-import skillbill.infrastructure.skills.scaffold.validation.review.content
-import skillbill.infrastructure.skills.scaffold.validation.review.pointers
 import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.Path

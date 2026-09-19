@@ -8,6 +8,7 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.service.WorkflowService
 import skillbill.cli.kernel.agent.invokingAgentResolutionHelp
@@ -16,7 +17,6 @@ import skillbill.cli.kernel.cli.drainTelemetryOnCompletion
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.mcp.shared.int
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveInput
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveResult
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision

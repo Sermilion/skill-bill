@@ -1,10 +1,8 @@
 package skillbill.infrastructure.sqlite.core.migration.goal
 import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
 import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
-import skillbill.infrastructure.sqlite.core.ops.goal
 import skillbill.infrastructure.sqlite.core.ops.recordMigrationNormalization
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
-import skillbill.infrastructure.sqlite.core.schema.connection
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.goalrunner.control.outOfBandAcceptancesFromLegacyArtifacts
 import skillbill.infrastructure.sqlite.goalrunner.control.reviewPolicyFromLegacyArtifacts

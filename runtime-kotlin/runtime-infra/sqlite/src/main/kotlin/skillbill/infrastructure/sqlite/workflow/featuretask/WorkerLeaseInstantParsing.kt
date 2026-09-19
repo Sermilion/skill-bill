@@ -2,7 +2,6 @@ package skillbill.infrastructure.sqlite.workflow.featuretask
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
 import skillbill.infrastructure.sqlite.core.ops.degradedValuePreview
 import skillbill.infrastructure.sqlite.core.ops.recordDegradedValue
-import skillbill.infrastructure.sqlite.workflow.workflow.workflowId
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featuretask.model.parseFeatureTaskRuntimeWorkerLeaseInstant
 import java.time.Instant

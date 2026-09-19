@@ -2,12 +2,6 @@ package skillbill.infrastructure.skills.scaffold.runtime.validation
 import skillbill.infrastructure.skills.scaffold.authoring.InternalSkillDeclaration
 import skillbill.infrastructure.skills.scaffold.authoring.internalSkillClassificationViolations
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
-import skillbill.infrastructure.skills.scaffold.runtime.service.contentFile
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.issues
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.skillName
-import skillbill.infrastructure.skills.scaffold.runtime.service.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.service.skillFile
-import skillbill.infrastructure.skills.scaffold.runtime.service.skillName
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.nio.file.Files
 import java.nio.file.LinkOption

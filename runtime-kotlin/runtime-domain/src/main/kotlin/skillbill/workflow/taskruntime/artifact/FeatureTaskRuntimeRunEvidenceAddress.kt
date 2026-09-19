@@ -1,8 +1,4 @@
 package skillbill.workflow.taskruntime.artifact
-import skillbill.workflow.taskruntime.feature.artifact
-import skillbill.workflow.taskruntime.feature.map
-import skillbill.workflow.taskruntime.phase.map
-import skillbill.workflow.taskruntime.phase.raw
 
 private const val SAFE_SEGMENT_PUNCTUATION: String = "._-"
 

@@ -4,16 +4,15 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
-import skillbill.cli.goal.core.accept
+import skillbill.cli.goal.core.goalOperatorDecisionExitCode
 import skillbill.cli.goal.core.goalOperatorDecisionText
+import skillbill.cli.goal.core.goalPauseExitCode
+import skillbill.cli.goal.core.goalRepairExitCode
 import skillbill.cli.goal.core.goalRepairText
-import skillbill.cli.goal.core.pause
-import skillbill.cli.goal.core.repair
-import skillbill.cli.goal.core.replan
-import skillbill.cli.goal.core.reset
-import skillbill.cli.goal.core.resume
-import skillbill.cli.goal.core.stop
+import skillbill.cli.goal.core.goalResetExitCode
+import skillbill.cli.goal.core.goalStopExitCode
 import skillbill.cli.goal.core.toGoalOperatorDecisionCliMap
 import skillbill.cli.goal.core.toGoalRepairCliMap
 import skillbill.cli.goal.run.goalPauseText
@@ -27,13 +26,12 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.engine.goalrunner.GoalOperatorDecisionService
-import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptRequest
 import skillbill.engine.goalrunner.model.GoalRunnerOperatorDecisionRequest
 import skillbill.engine.goalrunner.model.GoalRunnerRepairRequest
 import skillbill.engine.goalrunner.model.GoalRunnerReplanRequest
 import skillbill.engine.goalrunner.model.GoalRunnerResetRequest
-import skillbill.mcp.shared.int
+import skillbill.engine.goalrunner.status.GoalRunnerStatusService
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 
 @Inject

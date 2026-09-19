@@ -10,14 +10,11 @@ import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.model.CliRunInputs
-import skillbill.cli.scaffold.payload.content
 import skillbill.cli.scaffold.payload.createAndFillResult
 import skillbill.cli.scaffold.payload.errorResult
 import skillbill.cli.scaffold.payload.newAddonPayload
-import skillbill.cli.scaffold.payload.result
 import skillbill.cli.scaffold.payload.runNativeScaffoldPayload
 import skillbill.cli.scaffold.payload.unsupportedNativeScaffoldResult
-import skillbill.cli.scaffold.wizard.run
 import skillbill.cli.scaffold.wizard.runNativeAssistedScaffoldWizard
 import skillbill.cli.scaffold.wizard.runNativeScaffoldWizard
 import skillbill.ports.scaffold.ScaffoldCatalogGateway

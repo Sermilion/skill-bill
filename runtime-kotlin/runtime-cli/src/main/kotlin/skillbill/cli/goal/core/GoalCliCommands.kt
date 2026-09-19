@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.application.system.RuntimeProvenanceService
@@ -18,7 +19,6 @@ import skillbill.cli.goal.control.GoalReplanCommand
 import skillbill.cli.goal.control.GoalResetCommand
 import skillbill.cli.goal.control.GoalResumeCommand
 import skillbill.cli.goal.control.GoalStopCommand
-import skillbill.cli.goal.control.command
 import skillbill.cli.goal.purge.GoalPurgeCommand
 import skillbill.cli.goal.run.DEFAULT_GOAL_PROGRESS_IDLE_TIMEOUT_MINUTES
 import skillbill.cli.goal.run.GoalFindingsCommand
@@ -30,16 +30,10 @@ import skillbill.cli.goal.run.GoalRunPresenter
 import skillbill.cli.goal.run.RUNTIME_CLASSPATH_ENV
 import skillbill.cli.goal.run.RUNTIME_EXECUTABLE_ENV
 import skillbill.cli.goal.run.RUNTIME_PATH_SEPARATOR_ENV
-import skillbill.cli.goal.run.dbOverride
-import skillbill.cli.goal.run.emitStartupProvenance
-import skillbill.cli.goal.run.eventSink
 import skillbill.cli.goal.run.goalRunText
 import skillbill.cli.goal.run.hydrateGoalRunAgentAddonSelection
-import skillbill.cli.goal.run.liveOutput
-import skillbill.cli.goal.run.outputSink
 import skillbill.cli.goal.run.parseCodeReviewMode
 import skillbill.cli.goal.run.resolveInvokedAgentId
-import skillbill.cli.goal.run.runtimeProvenance
 import skillbill.cli.goal.run.toGoalRunCliMap
 import skillbill.cli.goal.run.validateGoalRunInputs
 import skillbill.cli.goal.status.GoalStatusCommand
@@ -54,7 +48,6 @@ import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
 import skillbill.engine.goalrunner.GoalRunner
 import skillbill.engine.goalrunner.model.DEFAULT_GOAL_PLANNING_BUDGET
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.mcp.shared.int
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentrun.ExecutableLookup

@@ -5,6 +5,7 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.learning.LearningService
 import skillbill.application.learning.model.AddLearningInput
@@ -15,10 +16,9 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.DocumentedNoOpCliCommand
 import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.kernel.cli.toCliPresentation
-import skillbill.cli.kernel.toPayload
+import skillbill.cli.kernel.payload.toPayload
 import skillbill.cli.model.CliFormat
 import skillbill.learnings.model.LearningScope
-import skillbill.mcp.shared.int
 
 @Inject
 class LearningsQueryCommands(

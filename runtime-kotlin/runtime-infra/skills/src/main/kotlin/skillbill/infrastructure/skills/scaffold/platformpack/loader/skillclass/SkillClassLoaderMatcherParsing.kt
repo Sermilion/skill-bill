@@ -1,7 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass
 import skillbill.error.shellcontent.InvalidManifestSchemaError
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.raw
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.value
 import skillbill.scaffold.model.SkillClassMatcher
 
 internal fun parseExcludeExactList(classId: String, index: Int, excludeExactRaw: Any?): List<String> =

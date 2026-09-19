@@ -5,19 +5,6 @@ import skillbill.goalrunner.asGoalRunnerIntOrNull
 import skillbill.goalrunner.goalContinuationTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
-import skillbill.infrastructure.sqlite.goalrunner.manifest.artifacts
-import skillbill.infrastructure.sqlite.goalrunner.manifest.current
-import skillbill.infrastructure.sqlite.goalrunner.manifest.outcome
-import skillbill.infrastructure.sqlite.goalrunner.manifest.snapshot
-import skillbill.infrastructure.sqlite.goalrunner.outcome.artifacts
-import skillbill.infrastructure.sqlite.goalrunner.outcome.authoritative
-import skillbill.infrastructure.sqlite.goalrunner.outcome.candidate
-import skillbill.infrastructure.sqlite.goalrunner.outcome.goalContinuation
-import skillbill.infrastructure.sqlite.goalrunner.outcome.issueKey
-import skillbill.infrastructure.sqlite.goalrunner.outcome.outcome
-import skillbill.infrastructure.sqlite.goalrunner.outcome.output
-import skillbill.infrastructure.sqlite.goalrunner.outcome.subtaskId
-import skillbill.infrastructure.sqlite.goalrunner.outcome.workflowId
 import skillbill.ports.goalrunner.persistence.model.GoalContinuationCandidate
 
 internal fun List<GoalContinuationCandidate>.authoritativeOutcomesBySubtask(): Map<Int, GoalRunnerStoredOutcome> =

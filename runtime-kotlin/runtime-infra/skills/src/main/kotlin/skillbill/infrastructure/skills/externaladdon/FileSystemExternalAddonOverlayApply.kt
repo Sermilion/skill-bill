@@ -1,9 +1,6 @@
 package skillbill.infrastructure.skills.externaladdon
 import org.yaml.snakeyaml.Yaml
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing
-import skillbill.infrastructure.skills.file.map
-import skillbill.infrastructure.skills.install.entries
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.scaffold.model.GovernedAddonActivation
 import skillbill.scaffold.model.GovernedAddonSelection
 import java.io.IOException

@@ -1,8 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.redaction
 import skillbill.goalrunner.DurableDecodeSubstitutionObservations
-import skillbill.infrastructure.sqlite.telemetry.feature.record
-import skillbill.infrastructure.sqlite.telemetry.goal.apply
-import skillbill.infrastructure.sqlite.telemetry.outbox.apply
 import java.io.InputStream
 import java.util.Properties
 

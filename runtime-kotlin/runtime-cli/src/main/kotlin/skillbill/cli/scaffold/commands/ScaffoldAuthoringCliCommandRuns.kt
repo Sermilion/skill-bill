@@ -6,7 +6,6 @@ import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.scaffold.payload.authoringResult
 import skillbill.cli.scaffold.payload.errorResult
-import skillbill.cli.scaffold.payload.orEmpty
 import skillbill.cli.scaffold.payload.readCliTextFile
 import skillbill.cli.scaffold.payload.unsupportedNativeScaffoldResult
 import skillbill.ports.scaffold.ScaffoldGateway

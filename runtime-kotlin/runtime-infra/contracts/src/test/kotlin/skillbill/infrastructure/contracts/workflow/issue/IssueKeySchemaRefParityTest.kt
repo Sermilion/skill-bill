@@ -5,8 +5,6 @@ import skillbill.contracts.issuekey.ISSUE_KEY_SCHEMA_ID
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeCheckpointIdentitySchemaPaths
 import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
 import skillbill.contracts.workflow.identity.task.FeatureTaskExecutionIdentitySchemaPaths
-import skillbill.infrastructure.contracts.workflow.decomposition.path
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.validation.path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

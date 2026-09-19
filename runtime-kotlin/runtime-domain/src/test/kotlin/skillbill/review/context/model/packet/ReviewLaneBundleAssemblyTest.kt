@@ -1,15 +1,7 @@
 
 package skillbill.review.context.model.packet
-import skillbill.review.context.model.accounting.bundleCompositionDigest
-import skillbill.review.context.model.accounting.lanes
-import skillbill.review.context.model.accounting.packetDigest
-import skillbill.review.context.model.accounting.parent
-import skillbill.review.context.model.accounting.reviewId
-import skillbill.review.context.model.accounting.unreviewedSegmentIds
-import skillbill.review.context.model.bundle.EMPTY
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.bundle.ReviewLaneBundleEntry
-import skillbill.review.context.model.bundle.hunkIds
 import skillbill.review.context.model.commit.ReviewAssignment
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitLaneDecision
@@ -17,72 +9,11 @@ import skillbill.review.context.model.commit.ReviewCommitLaneDisposition
 import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.commit.ReviewCommitSource
 import skillbill.review.context.model.commit.ReviewCommitUnit
-import skillbill.review.context.model.commit.assignedBundle
-import skillbill.review.context.model.commit.assignedHunks
-import skillbill.review.context.model.commit.assignedPaths
-import skillbill.review.context.model.commit.baseRevision
-import skillbill.review.context.model.commit.chainVerified
-import skillbill.review.context.model.commit.commitSha
-import skillbill.review.context.model.commit.decisionsFor
-import skillbill.review.context.model.commit.digest
-import skillbill.review.context.model.commit.disposition
-import skillbill.review.context.model.commit.headRevision
-import skillbill.review.context.model.commit.hunkIds
-import skillbill.review.context.model.commit.hunks
-import skillbill.review.context.model.commit.laneDecision
-import skillbill.review.context.model.commit.laneRouting
-import skillbill.review.context.model.commit.lanes
-import skillbill.review.context.model.commit.orderIndex
-import skillbill.review.context.model.commit.packetDigest
-import skillbill.review.context.model.commit.parentSha
-import skillbill.review.context.model.commit.pathCoverageVerified
-import skillbill.review.context.model.commit.reviewId
-import skillbill.review.context.model.commit.reviewRevision
-import skillbill.review.context.model.commit.subject
 import skillbill.review.context.model.execution.ReviewLaneDecision
-import skillbill.review.context.model.execution.addOns
-import skillbill.review.context.model.execution.assignedPaths
-import skillbill.review.context.model.execution.budget
-import skillbill.review.context.model.execution.forbidden
-import skillbill.review.context.model.execution.normalizedOwnedPaths
-import skillbill.review.context.model.execution.orderIndex
-import skillbill.review.context.model.execution.originLayerChains
-import skillbill.review.context.model.execution.ownedPaths
-import skillbill.review.context.model.execution.owningPack
-import skillbill.review.context.model.execution.path
-import skillbill.review.context.model.execution.specialistSkillName
-import skillbill.review.context.model.hunk.DEFAULT
-import skillbill.review.context.model.hunk.EMPTY
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewRevision
-import skillbill.review.context.model.hunk.budgetKind
-import skillbill.review.context.model.hunk.content
-import skillbill.review.context.model.hunk.contentBytes
-import skillbill.review.context.model.hunk.digest
-import skillbill.review.context.model.hunk.hunkId
-import skillbill.review.context.model.hunk.maxEvidenceResultBytes
-import skillbill.review.context.model.hunk.maxLaneEvidenceBytes
-import skillbill.review.context.model.hunk.maxLaneLaunchBytes
-import skillbill.review.context.model.hunk.newStart
-import skillbill.review.context.model.hunk.observedValue
-import skillbill.review.context.model.hunk.packetDigest
-import skillbill.review.context.model.hunk.path
-import skillbill.review.context.model.launch.DEFAULT
 import skillbill.review.context.model.launch.GovernedReviewLaunch
-import skillbill.review.context.model.launch.assignedPaths
-import skillbill.review.context.model.launch.budget
-import skillbill.review.context.model.launch.budgetOutcomeOrNull
-import skillbill.review.context.model.launch.canonicalPayload
-import skillbill.review.context.model.launch.completionState
-import skillbill.review.context.model.launch.deliveredEntries
-import skillbill.review.context.model.launch.disposition
-import skillbill.review.context.model.launch.path
-import skillbill.review.context.model.launch.unreviewedSegmentIds
-import skillbill.review.context.model.launch.unreviewedUnits
-import skillbill.review.context.model.launch.wireValue
-import skillbill.review.context.model.packet.ReviewLaneBundleSegmentation.Companion.UNREVIEWABLE_SEGMENT_ID
-import skillbill.review.context.model.review.first
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -335,7 +266,7 @@ class ReviewLaneBundleAssemblyTest {
 
     assertTrue(segmentation.segments.isEmpty())
     assertEquals(listOf(hunkA.hunkId), segmentation.unreviewableEntries.map { it.hunkId })
-    assertEquals(listOf(UNREVIEWABLE_SEGMENT_ID), segmentation.unreviewedSegmentIds)
+    assertEquals(listOf(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID), segmentation.unreviewedSegmentIds)
   }
 
   @Test fun `an incomplete completion state names the concrete units it left unreviewed`() {
@@ -397,7 +328,7 @@ class ReviewLaneBundleAssemblyTest {
     assertEquals(LANE_EVIDENCE_BYTES_DIMENSION, result.budgetDimension)
     assertEquals(listOf(brokerDenied), result.unreviewedUnits)
     assertFalse(result.unreviewedUnits.contains("c1@src/Z.kt"))
-    assertFalse(result.unreviewedSegmentIds.contains(UNREVIEWABLE_SEGMENT_ID))
+    assertFalse(result.unreviewedSegmentIds.contains(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID))
   }
 
   @Test fun `withBrokerEvidenceRefusal on a complete state yields incomplete with broker denied units`() {
@@ -415,7 +346,7 @@ class ReviewLaneBundleAssemblyTest {
     assertEquals(ReviewLaneReviewDisposition.INCOMPLETE, result.disposition)
     assertEquals(LANE_EVIDENCE_BYTES_DIMENSION, result.budgetDimension)
     assertEquals(denied, result.unreviewedUnits)
-    assertFalse(result.unreviewedSegmentIds.contains(UNREVIEWABLE_SEGMENT_ID))
+    assertFalse(result.unreviewedSegmentIds.contains(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID))
   }
 
   @Test fun `a failed lane run downgrades a complete state to incomplete naming its whole bundle`() {
@@ -453,7 +384,7 @@ class ReviewLaneBundleAssemblyTest {
         disposition = ReviewLaneReviewDisposition.INCOMPLETE,
         bundleCompositionDigest = ReviewLaneAssembledBundle.EMPTY.compositionDigest,
         segments = emptyList(),
-        unreviewedSegmentIds = listOf(UNREVIEWABLE_SEGMENT_ID),
+        unreviewedSegmentIds = listOf(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID),
       )
     }
   }

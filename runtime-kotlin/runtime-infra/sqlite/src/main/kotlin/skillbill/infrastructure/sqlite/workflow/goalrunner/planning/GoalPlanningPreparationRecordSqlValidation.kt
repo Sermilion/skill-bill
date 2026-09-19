@@ -2,12 +2,6 @@ package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
-import skillbill.infrastructure.sqlite.workflow.decomposition.record
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflow
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.subtaskId
-import skillbill.infrastructure.sqlite.workflow.goalrunner.shared.stored
-import skillbill.infrastructure.sqlite.workflow.goalrunner.subtask.stored
-import skillbill.infrastructure.sqlite.workflow.goalrunner.subtask.subtaskId
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
 

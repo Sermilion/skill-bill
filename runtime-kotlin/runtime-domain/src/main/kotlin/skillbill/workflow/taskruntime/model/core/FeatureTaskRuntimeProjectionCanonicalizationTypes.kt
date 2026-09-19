@@ -1,10 +1,5 @@
 package skillbill.workflow.taskruntime.model.core
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.validation.Map
 
 internal data class FeatureTaskRuntimeProjectionCanonicalization(
   val canonical: Map<String, Any?>,

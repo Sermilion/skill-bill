@@ -1,7 +1,6 @@
 package skillbill.di.workflow
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.decomposition.DecompositionManifestWriter
-import skillbill.di.absent.git
 import skillbill.di.core.RuntimeBootstrapBindings
 import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations

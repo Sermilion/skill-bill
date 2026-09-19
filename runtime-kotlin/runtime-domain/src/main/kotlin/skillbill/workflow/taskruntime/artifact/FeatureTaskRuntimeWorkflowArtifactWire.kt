@@ -2,8 +2,6 @@ package skillbill.workflow.taskruntime.artifact
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.feature.artifact
-import skillbill.workflow.taskruntime.feature.reason
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeQuarantineEntry
 import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeQuarantineEntriesFromWire
 import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeQuarantineRecordToWire
@@ -28,8 +26,6 @@ import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidat
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
-import skillbill.workflow.taskruntime.phase.raw
-import skillbill.workflow.taskruntime.phase.task.artifacts
 import skillbill.workflow.taskruntime.phaseartifacts.decomposeTerminalFrom
 import skillbill.workflow.taskruntime.phaseartifacts.goalContinuationFieldAdoptionFrom
 import skillbill.workflow.taskruntime.phaseartifacts.operatorBlockRetryFrom

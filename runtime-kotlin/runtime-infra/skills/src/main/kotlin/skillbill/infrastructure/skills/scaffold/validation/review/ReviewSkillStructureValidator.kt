@@ -3,8 +3,6 @@ import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.error.shellcontent.InvalidReviewSkillStructureError
 import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_BUNDLE_FILE
 import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentBundle
-import skillbill.infrastructure.skills.scaffold.validation.shape.fileName
-import skillbill.infrastructure.skills.scaffold.validation.shape.pack
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files

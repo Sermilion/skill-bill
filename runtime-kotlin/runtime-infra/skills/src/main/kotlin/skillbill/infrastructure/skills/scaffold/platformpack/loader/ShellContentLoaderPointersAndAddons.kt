@@ -1,7 +1,5 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.entry
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.manifest
 import skillbill.scaffold.model.PointerSpec
 import java.nio.file.Path
 

@@ -1,5 +1,4 @@
 package skillbill.application.telemetry.service
-import skillbill.application.telemetry.telemetry.service
 
 fun prDescriptionWasEditedByUser(generatedDescription: String?, finalPrBody: String?): Boolean {
   val generated = generatedDescription?.normalizedPrDescriptionBody() ?: return false

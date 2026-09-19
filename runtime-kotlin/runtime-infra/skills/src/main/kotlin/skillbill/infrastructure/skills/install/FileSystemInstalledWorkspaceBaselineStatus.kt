@@ -1,16 +1,8 @@
 package skillbill.infrastructure.skills.install
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.skills.externaladdon.entry
-import skillbill.infrastructure.skills.externaladdon.map
-import skillbill.infrastructure.skills.externaladdon.platformPacksRoot
-import skillbill.infrastructure.skills.externaladdon.request
-import skillbill.infrastructure.skills.file.home
-import skillbill.infrastructure.skills.file.map
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceSide
 import skillbill.infrastructure.skills.install.reconcile.enumerateSkills
-import skillbill.infrastructure.skills.scaffold.home
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.ports.install.baseline.BaselineManifestPersistencePort
 import skillbill.ports.install.baseline.InstalledWorkspaceBaselineStatusPort
 import skillbill.ports.install.baseline.model.InstalledWorkspaceBaselineStatusRequest

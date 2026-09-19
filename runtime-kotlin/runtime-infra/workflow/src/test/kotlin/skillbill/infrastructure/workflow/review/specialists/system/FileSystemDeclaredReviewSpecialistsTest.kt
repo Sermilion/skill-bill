@@ -1,12 +1,6 @@
 package skillbill.infrastructure.workflow.review.specialists.system
 import skillbill.error.shellcontent.InvalidFallbackCapabilityError
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
-import skillbill.infrastructure.workflow.filesystem.path
-import skillbill.infrastructure.workflow.git.standard.path
-import skillbill.infrastructure.workflow.git.suppression.path
-import skillbill.infrastructure.workflow.git.workflow.path
-import skillbill.infrastructure.workflow.review.broker.content
-import skillbill.infrastructure.workflow.review.broker.path
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.review.plan.model.ReviewRoutingChangedFile
 import java.nio.file.Files

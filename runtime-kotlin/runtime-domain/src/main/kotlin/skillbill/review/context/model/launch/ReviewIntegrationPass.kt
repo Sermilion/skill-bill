@@ -1,21 +1,10 @@
 package skillbill.review.context.model.launch
-import skillbill.review.context.model.commit.evidenceTargets
 import skillbill.review.context.model.execution.ReviewSpecialistSummaryCoverage
-import skillbill.review.context.model.execution.path
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewEvidenceTarget
-import skillbill.review.context.model.hunk.path
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewLaneCompletionState
 import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
-import skillbill.review.context.model.packet.distinct
-import skillbill.review.context.model.packet.entries
-import skillbill.review.context.model.packet.evidenceTargets
-import skillbill.review.context.model.packet.launch
-import skillbill.review.context.model.packet.ownedCommitIds
-import skillbill.review.context.model.packet.selectedLanes
-import skillbill.review.context.model.review.launch
-import skillbill.review.context.model.review.value
 data class ReviewSpecialistSummary(
   val lane: String,
   val assignmentDigest: String,

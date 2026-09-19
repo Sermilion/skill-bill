@@ -7,10 +7,6 @@ import skillbill.application.telemetry.model.FeatureVerifyStartedRequest
 import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
-import skillbill.application.telemetry.service.level
-import skillbill.application.telemetry.service.settings
-import skillbill.application.telemetry.telemetry.settings
-import skillbill.application.telemetry.telemetry.unitOfWork
 import skillbill.application.telemetry.validation.validateFeatureVerifyFinished
 import skillbill.application.telemetry.validation.validateQualityCheckFinished
 import skillbill.application.telemetry.validation.validateQualityCheckStarted

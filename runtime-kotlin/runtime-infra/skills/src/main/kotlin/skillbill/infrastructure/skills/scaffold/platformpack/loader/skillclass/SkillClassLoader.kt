@@ -1,8 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass
 import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.error.shellcontent.MissingManifestError
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.sorted
 import skillbill.scaffold.model.SkillClassManifest
 import java.nio.file.Files
 import java.nio.file.Path

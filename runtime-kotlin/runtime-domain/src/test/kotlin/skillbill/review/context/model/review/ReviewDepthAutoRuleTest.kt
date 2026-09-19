@@ -1,11 +1,7 @@
 package skillbill.review.context.model.review
 import skillbill.review.context.ReviewExecutionModePolicy
 import skillbill.review.context.model.execution.ResolvedReviewExecutionMode
-import skillbill.review.context.model.execution.decidingRule
-import skillbill.review.context.model.execution.resolvedMode
-import skillbill.review.context.model.hunk.DEFAULT
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.review.context.model.launch.DEFAULT
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

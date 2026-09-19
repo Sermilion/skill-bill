@@ -10,15 +10,6 @@ import com.networknt.schema.ValidationMessage
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
-import skillbill.infrastructure.contracts.workflow.decomposition.buildSchemaDriftLog
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.envelope
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.reason
-import skillbill.infrastructure.contracts.workflow.goal.observability.buildSchemaDriftLog
-import skillbill.infrastructure.contracts.workflow.goal.planning.buildSchemaDriftLog
-import skillbill.infrastructure.contracts.workflow.goal.planning.reason
-import skillbill.infrastructure.contracts.workflow.goal.progress.buildSchemaDriftLog
-import skillbill.infrastructure.contracts.workflow.goal.status.buildSchemaDriftLog
-import skillbill.infrastructure.contracts.workflow.workflow.log
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import java.util.logging.Level
 

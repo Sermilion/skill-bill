@@ -1,9 +1,7 @@
 package skillbill.review.context.model.commit
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
-import skillbill.review.context.model.execution.index
 import skillbill.review.context.model.execution.sha256
-import skillbill.review.context.model.packet.distinct
 const val REVIEW_ROUTING_REASON_MAX_CHARS: Int = 600
 
 enum class ReviewCommitLaneDisposition { FOCUSED, SKIPPED }

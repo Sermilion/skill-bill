@@ -1,6 +1,5 @@
 package skillbill.error.featuretask
 
-import skillbill.error.core.error
 import skillbill.error.shellcontent.ShellContentContractException
 class FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError(
   val addressedFingerprint: String,

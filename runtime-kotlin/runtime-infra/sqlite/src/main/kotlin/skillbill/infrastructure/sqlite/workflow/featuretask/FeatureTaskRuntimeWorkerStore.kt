@@ -2,10 +2,6 @@ package skillbill.infrastructure.sqlite.workflow.featuretask
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.core.ops.inNestedWriteTransaction
-import skillbill.infrastructure.sqlite.workflow.decomposition.workflowStatus
-import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.contractVersion
-import skillbill.infrastructure.sqlite.workflow.workflow.rows
-import skillbill.infrastructure.sqlite.workflow.workflow.statement
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeCrashReconciliationCandidate
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.FeatureTaskRuntimeWorkerRepository

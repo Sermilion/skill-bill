@@ -5,6 +5,7 @@ import skillbill.infrastructure.skills.install.plan.InstallContext
 import skillbill.infrastructure.skills.install.plan.installSkill
 import skillbill.infrastructure.skills.install.plan.uninstallTargets
 import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
+import skillbill.infrastructure.skills.install.staging.staging.installed.stageInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.nativeagent.testNativeAgentCompositionContext
 import skillbill.infrastructure.skills.scaffold.authoring.renderWrapper

@@ -1,10 +1,4 @@
 package skillbill.cli.goal.run
-import skillbill.cli.goal.core.Map
-import skillbill.cli.goal.purge.Map
-import skillbill.cli.goal.status.hunks
-import skillbill.cli.goal.status.lines
-import skillbill.cli.goal.status.path
-import skillbill.cli.goal.status.staged
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks

@@ -7,13 +7,8 @@ import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.terminalOutcomeFor
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.goalrunner.control.goalContinuation
-import skillbill.infrastructure.sqlite.goalrunner.control.identity
 import skillbill.infrastructure.sqlite.goalrunner.control.missingResultPrefixTerminalOutcomeArtifact
-import skillbill.infrastructure.sqlite.goalrunner.control.outcome
 import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
-import skillbill.infrastructure.sqlite.goalrunner.manifest.outcome
-import skillbill.infrastructure.sqlite.goalrunner.manifest.save
-import skillbill.infrastructure.sqlite.goalrunner.manifest.snapshot
 import skillbill.ports.goalrunner.persistence.model.CrashReconcileExpiredWorkerRequest
 import skillbill.ports.goalrunner.persistence.model.GoalSubtaskIdentity
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor

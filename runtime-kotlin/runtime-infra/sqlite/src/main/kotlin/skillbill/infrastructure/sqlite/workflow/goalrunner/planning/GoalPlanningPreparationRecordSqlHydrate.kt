@@ -1,7 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
-import skillbill.infrastructure.sqlite.workflow.decomposition.normalizedIssueKey
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflow
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import java.sql.ResultSet

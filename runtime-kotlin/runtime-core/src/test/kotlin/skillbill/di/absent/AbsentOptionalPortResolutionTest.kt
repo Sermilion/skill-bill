@@ -1,9 +1,6 @@
 package skillbill.di.absent
 import skillbill.di.core.RuntimeBootstrapBindings
-import skillbill.di.core.remoteTransportPort
-import skillbill.di.core.runtimeContext
 import skillbill.di.workflow.RuntimeWorkflowProvides
-import skillbill.di.workflow.workflowGitOperations
 import skillbill.error.core.UnresolvedRemoteTransportPortError
 import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations

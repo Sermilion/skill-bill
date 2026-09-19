@@ -1,7 +1,4 @@
 package skillbill.error.core
-import skillbill.error.featuretask.reason
-import skillbill.error.shellcontent.operation
-import skillbill.error.shellcontent.reason
 
 sealed class RejectedOutputDiagnosticError(
   message: String,

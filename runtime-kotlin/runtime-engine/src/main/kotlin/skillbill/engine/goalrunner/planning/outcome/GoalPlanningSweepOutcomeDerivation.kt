@@ -1,9 +1,9 @@
 package skillbill.engine.goalrunner.planning.outcome
 
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSharedContext
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningPreparationStateReadStopReason
-import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSharedContext
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.repository.RepositoryEnclosingRootPort

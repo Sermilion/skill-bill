@@ -3,13 +3,8 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
-import skillbill.infrastructure.sqlite.telemetry.feature.record
-import skillbill.infrastructure.sqlite.telemetry.goal.Map
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.enqueueTelemetry
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.reviewStageDegradationExists
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.maps.Map
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.Map
-import skillbill.infrastructure.sqlite.telemetry.redaction.reviewRunId
 import skillbill.ports.telemetry.lifecycle.FeatureTaskRuntimeTelemetryMeasurementRepository
 import skillbill.ports.telemetry.lifecycle.ReviewStageTelemetryMeasurementRepository
 import skillbill.review.model.REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION

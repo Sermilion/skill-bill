@@ -1,11 +1,11 @@
 package skillbill.mcp.lifecycle
 
-import skillbill.application.telemetry.historySignalValues
 import skillbill.application.telemetry.model.FeatureVerifyFinishedRequest
 import skillbill.application.telemetry.model.FeatureVerifyStartedRequest
 import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
+import skillbill.application.telemetry.validation.historySignalValues
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpRuntimeLifecycle

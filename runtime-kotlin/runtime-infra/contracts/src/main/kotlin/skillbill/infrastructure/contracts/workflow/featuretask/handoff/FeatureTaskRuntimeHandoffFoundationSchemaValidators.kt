@@ -23,31 +23,8 @@ import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceS
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
-import skillbill.infrastructure.contracts.workflow.decomposition.instanceLocation
-import skillbill.infrastructure.contracts.workflow.decomposition.node
-import skillbill.infrastructure.contracts.workflow.decomposition.offendingValue
-import skillbill.infrastructure.contracts.workflow.decomposition.path
 import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.extractFeatureTaskRuntimePhaseOutputOffendingValue
 import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.featureTaskRuntimePhaseOutputDottedFieldPath
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.node
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.offendingValue
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.payloadFree
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.message
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.validation.path
-import skillbill.infrastructure.contracts.workflow.goal.observability.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.observability.node
-import skillbill.infrastructure.contracts.workflow.goal.observability.offendingValue
-import skillbill.infrastructure.contracts.workflow.goal.planning.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.planning.node
-import skillbill.infrastructure.contracts.workflow.goal.planning.offendingValue
-import skillbill.infrastructure.contracts.workflow.goal.progress.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.progress.offendingValue
-import skillbill.infrastructure.contracts.workflow.goal.status.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.status.offendingValue
-import skillbill.infrastructure.contracts.workflow.issue.node
-import skillbill.infrastructure.contracts.workflow.workflow.instanceLocation
-import skillbill.infrastructure.contracts.workflow.workflow.node
-import skillbill.infrastructure.contracts.workflow.workflow.offendingValue
 
 private const val MAX_REPORTED_SCHEMA_FAILURES = 3
 

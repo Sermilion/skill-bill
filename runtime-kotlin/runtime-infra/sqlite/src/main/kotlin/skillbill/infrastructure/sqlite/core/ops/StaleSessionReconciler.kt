@@ -1,6 +1,4 @@
 package skillbill.infrastructure.sqlite.core.ops
-import skillbill.infrastructure.sqlite.core.schema.candidate
-import skillbill.infrastructure.sqlite.core.schema.connection
 import skillbill.infrastructure.sqlite.telemetry.goal.emitGoalIssueFinished
 import skillbill.infrastructure.sqlite.telemetry.goal.nextGoalStateEnteredAtSql
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.emitFeatureTaskRuntimeFinished

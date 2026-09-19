@@ -2,19 +2,6 @@ package skillbill.infrastructure.sqlite.telemetry.goal
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.telemetry.feature.record
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.goal.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.measurement.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.issueKey
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.parentWorkflowId
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.quality.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime.List
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.connection
-import skillbill.infrastructure.sqlite.telemetry.outbox.connection
-import skillbill.infrastructure.sqlite.telemetry.outbox.count
-import skillbill.infrastructure.sqlite.telemetry.redaction.issueKey
 import skillbill.telemetry.model.GoalIssueFinishedRecord
 import java.sql.Connection
 

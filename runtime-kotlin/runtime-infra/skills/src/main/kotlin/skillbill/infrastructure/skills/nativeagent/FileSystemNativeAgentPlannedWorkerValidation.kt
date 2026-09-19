@@ -1,15 +1,6 @@
 package skillbill.infrastructure.skills.nativeagent
-import skillbill.infrastructure.skills.externaladdon.map
-import skillbill.infrastructure.skills.externaladdon.message
-import skillbill.infrastructure.skills.externaladdon.name
-import skillbill.infrastructure.skills.externaladdon.slug
-import skillbill.infrastructure.skills.file.map
-import skillbill.infrastructure.skills.install.manifest
-import skillbill.infrastructure.skills.install.size
 import skillbill.infrastructure.skills.nativeagent.rendering.discoverRepoNativeAgentSourceFiles
-import skillbill.infrastructure.skills.scaffold.path
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.review.plan.ReviewLaunchPlanPolicy
 import java.nio.file.Files
 import java.nio.file.Path

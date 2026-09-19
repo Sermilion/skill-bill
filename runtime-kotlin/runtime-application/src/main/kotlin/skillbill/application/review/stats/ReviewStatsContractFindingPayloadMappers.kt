@@ -1,6 +1,4 @@
 package skillbill.application.review.stats
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.service.review
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.review.model.ReviewFindingDetail
 import skillbill.review.model.ReviewFindingStats

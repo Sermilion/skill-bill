@@ -1,26 +1,9 @@
 package skillbill.review.context.model.hunk
 import skillbill.review.context.model.accounting.ReviewBudgetKind
 import skillbill.review.context.model.commit.ReviewAssignment
-import skillbill.review.context.model.commit.assignedHunks
-import skillbill.review.context.model.commit.digest
 import skillbill.review.context.model.execution.SHA256_HEX
-import skillbill.review.context.model.execution.assignment
-import skillbill.review.context.model.execution.budget
 import skillbill.review.context.model.execution.sha256
-import skillbill.review.context.model.launch.assignment
-import skillbill.review.context.model.launch.budget
-import skillbill.review.context.model.launch.packet
-import skillbill.review.context.model.launch.wireValue
 import skillbill.review.context.model.packet.ReviewContextPacket
-import skillbill.review.context.model.packet.assignment
-import skillbill.review.context.model.packet.changedHunks
-import skillbill.review.context.model.packet.digest
-import skillbill.review.context.model.packet.hunk
-import skillbill.review.context.model.packet.hunkId
-import skillbill.review.context.model.packet.packet
-import skillbill.review.context.model.packet.wireValue
-import skillbill.review.context.model.review.assignment
-import skillbill.review.context.model.review.packet
 const val REVIEW_CONTEXT_BUDGET_EXCEEDED: String = "review_context_budget_exceeded"
 const val REVIEW_ROUTING_ANALYSIS_PAIRS_BUDGET: String = "routing_analysis_pairs"
 

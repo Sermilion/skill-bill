@@ -1,5 +1,4 @@
 package skillbill.review.parallel
-import skillbill.review.finding.rawDescription
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewFindingCitationDiagnostic
@@ -7,9 +6,6 @@ import skillbill.review.model.ReviewFindingCitationsDecode
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
 import skillbill.review.model.ReviewSeverityAdjustmentDirection
-import skillbill.review.review.current
-import skillbill.review.review.raw
-import skillbill.review.review.review
 
 internal data class ParallelReviewTrailingStructuredFields(
   val description: String = "",

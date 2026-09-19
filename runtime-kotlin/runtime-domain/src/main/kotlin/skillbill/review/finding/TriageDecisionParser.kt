@@ -1,11 +1,7 @@
 package skillbill.review.finding
-import skillbill.review.attribution.value
 import skillbill.review.model.FindingOutcomeType
 import skillbill.review.model.NumberedFinding
 import skillbill.review.model.TriageDecision
-import skillbill.review.parallel.finding
-import skillbill.review.parallel.first
-import skillbill.review.review.review
 
 object TriageDecisionParser {
   fun expandBulkDecisions(rawDecisions: List<String>, numberedFindings: List<NumberedFinding>): List<String> =

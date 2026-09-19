@@ -1,5 +1,4 @@
 package skillbill.review.context.model.hunk
-import skillbill.review.context.model.packet.hunk
 
 const val REVIEW_DIGEST_HEX_LENGTH: Int = 64
 

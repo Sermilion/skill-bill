@@ -3,9 +3,6 @@ import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.hunk.ReviewEvidenceLimits
-import skillbill.review.context.model.hunk.field
-import skillbill.review.context.model.launch.packet
-import skillbill.review.context.model.review.packet
 data class ReviewExpansionRecord(
   val expansionId: String,
   val assignmentDigest: String,

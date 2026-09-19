@@ -1,5 +1,4 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.native
-import skillbill.infrastructure.skills.install.nativeagent.inventory.entry
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentDeclaredFiles
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentGovernedAddonActivation
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentGovernedAddonSelection

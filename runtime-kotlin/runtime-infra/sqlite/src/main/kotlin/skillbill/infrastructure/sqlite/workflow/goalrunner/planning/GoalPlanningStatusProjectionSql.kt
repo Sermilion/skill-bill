@@ -2,9 +2,7 @@ package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflow
 import skillbill.infrastructure.sqlite.workflow.goalrunner.shared.INVALIDATED_SHARED_PREPLAN_PAYLOAD
-import skillbill.infrastructure.sqlite.workflow.workflow.statement
 import java.sql.Connection
 
 internal class GoalPlanningStatusProjectionSql(

@@ -56,7 +56,7 @@ class DecompositionManifestArchitectureTest {
 
     val infraStoreSeam = Files.readString(
       runtimeRoot.resolve(
-        "$infraWorkflowModule/src/main/kotlin/skillbill/infrastructure/workflow/" +
+        "$infraWorkflowModule/src/main/kotlin/skillbill/infrastructure/workflow/decomposition/" +
           "FileSystemDecompositionManifestFileStore.kt",
       ),
     )

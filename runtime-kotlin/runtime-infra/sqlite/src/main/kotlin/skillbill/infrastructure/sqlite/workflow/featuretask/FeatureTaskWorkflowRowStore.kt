@@ -1,16 +1,12 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.ProseFeatureTaskWorkflowWriteRefusedError
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.mode
-import skillbill.infrastructure.sqlite.workflow.workflow.FeatureTaskWorkflowMode
 import skillbill.infrastructure.sqlite.workflow.workflow.defaultContractVersion
 import skillbill.infrastructure.sqlite.workflow.workflow.defaultImplementationSkill
 import skillbill.infrastructure.sqlite.workflow.workflow.getFeatureTaskWorkflowRow
 import skillbill.infrastructure.sqlite.workflow.workflow.listFeatureTaskWorkflowRows
-import skillbill.infrastructure.sqlite.workflow.workflow.mode
 import skillbill.infrastructure.sqlite.workflow.workflow.terminalizeLegacyProseFeatureTaskWorkflowRow
 import skillbill.infrastructure.sqlite.workflow.workflow.upsertFeatureTaskWorkflowRow
-import skillbill.infrastructure.sqlite.workflow.workflow.workflowId
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection

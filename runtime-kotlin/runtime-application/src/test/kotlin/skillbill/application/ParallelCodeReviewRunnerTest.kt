@@ -10,8 +10,8 @@ import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
 import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunner
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunnerBoundaries
 import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunnerComposition
+import skillbill.application.review.parallel.core.code.review.runner.model.ParallelCodeReviewRunnerBoundaries
 import skillbill.application.review.review.RecordedWorkerResponse
 import skillbill.application.review.review.ReviewHarnessConfig
 import skillbill.application.review.review.ReviewRecorder

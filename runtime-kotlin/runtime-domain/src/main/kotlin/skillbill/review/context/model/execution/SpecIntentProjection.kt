@@ -1,12 +1,6 @@
 package skillbill.review.context.model.execution
 import skillbill.model.FileLocation
-import skillbill.review.context.model.hunk.DEFAULT
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
-import skillbill.review.context.model.launch.DEFAULT
-import skillbill.review.context.model.launch.wireValue
-import skillbill.review.context.model.packet.entries
-import skillbill.review.context.model.packet.wireValue
-import skillbill.review.context.model.review.value
 
 enum class SpecIntentAbsenceReason(val wireValue: String) {
   NO_SPEC_FOUND("no_spec_found"),

@@ -1,19 +1,19 @@
 package skillbill.infrastructure.skills.install.plan
 
 import skillbill.infrastructure.skills.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
-import skillbill.infrastructure.skills.install.staging.staging.agentAddonPointersForSkill
 import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
 import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
-import skillbill.infrastructure.skills.install.staging.staging.authoredStagingNames
 import skillbill.infrastructure.skills.install.staging.staging.content.InstallContentHashInputs
+import skillbill.infrastructure.skills.install.staging.staging.content.agentAddonPointersForSkill
+import skillbill.infrastructure.skills.install.staging.staging.content.authoredStagingNames
 import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.staging.content.validateAgentAddonPointerNamespace
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillStagingDir
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
 import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalStagingPreparation
 import skillbill.infrastructure.skills.install.staging.staging.sidecar.prepareInternalStaging
 import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
 import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
-import skillbill.infrastructure.skills.install.staging.staging.validateAgentAddonPointerNamespace
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind

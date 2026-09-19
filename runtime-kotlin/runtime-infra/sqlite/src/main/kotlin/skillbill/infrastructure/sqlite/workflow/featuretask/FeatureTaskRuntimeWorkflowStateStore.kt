@@ -1,17 +1,10 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.Map
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.mode
-import skillbill.infrastructure.sqlite.workflow.workflow.FeatureTaskWorkflowMode
-import skillbill.infrastructure.sqlite.workflow.workflow.Set
 import skillbill.infrastructure.sqlite.workflow.workflow.defaultContractVersion
 import skillbill.infrastructure.sqlite.workflow.workflow.defaultImplementationSkill
 import skillbill.infrastructure.sqlite.workflow.workflow.getFeatureTaskWorkflowRowAsMode
 import skillbill.infrastructure.sqlite.workflow.workflow.getFeatureTaskWorkflowRows
 import skillbill.infrastructure.sqlite.workflow.workflow.listFeatureTaskWorkflowRows
-import skillbill.infrastructure.sqlite.workflow.workflow.mode
-import skillbill.infrastructure.sqlite.workflow.workflow.row
 import skillbill.infrastructure.sqlite.workflow.workflow.upsertFeatureTaskWorkflowRow
-import skillbill.infrastructure.sqlite.workflow.workflow.workflowId
 import skillbill.ports.workflow.FeatureTaskRuntimeWorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.FeatureTaskWorkflowMode

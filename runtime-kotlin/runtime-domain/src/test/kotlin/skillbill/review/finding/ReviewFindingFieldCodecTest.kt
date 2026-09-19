@@ -1,13 +1,5 @@
 package skillbill.review.finding
 import skillbill.review.model.ReviewFindingCitation
-import skillbill.review.parallel.citations
-import skillbill.review.parallel.diagnostics
-import skillbill.review.parallel.finding
-import skillbill.review.parallel.path
-import skillbill.review.parallel.reason
-import skillbill.review.parallel.single
-import skillbill.review.review.review
-import skillbill.review.stage.reason
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

@@ -1,8 +1,4 @@
 package skillbill.application.review.service
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.core.code.review.bundled.service
-import skillbill.application.review.parallel.core.review.service
-import skillbill.application.review.preparation.service
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import kotlin.test.Test
 import kotlin.test.assertEquals

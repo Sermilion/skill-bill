@@ -1,12 +1,5 @@
 package skillbill.workflow.taskruntime.model.validation
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.handoff.envelope.value
-import skillbill.workflow.taskruntime.model.handoff.task.value
-import skillbill.workflow.taskruntime.model.persistence.artifact.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.value
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.value
-import skillbill.workflow.taskruntime.model.repair.task.context
-import skillbill.workflow.taskruntime.model.repair.task.value
 
 data class FeatureTaskRuntimeVerdict(
   val wireValue: String,

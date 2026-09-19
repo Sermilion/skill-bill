@@ -1,8 +1,6 @@
 package skillbill.workflow.taskruntime.feature
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeCheckpointIdentityVersionError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.artifact.phaseId
-import skillbill.workflow.taskruntime.handoff.branch
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_LIMIT
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeAppendCheckpointIdentity
@@ -10,8 +8,6 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointIdentitiesToArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointRefName
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeOwnedPathDigest
-import skillbill.workflow.taskruntime.phase.map
-import skillbill.workflow.taskruntime.validation.index
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

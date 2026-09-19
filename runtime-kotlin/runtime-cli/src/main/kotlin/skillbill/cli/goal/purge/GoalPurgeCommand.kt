@@ -4,13 +4,12 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
-import skillbill.cli.goal.core.purge
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
-import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
+import skillbill.engine.goalrunner.status.GoalRunnerStatusService
 
 @Inject
 class GoalPurgeCommand(

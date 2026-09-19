@@ -1,9 +1,5 @@
 package skillbill.review.review
-import skillbill.review.finding.findings
-import skillbill.review.parallel.findings
-import skillbill.review.parallel.single
 import skillbill.review.parsing.ReviewParser
-import skillbill.review.parsing.parseReview
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

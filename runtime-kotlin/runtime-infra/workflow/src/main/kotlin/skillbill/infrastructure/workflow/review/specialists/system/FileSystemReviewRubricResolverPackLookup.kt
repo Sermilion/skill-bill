@@ -1,11 +1,4 @@
 package skillbill.infrastructure.workflow.review.specialists.system
-import skillbill.infrastructure.workflow.filesystem.matches
-import skillbill.infrastructure.workflow.filesystem.path
-import skillbill.infrastructure.workflow.git.standard.path
-import skillbill.infrastructure.workflow.git.suppression.evidence
-import skillbill.infrastructure.workflow.git.suppression.path
-import skillbill.infrastructure.workflow.git.workflow.path
-import skillbill.infrastructure.workflow.review.broker.path
 import skillbill.ports.review.model.ReviewOwnedFileEvidence
 import skillbill.review.plan.ReviewContentMatcher
 import skillbill.review.plan.ReviewPathMatcher

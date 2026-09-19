@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.artifact
 import skillbill.contracts.JsonCodec
-import skillbill.workflow.taskruntime.feature.artifact
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDecomposeTerminal
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
@@ -13,7 +12,6 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementat
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.featureTaskRuntimeRunInvariantsFromArtifactMap
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.toArtifactMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDeliveredProjectionRecord
-import skillbill.workflow.taskruntime.phase.raw
 
 fun FeatureTaskRuntimeImplementationAttempt.asWorkflowArtifactEntry(): Any = toArtifactMap()
 

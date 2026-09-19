@@ -1,12 +1,4 @@
 package skillbill.review.context.model.review
-import skillbill.review.context.model.launch.ALTERED_CLAIM
-import skillbill.review.context.model.launch.UNSETTLED
-import skillbill.review.context.model.launch.admit
-import skillbill.review.context.model.launch.citations
-import skillbill.review.context.model.launch.description
-import skillbill.review.context.model.launch.findingRef
-import skillbill.review.context.model.launch.location
-import skillbill.review.context.model.launch.severity
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewClaimVerdict

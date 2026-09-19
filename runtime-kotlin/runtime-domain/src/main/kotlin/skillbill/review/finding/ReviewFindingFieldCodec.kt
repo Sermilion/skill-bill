@@ -8,17 +8,6 @@ import skillbill.review.model.ReviewFindingCitationsDecode
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
 import skillbill.review.model.ReviewSeverityAdjustmentDirection
-import skillbill.review.parallel.claimVerdict
-import skillbill.review.parallel.finding
-import skillbill.review.parallel.id
-import skillbill.review.parallel.index
-import skillbill.review.parallel.line
-import skillbill.review.parallel.reason
-import skillbill.review.parallel.scopeDisposition
-import skillbill.review.parallel.severityAdjustment
-import skillbill.review.review.raw
-import skillbill.review.review.review
-import skillbill.review.stage.reason
 
 object ReviewFindingFieldCodec {
   fun findingRefOf(id: Any?, findingId: Any?, fNumber: Any?): String? = sequenceOf(id, findingId, fNumber)

@@ -1,15 +1,10 @@
 package skillbill.workflow.taskruntime.handoff
 import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.feature.inputs
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionField
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
-import skillbill.workflow.taskruntime.phase.planning.sourceRef
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.phase.task.source
 
 internal object FeatureTaskRuntimeHandoffProjectionFieldResolver {
   fun resolvedProducerIteration(

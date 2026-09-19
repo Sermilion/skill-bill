@@ -1,14 +1,5 @@
 package skillbill.workflow.taskruntime.validation
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.feature.candidate
-import skillbill.workflow.taskruntime.feature.evidence
-import skillbill.workflow.taskruntime.feature.map
-import skillbill.workflow.taskruntime.handoff.output
-import skillbill.workflow.taskruntime.handoff.outputs
-import skillbill.workflow.taskruntime.handoff.validation
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeProviderLimitSignal
-import skillbill.workflow.taskruntime.phase.map
-import skillbill.workflow.taskruntime.phase.task.evidence
 
 object FeatureTaskRuntimeProviderLimitDetector {
   const val INSPECTED_TAIL_CHARS: Int = 2000

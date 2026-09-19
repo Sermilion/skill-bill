@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.core.migration.evidence
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.core.schema.connection
 import java.sql.Connection
 
 internal fun rekeyDiagnosticEvidenceByRepairTurn(connection: Connection) {

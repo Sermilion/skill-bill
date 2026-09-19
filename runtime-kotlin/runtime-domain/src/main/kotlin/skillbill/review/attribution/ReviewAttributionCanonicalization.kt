@@ -1,13 +1,9 @@
 package skillbill.review.attribution
-import skillbill.review.finding.map
 import skillbill.review.model.CanonicalAttribution
 import skillbill.review.model.CanonicalScope
 import skillbill.review.model.ImportedReview
 import skillbill.review.model.ReviewAttributionResolutionError
 import skillbill.review.model.ReviewExecutionMode
-import skillbill.review.parallel.entries
-import skillbill.review.parsing.specialistReviews
-import skillbill.review.review.review
 
 const val UNRESOLVED_ATTRIBUTION: String = "unresolved"
 

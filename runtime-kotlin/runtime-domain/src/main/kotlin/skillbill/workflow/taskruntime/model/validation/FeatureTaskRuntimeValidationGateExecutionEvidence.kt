@@ -2,39 +2,6 @@ package skillbill.workflow.taskruntime.model.validation
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
-import skillbill.workflow.taskruntime.model.audit.error
-import skillbill.workflow.taskruntime.model.audit.fromWire
-import skillbill.workflow.taskruntime.model.audit.reason
-import skillbill.workflow.taskruntime.model.core.Map
-import skillbill.workflow.taskruntime.model.core.fromWire
-import skillbill.workflow.taskruntime.model.core.reason
-import skillbill.workflow.taskruntime.model.handoff.Map
-import skillbill.workflow.taskruntime.model.handoff.envelope.fromWire
-import skillbill.workflow.taskruntime.model.handoff.task.fromWire
-import skillbill.workflow.taskruntime.model.handoff.task.outcome
-import skillbill.workflow.taskruntime.model.handoff.task.repositoryCheckpoint
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.reason
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.prior.isEmpty
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.Map
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.entry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.fromWire
-import skillbill.workflow.taskruntime.model.phase.Map
-import skillbill.workflow.taskruntime.model.phase.fromWire
-import skillbill.workflow.taskruntime.model.phase.outcome
-import skillbill.workflow.taskruntime.model.phase.reason
-import skillbill.workflow.taskruntime.model.phase.sourceLabel
-import skillbill.workflow.taskruntime.model.repair.fromWire
-import skillbill.workflow.taskruntime.model.repair.task.entry
-import skillbill.workflow.taskruntime.model.repair.task.error
-import skillbill.workflow.taskruntime.model.repair.task.fromWire
-import skillbill.workflow.taskruntime.model.repair.task.isEmpty
-import skillbill.workflow.taskruntime.model.repair.task.outcome
-import skillbill.workflow.taskruntime.model.repair.task.reason
-import skillbill.workflow.taskruntime.model.review.fromWire
-import skillbill.workflow.taskruntime.model.review.message
 
 data class FeatureTaskRuntimeValidationGateExecutionEvidence(
   val validationStatus: String,

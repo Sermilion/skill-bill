@@ -3,13 +3,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.error.core.ExternalAddonConfigError
 import skillbill.infrastructure.host.readTelemetryConfigFile
 import skillbill.infrastructure.host.resolveTelemetryConfigPath
-import skillbill.infrastructure.skills.externaladdon.entry
-import skillbill.infrastructure.skills.externaladdon.file
-import skillbill.infrastructure.skills.externaladdon.message
-import skillbill.infrastructure.skills.externaladdon.request
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.install.environment
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.install.model.ExternalAgentAddonSource
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest

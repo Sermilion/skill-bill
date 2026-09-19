@@ -3,23 +3,10 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.feature.inputs
-import skillbill.workflow.taskruntime.feature.map
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.phase.map
-import skillbill.workflow.taskruntime.phase.planning.projectionContractId
-import skillbill.workflow.taskruntime.phase.task.BOUNDARY_CANDIDATES
-import skillbill.workflow.taskruntime.phase.task.COMMIT_REQUEST
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.phase.task.PHASE_VALIDATE
-import skillbill.workflow.taskruntime.phase.task.PR_REQUEST
-import skillbill.workflow.taskruntime.phase.task.PhaseProjectionContract
-import skillbill.workflow.taskruntime.phase.task.VALIDATION_REQUEST
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.validation.output
 
 internal object FeatureTaskRuntimeHandoffProjectionFinalization {
   fun finalizationProjectionValues(

@@ -1,17 +1,4 @@
 package skillbill.cli.scaffold.payload
-import skillbill.cli.scaffold.commands.addonLocationPath
-import skillbill.cli.scaffold.commands.body
-import skillbill.cli.scaffold.commands.consumerSkillDirs
-import skillbill.cli.scaffold.commands.displayName
-import skillbill.cli.scaffold.commands.name
-import skillbill.cli.scaffold.commands.payload
-import skillbill.cli.scaffold.commands.platform
-import skillbill.cli.scaffold.commands.repoRoot
-import skillbill.cli.scaffold.commands.slug
-import skillbill.cli.scaffold.wizard.displayName
-import skillbill.cli.scaffold.wizard.kind
-import skillbill.cli.scaffold.wizard.payload
-import skillbill.cli.scaffold.wizard.platform
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.error.shellcontent.RetiredScaffoldKindError
 import skillbill.error.shellcontent.ScaffoldPayloadVersionMismatchError

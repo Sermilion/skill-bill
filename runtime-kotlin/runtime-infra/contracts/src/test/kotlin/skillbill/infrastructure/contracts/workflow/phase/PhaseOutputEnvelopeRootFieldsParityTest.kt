@@ -2,13 +2,7 @@ package skillbill.infrastructure.contracts.workflow.phase
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.infrastructure.contracts.phaseoutput.PhaseOutputExpectedShape
-import skillbill.infrastructure.contracts.workflow.decomposition.path
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.stream
 import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.FeatureTaskRuntimePhaseOutputWireSchema
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.validation.path
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.worker.stream
-import skillbill.infrastructure.contracts.workflow.featuretask.schema.stream
-import skillbill.infrastructure.contracts.workflow.issue.stream
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

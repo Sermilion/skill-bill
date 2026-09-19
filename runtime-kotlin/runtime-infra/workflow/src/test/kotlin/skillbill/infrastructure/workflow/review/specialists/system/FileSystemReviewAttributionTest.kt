@@ -1,9 +1,5 @@
 package skillbill.infrastructure.workflow.review.specialists.system
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
-import skillbill.infrastructure.workflow.decomposition.name
-import skillbill.infrastructure.workflow.decomposition.parent
-import skillbill.infrastructure.workflow.featuretask.parent
-import skillbill.infrastructure.workflow.git.workflow.parent
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import java.nio.file.Files
 import java.nio.file.Path

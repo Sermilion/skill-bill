@@ -1,11 +1,7 @@
 package skillbill.infrastructure.sqlite.telemetry.outbox
 import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime.List
 import skillbill.infrastructure.sqlite.telemetry.redaction.SkillBillRuntimeVersion
-import skillbill.infrastructure.sqlite.telemetry.redaction.VALUE
-import skillbill.infrastructure.sqlite.telemetry.redaction.createdAt
-import skillbill.infrastructure.sqlite.telemetry.redaction.id
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult

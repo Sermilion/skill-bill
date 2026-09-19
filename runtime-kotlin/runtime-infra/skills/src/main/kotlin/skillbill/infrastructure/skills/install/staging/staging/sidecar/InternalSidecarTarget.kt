@@ -3,11 +3,6 @@ import skillbill.error.shellcontent.InternalSkillSidecarCollisionError
 import skillbill.error.shellcontent.InvalidAuthoredSkillSidecarError
 import skillbill.infrastructure.skills.install.staging.staging.AUTHORED_SKILL_CONTENT_FILENAME
 import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
-import skillbill.infrastructure.skills.install.staging.staging.content.applicablePointers
-import skillbill.infrastructure.skills.install.staging.staging.content.sourceSkillDir
-import skillbill.infrastructure.skills.install.staging.staging.installed.sourceSkillDir
-import skillbill.infrastructure.skills.install.staging.staging.sourceSkillDir
-import skillbill.infrastructure.skills.install.staging.staging.staging
 import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
 import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
 import skillbill.infrastructure.skills.scaffold.authoring.discoverTargets

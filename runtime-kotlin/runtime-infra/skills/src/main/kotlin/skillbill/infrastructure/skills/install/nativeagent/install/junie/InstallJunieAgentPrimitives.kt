@@ -1,11 +1,6 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.junie
 import skillbill.infrastructure.host.jvm.resolveUserHome
-import skillbill.infrastructure.skills.install.nativeagent.install.native.home
-import skillbill.infrastructure.skills.install.nativeagent.install.native.platformPacksRoot
-import skillbill.infrastructure.skills.install.nativeagent.install.native.selectedPlatforms
-import skillbill.infrastructure.skills.install.nativeagent.install.native.skillsRoot
 import skillbill.infrastructure.skills.install.nativeagent.install.native.uninstallNativeAgentFiles
-import skillbill.infrastructure.skills.install.nativeagent.inventory.home
 import skillbill.infrastructure.skills.nativeagent.discovery.discoverNativeAgentFilesByDir
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import java.nio.file.Path

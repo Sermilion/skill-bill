@@ -1,7 +1,4 @@
 package skillbill.infrastructure.skills.externaladdon
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.scaffold.addons
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.scaffold.model.GovernedAddonSelection
 import skillbill.scaffold.model.GovernedAddonUsage
 import skillbill.scaffold.model.PointerSpec

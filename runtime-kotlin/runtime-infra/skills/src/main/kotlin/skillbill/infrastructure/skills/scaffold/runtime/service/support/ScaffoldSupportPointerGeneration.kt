@@ -3,14 +3,7 @@ import skillbill.infrastructure.skills.scaffold.platformpack.loader.FEATURE_TASK
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.SKILL_CLASSES_DIR
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.discoverSkillClasses
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.resolveSkillClass
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.skillName
-import skillbill.infrastructure.skills.scaffold.runtime.service.name
-import skillbill.infrastructure.skills.scaffold.runtime.service.repoRoot
-import skillbill.infrastructure.skills.scaffold.runtime.service.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.service.skillName
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.validation.name
-import skillbill.infrastructure.skills.scaffold.runtime.validation.skillName
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.nio.file.Files

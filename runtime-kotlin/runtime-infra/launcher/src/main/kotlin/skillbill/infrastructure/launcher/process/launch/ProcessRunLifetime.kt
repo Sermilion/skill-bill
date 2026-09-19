@@ -1,7 +1,5 @@
 package skillbill.infrastructure.launcher.process.launch
 import skillbill.infrastructure.launcher.process.waitloop.ProcessWait
-import skillbill.infrastructure.launcher.process.waitloop.finished
-import skillbill.infrastructure.launcher.process.waitloop.wait
 import skillbill.workflow.goal.model.GoalProgressOutcome
 import java.io.Closeable
 import java.util.concurrent.TimeUnit

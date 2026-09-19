@@ -3,17 +3,6 @@ import skillbill.application.review.model.FeatureTaskRuntimeStatsResult
 import skillbill.application.review.model.FeatureVerifyStatsResult
 import skillbill.application.review.model.GoalStatsResult
 import skillbill.application.review.model.ReviewStatsResult
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.core.code.review.bundled.service
-import skillbill.application.review.parallel.core.code.review.end.reviewRunId
-import skillbill.application.review.parallel.core.code.review.runner.reviewRunId
-import skillbill.application.review.parallel.core.review.service
-import skillbill.application.review.parallel.planning.reviewRunId
-import skillbill.application.review.parallel.verification.reviewRunId
-import skillbill.application.review.preparation.service
-import skillbill.application.review.review.database
-import skillbill.application.review.review.reviews
-import skillbill.application.review.review.unitOfWork
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.review.model.ReviewRepositoryStatsSnapshot
 import skillbill.ports.review.repository.ReviewRepository

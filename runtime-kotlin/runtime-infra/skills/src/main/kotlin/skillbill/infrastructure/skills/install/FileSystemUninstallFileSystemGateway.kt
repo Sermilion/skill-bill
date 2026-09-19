@@ -1,13 +1,5 @@
 package skillbill.infrastructure.skills.install
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.skills.externaladdon.entries
-import skillbill.infrastructure.skills.externaladdon.entry
-import skillbill.infrastructure.skills.externaladdon.map
-import skillbill.infrastructure.skills.externaladdon.root
-import skillbill.infrastructure.skills.file.map
-import skillbill.infrastructure.skills.nativeagent.root
-import skillbill.infrastructure.skills.scaffold.path
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.ports.system.UninstallPathsPort
 import java.nio.file.Files
 import java.nio.file.Path

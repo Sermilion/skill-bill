@@ -7,16 +7,10 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.install.InstallService
 import skillbill.application.scaffold.InstallAgentService
 import skillbill.cli.install.apply.InstallRequestCommand
-import skillbill.cli.install.apply.applied
 import skillbill.cli.install.apply.installApplyPayload
-import skillbill.cli.install.apply.message
 import skillbill.cli.install.apply.reconcileMachineReport
 import skillbill.cli.install.apply.reconcilePayload
 import skillbill.cli.install.apply.refuseInstallMutationDuringGoalContinuation
-import skillbill.cli.install.apply.repoRoot
-import skillbill.cli.install.apply.runtimeInstallRoot
-import skillbill.cli.install.apply.telemetryLevel
-import skillbill.cli.install.nativeagent.repoRoot
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.model.CliRunInputs

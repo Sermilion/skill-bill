@@ -1,8 +1,6 @@
 package skillbill.infrastructure.launcher.process.launch
 import skillbill.infrastructure.host.jvm.GateJvmResolver
 import skillbill.infrastructure.host.jvm.applyTo
-import skillbill.infrastructure.launcher.process.waitloop.process
-import skillbill.infrastructure.launcher.process.waitloop.request
 
 internal fun configureLaunchEnvironment(
   builder: ProcessBuilder,

@@ -1,10 +1,6 @@
 package skillbill.infrastructure.skills.install
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.infrastructure.skills.externaladdon.map
-import skillbill.infrastructure.skills.externaladdon.name
-import skillbill.infrastructure.skills.file.map
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection

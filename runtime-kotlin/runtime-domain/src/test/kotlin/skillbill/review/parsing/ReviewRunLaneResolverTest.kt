@@ -1,9 +1,6 @@
 package skillbill.review.parsing
-import skillbill.review.finding.map
 import skillbill.review.plan.model.ReviewLaunchLane
 import skillbill.review.plan.model.ReviewLaunchPlan
-import skillbill.review.review.lanes
-import skillbill.review.review.review
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

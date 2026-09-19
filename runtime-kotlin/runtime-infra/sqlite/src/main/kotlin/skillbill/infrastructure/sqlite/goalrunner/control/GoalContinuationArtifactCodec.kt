@@ -11,15 +11,6 @@ import skillbill.goalrunner.asGoalRunnerIntOrNull
 import skillbill.goalrunner.model.GoalContinuation
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewStructuredFindingsParse
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
-import skillbill.infrastructure.sqlite.goalrunner.manifest.artifacts
-import skillbill.infrastructure.sqlite.goalrunner.manifest.state
-import skillbill.infrastructure.sqlite.goalrunner.outcome.artifacts
-import skillbill.infrastructure.sqlite.goalrunner.outcome.element
-import skillbill.infrastructure.sqlite.goalrunner.outcome.phaseOutputValidator
-import skillbill.infrastructure.sqlite.goalrunner.outcome.review
-import skillbill.infrastructure.sqlite.goalrunner.outcome.state
-import skillbill.infrastructure.sqlite.goalrunner.outcome.workflowId
-import skillbill.infrastructure.sqlite.goalrunner.outcome.workflowStates
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy

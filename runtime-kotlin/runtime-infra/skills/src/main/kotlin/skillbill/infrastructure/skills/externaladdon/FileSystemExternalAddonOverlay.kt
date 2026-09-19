@@ -1,12 +1,6 @@
 package skillbill.infrastructure.skills.externaladdon
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.skills.file.map
-import skillbill.infrastructure.skills.file.sources
-import skillbill.infrastructure.skills.nativeagent.sources
-import skillbill.infrastructure.skills.scaffold.addons
-import skillbill.infrastructure.skills.scaffold.path
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.model.toPath
 import skillbill.ports.install.addon.ExternalAddonOverlayPort
 import skillbill.ports.install.addon.model.AppliedExternalAddonSource

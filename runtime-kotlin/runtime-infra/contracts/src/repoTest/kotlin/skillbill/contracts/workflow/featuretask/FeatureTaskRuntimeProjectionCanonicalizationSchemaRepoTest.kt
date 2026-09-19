@@ -1,6 +1,5 @@
 package skillbill.contracts.workflow.featuretask
 import org.yaml.snakeyaml.Yaml
-import skillbill.contracts.workflow.identity.output.repoRootFromTest
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test

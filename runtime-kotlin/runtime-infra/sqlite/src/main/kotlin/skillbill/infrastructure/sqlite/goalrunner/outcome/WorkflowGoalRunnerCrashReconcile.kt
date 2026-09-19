@@ -1,10 +1,6 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
-import skillbill.infrastructure.sqlite.goalrunner.control.clock
-import skillbill.infrastructure.sqlite.goalrunner.control.outcome
-import skillbill.infrastructure.sqlite.goalrunner.manifest.clock
-import skillbill.infrastructure.sqlite.goalrunner.manifest.outcome
 import skillbill.ports.goalrunner.persistence.model.CrashReconcileExpiredWorkerRequest
 import skillbill.ports.taskruntime.model.isConfirmedDead
 import java.time.Clock

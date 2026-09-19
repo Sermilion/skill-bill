@@ -1,6 +1,4 @@
 package skillbill.application.review.spec
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.service.review
 import skillbill.review.context.model.execution.SpecIntentProjection
 
 fun SpecIntentProjection.toProjectionPayload(): SpecIntentProjectionWireMap = SpecIntentProjectionWireMap.from(

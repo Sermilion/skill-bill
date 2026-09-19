@@ -3,20 +3,6 @@ import kotlinx.serialization.json.JsonElement
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.telemetry.goal.Map
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.tableName
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.goal.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.maps.Map
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.measurement.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.Map
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.quality.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime.List
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.connection
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.truthfulness.metaData
-import skillbill.infrastructure.sqlite.telemetry.outbox.connection
-import skillbill.infrastructure.sqlite.telemetry.outbox.sql
 import java.sql.Connection
 import java.sql.ResultSet
 

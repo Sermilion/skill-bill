@@ -1,10 +1,4 @@
 package skillbill.application.workflow.persist
-import skillbill.application.workflow.decomposition.artifacts
-import skillbill.application.workflow.decomposition.artifactsJson
-import skillbill.application.workflow.decomposition.map
-import skillbill.application.workflow.service.artifacts
-import skillbill.application.workflow.service.artifactsJson
-import skillbill.application.workflow.service.reason
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts

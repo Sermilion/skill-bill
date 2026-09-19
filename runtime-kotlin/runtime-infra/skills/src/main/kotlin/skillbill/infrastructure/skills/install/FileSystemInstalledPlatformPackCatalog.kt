@@ -1,12 +1,8 @@
 package skillbill.infrastructure.skills.install
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.skills.externaladdon.list
-import skillbill.infrastructure.skills.externaladdon.map
-import skillbill.infrastructure.skills.file.map
 import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventory
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.validatePlatformPackFallbacks
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.model.EnvironmentContext
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.scaffold.model.PlatformManifest

@@ -4,11 +4,6 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.workflow.decomposition.workflowStatus
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflow
-import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.contractVersion
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.Map
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.map
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection

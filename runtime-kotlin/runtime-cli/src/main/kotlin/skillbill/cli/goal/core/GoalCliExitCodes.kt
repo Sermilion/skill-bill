@@ -1,8 +1,4 @@
 package skillbill.cli.goal.core
-import skillbill.cli.goal.control.reason
-import skillbill.cli.goal.control.status
-import skillbill.cli.goal.purge.status
-import skillbill.cli.goal.run.reason
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerStopStatus
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus

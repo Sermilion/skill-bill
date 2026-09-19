@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite.core.migration.planning
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.core.schema.connection
 import java.sql.Connection
 
 internal fun rebuildGoalPlanningPlansForPhaseOutputVersion2(connection: Connection) {

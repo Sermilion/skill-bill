@@ -2,10 +2,6 @@ package skillbill.infrastructure.sqlite.workflow.featuretask
 import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.idestatus.model.AgentActivityStamp
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.raw
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.raw
-import skillbill.infrastructure.sqlite.workflow.workflow.statement
-import skillbill.infrastructure.sqlite.workflow.workflow.workflowId
 import skillbill.ports.idestatus.AgentActivityStampRepository
 import java.sql.Connection
 import java.sql.ResultSet

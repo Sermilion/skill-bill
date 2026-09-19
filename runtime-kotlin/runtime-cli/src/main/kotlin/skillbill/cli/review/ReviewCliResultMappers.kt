@@ -16,7 +16,6 @@ import skillbill.application.review.stats.toFeatureTaskRuntimeStatsPayload
 import skillbill.application.review.stats.toFeatureVerifyStatsPayload
 import skillbill.application.review.stats.toGoalStatsPayload
 import skillbill.application.review.stats.toReviewStatsPayload
-import skillbill.cli.kernel.toPayload
 
 internal fun ReviewPreviewResult.toCliMap(): Map<String, Any?> = toReviewPreviewContract().toPayload()
 

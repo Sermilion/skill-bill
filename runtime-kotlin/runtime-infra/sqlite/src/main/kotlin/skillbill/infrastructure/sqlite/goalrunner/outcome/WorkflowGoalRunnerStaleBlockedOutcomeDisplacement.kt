@@ -8,13 +8,9 @@ import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.nonCompleteStoredOutcomeIsCorroborated
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
-import skillbill.infrastructure.sqlite.goalrunner.control.Map
 import skillbill.infrastructure.sqlite.goalrunner.control.goalContinuation
-import skillbill.infrastructure.sqlite.goalrunner.control.outcome
 import skillbill.infrastructure.sqlite.goalrunner.control.toGoalContinuationWireStatus
 import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
-import skillbill.infrastructure.sqlite.goalrunner.manifest.outcome
-import skillbill.infrastructure.sqlite.goalrunner.manifest.save
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily

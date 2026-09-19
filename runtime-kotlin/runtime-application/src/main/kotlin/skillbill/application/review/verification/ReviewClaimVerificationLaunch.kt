@@ -1,19 +1,4 @@
 package skillbill.application.review.verification
-import skillbill.application.review.parallel.core.code.review.bundled.finding
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.core.code.review.claim.findings
-import skillbill.application.review.parallel.core.code.review.end.finding
-import skillbill.application.review.parallel.core.code.review.inline.findings
-import skillbill.application.review.parallel.core.code.review.integration.finding
-import skillbill.application.review.parallel.core.code.review.runner.claims
-import skillbill.application.review.parallel.core.code.review.runner.findings
-import skillbill.application.review.parallel.verification.claims
-import skillbill.application.review.preparation.commits
-import skillbill.application.review.review.commits
-import skillbill.application.review.service.parse
-import skillbill.application.review.service.review
-import skillbill.application.review.spec.finding
-import skillbill.application.review.spec.findings
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.parallel.ParallelReviewFindingParser
 

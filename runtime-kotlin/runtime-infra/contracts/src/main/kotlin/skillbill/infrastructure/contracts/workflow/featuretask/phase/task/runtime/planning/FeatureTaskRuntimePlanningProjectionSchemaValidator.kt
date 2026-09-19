@@ -7,29 +7,6 @@ import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePlanningProjec
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
-import skillbill.infrastructure.contracts.workflow.decomposition.error
-import skillbill.infrastructure.contracts.workflow.decomposition.instanceLocation
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.classpathResource
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.error
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.expectedContractVersion
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.payload
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.reason
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.buildreceipt.payload
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.checkpoint.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.implementation.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.projection.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.shared.error
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.shared.payload
-import skillbill.infrastructure.contracts.workflow.goal.observability.error
-import skillbill.infrastructure.contracts.workflow.goal.observability.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.planning.error
-import skillbill.infrastructure.contracts.workflow.goal.planning.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.planning.reason
-import skillbill.infrastructure.contracts.workflow.goal.progress.instanceLocation
-import skillbill.infrastructure.contracts.workflow.goal.status.instanceLocation
-import skillbill.infrastructure.contracts.workflow.schema.error
-import skillbill.infrastructure.contracts.workflow.workflow.instanceLocation
 
 object FeatureTaskRuntimePlanningProjectionSchemaValidator {
   fun validate(payload: Map<String, Any?>, sourceLabel: String) {

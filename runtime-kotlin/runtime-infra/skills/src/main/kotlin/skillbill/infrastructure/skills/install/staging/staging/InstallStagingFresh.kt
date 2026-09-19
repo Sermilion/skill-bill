@@ -2,9 +2,6 @@ package skillbill.infrastructure.skills.install.staging.staging
 import skillbill.infrastructure.skills.agentaddon.AgentAddonPointer
 import skillbill.infrastructure.skills.install.identity.SkillContentIdentity
 import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalSidecarTarget
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.children
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.parentSourceDir
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.skillName
 import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
 import skillbill.infrastructure.skills.install.staging.staging.support.writeRenderedSupportPointerFiles
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringTarget

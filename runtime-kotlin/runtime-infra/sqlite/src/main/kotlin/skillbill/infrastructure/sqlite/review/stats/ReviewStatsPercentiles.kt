@@ -1,14 +1,4 @@
 package skillbill.infrastructure.sqlite.review.stats
-import skillbill.infrastructure.sqlite.review.accounting.List
-import skillbill.infrastructure.sqlite.review.review.review
-import skillbill.infrastructure.sqlite.review.stage.and.review
-import skillbill.infrastructure.sqlite.review.stage.finished.review
-import skillbill.infrastructure.sqlite.review.stage.finished.stats
-import skillbill.infrastructure.sqlite.review.stage.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.review
-import skillbill.infrastructure.sqlite.review.stats.recorded.review
-import skillbill.infrastructure.sqlite.review.stats.recorded.stats
-import skillbill.infrastructure.sqlite.review.stats.task.stats
 import java.util.Locale
 
 private const val MEDIAN_PERCENTILE = 50.0

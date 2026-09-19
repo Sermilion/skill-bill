@@ -1,8 +1,5 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.pack
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.packs
-import skillbill.infrastructure.skills.scaffold.platformpack.manifest.sorted
 import skillbill.model.toPath
 import skillbill.review.plan.ReviewLaunchPlanPolicy
 import skillbill.scaffold.model.CodeReviewBaselineLayer

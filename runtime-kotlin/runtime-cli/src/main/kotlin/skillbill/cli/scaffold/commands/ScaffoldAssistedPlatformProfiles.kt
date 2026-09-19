@@ -1,6 +1,4 @@
 package skillbill.cli.scaffold.commands
-import skillbill.cli.scaffold.payload.value
-import skillbill.cli.scaffold.wizard.value
 
 internal fun assistedPlatformProfile(input: String): AssistedPlatformProfile {
   val key = languageLookupKey(input)

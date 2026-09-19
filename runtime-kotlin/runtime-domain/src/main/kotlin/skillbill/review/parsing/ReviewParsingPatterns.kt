@@ -1,5 +1,4 @@
 package skillbill.review.parsing
-import skillbill.review.review.review
 
 val reviewRunIdPattern =
   Regex(

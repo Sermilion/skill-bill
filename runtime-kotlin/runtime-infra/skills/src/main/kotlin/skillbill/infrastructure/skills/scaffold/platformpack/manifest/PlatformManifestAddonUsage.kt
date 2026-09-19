@@ -1,12 +1,4 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.addons
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.declaredFiles
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.declaredQualityCheckFile
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.packRoot
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillRelativeDir
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.manifest
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.values
 import skillbill.model.toPath
 import skillbill.review.plan.ReviewAddonSelectionPolicy
 import skillbill.scaffold.model.DeclaredFiles

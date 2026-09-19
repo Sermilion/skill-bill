@@ -6,7 +6,7 @@ import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult
-import skillbill.cli.kernel.toPayload
+import skillbill.cli.kernel.payload.toPayload
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.cli.workflow.toCliMap
 import skillbill.contracts.JsonCodec

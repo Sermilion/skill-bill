@@ -1,31 +1,6 @@
 package skillbill.infrastructure.sqlite.review.stats.health
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
-import skillbill.infrastructure.sqlite.review.accounting.List
-import skillbill.infrastructure.sqlite.review.accounting.Map
-import skillbill.infrastructure.sqlite.review.accounting.payload
-import skillbill.infrastructure.sqlite.review.core.Map
-import skillbill.infrastructure.sqlite.review.review.review
-import skillbill.infrastructure.sqlite.review.stage.Map
-import skillbill.infrastructure.sqlite.review.stage.and.review
-import skillbill.infrastructure.sqlite.review.stage.finished.payload
-import skillbill.infrastructure.sqlite.review.stage.finished.review
-import skillbill.infrastructure.sqlite.review.stage.finished.stats
-import skillbill.infrastructure.sqlite.review.stage.lane.key
-import skillbill.infrastructure.sqlite.review.stage.map
-import skillbill.infrastructure.sqlite.review.stage.payload
-import skillbill.infrastructure.sqlite.review.stage.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.review
-import skillbill.infrastructure.sqlite.review.stats.Map
-import skillbill.infrastructure.sqlite.review.stats.health
-import skillbill.infrastructure.sqlite.review.stats.payload
-import skillbill.infrastructure.sqlite.review.stats.payloads
-import skillbill.infrastructure.sqlite.review.stats.recorded.review
-import skillbill.infrastructure.sqlite.review.stats.recorded.stats
-import skillbill.infrastructure.sqlite.review.stats.review
-import skillbill.infrastructure.sqlite.review.stats.stats
-import skillbill.infrastructure.sqlite.review.stats.task.stats
-import skillbill.infrastructure.sqlite.review.stats.workflow.key
 import skillbill.review.model.FindingOutcomeType
 
 private val reviewHealthSources = listOf("standalone", "embedded", "malformed", UNKNOWN_REVIEW_HEALTH_SOURCE)

@@ -4,12 +4,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.issuekey.ISSUE_KEY_SCHEMA_ID
 import skillbill.contracts.issuekey.ISSUE_KEY_SCHEMA_RESOURCE
-import skillbill.infrastructure.contracts.workflow.decomposition.node
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.body
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.node
-import skillbill.infrastructure.contracts.workflow.goal.observability.node
-import skillbill.infrastructure.contracts.workflow.goal.planning.node
-import skillbill.infrastructure.contracts.workflow.workflow.node
 
 internal fun JsonNode.inlineIssueKeySchemaRefs(): JsonNode {
   inlineIssueKeySchemaRefsIn(this, issueKeySchemaBody())

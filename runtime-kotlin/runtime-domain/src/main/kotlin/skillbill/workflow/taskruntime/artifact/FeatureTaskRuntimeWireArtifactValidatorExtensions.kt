@@ -1,12 +1,5 @@
 package skillbill.workflow.taskruntime.artifact
-import skillbill.workflow.taskruntime.feature.artifact
-import skillbill.workflow.taskruntime.feature.envelope
-import skillbill.workflow.taskruntime.handoff.envelope
-import skillbill.workflow.taskruntime.handoff.validate
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.model.core.validate
-import skillbill.workflow.taskruntime.phase.envelope
-import skillbill.workflow.taskruntime.phase.task.BUILD_RECEIPT
 
 fun FeatureTaskRuntimeWireArtifactValidator.validateQuarantineRecord(quarantineRecord: Any, sourceLabel: String) {
   validate(FeatureTaskRuntimeWireArtifactKind.QUARANTINE_RECORD, quarantineRecord, sourceLabel)

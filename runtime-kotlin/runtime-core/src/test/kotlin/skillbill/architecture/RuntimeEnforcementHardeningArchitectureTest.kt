@@ -137,8 +137,7 @@ import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as 
     val flagged = importedNames(aliasedImportSource).filter(::isSchemaOrCoherenceValidatorImport)
     assertEquals(
       listOf(
-        "skillbill.contracts.install.InstallPlanSchemaValidator",
-        "skillbill.contracts.workflow.DecompositionManifestCoherenceValidator",
+        "skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator",
       ),
       flagged,
       "AC3 import extraction must strip ` as <alias>` so an aliased concrete validator import is still caught.",

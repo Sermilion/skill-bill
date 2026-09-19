@@ -1,12 +1,6 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.infrastructure.sqlite.core.ops.inNestedWriteTransaction
-import skillbill.infrastructure.sqlite.workflow.decomposition.record
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflow
-import skillbill.infrastructure.sqlite.workflow.featuretask.workflowId
-import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.subtaskId
-import skillbill.infrastructure.sqlite.workflow.goalrunner.subtask.subtaskId
-import skillbill.infrastructure.sqlite.workflow.workflow.workflowId
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationStatus

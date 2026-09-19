@@ -1,43 +1,4 @@
 package skillbill.application.review.parallel.core.review
-import skillbill.application.review.packet.commitUnits
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.core.code.review.claim.findings
-import skillbill.application.review.parallel.core.code.review.claim.pack
-import skillbill.application.review.parallel.core.code.review.inline.findings
-import skillbill.application.review.parallel.core.code.review.integration.pack
-import skillbill.application.review.parallel.core.code.review.runner.assignedHunks
-import skillbill.application.review.parallel.core.code.review.runner.assignedPaths
-import skillbill.application.review.parallel.core.code.review.runner.findings
-import skillbill.application.review.parallel.core.code.review.spec.pack
-import skillbill.application.review.parallel.core.code.review.stage.pack
-import skillbill.application.review.parallel.core.code.review.standalone.pack
-import skillbill.application.review.parallel.planning.baseRevision
-import skillbill.application.review.parallel.planning.digest
-import skillbill.application.review.parallel.planning.headRevision
-import skillbill.application.review.parallel.planning.lane
-import skillbill.application.review.parallel.planning.originLayerChains
-import skillbill.application.review.parallel.planning.ownedPaths
-import skillbill.application.review.parallel.planning.routingMatrix
-import skillbill.application.review.parallel.planning.stack
-import skillbill.application.review.parallel.verification.lane
-import skillbill.application.review.parallel.verification.line
-import skillbill.application.review.preparation.laneDecisions
-import skillbill.application.review.preparation.laneRouting
-import skillbill.application.review.preparation.ownedPaths
-import skillbill.application.review.preparation.packetDigest
-import skillbill.application.review.preparation.routingMatrix
-import skillbill.application.review.review.hunkId
-import skillbill.application.review.review.lane
-import skillbill.application.review.service.review
-import skillbill.application.review.spec.digest
-import skillbill.application.review.spec.findings
-import skillbill.application.review.spec.lane
-import skillbill.application.review.spec.matches
-import skillbill.application.review.stats.digest
-import skillbill.application.review.stats.lane
-import skillbill.application.review.stats.segments
-import skillbill.application.review.verification.findings
-import skillbill.application.review.verification.line
 import skillbill.ports.review.model.ParallelReviewLaneOutcome
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.bundle.ReviewLaneBundleEntry
@@ -54,7 +15,7 @@ import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewRevision
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.context.model.packet.ReviewContextPacket
-import skillbill.review.context.model.packet.ReviewLaneBundleSegmentation.Companion.UNREVIEWABLE_SEGMENT_ID
+import skillbill.review.context.model.packet.ReviewLaneBundleSegmentation
 import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ParallelReviewSeverity
@@ -145,10 +106,10 @@ class ParallelReviewLaneDispositionTest {
     )
 
     assertEquals(ReviewLaneReviewDisposition.INCOMPLETE, outcome.reviewDisposition)
-    assertEquals(listOf(UNREVIEWABLE_SEGMENT_ID), outcome.unreviewedSegmentIds)
+    assertEquals(listOf(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID), outcome.unreviewedSegmentIds)
     assertEquals("lane_launch_bytes", outcome.budgetDimension)
     assertEquals(1, outcome.findings.size)
-    assertTrue(outcome.segmentAccounting.any { it.segmentId == UNREVIEWABLE_SEGMENT_ID })
+    assertTrue(outcome.segmentAccounting.any { it.segmentId == ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID })
   }
 
   @Test fun `incomplete lane is never clean coverage and differs from a zero-finding complete lane`() {
@@ -220,7 +181,7 @@ class ParallelReviewLaneDispositionTest {
       laneSkillName = "bill-kotlin-code-review-testing",
       area = "testing",
       reviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
-      unreviewedSegmentIds = listOf(UNREVIEWABLE_SEGMENT_ID),
+      unreviewedSegmentIds = listOf(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID),
       budgetDimension = "lane_launch_bytes",
     )
     assertEquals(

@@ -4,13 +4,7 @@ import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.rendering.inferSkillDescription
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.area
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.displayName
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.family
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.platform
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.skillName
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.validation.skillName
 
 internal fun renderAgentAddonManifest(plan: ScaffoldPlan): String = buildString {
   appendLine("contract_version: \"1.0\"")

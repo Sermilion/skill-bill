@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.install.staging.staging.installed
 import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
-import skillbill.infrastructure.skills.install.staging.staging.staging
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.RenderedSkill
 import skillbill.scaffold.model.PlatformManifest

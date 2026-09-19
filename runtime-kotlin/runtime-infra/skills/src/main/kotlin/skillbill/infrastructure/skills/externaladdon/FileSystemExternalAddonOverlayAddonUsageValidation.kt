@@ -1,7 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
 import skillbill.error.core.ExternalAddonOverlayError
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.scaffold.skills
 
 internal fun validateAddonUsageEntries(fragment: Map<String, Any?>, slug: String) {
   val addonUsage = fragment["addon_usage"] as? Map<*, *> ?: return

@@ -1,6 +1,5 @@
 package skillbill.error.featuretask
 
-import skillbill.error.core.error
 import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
 data class InvalidFeatureTaskRuntimeHandoffProjectionContext(
   val workflowId: String?,

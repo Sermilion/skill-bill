@@ -2,15 +2,7 @@ package skillbill.review.finding
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.review.attribution.normalizeReviewIssueCategory
 import skillbill.review.model.ImportedFinding
-import skillbill.review.parallel.confidence
-import skillbill.review.parallel.finding
-import skillbill.review.parallel.index
-import skillbill.review.parallel.line
-import skillbill.review.parallel.lines
-import skillbill.review.parallel.location
-import skillbill.review.parallel.severity
 import skillbill.review.parsing.severityAliases
-import skillbill.review.review.review
 
 fun isTableHeaderLine(line: String): Boolean {
   val cells = line.split("|").map { it.trim().lowercase() }

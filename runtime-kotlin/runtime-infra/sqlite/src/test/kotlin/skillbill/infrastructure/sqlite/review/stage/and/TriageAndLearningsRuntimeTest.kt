@@ -5,24 +5,11 @@ import skillbill.application.learning.learningEntryDto
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.learning.LearningEntryDto
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
-import skillbill.infrastructure.sqlite.review.accounting.List
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.accounting.toPayload
 import skillbill.infrastructure.sqlite.review.stage.finished.fetchSessionLearnings
-import skillbill.infrastructure.sqlite.review.stage.map
 import skillbill.infrastructure.sqlite.review.stage.runtime.ReviewRuntime
 import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
-import skillbill.infrastructure.sqlite.review.stage.runtime.findingExists
-import skillbill.infrastructure.sqlite.review.stage.runtime.numberedFindings
-import skillbill.infrastructure.sqlite.review.stage.runtime.parseReview
-import skillbill.infrastructure.sqlite.review.stage.runtime.parseTriageDecisions
-import skillbill.infrastructure.sqlite.review.stage.runtime.recordFeedbackWithoutTransaction
-import skillbill.infrastructure.sqlite.review.stage.telemetry.enabled
-import skillbill.infrastructure.sqlite.review.stage.telemetry.level
-import skillbill.infrastructure.sqlite.review.stats.connection
-import skillbill.infrastructure.sqlite.review.stats.health.reviewRunId
-import skillbill.infrastructure.sqlite.review.stats.level
-import skillbill.infrastructure.sqlite.review.stats.reviewRunId
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
@@ -191,7 +178,7 @@ private fun rejectFinding(
   telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
 )
 
-private fun addLearning(
+internal fun addLearning(
   connection: Connection,
   reviewRunId: String,
   scope: LearningScope,

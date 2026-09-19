@@ -8,9 +8,10 @@ import skillbill.infrastructure.skills.install.staging.staging.StagedSymlinkTarg
 import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
 import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
 import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.staging.content.isContentManagedSkill
+import skillbill.infrastructure.skills.install.staging.staging.installed.stageInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillStagingDir
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
-import skillbill.infrastructure.skills.install.staging.staging.isContentManagedSkill
 import skillbill.infrastructure.skills.install.staging.staging.resolveStagedSymlinkTarget
 import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor

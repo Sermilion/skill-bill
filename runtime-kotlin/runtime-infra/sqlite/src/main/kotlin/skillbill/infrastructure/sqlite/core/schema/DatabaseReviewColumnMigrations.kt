@@ -1,8 +1,5 @@
 package skillbill.infrastructure.sqlite.core.schema
 import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
-import skillbill.infrastructure.sqlite.core.migration.column.ensureColumn
-import skillbill.infrastructure.sqlite.core.migration.column.tableExists
-import skillbill.infrastructure.sqlite.core.migration.ledger.tableExists
 import java.sql.Connection
 
 internal object DatabaseReviewColumnMigrations {

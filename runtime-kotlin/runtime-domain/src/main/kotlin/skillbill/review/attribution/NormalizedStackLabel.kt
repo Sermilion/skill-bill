@@ -1,7 +1,5 @@
 package skillbill.review.attribution
-import skillbill.review.finding.matches
 import skillbill.review.model.NormalizedStackLabel
-import skillbill.review.review.review
 
 fun normalizeRoutedSkill(rawValue: String?): String {
   val value = rawValue?.trim().orEmpty()

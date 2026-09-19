@@ -9,8 +9,6 @@ import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePersistenceSch
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseHandoffSchemaPaths
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeProjectionMeasurementSchemaPaths
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeSharedEvidenceProjectionSchemaPaths
-import skillbill.infrastructure.contracts.workflow.decomposition.path
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.validation.path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

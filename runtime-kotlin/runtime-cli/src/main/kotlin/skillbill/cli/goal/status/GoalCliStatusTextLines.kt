@@ -1,13 +1,4 @@
 package skillbill.cli.goal.status
-import skillbill.cli.goal.control.payload
-import skillbill.cli.goal.control.status
-import skillbill.cli.goal.core.Map
-import skillbill.cli.goal.core.payload
-import skillbill.cli.goal.core.status
-import skillbill.cli.goal.purge.Map
-import skillbill.cli.goal.purge.payload
-import skillbill.cli.goal.purge.status
-import skillbill.cli.goal.run.payload
 import skillbill.contracts.SharedPayloadKeys
 
 internal fun StringBuilder.appendOperatorSurfaceLines(payload: Map<*, *>) {

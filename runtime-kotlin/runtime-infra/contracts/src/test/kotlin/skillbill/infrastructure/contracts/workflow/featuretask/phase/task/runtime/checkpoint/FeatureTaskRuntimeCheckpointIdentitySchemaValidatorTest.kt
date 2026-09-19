@@ -1,17 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.checkpoint
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError
-import skillbill.infrastructure.contracts.workflow.decomposition.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.implementation.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.message
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.validate
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.quarantine.validate
-import skillbill.infrastructure.contracts.workflow.goal.observability.validate
-import skillbill.infrastructure.contracts.workflow.goal.planning.validate
-import skillbill.infrastructure.contracts.workflow.goal.progress.validate
-import skillbill.infrastructure.contracts.workflow.goal.status.validate
-import skillbill.infrastructure.contracts.workflow.workflow.validate
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith

@@ -1,7 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
 import skillbill.error.core.ExternalAddonOverlayError
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.scaffold.skills
 
 internal fun validatePointerEntries(fragment: Map<String, Any?>, slug: String) {
   val pointers = fragment["pointers"] as? Map<*, *> ?: return

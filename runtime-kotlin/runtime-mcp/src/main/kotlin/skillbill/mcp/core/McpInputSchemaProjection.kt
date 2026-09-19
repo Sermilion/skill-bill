@@ -3,8 +3,8 @@ package skillbill.mcp.core
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
-import skillbill.application.telemetry.featureVerifyCompletionStatuses
-import skillbill.application.telemetry.qualityCheckResults
+import skillbill.application.telemetry.validation.featureVerifyCompletionStatuses
+import skillbill.application.telemetry.validation.qualityCheckResults
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys

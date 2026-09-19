@@ -7,8 +7,8 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeOperatorDecisio
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.runner.OPERATOR_DECISION_QUALITY_GATE_PHASE_IDS
-import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
+import skillbill.engine.goalrunner.status.GoalRunnerStatusService
 import skillbill.engine.work.model.IdeStatusCandidate
 import skillbill.engine.work.model.IdeStatusCurrentModel
 import skillbill.engine.work.model.IdeStatusCurrentPhaseExecution

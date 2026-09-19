@@ -1,7 +1,4 @@
 package skillbill.review.context.model.packet
-import skillbill.review.context.model.commit.source
-import skillbill.review.context.model.launch.packet
-import skillbill.review.context.model.review.packet
 
 object ReviewPacketConsumerContract {
   const val SOURCE_PATH: String = "orchestration/review-orchestrator/specialist-contract.md"

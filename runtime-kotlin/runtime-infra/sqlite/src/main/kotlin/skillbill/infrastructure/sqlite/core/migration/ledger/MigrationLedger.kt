@@ -1,10 +1,6 @@
 package skillbill.infrastructure.sqlite.core.migration.ledger
 import skillbill.infrastructure.sqlite.core.migration.DatabaseMigration
-import skillbill.infrastructure.sqlite.core.migration.migrations.ledger
-import skillbill.infrastructure.sqlite.core.migration.name
-import skillbill.infrastructure.sqlite.core.migration.version
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.core.schema.connection
 import java.sql.Connection
 
 internal object MigrationLedger {

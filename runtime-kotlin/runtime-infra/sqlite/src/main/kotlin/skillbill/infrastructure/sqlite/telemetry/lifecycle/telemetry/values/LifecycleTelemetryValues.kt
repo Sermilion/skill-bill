@@ -1,10 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.values
-import skillbill.infrastructure.sqlite.telemetry.feature.record
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime.List
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime.toSqlInt
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.save.gapsFoundJson
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.toSqlInt
-import skillbill.infrastructure.sqlite.telemetry.outbox.values
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 
 internal fun featureVerifyFinishedValues(

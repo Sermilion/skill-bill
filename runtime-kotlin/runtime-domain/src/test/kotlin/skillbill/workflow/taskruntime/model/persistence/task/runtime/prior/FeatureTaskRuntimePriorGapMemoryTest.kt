@@ -1,6 +1,4 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.prior
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.repair.task.round
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

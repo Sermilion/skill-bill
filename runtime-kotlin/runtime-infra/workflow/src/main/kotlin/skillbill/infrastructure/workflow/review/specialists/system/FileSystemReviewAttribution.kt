@@ -2,7 +2,6 @@ package skillbill.infrastructure.workflow.review.specialists.system
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.declaredCodeReviewSkillNames
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
-import skillbill.infrastructure.workflow.decomposition.manifest
 import skillbill.ports.review.preparation.ReviewAttributionPort
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.review.plan.ReviewLaunchPlanPolicy

@@ -2,20 +2,11 @@ package skillbill.workflow.taskruntime.handoff
 import skillbill.error.featuretask.InvalidFeatureTaskRuntimeHandoffProjectionContext
 import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
-import skillbill.workflow.taskruntime.feature.inputs
-import skillbill.workflow.taskruntime.feature.reason
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjection
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.phase.planning.consumerPhaseId
-import skillbill.workflow.taskruntime.phase.planning.projectionContractId
-import skillbill.workflow.taskruntime.phase.planning.projectionContractVersion
-import skillbill.workflow.taskruntime.phase.planning.projectionName
-import skillbill.workflow.taskruntime.phase.planning.sourceRef
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.phase.task.declarations
 
 object FeatureTaskRuntimeHandoffProjectionValidator {
   const val COMPACT_REFERENCE_MAX_LENGTH: Int = 512

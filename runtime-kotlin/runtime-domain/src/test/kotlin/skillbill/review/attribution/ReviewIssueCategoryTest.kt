@@ -1,15 +1,5 @@
 package skillbill.review.attribution
-import skillbill.review.finding.description
-import skillbill.review.finding.finding
-import skillbill.review.finding.findingId
 import skillbill.review.model.ImportedFinding
-import skillbill.review.parallel.confidence
-import skillbill.review.parallel.description
-import skillbill.review.parallel.finding
-import skillbill.review.parallel.location
-import skillbill.review.parallel.severity
-import skillbill.review.parsing.specialistReviews
-import skillbill.review.review.review
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

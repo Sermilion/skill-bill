@@ -1,13 +1,5 @@
 package skillbill.workflow.taskruntime.model.repair.task
 import skillbill.text.Utf8Text
-import skillbill.workflow.taskruntime.model.core.fieldPath
-import skillbill.workflow.taskruntime.model.core.raw
-import skillbill.workflow.taskruntime.model.core.record
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.handoff.task.maxUtf8Bytes
-import skillbill.workflow.taskruntime.model.phase.raw
-import skillbill.workflow.taskruntime.model.phase.record
-import skillbill.workflow.taskruntime.model.validation.raw
 
 data class FeatureTaskRuntimeRepairReceiptDecodeObservations(
   val truncationRecords: List<String> = emptyList(),

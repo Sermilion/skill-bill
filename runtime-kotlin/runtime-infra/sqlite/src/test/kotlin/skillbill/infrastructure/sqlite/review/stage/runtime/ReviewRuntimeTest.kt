@@ -3,11 +3,6 @@ import skillbill.SAMPLE_REVIEW
 import skillbill.TABLE_REVIEW
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.accounting.reviewSummaryChanged
-import skillbill.infrastructure.sqlite.review.stage.severity
-import skillbill.infrastructure.sqlite.review.stats.connection
-import skillbill.infrastructure.sqlite.review.stats.health.reviewRunId
-import skillbill.infrastructure.sqlite.review.stats.health.severity
-import skillbill.infrastructure.sqlite.review.stats.reviewRunId
 import skillbill.review.attribution.canonicalPlatformSlugs
 import skillbill.review.attribution.withCanonicalAttribution
 import skillbill.review.parsing.ReviewParser

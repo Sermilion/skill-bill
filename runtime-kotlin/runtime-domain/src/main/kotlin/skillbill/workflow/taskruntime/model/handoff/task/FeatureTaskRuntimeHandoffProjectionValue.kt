@@ -1,15 +1,5 @@
 package skillbill.workflow.taskruntime.model.handoff.task
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.workflow.taskruntime.model.audit.entries
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.feature.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.entries
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.wireValue
-import skillbill.workflow.taskruntime.model.repair.task.entries
-import skillbill.workflow.taskruntime.model.repair.task.text
-import skillbill.workflow.taskruntime.model.validation.entries
-import skillbill.workflow.taskruntime.model.validation.wireValue
 
 internal val REPOSITORY_CHECKPOINT_FIELD: String
   get() = FeatureTaskRuntimeCompactReferenceKind.REPOSITORY_CHECKPOINT.wireValue

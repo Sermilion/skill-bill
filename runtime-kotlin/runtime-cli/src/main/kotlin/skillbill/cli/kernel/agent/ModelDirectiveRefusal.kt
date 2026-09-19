@@ -1,6 +1,5 @@
 package skillbill.cli.kernel.agent
 import com.github.ajalt.clikt.core.UsageError
-import skillbill.cli.kernel.cli.entries
 import skillbill.config.model.PhaseModelDirective
 import skillbill.install.model.MODEL_DIRECTIVE_CAPABLE_AGENTS
 import skillbill.install.model.supportsModelDirective

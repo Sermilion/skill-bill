@@ -1,29 +1,12 @@
 package skillbill.workflow.taskruntime.handoff
 import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.feature.inputs
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_FORBIDDEN_PROJECTION_FIELD_NAMES
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionField
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionValue
-import skillbill.workflow.taskruntime.phase.planning.consumerPhaseId
-import skillbill.workflow.taskruntime.phase.planning.declaredFieldNames
-import skillbill.workflow.taskruntime.phase.planning.projectionContractId
-import skillbill.workflow.taskruntime.phase.planning.projectionContractVersion
-import skillbill.workflow.taskruntime.phase.planning.projectionName
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.phase.task.PHASE_BUILD
-import skillbill.workflow.taskruntime.phase.task.PHASE_COMMIT_PUSH
-import skillbill.workflow.taskruntime.phase.task.PHASE_PROSE
-import skillbill.workflow.taskruntime.phase.task.PHASE_VALIDATE
-import skillbill.workflow.taskruntime.phase.task.PHASE_WRITE_HISTORY
-import skillbill.workflow.taskruntime.phase.task.PhaseProjectionContract
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.phase.task.declarations
-import skillbill.workflow.taskruntime.phase.task.fields
-import skillbill.workflow.taskruntime.phase.value
 
 internal object FeatureTaskRuntimeHandoffProjectionDeclarationChecks {
   val supportedProjectionContractVersions: Set<String> = setOf("0.1", "0.2", "0.3")

@@ -2,8 +2,6 @@ package skillbill.workflow.taskruntime.model.handoff.task
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
-import skillbill.workflow.taskruntime.model.core.task
-import skillbill.workflow.taskruntime.model.repair.task.DEFAULT
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 

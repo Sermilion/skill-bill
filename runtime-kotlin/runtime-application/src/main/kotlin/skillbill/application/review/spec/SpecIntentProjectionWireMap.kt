@@ -1,7 +1,4 @@
 package skillbill.application.review.spec
-import skillbill.application.review.parallel.core.code.review.bundled.review
-import skillbill.application.review.parallel.verification.projection
-import skillbill.application.review.service.review
 import skillbill.contracts.JsonCodec
 import skillbill.review.context.model.execution.SpecIntentProjection
 

@@ -1,15 +1,11 @@
 package skillbill.workflow.taskruntime.phase.task
 import skillbill.workflow.engine.model.WorkflowDefinition
-import skillbill.workflow.taskruntime.artifact.phaseId
-import skillbill.workflow.taskruntime.handoff.checkpointPolicy
-import skillbill.workflow.taskruntime.handoff.consumerPhaseId
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimePhaseIds
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionTemplate
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
-import skillbill.workflow.taskruntime.phase.planning.consumerPhaseId
 
 object FeatureTaskRuntimePhaseWorkflowDefinition {
   const val PHASE_PREPLAN: String = FeatureTaskRuntimePhaseIds.PREPLAN

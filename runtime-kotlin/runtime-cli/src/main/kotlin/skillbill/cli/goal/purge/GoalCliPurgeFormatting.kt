@@ -1,9 +1,4 @@
 package skillbill.cli.goal.purge
-import skillbill.cli.goal.control.payload
-import skillbill.cli.goal.core.payload
-import skillbill.cli.goal.core.purge
-import skillbill.cli.goal.run.payload
-import skillbill.cli.goal.status.payload
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.goalrunner.GoalRunnerPurgePayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeResult

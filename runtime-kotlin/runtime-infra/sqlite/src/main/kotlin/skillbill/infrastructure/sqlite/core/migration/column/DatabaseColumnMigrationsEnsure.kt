@@ -1,7 +1,4 @@
 package skillbill.infrastructure.sqlite.core.migration.column
-import skillbill.infrastructure.sqlite.core.ops.tableName
-import skillbill.infrastructure.sqlite.core.schema.connection
-import skillbill.infrastructure.sqlite.core.schema.matches
 import skillbill.infrastructure.sqlite.workflow.featuretask.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION
 import java.sql.Connection
 

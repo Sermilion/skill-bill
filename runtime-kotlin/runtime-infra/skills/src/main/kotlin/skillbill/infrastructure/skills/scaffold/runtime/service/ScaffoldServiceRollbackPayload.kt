@@ -4,8 +4,6 @@ import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.host.jvm.resolveUserHome
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.displayNameFromSlug
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.family
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.platform
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Path

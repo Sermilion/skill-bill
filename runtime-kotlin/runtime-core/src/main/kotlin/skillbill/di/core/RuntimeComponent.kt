@@ -45,11 +45,11 @@ import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.GoalOperatorDecisionService
-import skillbill.engine.goalrunner.GoalPreflightService
 import skillbill.engine.goalrunner.GoalRunner
-import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.GoalPlanningLogService
+import skillbill.engine.goalrunner.preflight.GoalPreflightService
+import skillbill.engine.goalrunner.status.GoalRunnerStatusService
 import skillbill.engine.work.IdeStatusService
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.model.EnvironmentContext

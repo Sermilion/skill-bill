@@ -13,6 +13,7 @@ import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.engine.decomposition.encodeDecompositionManifestYaml
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.goalrunner.model.GoalPreflightRequest
+import skillbill.engine.goalrunner.preflight.GoalPreflightService
 import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError

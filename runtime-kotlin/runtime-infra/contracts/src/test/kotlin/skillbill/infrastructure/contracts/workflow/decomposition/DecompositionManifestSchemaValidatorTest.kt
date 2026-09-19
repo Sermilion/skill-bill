@@ -1,7 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.decomposition
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
-import skillbill.infrastructure.contracts.workflow.featuretask.handoff.reason
-import skillbill.infrastructure.contracts.workflow.goal.planning.reason
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith

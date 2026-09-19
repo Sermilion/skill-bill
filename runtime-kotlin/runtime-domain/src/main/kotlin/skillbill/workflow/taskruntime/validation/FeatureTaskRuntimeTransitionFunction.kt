@@ -1,20 +1,11 @@
 package skillbill.workflow.taskruntime.validation
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOrderViolationError
-import skillbill.workflow.taskruntime.artifact.phaseId
-import skillbill.workflow.taskruntime.handoff.context
-import skillbill.workflow.taskruntime.handoff.declaration
-import skillbill.workflow.taskruntime.handoff.validation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeCapExhaustionBehavior
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionContext
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.phase.task.edge
-import skillbill.workflow.taskruntime.phase.verdict
-import skillbill.workflow.taskruntime.review.transition
-import skillbill.workflow.taskruntime.unbounded.transition
 
 object FeatureTaskRuntimeTransitionFunction {
   fun nextTransition(

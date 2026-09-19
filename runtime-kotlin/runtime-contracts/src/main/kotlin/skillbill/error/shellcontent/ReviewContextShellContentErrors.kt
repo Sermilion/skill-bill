@@ -1,5 +1,4 @@
 package skillbill.error.shellcontent
-import skillbill.error.core.error
 
 class InvalidSkillContentIdentityError(
   val sourceLabel: String,

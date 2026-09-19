@@ -2,52 +2,9 @@ package skillbill.infrastructure.sqlite.review.stage.finished
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.review.accounting.List
-import skillbill.infrastructure.sqlite.review.accounting.Map
-import skillbill.infrastructure.sqlite.review.accounting.value
-import skillbill.infrastructure.sqlite.review.core.Map
-import skillbill.infrastructure.sqlite.review.core.value
-import skillbill.infrastructure.sqlite.review.review.review
-import skillbill.infrastructure.sqlite.review.review.summary
-import skillbill.infrastructure.sqlite.review.stage.Map
 import skillbill.infrastructure.sqlite.review.stage.aggregateReviewStageMetrics
-import skillbill.infrastructure.sqlite.review.stage.and.review
-import skillbill.infrastructure.sqlite.review.stage.lane.key
-import skillbill.infrastructure.sqlite.review.stage.map
-import skillbill.infrastructure.sqlite.review.stage.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.review
-import skillbill.infrastructure.sqlite.review.stage.runtime.summary
-import skillbill.infrastructure.sqlite.review.stage.telemetry.level
-import skillbill.infrastructure.sqlite.review.stats.Map
-import skillbill.infrastructure.sqlite.review.stats.connection
-import skillbill.infrastructure.sqlite.review.stats.finding.acceptedFindingDetails
-import skillbill.infrastructure.sqlite.review.stats.finding.acceptedFindings
-import skillbill.infrastructure.sqlite.review.stats.finding.filter
-import skillbill.infrastructure.sqlite.review.stats.finding.rejectedFindingDetails
-import skillbill.infrastructure.sqlite.review.stats.finding.rejectedFindings
 import skillbill.infrastructure.sqlite.review.stats.finding.summarizeFindingRows
-import skillbill.infrastructure.sqlite.review.stats.finding.summary
-import skillbill.infrastructure.sqlite.review.stats.finding.totalFindings
-import skillbill.infrastructure.sqlite.review.stats.finding.unresolvedFindings
-import skillbill.infrastructure.sqlite.review.stats.findingRows
-import skillbill.infrastructure.sqlite.review.stats.health.Map
-import skillbill.infrastructure.sqlite.review.stats.health.acceptedFindings
-import skillbill.infrastructure.sqlite.review.stats.health.rejectedFindings
-import skillbill.infrastructure.sqlite.review.stats.health.reviewRunId
-import skillbill.infrastructure.sqlite.review.stats.health.totalFindings
-import skillbill.infrastructure.sqlite.review.stats.health.unresolvedFindings
-import skillbill.infrastructure.sqlite.review.stats.health.value
-import skillbill.infrastructure.sqlite.review.stats.level
 import skillbill.infrastructure.sqlite.review.stats.platform.reviewPlatformSlug
-import skillbill.infrastructure.sqlite.review.stats.recorded.review
-import skillbill.infrastructure.sqlite.review.stats.review
-import skillbill.infrastructure.sqlite.review.stats.reviewRunId
-import skillbill.infrastructure.sqlite.review.stats.reviewSummary
-import skillbill.infrastructure.sqlite.review.stats.routedSkillPlatformSlugs
-import skillbill.infrastructure.sqlite.review.stats.value
-import skillbill.infrastructure.sqlite.review.stats.workflow.finished
-import skillbill.infrastructure.sqlite.review.stats.workflow.key
-import skillbill.infrastructure.sqlite.review.stats.workflow.rawValue
 import skillbill.learnings.model.LearningScope
 import skillbill.review.attribution.normalizeRoutedSkill
 import skillbill.review.attribution.normalizeScopeType
@@ -197,7 +154,7 @@ internal fun parseSpecialistReviews(rawValue: String?): List<String> =
 
 internal fun normalizeReviewScope(detectedScope: String?): String = detectedScope.orEmpty().substringBefore("(").trim()
 
-private fun fetchSessionLearnings(connection: Connection, reviewSessionId: String): Map<String, Any?>? {
+internal fun fetchSessionLearnings(connection: Connection, reviewSessionId: String): Map<String, Any?>? {
   val rawJson =
     connection.prepareStatement(
       """

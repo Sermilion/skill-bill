@@ -2,15 +2,10 @@ package skillbill.infrastructure.skills.externaladdon
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
 import skillbill.error.core.ExternalAddonOverlayError
-import skillbill.infrastructure.skills.install.Map
-import skillbill.infrastructure.skills.install.outcome
-import skillbill.infrastructure.skills.scaffold.addons
-import skillbill.infrastructure.skills.scaffold.path
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.AddonUsageManifestContext
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.parseAddonUsage
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.parsePointers
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.declaredSkillRelativeDirs
-import skillbill.infrastructure.skills.scaffold.skills
 import skillbill.install.model.ExternalAddonSource
 import skillbill.model.toPath
 import skillbill.scaffold.model.GovernedAddonSelection

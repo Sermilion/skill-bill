@@ -4,9 +4,9 @@ import skillbill.infrastructure.skills.scaffold.FileSystemScaffoldCatalogGateway
 import skillbill.infrastructure.skills.scaffold.FileSystemScaffoldGateway
 import skillbill.infrastructure.skills.scaffold.FileSystemScaffoldGeneratedStaging
 import skillbill.infrastructure.skills.scaffold.FileSystemScaffoldInstallLink
-import skillbill.infrastructure.skills.scaffold.FileSystemScaffoldManifestPersistence
 import skillbill.infrastructure.skills.scaffold.FileSystemUnsupportedScaffoldGateway
 import skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldSourceLoader
+import skillbill.infrastructure.skills.scaffold.manifest.persistence.FileSystemScaffoldManifestPersistence
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.UnsupportedScaffoldGateway

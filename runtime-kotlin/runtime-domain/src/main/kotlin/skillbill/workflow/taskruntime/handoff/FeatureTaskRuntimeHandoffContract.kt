@@ -1,18 +1,11 @@
 package skillbill.workflow.taskruntime.handoff
-import skillbill.workflow.taskruntime.artifact.List
-import skillbill.workflow.taskruntime.artifact.phaseId
-import skillbill.workflow.taskruntime.feature.projection
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffAssemblyRequest
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseHandoff
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeResolvedUpstreamOutputs
-import skillbill.workflow.taskruntime.phase.request
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.phase.task.declaration
-import skillbill.workflow.taskruntime.phase.task.runtimeProjectorProducerPhaseIds
-import skillbill.workflow.taskruntime.validation.output
 
 object FeatureTaskRuntimeHandoffContract {
 

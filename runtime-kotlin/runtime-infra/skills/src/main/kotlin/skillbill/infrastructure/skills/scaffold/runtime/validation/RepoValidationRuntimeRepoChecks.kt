@@ -6,16 +6,7 @@ import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.discoverSkillClasses
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.resolveSkillClass
-import skillbill.infrastructure.skills.scaffold.runtime.service.contentFile
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.issues
-import skillbill.infrastructure.skills.scaffold.runtime.service.contract.skillName
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
-import skillbill.infrastructure.skills.scaffold.runtime.service.name
-import skillbill.infrastructure.skills.scaffold.runtime.service.pack
-import skillbill.infrastructure.skills.scaffold.runtime.service.root
-import skillbill.infrastructure.skills.scaffold.runtime.service.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.service.skillName
-import skillbill.infrastructure.skills.scaffold.runtime.service.slug
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import java.nio.file.Files

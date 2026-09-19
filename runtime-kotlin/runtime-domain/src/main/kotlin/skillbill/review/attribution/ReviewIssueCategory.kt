@@ -1,17 +1,7 @@
 package skillbill.review.attribution
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.review.finding.description
-import skillbill.review.finding.finding
-import skillbill.review.finding.value
 import skillbill.review.model.ImportedFinding
 import skillbill.review.model.ReviewIssueCategory
-import skillbill.review.parallel.description
-import skillbill.review.parallel.entries
-import skillbill.review.parallel.finding
-import skillbill.review.parallel.location
-import skillbill.review.parallel.second
-import skillbill.review.parsing.specialistReviews
-import skillbill.review.review.review
 
 private val explicitCategoryAliases: Map<String, ReviewIssueCategory> =
   ReviewIssueCategory.entries.associateBy { it.wireValue } +

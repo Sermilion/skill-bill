@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.validation.review
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
-import skillbill.infrastructure.skills.scaffold.validation.shape.pack
 import java.nio.file.Path
 
 internal fun orderedFragments(content: String, vararg fragments: String): Boolean {
