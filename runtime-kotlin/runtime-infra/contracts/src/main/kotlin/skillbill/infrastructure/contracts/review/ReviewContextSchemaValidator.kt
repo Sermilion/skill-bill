@@ -10,15 +10,14 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.contracts.review.ReviewContextSchemaPaths
-import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.error.ShellContentContractException
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.ValidatedClasspathYamlNodeRequest
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.util.logging.Level
 import java.util.logging.Logger
-
 private const val MAX_REPORTED_VIOLATIONS: Int = 4
 
 private val reviewContextLog: Logger =

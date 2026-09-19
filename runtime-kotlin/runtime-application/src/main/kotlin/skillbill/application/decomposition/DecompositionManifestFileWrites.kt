@@ -1,6 +1,6 @@
 package skillbill.application.decomposition
 
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.LoadedDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.ValidatedDecompositionManifestYaml
@@ -12,7 +12,6 @@ import skillbill.workflow.decomposition.model.DecompositionManifestValidationRes
 import skillbill.workflow.decomposition.model.requireAccepted
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
-
 fun loadDecompositionManifest(
   path: Path,
   fileStore: DecompositionManifestStore,

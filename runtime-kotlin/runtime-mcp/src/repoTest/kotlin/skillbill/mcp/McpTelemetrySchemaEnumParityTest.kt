@@ -2,23 +2,22 @@ package skillbill.mcp
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.application.telemetry.auditResults
-import skillbill.application.telemetry.featureVerifyCompletionStatuses
-import skillbill.application.telemetry.historySignalValues
-import skillbill.application.telemetry.qualityCheckResults
-import skillbill.application.telemetry.qualityCheckScopeTypes
+import skillbill.application.telemetry.validation.auditResults
+import skillbill.application.telemetry.validation.featureVerifyCompletionStatuses
+import skillbill.application.telemetry.validation.historySignalValues
+import skillbill.application.telemetry.validation.qualityCheckResults
+import skillbill.application.telemetry.validation.qualityCheckScopeTypes
 import skillbill.mcp.core.McpToolRegistry
 import skillbill.mcp.telemetry.TelemetryEventSchemaPaths
 import skillbill.testing.repoRootFromTest
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class McpTelemetrySchemaEnumParityTest {
   private val runtimeInternalEmissionEvents =
     setOf(

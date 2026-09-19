@@ -1,10 +1,10 @@
 package skillbill.application
 
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
-import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
-import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimePhaseOutputSchemaValidator
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
@@ -16,7 +16,7 @@ import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.text.sha256HexUtf8
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import java.nio.file.Files
 import java.time.Clock
 import kotlin.test.Test

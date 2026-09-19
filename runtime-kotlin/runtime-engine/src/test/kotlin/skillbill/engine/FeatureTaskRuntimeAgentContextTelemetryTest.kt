@@ -1,12 +1,11 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.featureTaskRuntimeAgentContext
+import skillbill.engine.featuretask.lifecycle.core.featureTaskRuntimeAgentContext
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-
 class FeatureTaskRuntimeAgentContextTelemetryTest {
   @Test
   fun `a run whose phases resolved two agents reports both and reports only the models it launched`() {

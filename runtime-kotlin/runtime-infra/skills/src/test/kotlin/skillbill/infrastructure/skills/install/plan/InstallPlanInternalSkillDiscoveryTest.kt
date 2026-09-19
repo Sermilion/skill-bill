@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.install.plan
 
-import skillbill.error.InvalidInternalSkillClassificationError
+import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.ports.repository.toFileLocation
@@ -11,7 +11,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class InstallPlanInternalSkillDiscoveryTest {
   private val tempDirs = mutableListOf<Path>()
 

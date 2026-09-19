@@ -1,18 +1,17 @@
 
 package skillbill.engine
 
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.engine.featuretask.AUDIT_READONLY_EVIDENCE_SENTENCE
-import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
+import skillbill.engine.featuretask.phase.prompt.directives.AUDIT_READONLY_EVIDENCE_SENTENCE
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
-import skillbill.review.context.model.CodeReviewExecutionMode
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimePhasePromptComposerTest {
 
   @Test

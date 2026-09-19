@@ -130,16 +130,14 @@ class RuntimeEnforcementHardeningArchitectureTest {
       """
       package skillbill.application
 
-import skillbill.contracts.install.InstallPlanSchemaValidator as IPV
-import skillbill.contracts.workflow.DecompositionManifestCoherenceValidator as DMCV
+import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as IPV
 
       class Leaky
       """.trimIndent()
     val flagged = importedNames(aliasedImportSource).filter(::isSchemaOrCoherenceValidatorImport)
     assertEquals(
       listOf(
-        "skillbill.contracts.install.InstallPlanSchemaValidator",
-        "skillbill.contracts.workflow.DecompositionManifestCoherenceValidator",
+        "skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator",
       ),
       flagged,
       "AC3 import extraction must strip ` as <alias>` so an aliased concrete validator import is still caught.",

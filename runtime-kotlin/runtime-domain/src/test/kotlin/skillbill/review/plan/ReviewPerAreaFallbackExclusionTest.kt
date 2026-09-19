@@ -1,7 +1,7 @@
 package skillbill.review.plan
 
 import org.junit.jupiter.api.Test
-import skillbill.error.InvalidFallbackCapabilityError
+import skillbill.error.shellcontent.InvalidFallbackCapabilityError
 import skillbill.model.FileLocation
 import skillbill.review.plan.model.ReviewLaunchLane
 import skillbill.review.plan.model.ReviewRootLanes
@@ -12,7 +12,6 @@ import skillbill.scaffold.model.RoutingSignals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class ReviewPerAreaFallbackExclusionTest {
   @Test
   fun `a fallback-only area keeps its lane when no native routed pack contributes a candidate`() {

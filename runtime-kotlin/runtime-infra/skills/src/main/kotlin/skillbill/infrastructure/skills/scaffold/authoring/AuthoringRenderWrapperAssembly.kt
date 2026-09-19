@@ -1,13 +1,12 @@
 package skillbill.infrastructure.skills.scaffold.authoring
 
-import skillbill.infrastructure.skills.scaffold.platformpack.resolveSkillClassForSkill
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.resolveSkillClassForSkill
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.rendering.renderCeremonySection
 import skillbill.infrastructure.skills.scaffold.rendering.renderClassSections
 import skillbill.infrastructure.skills.scaffold.rendering.renderDescriptorSection
-import skillbill.infrastructure.skills.scaffold.runtime.TemplateContext
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
 import skillbill.scaffold.model.SkillClassManifest
-
 internal fun assembleRenderedWrapper(
   target: AuthoringTarget,
   frontmatter: String,

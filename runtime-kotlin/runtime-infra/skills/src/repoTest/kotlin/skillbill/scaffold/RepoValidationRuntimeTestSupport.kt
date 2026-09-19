@@ -2,13 +2,12 @@ package skillbill.scaffold
 
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.composition.renderNativeAgentSource
-import skillbill.infrastructure.skills.scaffold.runtime.requiredSupportingFilesForSkill
-import skillbill.infrastructure.skills.scaffold.runtime.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import skillbill.testsupport.SkillClassFixtures
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
-
 internal fun completeTransitionalLicense(): String = Files.readString(repositoryRoot().resolve("LICENSE"))
 
 internal fun writeSuccessorApproval(repoRoot: Path, license: String) {

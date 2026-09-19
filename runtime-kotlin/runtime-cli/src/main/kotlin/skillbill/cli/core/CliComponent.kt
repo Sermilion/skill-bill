@@ -2,10 +2,9 @@ package skillbill.cli.core
 
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
-import skillbill.cli.kernel.CliRunState
+import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliRunInputs
-import skillbill.di.RuntimeComponent
-
+import skillbill.di.core.RuntimeComponent
 @Component
 abstract class CliComponent(
   @Component val runtimeComponent: RuntimeComponent,

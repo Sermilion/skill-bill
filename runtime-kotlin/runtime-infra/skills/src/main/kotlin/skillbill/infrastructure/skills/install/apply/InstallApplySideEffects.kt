@@ -18,9 +18,9 @@ import skillbill.model.toPath
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.mcp.model.InstallMcpRegistrationRequest
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.telemetry.TelemetryConfigStore
-import skillbill.ports.telemetry.TelemetryLevelMutator
-import skillbill.ports.telemetry.writeTelemetryLevel
+import skillbill.ports.telemetry.transport.TelemetryConfigStore
+import skillbill.ports.telemetry.transport.TelemetryLevelMutator
+import skillbill.ports.telemetry.transport.writeTelemetryLevel
 import skillbill.telemetry.DEFAULT_TELEMETRY_BATCH_SIZE
 import skillbill.telemetry.parsePositiveTelemetryInt
 import skillbill.telemetry.parseTelemetryLevelValue

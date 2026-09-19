@@ -10,16 +10,15 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.work.WorkListService
 import skillbill.application.work.model.WorkListItem
 import skillbill.application.work.model.WorkListResult
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.DocumentedNoOpCliCommand
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.DocumentedNoOpCliCommand
 import skillbill.cli.model.CliFormat
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.work.IdeStatusService
 import skillbill.engine.work.model.IdeStatusRequest
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-
 @Inject
 class WorkTopLevelCommands(
   list: WorkListCommand,

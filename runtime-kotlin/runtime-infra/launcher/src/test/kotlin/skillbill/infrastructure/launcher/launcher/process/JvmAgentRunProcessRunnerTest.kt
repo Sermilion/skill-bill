@@ -13,32 +13,32 @@ import skillbill.contracts.time.JvmSystemClock
 import skillbill.infrastructure.host.jvm.hostPath
 import skillbill.infrastructure.host.jvm.testGateJvmResolver
 import skillbill.infrastructure.launcher.launcher.testAgentRunProcessRequest
-import skillbill.infrastructure.launcher.process.AGENT_RUN_OUTPUT_LIMIT_BYTES
-import skillbill.infrastructure.launcher.process.AgentRunProcessResult
-import skillbill.infrastructure.launcher.process.CappedUtf8Drain
-import skillbill.infrastructure.launcher.process.JvmAgentRunProcessRunner
-import skillbill.infrastructure.launcher.process.ProcessRunDegradationRecorder
-import skillbill.infrastructure.launcher.process.ProcessRunLifetime
-import skillbill.infrastructure.launcher.process.ProcessWait
-import skillbill.infrastructure.launcher.process.configureLaunchEnvironment
-import skillbill.infrastructure.launcher.process.exportRunDegradationEvidence
-import skillbill.infrastructure.launcher.process.isolatedLaunchEnvironment
-import skillbill.infrastructure.launcher.process.writeAndCloseStdin
+import skillbill.infrastructure.launcher.process.launch.AGENT_RUN_OUTPUT_LIMIT_BYTES
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessResult
+import skillbill.infrastructure.launcher.process.launch.CappedUtf8Drain
+import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
+import skillbill.infrastructure.launcher.process.launch.ProcessRunDegradationRecorder
+import skillbill.infrastructure.launcher.process.launch.ProcessRunLifetime
+import skillbill.infrastructure.launcher.process.launch.configureLaunchEnvironment
+import skillbill.infrastructure.launcher.process.launch.exportRunDegradationEvidence
+import skillbill.infrastructure.launcher.process.launch.isolatedLaunchEnvironment
+import skillbill.infrastructure.launcher.process.waitloop.ProcessWait
+import skillbill.infrastructure.launcher.process.waitloop.writeAndCloseStdin
 import skillbill.infrastructure.launcher.review.GovernedReviewEvidenceEndpoint
 import skillbill.ports.agentrun.model.AgentRunMcpStartupProbe
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
-import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.ReviewEvidenceBroker
+import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointHandle
+import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewToolCall
-import skillbill.review.context.model.ReviewConversationIsolation
-import skillbill.review.context.model.ReviewExpansionRecord
+import skillbill.review.context.model.launch.ReviewConversationIsolation
+import skillbill.review.context.model.packet.ReviewExpansionRecord
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -54,7 +54,6 @@ import kotlin.concurrent.thread
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-
 class JvmAgentRunProcessRunnerTest {
   private val trackedChildPids = mutableListOf<Long>()
   private val trackedChildPidFiles = mutableListOf<Path>()

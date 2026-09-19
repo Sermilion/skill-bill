@@ -1,8 +1,7 @@
 package skillbill.config.model
 
 import skillbill.install.model.InstallAgent
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 const val EXECUTION_MATRIX_KEY: String = "execution_matrix"
 
 enum class ExecutionTier(

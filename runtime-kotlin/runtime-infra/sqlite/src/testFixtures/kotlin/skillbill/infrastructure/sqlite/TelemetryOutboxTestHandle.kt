@@ -1,11 +1,10 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.telemetry.SkillBillRuntimeVersion
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
-import skillbill.ports.telemetry.TelemetryOutboxRepository
+import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.telemetry.redaction.SkillBillRuntimeVersion
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import java.sql.Connection
-
 class TelemetryOutboxTestHandle internal constructor(
   private val store: TelemetryOutboxStore,
 ) : TelemetryOutboxRepository by store {

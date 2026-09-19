@@ -2,11 +2,10 @@ package skillbill.infrastructure.skills.nativeagent.composition
 
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
-import skillbill.error.InvalidNativeAgentCompositionSchemaError
+import skillbill.error.shellcontent.InvalidNativeAgentCompositionSchemaError
 import skillbill.infrastructure.skills.nativeagent.rendering.YAML_DOUBLE_QUOTE_ESCAPES
 import java.nio.file.Files
 import java.nio.file.Path
-
 fun parseNativeAgentBundle(path: Path): List<NativeAgentSource> {
   val yamlText = Files.readString(path)
   NativeAgentCompositionSchemaValidator.validate(yamlText, path.toString())

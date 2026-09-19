@@ -2,15 +2,14 @@ package skillbill.infrastructure.skills.agentaddon
 
 import skillbill.agentaddon.model.AgentAddonCatalogueEntry
 import skillbill.agentaddon.model.AgentAddonConsumer
-import skillbill.error.AgentAddonPointerCollisionError
-import skillbill.error.InvalidAgentAddonDeliveryTargetError
+import skillbill.error.shellcontent.AgentAddonPointerCollisionError
+import skillbill.error.shellcontent.InvalidAgentAddonDeliveryTargetError
 import skillbill.model.toPath
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 internal data class AgentAddonPointer(
   val consumer: AgentAddonConsumer,
   val slug: String,

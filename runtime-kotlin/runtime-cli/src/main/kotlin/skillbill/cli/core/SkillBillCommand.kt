@@ -5,8 +5,7 @@ import com.github.ajalt.clikt.core.ParameterHolder
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
-import skillbill.cli.kernel.DocumentedCliCommand
-
+import skillbill.cli.kernel.cli.DocumentedCliCommand
 internal fun ParameterHolder.databasePathOption() = option(
   "--db",
   help = "Optional SQLite path. Defaults to SKILL_BILL_DB or the standard local state path.",

@@ -2,24 +2,23 @@ package skillbill.infrastructure.launcher.launcher
 
 import skillbill.config.model.PhaseCompactionDirective
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
-import skillbill.error.GovernedReviewLaunchCapabilityError
+import skillbill.error.shellcontent.GovernedReviewLaunchCapabilityError
 import skillbill.infrastructure.launcher.agentrun.AgentRunCommand
 import skillbill.infrastructure.launcher.agentrun.AgentRunCommandBuilder
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.SkillRunRequest
-import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.ReviewEvidenceBroker
+import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointHandle
+import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
 import skillbill.ports.review.model.ReviewToolCall
-import skillbill.review.context.model.ReviewExpansionRecord
+import skillbill.review.context.model.packet.ReviewExpansionRecord
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
-
 internal fun assertGovernedReviewLaunch(builder: AgentRunCommandBuilder, governed: SkillRunRequest) {
   if (!builder.governedReviewLaunchCapability.governedOnlyTooling ||
     !builder.governedReviewLaunchCapability.mcpIsolation

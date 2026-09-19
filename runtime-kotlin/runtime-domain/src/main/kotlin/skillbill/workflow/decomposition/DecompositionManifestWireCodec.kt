@@ -3,7 +3,7 @@ package skillbill.workflow.decomposition
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
@@ -11,9 +11,8 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.taskruntime.model.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.toStringKeyedArtifactMap
-
+import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
+import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
 internal object DecompositionManifestWireCodec {
   fun decode(wireMap: Map<String, Any?>, sourceLabel: String = "<in-memory>"): DecompositionManifest =
     wireMap.toDecompositionManifest(sourceLabel)

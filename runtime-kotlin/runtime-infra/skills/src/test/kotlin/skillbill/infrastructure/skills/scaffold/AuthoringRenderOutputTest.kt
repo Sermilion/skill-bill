@@ -3,9 +3,9 @@ package skillbill.infrastructure.skills.scaffold
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoringTarget
 import skillbill.infrastructure.skills.scaffold.authoring.renderWrapper
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.pointer.renderPointer
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.testsupport.SnapshotAssertions
 import java.nio.file.Files
 import java.nio.file.Path
@@ -14,7 +14,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-
 class AuthoringRenderOutputTest {
   private val tempRoot: Path = Files.createTempDirectory("skillbill-authoring-render-")
 

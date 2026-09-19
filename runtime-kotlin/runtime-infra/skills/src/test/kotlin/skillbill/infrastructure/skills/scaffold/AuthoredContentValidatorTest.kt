@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.infrastructure.skills.scaffold.validation.validateAuthoredContent
+import skillbill.infrastructure.skills.scaffold.validation.shape.validateAuthoredContent
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -8,7 +8,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class AuthoredContentValidatorTest {
   private val contentFile = Paths.get("skills/example/content.md")
 

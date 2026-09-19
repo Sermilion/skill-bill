@@ -4,11 +4,10 @@ import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.diff.DiffResolverPort
-import skillbill.review.context.model.ReviewCommitCoverageFact
-import skillbill.review.context.model.ReviewCommitSource
-import skillbill.review.context.model.ReviewCommitUnit
+import skillbill.review.context.model.commit.ReviewCommitCoverageFact
+import skillbill.review.context.model.commit.ReviewCommitSource
+import skillbill.review.context.model.commit.ReviewCommitUnit
 import java.nio.file.Path
-
 internal data class SharedReviewEvidenceCommits(
   val baseRevision: String,
   val headRevision: String,

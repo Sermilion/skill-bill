@@ -1,8 +1,7 @@
 package skillbill.infrastructure.contracts.review
 
-import skillbill.error.InvalidReviewContextSchemaError
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
-
 internal fun readReviewContextSchemaText(): String = ClasspathContractSchemaLoader.readClasspathYamlText(
   classLoader = ReviewContextSchemaValidator::class.java.classLoader,
   resource = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,

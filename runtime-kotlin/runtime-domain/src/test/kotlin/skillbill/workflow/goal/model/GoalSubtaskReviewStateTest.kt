@@ -1,13 +1,13 @@
 package skillbill.workflow.goal.model
-import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
-import skillbill.review.context.model.CodeReviewExecutionMode
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairOutcome
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptEntry
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.model.upsertRepairReceipt
+import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairOutcome
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceiptEntry
+import skillbill.workflow.taskruntime.model.repair.task.upsertRepairReceipt
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -15,7 +15,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class GoalSubtaskReviewStateTest {
   @Test
   fun `completed passes record immutable execution modes while legacy records remain byte stable`() {

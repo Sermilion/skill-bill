@@ -1,10 +1,9 @@
 package skillbill.scaffold.policy.scaffold
 
-import skillbill.error.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.CodeReviewCompositionScope
-
 fun parseBaselineLayerPayload(index: Int, raw: Any?): CodeReviewBaselineLayer {
   val layer = raw as? Map<*, *>
     ?: failBaselineLayerPayload("Scaffold payload field 'baseline_layers[$index]' must be an object.")

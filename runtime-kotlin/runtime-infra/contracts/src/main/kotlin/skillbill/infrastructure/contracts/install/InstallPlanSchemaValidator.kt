@@ -7,14 +7,13 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanSchemaPaths
 import skillbill.contracts.logSchemaLoadFailure
-import skillbill.error.InvalidInstallPlanSchemaError
+import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
 import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
 import java.util.logging.Level
 import java.util.logging.Logger
-
 private val log: Logger = Logger.getLogger("skillbill.contracts.install.InstallPlanSchemaValidator")
 
 @Inject

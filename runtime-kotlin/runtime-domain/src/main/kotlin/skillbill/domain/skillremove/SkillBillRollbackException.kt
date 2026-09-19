@@ -1,7 +1,5 @@
 package skillbill.domain.skillremove
-
-import skillbill.error.SkillBillRuntimeException
-
+import skillbill.error.core.SkillBillRuntimeException
 class SkillBillRollbackException(
   message: String,
   cause: Throwable? = null,

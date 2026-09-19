@@ -2,14 +2,13 @@ package skillbill.workflow.engine
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.WorkflowWirePayloadKeys
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowStepStatus
-
 internal fun snapshotViewFrom(record: WorkflowStateSnapshot): WorkflowSnapshotView {
   val steps = decodeSteps(record.stepsJson).map(::workflowStepStateFrom)
   return WorkflowSnapshotView(

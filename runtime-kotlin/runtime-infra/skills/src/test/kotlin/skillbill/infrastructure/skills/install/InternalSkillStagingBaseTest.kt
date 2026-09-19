@@ -1,14 +1,15 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.error.InternalSkillSidecarCollisionError
+import skillbill.error.shellcontent.InternalSkillSidecarCollisionError
 import skillbill.infrastructure.skills.install.apply.nativeAgentSourceRoots
 import skillbill.infrastructure.skills.install.apply.standaloneInstallableSkills
 import skillbill.infrastructure.skills.install.plan.InstallContext
 import skillbill.infrastructure.skills.install.plan.installSkill
-import skillbill.infrastructure.skills.install.staging.StageInstalledSkillInput
-import skillbill.infrastructure.skills.install.staging.discoverInternalSidecarTargets
-import skillbill.infrastructure.skills.install.staging.stageInstalledSkill
-import skillbill.infrastructure.skills.install.staging.writeInternalSidecarFiles
+import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
+import skillbill.infrastructure.skills.install.staging.staging.installed.stageInstalledSkill
+import skillbill.infrastructure.skills.install.staging.staging.sidecar.discoverInternalSidecarTargets
+import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
+import skillbill.infrastructure.skills.install.staging.staging.writeInternalSidecarFiles
 import skillbill.infrastructure.skills.scaffold.authoring.renderWrapper
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
 import skillbill.install.model.AgentTarget
@@ -22,7 +23,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-
 class InternalSkillStagingBaseTest : InternalSkillStagingTestSupport() {
   @Test
   fun `internal child renders as a sidecar inside the parent staged directory`() {

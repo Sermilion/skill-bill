@@ -1,9 +1,7 @@
 package skillbill.review.context
-
-import skillbill.review.context.model.ReviewAccountingInput
-import skillbill.review.context.model.ReviewAccountingNode
-import skillbill.review.context.model.ReviewAccountingSummary
-
+import skillbill.review.context.model.accounting.ReviewAccountingInput
+import skillbill.review.context.model.accounting.ReviewAccountingNode
+import skillbill.review.context.model.accounting.ReviewAccountingSummary
 object ReviewTreeAccounting {
   fun summarize(reviewId: String, packetDigest: String, root: ReviewAccountingInput): ReviewAccountingSummary {
     require(reviewId.isNotBlank() && packetDigest.isNotBlank())

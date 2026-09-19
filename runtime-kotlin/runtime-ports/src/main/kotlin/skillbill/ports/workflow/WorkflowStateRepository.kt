@@ -1,6 +1,6 @@
 package skillbill.ports.workflow
 
-import skillbill.contracts.workflow.WorkflowContinueSessionSummary
+import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
@@ -12,7 +12,6 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskWorkflowMode
-
 /**
  * Durable workflow-state persistence, split into one capability interface per
  * family so no single interface crosses the detekt `TooManyFunctions`

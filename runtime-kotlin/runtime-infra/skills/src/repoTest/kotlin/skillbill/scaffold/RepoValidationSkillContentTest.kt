@@ -2,13 +2,12 @@ package skillbill.scaffold
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.composition.renderNativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.testNativeAgentCompositionContext
-import skillbill.infrastructure.skills.scaffold.runtime.RepoValidationRuntime
+import skillbill.infrastructure.skills.scaffold.runtime.validation.RepoValidationRuntime
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class RepoValidationSkillContentTest {
   @Test
   fun `repo validation preserves native agent source files`() {

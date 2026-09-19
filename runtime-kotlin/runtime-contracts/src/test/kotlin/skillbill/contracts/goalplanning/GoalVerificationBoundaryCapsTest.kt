@@ -1,10 +1,9 @@
 package skillbill.contracts.goalplanning
 
-import skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError
+import skillbill.error.shellcontent.InvalidGoalVerificationBoundaryCapsSchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class GoalVerificationBoundaryCapsTest {
   @Test
   fun `effective verification caps load from the packaged contract document`() {

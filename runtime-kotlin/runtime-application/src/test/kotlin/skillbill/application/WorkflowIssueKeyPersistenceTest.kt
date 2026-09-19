@@ -1,15 +1,15 @@
 package skillbill.application
 
-import skillbill.application.workflow.WorkflowService
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
-import skillbill.application.workflow.openFeatureTask
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.engine.goalrunner.testPhaseRecorder
-import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
-import skillbill.error.WorkflowIssueKeyConflictError
+import skillbill.application.workflow.persist.openFeatureTask
+import skillbill.application.workflow.service.WorkflowService
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.goalrunner.execution.core.testPhaseRecorder
+import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
+import skillbill.error.shellcontent.WorkflowIssueKeyConflictError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
@@ -20,7 +20,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
-
 class WorkflowIssueKeyPersistenceTest {
   @Test
   fun `opening every issue keyed workflow persists its normalized issue key in workflow metadata`() {

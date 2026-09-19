@@ -1,12 +1,11 @@
 package skillbill.application.telemetry.config
 
-import skillbill.ports.telemetry.TelemetryConfigStore
-import skillbill.ports.telemetry.TelemetryOutboxRepository
-import skillbill.ports.telemetry.TelemetrySettingsProvider
-import skillbill.ports.telemetry.writeTelemetryLevel
+import skillbill.ports.telemetry.transport.TelemetryConfigStore
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
+import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
+import skillbill.ports.telemetry.transport.writeTelemetryLevel
 import skillbill.telemetry.model.TelemetrySettings
 import skillbill.telemetry.telemetryLevels
-
 object TelemetryConfigMutations {
   fun setTelemetryLevel(
     level: String,

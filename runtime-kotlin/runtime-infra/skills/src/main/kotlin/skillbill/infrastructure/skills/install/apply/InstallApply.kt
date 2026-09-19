@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.install.apply
 
-import skillbill.error.SkillContentIdentityMismatchError
+import skillbill.error.shellcontent.SkillContentIdentityMismatchError
 import skillbill.infrastructure.skills.install.plan.discoverPlatformManifests
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
@@ -20,8 +20,8 @@ import skillbill.install.model.WindowsSymlinkPreflightState
 import skillbill.model.toPath
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.telemetry.TelemetryConfigStore
-import skillbill.ports.telemetry.TelemetryLevelMutator
+import skillbill.ports.telemetry.transport.TelemetryConfigStore
+import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
 

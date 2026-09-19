@@ -1,9 +1,8 @@
 package skillbill.ports.review.model
 
-import skillbill.review.context.model.ReviewIntegrationTerminalOutcome
+import skillbill.review.context.model.launch.ReviewIntegrationTerminalOutcome
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
-
 data class ReviewIntegrationPassOutcome(
   val commitSequenceDigest: String,
   val terminalOutcome: ReviewIntegrationTerminalOutcome,

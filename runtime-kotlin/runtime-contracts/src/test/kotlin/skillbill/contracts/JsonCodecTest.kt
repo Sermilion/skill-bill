@@ -1,14 +1,13 @@
 package skillbill.contracts
 
-import skillbill.error.JsonWrongRootTypeError
-import skillbill.error.MalformedJsonTextError
-import skillbill.error.UnsupportedJsonValueError
+import skillbill.error.core.JsonWrongRootTypeError
+import skillbill.error.core.MalformedJsonTextError
+import skillbill.error.core.UnsupportedJsonValueError
 import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class JsonCodecTest {
   @Test
   fun `strict array parse accepts whitespace formatted empty arrays`() {

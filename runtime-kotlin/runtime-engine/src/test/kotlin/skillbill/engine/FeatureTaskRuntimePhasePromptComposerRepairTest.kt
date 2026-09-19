@@ -4,18 +4,17 @@ import skillbill.application.assertMatchingSchemaInvalidRepairPrompt
 import skillbill.application.assertNoRawResponseSpanOutsideAuthorizedRepairSection
 import skillbill.application.assertOmitsAuthorizedRepairSection
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeImplementationContinuation
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeImplementationContinuation
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
-import skillbill.workflow.taskruntime.model.CorrectiveRepairCapturedResponse
-import skillbill.workflow.taskruntime.model.CorrectiveRepairDiagnosticLocator
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairBudget
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
+import skillbill.workflow.taskruntime.model.repair.CorrectiveRepairCapturedResponse
+import skillbill.workflow.taskruntime.model.repair.CorrectiveRepairDiagnosticLocator
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairBudget
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimePhasePromptComposerRepairTest {
 
   @Test

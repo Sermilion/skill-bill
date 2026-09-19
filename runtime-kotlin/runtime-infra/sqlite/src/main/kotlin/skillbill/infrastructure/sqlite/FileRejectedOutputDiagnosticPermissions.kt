@@ -1,13 +1,12 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
-
 internal class FileRejectedOutputDiagnosticPermissions(
   private val databasePath: Path,
   private val diagnostics: RuntimeDiagnostics,

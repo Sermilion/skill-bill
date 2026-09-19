@@ -6,7 +6,7 @@ import skillbill.cli.codereview.CodeReviewCommand
 import skillbill.cli.config.ConfigCommand
 import skillbill.cli.featuretask.FeatureTaskRuntimeDeprecatedRunCommand
 import skillbill.cli.featuretask.FeatureTaskRuntimeRunCommand
-import skillbill.cli.goal.GoalRunCommand
+import skillbill.cli.goal.core.GoalRunCommand
 import skillbill.cli.repovalidation.RepoValidationCliCommands
 import skillbill.cli.skillremove.RemoveCliCommand
 import skillbill.cli.system.DoctorCliCommand
@@ -16,7 +16,6 @@ import skillbill.cli.system.UpdateCommand
 import skillbill.cli.system.VersionCommand
 import skillbill.cli.work.WorkTopLevelCommands
 import skillbill.cli.workflow.WorkflowTopLevelCommands
-
 @Inject
 class WorkflowGoalFeatureCliCommands(
   val workflowCommands: WorkflowTopLevelCommands,

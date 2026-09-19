@@ -1,10 +1,9 @@
 package skillbill.infrastructure.skills.install
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.MalformedInstallSelectionRecordError
-import skillbill.error.MissingInstallSelectionRecordError
-import skillbill.error.UnreadableInstallSelectionRecordError
-import skillbill.infrastructure.skills.FileSystemInstallSelectionPersistence
+import skillbill.error.shellcontent.MalformedInstallSelectionRecordError
+import skillbill.error.shellcontent.MissingInstallSelectionRecordError
+import skillbill.error.shellcontent.UnreadableInstallSelectionRecordError
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallTelemetryLevel
 import skillbill.install.model.McpRegistrationChoice
@@ -22,7 +21,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class FileSystemInstallSelectionPersistenceTest {
   @Test
   fun `writes and reads latest successful install selection`() {

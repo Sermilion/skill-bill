@@ -5,16 +5,15 @@ import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.formatOption
-import skillbill.cli.kernel.resolveCliRepositoryRoot
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.formatOption
+import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.validation.RepoValidationGateway
 import java.nio.file.Path
-
 @Inject
 class RepoValidationCliCommands(
   private val state: CliRunState,

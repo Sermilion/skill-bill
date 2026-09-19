@@ -1,13 +1,12 @@
 package skillbill.infrastructure.contracts.review
 
-import skillbill.infrastructure.workflow.ClasspathReviewSpecialistContractProvider
-import skillbill.review.context.model.ReviewPacketConsumerContract
+import skillbill.infrastructure.workflow.review.specialists.review.ClasspathReviewSpecialistContractProvider
+import skillbill.review.context.model.packet.ReviewPacketConsumerContract
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class ReviewPacketConsumerContractParityTest {
   @Test fun `launch specialist and consumer contracts are the same authoritative bytes`() {
     assertEquals(

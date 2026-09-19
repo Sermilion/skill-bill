@@ -1,14 +1,13 @@
 package skillbill.application.review.model
 
-import skillbill.review.context.model.ResolvedReviewExecutionMode
-import skillbill.review.context.model.ReviewContextBudgetPolicy
-import skillbill.review.context.model.ReviewContextPacket
-import skillbill.review.context.model.SpecIntentProjection
+import skillbill.review.context.model.execution.ResolvedReviewExecutionMode
+import skillbill.review.context.model.execution.SpecIntentProjection
+import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
+import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewFindingVerdict
 import java.nio.file.Path
 import kotlin.time.Duration
-
 data class ReviewDelegatedStageLaunch(
   val budget: ReviewContextBudgetPolicy,
   val brokerId: String,

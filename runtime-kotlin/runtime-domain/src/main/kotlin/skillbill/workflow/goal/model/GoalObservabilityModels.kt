@@ -1,11 +1,10 @@
 package skillbill.workflow.goal.model
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
-import skillbill.contracts.workflow.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
-import skillbill.error.InvalidGoalProgressEventSchemaError
+import skillbill.contracts.workflow.goal.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
+import skillbill.contracts.workflow.goal.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
+import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.workflow.goal.invalidGoalObservabilityEvent
-
 const val GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY: String = "goal_observability_latest_event"
 const val GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY: String = "goal_observability_run_history"
 const val GOAL_OBSERVABILITY_HISTORY_LIMIT: Int = 50

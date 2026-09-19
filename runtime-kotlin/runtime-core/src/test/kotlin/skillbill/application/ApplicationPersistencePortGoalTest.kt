@@ -1,15 +1,15 @@
 package skillbill.application
 
-import skillbill.application.review.ReviewService
 import skillbill.application.review.model.GoalStatsResult
-import skillbill.application.telemetry.toRecord
+import skillbill.application.review.service.ReviewService
+import skillbill.application.telemetry.lifecycle.toRecord
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.review.EmptyReviewAttributionPort
+import skillbill.ports.review.empty.EmptyReviewAttributionPort
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStatsRepository
 import skillbill.review.model.GoalBlockedSubtaskSummary
@@ -19,7 +19,6 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class ApplicationPersistencePortGoalTest {
   fun `lifecycle telemetry port records goal events mapped from requests`() {
     val repository = RecordingGoalLifecycleTelemetryRepository()

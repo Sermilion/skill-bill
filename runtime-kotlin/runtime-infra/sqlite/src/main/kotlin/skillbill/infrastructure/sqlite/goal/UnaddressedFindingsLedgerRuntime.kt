@@ -2,10 +2,9 @@ package skillbill.infrastructure.sqlite.goal
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.UnaddressedFinding
-import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.review.model.ReviewFindingCitation
 import java.sql.Connection
-
 internal class UnaddressedFindingsLedgerRuntime(private val connection: Connection) {
   fun replaceLedgerForPass(workflowId: String, reviewPassNumber: Int, findings: List<UnaddressedFinding>) {
     deletePassesUpTo(workflowId, reviewPassNumber)

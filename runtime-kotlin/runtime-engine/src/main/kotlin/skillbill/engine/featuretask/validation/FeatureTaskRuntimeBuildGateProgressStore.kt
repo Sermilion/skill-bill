@@ -1,9 +1,8 @@
 package skillbill.engine.featuretask.validation
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
-
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
 class FeatureTaskRuntimeBuildGateProgressStore private constructor(
   private val recorder: FeatureTaskRuntimePhaseRecorder?,
   private val persistOverride: ((String, FeatureTaskRuntimeValidationGateProgress) -> Unit)?,

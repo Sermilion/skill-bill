@@ -1,9 +1,8 @@
 package skillbill.workflow.engine
 
-import skillbill.contracts.workflow.WorkflowContinueSessionSummary
+import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.model.WorkflowContinueStatus
-
 internal data class ContinuationArtifactKeys(
   val currentStepArtifactKeys: List<String>,
   val omittedArtifactKeys: List<String>,

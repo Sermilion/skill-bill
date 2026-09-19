@@ -1,17 +1,16 @@
 package skillbill.infrastructure.skills.scaffold.authoring
 
-import skillbill.error.ShellContentContractException
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.SkillBillRuntimeException
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
-import skillbill.infrastructure.skills.scaffold.runtime.requiredSupportingFilesForSkill
-import skillbill.infrastructure.skills.scaffold.runtime.supportingFileTargets
-import skillbill.infrastructure.skills.scaffold.validation.validateAuthoredContent
-import skillbill.infrastructure.skills.scaffold.validation.validateSkillMdShape
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
+import skillbill.infrastructure.skills.scaffold.validation.shape.validateAuthoredContent
+import skillbill.infrastructure.skills.scaffold.validation.shape.validateSkillMdShape
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 internal fun mutateContent(repoRoot: Path, target: AuthoringTarget, replacementText: String): AuthoringMutationResult {
   val contentBefore = Files.readAllBytes(target.contentFile)
   return runWithContentRollback(target, contentBefore) {

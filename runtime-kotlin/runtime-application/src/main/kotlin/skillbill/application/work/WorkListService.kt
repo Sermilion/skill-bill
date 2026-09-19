@@ -5,7 +5,7 @@ import skillbill.application.work.model.WorkListItem
 import skillbill.application.work.model.WorkListItemKind
 import skillbill.application.work.model.WorkListResult
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.error.InvalidWorkListRowError
+import skillbill.error.shellcontent.InvalidWorkListRowError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.work.model.WorkItem
@@ -13,7 +13,6 @@ import skillbill.ports.work.model.WorkItemKind
 import skillbill.ports.workflow.getAll
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
-
 @Inject
 class WorkListService(
   private val database: DatabaseSessionFactory,

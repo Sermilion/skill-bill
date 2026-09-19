@@ -2,27 +2,26 @@ package skillbill.infrastructure.launcher.launcher
 
 import skillbill.config.model.PhaseCompactionDirective
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
-import skillbill.error.GovernedReviewLaunchCapabilityError
+import skillbill.error.shellcontent.GovernedReviewLaunchCapabilityError
 import skillbill.infrastructure.launcher.agentrun.AgentRunOutputDecoder
 import skillbill.infrastructure.launcher.agentrun.ClaudeAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.CodexAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.CursorAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.GovernedReviewLaunchCapability
 import skillbill.infrastructure.launcher.agentrun.JunieAgentRunCommandBuilder
-import skillbill.infrastructure.launcher.process.AgentRunIdlePolicy
+import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpConfigFormat
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.MODEL_DIRECTIVE_CAPABLE_AGENTS
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
-import skillbill.review.context.model.ReviewConversationIsolation
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.review.context.model.launch.ReviewConversationIsolation
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class AgentRunCommandBuildersTest {
   @Test
   fun `a compaction directive reaches the claude launch environment`() {

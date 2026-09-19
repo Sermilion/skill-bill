@@ -1,7 +1,7 @@
 package skillbill.engine.work
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeOperatorDecisionPause
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeOperatorDecisionPause
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimePhaseStatus
 import skillbill.engine.work.model.IdeStatusCurrentModel
 import skillbill.engine.work.model.IdeStatusCurrentSubtask
 import skillbill.engine.work.model.IdeStatusLifecycleState

@@ -7,8 +7,8 @@ import skillbill.install.model.InstallTelemetryApplyStatus
 import skillbill.install.model.InstallTelemetryLevel
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.telemetry.TelemetryLevelMutator
 import skillbill.ports.telemetry.model.TelemetryLevelMutationResult
+import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Files
 import java.nio.file.Path

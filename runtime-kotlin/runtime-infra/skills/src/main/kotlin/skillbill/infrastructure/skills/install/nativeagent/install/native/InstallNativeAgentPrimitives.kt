@@ -1,0 +1,30 @@
+package skillbill.infrastructure.skills.install.nativeagent.install.native
+import skillbill.infrastructure.host.jvm.resolveUserHome
+import skillbill.infrastructure.skills.nativeagent.discovery.discoverNativeAgentFilesByDir
+import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
+import java.nio.file.Path
+
+internal fun discoverCodexAgentTomls(
+  platformPacksRoot: Path,
+  skillsRoot: Path? = null,
+  selectedPlatforms: List<String>? = null,
+): List<Path> = discoverNativeAgentFilesByDir(
+  platformPacksRoot = platformPacksRoot,
+  skillsRoot = skillsRoot,
+  selectedPlatforms = selectedPlatforms,
+  directoryName = NativeAgentProvider.Codex.directoryName,
+  extension = NativeAgentProvider.Codex.extension,
+)
+
+internal fun uninstallCodexAgentTomls(
+  platformPacksRoot: Path,
+  home: Path? = null,
+  skillsRoot: Path? = null,
+  selectedPlatforms: List<String>? = null,
+): List<Path> {
+  val resolvedHome = home ?: resolveUserHome(null)
+  return uninstallNativeAgentFiles(
+    discoverCodexAgentTomls(platformPacksRoot, skillsRoot, selectedPlatforms),
+    NativeAgentProvider.Codex.homeAgentDirs(resolvedHome),
+  )
+}

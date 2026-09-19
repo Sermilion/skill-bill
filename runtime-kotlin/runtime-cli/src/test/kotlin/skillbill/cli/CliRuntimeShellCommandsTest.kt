@@ -3,7 +3,7 @@ package skillbill.cli
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
-import skillbill.infrastructure.workflow.GitWorkflowGitOperations
+import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY
@@ -15,7 +15,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class CliRuntimeShellCommandsTest {
   @Test
   fun `help does not consume stdin`() {

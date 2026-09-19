@@ -6,8 +6,7 @@ import skillbill.contracts.system.DoctorContract
 import skillbill.contracts.system.VersionContract
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.telemetry.TelemetrySettingsProvider
-
+import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 @Inject
 class SystemService(
   private val database: DatabaseSessionFactory,

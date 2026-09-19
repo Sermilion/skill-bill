@@ -1,11 +1,11 @@
 package skillbill.application
 
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
-import skillbill.contracts.workflow.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.engine.goalplanning.GoalPlanningPreparationValidator
-import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimePhaseOutputSchemaValidator
 import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
@@ -16,7 +16,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class GoalPlanningPreparationValidatorTest {
 
   private val validator = GoalPlanningPreparationValidator(

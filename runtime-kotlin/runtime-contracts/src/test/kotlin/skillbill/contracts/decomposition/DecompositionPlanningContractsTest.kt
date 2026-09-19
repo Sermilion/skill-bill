@@ -3,11 +3,10 @@ package skillbill.contracts.decomposition
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys.MODE
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys.STACK_BRANCHES
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys.SUBTASKS
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class DecompositionPlanningContractsTest {
   @Test
   fun `present wrong type stack branches fails before manifest write`() {

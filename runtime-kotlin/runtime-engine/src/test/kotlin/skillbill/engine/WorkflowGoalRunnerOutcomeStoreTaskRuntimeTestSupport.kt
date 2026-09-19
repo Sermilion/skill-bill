@@ -15,7 +15,7 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.toRecord
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
@@ -26,19 +26,18 @@ import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import java.nio.file.Path
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-
 internal fun outcomeStoreSqliteTimestamp(instant: Instant): String = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
   .withZone(ZoneOffset.UTC)
   .format(instant.truncatedTo(ChronoUnit.SECONDS))

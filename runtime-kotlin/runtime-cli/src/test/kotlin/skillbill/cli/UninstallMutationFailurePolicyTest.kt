@@ -3,7 +3,7 @@ package skillbill.cli
 import com.github.ajalt.clikt.parsers.CommandLineParser
 import skillbill.application.scaffold.InstallAgentService
 import skillbill.application.uninstall.SkillBillUninstallService
-import skillbill.cli.kernel.CliRunState
+import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.system.UninstallCommand
@@ -40,7 +40,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class UninstallMutationFailurePolicyTest {
   @Test
   fun `uninstall reports a failed mutation as a non-zero exit with a failed status`() {

@@ -2,7 +2,7 @@ package skillbill.ports.install.apply.model
 
 import skillbill.install.model.InstallApplyResult
 import skillbill.install.model.InstallPlan
-import skillbill.ports.telemetry.TelemetryLevelMutator
+import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 
 data class InstallApplyExecutionRequest(
   val plan: InstallPlan,

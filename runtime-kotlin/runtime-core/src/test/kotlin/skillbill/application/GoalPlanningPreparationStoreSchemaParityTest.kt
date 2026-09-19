@@ -1,8 +1,8 @@
 package skillbill.application
 
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
-import skillbill.error.ShellContentContractException
-import skillbill.infrastructure.contracts.workflow.GoalPlanningPreparationSchemaValidator
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
+import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.infrastructure.contracts.workflow.goal.planning.GoalPlanningPreparationSchemaValidator
 import skillbill.infrastructure.sqlite.withGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
@@ -16,7 +16,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
-
 class GoalPlanningPreparationStoreSchemaParityTest {
   @Test
   fun `canonical schema and store accept normalized shared preplan and subtask plan`() {

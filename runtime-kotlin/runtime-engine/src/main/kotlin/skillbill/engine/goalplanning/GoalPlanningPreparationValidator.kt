@@ -2,19 +2,18 @@ package skillbill.engine.goalplanning
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.engine.planningprojection.requireValidPlanningProjection
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.model.requireAcceptedOutput
-
+import skillbill.workflow.taskruntime.artifact.envelopeWireMap
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 class GoalPlanningPreparationValidator(
   private val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
   private val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,

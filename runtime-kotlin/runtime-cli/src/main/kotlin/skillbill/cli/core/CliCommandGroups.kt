@@ -2,12 +2,11 @@ package skillbill.cli.core
 
 import com.github.ajalt.clikt.core.CliktCommand
 import me.tatarka.inject.annotations.Inject
-import skillbill.cli.install.InstallTopLevelCommands
+import skillbill.cli.install.core.InstallTopLevelCommands
 import skillbill.cli.learning.LearningsCommand
 import skillbill.cli.review.ReviewTopLevelCommands
-import skillbill.cli.scaffold.ScaffoldTopLevelCommands
+import skillbill.cli.scaffold.commands.ScaffoldTopLevelCommands
 import skillbill.cli.telemetry.TelemetryCommand
-
 @Inject
 class ReviewCliCommandGroup(
   reviewCommands: ReviewTopLevelCommands,

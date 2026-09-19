@@ -7,12 +7,11 @@ import skillbill.application.uninstall.SkillBillUninstallService
 import skillbill.application.uninstall.model.UninstallPlan
 import skillbill.application.uninstall.model.UninstallRequest
 import skillbill.application.uninstall.model.UninstallResult
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.formatOption
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
-
 @Inject
 class UninstallCommand(
   private val state: CliRunState,

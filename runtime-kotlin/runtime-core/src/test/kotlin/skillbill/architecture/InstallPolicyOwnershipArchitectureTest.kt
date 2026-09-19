@@ -20,7 +20,7 @@ class InstallPolicyOwnershipArchitectureTest {
   private val approvedValidationSeams = mapOf(
     "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/install/plan/InstallPlanBuilder.kt" to
       "validateInstallPlanWireSnapshot",
-    "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/install/InstallCliPayloads.kt" to
+    "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/install/core/InstallCliPayloads.kt" to
       "installService.validateInstallPlanWire",
   )
 
@@ -64,7 +64,7 @@ class InstallPolicyOwnershipArchitectureTest {
       "import java.io.File",
       "import java.nio.file.Files",
       "import java.lang.ProcessBuilder",
-      "import skillbill.infrastructure.skills.FileSystemInstallPlanningFacts",
+      "import skillbill.infrastructure.skills.install.FileSystemInstallPlanningFacts",
       "import skillbill.infrastructure.skills.install.InstallOperations",
       "import skillbill.infrastructure.skills.install.InstallPlanBuilder",
       "import skillbill.infrastructure.skills.install.computeInstallContentHash",

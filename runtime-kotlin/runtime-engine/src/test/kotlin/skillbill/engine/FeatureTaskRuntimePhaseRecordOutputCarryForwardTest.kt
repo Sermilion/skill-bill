@@ -1,11 +1,10 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.featureTaskRuntimePhaseRecordFor
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecordFor
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class FeatureTaskRuntimePhaseRecordOutputCarryForwardTest {
   @Test
   fun `relaunching a phase keeps the settled output a later resume projects from`() {

@@ -1,9 +1,9 @@
 package skillbill.infrastructure.skills.nativeagent
 
-import skillbill.error.ComposedNativeAgentBudgetExceededError
-import skillbill.error.InvalidManifestSchemaError
-import skillbill.error.MissingContentFileError
-import skillbill.infrastructure.skills.install.nativeagent.toNativeAgentPlatformPack
+import skillbill.error.shellcontent.ComposedNativeAgentBudgetExceededError
+import skillbill.error.shellcontent.InvalidManifestSchemaError
+import skillbill.error.shellcontent.MissingContentFileError
+import skillbill.infrastructure.skills.install.nativeagent.install.native.toNativeAgentPlatformPack
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTarget
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTargetSource
 import skillbill.infrastructure.skills.nativeagent.discovery.discoverNativeAgentSourceEntries
@@ -11,7 +11,7 @@ import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallR
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.nativeagent.rendering.composeGovernedAgentBody
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.testing.HARBOR_ADDON_SLUG
 import skillbill.testing.HARBOR_ARCHITECTURE_DIR
@@ -30,7 +30,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class NativeAgentAddonCompositionFailureTest {
   @Test
   fun `missing entrypoint target names slug slot and absolute path and writes no agent`() {

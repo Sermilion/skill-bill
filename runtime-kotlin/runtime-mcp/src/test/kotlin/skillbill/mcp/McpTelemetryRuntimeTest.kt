@@ -5,8 +5,8 @@ import skillbill.mcp.core.telemetryRemoteStats
 import skillbill.mcp.shared.McpRuntimeContext
 import skillbill.mcp.shared.McpRuntimeLifecycle
 import skillbill.mcp.telemetry.toMcpMap
-import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY
 import skillbill.telemetry.TELEMETRY_PROXY_URL_ENVIRONMENT_KEY

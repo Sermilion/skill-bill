@@ -1,11 +1,10 @@
 package skillbill.ports.taskruntime.model
 
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceFileEntry
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceHunkEntry
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceArtifact
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceFileEntry
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceHunkEntry
 import java.nio.file.Path
-
 data class FeatureTaskRuntimeSharedEvidenceRequest(
   val repoRoot: Path,
   val workflowId: String,

@@ -6,12 +6,12 @@ import skillbill.infrastructure.sqlite.TelemetryOutboxTestHandle
 import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.telemetry.TelemetryClient
-import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
+import skillbill.ports.telemetry.transport.TelemetryClient
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetryDeliveryReport
@@ -28,7 +28,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-
 private val NOW: Instant = Instant.parse("2026-09-15T10:00:00Z")
 
 class TelemetryDeliveryRecoveryTest {

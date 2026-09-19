@@ -6,10 +6,10 @@ import skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldRepoV
 import skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldSourceLoader
 import skillbill.infrastructure.skills.scaffold.rendering.inferSkillDescription
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
-import skillbill.infrastructure.skills.scaffold.runtime.ScaffoldAdapterSeams
-import skillbill.infrastructure.skills.scaffold.runtime.TemplateContext
-import skillbill.infrastructure.skills.scaffold.runtime.scaffoldWithAdapters
-import skillbill.infrastructure.skills.scaffold.runtime.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldAdapterSeams
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.scaffoldWithAdapters
 import skillbill.scaffold.policy.platformpack.model.PlatformPackManifestRenderRequest
 import skillbill.scaffold.policy.platformpack.renderPlatformPackManifest
 import skillbill.testsupport.SkillClassFixtures
@@ -19,7 +19,6 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class ScaffoldPlatformPackInstallTest {
   @Test
   fun `platform pack scaffold installs internal skills as parent sidecars`() = withIsolatedUserHome {

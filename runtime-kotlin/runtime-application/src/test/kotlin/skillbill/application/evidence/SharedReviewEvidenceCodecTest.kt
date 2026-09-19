@@ -4,11 +4,10 @@ import skillbill.application.reviewevidence.RawCommitDiff
 import skillbill.application.reviewevidence.SharedReviewEvidenceCodec
 import skillbill.application.reviewevidence.SharedReviewEvidenceCommits
 import skillbill.application.reviewevidence.SharedReviewEvidenceRecord
-import skillbill.review.context.model.ReviewCommitSource
+import skillbill.review.context.model.commit.ReviewCommitSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-
 class SharedReviewEvidenceCodecTest {
   private fun commitRecord() = SharedReviewEvidenceRecord(
     aggregateDiff = "diff --git a/src/A.kt b/src/A.kt\n@@ -1,1 +1,2 @@\n+alpha\n",

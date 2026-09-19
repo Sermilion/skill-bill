@@ -1,10 +1,9 @@
 package skillbill.ports.workflow.model
 
-import skillbill.contracts.workflow.FeatureImplementSessionSummaryContract
-import skillbill.contracts.workflow.FeatureVerifySessionSummaryContract
-import skillbill.contracts.workflow.WorkflowContinueSessionSummary
+import skillbill.contracts.workflow.session.FeatureImplementSessionSummaryContract
+import skillbill.contracts.workflow.session.FeatureVerifySessionSummaryContract
+import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-
 fun WorkflowStateRecord.toSnapshot(): WorkflowStateSnapshot = WorkflowStateSnapshot(
   workflowId = workflowId,
   sessionId = sessionId,

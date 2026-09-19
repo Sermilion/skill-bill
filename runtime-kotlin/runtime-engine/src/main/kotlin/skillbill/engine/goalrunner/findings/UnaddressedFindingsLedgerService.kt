@@ -3,9 +3,9 @@ package skillbill.engine.goalrunner.findings
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
-import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
-import skillbill.error.UnaddressedFindingsLedgerAbsentError
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.error.shellcontent.InvalidUnaddressedFindingsLedgerSchemaError
+import skillbill.error.shellcontent.UnaddressedFindingsLedgerAbsentError
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_CATEGORIES
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_SEVERITIES
 import skillbill.goalrunner.model.UnaddressedFinding
@@ -14,11 +14,10 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.get
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedger
-
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 @Inject
 class UnaddressedFindingsLedgerService(
   private val database: DatabaseSessionFactory,

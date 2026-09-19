@@ -1,11 +1,10 @@
 package skillbill.cli.featuretask
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusProjection
-import skillbill.workflow.taskruntime.presentationWireMap
-
+import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimePhaseStatus
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusProjection
+import skillbill.workflow.taskruntime.artifact.presentationWireMap
 internal fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId: String): Map<String, Any?> =
   this?.let {
     linkedMapOf<String, Any?>(

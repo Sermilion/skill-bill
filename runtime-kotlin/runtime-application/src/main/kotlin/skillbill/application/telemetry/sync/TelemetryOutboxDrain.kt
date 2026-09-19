@@ -1,12 +1,12 @@
 package skillbill.application.telemetry.sync
 
 import skillbill.ports.concurrency.InterruptSignalPort
-import skillbill.ports.telemetry.TelemetryClient
-import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
+import skillbill.ports.telemetry.transport.TelemetryClient
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.telemetry.model.SyncResult
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetryDeliveryReport
@@ -16,7 +16,6 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
-
 internal const val CLAIM_LEASE_MINUTES: Long = 5
 
 private val CLAIM_LEASE: Duration = Duration.ofMinutes(CLAIM_LEASE_MINUTES)

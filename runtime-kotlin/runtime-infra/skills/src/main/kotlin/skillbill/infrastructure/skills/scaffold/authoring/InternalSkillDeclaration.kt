@@ -1,10 +1,9 @@
 package skillbill.infrastructure.skills.scaffold.authoring
 
-import skillbill.error.InvalidInternalSkillClassificationError
+import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 internal data class InternalSkillDeclaration(
   val skillName: String,
   val contentFile: Path,

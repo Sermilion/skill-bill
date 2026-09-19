@@ -1,8 +1,7 @@
 package skillbill.scaffold.policy.scaffold
 
-import skillbill.error.RetiredScaffoldKindError
+import skillbill.error.shellcontent.RetiredScaffoldKindError
 import skillbill.scaffold.policy.scaffold.model.PlatformPackPreset
-
 const val SCAFFOLD_PAYLOAD_VERSION: String = "1.0"
 
 const val SKILL_KIND_HORIZONTAL: String = "horizontal"

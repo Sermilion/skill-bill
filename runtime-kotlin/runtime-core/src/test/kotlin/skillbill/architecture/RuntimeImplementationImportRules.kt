@@ -179,7 +179,7 @@ private fun runtimeComponentInternalProviderJvmLeaks(runtimeRoot: Path): List<St
 }
 
 private fun runtimeComponentText(runtimeRoot: Path): String = runtimeRoot.resolve(
-  "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt",
+  "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeComponent.kt",
 ).toFile().readText()
 
 private fun importsBySimpleName(sourceText: String): Map<String, String> = sourceText.lineSequence()

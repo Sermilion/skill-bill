@@ -9,8 +9,7 @@ import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.goal.model.goalObservabilityHistoryFromArtifacts
-import skillbill.workflow.taskruntime.validateGoalObservabilityEvent
-
+import skillbill.workflow.taskruntime.artifact.validateGoalObservabilityEvent
 object GoalObservabilityArtifacts {
   private data class RequiredProgressFields(
     val progressEvent: Map<*, *>,

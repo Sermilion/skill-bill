@@ -1,16 +1,15 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQuarantineEntry
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.workflow.taskruntime.model.audit.FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeQuarantineEntry
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeQuarantineRegenerateTest {
   private val legacyImplement =
     """{"contract_version":"0.4","phase_id":"implement","status":"completed","summary":"Legacy implement.",""" +

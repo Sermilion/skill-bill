@@ -1,14 +1,12 @@
 package skillbill.ports.review.model
-
-import skillbill.review.context.model.ForbiddenReviewOperation
-import skillbill.review.context.model.ReviewAccountingTerminalOutcome
-import skillbill.review.context.model.ReviewBudgetOutcome
-import skillbill.review.context.model.ReviewEvidenceLimits
-import skillbill.review.context.model.ReviewExpansionRecord
-import skillbill.review.context.model.ReviewLaneReviewDisposition
-import skillbill.review.context.model.ReviewLaneSegmentAccounting
-import skillbill.review.context.model.ReviewOperationKind
-
+import skillbill.review.context.model.accounting.ReviewAccountingTerminalOutcome
+import skillbill.review.context.model.execution.ForbiddenReviewOperation
+import skillbill.review.context.model.execution.ReviewOperationKind
+import skillbill.review.context.model.hunk.ReviewBudgetOutcome
+import skillbill.review.context.model.hunk.ReviewEvidenceLimits
+import skillbill.review.context.model.packet.ReviewExpansionRecord
+import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
+import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
 enum class ReviewProcessOutcome {
   NOT_STARTED,
   ZERO_EXIT,

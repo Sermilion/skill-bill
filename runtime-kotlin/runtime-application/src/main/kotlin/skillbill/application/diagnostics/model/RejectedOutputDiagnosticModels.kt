@@ -1,9 +1,8 @@
 package skillbill.application.diagnostics.model
 
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
-import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.error.core.RejectedOutputDiagnosticError
 import java.time.Duration
-
 private const val DEFAULT_MAXIMUM_PAYLOAD_BYTES: Long = 1_048_576
 private const val DEFAULT_RETENTION_DAYS: Long = 14
 

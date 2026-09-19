@@ -1,0 +1,8 @@
+package skillbill.application.review.packet
+import skillbill.ports.review.evidence.ReviewStoredHunkBodyExtractor
+import skillbill.review.context.model.hunk.ReviewChangedHunk
+
+object ReviewLocatorHunkBodyExtractor : ReviewStoredHunkBodyExtractor {
+  override fun extract(payload: String, hunk: ReviewChangedHunk): String =
+    ReviewHunkStoreIndexing.extractStoredBody(hunk, payload, hunk.evidenceLocator.storePath)
+}

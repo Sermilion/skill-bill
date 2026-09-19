@@ -1,11 +1,11 @@
 package skillbill.infrastructure.skills.scaffold.pointer
 
-import skillbill.error.ShellContentContractException
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.host.jvm.readGitTrackedFiles
 import skillbill.infrastructure.skills.nativeagent.validation.discoverNativeAgentGeneratedArtifactFiles
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
-import skillbill.infrastructure.skills.scaffold.runtime.requiredSupportingFilesForSkill
-import skillbill.infrastructure.skills.scaffold.runtime.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -13,7 +13,6 @@ import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import kotlin.io.path.relativeTo
-
 internal data class GeneratedArtifactGuardReport(
   val issues: List<String>,
 ) {

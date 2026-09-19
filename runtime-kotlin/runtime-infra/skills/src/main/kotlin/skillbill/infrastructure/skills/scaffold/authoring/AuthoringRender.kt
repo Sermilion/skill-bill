@@ -5,13 +5,12 @@ import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_SOUR
 import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentSourceFile
 import skillbill.infrastructure.skills.scaffold.rendering.renderFrontmatter
 import skillbill.infrastructure.skills.scaffold.rendering.renderSubagentSpawnRuntimeNotes
-import skillbill.infrastructure.skills.scaffold.validation.parseSkillFrontmatter
+import skillbill.infrastructure.skills.scaffold.validation.shape.parseSkillFrontmatter
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.GovernedAddonSelection
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 internal fun renderWrapper(target: AuthoringTarget): String {
   val contentText = Files.readString(target.contentFile)
   authoredContentFrontmatterBlock(contentText, target.contentFile, target.skillName)

@@ -3,21 +3,20 @@ package skillbill.engine
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
-import skillbill.contracts.workflow.FeatureTaskRuntimeCommitPushPayloadKeys
-import skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopCommitPush
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushReceipt
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeCommitPushPayloadKeys
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushReceipt
+import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopCommitPush
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.model.requireAcceptedOutput
+import skillbill.workflow.taskruntime.artifact.envelopeWireMap
+import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeCommitPushCycleTest {
   @Test
   fun `runtime-owned commit_push output validates and carries only the sha`() {

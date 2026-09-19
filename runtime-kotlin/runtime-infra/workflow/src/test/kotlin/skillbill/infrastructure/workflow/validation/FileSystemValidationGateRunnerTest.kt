@@ -16,8 +16,8 @@ import skillbill.scaffold.model.ValidationGateExecutedWorkFormat
 import skillbill.scaffold.model.ValidationGateExecutedWorkSignal
 import skillbill.scaffold.model.ValidationGateFindingsFormat
 import skillbill.scaffold.model.ValidationGateFindingsLocator
-import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
-import skillbill.workflow.taskruntime.model.ValidationGateRunOutcome
+import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
+import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.FileTime
@@ -28,7 +28,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-
 class FileSystemValidationGateRunnerTest {
   @Test
   fun `COLLECT_ALL unions compiler findings from module A with JUnit from compiling module B`() {

@@ -2,12 +2,11 @@ package skillbill.infrastructure.contracts
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.WorkflowWirePayloadKeys
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.error.MalformedJsonTextError
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.error.core.MalformedJsonTextError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStatus
-
 object WorkflowStateSnapshotWireMapper {
   fun wireMap(snapshot: WorkflowStateSnapshot): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.WORKFLOW_ID to snapshot.workflowId,

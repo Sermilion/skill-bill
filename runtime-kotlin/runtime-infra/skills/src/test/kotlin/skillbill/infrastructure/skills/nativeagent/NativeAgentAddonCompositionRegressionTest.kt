@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.nativeagent
 
-import skillbill.infrastructure.skills.install.nativeagent.toNativeAgentPlatformPack
+import skillbill.infrastructure.skills.install.nativeagent.install.native.toNativeAgentPlatformPack
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTarget
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTargetSource
 import skillbill.infrastructure.skills.nativeagent.discovery.discoverNativeAgentSourceEntries
@@ -10,7 +10,7 @@ import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperatio
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.nativeagent.rendering.composeGovernedAgentBody
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoredContentBody
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.testing.HARBOR_ADDON_SLUG
 import skillbill.testing.HARBOR_ARCHITECTURE_WORKER
 import skillbill.testing.HARBOR_AREA_MARKER
@@ -28,7 +28,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class NativeAgentAddonCompositionRegressionTest {
   @Test
   fun `addon_usage without a content md link reaches the rendered agent body`() {

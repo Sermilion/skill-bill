@@ -1,7 +1,5 @@
 package skillbill.scaffold.policy.scaffold
-
-import skillbill.error.InvalidScaffoldPayloadError
-
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 fun requireStringList(value: Any?, fieldName: String): List<String> {
   if (value !is List<*>) {
     failInvalidScaffoldPayload("Scaffold payload field '$fieldName' must be a list of strings.")

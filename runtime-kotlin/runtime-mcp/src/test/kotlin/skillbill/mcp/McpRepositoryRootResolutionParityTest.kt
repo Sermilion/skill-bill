@@ -1,13 +1,12 @@
 package skillbill.mcp
 
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.mcp.shared.McpRuntimeContext
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class McpRepositoryRootResolutionParityTest {
   @Test
   fun `mcp runtime resolves enclosing repository root when repositoryRoot is a nested subdirectory`() {

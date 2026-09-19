@@ -3,11 +3,11 @@ package skillbill.application.telemetry.sync
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime.syncTelemetry
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.telemetry.TelemetryClient
-import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
+import skillbill.ports.telemetry.transport.TelemetryClient
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetryDeliveryReport
@@ -18,7 +18,6 @@ import java.nio.file.Files
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertTrue
-
 class TelemetryOutboxDrainClaimClockTest {
   @Test
   fun `each batch claim uses the current clock reading from the drain`() {

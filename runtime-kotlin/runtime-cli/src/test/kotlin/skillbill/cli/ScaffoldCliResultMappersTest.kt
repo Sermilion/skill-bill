@@ -1,6 +1,6 @@
 package skillbill.cli
 
-import skillbill.cli.scaffold.toCliMap
+import skillbill.cli.scaffold.commands.toCliMap
 import skillbill.contracts.JsonCodec
 import skillbill.ports.scaffold.catalog.model.ScaffoldExplainResult
 import skillbill.ports.scaffold.catalog.model.ScaffoldExplainSkill

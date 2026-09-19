@@ -1,15 +1,16 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.error.InvalidInternalSkillClassificationError
+import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import skillbill.infrastructure.skills.install.plan.InstallContext
 import skillbill.infrastructure.skills.install.plan.installSkill
 import skillbill.infrastructure.skills.install.plan.uninstallTargets
-import skillbill.infrastructure.skills.install.staging.StageInstalledSkillInput
-import skillbill.infrastructure.skills.install.staging.stageInstalledSkill
+import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
+import skillbill.infrastructure.skills.install.staging.staging.installed.stageInstalledSkill
+import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.nativeagent.testNativeAgentCompositionContext
 import skillbill.infrastructure.skills.scaffold.authoring.renderWrapper
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
-import skillbill.infrastructure.skills.scaffold.runtime.RepoValidationRuntime
+import skillbill.infrastructure.skills.scaffold.runtime.validation.RepoValidationRuntime
 import skillbill.install.model.AgentTarget
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
@@ -21,7 +22,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-
 class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
   @Test
   fun `installSkill refuses to link an internal skill directly`() {

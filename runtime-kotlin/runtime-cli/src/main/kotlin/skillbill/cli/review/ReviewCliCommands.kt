@@ -8,18 +8,17 @@ import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.review.ReviewService
-import skillbill.application.review.ReviewSnapshotPruneService
 import skillbill.application.review.model.ReviewSnapshotPruneResult
-import skillbill.cli.kernel.CliOutput
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.formatOption
-import skillbill.cli.kernel.toCliNumberedFindingsPresentation
-import skillbill.cli.kernel.toCliTriagePresentation
+import skillbill.application.review.review.ReviewSnapshotPruneService
+import skillbill.application.review.service.ReviewService
+import skillbill.cli.kernel.cli.CliOutput
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.formatOption
+import skillbill.cli.kernel.cli.toCliNumberedFindingsPresentation
+import skillbill.cli.kernel.cli.toCliTriagePresentation
 import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRunInputs
-
 @Inject
 class FeatureStatsCommands(
   val featureVerifyStatsCommand: FeatureVerifyStatsCommand,

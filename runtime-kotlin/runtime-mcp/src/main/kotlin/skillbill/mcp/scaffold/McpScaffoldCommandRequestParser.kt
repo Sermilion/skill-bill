@@ -3,9 +3,9 @@ package skillbill.mcp.scaffold
 import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.contracts.scaffold.wire.requireString
 import skillbill.contracts.scaffold.wire.requireStringOrDefault
-import skillbill.error.InvalidScaffoldPayloadError
-import skillbill.error.ScaffoldPayloadVersionMismatchError
-import skillbill.error.UnknownSkillKindError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.ScaffoldPayloadVersionMismatchError
+import skillbill.error.shellcontent.UnknownSkillKindError
 import skillbill.scaffold.model.command.ACTIVE_SCAFFOLD_COMMAND_KINDS
 import skillbill.scaffold.model.command.RoutingSignalsInput
 import skillbill.scaffold.model.command.SCAFFOLD_COMMAND_KIND_ADD_ON
@@ -16,7 +16,6 @@ import skillbill.scaffold.model.command.SCAFFOLD_COMMAND_PAYLOAD_VERSION
 import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import skillbill.scaffold.model.command.isRetiredPartialScaffoldCommandKindAlias
 import skillbill.scaffold.model.command.rejectRetiredPartialScaffoldCommandKind
-
 internal fun parseMcpScaffoldCommandRequest(args: Map<String, Any?>): ScaffoldCommandRequest {
   val (version, kind) = validateVersionAndKind(args)
   val repoRoot = requireOptionalNonBlank(args, "repo_root")

@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite
 
 import org.sqlite.SQLiteException
-import skillbill.error.DatabaseAccessError
-import skillbill.error.DatabaseAccessOperation
+import skillbill.error.core.DatabaseAccessError
+import skillbill.error.core.DatabaseAccessOperation
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager
@@ -12,7 +12,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class SQLiteDatabaseSessionFactoryTypedFailureTest {
   @Test
   fun `read surfaces the typed error rather than a jdbc exception at the ports boundary`() {

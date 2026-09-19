@@ -1,13 +1,12 @@
 package skillbill.application
 
-import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class FeatureTaskExecutionIdentityPolicyTest {
   @Test
   fun `lookup request accepts a canonical repository identity`() {

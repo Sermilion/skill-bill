@@ -3,8 +3,8 @@ package skillbill.cli
 import kotlinx.serialization.json.JsonElement
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.identity.task.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.AgentRunLauncher
@@ -17,7 +17,7 @@ import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
 import skillbill.ports.goalrunner.runner.model.GoalPullRequestRequest
 import skillbill.ports.goalrunner.runner.model.GoalPullRequestResult
-import skillbill.ports.telemetry.RemoteTransportPort
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.ports.time.NoopRuntimeTimingPort
 import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations

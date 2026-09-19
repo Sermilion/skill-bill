@@ -1,12 +1,11 @@
 package skillbill.workflow.taskruntime.phaseartifacts
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
-
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDecomposeTerminal
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 internal fun decomposeTerminalFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY] ?: return null
   val entryMap = JsonCodec.anyToStringAnyMap(raw)

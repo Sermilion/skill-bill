@@ -1,16 +1,15 @@
 package skillbill.cli.featuretask
 
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusProjection
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
-import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
-import skillbill.workflow.taskruntime.model.ValidationGateRunOutcome
+import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimePhaseStatus
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusProjection
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
+import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
+import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeStatusPresentationTest {
   @Test
   fun `runtime status cli map preserves settled gate checks and work evidence`() {

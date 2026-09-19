@@ -1,7 +1,7 @@
 package skillbill.application.telemetry.config
 
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.telemetry.TelemetryConfigStore
+import skillbill.ports.telemetry.transport.TelemetryConfigStore
 import skillbill.telemetry.DEFAULT_TELEMETRY_BATCH_SIZE
 import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY
 import skillbill.telemetry.TELEMETRY_BATCH_SIZE_ENVIRONMENT_KEY
@@ -15,7 +15,6 @@ import skillbill.telemetry.parseTelemetryBoolValue
 import skillbill.telemetry.parseTelemetryLevelValue
 import skillbill.telemetry.telemetryProxyUrl
 import java.nio.file.Path
-
 internal fun loadTelemetrySettingsFromStore(
   materialize: Boolean,
   environment: Map<String, String>,

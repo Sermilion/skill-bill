@@ -1,10 +1,10 @@
 package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
-import skillbill.cli.kernel.CliOutput
+import skillbill.cli.kernel.cli.CliOutput
 import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.error.InvalidInternalSkillClassificationError
+import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
@@ -18,7 +18,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class CliExternalAuthorDryRunTest {
   @Test
   fun `external author flow scaffolds validates refuses direct internal links and removes a temporary platform pack`() {

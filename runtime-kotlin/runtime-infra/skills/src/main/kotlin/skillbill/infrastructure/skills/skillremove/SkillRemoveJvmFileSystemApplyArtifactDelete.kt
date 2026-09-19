@@ -16,12 +16,11 @@ import skillbill.infrastructure.skills.scaffold.manifest.removeDeclaredFilesBase
 import skillbill.infrastructure.skills.scaffold.manifest.removeDeclaredQualityCheckFile
 import skillbill.infrastructure.skills.scaffold.manifest.removePointersBlockKey
 import skillbill.infrastructure.skills.scaffold.manifest.removeSkillClassPointer
-import skillbill.infrastructure.skills.scaffold.platformpack.ReadmeCatalogEdits
-import skillbill.infrastructure.skills.scaffold.platformpack.ReadmeEditOutcome
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.ReadmeCatalogEdits
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.ReadmeEditOutcome
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 internal fun SkillRemoveJvmFileSystemApply.applyCascadeBody(
   request: SkillRemovalRequest,
   preview: SkillRemovalPreview,

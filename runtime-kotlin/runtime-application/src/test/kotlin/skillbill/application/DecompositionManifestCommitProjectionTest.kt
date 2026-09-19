@@ -10,14 +10,14 @@ import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
-import skillbill.application.workflow.WorkflowService
-import skillbill.application.workflow.decompositionRuntime
+import skillbill.application.workflow.decomposition.decompositionRuntime
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult
+import skillbill.application.workflow.service.WorkflowService
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.model.RepositoryRoot
@@ -48,7 +48,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class DecompositionManifestCommitProjectionTest {
   @Test
   fun `pre-commit projection writes completed manifest before runtime commit sha is known`() {

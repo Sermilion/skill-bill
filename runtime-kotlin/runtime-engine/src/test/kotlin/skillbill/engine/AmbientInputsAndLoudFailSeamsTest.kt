@@ -1,20 +1,20 @@
 package skillbill.engine
-import skillbill.engine.featuretask.AlwaysValidValidator
-import skillbill.engine.featuretask.FeatureTaskRuntimeRunState
-import skillbill.engine.goalrunner.GoalRunnerChildProgressRead
-import skillbill.engine.goalrunner.GoalRunnerProgressReader
-import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
+import skillbill.engine.goalrunner.RecordingOutcomeStore
+import skillbill.engine.goalrunner.execution.core.GoalRunnerProgressReader
+import skillbill.engine.goalrunner.execution.support.GoalRunnerChildProgressRead
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class AmbientInputsAndLoudFailSeamsTest {
   @Test
   fun `explicit resume reopens the requested phase and downstream phases`() {

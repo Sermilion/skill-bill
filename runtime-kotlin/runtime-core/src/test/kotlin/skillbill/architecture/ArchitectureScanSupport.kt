@@ -335,6 +335,57 @@ object ArchitectureScanSupport {
     return "$packageName/$primaryName.kt belongs to cluster '$matchedChild'; move it under $packageName.$matchedChild."
   }
 
+  data class PackageSiblingCount(
+    val packageName: String,
+    val fileCount: Int,
+    val ceiling: Int,
+  )
+
+  fun productionPackageSiblingCounts(sourceRoots: List<String>): List<PackageSiblingCount> {
+    val counts = linkedMapOf<String, Int>()
+    sourceRoots.forEach { sourceRoot ->
+      kotlinFilesUnder(runtimeRoot.resolve(sourceRoot)).forEach { sourceFile ->
+        declaredPackage(sourceFile.readText())?.let { packageName ->
+          counts[packageName] = (counts[packageName] ?: 0) + 1
+        }
+      }
+    }
+    return counts.map { (packageName, fileCount) ->
+      PackageSiblingCount(
+        packageName = packageName,
+        fileCount = fileCount,
+        ceiling = if (packageName.substringAfterLast('.') == "model") 20 else 12,
+      )
+    }.sortedBy { it.packageName }
+  }
+
+  fun productionPackageSiblingCountViolations(
+    sourceRoots: List<String>,
+    remainderInventory: Set<String>,
+  ): List<String> = productionPackageSiblingCountViolationsForCounts(
+    counts = productionPackageSiblingCounts(sourceRoots),
+    remainderInventory = remainderInventory,
+  )
+
+  fun productionPackageSiblingCountViolationsForCounts(
+    counts: List<PackageSiblingCount>,
+    remainderInventory: Set<String>,
+  ): List<String> = counts
+    .filter { count -> count.fileCount > count.ceiling && count.packageName !in remainderInventory }
+    .map { count -> packageSiblingCountViolationMessage(count) }
+
+  fun packageSiblingCountViolationMessage(packageName: String, fileCount: Int): String? {
+    val ceiling = if (packageName.substringAfterLast('.') == "model") 20 else 12
+    if (fileCount <= ceiling) return null
+    return packageSiblingCountViolationMessage(
+      PackageSiblingCount(packageName, fileCount, ceiling),
+    )
+  }
+
+  private fun packageSiblingCountViolationMessage(count: PackageSiblingCount): String =
+    "${count.packageName} has ${count.fileCount} production Kotlin siblings; " +
+      "the ${count.ceiling}-file ceiling applies to this package."
+
   private fun matchingAreaChild(primaryName: String, areaChildren: Set<String>, parentNoun: String): String? {
     val normalized = camelTokens(primaryName).joinToString("")
     return areaChildren.firstOrNull { area ->

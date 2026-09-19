@@ -1,7 +1,7 @@
 package skillbill.goalrunner.model
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
+import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.idestatus.model.WorktreeEditSummary
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
@@ -9,9 +9,8 @@ import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
-
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
 enum class GoalPlanningStatusState(val wireValue: String) {
   NOT_STARTED("not_started"),
   PREPLANNED("preplanned"),

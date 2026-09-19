@@ -3,16 +3,16 @@ package skillbill.infrastructure.http
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.RemoteStatsQueryPayload
-import skillbill.error.ShellContentContractException
-import skillbill.error.TelemetryProxyInvalidResponseError
-import skillbill.error.TelemetryProxyRequestFailureError
-import skillbill.error.TelemetryRelayUrlUnconfiguredError
+import skillbill.error.core.TelemetryProxyInvalidResponseError
+import skillbill.error.core.TelemetryProxyRequestFailureError
+import skillbill.error.core.TelemetryRelayUrlUnconfiguredError
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.telemetry.RemoteTransportPort
-import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.transport.RemoteTransportPort
+import skillbill.ports.telemetry.transport.TelemetryClient
 import skillbill.telemetry.TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryReport
@@ -26,7 +26,6 @@ import skillbill.telemetry.validateRemoteStatsRequest
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneOffset
-
 @Inject
 class HttpTelemetryClient(
   private val requester: RemoteTransportPort,

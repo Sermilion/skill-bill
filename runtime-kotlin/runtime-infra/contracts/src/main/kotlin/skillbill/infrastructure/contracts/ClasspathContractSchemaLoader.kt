@@ -8,11 +8,10 @@ import com.networknt.schema.JsonSchema
 import com.networknt.schema.JsonSchemaFactory
 import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
-import skillbill.error.ShellContentContractException
+import skillbill.error.shellcontent.ShellContentContractException
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
-
 internal data class ValidatedClasspathYamlNodeRequest(
   val classLoader: ClassLoader,
   val resource: String,

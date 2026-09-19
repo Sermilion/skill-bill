@@ -9,7 +9,7 @@ import skillbill.application.decomposition.model.PreparedDecompositionManifestWr
 import skillbill.contracts.decomposition.DecompositionManifestProjectionOperations
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.issuekey.issueAndFeature
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.model.toPath
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.repository.toFileLocation
@@ -27,7 +27,6 @@ import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProje
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.io.IOException
 import java.nio.file.Path
-
 const val DECOMPOSITION_RUNTIME_ARTIFACT_KEY: String = "decomposition_runtime"
 
 @Inject

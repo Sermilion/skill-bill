@@ -1,19 +1,19 @@
 package skillbill.application
 
-import skillbill.application.review.stubGovernedReviewEvidenceEndpointBinder
+import skillbill.application.review.governed.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
-import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.ReviewEvidenceBroker
-import skillbill.ports.review.ReviewLaunchAgentStagingPort
-import skillbill.ports.review.ReviewRubricResolver
+import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
+import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointHandle
+import skillbill.ports.review.evidence.ReviewEvidenceBroker
+import skillbill.ports.review.launch.ReviewLaunchAgentStagingPort
 import skillbill.ports.review.model.ResolvedReviewRubric
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.ports.review.preparation.ReviewRubricResolver
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger

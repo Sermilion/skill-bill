@@ -1,15 +1,14 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxDeliveryIdentityMigration
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxDeliveryIdentityMigration
+import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class TelemetryOutboxDeliveryIdentityMigrationTest {
 
   @Test

@@ -7,9 +7,9 @@ import skillbill.application.updatecheck.model.Semver
 import skillbill.application.updatecheck.model.UpdateCheckResult
 import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.contracts.JsonCodec
-import skillbill.error.ShellContentContractException
-import skillbill.ports.telemetry.RemoteTransportPort
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import java.io.IOException
 
 @Inject

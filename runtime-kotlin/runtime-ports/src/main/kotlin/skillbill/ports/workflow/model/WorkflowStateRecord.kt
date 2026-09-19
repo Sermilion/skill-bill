@@ -1,9 +1,8 @@
 package skillbill.ports.workflow.model
 
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
-
 data class WorkflowStateRecord(
   val workflowId: String,
   val sessionId: String,

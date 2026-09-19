@@ -1,14 +1,13 @@
 package skillbill.goalrunner
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.MalformedJsonTextError
+import skillbill.error.core.MalformedJsonTextError
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequest
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestRejectionReason
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
-import skillbill.workflow.taskruntime.model.asExactIntOrNull
-
+import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
 object GoalRunnerWorkerSubtaskRequestParser {
   fun parse(
     stdout: String,

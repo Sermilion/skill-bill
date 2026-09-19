@@ -5,8 +5,7 @@ import skillbill.contracts.packaged.PackagedYamlMappingFailure
 import skillbill.contracts.packaged.loadPackagedYamlRootMapping
 import skillbill.contracts.packaged.packagedPositiveInt
 import skillbill.contracts.packaged.packagedPositiveLong
-import skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError
-
+import skillbill.error.shellcontent.InvalidGoalVerificationBoundaryCapsSchemaError
 object GoalVerificationBoundaryCaps {
   const val CONTRACT_VERSION = "0.2"
   const val RESOURCE_PATH = "skillbill/infrastructure/contracts/goal-verification-boundary-caps.yaml"

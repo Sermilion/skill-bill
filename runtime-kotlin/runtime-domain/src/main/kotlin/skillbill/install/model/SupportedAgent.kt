@@ -1,7 +1,5 @@
 package skillbill.install.model
-
-import skillbill.error.InvalidAgentAddonAgentIdError
-
+import skillbill.error.core.InvalidAgentAddonAgentIdError
 enum class SupportedAgent(
   val wireValue: String,
   val nativeAgentsKind: String,

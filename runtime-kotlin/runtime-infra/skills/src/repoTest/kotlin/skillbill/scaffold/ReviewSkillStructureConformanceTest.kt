@@ -2,14 +2,13 @@ package skillbill.scaffold
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.infrastructure.skills.scaffold.rendering.canonicalSeverityCloser
-import skillbill.infrastructure.skills.scaffold.validation.ReviewSkillStructureValidator
+import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class ReviewSkillStructureConformanceTest {
   @Test
   fun `repository pack content uses only the governed severity vocabulary`() {

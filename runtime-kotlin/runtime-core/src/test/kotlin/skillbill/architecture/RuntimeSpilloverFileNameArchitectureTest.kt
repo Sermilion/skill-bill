@@ -144,7 +144,7 @@ class RuntimeSpilloverFileNameArchitectureTest {
         "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/example/Foo.kt",
         "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/example/FooExtras2.kt",
         "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/example/BarExtras.kt",
-        "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeBootstrapBindings.kt",
+        "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeBootstrapBindings.kt",
         "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/FooContinued2.kt",
       ),
       exemptPaths = emptySet(),

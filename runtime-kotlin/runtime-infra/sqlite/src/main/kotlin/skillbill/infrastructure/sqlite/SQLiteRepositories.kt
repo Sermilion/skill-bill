@@ -2,22 +2,22 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
-import skillbill.infrastructure.sqlite.core.bindAll
-import skillbill.infrastructure.sqlite.core.reconcileStaleTelemetrySessions
+import skillbill.infrastructure.sqlite.core.ops.bindAll
+import skillbill.infrastructure.sqlite.core.ops.reconcileStaleTelemetrySessions
 import skillbill.infrastructure.sqlite.goal.UnaddressedFindingsRuntime
-import skillbill.infrastructure.sqlite.review.ReviewRuntime
-import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
-import skillbill.infrastructure.sqlite.review.TriageRuntime
-import skillbill.infrastructure.sqlite.review.loadReviewAccounting
-import skillbill.infrastructure.sqlite.review.persistImportedReview
-import skillbill.infrastructure.sqlite.review.upsertReviewAccounting
-import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
-import skillbill.infrastructure.sqlite.workflow.AgentActivityStampStore
-import skillbill.infrastructure.sqlite.workflow.GoalPlanningPreparationStore
-import skillbill.infrastructure.sqlite.workflow.GoalRunnerControlStore
-import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
-import skillbill.infrastructure.sqlite.workflow.WorktreeEditJournalStore
+import skillbill.infrastructure.sqlite.review.accounting.loadReviewAccounting
+import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
+import skillbill.infrastructure.sqlite.review.accounting.upsertReviewAccounting
+import skillbill.infrastructure.sqlite.review.stage.runtime.ReviewRuntime
+import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
+import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.workflow.featuretask.AgentActivityStampStore
+import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.GoalPlanningPreparationStore
+import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.GoalRunnerControlStore
+import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
+import skillbill.infrastructure.sqlite.workflow.workflow.WorktreeEditJournalStore
 import skillbill.infrastructure.sqlite.worklist.SQLiteWorkListRepository
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.model.CreateLearningRequest
@@ -37,15 +37,15 @@ import skillbill.ports.idestatus.WorktreeEditJournalRepository
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.learning.model.LearningResolution
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.review.ReviewRepository
-import skillbill.ports.review.ReviewRunCompletenessRepository
 import skillbill.ports.review.model.ReviewAccountingRecord
 import skillbill.ports.review.model.ReviewRepositoryStatsSnapshot
-import skillbill.ports.telemetry.LifecycleTelemetryRepository
-import skillbill.ports.telemetry.TelemetryOutboxRepository
-import skillbill.ports.telemetry.TelemetryReconciliationRepository
+import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.review.repository.ReviewRunCompletenessRepository
+import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
 import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.ports.telemetry.model.TelemetryReconciliationResult
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
+import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStatsRepository
@@ -60,7 +60,6 @@ import skillbill.review.model.ReviewFinishedTelemetry
 import java.nio.file.Path
 import java.sql.Connection
 import java.time.Clock
-
 internal class SQLiteUnitOfWork(
   private val connection: Connection,
   override val dbPath: Path,

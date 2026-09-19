@@ -1,9 +1,8 @@
 package skillbill.workflow.decomposition.model
 
-import skillbill.contracts.workflow.DECOMPOSITION_MANIFEST_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.DECOMPOSITION_MANIFEST_CONTRACT_VERSION
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
-
 enum class DecompositionExecutionModel(val wireValue: String) {
   SAME_BRANCH_COMMIT_PER_SUBTASK("same_branch_commit_per_subtask"),
   STACKED_BRANCHES("stacked_branches"),

@@ -1,8 +1,6 @@
 package skillbill.workflow.goal.model
-
-import skillbill.workflow.taskruntime.model.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.toStringKeyedArtifactMap
-
+import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
+import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
 internal fun reviewStateReader(map: Map<String, Any?>, sourceLabel: String): DurableArtifactMapReader =
   DurableArtifactMapReader(map) { detail ->
     reviewStateError(sourceLabel, detail)

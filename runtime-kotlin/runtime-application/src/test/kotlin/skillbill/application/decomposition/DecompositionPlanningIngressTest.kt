@@ -1,11 +1,10 @@
 package skillbill.application.decomposition
 
 import skillbill.contracts.decomposition.DecompositionPlanningResult
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
-
 class DecompositionPlanningIngressTest {
   @Test
   fun `typed planning ingress rejects empty subtasks`() {

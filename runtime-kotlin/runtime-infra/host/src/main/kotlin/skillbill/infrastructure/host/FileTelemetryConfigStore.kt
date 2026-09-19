@@ -3,7 +3,7 @@ package skillbill.infrastructure.host
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.model.EnvironmentContext
-import skillbill.ports.telemetry.TelemetryConfigStore
+import skillbill.ports.telemetry.transport.TelemetryConfigStore
 import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY
 import skillbill.telemetry.defaultLocalTelemetryConfig
 import skillbill.telemetry.model.TelemetryConfigDocument
@@ -12,7 +12,6 @@ import skillbill.telemetry.parseTelemetryBoolValue
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
-
 @Inject
 class FileTelemetryConfigStore(
   private val context: EnvironmentContext,

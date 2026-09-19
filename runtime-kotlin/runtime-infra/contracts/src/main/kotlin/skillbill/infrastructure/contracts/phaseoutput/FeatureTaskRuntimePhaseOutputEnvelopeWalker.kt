@@ -5,13 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.infrastructure.contracts.sha256Hex
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
-import skillbill.workflow.taskruntime.model.salvageCompactReceiptSymbol
-
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
+import skillbill.workflow.taskruntime.model.repair.task.salvageCompactReceiptSymbol
 internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
 
   fun select(text: String, phaseId: String): FeatureTaskRuntimePhaseOutputStructuralRepairDecision? =

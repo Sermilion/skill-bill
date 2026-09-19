@@ -16,12 +16,11 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
-import skillbill.error.JsonWrongRootTypeError
-import skillbill.error.MalformedJsonTextError
-import skillbill.error.UnsupportedJsonValueError
+import skillbill.error.core.JsonWrongRootTypeError
+import skillbill.error.core.MalformedJsonTextError
+import skillbill.error.core.UnsupportedJsonValueError
 import java.math.BigDecimal
 import java.math.BigInteger
-
 object JsonCodec {
   val json: Json =
     Json {

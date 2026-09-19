@@ -11,12 +11,11 @@ import skillbill.config.model.RepoLocalConfigResolution
 import skillbill.config.model.SpecType
 import skillbill.config.model.parseCompactionSettings
 import skillbill.config.model.parseExecutionMatrix
-import skillbill.error.MalformedMachineConfigError
+import skillbill.error.shellcontent.MalformedMachineConfigError
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
-import skillbill.ports.telemetry.TelemetryConfigStore
+import skillbill.ports.telemetry.transport.TelemetryConfigStore
 import java.nio.file.Path
-
 @Inject
 class ConfigResolutionService(
   private val repoLocalConfigPort: RepoLocalConfigPort,

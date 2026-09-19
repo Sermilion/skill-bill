@@ -1,8 +1,8 @@
 package skillbill.application
 
 import skillbill.application.agentrun.model.AgentRunStartRequest
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.infrastructure.launcher.agentrun.PathExecutableLookup
 import skillbill.install.model.InstallAgent
 import skillbill.model.EnvironmentContext
@@ -21,7 +21,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class AgentRunServiceRuntimeComponentTest {
   @Test
   fun `runtime component exposes agent run service with filesystem launcher binding`() {

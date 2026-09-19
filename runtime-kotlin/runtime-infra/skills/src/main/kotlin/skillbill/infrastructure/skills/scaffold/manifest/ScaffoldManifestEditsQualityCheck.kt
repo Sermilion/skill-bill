@@ -1,8 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.manifest
-
-import skillbill.error.InvalidScaffoldPayloadError
-
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 private val QUALITY_CHECK_KEY_PATTERN =
   Regex("^declared_quality_check_file:\\s*(.+)$", RegexOption.MULTILINE)
 private val DECLARED_FILES_BLOCK_PATTERN =

@@ -1,16 +1,15 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringOperations
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
-import skillbill.infrastructure.skills.scaffold.runtime.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class AuthoringOperationsTest {
   @Test
   fun `fill fails fast and leaves content_md untouched when neither supplied nor existing carries frontmatter`() {

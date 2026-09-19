@@ -1,11 +1,10 @@
 package skillbill.review.context
 
-import skillbill.review.context.model.ReviewAccountingCounters
-import skillbill.review.context.model.ReviewAccountingInput
-import skillbill.review.context.model.ReviewLaneSegmentAccounting
+import skillbill.review.context.model.accounting.ReviewAccountingCounters
+import skillbill.review.context.model.accounting.ReviewAccountingInput
+import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class ReviewTreeAccountingTest {
   @Test fun `counters aggregate inclusively without double counting a session`() {
     val digest = "a".repeat(64)

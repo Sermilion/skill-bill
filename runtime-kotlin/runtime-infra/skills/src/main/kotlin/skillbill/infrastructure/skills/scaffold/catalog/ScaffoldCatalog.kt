@@ -1,14 +1,11 @@
 package skillbill.infrastructure.skills.scaffold.catalog
 
-import skillbill.infrastructure.skills.scaffold.platformpack.declaredCodeReviewSkillNames
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.platformpack.unsupportedCompositionModeReason
-import skillbill.infrastructure.skills.scaffold.runtime.APPROVED_CODE_REVIEW_AREAS
-import skillbill.infrastructure.skills.scaffold.runtime.PLATFORM_PACK_PRESETS
-import skillbill.infrastructure.skills.scaffold.runtime.PRE_SHELL_FAMILIES
-import skillbill.infrastructure.skills.scaffold.runtime.SCAFFOLD_PAYLOAD_VERSION
-import skillbill.infrastructure.skills.scaffold.runtime.SHELLED_FAMILIES
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.declaredCodeReviewSkillNames
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.unsupportedCompositionModeReason
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.PRE_SHELL_FAMILIES
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELLED_FAMILIES
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.model.BaselineReviewCatalog
 import skillbill.scaffold.model.BaselineReviewCompositionEdge
 import skillbill.scaffold.model.BaselineReviewLayerSuggestion
@@ -18,8 +15,10 @@ import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.CodeReviewCompositionScope
 import skillbill.scaffold.model.PlatformManifest
+import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.scaffold.PLATFORM_PACK_PRESETS
+import skillbill.scaffold.policy.scaffold.SCAFFOLD_PAYLOAD_VERSION
 import java.nio.file.Path
-
 object ScaffoldCatalog {
 
   val approvedCodeReviewAreas: Set<String>

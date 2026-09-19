@@ -2,7 +2,7 @@ package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.realPlanningProjectionValidator
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

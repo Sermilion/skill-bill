@@ -11,18 +11,17 @@ import skillbill.config.model.ValidationGateRepoConfigParse
 import skillbill.config.model.parseSpecType
 import skillbill.config.model.parseValidationGateRepoConfig
 import skillbill.contracts.JsonCodec
-import skillbill.error.MalformedRepoLocalConfigError
-import skillbill.error.UnreadableRepoLocalConfigError
+import skillbill.error.shellcontent.MalformedRepoLocalConfigError
+import skillbill.error.shellcontent.UnreadableRepoLocalConfigError
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.config.model.ReadRepoLocalConfigResult
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.review.context.model.ReviewContextBudgetPolicy
+import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import java.io.IOException
 import java.math.BigInteger
 import java.nio.file.Files
 import java.nio.file.Path
-
 @Inject
 class FileSystemRepoLocalConfig(
   private val diagnostics: RuntimeDiagnostics,

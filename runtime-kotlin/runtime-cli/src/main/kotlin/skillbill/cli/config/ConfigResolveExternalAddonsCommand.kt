@@ -2,12 +2,11 @@ package skillbill.cli.config
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.install.ExternalAddonOverlayService
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.ShellContentContractException
-
+import skillbill.error.shellcontent.ShellContentContractException
 @Inject
 class ConfigResolveExternalAddonsCommand(
   private val service: ExternalAddonOverlayService,

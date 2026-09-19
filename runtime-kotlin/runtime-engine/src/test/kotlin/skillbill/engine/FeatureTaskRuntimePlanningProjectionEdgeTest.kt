@@ -2,23 +2,22 @@
 package skillbill.engine
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseBriefingAssembler
-import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffAssemblyRequest
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpointPolicy
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference
-import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionDeclaration
+import skillbill.engine.featuretask.phase.briefing.FeatureTaskRuntimePhaseBriefingAssembler
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
+import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffContract
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
+import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffAssemblyRequest
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseDeclaration
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeSharedReviewEvidenceReference
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class FeatureTaskRuntimePlanningProjectionEdgeTest {
   @Test
   fun `preplan to plan delivers only prose fields and omits absent prompt cleanly`() {

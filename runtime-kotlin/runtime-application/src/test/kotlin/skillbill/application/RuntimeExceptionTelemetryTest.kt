@@ -1,12 +1,12 @@
 package skillbill.application
 
-import skillbill.application.telemetry.REDACTED_ERROR_MESSAGE
-import skillbill.application.telemetry.RUNTIME_EXCEPTION_EVENT
-import skillbill.application.telemetry.enqueueRuntimeException
-import skillbill.ports.telemetry.TelemetryOutboxRepository
+import skillbill.application.telemetry.service.REDACTED_ERROR_MESSAGE
+import skillbill.application.telemetry.service.RUNTIME_EXCEPTION_EVENT
+import skillbill.application.telemetry.service.enqueueRuntimeException
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

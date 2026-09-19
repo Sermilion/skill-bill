@@ -1,7 +1,5 @@
 package skillbill.config.model
-
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 const val COMPACTION_KEY: String = "compaction"
 
 const val DEFAULT_COMPACTION_ENABLED: Boolean = true

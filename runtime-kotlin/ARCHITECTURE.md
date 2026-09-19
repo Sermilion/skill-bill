@@ -466,6 +466,11 @@ and `:runtime-infra:sqlite`.
   telemetry orchestration, repository-port coordination, and application-owned
   mappers. Public inputs and results live in area-owned `skillbill.application.<area>.model` packages.
 - area-owned `skillbill.application.<area>.model` packages: public application input/result models.
+- Runtime production packages group cohesive noun families beneath their area
+  package. Non-model packages contain at most 12 sibling Kotlin files; an
+  area-owned model package may contain at most 20 because public inputs and
+  results share that boundary. When a package has multiple noun families,
+  place each family in a child package rather than growing the parent.
 - `skillbill.model`: shared runtime model types that are not owned by a
   narrower area: `RuntimeContext`, `EnvironmentContext`, `TransportContext`,
   `WorkflowOpsContext`, `OptionalCallbacks`, and `RepositoryRoot`.

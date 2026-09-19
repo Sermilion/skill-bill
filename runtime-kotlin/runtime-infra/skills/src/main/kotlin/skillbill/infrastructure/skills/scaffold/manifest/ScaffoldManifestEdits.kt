@@ -1,9 +1,8 @@
 
 package skillbill.infrastructure.skills.scaffold.manifest
 
-import skillbill.error.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import java.nio.file.Path
-
 internal fun appendCodeReviewArea(manifestPath: Path, area: String, relativeContentPath: String, areaFocus: String) {
   val original = manifestPath.toFile().readText()
   var updated = original

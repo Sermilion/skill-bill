@@ -1,10 +1,9 @@
 package skillbill.infrastructure.skills.scaffold.payload
 
-import skillbill.error.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.scaffold.policy.scaffold.ORCHESTRATOR_KINDS_FOR_SUBAGENTS
 import skillbill.scaffold.policy.scaffold.SUBAGENT_NAME_PATTERN
 import skillbill.scaffold.policy.scaffold.model.OptionalSubagents
-
 internal fun optionalSpecialistSubagents(payload: Map<String, Any?>, kind: String): OptionalSubagents {
   val rawSpecialists = payload["subagent_specialists"] ?: emptyList<String>()
   val rawSuppressed = payload["no_subagents"] ?: false

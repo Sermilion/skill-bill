@@ -1,12 +1,11 @@
 package skillbill.featurespec
 
-import skillbill.error.InvalidFeatureSpecPreparationRequestError
+import skillbill.error.core.InvalidFeatureSpecPreparationRequestError
 import skillbill.featurespec.model.FeatureSpecPreparationIntake
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class FeatureSpecPreparationPolicyTest {
   @Test
   fun `prepare loud-fails when issue key is missing`() {

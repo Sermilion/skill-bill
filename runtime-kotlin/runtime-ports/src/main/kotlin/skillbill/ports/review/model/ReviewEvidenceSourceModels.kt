@@ -1,9 +1,7 @@
 package skillbill.ports.review.model
-
-import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.review.context.model.ReviewAssignment
-import skillbill.review.context.model.ReviewEvidenceLimits
-
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+import skillbill.review.context.model.commit.ReviewAssignment
+import skillbill.review.context.model.hunk.ReviewEvidenceLimits
 const val REVIEW_EVIDENCE_BATCH_SIZE: Int = 32
 
 data class ReviewEvidenceOwner(

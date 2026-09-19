@@ -6,13 +6,12 @@ import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.contracts.review.GovernedReviewEvidencePayloadKeys
 import skillbill.contracts.review.GovernedReviewToolSpecList
 import skillbill.contracts.review.GovernedReviewWirePayload
-import skillbill.error.InvalidGovernedReviewEvidenceRequestError
+import skillbill.error.core.InvalidGovernedReviewEvidenceRequestError
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
-import skillbill.review.context.model.GovernedReviewJsonRpcArguments
-import skillbill.review.context.model.ReviewExpansionRecord
-
+import skillbill.review.context.model.execution.GovernedReviewJsonRpcArguments
+import skillbill.review.context.model.packet.ReviewExpansionRecord
 internal object GovernedReviewEvidenceCodec {
   fun toolSpecList(): GovernedReviewToolSpecList =
     GovernedReviewToolSpecList.from(GovernedReviewEvidenceCodecWireSchemas.toolSpecs())

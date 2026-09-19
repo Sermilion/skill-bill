@@ -1,12 +1,11 @@
 package skillbill.engine.planningprojection
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePlanningProjectionContract
-
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePlanningProjectionContract
 private const val SCHEMA_GATE_DETAIL_MAX_CHARS = 500
 
 private fun boundedSchemaGateDetail(validationReason: String): String =

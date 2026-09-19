@@ -1,15 +1,14 @@
 package skillbill.goalrunner
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.InvalidGoalProgressEventSchemaError
+import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.goalrunner.model.GoalRunnerProgressEvent
 import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.toStringKeyedArtifactMap
-
+import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
+import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
 fun progressEventFrom(artifacts: Any): GoalRunnerProgressEvent? {
   val wire = artifacts.asGoalWorkflowArtifactMap("goal progress event artifacts")
   return (wire["progress_event"] as? Map<*, *>)

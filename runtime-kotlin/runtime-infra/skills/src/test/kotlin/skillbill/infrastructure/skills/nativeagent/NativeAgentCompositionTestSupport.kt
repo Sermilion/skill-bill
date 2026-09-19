@@ -2,7 +2,7 @@ package skillbill.infrastructure.skills.nativeagent
 
 import skillbill.config.model.RepoLocalConfig
 import skillbill.infrastructure.host.FileSystemRepoLocalConfig
-import skillbill.infrastructure.skills.install.nativeagent.InstallNativeAgentPlatformPackLoader
+import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTarget
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentSource
@@ -12,7 +12,6 @@ import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoredContentB
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import java.nio.file.Path
-
 internal fun testNativeAgentCompositionContext(repoRoot: Path): NativeAgentCompositionContext {
   val normalizedRoot = repoRoot.toAbsolutePath().normalize()
   val budget = runCatching {

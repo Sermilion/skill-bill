@@ -1,0 +1,106 @@
+package skillbill.engine.goalrunner.status
+
+import me.tatarka.inject.annotations.Inject
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.goalrunner.execution.core.GoalRunnerAcceptanceCoordinator
+import skillbill.engine.goalrunner.model.GoalRunnerAcceptRequest
+import skillbill.engine.goalrunner.model.GoalRunnerAcceptResult
+import skillbill.engine.goalrunner.model.GoalRunnerPauseResult
+import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
+import skillbill.engine.goalrunner.model.GoalRunnerPurgeResult
+import skillbill.engine.goalrunner.model.GoalRunnerRepairRequest
+import skillbill.engine.goalrunner.model.GoalRunnerRepairResult
+import skillbill.engine.goalrunner.model.GoalRunnerReplanRequest
+import skillbill.engine.goalrunner.model.GoalRunnerReplanResult
+import skillbill.engine.goalrunner.model.GoalRunnerResetRequest
+import skillbill.engine.goalrunner.model.GoalRunnerResetResult
+import skillbill.engine.goalrunner.model.GoalRunnerResumeResult
+import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
+import skillbill.engine.goalrunner.model.GoalRunnerStopVerbResult
+import skillbill.engine.goalrunner.repair.GoalRunnerRepairCoordinator
+import skillbill.engine.goalrunner.reset.GoalRunnerPurgeCoordinator
+import skillbill.engine.goalrunner.reset.GoalRunnerResetReplanCoordinator
+import skillbill.goalrunner.model.GoalRunnerAcceptedSubtask
+import skillbill.goalrunner.model.GoalRunnerStatusProjection
+import skillbill.model.RepositoryRoot
+import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairStore
+import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
+import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
+import skillbill.ports.repository.RepositoryEnclosingRootPort
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
+import skillbill.ports.workflow.gitops.WorkflowGitOperations
+import java.nio.file.Path
+import java.time.Clock
+
+@Inject
+class GoalRunnerStatusService(
+  private val manifestStore: GoalRunnerManifestStore,
+  outcomeStore: GoalRunnerWorkflowOutcomeStore,
+  phaseRecorder: FeatureTaskRuntimePhaseRecorder,
+  gitOperations: WorkflowGitOperations,
+  clock: Clock,
+  workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
+  childRepairStore: GoalRunnerChildRepairStore,
+  repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
+  private val projectionAssembler: GoalRunnerStatusProjectionAssembler,
+  private val resetReplanCoordinator: GoalRunnerResetReplanCoordinator,
+  private val purgeCoordinator: GoalRunnerPurgeCoordinator,
+) {
+  private val controlVerbs = GoalRunnerStatusControlVerbs(
+    manifestStore = manifestStore,
+    clock = clock,
+    workerSupervisor = workerSupervisor,
+    repositoryEnclosingRootPort = repositoryEnclosingRootPort,
+  )
+
+  private val repairCoordinator = GoalRunnerRepairCoordinator(
+    manifestStore = manifestStore,
+    phaseRecorder = phaseRecorder,
+    workerSupervisor = workerSupervisor,
+    childRepairStore = childRepairStore,
+    outcomeStore = outcomeStore,
+    repositoryRoot = projectionAssembler.repositoryRoot,
+    repositoryEnclosingRootPort = repositoryEnclosingRootPort,
+    clock = clock,
+    diagnostics = projectionAssembler.diagnostics,
+  )
+
+  private val acceptanceCoordinator = GoalRunnerAcceptanceCoordinator(
+    manifestStore = manifestStore,
+    outcomeStore = outcomeStore,
+    gitOperations = gitOperations,
+  )
+
+  fun status(request: GoalRunnerStatusRequest): GoalRunnerStatusProjection? {
+    return manifestStore.readByIssueKey(request.issueKey, request.repoRoot)
+      ?.let { loadedState -> projectionAssembler.project(loadedState, request) }
+  }
+
+  fun statusRefresh(request: GoalRunnerStatusRequest): GoalRunnerStatusProjection? = status(request)
+
+  fun pause(issueKey: String, repoRoot: Path? = null): GoalRunnerPauseResult =
+    controlVerbs.pause(issueKey, effectiveGoalRepoRoot(repoRoot, projectionAssembler.repositoryRoot))
+
+  fun stop(issueKey: String, repoRoot: Path? = null): GoalRunnerStopVerbResult =
+    controlVerbs.stop(issueKey, effectiveGoalRepoRoot(repoRoot, projectionAssembler.repositoryRoot))
+
+  fun resume(issueKey: String, repoRoot: Path? = null): GoalRunnerResumeResult =
+    controlVerbs.resume(issueKey, effectiveGoalRepoRoot(repoRoot, projectionAssembler.repositoryRoot))
+
+  fun reset(request: GoalRunnerResetRequest): GoalRunnerResetResult? = resetReplanCoordinator.reset(request)
+
+  fun purge(request: GoalRunnerPurgeRequest): GoalRunnerPurgeResult = purgeCoordinator.purge(
+    request.copy(repoRoot = request.repoRoot ?: projectionAssembler.repositoryRoot.path),
+  )
+
+  fun replan(request: GoalRunnerReplanRequest): GoalRunnerReplanResult? = resetReplanCoordinator.replan(request)
+
+  fun hardResetPreflight(issueKey: String): List<GoalRunnerAcceptedSubtask> =
+    resetReplanCoordinator.hardResetPreflight(issueKey)
+
+  fun repair(request: GoalRunnerRepairRequest): GoalRunnerRepairResult = repairCoordinator.repair(request)
+
+  fun accept(request: GoalRunnerAcceptRequest): GoalRunnerAcceptResult = acceptanceCoordinator.accept(request)
+}
+
+fun effectiveGoalRepoRoot(repoRoot: Path?, repositoryRoot: RepositoryRoot): Path = repoRoot ?: repositoryRoot.path

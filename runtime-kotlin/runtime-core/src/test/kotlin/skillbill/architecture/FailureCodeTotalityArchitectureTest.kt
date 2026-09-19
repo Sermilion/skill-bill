@@ -1,15 +1,14 @@
 package skillbill.architecture
 
-import skillbill.error.FailureWireCode
-import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
-import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
-import skillbill.error.FeatureTaskRuntimePhaseOutputFailureKind
+import skillbill.error.core.FailureWireCode
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
+import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class FailureCodeTotalityArchitectureTest {
   @Test
   fun `in-scope failure wire codes stay total and injective`() {

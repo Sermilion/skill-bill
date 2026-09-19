@@ -1,14 +1,13 @@
 package skillbill.scaffold
 
 import org.junit.jupiter.api.Assumptions
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
 import skillbill.infrastructure.skills.scaffold.pointer.renderPointer
 import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertTrue
-
 class PointerRoundTripTest {
   @Test
   fun `every declared pointer renders without requiring source pointer files`() {

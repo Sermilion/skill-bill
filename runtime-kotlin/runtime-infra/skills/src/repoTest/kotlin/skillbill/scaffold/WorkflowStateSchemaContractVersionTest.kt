@@ -2,11 +2,11 @@ package skillbill.scaffold
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
-import skillbill.contracts.workflow.WorkflowStateSchemaPaths
-import skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator
+import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
+import skillbill.contracts.workflow.workflow.WorkflowStateSchemaPaths
+import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
 import skillbill.testing.repoRootFromTest
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.nio.file.Files
 import kotlin.test.Test
@@ -14,7 +14,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class WorkflowStateSchemaContractVersionTest {
   @Test
   fun `workflow state schema bundled on runtime contracts classpath matches canonical schema`() {

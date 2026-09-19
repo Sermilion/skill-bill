@@ -1,9 +1,8 @@
 package skillbill.ports.diagnostics
 
-import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import java.time.Instant
-
 abstract class RejectedOutputDiagnosticRepositoryDefaults : RejectedOutputDiagnosticRepository {
   open override fun retainProducerOutput(evidence: ProducerOutputEvidence) {
     throw RejectedOutputDiagnosticError.Persistence("producer-evidence-unavailable")

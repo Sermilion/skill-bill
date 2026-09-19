@@ -2,13 +2,12 @@ package skillbill.workflow.engine
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection
 import skillbill.workflow.engine.model.WorkflowInputProjectionDeclaration
 import skillbill.workflow.engine.model.WorkflowLaunchProjectionArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
-
 const val RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY = "repository_evidence"
 
 private fun collectionItemCount(value: Any?): Int = when (value) {

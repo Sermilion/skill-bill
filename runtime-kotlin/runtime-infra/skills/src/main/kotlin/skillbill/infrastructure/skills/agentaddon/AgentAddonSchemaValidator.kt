@@ -4,10 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import skillbill.contracts.agentaddon.AGENT_ADDON_CONTRACT_VERSION
 import skillbill.contracts.agentaddon.AgentAddonSchemaPaths
-import skillbill.error.InvalidAgentAddonSchemaError
+import skillbill.error.shellcontent.InvalidAgentAddonSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.SchemaIdentityRequest
-
 private object ClasspathAgentAddonSchemaResourceLoader : AgentAddonSchemaResourceLoader {
   override fun read(): String = AgentAddonSchemaValidator::class.java.classLoader
     .getResourceAsStream(AgentAddonSchemaPaths.CLASSPATH_RESOURCE)

@@ -1,15 +1,14 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.core.DatabaseMigrations
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.core.DatabaseSchema
+import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.core.schema.DatabaseSchema
 import java.nio.file.Files
 import java.sql.Connection
 import java.sql.DriverManager
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class ReviewStageStateMigrationTest {
   @Test
   fun `startup ensures create stage tables on a pre-change store and a second pass is a no-op`() {

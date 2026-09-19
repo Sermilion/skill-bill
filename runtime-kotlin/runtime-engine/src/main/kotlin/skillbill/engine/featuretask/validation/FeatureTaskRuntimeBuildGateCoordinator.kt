@@ -3,11 +3,12 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.config.model.applyValidationGateGradleWrapper
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.engine.featuretask.emitFeatureTaskRuntimeEventSafely
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
-import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
+import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
+import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
+import skillbill.engine.featuretask.runloop.observability.emitFeatureTaskRuntimeEventSafely
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCyclePhase
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
@@ -17,7 +18,6 @@ import skillbill.engine.featuretask.validation.model.ValidationGateProgressWrite
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
 import skillbill.engine.featuretask.validation.model.requiresUnparseableGateTriage
-import skillbill.engine.featuretask.workflowArtifactEntryMap
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -27,20 +27,18 @@ import skillbill.ports.validation.model.ValidationGateFindingParseMode
 import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.scaffold.model.ValidationGateDeclaration
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence.Companion.fromGateMeasurements
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRepairWindowPhase
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
-import skillbill.workflow.taskruntime.model.ValidationGateRunOutcome
-import skillbill.workflow.taskruntime.unparseableGateFailureMessage
-
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRepairWindowPhase
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
+import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.validation.unparseableGateFailureMessage
 private const val BUILD_PHASE_STATUS_COMPLETED = "completed"
 
 private data class BuildGateCycleState(

@@ -114,6 +114,11 @@ ports toward domain. Cluster by product area and noun family, not by type kind
 (`model`, `persistence`, `service` buckets spanning areas). No adapter, JDBC, or
 filesystem type in domain or application APIs.
 
+Keep noun families in child packages when an area contains multiple families.
+Production non-model packages have at most 12 sibling Kotlin files; area-owned
+model packages have at most 20 because they collect public inputs and results at
+that boundary.
+
 **Preferred shapes.** `skillbill.application.<area>.model` for application
 inputs/results; `skillbill.ports.<concept>` for repositories and gateways;
 `skillbill.workflow.<subarea>` for split workflow families (`engine`,

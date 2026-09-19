@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.core.DatabaseSchema
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.core.schema.DatabaseSchema
 import java.nio.file.Files
 import java.sql.Connection
 import java.sql.DriverManager
@@ -12,7 +12,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class DatabaseSchemaTest {
   @Test
   fun `ensureDatabase creates parent directories enables foreign keys and bootstraps schema`() {

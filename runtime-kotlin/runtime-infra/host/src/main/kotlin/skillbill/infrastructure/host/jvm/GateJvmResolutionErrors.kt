@@ -1,7 +1,5 @@
 package skillbill.infrastructure.host.jvm
-
-import skillbill.error.SkillBillRuntimeException
-
+import skillbill.error.core.SkillBillRuntimeException
 internal class GateJvmGuardResourceMissingException(resource: String) : SkillBillRuntimeException(
   "Gate JVM guard is missing from the runtime distribution at classpath resource '$resource'. " +
     "Reinstall the runtime so the Java guard ships inside the image.",

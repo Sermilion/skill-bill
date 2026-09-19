@@ -2,16 +2,16 @@ package skillbill.application
 
 import skillbill.application.learning.LearningService
 import skillbill.application.learning.model.AddLearningInput
-import skillbill.application.review.ReviewService
-import skillbill.application.telemetry.RUNTIME_EXCEPTION_EVENT
-import skillbill.application.telemetry.TelemetryLevelMutationService
-import skillbill.application.telemetry.TelemetryService
+import skillbill.application.review.service.ReviewService
+import skillbill.application.telemetry.service.RUNTIME_EXCEPTION_EVENT
+import skillbill.application.telemetry.service.TelemetryLevelMutationService
+import skillbill.application.telemetry.service.TelemetryService
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.review.EmptyReviewAttributionPort
+import skillbill.ports.review.empty.EmptyReviewAttributionPort
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import java.nio.file.Files
 import java.time.Clock
@@ -19,7 +19,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class ApplicationPersistencePortTest {
   @Test
   fun `learning list can run with fake repositories through a read unit of work`() {

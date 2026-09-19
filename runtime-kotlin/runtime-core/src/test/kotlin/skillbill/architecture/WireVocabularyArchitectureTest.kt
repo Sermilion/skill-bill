@@ -1,6 +1,6 @@
 package skillbill.architecture
 
-import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
+import skillbill.contracts.workflow.featuretask.DecompositionManifestSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -107,7 +107,7 @@ class WireVocabularyArchitectureTest {
   fun `goal continuation artifact seam rejects undeclared literal key access`() {
     val files = listOf(
       syntheticSourceFile(
-        "workflow/taskruntime/model/FeatureTaskRuntimeGoalContinuationArtifactKeys.kt",
+        "taskruntime/model/persistence/task/runtime/goal/FeatureTaskRuntimeGoalContinuationArtifactKeys.kt",
         """
         package fixture
 
@@ -117,7 +117,7 @@ class WireVocabularyArchitectureTest {
         """.trimIndent(),
       ),
       syntheticSourceFile(
-        "workflow/taskruntime/model/FeatureTaskRuntimeGoalContinuationArtifact.kt",
+        "taskruntime/model/persistence/task/runtime/goal/FeatureTaskRuntimeGoalContinuationArtifact.kt",
         """
         package fixture
 

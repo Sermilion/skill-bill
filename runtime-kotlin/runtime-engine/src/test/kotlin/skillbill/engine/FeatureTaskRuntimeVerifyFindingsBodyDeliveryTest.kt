@@ -1,10 +1,10 @@
 package skillbill.engine
 
 import skillbill.contracts.time.JvmSystemClock
-import skillbill.engine.featuretask.FeatureTaskRuntimeContinuationKind
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeContinuationKind
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningContextDiscovery
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import java.nio.file.Files
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -14,7 +14,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeVerifyFindingsBodyDeliveryTest {
   @Test
   fun `verify_findings heading selection continues for body delivery without burning the output-gate cap`() {

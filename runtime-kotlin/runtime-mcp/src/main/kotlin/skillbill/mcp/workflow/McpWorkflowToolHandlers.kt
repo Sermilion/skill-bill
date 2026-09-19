@@ -6,8 +6,8 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.mcp.McpToolPayloadKeys
-import skillbill.contracts.workflow.WorkflowArtifactKeys
-import skillbill.error.InvalidMcpToolArgumentError
+import skillbill.contracts.workflow.payload.WorkflowArtifactKeys
+import skillbill.error.core.InvalidMcpToolArgumentError
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.componentForLegacyContext
 import skillbill.mcp.shared.int
@@ -18,7 +18,6 @@ import skillbill.mcp.shared.optionalString
 import skillbill.mcp.shared.string
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
-
 internal fun workflowOpen(
   kind: WorkflowFamilyKind,
   arguments: Map<String, Any?>,

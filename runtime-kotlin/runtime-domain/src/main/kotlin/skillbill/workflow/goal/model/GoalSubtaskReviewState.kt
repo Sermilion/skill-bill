@@ -1,17 +1,16 @@
 package skillbill.workflow.goal.model
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION
-import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
-import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
-import skillbill.review.context.model.CodeReviewExecutionMode
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorReviewContext
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedger
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewPassSequence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeFoldRepairLedger
-
+import skillbill.contracts.workflow.identity.subtask.GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
+import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.prior.FeatureTaskRuntimePriorReviewContext
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.taskruntime.model.repair.task.featureTaskRuntimeFoldRepairLedger
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewPassSequence
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 data class GoalSubtaskReviewRevision(
   val commitFocusedAccounting: GoalSubtaskCommitFocusedAccounting? = null,
   val reviewedRevision: GoalSubtaskReviewedRevision? = null,

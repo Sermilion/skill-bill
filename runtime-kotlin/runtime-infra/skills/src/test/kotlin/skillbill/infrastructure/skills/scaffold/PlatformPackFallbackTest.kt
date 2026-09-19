@@ -2,10 +2,10 @@ package skillbill.infrastructure.skills.scaffold
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import skillbill.error.InvalidFallbackCapabilityError
-import skillbill.error.InvalidManifestSchemaError
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.platformpack.validatePlatformPackFallbacks
+import skillbill.error.shellcontent.InvalidFallbackCapabilityError
+import skillbill.error.shellcontent.InvalidManifestSchemaError
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.validatePlatformPackFallbacks
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.DeclaredFiles
 import skillbill.scaffold.model.PlatformManifest
@@ -17,7 +17,6 @@ import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class PlatformPackFallbackTest {
   @TempDir
   lateinit var tempDir: Path

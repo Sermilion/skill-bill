@@ -29,7 +29,7 @@ import skillbill.ports.install.reconcile.model.InstallReconcileApplyRequest
 import skillbill.ports.install.reconcile.model.InstallReconcileRequest
 import skillbill.ports.install.selection.InstallSelectionPersistencePort
 import skillbill.ports.install.selection.model.WriteLatestSuccessfulInstallSelectionRequest
-import skillbill.ports.telemetry.TelemetryLevelMutator
+import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 import skillbill.review.plan.ReviewFallbackResolver
 import java.nio.file.Path
 

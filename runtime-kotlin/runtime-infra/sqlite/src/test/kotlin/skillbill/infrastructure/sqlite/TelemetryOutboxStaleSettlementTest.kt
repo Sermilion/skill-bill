@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import java.nio.file.Files
@@ -10,7 +10,6 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class TelemetryOutboxStaleSettlementTest {
   @Test
   fun `a stale owner cannot settle any outcome after another drain reclaims the rows`() {

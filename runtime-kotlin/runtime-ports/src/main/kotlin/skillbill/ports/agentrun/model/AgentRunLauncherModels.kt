@@ -6,20 +6,19 @@ import skillbill.config.model.PhaseCompactionDirective
 import skillbill.goalrunner.model.GoalRunnerLivenessState
 import skillbill.goalrunner.model.GoalRunnerProcessState
 import skillbill.install.model.InstallAgent
-import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.ports.review.ReviewEvidenceBroker
+import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointHandle
+import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.model.ReviewProcessOutcome
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import java.nio.file.Path
 import java.security.MessageDigest
 import kotlin.time.Duration
-
 data class SkillRunRequest(
   val issueKey: String,
   val repoRoot: Path,

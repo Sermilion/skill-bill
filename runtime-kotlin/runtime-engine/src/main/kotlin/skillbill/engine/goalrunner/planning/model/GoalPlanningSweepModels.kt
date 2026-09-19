@@ -1,6 +1,6 @@
 package skillbill.engine.goalrunner.planning.model
 
-import skillbill.contracts.workflow.GOAL_PLANNING_WAVE_CAP
+import skillbill.contracts.workflow.identity.status.GOAL_PLANNING_WAVE_CAP
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
@@ -8,12 +8,11 @@ import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.runner.model.GoalChildPlanningHydrationRequest
 import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
-import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import java.nio.file.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-
 sealed interface GoalPlanningSweepOutcome {
   data class PreparedAll(
     val identity: GoalPlanningIdentity? = null,

@@ -1,12 +1,11 @@
 package skillbill.workflow.goal.model
-import skillbill.review.context.model.CodeReviewExecutionMode
-import skillbill.review.context.model.ReviewIntegrationTerminalOutcome
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.ReviewIntegrationTerminalOutcome
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
-
 class GoalSubtaskCommitFocusedAccountingRecordingTest {
   private val accounting = GoalSubtaskCommitFocusedAccounting(
     commitSequenceDigest = "a".repeat(64),

@@ -1,10 +1,9 @@
 package skillbill.engine.featuretask.validation
 
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.contracts.workflow.FeatureTaskRuntimeBuildReceiptSchemaValidator
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
+import skillbill.infrastructure.contracts.workflow.featuretask.handoff.FeatureTaskRuntimeBuildReceiptSchemaValidator
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
 import kotlin.test.Test
-
 class FeatureTaskRuntimeBuildGateReceiptProjectionTest {
   @Test
   fun `settled build gate coordinator output validates against build_receipt contract`() {

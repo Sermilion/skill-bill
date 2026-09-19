@@ -1,23 +1,22 @@
 package skillbill.cli
 
-import skillbill.application.workflow.decodeWorkflowArtifacts
+import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class CliGoalRepairRuntimeTest {
   @Test
   fun `goal repair help enumerates wedge classes and does-not-touch statement`() {

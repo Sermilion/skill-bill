@@ -1,7 +1,7 @@
 package skillbill.testing
 
-import skillbill.infrastructure.skills.scaffold.platformpack.CODE_REVIEW_FALLBACK_CAPABILITY
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.CODE_REVIEW_FALLBACK_CAPABILITY
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.rendering.areaReviewContent
 import skillbill.infrastructure.skills.scaffold.rendering.baselineReviewContent
 import skillbill.infrastructure.skills.scaffold.rendering.renderFrontmatter
@@ -10,7 +10,6 @@ import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertEquals
-
 internal fun assertConcreteAndManifestFallbackSelected(
   plan: InstallPlan,
   concreteSlug: String,

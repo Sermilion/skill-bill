@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.authoring
 
-import skillbill.error.SkillBillRuntimeException
+import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentRegenerationRequest
@@ -9,7 +9,6 @@ import skillbill.scaffold.model.CodeReviewComposition
 import skillbill.scaffold.model.GovernedAddonSelection
 import java.nio.file.Files
 import java.nio.file.Path
-
 internal const val AUTHORING_EXPLANATION =
   "Governed skills split author-owned behavior into content.md and generated runtime wiring into " +
     "render/install output. " +

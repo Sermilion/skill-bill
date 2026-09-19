@@ -1,17 +1,16 @@
 package skillbill.infrastructure.skills.scaffold.authoring
 
 import skillbill.agentaddon.model.AgentAddonConsumer
-import skillbill.error.ContractVersionMismatchError
+import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.infrastructure.skills.agentaddon.AgentAddonDeliveryResolver
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.pointer.renderPointer
-import skillbill.infrastructure.skills.scaffold.runtime.SHELL_CONTRACT_VERSION
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
-
 private const val PLATFORM_PACK_SKILL_MIN_PARTS = 3
 
 data class AuthoringRenderBlock(

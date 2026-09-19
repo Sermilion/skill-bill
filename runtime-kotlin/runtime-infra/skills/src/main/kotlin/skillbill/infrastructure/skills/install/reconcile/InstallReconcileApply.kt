@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.install.reconcile
 
-import skillbill.error.ReconciliationConflictError
+import skillbill.error.shellcontent.ReconciliationConflictError
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing
 import skillbill.install.model.BaselineManifest
 import skillbill.install.model.ReconciliationPlan
@@ -10,7 +10,6 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-
 internal fun applyReconciliation(
   upstream: ReconcileSourceRoots,
   local: ReconcileSourceRoots,

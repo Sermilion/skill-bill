@@ -1,19 +1,18 @@
 package skillbill.infrastructure.skills.scaffold
 
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.contracts.WorkflowStateSnapshotWireMapper
-import skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator
+import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class WorkflowStateSchemaValidatesExistingWorkflowsTest {
 
   private val validator = WorkflowStateSchemaValidator()

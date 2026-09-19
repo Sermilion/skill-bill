@@ -4,10 +4,10 @@ import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.mcp.core.McpRuntime
 import skillbill.mcp.shared.McpRuntimeContext
-import skillbill.review.canonicalPlatformSlugs
+import skillbill.review.attribution.canonicalPlatformSlugs
+import skillbill.review.attribution.resolveCanonicalRoutedSkill
+import skillbill.review.attribution.resolveCanonicalStack
 import skillbill.review.model.ReviewAttributionResolutionError
-import skillbill.review.resolveCanonicalRoutedSkill
-import skillbill.review.resolveCanonicalStack
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import java.nio.file.Files
 import java.nio.file.Path
@@ -15,7 +15,6 @@ import java.sql.DriverManager
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class ReviewAttributionResolutionParityTest {
   private val resolvableReview =
     """

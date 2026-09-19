@@ -3,10 +3,9 @@ package skillbill.goalrunner
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class GoalRunnerQualityGateSelectionResolverTest {
   @Test
   fun `three-child goal resolves build build validate`() {

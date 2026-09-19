@@ -4,29 +4,28 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanSchemaPaths
-import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
-import skillbill.contracts.workflow.WorkflowStateSchemaPaths
-import skillbill.error.InvalidInstallPlanSchemaError
-import skillbill.error.InvalidManifestSchemaError
-import skillbill.error.InvalidNativeAgentCompositionSchemaError
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.error.ShellContentContractException
+import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
+import skillbill.contracts.workflow.workflow.WorkflowStateSchemaPaths
+import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
+import skillbill.error.shellcontent.InvalidManifestSchemaError
+import skillbill.error.shellcontent.InvalidNativeAgentCompositionSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.SchemaIdentityRequest
 import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionSchemaPaths
-import skillbill.infrastructure.skills.scaffold.platformpack.PlatformPackSchemaPaths
-import skillbill.infrastructure.skills.scaffold.platformpack.PlatformPackSchemaValidator
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
-import skillbill.infrastructure.skills.scaffold.runtime.SHELL_CONTRACT_VERSION
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.PlatformPackSchemaPaths
+import skillbill.infrastructure.skills.scaffold.platformpack.manifest.PlatformPackSchemaValidator
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
-
 class PlatformPackSchemaCleanupTest {
 
   @Test

@@ -1,9 +1,8 @@
 package skillbill.infrastructure.skills.scaffold.authoring
 
-import skillbill.error.SkillBillRuntimeException
-import skillbill.infrastructure.skills.scaffold.runtime.REQUIRED_GOVERNED_SECTIONS
+import skillbill.error.core.SkillBillRuntimeException
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.REQUIRED_GOVERNED_SECTIONS
 import java.nio.file.Files
-
 private val horizontalSkillFamilies: Map<String, String> =
   mapOf(
     "bill-feature-verify" to "workflow",

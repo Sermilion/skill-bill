@@ -7,7 +7,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class RuntimeArchitectureTest {
   private val infraContractsModule = RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:contracts")
 
@@ -52,13 +51,13 @@ class RuntimeArchitectureTest {
         "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/install/" +
           "InstallPlanSchemaValidator.kt",
         "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
-          "WorkflowStateSchemaValidator.kt",
+          "workflow/WorkflowStateSchemaValidator.kt",
         "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
-          "DecompositionManifestSchemaValidator.kt",
+          "decomposition/DecompositionManifestSchemaValidator.kt",
         "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
-          "DecompositionManifestCoherenceValidator.kt",
+          "decomposition/DecompositionManifestCoherenceValidator.kt",
         "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
-          "IdeStatusSchemaValidator.kt",
+          "goal/status/IdeStatusSchemaValidator.kt",
       ),
       present = true,
     )
@@ -68,10 +67,12 @@ class RuntimeArchitectureTest {
     assertRegularFiles(
       listOf(
         "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/install/InstallPlanSchemaPaths.kt",
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/WorkflowStateSchemaPaths.kt",
         "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
-          "DecompositionManifestSchemaPaths.kt",
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/IdeStatusSchemaPaths.kt",
+          "workflow/WorkflowStateSchemaPaths.kt",
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
+          "featuretask/DecompositionManifestSchemaPaths.kt",
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/identity/status/" +
+          "IdeStatusSchemaPaths.kt",
       ),
       present = true,
     )
@@ -284,15 +285,15 @@ class RuntimeArchitectureTest {
   fun `telemetry ports and adapters are explicit package surfaces`() {
     val portFiles =
       listOf(
-        sourcePath("skillbill/ports/telemetry/TelemetrySettingsProvider.kt"),
-        sourcePath("skillbill/ports/telemetry/TelemetryConfigStore.kt"),
-        sourcePath("skillbill/ports/telemetry/TelemetryClient.kt"),
-        sourcePath("skillbill/ports/telemetry/TelemetryOutboxRepository.kt"),
+        sourcePath("skillbill/ports/telemetry/transport/TelemetrySettingsProvider.kt"),
+        sourcePath("skillbill/ports/telemetry/transport/TelemetryConfigStore.kt"),
+        sourcePath("skillbill/ports/telemetry/transport/TelemetryClient.kt"),
+        sourcePath("skillbill/ports/telemetry/transport/TelemetryOutboxRepository.kt"),
       )
     portFiles.forEach { path ->
       assertTrue(Files.exists(path), "Missing telemetry port: ${runtimeArchitectureRoot.relativize(path)}")
     }
-    val telemetryClientPort = Files.readString(sourcePath("skillbill/ports/telemetry/TelemetryClient.kt"))
+    val telemetryClientPort = Files.readString(sourcePath("skillbill/ports/telemetry/transport/TelemetryClient.kt"))
     assertContains(telemetryClientPort, "skillbill.telemetry.model.TelemetryProxyCapabilities")
     assertContains(telemetryClientPort, "skillbill.telemetry.model.TelemetryRemoteStatsResult")
 
@@ -378,7 +379,7 @@ class RuntimeArchitectureTest {
 
   @Test
   fun `cli and mcp learning payloads use contract DTO mappers`() {
-    val cliPayloads = Files.readString(sourcePath("skillbill/cli/kernel/LearningCliPayloads.kt"))
+    val cliPayloads = Files.readString(sourcePath("skillbill/cli/kernel/payload/LearningCliPayloads.kt"))
     val mcpRuntime = Files.readString(sourcePath("skillbill/mcp/core/McpRuntime.kt"))
     val learningMappers = Files.readString(sourcePath("skillbill/application/learning/LearningContractMappers.kt"))
     val learningContracts = sourcePath("skillbill/contracts/learning/LearningContracts.kt")
@@ -484,9 +485,9 @@ class RuntimeArchitectureTest {
   @Test
   fun `crash reconciliation liveness stays behind the injectable supervisor and out of the process runner`() {
     val reconciliationSources = sourceFiles().filter { file ->
-      file.relativePath.endsWith("featuretask/FeatureTaskRuntimeCrashReconciler.kt") ||
-        file.relativePath.endsWith("featuretask/FeatureTaskRuntimeWorkerCoordinator.kt") ||
-        file.relativePath.endsWith("goalrunner/WorkflowGoalRunnerOutcomeStore.kt")
+      file.relativePath.endsWith("featuretask/lifecycle/core/FeatureTaskRuntimeCrashReconciler.kt") ||
+        file.relativePath.endsWith("featuretask/lifecycle/core/FeatureTaskRuntimeWorkerCoordinator.kt") ||
+        file.relativePath.endsWith("goalrunner/outcome/WorkflowGoalRunnerOutcomeStore.kt")
     }
     assertTrue(reconciliationSources.isNotEmpty(), "crash-reconciliation source scan must be non-vacuous.")
     assertTrue(
@@ -505,7 +506,7 @@ class RuntimeArchitectureTest {
     )
 
     val processRunner = sourceFiles().single { file ->
-      file.relativePath.endsWith("launcher/process/JvmAgentRunProcessRunner.kt")
+      file.relativePath.endsWith("launcher/process/launch/JvmAgentRunProcessRunner.kt")
     }
     val runnerCouplingToReconciliation = listOf(
       "CrashReconcil",
@@ -561,8 +562,8 @@ class RuntimeArchitectureTest {
 
   @Test
   fun `cli text rendering consumes typed presenter models instead of raw maps`() {
-    val cliOutput = Files.readString(sourcePath("skillbill/cli/kernel/CliOutput.kt"))
-    val cliPresenters = Files.readString(sourcePath("skillbill/cli/kernel/CliPresenters.kt"))
+    val cliOutput = Files.readString(sourcePath("skillbill/cli/kernel/cli/CliOutput.kt"))
+    val cliPresenters = Files.readString(sourcePath("skillbill/cli/kernel/cli/CliPresenters.kt"))
 
     assertTrue("List<Map<String, Any?>>" !in cliOutput)
     assertContains(cliOutput, "CliNumberedFindingsPresentation")

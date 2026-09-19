@@ -1,14 +1,14 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.error.ContractVersionMismatchError
-import skillbill.error.InvalidFallbackCapabilityError
-import skillbill.error.InvalidInstallPlanSchemaError
-import skillbill.error.InvalidReviewSkillStructureError
-import skillbill.error.MissingContentFileError
-import skillbill.infrastructure.skills.install.staging.applicablePointers
-import skillbill.infrastructure.skills.install.staging.authoredFilesFor
-import skillbill.infrastructure.skills.install.staging.computeInstallContentHash
-import skillbill.infrastructure.skills.install.staging.generatedSupportPointersFor
+import skillbill.error.shellcontent.ContractVersionMismatchError
+import skillbill.error.shellcontent.InvalidFallbackCapabilityError
+import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
+import skillbill.error.shellcontent.InvalidReviewSkillStructureError
+import skillbill.error.shellcontent.MissingContentFileError
+import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
+import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
+import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
@@ -33,7 +33,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
   @Test
   fun `review capable plan includes the manifest declared fallback without slug knowledge`() {

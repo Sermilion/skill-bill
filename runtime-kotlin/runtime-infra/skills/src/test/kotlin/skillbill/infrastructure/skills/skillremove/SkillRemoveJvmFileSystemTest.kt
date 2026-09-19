@@ -4,7 +4,7 @@ import skillbill.domain.skillremove.model.ManifestEditKind
 import skillbill.domain.skillremove.model.SkillRemovalPreview
 import skillbill.domain.skillremove.model.SkillRemovalRequest
 import skillbill.domain.skillremove.model.SkillRemovalTarget
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -13,7 +13,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class SkillRemoveJvmFileSystemTest {
   private val tempDirs = mutableListOf<Path>()
 

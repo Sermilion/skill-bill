@@ -1,8 +1,7 @@
 package skillbill.workflow.taskruntime.phaseartifacts
 
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 fun FeatureTaskRuntimePhaseRecord.asPendingForOperatorResume(): FeatureTaskRuntimePhaseRecord = copy(
   status = WorkflowStepStatus.PENDING,
   finishedAt = null,

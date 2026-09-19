@@ -6,12 +6,11 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.telemetry.TelemetryService
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.DocumentedNoOpCliCommand
-import skillbill.cli.kernel.formatOption
-
+import skillbill.application.telemetry.service.TelemetryService
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.DocumentedNoOpCliCommand
+import skillbill.cli.kernel.cli.formatOption
 @Inject
 class TelemetryLocalCommands(
   statusCommand: TelemetryStatusCommand,

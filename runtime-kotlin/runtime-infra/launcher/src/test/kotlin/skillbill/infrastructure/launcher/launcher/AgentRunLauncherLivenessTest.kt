@@ -2,10 +2,10 @@ package skillbill.infrastructure.launcher.launcher
 
 import skillbill.contracts.time.JvmSystemClock
 import skillbill.infrastructure.host.jvm.testGateJvmResolver
-import skillbill.infrastructure.launcher.process.AgentRunActivityProbe
-import skillbill.infrastructure.launcher.process.AgentRunIdlePolicy
-import skillbill.infrastructure.launcher.process.AgentRunProcessResult
-import skillbill.infrastructure.launcher.process.JvmAgentRunProcessRunner
+import skillbill.infrastructure.launcher.process.launch.AgentRunActivityProbe
+import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessResult
+import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.agentrun.model.AgentRunProgressEmitter
@@ -21,7 +21,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-
 class AgentRunLauncherLivenessTest {
   @Test
   fun `install scripts refuse process-level execution during goal continuation`() {

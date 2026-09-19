@@ -2,11 +2,11 @@ package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.decodeWorkflowArtifacts
-import skillbill.engine.featuretask.AlwaysValidValidator
-import skillbill.engine.goalrunner.OutcomeStoreTestArtifactPorts
-import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
-import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
+import skillbill.application.workflow.persist.decodeWorkflowArtifacts
+import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
+import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
+import skillbill.engine.goalrunner.persist.OutcomeStoreTestArtifactPorts
+import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalAttemptLedgerEntry
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
@@ -15,10 +15,10 @@ import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestRejectionReason
 import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.artifact.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import java.nio.file.Path
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -28,7 +28,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
   @Test
   fun `reads progress from task runtime workflows without probing prose mode`() {

@@ -1,11 +1,10 @@
 package skillbill.mcp.workflow
 
-import skillbill.application.workflow.WorkflowWireProjections
+import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowContinueView
 import skillbill.workflow.model.WorkflowContinueStatus
-
 internal fun standardMcpContinueMap(
   view: WorkflowContinueView,
   dbPath: String,

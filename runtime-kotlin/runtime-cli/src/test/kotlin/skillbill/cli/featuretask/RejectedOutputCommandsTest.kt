@@ -2,7 +2,7 @@ package skillbill.cli.featuretask
 
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
-import skillbill.error.RejectedOutputDiagnosticError
+import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
@@ -14,7 +14,6 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class RejectedOutputCommandsTest {
   @Test
   fun `diagnostic service returns byte exact raw bodies`() {

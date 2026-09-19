@@ -7,13 +7,12 @@ import skillbill.goalrunner.model.ReviewFindingOutcome
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.goalrunner.model.toOutcomeRecord
-import skillbill.review.ReviewFindingActionability
+import skillbill.review.finding.ReviewFindingActionability
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDispositionVerdict
 import skillbill.workflow.goal.model.reviewStateError
-
 object GoalSubtaskReviewOutcomeDispositionReduction {
   fun reviewFindingOutcomes(
     supersededFindings: List<UnaddressedFinding>,

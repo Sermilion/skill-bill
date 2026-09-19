@@ -5,21 +5,21 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.continuation.model.GoalContinuationCandidate
-import skillbill.application.workflow.WorkflowService
 import skillbill.application.workflow.model.RepairFeatureTaskRuntimeIdentityArgs
 import skillbill.application.workflow.model.WorkflowUpdateResult
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.formatOption
-import skillbill.cli.kernel.resolveCliRepositoryRoot
-import skillbill.cli.kernel.toPayload
+import skillbill.application.workflow.service.WorkflowService
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.formatOption
+import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
+import skillbill.cli.kernel.payload.toPayload
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
-import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
-import skillbill.engine.featuretask.model.FeatureTaskContinuationCandidate
-import skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
+import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
+import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import java.nio.file.Path
 
 @Inject

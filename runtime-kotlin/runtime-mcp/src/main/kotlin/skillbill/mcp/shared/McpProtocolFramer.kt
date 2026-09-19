@@ -1,8 +1,7 @@
 package skillbill.mcp.shared
 
 import skillbill.contracts.JsonCodec
-import skillbill.di.SkillBillVersion
-
+import skillbill.di.core.SkillBillVersion
 internal object McpProtocolFramer {
   const val JSON_RPC_KEY: String = "jsonrpc"
   const val JSON_RPC_VERSION: String = "2.0"

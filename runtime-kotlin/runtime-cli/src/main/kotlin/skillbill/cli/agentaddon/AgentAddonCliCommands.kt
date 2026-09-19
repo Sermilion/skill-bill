@@ -8,20 +8,19 @@ import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
 import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.agentaddon.model.AgentAddonPromptFormatter
-import skillbill.cli.kernel.CliRunState
-import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.kernel.DocumentedNoOpCliCommand
-import skillbill.cli.kernel.formatOption
-import skillbill.cli.kernel.parseAgentAddonSelection
-import skillbill.cli.kernel.resolveCliRepositoryRoot
+import skillbill.cli.kernel.agent.parseAgentAddonSelection
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.DocumentedNoOpCliCommand
+import skillbill.cli.kernel.cli.formatOption
+import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.error.ShellContentContractException
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.model.toPath
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
-
 @Inject
 class AgentAddonCommand(
   resolveSelection: AgentAddonResolveSelectionCommand,

@@ -1,16 +1,16 @@
 package skillbill.engine.featuretask.validation.model
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRepairWindowPhase
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRepairWindowPhase
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
 import java.nio.file.Path
-
 enum class ValidationGateCyclePhase {
   INITIAL_DISCOVERY,
   POST_REPAIR_VERIFY,
@@ -25,19 +25,6 @@ sealed interface ValidationGateResolution {
   data class Absent(val routedPackSlug: String?) : ValidationGateResolution
 
   data class Incompatible(val reason: String) : ValidationGateResolution
-}
-
-data class ValidationFindingSetProjection(
-  val findings: List<ValidationGateFinding>,
-) {
-  fun toHandoffMaps(): List<Map<String, String?>> = findings.map { finding ->
-    linkedMapOf(
-      "module" to finding.module,
-      "rule_or_test_id" to finding.ruleOrTestId,
-      "message" to finding.message,
-      "location" to finding.location,
-    )
-  }
 }
 
 const val UNPARSEABLE_GATE_FAILURE_RULE_ID: String = "unparseable_gate_failure"

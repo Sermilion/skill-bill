@@ -2,7 +2,7 @@ package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
-import skillbill.infrastructure.workflow.GitWorkflowGitOperations
+import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import java.nio.file.Files
 import java.nio.file.Path
@@ -11,7 +11,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class CliWorkflowUpdateRuntimeTest {
   @Test
   fun `verify workflow update returns compact acknowledgement with verify-workflow show hint`() {

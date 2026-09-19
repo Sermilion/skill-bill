@@ -1,7 +1,5 @@
 package skillbill.ports.review.model
-
-import skillbill.review.context.model.ReviewAccountingSummary
-
+import skillbill.review.context.model.accounting.ReviewAccountingSummary
 data class ReviewAccountingRecord(
   val reviewId: String,
   val packetDigest: String,

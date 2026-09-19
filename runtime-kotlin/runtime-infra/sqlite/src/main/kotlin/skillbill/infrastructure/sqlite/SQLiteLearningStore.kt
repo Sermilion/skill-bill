@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningRecord
@@ -11,7 +11,6 @@ import skillbill.learnings.model.LearningSourceValidation
 import skillbill.learnings.model.UpdateLearningRequest
 import java.sql.Connection
 import java.sql.ResultSet
-
 internal object SQLiteLearningStore {
   fun addLearning(
     connection: Connection,

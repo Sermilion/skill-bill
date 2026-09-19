@@ -1,0 +1,29 @@
+package skillbill.ports.telemetry.lifecycle
+import skillbill.review.model.ReviewStageDegradationMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeDiagnosticDegradationMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRejectionMeasurement
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeSharedEvidenceMeasurement
+
+interface FeatureTaskRuntimeTelemetryMeasurementRepository {
+  fun featureTaskRuntimeProjectionMeasurement(record: FeatureTaskRuntimeProjectionMeasurement)
+
+  fun featureTaskRuntimeSharedEvidence(record: FeatureTaskRuntimeSharedEvidenceMeasurement)
+
+  fun featureTaskRuntimeRejection(record: FeatureTaskRuntimeRejectionMeasurement)
+
+  fun featureTaskRuntimeDiagnosticDegradation(record: FeatureTaskRuntimeDiagnosticDegradationMeasurement)
+}
+
+interface ReviewStageTelemetryMeasurementRepository {
+  fun reviewStageDegradation(record: ReviewStageDegradationMeasurement)
+}
+
+interface LifecycleTelemetryRepository :
+  FeatureTaskRuntimeTelemetryMeasurementRepository,
+  ReviewStageTelemetryMeasurementRepository,
+  FeatureTaskRuntimeLifecycleTelemetryRepository,
+  QualityCheckLifecycleTelemetryRepository,
+  FeatureVerifyLifecycleTelemetryRepository,
+  PrDescriptionLifecycleTelemetryRepository,
+  GoalLifecycleTelemetryRepository

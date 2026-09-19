@@ -1,7 +1,7 @@
 package skillbill.mcp.core
 
 import skillbill.application.learning.toLearningResolveContract
-import skillbill.application.review.toReviewFinishedTelemetryPayload
+import skillbill.application.review.service.toReviewFinishedTelemetryPayload
 import skillbill.contracts.mcp.McpLearningsSkippedContract
 import skillbill.contracts.mcp.McpOrchestratedPayloadContract
 import skillbill.contracts.mcp.McpReviewImportSkippedContract
@@ -11,7 +11,6 @@ import skillbill.mcp.scaffold.McpScaffoldRuntime
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.componentForLegacyContext
 import skillbill.mcp.shared.toMcpMap
-
 internal object McpRuntime {
   fun importReview(reviewText: String, orchestrated: Boolean = false, context: Any): Map<String, Any?> =
     importReview(reviewText, orchestrated, componentForLegacyContext(context))

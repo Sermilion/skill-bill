@@ -2,7 +2,7 @@ package skillbill.infrastructure.skills.scaffold
 
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.skills.scaffold.payload.toRawScaffoldPayload
-import skillbill.infrastructure.skills.scaffold.runtime.scaffold
+import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.CodeReviewCompositionScope
@@ -12,7 +12,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class ScaffoldCommandRequestRawPayloadTest {
   @Test
   fun `horizontal skill emits canonical fields with omission rules`() {

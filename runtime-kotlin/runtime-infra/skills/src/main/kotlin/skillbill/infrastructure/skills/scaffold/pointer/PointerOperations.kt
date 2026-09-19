@@ -1,9 +1,9 @@
 package skillbill.infrastructure.skills.scaffold.pointer
 
-import skillbill.error.ContractVersionMismatchError
+import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.infrastructure.host.jvm.atomicWriteBytes
-import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.runtime.SHELL_CONTRACT_VERSION
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
@@ -12,7 +12,6 @@ import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-
 internal data class PointerRegenerationResult(
   val regeneratedFiles: List<Path>,
 )

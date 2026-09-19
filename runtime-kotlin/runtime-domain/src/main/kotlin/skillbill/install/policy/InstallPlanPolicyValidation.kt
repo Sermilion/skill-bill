@@ -1,6 +1,6 @@
 package skillbill.install.policy
 
-import skillbill.error.MissingBaselinePlatformSelectionError
+import skillbill.error.shellcontent.MissingBaselinePlatformSelectionError
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
@@ -11,7 +11,6 @@ import skillbill.install.model.InstallPlatformPackDiscoverySnapshot
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPolicyInput
 import skillbill.install.model.PlatformPackSelectionMode
-
 internal fun validateAgentSelection(input: InstallPolicyInput) {
   val selection = input.request.agentSelection
   when (selection.mode) {

@@ -1,12 +1,11 @@
 package skillbill.application
 
 import skillbill.contracts.decomposition.DecompositionPlanningResult
-import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
-
 class DecompositionManifestWriterSelectorTest {
   @Test
   fun `decomposition planning rejects present invalid selector ids`() {

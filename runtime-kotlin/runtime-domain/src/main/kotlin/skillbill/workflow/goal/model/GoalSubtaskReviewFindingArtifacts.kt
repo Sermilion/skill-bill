@@ -3,14 +3,13 @@ package skillbill.workflow.goal.model
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.review.context.model.CodeReviewExecutionMode
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewSeverity
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-
+import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewSeverity
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 val GOAL_SUBTASK_REVIEW_PASS_VERDICTS: Set<FeatureTaskRuntimeVerdict> = setOf(
   FeatureTaskRuntimeVerdict.APPROVED,
   FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,

@@ -4,12 +4,11 @@ import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
-import skillbill.application.workflow.openFeatureTask
-import skillbill.error.InvalidMcpToolArgumentError
+import skillbill.application.workflow.persist.openFeatureTask
+import skillbill.error.core.InvalidMcpToolArgumentError
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.componentForLegacyContext
 import skillbill.workflow.model.FeatureTaskRouteScope
-
 internal data class McpWorkflowOpenArgs(
   val kind: WorkflowFamilyKind,
   val sessionId: String = "",

@@ -2,10 +2,10 @@ package skillbill.infrastructure.skills.install
 
 import skillbill.infrastructure.skills.install.apply.createNewSymlinkWithGuidance
 import skillbill.infrastructure.skills.install.apply.currentNativeAgentApplyCacheRoot
-import skillbill.infrastructure.skills.install.nativeagent.InstallNativeAgentResult
-import skillbill.infrastructure.skills.install.nativeagent.NativeAgentLinkInventory
-import skillbill.infrastructure.skills.install.nativeagent.NativeAgentLinkOwnership
-import skillbill.infrastructure.skills.install.nativeagent.installNativeAgentFile
+import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentResult
+import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOwnership
+import skillbill.infrastructure.skills.install.nativeagent.install.native.installNativeAgentFile
+import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventory
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.AgentTarget
 import skillbill.install.model.InstallAgent
@@ -22,7 +22,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupport() {
   @Test
   fun `apply removes inventory-recorded dangling baseline orchestrator links`() {

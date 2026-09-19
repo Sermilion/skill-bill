@@ -1,7 +1,5 @@
 package skillbill.review.model
-
-import skillbill.review.context.model.ReviewLaneReviewDisposition
-
+import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 data class ReviewLaneAggregationInput(
   val lane: String,
   val commitSequenceDigest: String,

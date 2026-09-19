@@ -1,7 +1,6 @@
 package skillbill.engine
-import skillbill.engine.featuretask.FeatureTaskRuntimeReviewDriver
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-
+import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 internal const val REVIEW_FIX_BLOCKER_FINDING_ID = "F-001"
 
 internal var harnessPendingVerifyFindingIds: List<String> = emptyList()

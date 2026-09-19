@@ -8,7 +8,7 @@ object PrincipleEnforcementInventory {
   const val RUNTIME_CLI_SRC: String = "runtime-kotlin/runtime-cli/src"
   const val SPILLOVER_FILE_NAME_BASELINE: String = "spillover-file-name-baseline.txt"
   const val RUNTIME_COMPONENT_SOURCE: String =
-    "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt"
+    "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeComponent.kt"
 
   data class ModuleArchitectureScanCase(
     val moduleName: String,
@@ -94,18 +94,20 @@ object PrincipleEnforcementInventory {
 
   val sanctionedCompositionEntrypoints: Set<String> = setOf(
     "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
-      "skillbill/infrastructure/skills/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
+      "skillbill/infrastructure/skills/scaffold/runtime/service/standalone/ScaffoldStandaloneEntrypoint.kt",
   )
 
   val ambientEnvironmentExemptions: Set<String> = setOf(
     "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/core/Main.kt",
-    "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeBootstrapBindings.kt",
+    "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeBootstrapBindings.kt",
   )
 
   val enforceableRules: List<String> = listOf(
     "Wire vocabulary and contract-key declarations must be unique, dynamically indexed, and referenced " +
       "without local token collections or literal payload-key accesses.",
     "Package clustering: loose files in a subpackaged area must not belong to a sibling area cluster.",
+    "Production package siblings: non-model packages stay at or below 12 files and model packages at or below " +
+      "20 files, except for the named remainder inventory.",
     "Production line ceiling: no production Kotlin file may exceed $PRODUCTION_LINE_CEILING lines without an " +
       "explicit exemption.",
     "Production logical-type line ceiling: attribute extension files to receiver types and enforce combined totals.",
@@ -153,7 +155,7 @@ object PrincipleEnforcementInventory {
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
       "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:sqlite")}/src/main/kotlin/" +
-        "skillbill/infrastructure/sqlite/workflow/GoalRunnerControlStore.kt",
+        "skillbill/infrastructure/sqlite/workflow/goalrunner/runner/GoalRunnerControlStore.kt",
       functionNames = setOf(
         "decodeControlState",
         "decodeReviewPolicy",
@@ -170,7 +172,7 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/phase/" +
         "FeatureTaskRuntimePhaseOutputValidationModels.kt",
       functionNames = setOf(
         "fromWire",
@@ -182,31 +184,32 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/handoff/task/" +
         "FeatureTaskRuntimeHandoffSourceRef.kt",
       functionNames = setOf("fromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/handoff/task/" +
         "FeatureTaskRuntimeHandoffProjectionValue.kt",
       functionNames = setOf("fromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/handoff/task/" +
         "FeatureTaskRuntimeHandoffModels.kt",
       functionNames = setOf("fromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/" +
+        "task/runtime/run/" +
         "FeatureTaskRuntimeRunInvariantPromptFields.kt",
       functionNames = setOf("fromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/core/" +
         "FeatureTaskRuntimeRepositoryCheckpoint.kt",
       functionNames = setOf("fromWire"),
     ),
@@ -232,7 +235,7 @@ object PrincipleEnforcementInventory {
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
       "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
-        "skillbill/infrastructure/skills/scaffold/platformpack/ShellContentLoaderValidationGate.kt",
+        "skillbill/infrastructure/skills/scaffold/platformpack/loader/ShellContentLoaderValidationGate.kt",
       functionNames = setOf(
         "parseValidationGate",
         "parseValidationGateFindings",
@@ -258,19 +261,20 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/artifact/" +
         "DurableArtifactMapReader.kt",
       functionNames = setOf("durableArtifactMapReader"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/" +
+        "task/runtime/goal/" +
         "FeatureTaskRuntimeGoalContinuationArtifact.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/phase/" +
         "FeatureTaskRuntimePhaseLedgerPersistenceModels.kt",
       functionNames = setOf("fromArtifactMap", "fromWire", "fromWireValue"),
     ),
@@ -288,37 +292,39 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/core/" +
         "FeatureTaskRuntimeResolvedBranch.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/handoff/task/" +
         "FeatureTaskRuntimeHandoffEnvelope.kt",
       functionNames = setOf("fromEnvelopeMap", "projectionFromWire", "fieldFromWire", "handoffReader"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/" +
+        "task/runtime/implementation/" +
         "FeatureTaskRuntimeImplementationAttemptModels.kt",
       functionNames = setOf("fromArtifactMap", "featureTaskRuntimeImplementationAttemptsFromWire"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/" +
+        "task/runtime/goal/" +
         "FeatureTaskRuntimeGoalContinuationPersistenceModels.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/core/" +
         "FeatureTaskRuntimeDecomposeTerminal.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/phase/" +
         "FeatureTaskRuntimePhaseRecord.kt",
       functionNames = setOf("fromArtifactMap"),
     ),
@@ -508,13 +514,21 @@ object PrincipleEnforcementInventory {
     "session",
     "db",
     "verification",
+    "phaseoutput",
+    "process",
+    "agentaddon",
   )
 
-  val packageClusteringSourceRoots: List<String> = listOf(
-    RUNTIME_APPLICATION_MAIN,
-    "runtime-kotlin/runtime-domain/src/main/kotlin",
-    "runtime-kotlin/runtime-ports/src/main/kotlin",
-  )
+  val productionPackageSiblingCountSourceRoots: List<String> =
+    RuntimeModuleCatalog.declaredGradleModules
+      .filterNot { moduleName -> moduleName == "runtime-infra" }
+      .map { moduleName ->
+        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin"
+      } + "intellij-plugin/src/main/kotlin"
+
+  val packageSiblingCountRemainderInventory: Map<String, String> = emptyMap()
+
+  val packageClusteringSourceRoots: List<String> = productionPackageSiblingCountSourceRoots
 
   val conventionOwnedTestPatterns: List<Pair<String, String>> = listOf(
     """if\s*\(\s*project\.hasProperty\(\s*"update-snapshots"\s*\)\s*\)""" to "update-snapshots Test systemProperty",

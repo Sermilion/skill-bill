@@ -4,7 +4,7 @@ import skillbill.SAMPLE_REVIEW
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
-import skillbill.di.SkillBillVersion
+import skillbill.di.core.SkillBillVersion
 import skillbill.infrastructure.sqlite.withLifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.process.InstallerProcessPort
@@ -13,8 +13,8 @@ import skillbill.ports.process.model.InstallerProcessRequest
 import skillbill.ports.process.model.InstallerProcessResult
 import skillbill.ports.process.model.InstallerScriptFetchRequest
 import skillbill.ports.process.model.InstallerScriptFetchResult
-import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY
 import skillbill.telemetry.TELEMETRY_PROXY_URL_ENVIRONMENT_KEY

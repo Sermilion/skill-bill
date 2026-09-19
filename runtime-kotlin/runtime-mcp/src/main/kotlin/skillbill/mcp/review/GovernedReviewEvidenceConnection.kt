@@ -2,7 +2,7 @@ package skillbill.mcp.review
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
-import skillbill.error.GovernedReviewEvidenceTransportError
+import skillbill.error.shellcontent.GovernedReviewEvidenceTransportError
 import skillbill.mcp.shared.McpProtocolFramer
 import java.io.BufferedReader
 import java.io.BufferedWriter
@@ -11,7 +11,6 @@ import java.net.UnixDomainSocketAddress
 import java.nio.channels.Channels
 import java.nio.channels.SocketChannel
 import java.nio.file.Path
-
 internal class GovernedReviewEvidenceConnection(
   private val channel: SocketChannel,
   val reader: BufferedReader,

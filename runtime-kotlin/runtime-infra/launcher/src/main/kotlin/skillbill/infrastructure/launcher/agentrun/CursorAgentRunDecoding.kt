@@ -6,8 +6,7 @@ import skillbill.infrastructure.launcher.review.CursorReviewStreamForbiddenOpera
 import skillbill.infrastructure.launcher.review.CursorReviewStreamMalformedError
 import skillbill.infrastructure.launcher.review.CursorReviewStreamProviderFailureError
 import skillbill.infrastructure.launcher.review.CursorReviewStreamTerminationError
-import skillbill.review.ParallelReviewFindingParser
-
+import skillbill.review.parallel.ParallelReviewFindingParser
 internal fun decodeCursorStreamJson(stdout: String): DecodedAgentRunOutput {
   if (stdout.isBlank()) {
     return DecodedAgentRunOutput("")

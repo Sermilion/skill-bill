@@ -2,13 +2,12 @@ package skillbill.engine.featuretask.validation
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
-import skillbill.error.ShellContentContractException
+import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.review.plan.ReviewStackRouting
 import skillbill.review.plan.model.ReviewRoutingChangedFile
 import skillbill.review.plan.model.ReviewStackRoutingResult
 import skillbill.scaffold.model.PlatformManifest
-
 @Inject
 class ValidationGateResolver(
   private val installedCatalog: InstalledPlatformPackCatalogPort,

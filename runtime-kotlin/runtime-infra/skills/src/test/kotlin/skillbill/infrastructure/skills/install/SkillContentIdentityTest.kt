@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.error.SkillContentIdentityMismatchError
+import skillbill.error.shellcontent.SkillContentIdentityMismatchError
 import skillbill.infrastructure.skills.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
 import skillbill.infrastructure.skills.install.identity.SkillContentIdentity
 import skillbill.infrastructure.skills.install.identity.routeInstalledSkillBody
@@ -10,7 +10,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class SkillContentIdentityTest {
   @Test
   fun `equivalent source staged and symlink identities are accepted without reading installed body`() {

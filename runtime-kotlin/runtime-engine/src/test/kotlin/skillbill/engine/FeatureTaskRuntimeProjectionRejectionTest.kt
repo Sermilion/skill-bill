@@ -1,13 +1,12 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeProjectionRejectionTest {
   @Test
   fun `implement prose missing value blocks audit with a malformed-field reason`() {

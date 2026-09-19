@@ -1,6 +1,6 @@
 package skillbill.engine
 import skillbill.application.testHarnessClock
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkerCoordinator
+import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeWorkerCoordinator
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership

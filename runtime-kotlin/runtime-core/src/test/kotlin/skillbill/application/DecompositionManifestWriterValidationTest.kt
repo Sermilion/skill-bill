@@ -4,9 +4,9 @@ import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidDecompositionManifestSchemaError
-import skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator
-import skillbill.infrastructure.workflow.FileSystemDecompositionManifestFileStore
+import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
+import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestSchemaValidator
+import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -16,7 +16,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-
 class DecompositionManifestWriterValidationTest {
   private val validator: DecompositionManifestValidator = DecompositionManifestSchemaValidator()
   private val fileStore = FileSystemDecompositionManifestFileStore()

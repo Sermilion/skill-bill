@@ -10,15 +10,14 @@ import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.work.model.WorkItemKind
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class IdeStatusServiceGoalProjectionTest {
 
   @Test

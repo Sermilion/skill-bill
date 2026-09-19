@@ -1,9 +1,9 @@
 package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
-import skillbill.cli.goal.goalResetExitCode
-import skillbill.cli.goal.goalResetText
-import skillbill.cli.goal.toGoalResetCliMap
+import skillbill.cli.goal.control.goalResetText
+import skillbill.cli.goal.control.toGoalResetCliMap
+import skillbill.cli.goal.core.goalResetExitCode
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.goalrunner.GoalRunnerResetPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerResetResult
@@ -11,7 +11,6 @@ import skillbill.engine.goalrunner.model.GoalRunnerResetSnapshot
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-
 class CliGoalResetOptionGateTest {
   @Test
   fun `goal reset rejects preserve-planning without hard`() {

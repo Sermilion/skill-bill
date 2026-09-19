@@ -1,8 +1,6 @@
 package skillbill.ports.review.model
-
-import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.review.context.model.requireRepositoryRelativePath
-
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+import skillbill.review.context.model.execution.requireRepositoryRelativePath
 sealed interface ReviewEvidenceCoordinates {
   data class Committed(val revision: String) : ReviewEvidenceCoordinates {
     init {

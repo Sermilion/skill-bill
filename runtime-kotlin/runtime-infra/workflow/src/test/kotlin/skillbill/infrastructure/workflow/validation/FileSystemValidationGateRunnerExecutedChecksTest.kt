@@ -11,13 +11,12 @@ import skillbill.scaffold.model.ValidationGateExecutedWorkFormat
 import skillbill.scaffold.model.ValidationGateExecutedWorkSignal
 import skillbill.scaffold.model.ValidationGateFindingsFormat
 import skillbill.scaffold.model.ValidationGateFindingsLocator
-import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
-import skillbill.workflow.taskruntime.model.ValidationGateRunOutcome
+import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
+import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class FileSystemValidationGateRunnerExecutedChecksTest {
   @Test
   fun `gradle compile and test outputs with zero work retain stable check identities`() {

@@ -6,10 +6,10 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import skillbill.cli.core.CliRuntime
-import skillbill.cli.kernel.CliRunState
+import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.cli.scaffold.readCliTextFile
+import skillbill.cli.scaffold.payload.readCliTextFile
 import skillbill.contracts.JsonCodec
 import java.nio.file.Files
 import java.nio.file.Path
@@ -18,7 +18,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class CliScaffoldRuntimeTest {
   @Test
   fun `attached payload stdin form is consumed after parsing`() {

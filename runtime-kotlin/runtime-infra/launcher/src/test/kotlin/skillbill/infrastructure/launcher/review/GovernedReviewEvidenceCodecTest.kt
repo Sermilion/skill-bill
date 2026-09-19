@@ -2,17 +2,16 @@ package skillbill.infrastructure.launcher.review
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
-import skillbill.error.InvalidGovernedReviewEvidenceRequestError
+import skillbill.error.core.InvalidGovernedReviewEvidenceRequestError
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewEvidenceResult
-import skillbill.review.context.model.ForbiddenReviewOperation
-import skillbill.review.context.model.GovernedReviewJsonRpcArguments
-import skillbill.review.context.model.ReviewExpansionRecord
+import skillbill.review.context.model.execution.ForbiddenReviewOperation
+import skillbill.review.context.model.execution.GovernedReviewJsonRpcArguments
+import skillbill.review.context.model.packet.ReviewExpansionRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class GovernedReviewEvidenceCodecTest {
   @Test
   fun `non-object read selector fails with typed request error`() {

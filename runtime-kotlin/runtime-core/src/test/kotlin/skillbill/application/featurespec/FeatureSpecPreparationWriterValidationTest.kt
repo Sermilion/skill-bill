@@ -2,17 +2,17 @@ package skillbill.application.featurespec
 
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.loadDecompositionManifest
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
-import skillbill.engine.featuretask.FeatureSpecPreparationWriter
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
+import skillbill.engine.featuretask.prepare.FeatureSpecPreparationWriter
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.featurespec.model.FeatureSpecPreparationDecision
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
 import skillbill.featurespec.model.FeatureSpecWriteRequest
 import skillbill.featurespec.model.FeatureSpecWriteResult
-import skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator
-import skillbill.infrastructure.workflow.FileSystemDecompositionManifestFileStore
+import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestSchemaValidator
+import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
 import skillbill.model.EnvironmentContext
 import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
@@ -26,7 +26,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class FeatureSpecPreparationWriterValidationTest {
   private val validator = DecompositionManifestSchemaValidator()
   private val fileStore = FileSystemDecompositionManifestFileStore()

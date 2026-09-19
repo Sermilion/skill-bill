@@ -1,13 +1,12 @@
 package skillbill.scaffold
 import skillbill.infrastructure.skills.nativeagent.testNativeAgentCompositionContext
-import skillbill.infrastructure.skills.scaffold.runtime.RepoValidationRuntime
+import skillbill.infrastructure.skills.scaffold.runtime.validation.RepoValidationRuntime
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class RepoValidationReleasePolicyTest {
   @Test
   fun `repository validation surfaces malformed agent addon without changing report counts`() {

@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
-import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
+import skillbill.infrastructure.sqlite.core.ops.inNestedWriteTransaction
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.lang.reflect.Proxy
 import java.nio.file.Path

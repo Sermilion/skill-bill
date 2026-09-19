@@ -3,8 +3,8 @@ package skillbill.scaffold
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.infrastructure.skills.nativeagent.discovery.discoverNativeAgentSourceEntries
 import skillbill.infrastructure.skills.nativeagent.testComposeNativeAgentSource
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
-import skillbill.review.context.model.ReviewPacketConsumerContract
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
+import skillbill.review.context.model.packet.ReviewPacketConsumerContract
 import skillbill.review.plan.ReviewLaunchPlanPolicy
 import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
 import skillbill.testing.HARBOR_ADDON_SLUG
@@ -17,7 +17,6 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class ComposedReviewLaunchPlanTest {
   @Test
   fun `composed kmp plan resolves seven kmp lanes and three kotlin baseline lanes`() {

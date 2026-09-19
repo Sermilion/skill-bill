@@ -1,7 +1,5 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.infrastructure.skills.FileSystemBaselineManifestPersistence
-import skillbill.infrastructure.skills.FileSystemInstalledWorkspaceBaselineStatus
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceSide
 import skillbill.infrastructure.skills.install.reconcile.enumerateSkills
@@ -13,7 +11,6 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-
 class FileSystemInstalledWorkspaceBaselineStatusTest : InstallApplyTestSupport() {
   private val persistence = FileSystemBaselineManifestPersistence()
   private val status = FileSystemInstalledWorkspaceBaselineStatus(persistence)

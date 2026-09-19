@@ -5,16 +5,16 @@ import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
 import skillbill.application.testRepositoryRoot
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.WorkflowService
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
-import skillbill.application.workflow.openFeatureTask
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
-import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
-import skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult
+import skillbill.application.workflow.persist.openFeatureTask
+import skillbill.application.workflow.service.WorkflowService
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
+import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
@@ -22,13 +22,12 @@ import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-
 class FeatureTaskRouterContinuationTest {
   @Test
   fun `runtime router continuation after plan preserves identity and supplies only completed plan`() {

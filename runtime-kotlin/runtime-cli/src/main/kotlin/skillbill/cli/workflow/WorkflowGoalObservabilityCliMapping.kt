@@ -1,11 +1,10 @@
 package skillbill.cli.workflow
 
-import skillbill.application.workflow.WorkflowWireProjections
+import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.JsonCodec
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
-
 internal fun workflowSnapshotCliMap(
   snapshot: WorkflowSnapshotView,
   goalObservabilityEventValidator: GoalObservabilityEventValidator,

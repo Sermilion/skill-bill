@@ -1,17 +1,17 @@
 package skillbill.infrastructure.skills.scaffold.adapters
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.error.InvalidScaffoldPayloadError
-import skillbill.error.MissingRequiredSectionError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.MissingRequiredSectionError
 import skillbill.infrastructure.skills.agentaddon.discoverAgentAddons
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringTarget
 import skillbill.infrastructure.skills.scaffold.authoring.validateTarget
-import skillbill.infrastructure.skills.scaffold.platformpack.declaredCodeReviewSkillNames
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
-import skillbill.infrastructure.skills.scaffold.platformpack.unsupportedCompositionModeReason
-import skillbill.infrastructure.skills.scaffold.runtime.CONTENT_BODY_FILENAME
-import skillbill.infrastructure.skills.scaffold.runtime.ScaffoldPlan
-import skillbill.infrastructure.skills.scaffold.runtime.displayNameFromSlug
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.declaredCodeReviewSkillNames
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.unsupportedCompositionModeReason
+import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldPlan
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.CONTENT_BODY_FILENAME
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.displayNameFromSlug
 import skillbill.ports.scaffold.repo.ScaffoldRepoValidationPort
 import skillbill.ports.scaffold.repo.model.ScaffoldAuthoringValidationRequest
 import skillbill.ports.scaffold.repo.model.ScaffoldAuthoringValidationResult

@@ -3,7 +3,7 @@ package skillbill.engine
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.engine.featuretask.FeatureTaskRuntimePhasePromptComposer
+import skillbill.engine.featuretask.phase.prompt.compose.FeatureTaskRuntimePhasePromptComposer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

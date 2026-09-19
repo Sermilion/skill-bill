@@ -1,11 +1,10 @@
 package skillbill.goalrunner.model
 
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class GoalRunnerExecutionLeaseInstantTest {
   @Test
   fun `malformed execution lease timestamp fails typed at construction`() {

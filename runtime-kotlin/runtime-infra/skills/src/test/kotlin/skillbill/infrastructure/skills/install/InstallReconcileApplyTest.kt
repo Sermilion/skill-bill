@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.error.ReconciliationConflictError
+import skillbill.error.shellcontent.ReconciliationConflictError
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
 import skillbill.infrastructure.skills.install.reconcile.applyReconciliation
 import skillbill.infrastructure.skills.install.reconcile.computeReconciliationPlan
@@ -13,7 +13,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class InstallReconcileApplyTest : InstallApplyTestSupport() {
   private fun roots(repoRoot: Path) = ReconcileSourceRoots(
     repoRoot = repoRoot,

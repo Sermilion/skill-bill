@@ -1,11 +1,10 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
 import java.sql.Connection
-
 internal class SqliteFeatureTaskPhaseSettlementStore(
   private val connection: Connection,
 ) : FeatureTaskPhaseSettlementRepository {

@@ -1,10 +1,9 @@
 package skillbill.infrastructure.contracts.phaseoutput
 
 import com.fasterxml.jackson.databind.JsonNode
-import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputSourceLocation
-
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 internal object StructuralRepairDecisions {
   fun accepted(
     text: String,

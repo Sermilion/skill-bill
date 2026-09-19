@@ -1,16 +1,15 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.review.ReviewFinishedPayloadBuildRequest
-import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
-import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
-import skillbill.ports.telemetry.LifecycleTelemetryRepository
+import skillbill.infrastructure.sqlite.review.stats.ReviewFinishedPayloadBuildRequest
+import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
+import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
 import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
-import skillbill.review.ReviewParser
+import skillbill.review.parsing.ReviewParser
 import java.nio.file.Files
 import java.sql.Connection
 import java.time.Clock
-
 fun telemetryReliabilityEmittedEnvelope(
   eventName: String,
   contractVersion: String,

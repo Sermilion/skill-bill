@@ -3,11 +3,10 @@ package skillbill.application.telemetry.settings
 import skillbill.application.telemetry.model.TelemetryMutationResult
 import skillbill.application.telemetry.sync.telemetrySyncTarget
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.telemetry.TelemetrySettingsProvider
+import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.telemetry.model.TelemetrySettings
 import kotlin.coroutines.cancellation.CancellationException
-
 internal const val TELEMETRY_SETTINGS_LOAD_FAILURE_MESSAGE =
   "Telemetry settings could not be loaded; treating telemetry as disabled."
 

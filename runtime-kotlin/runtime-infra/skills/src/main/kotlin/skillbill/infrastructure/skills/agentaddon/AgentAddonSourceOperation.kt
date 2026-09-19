@@ -1,7 +1,5 @@
 package skillbill.infrastructure.skills.agentaddon
-
-import skillbill.error.InvalidAgentAddonSchemaError
-
+import skillbill.error.shellcontent.InvalidAgentAddonSchemaError
 internal inline fun <T> sourceOperation(sourceLabel: String, fallbackReason: String, operation: () -> T): T =
   runCatching(operation).getOrElse { error ->
     throw error.asSourceSchemaError(sourceLabel, fallbackReason)

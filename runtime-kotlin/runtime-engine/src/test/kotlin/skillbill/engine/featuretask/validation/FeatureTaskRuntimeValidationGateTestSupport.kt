@@ -3,12 +3,12 @@ package skillbill.engine.featuretask.validation
 import skillbill.config.model.RepoLocalConfig
 import skillbill.config.model.ValidationGateRepoConfig
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLauncher
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateProgressStore
-import skillbill.error.ContractVersionMismatchError
+import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.config.model.ReadRepoLocalConfigResult
@@ -30,14 +30,13 @@ import skillbill.scaffold.model.ValidationGateExecutedWorkSignal
 import skillbill.scaffold.model.ValidationGateFindingsFormat
 import skillbill.scaffold.model.ValidationGateFindingsLocator
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
-import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
-import skillbill.workflow.taskruntime.model.ValidationGateRunOutcome
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
+import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
+import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import java.nio.file.Path
-
 internal val validationGateTestRepoRoot: Path = Path.of(".").toAbsolutePath().normalize()
 
 internal val validationGateTestDeclaration: ValidationGateDeclaration = ValidationGateDeclaration(

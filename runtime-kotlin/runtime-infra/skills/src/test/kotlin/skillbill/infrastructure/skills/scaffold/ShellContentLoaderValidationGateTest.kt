@@ -1,8 +1,8 @@
 package skillbill.infrastructure.skills.scaffold
 
 import org.yaml.snakeyaml.Yaml
-import skillbill.error.InvalidValidationGateDeclarationError
-import skillbill.infrastructure.skills.scaffold.platformpack.parseValidationGate
+import skillbill.error.shellcontent.InvalidValidationGateDeclarationError
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.parseValidationGate
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test
@@ -11,7 +11,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-
 class ShellContentLoaderValidationGateTest {
   @Test
   fun `absent validation_gate parses to null`() {

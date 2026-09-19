@@ -1,10 +1,9 @@
 package skillbill.review.model
 
-import skillbill.review.context.model.ReviewLaneReviewDisposition
+import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class ReviewCoverageReportTest {
   @Test fun `complete disposition with empty unreviewed units renders clean coverage`() {
     val report = ReviewCoverageReport(

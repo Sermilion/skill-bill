@@ -2,16 +2,16 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
-import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
-import skillbill.workflow.taskruntime.model.ValidationGateRunOutcome
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
+import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
+import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import java.nio.file.Files
 import java.time.Instant
 import kotlin.test.Test

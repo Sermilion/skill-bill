@@ -1,15 +1,14 @@
 package skillbill.infrastructure.skills.scaffold.payload
 
-import skillbill.error.InvalidScaffoldPayloadError
-import skillbill.error.ScaffoldPayloadVersionMismatchError
-import skillbill.error.UnknownPreShellFamilyError
-import skillbill.error.UnknownSkillKindError
+import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+import skillbill.error.shellcontent.ScaffoldPayloadVersionMismatchError
+import skillbill.error.shellcontent.UnknownPreShellFamilyError
+import skillbill.error.shellcontent.UnknownSkillKindError
 import skillbill.scaffold.policy.scaffold.ACTIVE_CREATION_SKILL_KINDS
 import skillbill.scaffold.policy.scaffold.RETIRED_CODE_REVIEW_AREA_KIND_ALIASES
 import skillbill.scaffold.policy.scaffold.RETIRED_PLATFORM_OVERRIDE_KIND_ALIASES
 import skillbill.scaffold.policy.scaffold.SCAFFOLD_PAYLOAD_VERSION
 import skillbill.scaffold.policy.scaffold.rejectRetiredPartialScaffoldKind
-
 internal fun validatePayloadVersion(payload: Map<String, Any?>) {
   val version = payload["scaffold_payload_version"] as? String
     ?: throw InvalidScaffoldPayloadError(

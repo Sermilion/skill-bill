@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.infrastructure.skills.scaffold.runtime.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.ports.repository.toFileLocation
@@ -10,7 +10,6 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.util.Comparator
 import kotlin.test.AfterTest
-
 open class InternalSkillStagingTestSupport {
   protected val tempDirs = mutableListOf<Path>()
 

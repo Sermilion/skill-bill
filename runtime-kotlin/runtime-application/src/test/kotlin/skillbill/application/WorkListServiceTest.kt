@@ -1,17 +1,17 @@
 package skillbill.application
 
 import skillbill.application.work.WorkListService
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
-import skillbill.ports.review.ReviewRepository
-import skillbill.ports.telemetry.LifecycleTelemetryRepository
-import skillbill.ports.telemetry.TelemetryOutboxRepository
-import skillbill.ports.telemetry.TelemetryReconciliationRepository
+import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
+import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
@@ -25,7 +25,6 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class WorkListServiceTest {
   @Test
   fun `work list invokes the workflow snapshot validation read seam before returning a workflow row`() {

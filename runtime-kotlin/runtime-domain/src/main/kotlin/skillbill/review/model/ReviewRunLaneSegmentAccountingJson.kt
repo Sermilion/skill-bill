@@ -1,13 +1,12 @@
 package skillbill.review.model
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.error.JsonWrongRootTypeError
-import skillbill.error.MalformedJsonTextError
-import skillbill.review.context.model.ReviewLaneSegmentAccounting
+import skillbill.error.core.JsonWrongRootTypeError
+import skillbill.error.core.MalformedJsonTextError
+import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
 import java.math.BigDecimal
 import java.math.BigInteger
-
 object ReviewRunLaneSegmentAccountingJson {
   fun encode(segments: List<ReviewLaneSegmentAccounting>): String? {
     if (segments.isEmpty()) return null

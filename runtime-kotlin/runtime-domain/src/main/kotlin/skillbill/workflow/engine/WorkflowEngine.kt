@@ -1,7 +1,7 @@
 package skillbill.workflow.engine
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.WorkflowContinueSessionSummary
+import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowContinueDecision
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection
@@ -16,7 +16,6 @@ import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-
 private typealias CheckpointResolver = () -> String
 
 private val unresolvedCheckpoint: CheckpointResolver = { "" }

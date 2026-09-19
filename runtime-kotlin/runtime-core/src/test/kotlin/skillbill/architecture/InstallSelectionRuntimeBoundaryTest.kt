@@ -1,8 +1,8 @@
 package skillbill.architecture
 
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
-import skillbill.error.MissingInstallSelectionRecordError
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
+import skillbill.error.shellcontent.MissingInstallSelectionRecordError
 import skillbill.model.EnvironmentContext
 import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
@@ -12,7 +12,6 @@ import skillbill.ports.install.selection.model.ReadLatestSuccessfulInstallSelect
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
-
 class InstallSelectionRuntimeBoundaryTest {
   @Test
   fun `runtime component exposes shared install selection persistence port`() {

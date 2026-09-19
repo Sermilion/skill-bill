@@ -1,15 +1,14 @@
 package skillbill.cli
 
 import com.github.ajalt.clikt.core.UsageError
-import skillbill.cli.kernel.SKILL_BILL_AGENT_ENV
-import skillbill.cli.kernel.requireInvokingAgentId
-import skillbill.cli.kernel.requireSupportedOptionalAgentId
+import skillbill.cli.kernel.agent.SKILL_BILL_AGENT_ENV
+import skillbill.cli.kernel.agent.requireInvokingAgentId
+import skillbill.cli.kernel.agent.requireSupportedOptionalAgentId
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
-
 class InvokingAgentResolutionTest {
   @Test
   fun `unknown explicit agent is refused with the supported list`() {

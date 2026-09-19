@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 class PrincipleEnforcementInventoryTest {
   @Test
   fun `inventory lists nineteen enforceable rules and deliberate review-only rules`() {
-    assertEquals(21, PrincipleEnforcementInventory.enforceableRules.size)
+    assertEquals(22, PrincipleEnforcementInventory.enforceableRules.size)
     assertEquals(3, PrincipleEnforcementInventory.reviewOnlyRules.size)
     assertEquals(32, PrincipleEnforcementInventory.parseBoundarySites.size)
     assertEquals(emptyMap(), PrincipleEnforcementInventory.productionLineCeilingExemptions)
@@ -14,7 +14,7 @@ class PrincipleEnforcementInventoryTest {
     assertEquals(
       setOf(
         "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/core/Main.kt",
-        "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeBootstrapBindings.kt",
+        "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeBootstrapBindings.kt",
       ),
       PrincipleEnforcementInventory.ambientEnvironmentExemptions,
     )

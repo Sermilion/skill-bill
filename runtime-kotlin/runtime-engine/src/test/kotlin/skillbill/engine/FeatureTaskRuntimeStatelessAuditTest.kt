@@ -1,28 +1,27 @@
 package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
-import skillbill.engine.featuretask.GoalContinuationStateRecordRequest
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
-import skillbill.engine.featuretask.reviewState
+import skillbill.engine.featuretask.lifecycle.continuation.GoalContinuationStateRecordRequest
+import skillbill.engine.featuretask.lifecycle.continuation.reviewState
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
-import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewDisposition
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeStatelessAuditTest {
   private fun seedPlanningUpstreamPhases(harness: RunnerHarness) {
     harness.seedPhase("preplan", "completed", 1, "claude", PREPLAN_OUTPUT)

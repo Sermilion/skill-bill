@@ -1,10 +1,10 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.FeatureTaskRuntimeBranchDecisionInvalid
-import skillbill.engine.featuretask.FeatureTaskRuntimeBranchDecisionResolved
-import skillbill.engine.featuretask.FeatureTaskRuntimeBranchSetup
-import skillbill.engine.featuretask.FeatureTaskRuntimeTargetBranchInvalid
-import skillbill.engine.featuretask.FeatureTaskRuntimeTargetBranchResolved
+import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchDecisionInvalid
+import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchDecisionResolved
+import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchSetup
+import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeTargetBranchInvalid
+import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeTargetBranchResolved
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

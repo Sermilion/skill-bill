@@ -1,10 +1,9 @@
 package skillbill.ports.featuretask.model
 
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
-import skillbill.error.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
+import skillbill.contracts.workflow.identity.task.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
 import java.time.Instant
 import java.time.format.DateTimeParseException
-
 data class FeatureTaskRuntimeWorkerOwnership(
   val workflowId: String,
   val generation: Long,

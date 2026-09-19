@@ -6,11 +6,11 @@ import skillbill.infrastructure.launcher.agentrun.CodexAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.FileSystemAgentRunLauncher
 import skillbill.infrastructure.launcher.agentrun.ProcessAgentRunAdapter
 import skillbill.infrastructure.launcher.agentrun.headlessAgentRunAdapters
-import skillbill.infrastructure.launcher.process.AgentRunIdlePolicy
-import skillbill.infrastructure.launcher.process.AgentRunProcessRequest
-import skillbill.infrastructure.launcher.process.AgentRunProcessResult
-import skillbill.infrastructure.launcher.process.AgentRunProcessRunner
-import skillbill.infrastructure.launcher.process.JvmAgentRunProcessRunner
+import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRequest
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessResult
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRunner
+import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
@@ -18,7 +18,7 @@ import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
-import skillbill.review.context.model.ReviewConversationIsolation
+import skillbill.review.context.model.launch.ReviewConversationIsolation
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import java.nio.file.Path
 import kotlin.test.Test
@@ -28,7 +28,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-
 class SupervisorProcessLoopEndToEndTest {
   @Test
   fun `supervisor-emitted declared events feed the declared-progress tracker within one run`() {

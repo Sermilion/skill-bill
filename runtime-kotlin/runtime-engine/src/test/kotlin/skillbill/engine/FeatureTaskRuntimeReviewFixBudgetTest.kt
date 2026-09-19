@@ -1,15 +1,14 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.FeatureTaskRuntimeContinuationKind
-import skillbill.engine.featuretask.auditGapIterationCount
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
-import skillbill.engine.featuretask.reviewFixCapExhaustion
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLedgerRequest
+import skillbill.engine.featuretask.review.core.auditGapIterationCount
+import skillbill.engine.featuretask.review.core.reviewFixCapExhaustion
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeContinuationKind
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-
 class FeatureTaskRuntimeReviewFixBudgetTest {
   @Test
   fun `a repair round that later completed spent no budget and an exhaustion stays readable after a resume`() {

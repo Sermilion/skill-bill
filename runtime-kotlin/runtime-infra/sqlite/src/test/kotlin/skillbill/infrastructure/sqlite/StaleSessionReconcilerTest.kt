@@ -1,10 +1,10 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.core.reconcileStaleFeatureTaskRuntimeSessions
-import skillbill.infrastructure.sqlite.core.reconcileStaleTelemetrySessions
-import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.core.ops.reconcileStaleFeatureTaskRuntimeSessions
+import skillbill.infrastructure.sqlite.core.ops.reconcileStaleTelemetrySessions
+import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
 import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
@@ -18,7 +18,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class StaleSessionReconcilerTest {
   @Test
   fun `ordinary duplicate finishes enqueue one terminal event for every lifecycle family`() {

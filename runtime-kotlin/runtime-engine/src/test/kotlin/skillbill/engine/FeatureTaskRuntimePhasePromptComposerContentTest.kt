@@ -1,15 +1,14 @@
 
 package skillbill.engine
-import skillbill.engine.featuretask.auditPhaseTaskDirective
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
+import skillbill.engine.featuretask.phase.prompt.directives.auditPhaseTaskDirective
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimePhasePromptComposerContentTest {
 
   @Test

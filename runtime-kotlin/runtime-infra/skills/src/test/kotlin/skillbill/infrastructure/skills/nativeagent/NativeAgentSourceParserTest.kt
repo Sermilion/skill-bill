@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.nativeagent
 
-import skillbill.error.InvalidNativeAgentCompositionSchemaError
+import skillbill.error.shellcontent.InvalidNativeAgentCompositionSchemaError
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionDirective
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionKind
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentSource
@@ -13,7 +13,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-
 class NativeAgentSourceParserTest {
   @Test
   fun `compose directive parses governed content target`() {

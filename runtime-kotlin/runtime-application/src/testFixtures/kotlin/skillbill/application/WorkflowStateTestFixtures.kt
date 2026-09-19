@@ -1,6 +1,6 @@
 package skillbill.application
 
-import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
@@ -10,10 +10,10 @@ import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
-import skillbill.ports.review.ReviewRepository
-import skillbill.ports.telemetry.LifecycleTelemetryRepository
-import skillbill.ports.telemetry.TelemetryOutboxRepository
-import skillbill.ports.telemetry.TelemetryReconciliationRepository
+import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
+import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
+import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
@@ -29,7 +29,6 @@ import skillbill.workflow.model.WorkflowStatus
 import java.lang.reflect.Proxy
 import java.nio.file.Path
 import java.time.Instant
-
 private fun passThroughReviewRepository(): ReviewRepository = Proxy.newProxyInstance(
   ReviewRepository::class.java.classLoader,
   arrayOf(ReviewRepository::class.java),

@@ -4,15 +4,14 @@ import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-
 class FeatureTaskRuntimeBuildGateProgressStoreIsolationTest {
   @Test
   fun `build gate progress store persists to build artifact without overwriting validation progress`() {

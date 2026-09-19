@@ -1,15 +1,15 @@
 package skillbill.infrastructure.http
 
-import skillbill.error.InvalidTelemetryTransportOutcomeError
-import skillbill.error.SkillBillRuntimeException
-import skillbill.error.TelemetryProxyInvalidResponseError
-import skillbill.error.TelemetryProxyRequestFailureError
-import skillbill.error.TelemetryRelayUrlUnconfiguredError
+import skillbill.error.core.InvalidTelemetryTransportOutcomeError
+import skillbill.error.core.SkillBillRuntimeException
+import skillbill.error.core.TelemetryProxyInvalidResponseError
+import skillbill.error.core.TelemetryProxyRequestFailureError
+import skillbill.error.core.TelemetryRelayUrlUnconfiguredError
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Files

@@ -1,7 +1,7 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
-import skillbill.error.InvalidMcpToolArgumentError
+import skillbill.error.core.InvalidMcpToolArgumentError
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.mcp.core.McpToolDispatcher
 import skillbill.mcp.shared.McpRuntimeContext
@@ -13,7 +13,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-
 class McpQualityCheckTelemetryNormalizationTest {
   @Test
   fun `quality check completion refuses runtime-owned telemetry keys`() {

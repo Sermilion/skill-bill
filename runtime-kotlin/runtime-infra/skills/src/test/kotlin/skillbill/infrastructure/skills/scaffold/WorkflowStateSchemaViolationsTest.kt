@@ -2,9 +2,9 @@ package skillbill.infrastructure.skills.scaffold
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator
-import skillbill.infrastructure.contracts.workflow.extractOffendingValueFromInstance
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
+import skillbill.infrastructure.contracts.workflow.workflow.extractOffendingValueFromInstance
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

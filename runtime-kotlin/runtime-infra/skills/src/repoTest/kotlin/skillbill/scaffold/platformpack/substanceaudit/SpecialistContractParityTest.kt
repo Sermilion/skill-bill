@@ -1,12 +1,11 @@
 
 package skillbill.scaffold.platformpack.substanceaudit
 
-import skillbill.infrastructure.skills.scaffold.runtime.RepoValidationRuntime
+import skillbill.infrastructure.skills.scaffold.runtime.validation.RepoValidationRuntime
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
 class SpecialistContractParityTest {
   @Test
   fun `delegated specialist subset exactly matches canonical sections`() {

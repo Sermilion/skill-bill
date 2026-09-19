@@ -1,12 +1,12 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.error.DatabaseAccessError
-import skillbill.error.DatabaseAccessOperation
-import skillbill.error.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
-import skillbill.error.UnresolvedEnvironmentContextFieldError
-import skillbill.infrastructure.sqlite.core.DatabaseIdentity
-import skillbill.infrastructure.sqlite.telemetry.parseDurationSeconds
-import skillbill.infrastructure.sqlite.workflow.parseWorkerLeaseInstant
+import skillbill.error.core.DatabaseAccessError
+import skillbill.error.core.DatabaseAccessOperation
+import skillbill.error.core.UnresolvedEnvironmentContextFieldError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
+import skillbill.infrastructure.sqlite.core.schema.DatabaseIdentity
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.durations.parseDurationSeconds
+import skillbill.infrastructure.sqlite.workflow.featuretask.parseWorkerLeaseInstant
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.nio.file.Files
@@ -16,7 +16,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-
 class SqliteDegradationDiagnosticsTest {
   @Test
   fun `unparsable lifecycle duration records one degradation and returns zero`() {

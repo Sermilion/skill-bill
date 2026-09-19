@@ -272,7 +272,7 @@ class RuntimeLayerBoundaryArchitectureTest {
       description = "home-directory path expansion",
     )
 
-    val reviewParsingPatterns = Files.readString(sourcePath("skillbill/review/ReviewParsingPatterns.kt"))
+    val reviewParsingPatterns = Files.readString(sourcePath("skillbill/review/parsing/ReviewParsingPatterns.kt"))
     assertTrue(
       "expandAndNormalizePath" !in reviewParsingPatterns,
       "ReviewParsingPatterns must stay pure string/regex parsing; filesystem path normalization belongs " +
@@ -331,7 +331,11 @@ class RuntimeLayerBoundaryArchitectureTest {
   @Test
   fun `review package is separated from sqlite runtime support`() {
     assertNoBannedImports(
-      files = sourceFiles().filter { it.packageName == "skillbill.review" },
+      files = sourceFiles().filter {
+        it.packageName == "skillbill.review" || it.packageName.startsWith(
+          "skillbill.review.",
+        )
+      },
       bannedImports =
       listOf(
         "java.sql",
@@ -342,11 +346,11 @@ class RuntimeLayerBoundaryArchitectureTest {
       ),
     )
 
-    val sqliteReviewRuntime = sourcePath("skillbill/infrastructure/sqlite/review/ReviewRuntime.kt")
-    val sqliteTriageRuntime = sourcePath("skillbill/infrastructure/sqlite/review/TriageRuntime.kt")
-    val sqliteStatsRuntime = sourcePath("skillbill/infrastructure/sqlite/review/ReviewStatsRuntime.kt")
+    val sqliteReviewRuntime = sourcePath("skillbill/infrastructure/sqlite/review/stage/runtime/ReviewRuntime.kt")
+    val sqliteTriageRuntime = sourcePath("skillbill/infrastructure/sqlite/review/stage/runtime/TriageRuntime.kt")
+    val sqliteStatsRuntime = sourcePath("skillbill/infrastructure/sqlite/review/stats/ReviewStatsRuntime.kt")
     listOf(sqliteReviewRuntime, sqliteTriageRuntime, sqliteStatsRuntime).forEach { path ->
-      assertContains(Files.readString(path), "package skillbill.infrastructure.sqlite.review")
+      assertContains(Files.readString(path), "package skillbill.infrastructure.sqlite.review.")
     }
   }
 
@@ -450,13 +454,18 @@ class RuntimeLayerBoundaryArchitectureTest {
   @Test
   fun `parallel review composition root owns collaborator wiring`() {
     val runnerSource = Files.readString(
-      sourcePath("skillbill/application/review/ParallelCodeReviewRunner.kt"),
+      sourcePath("skillbill/application/review/parallel/core/code/review/runner/ParallelCodeReviewRunner.kt"),
     )
     val compositionSource = Files.readString(
-      sourcePath("skillbill/application/review/ParallelCodeReviewRunnerComposition.kt"),
+      sourcePath(
+        "skillbill/application/review/parallel/core/code/review/runner/ParallelCodeReviewRunnerComposition.kt",
+      ),
     )
     val boundariesSource = Files.readString(
-      sourcePath("skillbill/application/review/model/ParallelCodeReviewRunnerBoundaries.kt"),
+      sourcePath(
+        "skillbill/application/review/parallel/core/code/review/runner/model/" +
+          "ParallelCodeReviewRunnerBoundaries.kt",
+      ),
     )
     assertTrue(
       !runnerSource.contains("ParallelCodeReviewRunnerBoundaries"),

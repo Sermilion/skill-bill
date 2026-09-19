@@ -1,12 +1,11 @@
 package skillbill.infrastructure.contracts.phaseoutput
 
 import com.fasterxml.jackson.databind.JsonNode
-import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.infrastructure.contracts.sha256Hex
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
-
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 internal object StructuralRepairCandidateEngine {
   private const val MAX_CANDIDATES = 8
 
