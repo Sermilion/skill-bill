@@ -14,6 +14,16 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 class GovernedReviewEvidenceCodecTest {
   @Test
+  fun `broker tools advertise bounded read only behavior to approval clients`() {
+    GovernedReviewEvidenceCodec.toolSpecList().asToolPayloads().forEach { tool ->
+      val annotations = tool["annotations"] as Map<*, *>
+      assertEquals(true, annotations["readOnlyHint"])
+      assertEquals(false, annotations["destructiveHint"])
+      assertEquals(false, annotations["openWorldHint"])
+    }
+  }
+
+  @Test
   fun `non-object read selector fails with typed request error`() {
     val error = assertFailsWith<InvalidGovernedReviewEvidenceRequestError> {
       GovernedReviewEvidenceCodec.readRequest(

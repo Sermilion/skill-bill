@@ -151,16 +151,29 @@ class FeatureTaskRuntimePhaseOutputWireSchemaTest {
   }
 
   @Test
-  fun `validate output with empty produced_outputs passes envelope validation`() {
-    val emptyProducedOutputs =
-      """
-      contract_version: "0.6"
-      phase_id: "validate"
-      status: "completed"
-      summary: "Gate repair segment."
-      produced_outputs: {}
+  fun `validate output requires a boolean signal and details`() {
+    listOf("{}", "{value: details}", "{value: details, validation_passed: 'true'}").forEach { produced ->
+      val output = """
+        contract_version: "0.6"
+        phase_id: validate
+        status: completed
+        summary: Checks finished.
+        produced_outputs: $produced
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(emptyProducedOutputs, "validate")
+      assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
+        FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(output, "validate")
+      }
+    }
+    listOf(true, false).forEach { passed ->
+      val output = """
+        contract_version: "0.6"
+        phase_id: validate
+        status: completed
+        summary: Checks finished.
+        produced_outputs: {value: details, validation_passed: $passed}
+      """.trimIndent()
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(output, "validate")
+    }
   }
 
   @Test

@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.runloop.state
 
+import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.testHarnessClock
 import skillbill.engine.IMPLEMENT_OUTPUT
 import skillbill.engine.PLAN_OUTPUT
@@ -16,6 +17,7 @@ import skillbill.engine.featuretask.runloop.core.ReconstructFixLoopBudgetBasesAr
 import skillbill.engine.featuretask.runner.serializeTokenData
 import skillbill.engine.runnerHarness
 import skillbill.engine.satisfiedAuditLauncher
+import skillbill.engine.validJsonOutput
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
@@ -29,6 +31,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhase
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
@@ -38,6 +41,39 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 class FeatureTaskRuntimeRunStateReconstructionTest {
+  @Test
+  fun `resume keeps only a true validation result and invalidates successors of false or missing results`() {
+    listOf(true to "completed", false to "completed", null to "completed", true to "failed")
+      .forEach { (signal, status) ->
+        val payload = validJsonOutput("validate").let { output ->
+          when (signal) {
+            true -> output
+            false -> output.replace("\"validation_passed\":true", "\"validation_passed\":false")
+            null -> output.replace("validation_passed", "missing_signal")
+          }
+        }
+        val validation = FeatureTaskRuntimePhaseRecord(
+          phaseId = "validate",
+          status = WorkflowStepStatus.COMPLETED,
+          attemptCount = 1,
+          startedAt = "2026-09-19T00:00:00Z",
+          resolvedAgentId = "claude",
+          outputArtifact = payload.replace("\"status\": \"completed\"", "\"status\": \"$status\""),
+        )
+        val history = validation.copy(phaseId = "write_history", outputArtifact = validJsonOutput("write_history"))
+        val state = FeatureTaskRuntimeRunState(
+          initialRecords = mapOf("validate" to validation, "write_history" to history),
+          transitions = FeatureTaskRuntimeTransitionDeclaration(listOf("validate", "write_history")),
+          outputValidator = realFeatureTaskRuntimePhaseOutputValidator,
+        )
+        val valid = signal == true && status == "completed"
+        assertEquals(valid, "validate" in state.completedPhaseIds())
+        assertEquals(valid, "write_history" in state.completedPhaseIds())
+        assertEquals(!valid, "validate" in state.phasesRequiringDurableGateInvalidation())
+        assertEquals(!valid, "write_history" in state.phasesRequiringDurableGateInvalidation())
+      }
+  }
+
   @Test
   fun `completed phase and output views cannot mutate run state`() {
     val state = FeatureTaskRuntimeRunState(

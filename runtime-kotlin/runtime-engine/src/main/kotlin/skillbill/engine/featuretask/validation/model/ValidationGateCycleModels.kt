@@ -50,6 +50,7 @@ fun interface ValidationGateAgentRepairLauncher {
 }
 
 sealed interface ValidationGateAgentRepairResult {
+  data class Paused(val reason: String) : ValidationGateAgentRepairResult
   data class Completed(val output: FeatureTaskRuntimePhaseOutput) : ValidationGateAgentRepairResult
   data class Blocked(
     val reason: String,
@@ -64,6 +65,7 @@ sealed interface ValidationGateCycleResult {
 }
 
 sealed interface ValidationGateCycleTerminalOutcome {
+  data class Paused(val reason: String) : ValidationGateCycleTerminalOutcome
   data class Completed(val output: FeatureTaskRuntimePhaseOutput) : ValidationGateCycleTerminalOutcome
 
   data class Blocked(

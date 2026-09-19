@@ -1,137 +1,14 @@
 package skillbill.engine.featuretask.validation
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
-import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLauncher
-import skillbill.engine.featuretask.validation.model.ValidationGateAgentTriageLauncher
-import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
-import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
-import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminalOutcome
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
-import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
-import skillbill.ports.validation.model.ValidationGateFinding
-import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.artifact.decodeValidationGateProgressFromArtifact
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRepairWindowPhase
-import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 class FeatureTaskRuntimeValidationGateTest {
-  @Test
-  fun `unparseable gate after agent still retries agent without injected findings`() {
-    val progress = mutableListOf<FeatureTaskRuntimeValidationGateProgress>()
-    val triageLaunches = AtomicInteger(0)
-    val repairLaunches = AtomicInteger(0)
-    val runner = ScriptedGateRunner(
-      listOf(failedEmptyFindings("Execution failed for task :spotlessCheck."), passed(forced = true)),
-    )
-    val cycle = coordinator(declaredResolver(), runner, progress).execute(
-      cycle = ValidationGateCycleRequest(
-        repoRoot = validationGateTestRepoRoot,
-        request = minimalRequest(),
-        validationDepth = ValidationDepth.DEFAULT,
-        changedPaths = listOf("runtime-kotlin/foo.kt"),
-        repositoryCheckpoint = "checkpoint",
-        agentTriageLauncher = ValidationGateAgentTriageLauncher { _ ->
-          triageLaunches.incrementAndGet()
-          ValidationGateTriageResult.Captured("should not run")
-        },
-        agentRepairLauncher = ValidationGateAgentRepairLauncher { findings, _, triagePlan ->
-          repairLaunches.incrementAndGet()
-          assertEquals(0, findings.findings.size)
-          assertEquals(null, triagePlan)
-          completedRepair()
-        },
-      ),
-    )
-    assertEquals(0, triageLaunches.get())
-    assertEquals(2, repairLaunches.get())
-    assertIs<ValidationGateCycleResult.Terminal>(cycle)
-    assertIs<ValidationGateCycleTerminalOutcome.Completed>(cycle.outcome)
-  }
-
-  @Test
-  fun `discrete findings after agent launch another agent without handing findings in`() {
-    val findingOne = ValidationGateFinding("m1", "r1", "msg1", "loc1")
-    val findingTwo = ValidationGateFinding("m2", "r2", "msg2", "loc2")
-    val triageLaunches = AtomicInteger(0)
-    val repairLaunches = AtomicInteger(0)
-    val runner = ScriptedGateRunner(listOf(failedWith(findingOne, findingTwo), passed(forced = true)))
-    val cycle = coordinator(declaredResolver(), runner, mutableListOf()).execute(
-      ValidationGateCycleRequest(
-        repoRoot = validationGateTestRepoRoot,
-        request = minimalRequest(),
-        validationDepth = ValidationDepth.DEFAULT,
-        changedPaths = listOf("runtime-kotlin/foo.kt"),
-        repositoryCheckpoint = "checkpoint",
-        agentTriageLauncher = ValidationGateAgentTriageLauncher { _ ->
-          triageLaunches.incrementAndGet()
-          ValidationGateTriageResult.Captured("should not run")
-        },
-        agentRepairLauncher = ValidationGateAgentRepairLauncher { findings, _, triagePlan ->
-          repairLaunches.incrementAndGet()
-          assertEquals(0, findings.findings.size)
-          assertEquals(null, triagePlan)
-          completedRepair()
-        },
-      ),
-    )
-    assertEquals(0, triageLaunches.get())
-    assertEquals(2, repairLaunches.get())
-    assertIs<ValidationGateCycleTerminalOutcome.Completed>(
-      assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
-    )
-  }
-
-  @Test
-  fun `agent runs before first gate check`() {
-    val repairLaunches = AtomicInteger(0)
-    val runner = ScriptedGateRunner(
-      listOf(failedEmptyFindings("unparseable blob"), passed(forced = true)),
-    )
-    coordinator(declaredResolver(), runner, mutableListOf()).execute(
-      ValidationGateCycleRequest(
-        repoRoot = validationGateTestRepoRoot,
-        request = minimalRequest(),
-        validationDepth = ValidationDepth.DEFAULT,
-        changedPaths = listOf("runtime-kotlin/foo.kt"),
-        repositoryCheckpoint = "checkpoint",
-        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
-          repairLaunches.incrementAndGet()
-          completedRepair()
-        },
-      ),
-    )
-    assertEquals(2, repairLaunches.get())
-    assertEquals(2, runner.calls)
-  }
-
-  @Test
-  fun `second gate verify uses cache bypass`() {
-    val progress = mutableListOf<FeatureTaskRuntimeValidationGateProgress>()
-    val runner = ScriptedGateRunner(
-      listOf(failedEmptyFindings("blob"), passed(forced = true)),
-    )
-    coordinator(declaredResolver(), runner, progress).execute(
-      ValidationGateCycleRequest(
-        repoRoot = validationGateTestRepoRoot,
-        request = minimalRequest(),
-        validationDepth = ValidationDepth.DEFAULT,
-        changedPaths = listOf("runtime-kotlin/foo.kt"),
-        repositoryCheckpoint = "checkpoint",
-        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
-          completedRepair()
-        },
-      ),
-    )
-    assertEquals(2, runner.calls)
-    assertEquals(2, progress.last().gateRunCount)
-    assertEquals(ValidationGateCacheMode.FORCED_FULL, runner.requests.last().cacheMode)
-    assertEquals(true, runner.requests.last().terminalVerifying)
-  }
-
   @Test
   fun `fromArtifactMap decodes findings_open with complete findings and legacy rows without repair_window_phase`() {
     val findingOne = validationFinding("m1", "r1")
@@ -194,57 +71,6 @@ class FeatureTaskRuntimeValidationGateTest {
       progressArtifact(gateRunCount, outcome, cacheMode, extra),
     ),
   )
-
-  @Test
-  fun `blocked agent turn still runs confirmation and can complete`() {
-    val repairLaunches = AtomicInteger(0)
-    val runner = ScriptedGateRunner(listOf(failedEmptyFindings("still red"), passed(forced = true)))
-    val cycle = coordinator(declaredResolver(), runner, mutableListOf()).execute(
-      ValidationGateCycleRequest(
-        repoRoot = validationGateTestRepoRoot,
-        request = minimalRequest(),
-        validationDepth = ValidationDepth.DEFAULT,
-        changedPaths = listOf("runtime-kotlin/foo.kt"),
-        repositoryCheckpoint = "checkpoint",
-        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
-          val launch = repairLaunches.incrementAndGet()
-          if (launch == 1) blockedRepair() else completedRepair()
-        },
-      ),
-    )
-    assertEquals(2, repairLaunches.get())
-    assertEquals(2, runner.calls)
-    assertIs<ValidationGateCycleTerminalOutcome.Completed>(
-      assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
-    )
-  }
-
-  @Test
-  fun `missing pack validation_gate blocks without launching an agent`() {
-    val repairLaunches = AtomicInteger(0)
-    val cycle = coordinator(
-      ValidationGateResolver { listOf(kotlinPackWithoutGate()) },
-      neverRunsGate(),
-      mutableListOf(),
-    ).execute(
-      ValidationGateCycleRequest(
-        repoRoot = validationGateTestRepoRoot,
-        request = minimalRequest(),
-        validationDepth = ValidationDepth.DEFAULT,
-        changedPaths = listOf("runtime-kotlin/foo.kt"),
-        repositoryCheckpoint = "checkpoint",
-        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
-          repairLaunches.incrementAndGet()
-          error("validate must not launch an agent when no pack declares validation_gate")
-        },
-      ),
-    )
-    assertEquals(0, repairLaunches.get())
-    val blocked = assertIs<ValidationGateCycleTerminalOutcome.Blocked>(
-      assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
-    )
-    assertEquals(FeatureTaskRuntimeValidationGateCoordinator.ABSENT_VALIDATION_GATE_REASON, blocked.reason)
-  }
 
   @Test
   fun `catalog gate wins when review routing only selects a no-gate fallback pack`() {

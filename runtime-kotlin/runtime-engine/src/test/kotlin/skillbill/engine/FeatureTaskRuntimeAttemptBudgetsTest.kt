@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 class FeatureTaskRuntimeAttemptBudgetsTest {
   @Test
-  fun `output-gate retries cap at one and process-failure stays at three`() {
+  fun `default output-gate retries cap at one and process-failure stays at three`() {
     assertEquals(1, FeatureTaskRuntimeAttemptBudgets.MAX_OUTPUT_GATE_RETRY_ATTEMPTS)
     assertEquals(1, FeatureTaskRuntimeAttemptBudgets.MAX_FORMAT_RETRY_ATTEMPTS)
     assertEquals(3, FeatureTaskRuntimeAttemptBudgets.MAX_PROCESS_FAILURE_ATTEMPTS)

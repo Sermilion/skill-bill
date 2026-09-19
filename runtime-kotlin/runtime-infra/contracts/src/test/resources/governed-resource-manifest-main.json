@@ -11,7 +11,7 @@
   "skillbill/infrastructure/contracts/feature-task-runtime-persistence-schema.yaml": "a0a42305773a376d5e40d62a1b0e9f99b913f49ab252894d822b1bf3527158db",
   "skillbill/infrastructure/contracts/feature-task-runtime-phase-handoff-schema.yaml": "88f02892077201ae8bfccf038461001ba8c8d3368099c3acc6d77cd6201878b7",
   "skillbill/infrastructure/contracts/feature-task-runtime-phase-launch-briefing-schema.yaml": "5cc37e85f417c042434540a4de14155623bd655805034443d98c6e791b7773d1",
-  "skillbill/infrastructure/contracts/feature-task-runtime-phase-output-schema.yaml": "8dfc4b29ca72772986d833b26c1111a03ad753ad69536fc1f709dd7a43945630",
+  "skillbill/infrastructure/contracts/feature-task-runtime-phase-output-schema.yaml": "0682149260015aff308e872b51716e0223a0ccab61db77ab6d61bcaab81e0856",
   "skillbill/infrastructure/contracts/feature-task-runtime-planning-projections-schema.yaml": "2dc03304e0290b911583fd6a48b9d709e55a06a1e4b63a3fe4da8a56cae9fb2f",
   "skillbill/infrastructure/contracts/feature-task-runtime-projection-measurement-schema.yaml": "0ba87d5cd5e01b8dfa684a34d1cb87d5bd2f2b81661f96fd792c332fda0056cd",
   "skillbill/infrastructure/contracts/feature-task-runtime-quarantine-schema.yaml": "32906967dcaa55da1381ecbf940d4d1fe661d054bc34750a460dc03981e41ca6",

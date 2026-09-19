@@ -4,16 +4,9 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.runloop.state.ValidationSettlementState
-import skillbill.engine.featuretask.runloop.state.ValidationSettlementValidation
-import skillbill.engine.featuretask.runloop.state.invalidateIncompleteValidationSettlement
 import skillbill.engine.featuretask.runloop.state.validationEvidenceFromEnvelope
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
-import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.artifact.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
@@ -22,8 +15,6 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 class FeatureTaskRuntimeValidationEvidenceSettlementTest {
   @Test
   fun `prose passed status cannot satisfy validate settlement when required command exited nonzero`() {
@@ -112,134 +103,6 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
     assertEquals(ValidationGateCacheMode.CACHE_ELIGIBLE, gateEvidence.gateRuns.first().cacheMode)
     assertEquals(ValidationGateCacheMode.FORCED_FULL, gateEvidence.gateRuns.last().cacheMode)
   }
-
-  @Test
-  fun `resume invalidates completed validate when persisted evidence is red`() {
-    val completed = mutableSetOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-    val gateInvalidated = mutableSetOf<String>()
-    val record = validatePhaseRecord(
-      validateEnvelope(command = "./gradlew check", exitCode = 1),
-    )
-    val state = ValidationSettlementState(
-      completed = completed,
-      initialRecords = mapOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to record),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      gateInvalidatedPhases = gateInvalidated,
-    )
-    invalidateIncompleteValidationSettlement(
-      state = state,
-      validation = absentGateValidation(),
-    )
-    assertFalse(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE in state.completed)
-    assertTrue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE in state.gateInvalidatedPhases)
-  }
-
-  @Test
-  fun `resume keeps completed validate when persisted evidence is valid`() {
-    val completed = mutableSetOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-    val gateInvalidated = mutableSetOf<String>()
-    val record = validatePhaseRecord(
-      validateEnvelope(command = "./gradlew check", exitCode = 0),
-    )
-    val state = ValidationSettlementState(
-      completed = completed,
-      initialRecords = mapOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to record),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      gateInvalidatedPhases = gateInvalidated,
-    )
-    invalidateIncompleteValidationSettlement(
-      state = state,
-      validation = absentGateValidation(),
-    )
-    assertTrue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE in state.completed)
-    assertTrue(gateInvalidated.isEmpty())
-  }
-
-  @Test
-  fun `resume invalidates completed validate when persisted evidence is missing`() {
-    val completed = mutableSetOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-    val gateInvalidated = mutableSetOf<String>()
-    val state = ValidationSettlementState(
-      completed = completed,
-      initialRecords = mapOf(
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to validatePhaseRecord(emptyMap()),
-      ),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      gateInvalidatedPhases = gateInvalidated,
-    )
-    invalidateIncompleteValidationSettlement(
-      state = state,
-      validation = absentGateValidation(),
-    )
-
-    assertFalse(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE in state.completed)
-    assertTrue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE in state.gateInvalidatedPhases)
-  }
-
-  @Test
-  fun `resume invalidates completed validate when persisted evidence is malformed`() {
-    val completed = mutableSetOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-    val gateInvalidated = mutableSetOf<String>()
-    val state = ValidationSettlementState(
-      completed = completed,
-      initialRecords = mapOf(
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to validatePhaseRecord(
-          mapOf(
-            ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to mapOf(
-              ValidationEvidencePayloadKeys.CONTRACT_VERSION to "0.1",
-              ValidationEvidencePayloadKeys.RESULTS to listOf(
-                mapOf(ValidationEvidencePayloadKeys.COMMAND to "./gradlew check"),
-              ),
-            ),
-          ),
-        ),
-      ),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      gateInvalidatedPhases = gateInvalidated,
-    )
-    invalidateIncompleteValidationSettlement(
-      state = state,
-      validation = absentGateValidation(),
-    )
-
-    assertFalse(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE in state.completed)
-    assertTrue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE in state.gateInvalidatedPhases)
-  }
-
-  private fun absentGateValidation(): ValidationSettlementValidation = ValidationSettlementValidation(
-    validatedRecordToOutput = { record ->
-      record.outputArtifact?.let { artifact ->
-        val envelope = JsonCodec.parseObjectOrNull(artifact)
-          ?.let(JsonCodec::jsonElementToValue)
-          ?.let(JsonCodec::anyToStringAnyMap)
-          ?: return@let null
-        FeatureTaskRuntimePhaseOutput(
-          phaseId = record.phaseId,
-          iteration = record.attemptCount,
-          payload = artifact,
-          normalizedOutput = NormalizedFeatureTaskRuntimePhaseOutput(
-            canonicalJson = artifact,
-            envelope = envelope,
-          ),
-        )
-      }
-    },
-    validationEvidenceCommandResolver = { evidence -> evidence?.results?.lastOrNull()?.command },
-    durableVerdictFor = { FeatureTaskRuntimeVerdict.SATISFIED },
-  )
-
-  private fun validatePhaseRecord(validationResult: Map<String, Any?>): FeatureTaskRuntimePhaseRecord =
-    FeatureTaskRuntimePhaseRecord(
-      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-      status = WorkflowStepStatus.COMPLETED,
-      attemptCount = 1,
-      startedAt = "2026-01-01T00:00:00Z",
-      resolvedAgentId = "claude",
-      finishedAt = "2026-01-01T00:01:00Z",
-      outputArtifact = JsonCodec.mapToJsonString(
-        topLevelValidateEnvelope(validationResult),
-      ),
-    )
 
   private fun topLevelValidateEnvelope(validationResult: Map<String, Any?>): Map<String, Any?> = mapOf(
     SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CONTRACT_VERSION,

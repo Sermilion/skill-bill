@@ -379,78 +379,6 @@ class GoalRunnerTest {
   }
 
   @Test
-  fun `validation quality gate block resumes child once instead of stopping goal`() {
-    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
-    val outcomes = RecordingOutcomeStore()
-    var launches = 0
-    val launcher = RecordingSubtaskLauncher { request ->
-      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-      launches += 1
-      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-      outcomes["wfl-$subtaskId"] = if (launches == 1) {
-        GoalRunnerStoredOutcome(
-          status = GoalRunnerTerminalStatus.BLOCKED,
-          workflowId = "wfl-$subtaskId",
-          blockedReason = "./gradlew check failed during :web:detekt, so the quality gate is not green.",
-          lastResumableStep = "validate",
-          suppressPr = true,
-        )
-      } else {
-        completeOutcome(subtaskId)
-      }
-      launchFacts()
-    }
-    val runner = testGoalRunner(goalRunnerDeps(store, launcher, outcomes, RecordingPullRequestPort()))
-
-    val report = runner.run(runRequest())
-
-    assertIs<GoalRunnerRunReport.Completed>(report)
-    assertEquals(listOf(1, 1), launcher.requests.map { it.skillRunRequest.subtaskId })
-    assertEquals("validate", launcher.requests.last().skillRunRequest.goalContinuation?.lastResumableStep)
-    assertEquals("complete", store.manifest.status)
-    assertEquals("complete", store.manifest.subtasks.single().status)
-    assertEquals("sha-1", store.manifest.subtasks.single().commitSha)
-  }
-
-  @Test
-  fun `validation findings keep repairing instead of blocking goal`() {
-    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
-    val outcomes = RecordingOutcomeStore()
-    var launches = 0
-    val launcher = RecordingSubtaskLauncher { request ->
-      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-      launches += 1
-      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-      outcomes["wfl-$subtaskId"] = if (launches < 3) {
-        GoalRunnerStoredOutcome(
-          status = if (launches == 1) GoalRunnerTerminalStatus.FAILED else GoalRunnerTerminalStatus.BLOCKED,
-          workflowId = "wfl-$subtaskId",
-          blockedReason = "Validation findings remain unresolved.",
-          lastResumableStep = "validate",
-          suppressPr = true,
-        )
-      } else {
-        completeOutcome(subtaskId)
-      }
-      launchFacts()
-    }
-    val runner = testGoalRunner(goalRunnerDeps(store, launcher, outcomes, RecordingPullRequestPort()))
-    val events = mutableListOf<GoalRunnerRunEvent>()
-
-    val report = runner.run(runRequest().copy(eventSink = events::add))
-
-    assertIs<GoalRunnerRunReport.Completed>(report)
-    assertEquals(listOf(1, 1, 1), launcher.requests.map { it.skillRunRequest.subtaskId })
-    assertEquals(
-      listOf(null, "validate", "validate"),
-      launcher.requests.map { it.skillRunRequest.goalContinuation?.lastResumableStep },
-    )
-    assertTrue(events.none { event -> event is GoalRunnerRunEvent.SubtaskStopped && event.subtaskId == 1 })
-    assertEquals("complete", store.manifest.status)
-    assertEquals("complete", store.manifest.subtasks.single().status)
-  }
-
-  @Test
   fun `resume after stop reconciles a terminal child before continuing`() {
     val initial = manifest(subtaskCount = 3)
       .withCompletedSubtask(1, workflowId = "wfl-1", commitSha = "sha-1")
@@ -5194,7 +5122,7 @@ class GoalRunnerValidationQualityRetryTest {
   )
 
   @Test
-  fun `validation quality gate stops after bounded retries instead of looping forever`() {
+  fun `goal stops when validate exhausts its own phase attempts`() {
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
     val outcomes = RecordingOutcomeStore()
     val launcher = RecordingSubtaskLauncher { request ->
@@ -5220,8 +5148,8 @@ class GoalRunnerValidationQualityRetryTest {
     val validateResumes = launcher.requests.count {
       it.skillRunRequest.goalContinuation?.lastResumableStep == "validate"
     }
-    assertEquals(4, launcher.requests.size, "validate must bound to 1 initial launch + 3 retries, not loop forever")
-    assertEquals(3, validateResumes, "only the bounded retry budget may re-resume at validate")
+    assertEquals(1, launcher.requests.size, "the goal must not multiply the phase attempt budget")
+    assertEquals(0, validateResumes, "a blocked validate phase requires an operator resume")
   }
 }
 

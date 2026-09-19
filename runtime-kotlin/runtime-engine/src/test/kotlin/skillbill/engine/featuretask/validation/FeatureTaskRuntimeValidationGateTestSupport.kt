@@ -12,8 +12,6 @@ import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.config.model.ReadRepoLocalConfigResult
-import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.validation.ValidationGateRunner
 import skillbill.ports.validation.model.ValidationGateFinding
@@ -74,32 +72,6 @@ internal fun outOfContractCycle(): ValidationGateCycleRequest = ValidationGateCy
   agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
     error("repair must not launch when platform packs are out of contract")
   },
-)
-
-internal fun coordinator(
-  resolver: ValidationGateResolver,
-  runner: ValidationGateRunner,
-  progress: MutableList<FeatureTaskRuntimeValidationGateProgress>,
-  gradleWrapper: String? = null,
-  diagnostics: RuntimeDiagnostics = NoopRuntimeDiagnostics,
-): FeatureTaskRuntimeValidationGateCoordinator = FeatureTaskRuntimeValidationGateCoordinator(
-  resolver,
-  runner,
-  FeatureTaskRuntimeValidationGateProgressStore(ValidationGateProgressStore { _, p -> progress += p }),
-  repoLocalConfig(gradleWrapper),
-  diagnostics,
-)
-
-internal fun coordinator(
-  resolver: ValidationGateResolver,
-  runner: ValidationGateRunner,
-  progressStore: ValidationGateProgressStore,
-): FeatureTaskRuntimeValidationGateCoordinator = FeatureTaskRuntimeValidationGateCoordinator(
-  resolver,
-  runner,
-  FeatureTaskRuntimeValidationGateProgressStore(progressStore),
-  repoLocalConfig(),
-  NoopRuntimeDiagnostics,
 )
 
 internal fun findingRow(finding: ValidationGateFinding): Map<String, String?> = linkedMapOf(

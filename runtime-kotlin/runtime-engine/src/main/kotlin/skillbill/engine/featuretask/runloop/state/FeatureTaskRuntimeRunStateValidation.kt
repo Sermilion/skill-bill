@@ -3,13 +3,13 @@ package skillbill.engine.featuretask.runloop.state
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.core.PhaseRun
-import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopValidationGate
-import skillbill.engine.featuretask.validation.durableValidationChangedPaths
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
+import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.decodeValidationEvidenceFromArtifact
+import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
@@ -32,8 +32,11 @@ internal class ValidationSettlementState(
     get() = gateInvalidatedState.toSet()
 
   internal fun invalidateValidationPhase() {
-    completedState.remove(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-    gateInvalidatedState += FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+    val invalidated = transitions.forwardPhaseIds
+      .dropWhile { it != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE }
+      .filter(completedState::contains) + FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+    completedState.removeAll(invalidated.toSet())
+    gateInvalidatedState.addAll(invalidated)
   }
 
   internal fun invalidateUnsatisfiedGateSuccessors(durableVerdictFor: (String) -> FeatureTaskRuntimeVerdict) {
@@ -48,13 +51,10 @@ internal class ValidationSettlementState(
 
 internal data class ValidationSettlementValidation(
   val validatedRecordToOutput: (FeatureTaskRuntimePhaseRecord) -> FeatureTaskRuntimePhaseOutput?,
-  val validationEvidenceCommandResolver: (FeatureTaskRuntimeValidationEvidence?) -> String?,
   val durableVerdictFor: (String) -> FeatureTaskRuntimeVerdict,
 )
 
-internal fun requireValidationEvidenceForValidateSettlement(
-  recorder: FeatureTaskRuntimePhaseRecorder,
-  phaseGates: FeatureTaskRuntimePhaseGates,
+internal fun requirePassedValidationResult(
   run: PhaseRun,
   envelope: Map<
     String,
@@ -63,21 +63,24 @@ internal fun requireValidationEvidenceForValidateSettlement(
     >,
 ) {
   if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return
-  val evidence = validationEvidenceFromEnvelope(envelope, run.phaseId)
-    ?: throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
+  if ((envelope[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return
+  when (validationPassedFromEnvelope(envelope)) {
+    true -> Unit
+    false -> throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
       run.phaseId,
-      "runtime-owned validation evidence is missing.",
+      "Validation reported validation_passed=false. " +
+        "Discover the project checks, repair failures, and rerun validation.",
     )
-  evidence.requireSuccessfulCommand(
-    FeatureTaskRuntimeRunLoopValidationGate.requiredValidationCommand(
-      phaseGates = phaseGates,
-      run = run,
-      evidence = evidence,
-      changedPaths = durableValidationChangedPaths(recorder, run.request.workflowId),
-    ),
-    run.phaseId,
-  )
+    null -> throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
+      run.phaseId,
+      "Validation requires a boolean produced_outputs.validation_passed result.",
+    )
+  }
 }
+
+internal fun validationPassedFromEnvelope(envelope: Map<String, Any?>): Boolean? =
+  JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
+    ?.get(ValidationEvidencePayloadKeys.VALIDATION_PASSED) as? Boolean
 
 internal fun validationEvidenceFromEnvelope(
   envelope: Map<String, Any?>,
@@ -98,33 +101,15 @@ internal fun invalidateIncompleteValidationSettlement(
 ) {
   if (FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE !in state.completed) return
   val record = state.initialRecords[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE] ?: return
-  val valid = runCatching {
-    val output = validation.validatedRecordToOutput(record) ?: return@runCatching false
-    val produced = JsonCodec.anyToStringAnyMap(
-      output.normalizedOutput?.envelopePayload(),
-    )?.let { envelope ->
-      JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
-    }
-    val result = JsonCodec.anyToStringAnyMap(
-      produced?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
-    )
-    val evidence = JsonCodec.anyToStringAnyMap(
-      result?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
-    )?.let { raw ->
-      decodeValidationEvidenceFromArtifact(
-        raw,
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-      )
-    }
-    val decodedEvidence = evidence ?: return@runCatching false
-    val requiredCommand = validation.validationEvidenceCommandResolver(decodedEvidence)
-      ?: return@runCatching false
-    decodedEvidence.requireSuccessfulCommand(
-      requiredCommand,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-    )
-    true
-  }.getOrDefault(false)
+  val output = try {
+    validation.validatedRecordToOutput(record)
+  } catch (_: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
+    null
+  }
+  val envelope = output?.normalizedOutput?.envelopeWireMap()
+  val valid = envelope != null &&
+    (envelope[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() == WorkflowStepStatus.COMPLETED &&
+    validationPassedFromEnvelope(envelope) == true
   if (!valid) {
     state.invalidateValidationPhase()
     state.invalidateUnsatisfiedGateSuccessors(validation.durableVerdictFor)

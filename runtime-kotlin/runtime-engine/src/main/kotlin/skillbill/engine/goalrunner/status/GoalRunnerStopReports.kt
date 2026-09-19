@@ -91,13 +91,7 @@ fun GoalRunnerReconciledOutcome.Stop.isRecoverableValidationBlock(
   if (reason !in setOf(GoalRunnerStopReason.BLOCKED, GoalRunnerStopReason.FAILED)) {
     return false
   }
-  if (lastResumableStep !in setOf(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD,
-    )
-  ) {
-    return false
-  }
+  if (lastResumableStep != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) return false
   val workflowId = workflowId
   if (workflowId != null && phaseRecorder != null) {
     val disposition = phaseRecorder.loadPhaseRecords(workflowId)

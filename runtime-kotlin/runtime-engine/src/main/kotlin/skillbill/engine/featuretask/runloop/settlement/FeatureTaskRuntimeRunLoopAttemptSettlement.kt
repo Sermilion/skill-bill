@@ -72,7 +72,7 @@ import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhase
 import skillbill.engine.featuretask.runloop.state.FEATURE_TASK_RUNTIME_PROCESS_FAILURE_RULE
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeChildOutput
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
-import skillbill.engine.featuretask.runloop.state.requireValidationEvidenceForValidateSettlement
+import skillbill.engine.featuretask.runloop.state.requirePassedValidationResult
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.featuretask.runner.terminalBlockedReasonFrom
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
@@ -265,11 +265,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   internal fun settleValidatedOutput(args: SettleValidatedOutput): AttemptResult {
     val run = args.run
     val iteration = args.iteration
-    val attested = FeatureTaskRuntimeRunLoopOutputVerification.attestAbsentGateValidationReceipt(
-      args.outputValidator,
-      run,
-      args.output.normalizedOutput,
-    )
+    val attested = args.output.normalizedOutput
     val capture = ValidatedOutputCapture(
       run = run,
       iteration = iteration,
@@ -278,14 +274,10 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       fileManifest = args.output.fileManifest,
     )
     try {
-      if (!shouldSkipValidationEvidenceRequirement(run)) {
-        requireValidationEvidenceForValidateSettlement(
-          args.recorder,
-          args.phaseGates,
-          run,
-          attested.envelopeWireMap(),
-        )
-      }
+      requirePassedValidationResult(
+        run,
+        attested.envelopeWireMap(),
+      )
       return settleValidatedOutputWithEvidence(
         args,
         capture,
@@ -296,7 +288,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         args,
         capture,
         attested.envelopeWireMap(),
-        "validation-evidence",
+        "validation-result",
         error.message.orEmpty(),
       )
     }
@@ -396,9 +388,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       val acceptedOutput = args.outputValidator
         .validatePhaseOutput(JsonCodec.mapToJsonString(settlementEnvelope), sourceLabel = run.phaseId)
         .requireAcceptedOutput(run.phaseId)
-      validatePersistedValidationEvidence(
-        args.recorder,
-        args.phaseGates,
+      requirePassedValidationResult(
         run,
         acceptedOutput.normalizedOutput.envelopeWireMap(),
       )
@@ -431,21 +421,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       clearAndRecordPersistedEvidenceFailure(args.state, args.recorder, args.phaseSettlementService, args, error)
       null
     }
-  }
-
-  private fun validatePersistedValidationEvidence(
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    phaseGates: FeatureTaskRuntimePhaseGates,
-    run: PhaseRun,
-    envelope: FeatureTaskRuntimeWorkflowArtifactMap,
-  ) {
-    if (shouldSkipValidationEvidenceRequirement(run)) return
-    requireValidationEvidenceForValidateSettlement(
-      recorder,
-      phaseGates,
-      run,
-      envelope,
-    )
   }
 
   private fun clearAndRecordPersistedEvidenceFailure(
@@ -557,18 +532,11 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
 
   private fun runtimeOwnedGateAgentTurn(run: PhaseRun): Boolean {
     if (run.agentRunValidateFallback) return false
-    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
-      run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
-    ) {
+    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) {
       return false
     }
     return run.validationGateRepair || run.validationGateRepairTurn > 0 ||
       (run.validationGateFindings != null && run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD)
-  }
-
-  private fun shouldSkipValidationEvidenceRequirement(run: PhaseRun): Boolean {
-    if (run.agentRunValidateFallback) return false
-    return run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
   }
 
   internal fun gateOutputSchemaInvalid(

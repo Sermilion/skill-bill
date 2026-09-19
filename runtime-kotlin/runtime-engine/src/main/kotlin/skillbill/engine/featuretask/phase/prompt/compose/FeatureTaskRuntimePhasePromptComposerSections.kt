@@ -19,7 +19,6 @@ import skillbill.engine.featuretask.phase.prompt.directives.operatorBlockRetryDi
 import skillbill.engine.featuretask.phase.prompt.directives.outputContract
 import skillbill.engine.featuretask.phase.prompt.directives.phasePromptHeader
 import skillbill.engine.featuretask.phase.prompt.directives.retryCorrectionDirective
-import skillbill.engine.featuretask.phase.prompt.directives.runtimeOwnedValidateFinishedDirective
 import skillbill.engine.featuretask.phase.prompt.directives.simplifyScopeBoundaryDirective
 import skillbill.engine.featuretask.phase.prompt.directives.terminalRetryDirective
 import skillbill.engine.featuretask.phase.prompt.directives.testValueDisciplineDirective
@@ -89,13 +88,11 @@ fun phasePromptTrailingSections(
   terminalRetryDirective(inputs.priorTerminalFailure),
   findingCoverageDirective(inputs.priorFindingCoverage),
   if (
-    inputs.briefing.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
-    !inputs.validationGateTriage
+    inputs.validationGateFindings != null &&
+    inputs.briefing.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
   ) {
-    runtimeOwnedValidateFinishedDirective(inputs.briefing.phaseId)
-  } else if (inputs.validationGateFindings != null) {
     gateRepairNoOutputSchemaDirective(inputs.briefing.phaseId, inputs.validationGateTriage)
   } else {
-    outputContract(inputs.briefing, inputs.agentRunValidateFallback)
+    outputContract(inputs.briefing)
   },
 )

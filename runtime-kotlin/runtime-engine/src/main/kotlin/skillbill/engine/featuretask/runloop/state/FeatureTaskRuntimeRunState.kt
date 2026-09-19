@@ -69,6 +69,20 @@ class FeatureTaskRuntimeRunState(
       .map { it.phaseId }
       .toMutableSet()
       .also(::invalidateLegacyPlanWithoutPreplan)
+      .also { completed ->
+        val validationState = ValidationSettlementState(
+          completed,
+          this.initialRecords,
+          transitions,
+          gateInvalidatedPhaseIds,
+        )
+        invalidateIncompleteValidationSettlement(
+          validationState,
+          ValidationSettlementValidation(::validatedRecordToOutput, ::durableVerdictFor),
+        )
+        completed.retainAll(validationState.completed)
+        gateInvalidatedPhaseIds.addAll(validationState.gateInvalidatedPhases)
+      }
       .also {
         FeatureTaskRuntimeRunStateReconstruction.invalidateLegacyRemovedAuditCompletion(
           this.initialRecords,
@@ -94,6 +108,7 @@ class FeatureTaskRuntimeRunState(
       }
   init {
     this.initialRecords.values
+      .filterNot { it.phaseId in gateInvalidatedPhaseIds }
       .mapNotNull(::validatedRecordToOutput)
       .filterNot {
         it.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN &&

@@ -1,6 +1,10 @@
 package skillbill.contracts.review
 
 object GovernedReviewEvidencePayloadKeys {
+  const val ANNOTATIONS: String = "annotations"
+  const val READ_ONLY_HINT: String = "readOnlyHint"
+  const val DESTRUCTIVE_HINT: String = "destructiveHint"
+  const val OPEN_WORLD_HINT: String = "openWorldHint"
   const val ASSIGNMENT_DIGEST: String = "assignment_digest"
   const val NEXT_CURSOR: String = "next_cursor"
   const val ENTRIES: String = "entries"

@@ -1,6 +1,7 @@
 package skillbill.application
 
 import skillbill.application.review.governed.stubGovernedReviewEvidenceEndpointBinder
+import skillbill.application.review.review.simulateGovernedEvidenceReads
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
@@ -244,7 +245,10 @@ private class RecordingSubtaskLauncher : GoalRunnerSubtaskLauncher {
     liveness = null,
     processStarted = true,
     mcpStartupObserved = false,
-  ).also { requests += request }
+  ).also {
+    simulateGovernedEvidenceReads(request.skillRunRequest)
+    requests += request
+  }
 }
 
 private fun delegatedCursorRubricResolver(): ReviewRubricResolver = ReviewRubricResolver {

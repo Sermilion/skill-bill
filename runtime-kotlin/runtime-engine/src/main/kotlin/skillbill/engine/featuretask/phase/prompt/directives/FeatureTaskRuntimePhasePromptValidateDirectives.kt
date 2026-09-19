@@ -14,13 +14,16 @@ private const val VALIDATE_TRIAGE_FORBIDDEN_PACK_GATE: String =
     "during this triage turn. "
 
 fun runtimeOwnedValidateAgentPhaseTask(): String {
-  return "Invoke `bill-code-check` exactly once. It routes to the dominant platform pack and owns " +
-    "the collect-all check, repairs, confirmation, and terminal result. Do not run a pack command " +
-    "directly, do not spawn delegated subagents, and stop when `bill-code-check` finishes. " +
-    "The runtime independently confirms the result and starts a fresh validate session if checks still fail. " +
-    VALIDATE_PHASE_FORBIDDEN_EXTRAS +
-    "Never silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped " +
-    "tests; fix root causes instead."
+  return "Discover the validation checks required by this project from its repository instructions, " +
+    "build and test configuration, scripts, and CI workflows. Use the project's commands and environment; " +
+    "do not assume a platform-wide gate. Run the relevant checks, repair failures in this session, and " +
+    "confirm the repairs. Do not spawn delegated subagents. Return produced_outputs.validation_passed as " +
+    "a boolean: true only when all required checks passed, false when checks failed, were skipped, or " +
+    "could not run. Put the checks run and remaining failure details in produced_outputs.value. Use " +
+    "status completed to report either boolean result; the runtime advances only on true and may rerun " +
+    "this phase once on false. The runtime does not rerun the checks itself. Do not emit command evidence " +
+    "or runtime execution receipts. Never silence findings with annotations, baselines, disabled rules, " +
+    "weakened configuration, or skipped tests; fix root causes instead."
 }
 
 fun validateGateTriagePhaseTask(): String =
@@ -58,20 +61,6 @@ internal fun phaseTaskDirective(phaseId: String, args: PhaseTaskDirectiveArgs = 
       implementPhaseTaskDirective()
     else -> phaseDirectives[phaseId] ?: error("No phase directive for runtime phase '$phaseId'.")
   }
-
-fun runtimeOwnedValidateFinishedDirective(phaseId: String): String {
-  if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
-    return gateRepairNoOutputSchemaDirective(phaseId, triage = false)
-  }
-  return """
-    ## Validate — quality-check owned
-    Invoke `bill-code-check` exactly once. It routes to the dominant platform pack and owns the
-    collect-all check, repairs, confirmation, and terminal result. Do not emit a phase envelope or
-    validation evidence, do not run pack commands directly, and stop when `bill-code-check` finishes.
-    The runtime independently confirms the result before marking validate complete. A failed
-    confirmation starts another validate session within the repair budget.
-  """.trimIndent()
-}
 
 fun gateRepairNoOutputSchemaDirective(phaseId: String, triage: Boolean = false): String {
   if (triage) {

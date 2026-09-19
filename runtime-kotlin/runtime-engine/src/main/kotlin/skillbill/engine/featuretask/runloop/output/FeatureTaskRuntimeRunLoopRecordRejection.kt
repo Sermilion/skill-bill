@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask.runloop.output
 
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProducerOutputRead
 import skillbill.engine.featuretask.model.phase.ProducerOutputQueryArgs
@@ -28,7 +30,6 @@ import skillbill.engine.featuretask.runloop.core.withDisposition
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
 import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopAttemptSettlement
-import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopValidationGate
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.LaunchResult
 import skillbill.engine.featuretask.runner.SCHEMA_GATE_DETAIL_MAX_CHARS
@@ -104,6 +105,11 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
   ): String? = when (rule) {
     "mutating-reconciliation" -> detail.takeUnless { it.isBlank() }
     "repair-receipt" -> detail.takeUnless { it.isBlank() }
+    "validation-result" -> {
+      val produced = JsonCodec.anyToStringAnyMap(rejectedOutput[SharedPayloadKeys.PRODUCED_OUTPUTS])
+      val failureDetails = produced?.get(SharedPayloadKeys.VALUE) as? String
+      listOfNotNull(detail, failureDetails).joinToString("\n").take(SCHEMA_GATE_DETAIL_MAX_CHARS)
+    }
     "producer-projection",
     "consumer-projection",
     "output-verification",
@@ -361,13 +367,6 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
         reason,
         launch.infraFailureChildOutput,
       )
-      if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
-        return AttemptResult.settled(
-          PhaseOutcome.completed(
-            FeatureTaskRuntimeRunLoopValidationGate.gateRepairSegmentOutput(run, args.context.iteration),
-          ),
-        )
-      }
       return AttemptResult.settled(
         FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
           request,

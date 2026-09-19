@@ -2,18 +2,15 @@ package skillbill.engine.goalrunner.status
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.contracts.workflow.payload.WorktreeEditJournalPayloadKeys
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.lifecycle.continuation.agentAttributionFromPhaseState
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.review.core.auditGapIterationCount
+import skillbill.engine.featuretask.runloop.state.validationPassedFromEnvelope
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.validation.ValidationGateResolver
-import skillbill.engine.featuretask.validation.durableValidationChangedPaths
-import skillbill.engine.featuretask.validation.requiredValidationGateCommand
-import skillbill.engine.featuretask.validation.resolveRequiredValidationCommand
 import skillbill.engine.goalrunner.execution.core.asWorkerOwnership
 import skillbill.engine.goalrunner.manifest.pruneEligibleCheckpointRefsForManifest
 import skillbill.engine.goalrunner.manifest.reconcileGoalManifest
@@ -32,7 +29,6 @@ import skillbill.idestatus.model.WorktreeEditSummary
 import skillbill.idestatus.model.summary
 import skillbill.model.RepositoryRoot
 import skillbill.ports.config.RepoLocalConfigPort
-import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -51,16 +47,11 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.decompositionStatus
-import skillbill.workflow.taskruntime.artifact.decodeValidationEvidenceFromArtifact
-import skillbill.workflow.taskruntime.artifact.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.io.IOException
-import java.nio.file.Path
 import java.time.Clock
-private const val MAX_STATUS_ERROR_LENGTH = 240
 
 @Inject
 class GoalRunnerStatusProjectionDataSources(
@@ -211,7 +202,6 @@ private fun GoalRunnerStatusProjectionAssembler.buildStatusProjectionRuntimeInpu
   outOfBandAcceptances = assembly.acceptances.toAcceptedSubtasks(),
   completedSubtaskValidation = completedSubtaskValidation(
     assembly.manifest,
-    assembly.request.repoRoot ?: repositoryRoot.path,
   ),
   paused = assembly.loadedState.controlState.paused,
   pauseRequested = assembly.loadedState.controlState.pauseRequested,
@@ -265,107 +255,34 @@ private fun GoalRunnerStatusProjectionAssembler.measuredAuditAcRetryCount(
 
 private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidation(
   manifest: DecompositionManifest,
-  repoRoot: Path,
 ): List<GoalRunnerSubtaskValidationEvidence> = manifest.subtasks
   .filter { it.status.decompositionStatus() == DecompositionStatus.COMPLETE }
-  .map { subtask -> completedSubtaskValidationFor(subtask, repoRoot) }
+  .map { subtask -> completedSubtaskValidationFor(subtask) }
 
 private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidationFor(
   subtask: DecompositionSubtask,
-  repoRoot: Path,
 ): GoalRunnerSubtaskValidationEvidence {
   val workflowId = subtask.workflowId?.takeIf(String::isNotBlank)
-  val rawEvidence = workflowId?.let(::runtimeValidationEvidence)
-  if (rawEvidence == null) {
-    return GoalRunnerSubtaskValidationEvidence(
-      subtaskId = subtask.id,
-      integrityProblem = "Completed subtask has no runtime-owned validation evidence.",
-    )
-  }
-  val sourceLabel = "goal-status.subtask-${subtask.id}"
-  return runCatching {
-    val evidence = requireNotNull(decodeValidationEvidenceFromArtifact(rawEvidence, sourceLabel))
-    val requiredCommand = requiredValidationCommandFor(
-      workflowId = requireNotNull(workflowId),
-      repoRoot = repoRoot,
-      evidence = evidence,
-      sourceLabel = sourceLabel,
-    )
-    evidence.requireSuccessfulCommand(requireNotNull(requiredCommand), sourceLabel)
-    val gateExecutionEvidence = runtimeValidationGateExecutionEvidence(workflowId)
-    GoalRunnerSubtaskValidationEvidence(
-      subtaskId = subtask.id,
-      evidence = evidence,
-      gateExecutionEvidence = gateExecutionEvidence,
-    )
-  }.getOrElse { error ->
-    GoalRunnerSubtaskValidationEvidence(
-      subtaskId = subtask.id,
-      integrityProblem = "Validation evidence is invalid: ${error.message.orEmpty().take(MAX_STATUS_ERROR_LENGTH)}",
-    )
-  }
-}
-
-private fun GoalRunnerStatusProjectionAssembler.runtimeValidationGateExecutionEvidence(
-  workflowId: String,
-): FeatureTaskRuntimeValidationGateExecutionEvidence? = phaseRecorder.loadPhaseRecords(workflowId)
-  ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-  ?.outputArtifact
-  ?.let(JsonCodec::parseObjectOrNull)
-  ?.let(JsonCodec::jsonElementToValue)
-  ?.let(JsonCodec::anyToStringAnyMap)
-  ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
-  ?.let(JsonCodec::anyToStringAnyMap)
-  ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT)
-  ?.let(JsonCodec::anyToStringAnyMap)
-  ?.let { raw ->
-    if (
-      !raw.containsKey(ValidationEvidencePayloadKeys.GATE_RUN_COUNT) &&
-      !raw.containsKey(ValidationEvidencePayloadKeys.GATE_RUNS)
-    ) {
-      null
-    } else {
-      decodeValidationGateExecutionEvidenceFromArtifact(raw, "goal-status.validate")
-    }
-  }
-
-private fun GoalRunnerStatusProjectionAssembler.runtimeValidationEvidence(workflowId: String): Map<String, Any?>? =
-  phaseRecorder.loadPhaseRecords(workflowId)
+  val record = workflowId?.let { phaseRecorder.loadPhaseRecords(it) }
     ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-    ?.outputArtifact
+  val envelope = record?.outputArtifact
     ?.let(JsonCodec::parseObjectOrNull)
     ?.let(JsonCodec::jsonElementToValue)
     ?.let(JsonCodec::anyToStringAnyMap)
-    ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE)
-    ?.let(JsonCodec::anyToStringAnyMap)
-
-private fun GoalRunnerStatusProjectionAssembler.requiredValidationCommandFor(
-  workflowId: String,
-  repoRoot: Path,
-  evidence: FeatureTaskRuntimeValidationEvidence,
-  sourceLabel: String,
-): String? = resolveRequiredValidationCommand(
-  resolver = validationDependencies.validationGateResolver,
-  requiredCommandForDeclaration = { declaration ->
-    val wrapper = validationDependencies.repoLocalConfig
-      .readRepoLocalConfig(ReadRepoLocalConfigRequest(repoRoot))
-      .config
-      .validationGate
-      .gradleWrapper
-    requiredValidationGateCommand(
-      declaration,
-      wrapper,
-      phaseRecorder.loadValidationGateProgress(workflowId),
-    )
-  },
-  changedPaths = durableValidationChangedPaths(phaseRecorder, workflowId),
-  evidence = evidence,
-  sourceLabel = sourceLabel,
-)
+  val passed = envelope?.let(::validationPassedFromEnvelope)
+  return GoalRunnerSubtaskValidationEvidence(
+    subtaskId = subtask.id,
+    validationPassed = passed,
+    integrityProblem = when {
+      passed == null -> "Completed subtask has no boolean validation result."
+      passed != true -> "Completed subtask reported validation_passed=false."
+      record.status != WorkflowStepStatus.COMPLETED ||
+        envelope[SharedPayloadKeys.STATUS] != WorkflowStepStatus.COMPLETED.wireValue ->
+        "Validation phase is not completed."
+      else -> null
+    },
+  )
+}
 
 internal fun GoalRunnerStatusProjectionAssembler.alignedPlanningStatus(
   loadedState: GoalRunnerManifestState,

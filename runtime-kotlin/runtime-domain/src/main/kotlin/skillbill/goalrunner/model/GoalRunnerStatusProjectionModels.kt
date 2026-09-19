@@ -110,6 +110,7 @@ data class GoalRunnerStatusProjection(
 
 data class GoalRunnerSubtaskValidationEvidence(
   val subtaskId: Int,
+  val validationPassed: Boolean? = null,
   val evidence: FeatureTaskRuntimeValidationEvidence? = null,
   val gateExecutionEvidence: FeatureTaskRuntimeValidationGateExecutionEvidence? = null,
   val integrityProblem: String? = null,
@@ -118,6 +119,7 @@ data class GoalRunnerSubtaskValidationEvidence(
 
   internal fun toStatusMap(): Map<String, Any?> = linkedMapOf(
     SharedPayloadKeys.SUBTASK_ID to subtaskId,
+    ValidationEvidencePayloadKeys.VALIDATION_PASSED to validationPassed,
     ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to
       evidence?.toArtifactMap(),
     ValidationEvidencePayloadKeys.VALIDATION_RESULT to

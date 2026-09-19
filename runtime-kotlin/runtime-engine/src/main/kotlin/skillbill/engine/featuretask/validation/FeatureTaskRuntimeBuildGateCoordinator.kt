@@ -181,19 +181,27 @@ class FeatureTaskRuntimeBuildGateCoordinator(
           capturedTriagePlan = triagePlan,
         ),
       )
-      when (val repair = state.cycle.agentRepairLauncher.launch(projection, repairsUsed + 1, triagePlan)) {
-        is ValidationGateAgentRepairResult.Blocked -> return terminalBlockedResult(
+      val terminal = when (
+        val repair = state.cycle.agentRepairLauncher.launch(
+          projection,
+          repairsUsed + 1,
+          triagePlan,
+        )
+      ) {
+        is ValidationGateAgentRepairResult.Paused -> ValidationGateCycleResult.Terminal(
+          ValidationGateCycleTerminalOutcome.Paused(repair.reason),
+        )
+        is ValidationGateAgentRepairResult.Blocked -> terminalBlockedResult(
           repair.reason,
           remainingFindings = projection,
           measurements = measurements,
           failureDisposition = repair.failureDisposition,
         )
-        is ValidationGateAgentRepairResult.Completed -> repairsUsed++
+        is ValidationGateAgentRepairResult.Completed -> null
       }
+      if (terminal != null) return terminal
+      repairsUsed++
       currentFindings = verifyAfterRepair(state, declaration, repairsUsed, triagePlan)
-      if (currentFindings.isEmpty()) {
-        return terminalCompletedResult(state.cycle.repositoryCheckpoint, measurements)
-      }
     }
   }
 

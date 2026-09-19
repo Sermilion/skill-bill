@@ -82,6 +82,9 @@ object GovernedReviewMcpConfigWriter {
     return buildList {
       if (command.isNotEmpty()) add("$prefix.command=\"$command\"")
       add("$prefix.args=[${args.joinToString(", ") { "\"$it\"" }}]")
+      GovernedReviewEvidenceContracts.OPERATIONS.forEach { operation ->
+        add("$prefix.tools.$operation.approval_mode=\"approve\"")
+      }
       add("$prefix.enabled_tools=[${GovernedReviewEvidenceContracts.OPERATIONS.joinToString(", ") { "\"$it\"" }}]")
       add("$prefix.env={${env.entries.joinToString(", ") { "${it.key}=\"${it.value}\"" }}}")
     }

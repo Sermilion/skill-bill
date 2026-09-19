@@ -57,7 +57,6 @@ import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordi
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateProgressStore
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeReadinessGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
-import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateProgressStore
 import skillbill.engine.featuretask.validation.ReadinessCheckSelection
 import skillbill.engine.featuretask.validation.ValidationGateResolver
 import skillbill.error.core.RejectedOutputDiagnosticError
@@ -648,13 +647,7 @@ private fun validationGateBoundaries(
   buildReceiptValidator = deps.buildReceiptValidator,
   validationGateResolver = validationGateResolver,
   validationGateRunner = validationGateRunner,
-  validationGateCoordinator = FeatureTaskRuntimeValidationGateCoordinator(
-    validationGateResolver,
-    validationGateRunner,
-    FeatureTaskRuntimeValidationGateProgressStore(deps.recorder),
-    defaultRepoLocalConfigPort(),
-    NoopRuntimeDiagnostics,
-  ),
+  validationGateCoordinator = FeatureTaskRuntimeValidationGateCoordinator(),
   readinessGateCoordinator = FeatureTaskRuntimeReadinessGateCoordinator(
     ReadinessCheckSelection(
       InstalledPlatformPackCatalogPort { deps.validationGatePlatformManifests },

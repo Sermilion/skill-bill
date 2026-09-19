@@ -263,7 +263,7 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   }
 
   @Test
-  fun `bound unread parent lane does not hide the other lane unbound evidence record`() {
+  fun `bound unread parent lane fails without claiming the broker was unbound`() {
     val recorder = ReviewRecorder()
     val binds = AtomicInteger()
     val defaults = ReviewHarnessConfig(
@@ -288,7 +288,7 @@ class ParallelCodeReviewEvidenceBoundaryTest {
     )
 
     assertEquals(1, binds.get(), "single-agent review binds one parent evidence surface")
-    assertTrue(result.lane1.success)
+    assertFalse(result.lane1.success)
     assertTrue(
       recorder.stageDegradations.none {
         it.reason == ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNBOUND_BROKER
@@ -297,7 +297,7 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   }
 
   @Test
-  fun `a lane reporting prose after reading no evidence still succeeds`() {
+  fun `a lane reporting approval after reading no evidence fails`() {
     val recorder = ReviewRecorder()
     val result = reviewHarness(
       ReviewHarnessConfig(
@@ -315,10 +315,8 @@ class ParallelCodeReviewEvidenceBoundaryTest {
     )
 
     assertEquals(0, result.lane1.accounting?.authorizedReadCount)
-    assertTrue(
-      result.lane1.success,
-      "prose-only review does not fail on unread evidence when the parent process completed",
-    )
+    assertFalse(result.lane1.success)
+    assertFalse(assertNotNull(result.coverage).isCleanCoverage)
     assertEquals(emptyList(), result.mergeResult.findings)
   }
 

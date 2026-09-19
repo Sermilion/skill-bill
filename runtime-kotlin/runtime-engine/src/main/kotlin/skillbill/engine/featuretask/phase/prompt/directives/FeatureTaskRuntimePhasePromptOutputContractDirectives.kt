@@ -7,7 +7,7 @@ import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKe
 import skillbill.review.model.ReviewIssueCategory
 import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing, agentRunValidateFallback: Boolean): String {
+fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
   val phaseId = briefing.phaseId
   return """
     ## Required final output (validated schema gate)
@@ -25,7 +25,6 @@ fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing, agentRunVali
     - "produced_outputs": object. Empty {} is valid when this phase has no structured
       payload. When this briefing names a required shape below, that shape is required${producedOutputsAddendum(
     briefing,
-    agentRunValidateFallback,
   )}
     - "derived_notes": optional; when present, a non-empty string of notes for downstream
       phases${verdictContractLine(phaseId)}
@@ -46,13 +45,10 @@ private fun verdictContractLine(phaseId: String): String = when (phaseId) {
   else -> ""
 }
 
-private fun producedOutputsAddendum(
-  briefing: FeatureTaskRuntimePhaseLaunchBriefing,
-  agentRunValidateFallback: Boolean,
-): String {
+private fun producedOutputsAddendum(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
   val phaseId = briefing.phaseId
   if (FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) {
-    return mutatingProducedOutputsAddendum(briefing, agentRunValidateFallback)
+    return mutatingProducedOutputsAddendum(briefing)
   }
   val findings = FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS
   val verdict = FeatureTaskRuntimeVerificationSignalKeys.VERDICT
@@ -63,7 +59,6 @@ private fun producedOutputsAddendum(
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD,
     -> FeatureTaskRuntimePhaseProjectionShapes.exampleFor(
       phaseId,
-      agentRunValidateFallback,
     )
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
       "\n    - This is a VERIFYING phase: produced_outputs MUST carry a \"$findings\" array (each entry a\n" +
@@ -98,10 +93,7 @@ private fun producedOutputsAddendum(
   }
 }
 
-private fun mutatingProducedOutputsAddendum(
-  briefing: FeatureTaskRuntimePhaseLaunchBriefing,
-  agentRunValidateFallback: Boolean,
-): String {
+private fun mutatingProducedOutputsAddendum(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
   val phaseId = briefing.phaseId
   val reconciliationRequirement =
     if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT) {
@@ -117,7 +109,6 @@ private fun mutatingProducedOutputsAddendum(
   return reconciliationRequirement +
     FeatureTaskRuntimePhaseProjectionShapes.exampleFor(
       phaseId,
-      agentRunValidateFallback,
     )
 }
 

@@ -4,6 +4,7 @@ object FeatureTaskRuntimeAttemptBudgets {
   const val MAX_OUTPUT_GATE_RETRY_ATTEMPTS: Int = 1
   const val MAX_FORMAT_RETRY_ATTEMPTS: Int = MAX_OUTPUT_GATE_RETRY_ATTEMPTS
   const val MAX_PROCESS_FAILURE_ATTEMPTS: Int = 3
+  private const val MAX_VALIDATE_OUTPUT_ATTEMPTS: Int = 2
 
   fun auditRemainingUnchangedBlockReason(): String =
     "Phase '${FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT}' returned the same remaining-criteria " +
@@ -30,10 +31,15 @@ object FeatureTaskRuntimeAttemptBudgets {
     require(failureCount >= 1) {
       "failureCount must be >= 1, was $failureCount."
     }
-    return if (failureCount >= MAX_OUTPUT_GATE_RETRY_ATTEMPTS) {
+    val cap = if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
+      MAX_VALIDATE_OUTPUT_ATTEMPTS
+    } else {
+      MAX_OUTPUT_GATE_RETRY_ATTEMPTS
+    }
+    return if (failureCount >= cap) {
       val attemptWord = if (failureCount == 1) "attempt" else "attempts"
       "Phase '$phaseId' exhausted the bounded output-gate correction budget after " +
-        "$failureCount $attemptWord (cap=$MAX_OUTPUT_GATE_RETRY_ATTEMPTS); the run blocks rather than relaunching."
+        "$failureCount $attemptWord (cap=$cap); the run blocks rather than relaunching."
     } else {
       null
     }

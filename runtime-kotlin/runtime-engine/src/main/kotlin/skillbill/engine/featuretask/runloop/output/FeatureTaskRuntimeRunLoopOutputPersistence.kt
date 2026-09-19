@@ -378,9 +378,6 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         validationGateRepair = run.validationGateRepair,
         validationGateTriage = run.validationGateTriage,
         agentRunValidateFallback = run.agentRunValidateFallback,
-        packCollectAllCommand = FeatureTaskRuntimeRunLoopOutputPersistence.packCollectAllCommand(context, run),
-        packConfirmationGateCommand =
-        FeatureTaskRuntimeRunLoopOutputPersistence.packConfirmationGateCommand(context, run),
         packBuildCommand = FeatureTaskRuntimeRunLoopOutputPersistence.packBuildCommand(context, run),
         auditRetryFocusHint = session.auditRetryFocusHint?.takeIf {
           run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
@@ -388,27 +385,6 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       )
     }
   }
-
-  private fun packCollectAllCommand(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): String? = with(context) {
-    FeatureTaskRuntimeRunLoopValidationGate.packCollectAllCommand(
-      phaseGates,
-      recorder,
-      goalContinuationRecorder,
-      session,
-      run,
-    )
-  }
-
-  private fun packConfirmationGateCommand(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): String? =
-    with(context) {
-      FeatureTaskRuntimeRunLoopValidationGate.packConfirmationGateCommand(
-        phaseGates,
-        recorder,
-        goalContinuationRecorder,
-        session,
-        run,
-      )
-    }
 
   private fun packBuildCommand(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): String? = with(context) {
     FeatureTaskRuntimeRunLoopValidationGate.packBuildCommand(

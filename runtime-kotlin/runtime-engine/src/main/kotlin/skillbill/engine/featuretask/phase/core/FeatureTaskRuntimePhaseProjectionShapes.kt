@@ -4,18 +4,13 @@ import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_BUILD_RECEI
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 object FeatureTaskRuntimePhaseProjectionShapes {
-  fun exampleFor(phaseId: String, agentRunValidateFallback: Boolean = false): String = when (phaseId) {
+  fun exampleFor(phaseId: String): String = when (phaseId) {
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN -> PREPLAN
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN -> PLAN
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT -> IMPLEMENT
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY -> SIMPLIFY
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX -> IMPLEMENT_FIX
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ->
-      if (agentRunValidateFallback) {
-        VALIDATION
-      } else {
-        VALIDATION + VALIDATION_FULL_RUNTIME_OWNED_REPAIR
-      }
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE -> VALIDATION
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD -> BUILD
     else -> ""
   }
@@ -116,29 +111,12 @@ object FeatureTaskRuntimePhaseProjectionShapes {
       "      compile, run tests, or invoke `./gradlew check` / the pack collect-all gate here."
 
   private const val VALIDATION: String =
-    "\n    - Required produced_outputs shape: emit a validation_result OBJECT. Its repository_checkpoint\n" +
-      "      is also an OBJECT containing fingerprint — never a prefixed string such as\n" +
-      "      \"repository_checkpoint=<hash>\":\n" +
-      "      ```json\n" +
-      "      { \"validation_result\": {\n" +
-      "          \"validation_status\": \"passed\",\n" +
-      "          \"checks\": [ { \"name\": \"<check name>\", \"status\": \"passed\" } ],\n" +
-      "          \"repository_checkpoint\": { \"fingerprint\": \"<checkpoint fingerprint>\" },\n" +
-      "          \"gate_run_count\": 1,\n" +
-      "          \"gate_runs\": [ { \"duration_ms\": 1, \"outcome\": \"passed\",\n" +
-      "            \"cache_mode\": \"forced_full\", \"executed_work_units\": 1 } ]\n" +
-      "        } }\n" +
-      "      ```\n" +
-      "      gate_run_count and gate_runs are runtime-measured evidence; never invent or overwrite them\n" +
-      "      from agent claims. Never introduce suppressions (@Suppress, @file:Suppress, baselines,\n" +
-      "      disabled rules, or skipped tests) to silence findings; fix root causes instead."
-
-  private const val VALIDATION_FULL_RUNTIME_OWNED_REPAIR: String =
-    "\n      You run only the pack-declared collect-all command and the same command once to confirm.\n" +
-      "      Do not run skill-bill validate, agnix, or validate_agent_configs.\n" +
-      "      The runtime may record one cache-bypassing verify afterward; gate_run_count and\n" +
-      "      gate_runs stay runtime-measured — never invent them. Never add @Suppress, @file:Suppress,\n" +
-      "      baselines, disabled rules, or skipped tests to silence findings; fix root causes instead."
+    "\n    - Report the project validation result as a boolean and keep details in a non-blank value string.\n" +
+      "      Use status completed for both true and false. Only true permits advancement.\n" +
+      "      Example: { \"validation_passed\": true, \"value\": \"<checks run and result>\" }\n" +
+      "      On failure, return false and describe what failed so the next attempt can repair it.\n" +
+      "      Do not emit validation_evidence, validation_result, gate_run_count, or gate_runs.\n" +
+      "      Never introduce suppressions, baselines, disabled rules, or skipped tests to silence findings."
 
   private const val BUILD: String =
     "\n    - Required produced_outputs shape: emit a build_receipt OBJECT with contract_version\n" +

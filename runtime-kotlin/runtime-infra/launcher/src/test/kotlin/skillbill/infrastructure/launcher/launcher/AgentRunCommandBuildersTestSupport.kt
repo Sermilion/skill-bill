@@ -61,6 +61,11 @@ internal fun assertCodexGovernedLaunch(command: List<String>) {
   val governedOperations = GovernedReviewEvidenceContracts.OPERATIONS
   assertTrue(command.contains("--ignore-user-config"))
   val configValues = command.filterIndexed { index, _ -> index > 0 && command[index - 1] == "--config" }
+  governedOperations.forEach { operation ->
+    assertTrue("$mcpTomlServer.tools.$operation.approval_mode=\"approve\"" in configValues)
+  }
+  assertEquals("read-only", command[command.indexOf("--sandbox") + 1])
+  assertTrue("--dangerously-bypass-approvals-and-sandbox" !in command)
   assertTrue(configValues.any { it.startsWith(mcpTomlServer) && it.contains("enabled_tools=") })
   assertTrue(
     configValues.any { value ->

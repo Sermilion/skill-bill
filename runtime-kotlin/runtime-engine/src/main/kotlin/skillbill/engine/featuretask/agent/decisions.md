@@ -1,5 +1,16 @@
 # featuretask runtime boundary decisions
 
+## [2026-09-19] Validate returns a boolean project check result
+Context: Projects choose their own checks and environments. A runtime command receipt added detail without proving execution, and a second runtime check duplicated phase work.
+Decision: The agent discovers and runs project checks, repairs failures, and returns boolean `produced_outputs.validation_passed` with details in `value`. True advances. False, missing, or malformed output gets one retry, then blocks. Process failures retain their separate bounded retry policy. Resume and goal status use the same boolean. Runtime never infers success from command strings or exit codes.
+Reason: The user explicitly chose to trust the phase result. This is an orchestration signal, not execution attestation. Readiness still tracks its existing selected checks against repository identity after a successful phase.
+
+## [2026-09-19] Validate relies on the phase check
+Context: The validate agent invoked `bill-code-check`, which confirmed its repairs, then the runtime ran the same cache-bypassing gate again.
+Decision: `bill-code-check` owns check execution, repairs, and confirmation. The runtime accepts the phase's command and exit-code evidence through the existing output gate and persists completion without another gate execution. Runtime execution counts remain zero for new phase-owned checks. Validate allows two output attempts, with one correction after a rejected result. The phase owns pack selection and the confirmation command, so runtime does not compare its receipt with a separately routed command. The goal stops when those attempts fail and requires an operator resume instead of adding its own validation retries.
+Reason: The user chose to rely on the phase check and remove duplicate verification. Failed processes, blocked results, missing evidence, and failed confirmation evidence still prevent completion.
+Superseded by: Validate returns a boolean project check result (2026-09-19)
+
 ## [2026-09-19] SKILL-364 sibling readiness evidence contract
 Context: Validate-owned `validation_evidence` records pack gate commands only; commit and PR progression needed a separate durable record for tree identity, base ref, workflow-selected checks, and per-check results without bumping the validation contract.
 Decision: Add `readiness_evidence` as a sibling contract and workflow artifact (`FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_ARTIFACT_KEY`). Validate still owns pack collect-all execution; commit_push owns readiness settlement and persistence.

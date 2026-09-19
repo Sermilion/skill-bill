@@ -3,7 +3,6 @@ package skillbill.engine.featuretask.runloop.settlement
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
@@ -40,6 +39,7 @@ import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhase
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeNonOutputAttempt
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
+import skillbill.engine.featuretask.runloop.state.requirePassedValidationResult
 import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
@@ -53,12 +53,9 @@ import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminalOutcome
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
-import skillbill.engine.featuretask.validation.resolveRequiredValidationCommand
 import skillbill.ports.workflow.gitops.repositoryFingerprint
-import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
-import skillbill.workflow.taskruntime.artifact.decodeValidationEvidenceFromArtifact
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.artifact.validateBuildReceipt
@@ -66,7 +63,6 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhase
 import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 internal class RuntimeOwnedValidationSettlement(
@@ -86,19 +82,11 @@ internal class RuntimeOwnedValidationSettlement(
       session,
       run,
     ).orEmpty()
-    val resolution = phaseGates.validationGateResolver.resolve(changedPaths)
-    if (resolution !is ValidationGateResolution.Declared) return
-    val packCommand = phaseGates.validationGateCoordinator.requiredValidationCommand(
-      request.repoRoot,
-      request.workflowId,
-      resolution.declaration,
-    )
     phaseGates.readinessGateCoordinator.capturePostValidateFragment(
       ReadinessPostValidateCaptureRequest(
         workflowId = request.workflowId,
         repoRoot = request.repoRoot,
         baseBranch = recorder.loadResolvedBranch(request.workflowId)?.baseBranch ?: "main",
-        packCommand = packCommand,
         changedPaths = changedPaths,
         gitOperations = phaseGates.gitOperations,
       ),
@@ -132,32 +120,7 @@ internal class RuntimeOwnedValidationSettlement(
       outputText,
       sourceLabel = run.phaseId,
     ).requireAcceptedOutput(run.phaseId)
-    val produced = JsonCodec.anyToStringAnyMap(
-      accepted.normalizedOutput.envelopeWireMap()[SharedPayloadKeys.PRODUCED_OUTPUTS],
-    )
-    val validationResult = JsonCodec.anyToStringAnyMap(
-      produced?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
-    )
-    val evidence = JsonCodec.anyToStringAnyMap(
-      validationResult?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
-    )?.let { raw ->
-      decodeValidationEvidenceFromArtifact(raw, run.phaseId)
-    } ?: error("Runtime-owned validation evidence is missing.")
-    evidence.requireSuccessfulCommand(
-      FeatureTaskRuntimeRunLoopValidationGate.requiredValidationCommand(
-        phaseGates = phaseGates,
-        run = run,
-        evidence = evidence,
-        changedPaths = FeatureTaskRuntimeRunLoopValidationGate.validationChangedPaths(
-          phaseGates,
-          recorder,
-          goalContinuationRecorder,
-          session,
-          run,
-        ),
-      ),
-      run.phaseId,
-    )
+    requirePassedValidationResult(run, accepted.normalizedOutput.envelopeWireMap())
     accepted
   }
 
@@ -258,8 +221,8 @@ internal class ValidationGateCycleSettlement(
   }
 
   private fun settleTerminal(outcome: ValidationGateCycleTerminalOutcome): PhaseOutcome {
-    startPhase()
     return when (outcome) {
+      is ValidationGateCycleTerminalOutcome.Paused -> PhaseOutcome.paused(outcome.reason)
       is ValidationGateCycleTerminalOutcome.Completed ->
         RuntimeOwnedValidationSettlement(
           request = request,
@@ -271,7 +234,7 @@ internal class ValidationGateCycleSettlement(
           session = session,
         ).settle(
           run = context.attempt.run,
-          iteration = context.attempt.iteration,
+          iteration = outcome.output.iteration,
           outputText = outcome.output.payload,
           observability = context.attempt.observability,
         )
@@ -283,7 +246,8 @@ internal class ValidationGateCycleSettlement(
           context.attempt.observability,
           PhaseBlockRequest(
             run = context.attempt.run,
-            attemptCount = context.attempt.iteration,
+            attemptCount = recorder.loadPhaseRecords(request.workflowId)
+              ?.get(context.attempt.run.phaseId)?.attemptCount ?: context.attempt.iteration,
             reason = outcome.reason,
             observability = context.attempt.observability,
             failureDisposition = outcome.failureDisposition
@@ -479,6 +443,7 @@ internal class BuildGateCycleSettlement(
         )
       is ValidationGateCycleResult.Terminal -> {
         when (val terminal = cycle.outcome) {
+          is ValidationGateCycleTerminalOutcome.Paused -> PhaseOutcome.paused(terminal.reason)
           is ValidationGateCycleTerminalOutcome.Completed ->
             runtimeOwnedBuild(run, iteration, observability, terminal.output.payload)
           is ValidationGateCycleTerminalOutcome.Blocked ->
@@ -677,6 +642,21 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     args: ValidationGateRepairArgs,
   ): ValidationGateAgentRepairResult {
     val run = args.context.attempt.run
+    if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
+      val settled = runPhaseAttempts(run.copy(validationGateFindings = args.findings))
+      val completed = settled.completedOutput
+      val paused = settled.pausedReason
+      return when {
+        completed != null -> ValidationGateAgentRepairResult.Completed(completed)
+        paused != null -> ValidationGateAgentRepairResult.Paused(paused)
+        else -> ValidationGateAgentRepairResult.Blocked(
+          settled.blockedReason ?: "Validation phase did not complete.",
+          failureDisposition = recorder.loadPhaseRecords(run.request.workflowId)
+            ?.get(run.phaseId)
+            ?.failureDisposition,
+        )
+      }
+    }
     val state = args.context.attempt.state
     val iteration = args.context.attempt.iteration
     val observability = args.context.attempt.observability
@@ -707,18 +687,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
           ?.get(run.phaseId)
           ?.failureDisposition,
       )
-      else -> ValidationGateAgentRepairResult.Completed(
-        FeatureTaskRuntimePhaseOutput(
-          phaseId = run.phaseId,
-          iteration = iteration,
-          payload =
-          """{"${SharedPayloadKeys.CONTRACT_VERSION}":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION",""" +
-            """"${SharedPayloadKeys.PHASE_ID}":"${run.phaseId}",""" +
-            """"${SharedPayloadKeys.STATUS}":"completed",""" +
-            """"${SharedPayloadKeys.SUMMARY}":"Gate repair segment.",""" +
-            """"${SharedPayloadKeys.PRODUCED_OUTPUTS}":{}}""",
-        ),
-      )
+      else -> ValidationGateAgentRepairResult.Completed(gateRepairSegmentOutput(run, iteration))
     }
   }
 
@@ -742,68 +711,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       ?.distinct()
       ?.sorted()
   }
-
-  internal fun requiredValidationCommand(
-    phaseGates: FeatureTaskRuntimePhaseGates,
-    run: PhaseRun,
-    evidence: FeatureTaskRuntimeValidationEvidence,
-    changedPaths: List<String>?,
-  ): String = requireNotNull(
-    resolveRequiredValidationCommand(
-      resolver = phaseGates.validationGateResolver,
-      requiredCommandForDeclaration = { declaration ->
-        phaseGates.validationGateCoordinator.requiredValidationCommand(
-          run.request.repoRoot,
-          run.request.workflowId,
-          declaration,
-        )
-      },
-      changedPaths = changedPaths,
-      evidence = evidence,
-      sourceLabel = run.phaseId,
-    ),
-  )
-
-  internal fun declaredValidationGateDeclaration(
-    phaseGates: FeatureTaskRuntimePhaseGates,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-    session: FeatureTaskRuntimeRunLoopSession,
-    run: PhaseRun,
-  ): ValidationGateDeclaration? {
-    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
-      return null
-    }
-    return when (
-      val resolution = phaseGates.validationGateResolver.resolve(
-        validationChangedPaths(phaseGates, recorder, goalContinuationRecorder, session, run).orEmpty(),
-      )
-    ) {
-      is ValidationGateResolution.Declared -> resolution.declaration
-      is ValidationGateResolution.Absent -> null
-      is ValidationGateResolution.Incompatible -> null
-    }
-  }
-
-  internal fun packCollectAllCommand(
-    phaseGates: FeatureTaskRuntimePhaseGates,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-    session: FeatureTaskRuntimeRunLoopSession,
-    run: PhaseRun,
-  ): String? = declaredValidationGateDeclaration(phaseGates, recorder, goalContinuationRecorder, session, run)
-    ?.collectAllFullGateCommand
-    ?.joinToString(" ")
-
-  internal fun packConfirmationGateCommand(
-    phaseGates: FeatureTaskRuntimePhaseGates,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-    session: FeatureTaskRuntimeRunLoopSession,
-    run: PhaseRun,
-  ): String? = declaredValidationGateDeclaration(phaseGates, recorder, goalContinuationRecorder, session, run)
-    ?.cacheBypassingCollectAllFullGateCommand
-    ?.joinToString(" ")
 
   internal fun packBuildCommand(
     phaseGates: FeatureTaskRuntimePhaseGates,
@@ -982,7 +889,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
           checkpoint,
         ),
       ),
-      onGateRunCount = { observability.validationGateProgress() },
     )
     return ValidationGateCycleSettlement(
       context = context,

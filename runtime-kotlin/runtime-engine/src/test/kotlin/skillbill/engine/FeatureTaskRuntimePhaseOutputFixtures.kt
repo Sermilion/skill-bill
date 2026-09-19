@@ -131,7 +131,7 @@ internal fun validJsonOutputForGitPhase(phaseId: String, git: RecordingWorkflowG
 
 internal fun validProducedOutputs(phaseId: String, commitPushChangedPaths: List<String>? = null): String =
   when (phaseId) {
-    "validate" -> validateProducedOutputs()
+    "validate" -> VALIDATE_PRODUCED_OUTPUTS
     "write_history" -> WRITE_HISTORY_PRODUCED_OUTPUTS
     "commit_push" -> commitPushProducedOutputs(
       commitSha = null,
@@ -148,18 +148,8 @@ internal fun validProducedOutputs(phaseId: String, commitPushChangedPaths: List<
     else -> """{"tasks":["task-1"]}"""
   }
 
-private fun validateProducedOutputs(): String = """{"value":"finished","validation_result":{
-      "validation_status":"passed",
-      "checks":["FooTest"],
-      "repository_checkpoint":{"fingerprint":"fixture-checkpoint-1"},
-      "gate_run_count":1,
-      "gate_runs":[{"duration_ms":1,"outcome":"passed","cache_mode":"forced_full","executed_work_units":1,
-        "command":"./gradlew check","exit_code":0}],
-      "validation_evidence":{"contract_version":"0.1","results":[
-        {"command":"./gradlew check","exit_code":0}
-      ]}
-    }}
-""".trimIndent()
+private const val VALIDATE_PRODUCED_OUTPUTS =
+  """{"value":"Project checks passed.","validation_passed":true}"""
 
 private const val WRITE_HISTORY_PRODUCED_OUTPUTS =
   """{"history_result":{"changed_paths":["agent/history.md"],"decisions_recorded":[]}}"""

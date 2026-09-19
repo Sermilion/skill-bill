@@ -3,166 +3,17 @@ package skillbill.engine.featuretask.validation
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLauncher
-import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
-import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
-import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminalOutcome
 import skillbill.infrastructure.contracts.workflow.featuretask.handoff.FeatureTaskRuntimeValidationEvidenceSchemaValidator
 import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.FeatureTaskRuntimePhaseOutputWireSchema
-import skillbill.ports.validation.model.ValidationGateFinding
-import skillbill.ports.validation.model.ValidationGateRunResult
-import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.artifact.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
 import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
-  @Test
-  fun `settlement projects executed work and checks from the gate runner result`() {
-    val result = ValidationGateRunResult(
-      exitCode = 0,
-      durationMs = 3,
-      outcome = ValidationGateRunOutcome.PASSED,
-      cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-      executedWorkUnits = 3,
-      executedCheckIdentities = listOf(
-        "runtime-engine|compileKotlin",
-        "runtime-engine|compileTestKotlin",
-        "runtime-engine|test",
-      ),
-      findings = emptyList(),
-    )
-    val cycle = coordinator(
-      resolver = declaredResolver(),
-      runner = ScriptedGateRunner(listOf(result)),
-      progress = mutableListOf(),
-    ).execute(
-      cycle = ValidationGateCycleRequest(
-        repoRoot = validationGateTestRepoRoot,
-        request = minimalRequest(),
-        validationDepth = ValidationDepth.DEFAULT,
-        changedPaths = listOf("runtime-kotlin/foo.kt"),
-        repositoryCheckpoint = "checkpoint",
-        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
-          completedRepair()
-        },
-      ),
-    )
-    val terminal = assertIs<ValidationGateCycleResult.Terminal>(cycle)
-    val output = assertIs<ValidationGateCycleTerminalOutcome.Completed>(terminal.outcome).output
-    val gateEvidence = requireNotNull(
-      decodeValidationGateExecutionEvidenceFromArtifact(
-        validationResultFrom(output.payload),
-        "validate",
-      ),
-    )
-
-    assertEquals(3, gateEvidence.gateRuns.single().executedWorkUnits)
-    assertEquals(result.executedCheckIdentities, gateEvidence.gateRuns.single().executedChecks)
-    assertEquals(result.executedCheckIdentities, gateEvidence.checks)
-  }
-
-  @Test
-  fun `coordinator persists cache-eligible failure and forced-full retry evidence`() {
-    val progress = mutableListOf<FeatureTaskRuntimeValidationGateProgress>()
-    val completed = executeRetryCycle(
-      progress = progress,
-      runner = ScriptedGateRunner(listOf(cacheEligibleFailure(), forcedFullPass())),
-    )
-    assertSettledRuns(progress.last().gateRuns)
-    assertSettledArtifact(completed)
-  }
-
-  private fun cacheEligibleFailure(): ValidationGateRunResult = ValidationGateRunResult(
-    exitCode = 1,
-    durationMs = 3,
-    outcome = ValidationGateRunOutcome.FAILED,
-    cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-    executedWorkUnits = 2,
-    executedCheckIdentities = listOf("runtime-engine|compileKotlin"),
-    findings = listOf(ValidationGateFinding("runtime-engine", "test", "failed", "Test.kt")),
-  )
-
-  private fun forcedFullPass(): ValidationGateRunResult = ValidationGateRunResult(
-    exitCode = 0,
-    durationMs = 4,
-    outcome = ValidationGateRunOutcome.PASSED,
-    cacheMode = ValidationGateCacheMode.FORCED_FULL,
-    executedWorkUnits = 3,
-    executedCheckIdentities = listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
-    findings = emptyList(),
-  )
-
-  private fun executeRetryCycle(
-    progress: MutableList<FeatureTaskRuntimeValidationGateProgress>,
-    runner: ScriptedGateRunner,
-  ): ValidationGateCycleTerminalOutcome.Completed {
-    val cycle = coordinator(
-      resolver = declaredResolver(),
-      runner = runner,
-      progress = progress,
-    ).execute(
-      cycle = ValidationGateCycleRequest(
-        repoRoot = validationGateTestRepoRoot,
-        request = minimalRequest(),
-        validationDepth = ValidationDepth.DEFAULT,
-        changedPaths = listOf("runtime-kotlin/foo.kt"),
-        repositoryCheckpoint = "checkpoint",
-        agentRepairLauncher = { _, _, _ -> completedRepair() },
-      ),
-    )
-    return assertIs<ValidationGateCycleTerminalOutcome.Completed>(
-      assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
-    )
-  }
-
-  private fun assertSettledRuns(settled: List<FeatureTaskRuntimeValidationGateRunRecord>) {
-    assertEquals(2, settled.size)
-    assertEquals(
-      listOf(ValidationGateCacheMode.CACHE_ELIGIBLE, ValidationGateCacheMode.FORCED_FULL),
-      settled.map { it.cacheMode },
-    )
-    assertEquals(
-      listOf(ValidationGateRunOutcome.FAILED, ValidationGateRunOutcome.PASSED),
-      settled.map { it.outcome },
-    )
-    assertEquals(listOf(2, 3), settled.map { it.executedWorkUnits })
-    assertEquals(
-      listOf(
-        listOf("runtime-engine|compileKotlin"),
-        listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
-      ),
-      settled.map { it.executedChecks },
-    )
-  }
-
-  private fun assertSettledArtifact(completed: ValidationGateCycleTerminalOutcome.Completed) {
-    val settledArtifact = requireNotNull(
-      decodeValidationGateExecutionEvidenceFromArtifact(
-        validationResultFrom(completed.output.payload),
-        "validate",
-      ),
-    )
-    assertEquals(
-      listOf(ValidationGateRunOutcome.FAILED, ValidationGateRunOutcome.PASSED),
-      settledArtifact.gateRuns.map { it.outcome },
-    )
-    assertEquals(listOf(2, 3), settledArtifact.gateRuns.map { it.executedWorkUnits })
-    assertEquals(
-      listOf(
-        listOf("runtime-engine|compileKotlin"),
-        listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
-      ),
-      settledArtifact.gateRuns.map { it.executedChecks },
-    )
-  }
-
   @Test
   fun `gradle compile and test tasks with zero executed work units still record check identities`() {
     val output = FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(

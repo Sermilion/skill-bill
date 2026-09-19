@@ -2,7 +2,6 @@ package skillbill.engine.featuretask.runloop.output
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.lifecycle.continuation.matches
 import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeVerificationGateReasons
@@ -66,8 +65,6 @@ import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.ports.workflow.gitops.runtimePhaseChangedPathsBetweenCommits
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
@@ -83,43 +80,11 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputF
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
-import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.validation.validateDispositionCoverage
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 object FeatureTaskRuntimeRunLoopOutputVerification {
-  internal fun attestAbsentGateValidationReceipt(
-    outputValidator: FeatureTaskRuntimePhaseOutputValidator,
-    run: PhaseRun,
-    normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
-  ): NormalizedFeatureTaskRuntimePhaseOutput {
-    val eligible = run.agentRunValidateFallback &&
-      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
-      (normalizedOutput.envelopeWireMap()[SharedPayloadKeys.STATUS] as? String)
-        .workflowStepStatus() == WorkflowStepStatus.COMPLETED
-    if (!eligible) return normalizedOutput
-    val produced = JsonCodec.anyToStringAnyMap(normalizedOutput.envelopeWireMap()[SharedPayloadKeys.PRODUCED_OUTPUTS])
-      ?.toMutableMap()
-      ?: return normalizedOutput
-    val validationResult = JsonCodec.anyToStringAnyMap(
-      produced[ValidationEvidencePayloadKeys.VALIDATION_RESULT],
-    )
-      ?.toMutableMap()
-      ?: return normalizedOutput
-    validationResult["gate_run_count"] = 0
-    validationResult["gate_runs"] = emptyList<Any?>()
-    validationResult.remove("suppression_justifications")
-    produced[ValidationEvidencePayloadKeys.VALIDATION_RESULT] = validationResult
-    val envelope = normalizedOutput.envelopeWireMap().toMutableMap()
-    envelope[SharedPayloadKeys.PRODUCED_OUTPUTS] = produced
-    return outputValidator.validatePhaseOutput(
-      JsonCodec.mapToJsonString(envelope),
-      sourceLabel = run.phaseId,
-    ).requireAcceptedOutput(run.phaseId).normalizedOutput
-  }
-
   internal fun implementationObligations(run: PhaseRun): FeatureTaskRuntimeImplementationObligations =
     FeatureTaskRuntimeImplementationObligations(
       plannedTaskIds = emptyList(),

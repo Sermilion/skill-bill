@@ -29,7 +29,6 @@ data class ReadinessPostValidateCaptureRequest(
   val workflowId: String,
   val repoRoot: Path,
   val baseBranch: String,
-  val packCommand: String,
   val changedPaths: List<String>,
   val gitOperations: WorkflowGitOperations,
 )
@@ -108,7 +107,7 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     val results = packOnly.map { check ->
       FeatureTaskRuntimeReadinessCheckResult(
         checkId = check.checkId,
-        command = check.command.ifBlank { request.packCommand },
+        command = check.command,
         exitCode = 0,
         status = FeatureTaskRuntimeReadinessCheckStatus.PASSED,
       )

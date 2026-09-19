@@ -35,6 +35,7 @@ import skillbill.review.context.model.hunk.ReviewDependencyAllowlist
 import skillbill.review.context.model.hunk.ReviewLaneIdentity
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewLaneCompletionState
+import skillbill.review.context.model.packet.asFailedLaneRun
 import skillbill.review.model.ReviewEvidenceBoundaryAccounting
 import java.nio.file.Path
 
@@ -198,10 +199,24 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
       budget,
       outcome.stdout.toByteArray().size.toLong(),
     )
+    val evidenceAccounting = evidenceBroker.accounting()
+    val noEvidenceRead = evidenceAccounting.authorizedReadCount == 0 &&
+      launch.selected.any { parallelCodeReviewGovernedLaunchFor(it).assembledBundle.entries.isNotEmpty() }
     val launchReason = budgetOutcome?.let { ReviewContextBudgetExceededException(it).message }
       ?: failureAdmission.laneFailureReason(outcome)
-    val evidenceAccounting = evidenceBroker.accounting()
-    val completion = parallelCodeReviewBrokerEvidenceCompletionState(bundleState, evidenceAccounting)
+      ?: "Review worker returned without reading assigned evidence.".takeIf { noEvidenceRead }
+    val evidenceCompletion = parallelCodeReviewBrokerEvidenceCompletionState(bundleState, evidenceAccounting)
+    val completion = if (launchReason == null) {
+      evidenceCompletion
+    } else {
+      evidenceCompletion.asFailedLaneRun(
+        launch.selected.flatMap { selected ->
+          parallelCodeReviewGovernedLaunchFor(
+            selected,
+          ).assembledBundle.entries.map { "${it.commitSha}@${it.hunk.path}" }
+        },
+      )
+    }
     val softAdmission = if (launchReason == null) {
       failureAdmission.softAdmitFindings(outcome.stdout, launch)
     } else {

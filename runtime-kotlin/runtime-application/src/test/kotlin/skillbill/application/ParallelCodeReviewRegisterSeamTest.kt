@@ -1,6 +1,7 @@
 package skillbill.application
 
 import skillbill.application.review.parallel.verification.parseLaneRegisterSeam
+import skillbill.application.review.review.simulateGovernedEvidenceReads
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
@@ -17,7 +18,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 class ParallelCodeReviewRegisterSeamTest {
   @Test
-  fun `a zero-exit lane without a findings register settles without failing the lane`() {
+  fun `a zero-exit blocked lane without evidence fails despite an approval verdict`() {
     val blocked = """
       This session has no worker-launch capability and no bound evidence broker.
       Per the contract I am not running the review inline as a single prompt, and I am not
@@ -40,8 +41,8 @@ class ParallelCodeReviewRegisterSeamTest {
       baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.DELEGATED),
     )
 
-    assertTrue(result.lane1.success)
-    assertNull(result.lane1.failureReason)
+    assertFalse(result.lane1.success)
+    assertEquals("Review worker returned without reading assigned evidence.", result.lane1.failureReason)
     assertNull(result.lane1.droppedCandidateDiagnostic)
     assertTrue(result.mergeResult.findings.isEmpty())
   }
@@ -212,6 +213,7 @@ class ParallelCodeReviewRegisterSeamTest {
   }
 
   private fun stdoutLauncher(stdout: String) = GoalRunnerSubtaskLauncher { request ->
+    simulateGovernedEvidenceReads(request.skillRunRequest)
     AgentRunLaunchFacts(
       agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
       exitStatus = 0,

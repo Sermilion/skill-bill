@@ -222,6 +222,32 @@ class ParallelCodeReviewRunnerTest {
   }
 
   @Test
+  fun `worker approval failure with exit zero cannot claim clean review coverage`() {
+    val repo = createGitRepo()
+    createStagedFile(repo)
+    val blockedOutput = "Review blocked: MCP tool call requires approval, but approval policy is never."
+    val launcher = GoalRunnerSubtaskLauncher { request ->
+      AgentRunLaunchFacts(
+        agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+        exitStatus = 0,
+        stdout = blockedOutput,
+        stderr = "",
+        timedOut = false,
+        spawnFailed = false,
+      )
+    }
+
+    val result = runner(launcher).run(baseRequest(scope = ParallelReviewScope.STAGED, repoRoot = repo))
+
+    assertFalse(result.lane1.success)
+    assertEquals("Review worker returned without reading assigned evidence.", result.lane1.failureReason)
+    assertEquals(0, result.lane1.accounting?.authorizedReadCount)
+    assertFalse(requireNotNull(result.coverage).isCleanCoverage)
+    assertTrue(requireNotNull(result.coverage).incompleteLanes.all { it.unreviewedUnits.isNotEmpty() })
+    assertTrue(result.mergeResult.findings.isEmpty())
+  }
+
+  @Test
   fun `lane1 timedOut produces lane1Success false`() {
     val tempDir = createGitRepo()
     createStagedFile(tempDir)
@@ -462,6 +488,7 @@ class ParallelCodeReviewRunnerTest {
   @Test
   fun `inline mode accounting carries the parent prompt and stdout as one specialist-free turn`() {
     val launcher = GoalRunnerSubtaskLauncher { request ->
+      simulateGovernedEvidenceReads(request.skillRunRequest)
       AgentRunLaunchFacts(
         agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
         exitStatus = 0,
@@ -481,7 +508,7 @@ class ParallelCodeReviewRunnerTest {
     val accounting = assertNotNull(result.lane1.accounting)
     assertEquals("completed", accounting.terminalStatus)
     assertEquals(1, accounting.modelTurns, "An inline lane is exactly one parent turn, never a specialist child.")
-    assertEquals(0L, accounting.evidenceBytes, "Inline mode never brokers evidence through a child worker.")
+    assertTrue(accounting.authorizedReadCount > 0, "The inline parent must read its assigned evidence.")
     assertTrue(accounting.launchBytes > 0, "The rendered parent prompt must be measured as launch bytes.")
     assertEquals(
       "- [F-001] Major | High | path=\"A.kt\" | line=1 | Inline finding".toByteArray().size.toLong(),
@@ -1440,6 +1467,8 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
     repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
     reviewEvidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
       object : ReviewEvidenceBroker {
+        private var authorizedReads = 0
+
         override fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord =
           ReviewExpansionRecord(
             expansionId = "test-expansion",
@@ -1450,11 +1479,14 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
             sequence = 0,
           )
 
-        override fun readBatch(request: ReviewEvidenceBatchRequest) = ReviewEvidenceBatchResult(
-          results = emptyList(),
-          cumulativeBytes = 0,
-          expansions = emptyList(),
-        )
+        override fun readBatch(request: ReviewEvidenceBatchRequest): ReviewEvidenceBatchResult {
+          authorizedReads += request.requests.size
+          return ReviewEvidenceBatchResult(
+            results = emptyList(),
+            cumulativeBytes = 0,
+            expansions = emptyList(),
+          )
+        }
 
         override fun recordToolCall(call: ReviewToolCall) = ReviewToolCallResult()
 
@@ -1466,6 +1498,7 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
 
         override fun accounting() = ReviewLaneAccounting(
           lane = binding.assignment.lane,
+          authorizedReadCount = authorizedReads,
           reviewId = binding.assignment.reviewId,
           packetDigest = binding.assignment.packetDigest,
           evidenceBytes = 0,
