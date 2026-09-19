@@ -82,6 +82,10 @@ class FeatureFamilyRenderingIntegrationTest {
     ).forEach { removedSidecar ->
       assertFalse(Files.exists(staged.stagingDir.resolve(removedSidecar).toPath()), removedSidecar)
     }
+    assertFalse(
+      Files.exists(staged.stagingDir.resolve("bill-over-engineering-review.md").toPath()),
+      "retired over-engineering skill must not be recreated during source installation",
+    )
     assertContains(feature, "code-review:auto|inline")
     assertFalse(feature.contains("code-review:auto|inline|delegated"))
     assertContains(stagedReview.renderedSkillFile.toPath().readText(), "mode:auto|inline|delegated")

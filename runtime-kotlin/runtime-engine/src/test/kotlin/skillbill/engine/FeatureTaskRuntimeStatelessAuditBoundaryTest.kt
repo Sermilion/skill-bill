@@ -20,6 +20,49 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 class FeatureTaskRuntimeStatelessAuditBoundaryTest {
   @Test
+  fun `audit inspects the tree after simplify edits and before review`() {
+    val root = Files.createTempDirectory("stateless-audit-post-simplify")
+    try {
+      Files.writeString(root.resolve("Calculator.kt"), IMPLEMENTATION)
+      var simplifyLaunches = 0
+      var auditSawSimplifiedTree = false
+      val launcher = RuntimeRecordingLauncher { request ->
+        val phase = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        when (phase) {
+          "simplify" -> {
+            simplifyLaunches += 1
+            assertEquals(IMPLEMENTATION, Files.readString(root.resolve("Calculator.kt")))
+            Files.writeString(root.resolve("Calculator.kt"), SIMPLIFIED_IMPLEMENTATION)
+            facts(defaultPhaseOutput(request))
+          }
+          "audit" -> {
+            auditSawSimplifiedTree = Files.readString(root.resolve("Calculator.kt")) == SIMPLIFIED_IMPLEMENTATION
+            facts(auditSatisfiedOutput())
+          }
+          else -> facts(defaultPhaseOutput(request))
+        }
+      }
+      val harness = runnerHarness(
+        RuntimeHarnessConfig(
+          repoRoot = root,
+          acceptanceCriteria = CRITERIA,
+          launcher = launcher,
+          validator = realFeatureTaskRuntimePhaseOutputValidator,
+        ),
+      )
+
+      val report = harness.runner.run(harness.request())
+
+      assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+      assertEquals(1, simplifyLaunches)
+      assertTrue(auditSawSimplifiedTree)
+      assertTrue(harness.launchOrder().indexOf("audit") < harness.launchOrder().indexOf("review"))
+    } finally {
+      root.toFile().deleteRecursively()
+    }
+  }
+
+  @Test
   fun `one audit session repairs production and missing assertions before review can start`() {
     val root = Files.createTempDirectory("stateless-audit-repair")
     try {
@@ -150,7 +193,7 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
     val record = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID)?.get("audit"))
     assertEquals(FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION, record.failureDisposition)
     assertTrue("audit" !in result.completedPhaseIds)
-    assertEquals(listOf("preplan", "plan", "implement", "audit"), harness.launchedPromptPhaseOrder())
+    assertEquals(listOf("preplan", "plan", "implement", "simplify", "audit"), harness.launchedPromptPhaseOrder())
   }
 
   @Test
@@ -171,7 +214,7 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
       val result = harness.runner.run(harness.request())
       assertIs<FeatureTaskRuntimeRunReport.Blocked>(result)
       assertContains(result.blockedReason, "Planning inputs are unreadable")
-      assertEquals("audit", result.lastIncompletePhase)
+      assertEquals("simplify", result.lastIncompletePhase)
       assertContains(result.blockedReason.lowercase(), "acceptance")
       assertTrue(harness.launcher.requests.isEmpty())
       assertTrue("audit" !in result.completedPhaseIds)
@@ -200,6 +243,7 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
       "AC-023. A test asserts that twice(3) returns 6.",
     )
     const val IMPLEMENTATION = "fun twice(value: Int) = value * 2"
+    const val SIMPLIFIED_IMPLEMENTATION = "fun twice(value: Int) = value shl 1"
     val TEST_SOURCE = """
       import kotlin.test.Test
       import kotlin.test.assertEquals

@@ -51,6 +51,7 @@ internal object FeatureTaskRuntimePhaseWorkflowGraph {
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to "Phase 1: Pre-plan",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to "Phase 2: Plan",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to "Phase 3: Implement",
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY to "Phase 3b: Simplify",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to "Phase 4: Completeness Audit",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to "Phase 5: Code Review",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS to "Phase 5a: Verify Findings",
@@ -68,9 +69,13 @@ internal object FeatureTaskRuntimePhaseWorkflowGraph {
         listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN),
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to
         listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN),
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY to listOf(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+      ),
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to listOf(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY,
       ),
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to
         listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT),
@@ -108,6 +113,9 @@ internal object FeatureTaskRuntimePhaseWorkflowGraph {
         "Resume planning from the latest preplan prose, then persist the validated planning prose output.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to
         "Resume implementation from the planned work and current repository, then persist the validated output.",
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY to
+        "Resume simplification from the current subtask scoped diff and owned paths, reconciling the " +
+        "working tree without replaying completed edits, then persist the validated output.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX to
         "Resume the implement-fix phase from the latest verified findings, reconciling the " +
         "current tree, then persist the validated output.",

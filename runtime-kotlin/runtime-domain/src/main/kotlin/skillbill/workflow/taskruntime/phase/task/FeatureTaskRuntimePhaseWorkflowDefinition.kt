@@ -11,6 +11,7 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
   const val PHASE_PREPLAN: String = FeatureTaskRuntimePhaseIds.PREPLAN
   const val PHASE_PLAN: String = FeatureTaskRuntimePhaseIds.PLAN
   const val PHASE_IMPLEMENT: String = FeatureTaskRuntimePhaseIds.IMPLEMENT
+  const val PHASE_SIMPLIFY: String = FeatureTaskRuntimePhaseIds.SIMPLIFY
   const val PHASE_IMPLEMENT_FIX: String = FeatureTaskRuntimePhaseIds.IMPLEMENT_FIX
   const val PHASE_REVIEW: String = FeatureTaskRuntimePhaseIds.REVIEW
   const val PHASE_BUILD: String = FeatureTaskRuntimePhaseIds.BUILD
@@ -46,7 +47,7 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
 
   fun isRegenerationLoopId(loopId: String): Boolean = loopId in REGENERATION_LOOP_IDS
 
-  private val MUTATING_PHASES: Set<String> = setOf(PHASE_IMPLEMENT, PHASE_IMPLEMENT_FIX)
+  private val MUTATING_PHASES: Set<String> = setOf(PHASE_IMPLEMENT, PHASE_SIMPLIFY, PHASE_IMPLEMENT_FIX)
 
   fun isMutatingPhase(phaseId: String): Boolean = phaseId in MUTATING_PHASES
 
@@ -54,6 +55,7 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
     PHASE_PREPLAN,
     PHASE_PLAN,
     PHASE_IMPLEMENT,
+    PHASE_SIMPLIFY,
     PHASE_IMPLEMENT_FIX,
     PHASE_REVIEW,
     PHASE_VERIFY_FINDINGS,
@@ -63,7 +65,7 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
 
   fun retriesOnInvalidOutput(phaseId: String): Boolean = phaseId in OUTPUT_RETRY_PHASES
 
-  fun singleAgentSessionOnly(phaseId: String): Boolean = phaseId == PHASE_AUDIT
+  fun singleAgentSessionOnly(phaseId: String): Boolean = phaseId == PHASE_SIMPLIFY || phaseId == PHASE_AUDIT
 
   val definition: WorkflowDefinition = FeatureTaskRuntimePhaseWorkflowGraph.definition
 

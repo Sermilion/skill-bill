@@ -96,7 +96,7 @@ $defs:
         description: Monotonic append order, minted by the recorder from the persisted max.
       phase_id:
         $ref: "#/$defs/nonBlank"
-        description: The mutating phase that produced this segment (implement or implement_fix).
+        description: The mutating phase that produced this segment (implement, simplify, or implement_fix).
       loop_id:
         $ref: "#/$defs/nonBlank"
         description: >-

@@ -27,7 +27,7 @@ class FeatureTaskPhaseSettlementService(
 ) {
   fun complete(request: FeatureTaskPhaseSettlementCompleteRequest): FeatureTaskPhaseSettlementAcknowledgment {
     require(ProsePhaseOutputSynthesizer.isProsePhase(request.phaseId)) {
-      "phase_id must be a prose phase (preplan|plan|implement|audit)."
+      "phase_id must be a prose phase (preplan|plan|implement|simplify|audit)."
     }
     val verdict = when (request.phaseId) {
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
@@ -66,7 +66,7 @@ class FeatureTaskPhaseSettlementService(
 
   fun block(request: FeatureTaskPhaseSettlementBlockRequest): FeatureTaskPhaseSettlementAcknowledgment {
     require(ProsePhaseOutputSynthesizer.isProsePhase(request.phaseId)) {
-      "phase_id must be a prose phase (preplan|plan|implement|audit)."
+      "phase_id must be a prose phase (preplan|plan|implement|simplify|audit)."
     }
     require(request.failureDisposition.any { !it.isWhitespace() }) {
       "feature_task_phase_block requires a non-blank failure_disposition."

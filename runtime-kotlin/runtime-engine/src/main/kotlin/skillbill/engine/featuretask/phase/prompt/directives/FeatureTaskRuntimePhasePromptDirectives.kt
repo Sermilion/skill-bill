@@ -12,6 +12,19 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 fun implementationContinuationDirective(
   phaseId: String,
   continuation: FeatureTaskRuntimeImplementationContinuation?,
+): String = mutatingPhaseContinuationBody(
+  phaseId,
+  continuation,
+  when (phaseId) {
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY -> "simplification_receipt"
+    else -> "implementation_receipt"
+  },
+)
+
+private fun mutatingPhaseContinuationBody(
+  phaseId: String,
+  continuation: FeatureTaskRuntimeImplementationContinuation?,
+  receiptKind: String,
 ): String {
   if (continuation == null || continuation.phaseId != phaseId) return ""
   val segments = continuation.priorValueSegments.withIndex().joinToString("\n\n") { (index, value) ->
@@ -19,11 +32,16 @@ fun implementationContinuationDirective(
   }
   val prompt = continuation.latestPrompt?.let { "Latest optional prompt: $it" } ?: "No optional prompt recorded."
   val disposition = continuation.failureDisposition ?: "none"
+  val phaseLabel = if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY) {
+    "simplification"
+  } else {
+    "implementation"
+  }
   return """
-    ## Continue this implementation — segment ${continuation.segmentNumber}
-    A prior segment of this same implementation ran and did real work. It was NOT rejected and its
-    output was NOT malformed: continue from where it stopped. Do not restart the implementation and do
-    not re-apply changes already present — the mutating-phase idempotency contract still governs.
+    ## Continue this $phaseLabel — segment ${continuation.segmentNumber}
+    A prior segment of this same $phaseLabel ran and did real work. It was NOT rejected and its
+    output was NOT malformed: continue from where it stopped. Do not restart the $phaseLabel and
+    do not re-apply changes already present — the mutating-phase idempotency contract still governs.
 
     Prior stuffed value segments:
     $segments
@@ -31,7 +49,7 @@ fun implementationContinuationDirective(
     $prompt
     Failure disposition from the latest segment: $disposition
 
-    Emit a new non-blank value string carrying your updated implementation_receipt JSON stuffed inside
+    Emit a new non-blank value string carrying your updated $receiptKind JSON stuffed inside
     value.
   """.trimIndent()
 }
@@ -168,6 +186,19 @@ val phaseDirectives: Map<String, String> = mapOf(
     "tests_added, tests_updated, deviations, unresolved_items, reconciliation_evidence, and " +
     "reconciled_state. repository_checkpoint is runtime-owned: omit it and never invent a " +
     "fingerprint. Every receipt field is a bounded summary, not a transcript. " +
+    IMPLEMENT_READONLY_REPAIR_SENTENCE,
+  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY to
+    "Within the current subtask scoped diff and owned paths only, apply high-confidence local " +
+    "simplifications: dead feature-local code, one-use wrappers, unnecessary one-implementation " +
+    "abstractions, hand-rolled standard-library behavior, or equivalent local shrinkage. Do not " +
+    "perform whole-repository discovery, edit paths outside the boundary, run builds or tests, " +
+    "launch subagents, or delegate review. Never remove or weaken governed contracts, typed errors, " +
+    "loud-fail seams, parity tests, validator-backed rules, security measures, accessibility " +
+    "requirements, or behavior the spec explicitly requires. Treat edits already present as a no-op " +
+    "under the mutating-phase idempotency contract. Emit produced_outputs with a non-blank value string " +
+    "carrying the simplification_receipt JSON stuffed inside value: changed_paths, reductions with " +
+    "outcome no_edit, addressed, or unresolved, unresolved_items, reconciliation_evidence, and " +
+    "reconciled_state. repository_checkpoint is runtime-owned: omit it and never invent a fingerprint. " +
     IMPLEMENT_READONLY_REPAIR_SENTENCE,
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX to
     "Address every finding verify_findings carried on the CURRENT working tree as " +

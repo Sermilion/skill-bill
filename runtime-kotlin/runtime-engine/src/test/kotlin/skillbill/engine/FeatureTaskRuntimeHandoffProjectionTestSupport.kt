@@ -33,6 +33,12 @@ internal object PlanningProjectionFixtures {
   const val IMPLEMENT_PROSE: String =
     """{"value":"Fixture implement prose for downstream audit."}"""
 
+  const val SIMPLIFY_PROSE: String =
+    """{"value":"{\"projection_kind\":\"simplification_receipt\",\"contract_version\":\"0.1\",""" +
+      """\"changed_paths\":[],\"reductions\":[],\"unresolved_items\":[],""" +
+      """\"reconciliation_evidence\":{\"reconciled\":true,\"evidence\":\"fixture\"},""" +
+      """\"reconciled_state\":{\"reconciled\":true,\"evidence\":\"fixture\"}}"}"""
+
   const val IMPLEMENT_PROSE_FIELDS: String =
     """"value":"Fixture implement prose for downstream audit.","""
 
@@ -40,6 +46,7 @@ internal object PlanningProjectionFixtures {
     "preplan" -> PREPLAN_DIGEST
     "plan" -> PLAN_PROSE
     "implement" -> IMPLEMENT_PROSE
+    "simplify" -> SIMPLIFY_PROSE
     else -> null
   }
 }

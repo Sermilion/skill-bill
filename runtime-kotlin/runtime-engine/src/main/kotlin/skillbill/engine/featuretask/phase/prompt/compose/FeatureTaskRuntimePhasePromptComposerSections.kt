@@ -20,6 +20,7 @@ import skillbill.engine.featuretask.phase.prompt.directives.outputContract
 import skillbill.engine.featuretask.phase.prompt.directives.phasePromptHeader
 import skillbill.engine.featuretask.phase.prompt.directives.retryCorrectionDirective
 import skillbill.engine.featuretask.phase.prompt.directives.runtimeOwnedValidateFinishedDirective
+import skillbill.engine.featuretask.phase.prompt.directives.simplifyScopeBoundaryDirective
 import skillbill.engine.featuretask.phase.prompt.directives.terminalRetryDirective
 import skillbill.engine.featuretask.phase.prompt.directives.testValueDisciplineDirective
 import skillbill.engine.featuretask.phase.prompt.directives.validationGateFindingsDirective
@@ -49,6 +50,7 @@ fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInput
     inputs.briefing.phaseId,
   ),
   minimalismDisciplineDirective(inputs.briefing.phaseId),
+  simplifyScopeBoundaryDirective(inputs.briefing.phaseId),
   testValueDisciplineDirective(inputs.briefing.phaseId),
 )
 

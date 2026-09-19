@@ -111,6 +111,7 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
@@ -128,6 +129,7 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to "Phase 1: Pre-plan",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to "Phase 2: Plan",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to "Phase 3: Implement",
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY to "Phase 3b: Simplify",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to "Phase 4: Completeness Audit",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to "Phase 5: Code Review",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS to "Phase 5a: Verify Findings",
@@ -170,6 +172,7 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
     assertTrue(def.isMutatingPhase(def.PHASE_IMPLEMENT_FIX))
     assertTrue(def.isMutatingPhase(def.PHASE_IMPLEMENT))
+    assertTrue(def.isMutatingPhase(def.PHASE_SIMPLIFY))
     val transitions = def.transitions
     assertEquals(setOf(def.PHASE_IMPLEMENT_FIX, def.PHASE_BUILD), transitions.loopOnlyPhaseIds)
     assertEquals(emptyMap(), transitions.loopOnlySuccessors)

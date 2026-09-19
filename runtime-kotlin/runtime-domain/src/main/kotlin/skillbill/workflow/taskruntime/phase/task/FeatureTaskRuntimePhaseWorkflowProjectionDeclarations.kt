@@ -105,6 +105,22 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
       ),
     ),
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY to listOf(
+      phaseProjection(
+        PhaseHandoffProjectionTemplate(
+          consumerPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY,
+          producingPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+          name = "subtask_scope",
+          contractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.CHANGE_RECEIPT,
+          fields = listOf(
+            "changed_paths",
+            "repository_checkpoint",
+          ),
+          checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY,
+          required = true,
+        ),
+      ),
+    ),
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to listOf(
       phaseProseDeclaration(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
@@ -113,6 +129,10 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
       phaseProseDeclaration(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+      ),
+      phaseProseDeclaration(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY,
       ),
       sharedReviewEvidenceDeclaration(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT),
     ),
@@ -382,6 +402,10 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
           FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
             listOf(
               FeatureTaskRuntimePhaseWorkflowDefinition.DERIVED_CONTEXT_SCOPED_REPOSITORY_STATE,
+            )
+          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY ->
+            listOf(
+              FeatureTaskRuntimePhaseWorkflowDefinition.DERIVED_CONTEXT_DIFF,
             )
           else -> emptyList()
         },

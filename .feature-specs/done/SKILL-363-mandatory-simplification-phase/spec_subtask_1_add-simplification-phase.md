@@ -10,7 +10,7 @@ the feature-task runtime and retire the standalone
 `bill-over-engineering-review` source and catalog entry.
 
 Own the phase ID and workflow graph in
-`runtime-kotlin/runtime-domain`, phase declarations and handoff projections,
+`../../../runtime-kotlin/runtime-domain`, phase declarations and handoff projections,
 phase prompt directives and composition in `runtime-kotlin/runtime-engine`,
 phase output/persistence/resume seams and their tests, plus
 `README.md` and `skills/bill-over-engineering-review/content.md` removal.

@@ -9,9 +9,11 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY
 
 object ProsePhaseOutputSynthesizer {
-  private val PROSE_PHASE_IDS: Set<String> = setOf(PHASE_PREPLAN, PHASE_PLAN, PHASE_IMPLEMENT, PHASE_AUDIT)
+  private val PROSE_PHASE_IDS: Set<String> =
+    setOf(PHASE_PREPLAN, PHASE_PLAN, PHASE_IMPLEMENT, PHASE_SIMPLIFY, PHASE_AUDIT)
   private val AUDIT_VERDICTS: Set<String> = setOf("satisfied")
 
   fun isProsePhase(phaseId: String): Boolean = phaseId in PROSE_PHASE_IDS

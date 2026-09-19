@@ -4,6 +4,7 @@ object FeatureTaskRuntimePhaseIds {
   const val PREPLAN: String = "preplan"
   const val PLAN: String = "plan"
   const val IMPLEMENT: String = "implement"
+  const val SIMPLIFY: String = "simplify"
   const val IMPLEMENT_FIX: String = "implement_fix"
   const val REVIEW: String = "review"
   const val BUILD: String = "build"
@@ -18,6 +19,7 @@ object FeatureTaskRuntimePhaseIds {
     PREPLAN,
     PLAN,
     IMPLEMENT,
+    SIMPLIFY,
     AUDIT,
     REVIEW,
     VERIFY_FINDINGS,

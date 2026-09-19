@@ -201,6 +201,7 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
     harness.seedPhase("preplan", "completed", 1, INVOKED_AGENT, validJsonOutput("preplan"))
     harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, validJsonOutput("plan"))
     harness.seedPhase("implement", "completed", 1, INVOKED_AGENT, validJsonOutput("implement"))
+    harness.seedPhase("simplify", "completed", 1, INVOKED_AGENT, SIMPLIFY_OUTPUT)
     harness.seedPhase("audit", "completed", 1, INVOKED_AGENT, auditSatisfiedOutput())
     harness.seedReviewPhase("completed", 1, seededReviewFinding(), 1)
     harnessPendingVerifyFindingIds = listOf(REVIEW_FIX_BLOCKER_FINDING_ID)
@@ -250,6 +251,7 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
       harness.seedPhase("preplan", "completed", 1, INVOKED_AGENT, validJsonOutput("preplan"))
       harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, validJsonOutput("plan"))
       harness.seedPhase("implement", "completed", 1, INVOKED_AGENT, validJsonOutput("implement"))
+      harness.seedPhase("simplify", "completed", 1, INVOKED_AGENT, SIMPLIFY_OUTPUT)
       harness.seedPhase("audit", "completed", 1, INVOKED_AGENT, auditSatisfiedOutput())
     }
   }

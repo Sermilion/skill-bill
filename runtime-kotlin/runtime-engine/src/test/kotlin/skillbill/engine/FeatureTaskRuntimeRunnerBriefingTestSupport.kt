@@ -39,6 +39,7 @@ private fun briefingFixtureRecordedOutputs() = listOf(
   FeatureTaskRuntimePhaseOutput("preplan", 1, PREPLAN_OUTPUT),
   FeatureTaskRuntimePhaseOutput("plan", 1, PLAN_OUTPUT),
   FeatureTaskRuntimePhaseOutput("implement", 1, IMPLEMENT_OUTPUT),
+  FeatureTaskRuntimePhaseOutput("simplify", 1, SIMPLIFY_OUTPUT),
   FeatureTaskRuntimePhaseOutput("audit", 1, VALID_AUDIT_OUTPUT),
   FeatureTaskRuntimePhaseOutput("review", 1, VALID_REVIEW_OUTPUT),
   FeatureTaskRuntimePhaseOutput("verify_findings", 1, VALID_VERIFY_FINDINGS_OUTPUT),
@@ -137,6 +138,7 @@ private fun seedPreReviewPhases(harness: RunnerHarness) {
   harness.seedPhase("preplan", "completed", 1, phaseAgent("preplan"), PREPLAN_OUTPUT)
   harness.seedPhase("plan", "completed", 1, phaseAgent("plan"), PLAN_OUTPUT)
   harness.seedPhase("implement", "completed", 1, phaseAgent("implement"), IMPLEMENT_OUTPUT)
+  harness.seedPhase("simplify", "completed", 1, phaseAgent("simplify"), SIMPLIFY_OUTPUT)
   harness.seedPhase("audit", "completed", 1, phaseAgent("audit"), VALID_AUDIT_OUTPUT)
 }
 
@@ -211,7 +213,7 @@ internal fun assertNonScopeReviewPrepFailureSurfacesEvidenceStoreCause() {
     harness.runner.run(
       harness.request().copy(
         transitionsOverride = FeatureTaskRuntimeTransitionDeclaration(
-          forwardPhaseIds = listOf("preplan", "plan", "implement", "audit", "review"),
+          forwardPhaseIds = listOf("preplan", "plan", "implement", "simplify", "audit", "review"),
           backwardEdges = emptyList(),
         ),
       ),

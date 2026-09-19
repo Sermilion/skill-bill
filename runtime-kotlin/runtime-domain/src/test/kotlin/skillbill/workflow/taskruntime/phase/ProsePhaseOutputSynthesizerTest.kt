@@ -37,6 +37,36 @@ class ProsePhaseOutputSynthesizerTest {
   }
 
   @Test
+  fun `simplification_receipt sibling persists as bounded simplify prose`() {
+    val raw =
+      """
+      {
+        "contract_version": "0.6",
+        "phase_id": "simplify",
+        "status": "completed",
+        "summary": "Reduced local excess.",
+        "produced_outputs": {
+          "simplification_receipt": {
+            "projection_kind": "simplification_receipt",
+            "contract_version": "0.1",
+            "changed_paths": ["src/Foo.kt"],
+            "reductions": [{"path": "src/Foo.kt", "outcome": "addressed"}],
+            "unresolved_items": []
+          }
+        }
+      }
+      """.trimIndent()
+
+    val envelope = assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "simplify"))
+    val map = envelopeMap(envelope)
+    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(map["produced_outputs"]))
+
+    assertEquals("simplify", map["phase_id"])
+    assertTrue((produced["value"] as? String).orEmpty().contains("simplification_receipt"))
+    assertNull(produced["simplification_receipt"])
+  }
+
+  @Test
   fun `audit with explicit empty remaining list synthesizes satisfied verdict`() {
     val raw =
       """

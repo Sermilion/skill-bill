@@ -29,12 +29,18 @@ class FeatureTaskRuntimeTransitionFunctionShippedTest {
   )
 
   @Test
-  fun `a clean run advances implement to audit to review to verify_findings to validate`() {
+  fun `a clean run advances implement to simplify to audit to review to verify_findings to validate`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
+    assertEquals(
+      def.PHASE_SIMPLIFY,
+      assertIs<FeatureTaskRuntimeNextPhase.Next>(
+        transition(def.PHASE_IMPLEMENT, FeatureTaskRuntimeVerdict.ADVANCE, settledVerdicts = emptyMap()),
+      ).phaseId,
+    )
     assertEquals(
       def.PHASE_AUDIT,
       assertIs<FeatureTaskRuntimeNextPhase.Next>(
-        transition(def.PHASE_IMPLEMENT, FeatureTaskRuntimeVerdict.ADVANCE, settledVerdicts = emptyMap()),
+        transition(def.PHASE_SIMPLIFY, FeatureTaskRuntimeVerdict.ADVANCE, settledVerdicts = emptyMap()),
       ).phaseId,
     )
     assertEquals(

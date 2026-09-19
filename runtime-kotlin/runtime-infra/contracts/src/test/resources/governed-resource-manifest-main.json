@@ -7,11 +7,11 @@
   "skillbill/infrastructure/contracts/feature-task-runtime-build-receipt.yaml": "609c99ebfc49d1aa98cb6e0c16bfc1dab53568598392ed4217d156792b847954",
   "skillbill/infrastructure/contracts/feature-task-runtime-checkpoint-identity-schema.yaml": "58e3c5e2b8583ef21458e5e17ec043aa85c2bdeeebe8b1548273b5ac9913db7d",
   "skillbill/infrastructure/contracts/feature-task-runtime-handoff-envelope-schema.yaml": "a27b2e4ea1c7b9db6d2362165fa6e213b1cdf1924e8f4fb3fc10546c3f926dd4",
-  "skillbill/infrastructure/contracts/feature-task-runtime-implementation-attempt-schema.yaml": "4a7e20050d4879567d0f7c0fbc1015de0bc2cb9b3e48238421f4febe4d6e4034",
+    "skillbill/infrastructure/contracts/feature-task-runtime-implementation-attempt-schema.yaml": "559a878a04569839155da926a25fc05a14e0b607836ed88505d8c3d518dc1f67",
   "skillbill/infrastructure/contracts/feature-task-runtime-persistence-schema.yaml": "a0a42305773a376d5e40d62a1b0e9f99b913f49ab252894d822b1bf3527158db",
   "skillbill/infrastructure/contracts/feature-task-runtime-phase-handoff-schema.yaml": "88f02892077201ae8bfccf038461001ba8c8d3368099c3acc6d77cd6201878b7",
   "skillbill/infrastructure/contracts/feature-task-runtime-phase-launch-briefing-schema.yaml": "5cc37e85f417c042434540a4de14155623bd655805034443d98c6e791b7773d1",
-  "skillbill/infrastructure/contracts/feature-task-runtime-phase-output-schema.yaml": "108777aa2e9b55581c7d3e7f183912f0354d24c861bbd972ab15e073e1b70044",
+  "skillbill/infrastructure/contracts/feature-task-runtime-phase-output-schema.yaml": "8dfc4b29ca72772986d833b26c1111a03ad753ad69536fc1f709dd7a43945630",
   "skillbill/infrastructure/contracts/feature-task-runtime-planning-projections-schema.yaml": "2dc03304e0290b911583fd6a48b9d709e55a06a1e4b63a3fe4da8a56cae9fb2f",
   "skillbill/infrastructure/contracts/feature-task-runtime-projection-measurement-schema.yaml": "0ba87d5cd5e01b8dfa684a34d1cb87d5bd2f2b81661f96fd792c332fda0056cd",
   "skillbill/infrastructure/contracts/feature-task-runtime-quarantine-schema.yaml": "32906967dcaa55da1381ecbf940d4d1fe661d054bc34750a460dc03981e41ca6",
@@ -30,7 +30,7 @@
   "skillbill/infrastructure/contracts/platform-pack-schema.yaml": "7ef94a8a9d9677637ef976d02750eb9613b4679a26ebb1ea31e686aa98f8dc31",
   "skillbill/infrastructure/contracts/producer-output-evidence-schema.yaml": "bbd35a817d727eecbe8737ffe8eb8ad45d639e37056c8413ab8dfd919400aa11",
   "skillbill/infrastructure/contracts/rejected-output-diagnostic-schema.yaml": "3887fd88c0fd64fbefb6efd82b80ed78a7174dcd3ac24ae5a53287a9814d9564",
-  "skillbill/infrastructure/contracts/workflow-state-schema.yaml": "eb27cb5fa50cf846a409efe8c453f65de8c08a3023841101b1c20cccb1c1404c",
+  "skillbill/infrastructure/contracts/workflow-state-schema.yaml": "bae151de50e71a703d627a312a4e13d79fee44ad52b072a5701c6e438053080a",
   "skillbill/infrastructure/host/jvm/skill-bill-java-guard.sh": "3673b9c7ad1f08a8014a2887adaa1507b3c94eb52ddf3c24328f38a5c9360732",
   "skillbill/review/specialist-contract.md": "9bd84d61e8753c6d5315ae8176db204cede2ea60b456bbf023403fde75fc5457"
 }

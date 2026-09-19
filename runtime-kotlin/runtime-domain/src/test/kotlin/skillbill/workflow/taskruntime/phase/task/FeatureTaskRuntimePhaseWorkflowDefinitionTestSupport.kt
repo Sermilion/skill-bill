@@ -10,7 +10,8 @@ private fun expectedPhaseWorkflowDependencies(): Map<String, List<String>> {
     def.PHASE_PREPLAN to emptyList(),
     def.PHASE_PLAN to listOf(def.PHASE_PREPLAN),
     def.PHASE_IMPLEMENT to listOf(def.PHASE_PLAN),
-    def.PHASE_AUDIT to listOf(def.PHASE_PLAN, def.PHASE_IMPLEMENT),
+    def.PHASE_SIMPLIFY to listOf(def.PHASE_IMPLEMENT),
+    def.PHASE_AUDIT to listOf(def.PHASE_PLAN, def.PHASE_IMPLEMENT, def.PHASE_SIMPLIFY),
     def.PHASE_REVIEW to listOf(def.PHASE_AUDIT),
     def.PHASE_VERIFY_FINDINGS to listOf(def.PHASE_REVIEW),
     def.PHASE_IMPLEMENT_FIX to listOf(def.PHASE_VERIFY_FINDINGS),
@@ -33,9 +34,13 @@ private fun expectedConsumerProjectionMatrix(): Map<String, Set<Pair<String, Str
   return mapOf(
     def.PHASE_PLAN to setOf(def.PHASE_PREPLAN to "feature_task_runtime.phase_prose"),
     def.PHASE_IMPLEMENT to setOf(def.PHASE_PLAN to "feature_task_runtime.phase_prose"),
+    def.PHASE_SIMPLIFY to setOf(
+      def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.CHANGE_RECEIPT,
+    ),
     def.PHASE_AUDIT to setOf(
       def.PHASE_PLAN to "feature_task_runtime.phase_prose",
       def.PHASE_IMPLEMENT to "feature_task_runtime.phase_prose",
+      def.PHASE_SIMPLIFY to "feature_task_runtime.phase_prose",
     ),
     def.PHASE_IMPLEMENT_FIX to setOf(
       def.PHASE_VERIFY_FINDINGS to

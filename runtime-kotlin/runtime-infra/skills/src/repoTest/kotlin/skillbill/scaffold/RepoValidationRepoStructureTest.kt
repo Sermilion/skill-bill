@@ -3,12 +3,26 @@ import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.composition.renderNativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.testNativeAgentCompositionContext
 import skillbill.infrastructure.skills.scaffold.runtime.validation.RepoValidationRuntime
+import skillbill.testing.repoRootFromTest
 import skillbill.testing.seedConformingPlatformPack
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 class RepoValidationRepoStructureTest {
+  @Test
+  fun `current repository validation passes without the retired over-engineering skill`() {
+    val repoRoot = repoRootFromTest()
+
+    val report = RepoValidationRuntime.validateRepo(repoRoot, testNativeAgentCompositionContext(repoRoot))
+
+    assertTrue(report.passed, report.issues.joinToString("\n"))
+    assertFalse(
+      Files.exists(repoRoot.resolve("skills/bill-over-engineering-review/content.md")),
+      "retired over-engineering source must not be discoverable",
+    )
+  }
+
   @Test
   fun `repo validation reports missing governed directories`() {
     val repoRoot = Files.createTempDirectory("skillbill-empty-repo")

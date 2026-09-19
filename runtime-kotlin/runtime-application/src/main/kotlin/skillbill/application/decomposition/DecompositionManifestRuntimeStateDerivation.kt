@@ -16,7 +16,8 @@ import skillbill.workflow.model.decompositionStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
 import java.nio.file.Path
-private val statusTrackedSteps = setOf("implement", "review", "audit", "validate", "pr", "pr_description", "finish")
+private val statusTrackedSteps =
+  setOf("implement", "simplify", "review", "audit", "validate", "pr", "pr_description", "finish")
 private val completionSteps = setOf("pr", "pr_description", "finish")
 private val terminalSkippedSteps = setOf("pr", "pr_description", "finish")
 

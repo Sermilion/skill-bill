@@ -2324,6 +2324,7 @@ class WorkflowGoalRunnerReconciliationTest {
             mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
             mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
             mapOf("step_id" to "implement", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "simplify", "status" to "completed", "attempt_count" to 1),
             mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
           ),
         ),
