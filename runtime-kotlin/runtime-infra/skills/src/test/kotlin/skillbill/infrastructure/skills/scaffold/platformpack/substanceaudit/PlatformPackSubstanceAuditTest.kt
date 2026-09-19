@@ -103,7 +103,7 @@ class PlatformPackSubstanceAuditTest {
     val alphaRules = report.violations.filter { it.pack == "alpha" }.map { it.areaOrRole }
     assertTrue("architecture:rules" in alphaRules)
     assertTrue("architecture:placeholders" in alphaRules)
-    assertTrue("quality-check" in alphaRules)
+    assertFalse("quality-check" in alphaRules)
     assertTrue(report.violations.any { it.areaOrRole.startsWith("pair:") && it.files.size == 2 })
   }
 
@@ -202,7 +202,6 @@ class PlatformPackSubstanceAuditTest {
       SubstancePolicy(
         minimumRules = 0,
         minimumClusters = 0,
-        minimumQualityFacets = 0,
         maximumSharedShingles = Fraction(1, 1),
         maximumPairSimilarity = Fraction(1, 1),
       ),
@@ -214,32 +213,24 @@ class PlatformPackSubstanceAuditTest {
   }
 
   @Test
-  fun `composed pack cannot inherit its baseline quality checker`() {
-    val root = Files.createTempDirectory("substance-direct-quality-check")
+  fun `pack substance audit does not require a quality-check sidecar`() {
+    val root = Files.createTempDirectory("substance-no-quality-check")
     seedConformingPlatformPack(root, "base", APPROVED_CODE_REVIEW_AREAS.toList())
     seedConformingPlatformPack(root, "overlay", listOf("ui"))
     appendComposition(root, "overlay", "base")
-    val overlayManifest = root.resolve("platform-packs/overlay/platform.yaml")
-    Files.writeString(
-      overlayManifest,
-      Files.readString(overlayManifest).lineSequence()
-        .filterNot { it.startsWith("declared_quality_check_file:") }
-        .joinToString("\n", postfix = "\n"),
-    )
 
     val report = PlatformPackSubstanceAudit.audit(
       root,
       SubstancePolicy(
         minimumRules = 0,
         minimumClusters = 0,
-        minimumQualityFacets = 0,
         maximumSharedShingles = Fraction(1, 1),
         maximumPairSimilarity = Fraction(1, 1),
       ),
     )
 
-    assertTrue(report.violations.any { it.pack == "overlay" && it.areaOrRole == "quality-check" })
-    assertFalse(report.violations.any { it.pack == "base" && it.areaOrRole == "quality-check" })
+    assertTrue(report.packs.all { it.qualityCheckFile == null })
+    assertFalse(report.violations.any { it.areaOrRole == "quality-check" })
   }
 
   @Test
@@ -256,7 +247,7 @@ class PlatformPackSubstanceAuditTest {
     val report = PlatformPackSubstanceAudit.audit(root)
 
     assertTrue(report.violations.any { it.areaOrRole.endsWith(":rules") })
-    assertTrue(report.violations.any { it.areaOrRole == "quality-check" })
+    assertFalse(report.violations.any { it.areaOrRole == "quality-check" })
   }
 
   private fun appendComposition(root: Path, pack: String, target: String) {

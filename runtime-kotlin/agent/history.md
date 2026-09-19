@@ -1,3 +1,12 @@
+## [2026-09-19] SKILL-360 — Retire platform quality-check overrides
+Areas: runtime-kotlin/{runtime-domain,runtime-infra,runtime-ports}, platform-packs, orchestration, docs, skills/bill-code-check
+- Pack `validation_gate` now owns quality-check collect-all and confirmation argv; `bill-code-check` routes to the dominant pack without checker sidecars.
+- Platform-pack scaffold, install, removal, and structure validation no longer emit or require `quality-check/` skills or `declared_quality_check_file`.
+- Pattern: one manifest-declared gate per pack, typed missing-gate failure, and an optional legacy field consumed by no runtime path. reusable
+- Limitation: leftover custom `declared_quality_check_file` fields remain schema-parseable; leftover `quality-check/` `addon_usage` keys are skipped so install reconcile can replace an older local pack copy.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-18] SKILL-359 subtask 2 — Own telemetry proxy wire vocabulary
 Areas: runtime-kotlin/{runtime-contracts,runtime-domain,runtime-infra-http,runtime-cli,runtime-core}, ARCHITECTURE.md
 - Centralized telemetry proxy capabilities, stats, batch, and property keys while retaining `contract_version` under shared payload keys.

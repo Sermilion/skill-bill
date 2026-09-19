@@ -12,8 +12,6 @@ import java.nio.file.Path
 internal fun createPlatformPack(txn: ScaffoldTransaction, plan: ScaffoldPlan, repoRoot: Path): ScaffoldExecutionResult {
   val manifestPath = plan.manifestPath ?: error("Platform pack plan missing manifest path.")
   val baselineSkillPath = plan.baselineSkillPath ?: error("Platform pack plan missing baseline skill path.")
-  val qualityCheckSkillPath =
-    plan.qualityCheckSkillPath ?: error("Platform pack plan missing quality-check skill path.")
   stageFile(
     txn,
     manifestPath,
@@ -21,10 +19,9 @@ internal fun createPlatformPack(txn: ScaffoldTransaction, plan: ScaffoldPlan, re
       plan,
       repoRoot,
       baselineSkillPath,
-      qualityCheckSkillPath,
     ),
   )
-  val symlinks = stagePlatformPackSkills(txn, plan, baselineSkillPath, qualityCheckSkillPath)
+  val symlinks = stagePlatformPackSkills(txn, plan, baselineSkillPath)
   if (plan.shouldEmitSubagents()) {
     stageSubagentStubs(
       txn,

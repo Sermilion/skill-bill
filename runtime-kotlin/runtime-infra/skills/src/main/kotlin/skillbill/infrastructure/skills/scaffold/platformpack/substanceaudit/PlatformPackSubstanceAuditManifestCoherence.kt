@@ -134,9 +134,3 @@ internal fun hasEvidence(rule: String, pack: String): Boolean {
 }
 internal fun placeholders(text: String): List<String> =
   PLACEHOLDERS.findAll(text).map { it.value.lowercase(Locale.ROOT) }.distinct().sorted().toList()
-
-internal fun qualityFacets(text: String): List<String> = QUALITY_FACETS.filterValues { patterns ->
-  patterns.all {
-    it.containsMatchIn(text)
-  }
-}.keys.sorted()

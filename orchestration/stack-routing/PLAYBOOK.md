@@ -62,14 +62,14 @@ Every router, reviewer, and validator agrees on the following procedure:
    `bill-<slug>-code-review`. This contract is preserved so existing
    user-facing commands keep working.
 
-Quality-check routing selects exactly one dominant pack and then reads that pack's
-manifest-declared checker. Ordinary Kotlin/JVM ownership selects Kotlin;
-multiplatform source sets, plugin coordinates, or `expect`/`actual` ownership select
-KMP. When one scope contains both Kotlin/JVM and KMP ownership, KMP wins as the
-superset checker and partitions its work by affected module and source set. Other
-unresolved mixed-stack ties fail explicitly instead of choosing by order. KMP routes
-directly to `bill-kmp-code-check`; review composition never supplies a Kotlin checker
-fallback.
+Quality-check routing selects exactly one dominant pack and then runs that pack's
+manifest-declared `validation_gate` through `bill-code-check`. Ordinary Kotlin/JVM
+ownership selects Kotlin; multiplatform source sets, plugin coordinates, or
+`expect`/`actual` ownership select KMP. When one scope contains both Kotlin/JVM
+and KMP ownership, KMP wins and its gate supplies the commands. Other unresolved
+mixed-stack ties fail explicitly instead of choosing by order. A winning pack
+without `validation_gate` raises a typed missing-gate error; quality checks never
+fall back to another pack or a sidecar.
 
 ## Signal Collection Order
 

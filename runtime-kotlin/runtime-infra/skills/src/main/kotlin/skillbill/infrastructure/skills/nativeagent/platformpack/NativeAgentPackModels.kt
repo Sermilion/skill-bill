@@ -39,7 +39,6 @@ internal data class NativeAgentPlatformPack(
   val slug: String,
   val packRoot: Path,
   val declaredFiles: NativeAgentDeclaredFiles,
-  val declaredQualityCheckFile: Path?,
   val pointers: List<NativeAgentPointerSpec>,
   val addonUsage: List<NativeAgentGovernedAddonUsage>,
 ) {

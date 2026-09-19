@@ -11,7 +11,6 @@ import skillbill.scaffold.policy.platformpack.buildPlatformPackInstallPaths as p
 internal data class PlatformPackScaffoldPlanBodyArgs(
   val scaffold: PlatformPackScaffoldPlanArgs,
   val baselineName: String,
-  val qualityCheckName: String,
   val baselineLayers: List<CodeReviewBaselineLayer>,
   val specialistPlan: PlatformPackSpecialistPlan,
   val notes: List<String>,
@@ -75,12 +74,9 @@ internal fun platformPackScaffoldPlanBody(args: PlatformPackScaffoldPlanBodyArgs
   specialistSkillPaths = args.specialistPlan.paths,
   baselineSkillName = args.baselineName,
   baselineSkillPath = args.scaffold.packRoot.resolve("code-review").resolve(args.baselineName),
-  qualityCheckSkillName = args.qualityCheckName,
-  qualityCheckSkillPath = args.scaffold.packRoot.resolve("quality-check").resolve(args.qualityCheckName),
   installPaths = policyBuildPlatformPackInstallPaths(
     packRoot = args.scaffold.packRoot.toFileLocation(),
     baselineName = args.baselineName,
-    qualityCheckName = args.qualityCheckName,
     specialistPaths = args.specialistPlan.paths.mapValues { (_, entry) -> entry.toFileLocation() },
     selectedAreas = args.specialistPlan.names.keys.toList(),
   ).map { entry -> entry.toPath() },

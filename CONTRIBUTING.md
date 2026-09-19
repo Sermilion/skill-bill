@@ -60,7 +60,7 @@ The documented extension surface is **platform packs** under
 
 - `platform.yaml` — routing signals and pack metadata
 - `code-review/` — stack-specific code-review skill definitions per area
-- `quality-check/` — stack-specific quality-check skill definitions
+- `validation_gate` — pack quality-check commands and findings contract
 
 Adding a new language pack is additive: drop in `platform-packs/<lang>/` and
 the generic `/bill-code-review` and `/bill-code-check` skills start routing to

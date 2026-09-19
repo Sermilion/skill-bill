@@ -1,8 +1,7 @@
 package skillbill.infrastructure.skills.scaffold.platformpack
 
-import skillbill.infrastructure.skills.scaffold.validation.parseSkillFrontmatter
+import skillbill.error.MissingValidationGateError
 import skillbill.scaffold.model.PlatformManifest
-import java.nio.file.Files
 import java.nio.file.Path
 
 internal data class QualityCheckRoute(
@@ -34,11 +33,15 @@ internal fun routeQualityCheck(repoRoot: Path, routingEvidence: Collection<Strin
     "Quality-check routing is ambiguous for $slugs; provide stronger manifest-declared evidence."
   }
   val pack = winner.pack
-  val content = loadQualityCheckContent(pack)
-  val routedSkill = parseSkillFrontmatter(Files.readString(content))["name"].orEmpty()
-  require(routedSkill.isNotBlank()) { "Quality-check content '$content' has no routed skill name." }
-  return QualityCheckRoute(pack.slug, routedSkill, winner.matchedSignals.sorted())
+  if (pack.validationGate == null) {
+    throw MissingValidationGateError(
+      "Platform pack '${pack.slug}' has no validation_gate declaration; quality-check cannot run.",
+    )
+  }
+  return QualityCheckRoute(pack.slug, QUALITY_CHECK_SHELL_SKILL, winner.matchedSignals.sorted())
 }
+
+private const val QUALITY_CHECK_SHELL_SKILL = "bill-code-check"
 
 private data class RoutingRank(
   val ownershipSignals: Int,

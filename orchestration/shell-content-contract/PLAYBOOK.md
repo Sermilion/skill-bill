@@ -67,13 +67,9 @@ Optional top-level fields:
 
 - `display_name` — human-readable label for installers and docs.
 - `notes` — free-form maintainer notes.
-- `declared_quality_check_file` — path (string) to a per-platform
-  quality-check `content.md` file, relative to the platform pack root. When
-  present, the shell loader validates the referenced file against the
-  quality-check content contract (see below). Omitting the key is valid —
-  the shell contract version stays `1.2` and packs without the key remain
-  contract-compliant. Today the `kmp` pack intentionally omits the key; the
-  `bill-code-check` shell falls back to the `kotlin` pack for that slug.
+- `validation_gate` — optional command and findings declaration for a pack that
+  can win dominant quality-check routing. `bill-code-check` uses the winning
+  pack's collect-all and cache-bypassing collect-all argv exactly.
 
 ## Required Content Files
 
@@ -178,13 +174,6 @@ Composition parser and resolver failures are validation failures:
   fail repository validation rather than silently falling back to the source
   body alone.
 
-## Required Content File (quality-check)
-
-When a platform pack declares the optional `declared_quality_check_file`
-top-level key, the referenced Markdown file must be the platform
-quality-check skill's source `content.md` file. It follows the same
-frontmatter and clean-authored-content rules as other declared content files.
-
 ## Loud-Fail Rules
 
 The shell loader must refuse to run when any of the following conditions
@@ -235,36 +224,13 @@ Loader precedence is authoritative and must stay stable:
 9. Rendered `## Ceremony` body validation.
 10. Rendered `## Descriptor` body validation.
 
-### Loud-Fail Rules (quality-check)
+### Quality-check gate
 
-The `bill-code-check` shell resolves the per-platform quality-check file
-through a dedicated loader (`skillbill.scaffold.platformpack.ShellContentLoader.loadQualityCheckContent` in `runtime-infra-fs`).
-The loader enforces two additional loud-fail rules when a pack declares the
-optional `declared_quality_check_file` key:
-
-- The file referenced by `declared_quality_check_file` does not exist →
-  `MissingContentFileError`. The message must include the pack slug and the
-  resolved file path.
-- The declared quality-check `content.md` has invalid frontmatter or generated
-  wrapper boilerplate → the corresponding shell-content validation error. The
-  message must include the file path.
-- The governed quality-check skill is missing sibling `content.md` →
-  `MissingContentFileError`.
-- The governed quality-check skill is missing sibling `shell-ceremony.md` →
-  `MissingShellCeremonyFileError`.
-- The governed quality-check skill's `## Execution` body drifts →
-  `InvalidExecutionSectionError`.
-- The governed quality-check skill's `## Ceremony` body drifts →
-  `InvalidCeremonySectionError`.
-- The governed quality-check skill's `## Descriptor` body drifts →
-  `InvalidDescriptorSectionError`.
-
-Calling `load_quality_check_content` on a pack whose
-`declared_quality_check_file` is `None` also raises
-`MissingContentFileError` rather than silently returning nothing — callers
-must gate the call on `pack.declared_quality_check_file is not None`. The
-shell never silently substitutes a different pack's quality-check file
-and missing manifest-declared quality-check content always fails loudly.
+The `bill-code-check` shell resolves the dominant pack through
+`routeQualityCheck`. The winning pack must declare `validation_gate`; otherwise
+the runtime raises the typed `MissingValidationGateError`. Collect-all and
+confirmation commands come only from that declaration. The shell never reads a
+quality-check sidecar, rediscovers a command, or substitutes another pack.
 
 ## Discovery Semantics
 

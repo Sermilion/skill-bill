@@ -6,7 +6,6 @@ import skillbill.infrastructure.skills.scaffold.manifest.appendExternalAddonMani
 import skillbill.infrastructure.skills.scaffold.manifest.appendGovernedAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.manifest.appendReadmeCatalogRow
 import skillbill.infrastructure.skills.scaffold.manifest.renderExternalAddonManifestRegistration
-import skillbill.infrastructure.skills.scaffold.manifest.setDeclaredQualityCheckFile
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.rendering.renderNativeAgentBundleStubs
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
@@ -37,7 +36,7 @@ internal fun applyManifestEdits(txn: ScaffoldTransaction, plan: ScaffoldPlan, re
   return when (plan.kind) {
     SKILL_KIND_HORIZONTAL -> applyHorizontalManifestEdit(txn, plan, repoRoot)
     SKILL_KIND_CODE_REVIEW_AREA -> applyCodeReviewAreaManifestEdit(txn, plan, repoRoot)
-    SKILL_KIND_PLATFORM_OVERRIDE_PILOTED -> applyPlatformOverrideManifestEdit(txn, plan, repoRoot)
+    SKILL_KIND_PLATFORM_OVERRIDE_PILOTED -> emptyList()
     SKILL_KIND_ADD_ON -> applyAddonManifestEdit(txn, plan, repoRoot)
     else -> emptyList()
   }
@@ -60,23 +59,6 @@ private fun applyCodeReviewAreaManifestEdit(txn: ScaffoldTransaction, plan: Scaf
     plan.contentFile ?: plan.skillPath.resolve("content.md"),
   ).toString().replace('\\', '/')
   appendCodeReviewArea(manifestPath, plan.area, declaredAreaPath, defaultAreaFocus(plan.area))
-  return listOf(manifestPath)
-}
-
-private fun applyPlatformOverrideManifestEdit(
-  txn: ScaffoldTransaction,
-  plan: ScaffoldPlan,
-  repoRoot: Path,
-): List<Path> {
-  if (!plan.isShelled || plan.family != "quality-check") {
-    return emptyList()
-  }
-  val manifestPath = repoRoot.resolve("platform-packs").resolve(plan.platform).resolve("platform.yaml")
-  snapshotManifest(txn, manifestPath)
-  val declaredPath = manifestPath.parent.relativize(
-    plan.contentFile ?: plan.skillPath.resolve("content.md"),
-  ).toString().replace('\\', '/')
-  setDeclaredQualityCheckFile(manifestPath, declaredPath)
   return listOf(manifestPath)
 }
 

@@ -52,11 +52,6 @@ private val LEGACY_PATTERN_GOLDEN: List<Pair<Regex, Set<String>>> = listOf(
     "telemetry-contract.md",
     "shell-ceremony.md",
   ),
-  Regex("^bill-[a-z0-9-]+-code-check$") to setOf(
-    "stack-routing.md",
-    "telemetry-contract.md",
-    "shell-ceremony.md",
-  ),
 )
 
 private fun goldenPointerSetFor(skillName: String): Set<String>? = LEGACY_POINTER_GOLDEN[skillName]
@@ -286,6 +281,12 @@ class SkillClassLoaderTest {
   }
 
   @Test
+  fun `leftover pack checker names do not match a quality-check leaf class`() {
+    val classes = discoverSkillClasses(currentRepoRootForClassLoader())
+    assertNull(resolveSkillClass("bill-kotlin-code-check", classes))
+  }
+
+  @Test
   fun `code-review-shell is an entry over skill-bill code-review and keeps detected_scope labels`() {
     val yaml = Files.readString(
       currentRepoRootForClassLoader().resolve("orchestration/skill-classes/code-review-shell.yaml"),
@@ -331,7 +332,6 @@ class SkillClassLoaderTest {
     val packs = childDirsOf(repoRoot.resolve("platform-packs"))
     packs.forEach { pack ->
       collectSkillsUnder(pack.resolve("code-review"), names)
-      collectSkillsUnder(pack.resolve("quality-check"), names)
     }
     return names.sorted()
   }

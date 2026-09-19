@@ -22,7 +22,7 @@ internal fun PlatformManifest.declaredSkillRelativeDirs(): Set<String> =
 internal fun declaredSkillRelativeDirs(
   packRoot: Path,
   declaredFiles: DeclaredFiles,
-  declaredQualityCheckFile: Path?,
+  declaredQualityCheckFile: Path? = null,
 ): Set<String> = buildSet {
   declaredFiles.baseline?.let { add(packRelativeSkillDir(packRoot, it.toPath())) }
   declaredFiles.areas.values.forEach { add(packRelativeSkillDir(packRoot, it.toPath())) }

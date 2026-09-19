@@ -1104,6 +1104,10 @@ private fun assertLifecyclePersistence(connection: Connection) {
     outboxEventCounts(connection),
   )
   assertEquals(1, scalarInt(connection, "SELECT COUNT(*) FROM quality_check_sessions"))
+  assertEquals(
+    "bill-code-check",
+    scalarString(connection, "SELECT routed_skill FROM quality_check_sessions LIMIT 1"),
+  )
   assertEquals(1, scalarInt(connection, "SELECT COUNT(*) FROM feature_verify_sessions"))
 }
 

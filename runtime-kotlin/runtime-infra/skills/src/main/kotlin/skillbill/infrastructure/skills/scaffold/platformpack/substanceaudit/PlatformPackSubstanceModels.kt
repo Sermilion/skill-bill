@@ -8,7 +8,6 @@ const val PLATFORM_PACK_SUBSTANCE_CONTRACT_VERSION = "0.1"
 
 private const val DEFAULT_MINIMUM_RULES = 10
 private const val DEFAULT_MINIMUM_CLUSTERS = 3
-private const val DEFAULT_MINIMUM_QUALITY_FACETS = 7
 private const val DEFAULT_SHARED_SHINGLE_PERCENT = 35
 private const val DEFAULT_PAIR_SIMILARITY_PERCENT = 65
 private const val PERCENT_SCALE = 100
@@ -17,7 +16,6 @@ private const val PERCENTAGE_DECIMAL_PLACES = 2
 data class SubstancePolicy(
   val minimumRules: Int = DEFAULT_MINIMUM_RULES,
   val minimumClusters: Int = DEFAULT_MINIMUM_CLUSTERS,
-  val minimumQualityFacets: Int = DEFAULT_MINIMUM_QUALITY_FACETS,
   val maximumSharedShingles: Fraction = Fraction(DEFAULT_SHARED_SHINGLE_PERCENT, PERCENT_SCALE),
   val maximumPairSimilarity: Fraction = Fraction(DEFAULT_PAIR_SIMILARITY_PERCENT, PERCENT_SCALE),
 )
@@ -30,7 +28,7 @@ data class Fraction(val numerator: Int, val denominator: Int) : Comparable<Fract
     .divide(BigDecimal(denominator), PERCENTAGE_DECIMAL_PLACES, RoundingMode.HALF_UP).toPlainString() + "%"
 }
 
-internal enum class AuthoredFileRole { BASELINE, QUALITY_CHECK, SPECIALIST, SIDECAR }
+internal enum class AuthoredFileRole { BASELINE, SPECIALIST, SIDECAR }
 
 internal data class AuthoredFile(
   val pack: String,

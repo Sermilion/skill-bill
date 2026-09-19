@@ -30,8 +30,11 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
       Files.isRegularFile(codeReviewStaging.resolve("bill-kotlin-code-review.md")),
     )
     assertFalse(Files.exists(targetDir.resolve("bill-kotlin-code-check"), LinkOption.NOFOLLOW_LINKS))
-    assertTrue(
-      Files.isRegularFile(readSymlinkTarget(targetDir.resolve("bill-code-check")).resolve("bill-kotlin-code-check.md")),
+    assertFalse(
+      Files.exists(
+        readSymlinkTarget(targetDir.resolve("bill-code-check")).resolve("bill-kotlin-code-check.md"),
+        LinkOption.NOFOLLOW_LINKS,
+      ),
     )
 
     val baseOnlyReplacementPlan = planInstallForTest(

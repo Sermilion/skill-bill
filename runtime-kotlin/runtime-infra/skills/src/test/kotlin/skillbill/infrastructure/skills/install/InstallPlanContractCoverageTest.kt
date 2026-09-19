@@ -62,7 +62,7 @@ class InstallPlanContractCoverageTest {
     assertEquals(InstallPlanSkillKind.BASE, plannedSkills.getValue("bill-code-check").kind)
     assertEquals(InstallPlanSkillKind.PLATFORM_PACK, plannedSkills.getValue("bill-python-code-review").kind)
     assertEquals(InstallPlanSkillKind.PLATFORM_PACK, plannedSkills.getValue("bill-python-code-review-security").kind)
-    assertEquals(InstallPlanSkillKind.PLATFORM_PACK, plannedSkills.getValue("bill-python-code-check").kind)
+    assertFalse(plannedSkills.containsKey("bill-python-code-check"))
 
     assertEquals(
       plan.skills.filter { skill -> skill.internalFor == null }.map { skill -> skill.name },

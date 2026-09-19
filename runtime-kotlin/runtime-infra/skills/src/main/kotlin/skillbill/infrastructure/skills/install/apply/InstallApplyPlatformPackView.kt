@@ -106,7 +106,6 @@ private fun materializeOnePack(
   }
   val skillDirs = platformSkillDirs(manifest)
   copyPackNonSkillFiles(packRoot, destinationPackRoot, skillDirs)
-  copyInternalQualityCheckSource(packRoot, destinationPackRoot, manifest, internalPlatformSkillDirs)
   skillDirs.forEach { skillDir ->
     if (skillDir in internalPlatformSkillDirs) {
       return@forEach
@@ -123,43 +122,8 @@ private fun materializeOnePack(
   }
 }
 
-private fun copyInternalQualityCheckSource(
-  packRoot: Path,
-  destinationPackRoot: Path,
-  manifest: PlatformManifest,
-  internalPlatformSkillDirs: Set<Path>,
-) {
-  val sourceContent = manifest.declaredQualityCheckFile ?: return
-  val qualityCheckDir = sourceContent.toPath().toAbsolutePath().normalize().parent
-  if (qualityCheckDir !in internalPlatformSkillDirs) {
-    return
-  }
-  require(Files.isRegularFile(sourceContent.toPath(), LinkOption.NOFOLLOW_LINKS)) {
-    "Platform pack '${manifest.slug}' internal quality-check content '$sourceContent' is not a regular file."
-  }
-  val realPackRoot = packRoot.toRealPath()
-  val realSourceContent = sourceContent.toPath().toRealPath()
-  require(realSourceContent.startsWith(realPackRoot)) {
-    "Platform pack '${manifest.slug}' internal quality-check content '$sourceContent' escapes pack root '$packRoot'."
-  }
-  val destinationContent = destinationPackRoot
-    .resolve(packRoot.relativize(sourceContent.toPath()).toString())
-    .normalize()
-  require(destinationContent.startsWith(destinationPackRoot)) {
-    "Platform pack file '$sourceContent' escapes destination pack root '$destinationPackRoot'."
-  }
-  destinationContent.parent?.let(Files::createDirectories)
-  Files.copy(
-    sourceContent.toPath(),
-    destinationContent,
-    StandardCopyOption.REPLACE_EXISTING,
-    StandardCopyOption.COPY_ATTRIBUTES,
-  )
-}
-
 private fun platformSkillDirs(manifest: PlatformManifest): Set<Path> = (
-  listOfNotNull(manifest.declaredFiles.baseline, manifest.declaredQualityCheckFile) +
-    manifest.declaredFiles.areas.values
+  listOfNotNull(manifest.declaredFiles.baseline) + manifest.declaredFiles.areas.values
   )
   .map { contentFile -> contentFile.toPath().toAbsolutePath().normalize().parent }
   .toSet()

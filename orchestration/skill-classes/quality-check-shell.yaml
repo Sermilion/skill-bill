@@ -12,16 +12,16 @@ pointers:
 sections:
   - heading: Shell Role
     body: |
-      This skill is a governed shell. It owns ceremony, stack routing, and contract enforcement for the quality-check family. It is deliberately platform-independent: every piece of stack-specific quality-check reasoning lives in a user-owned platform pack under `platform-packs/<platform>/quality-check/<name>/content.md`, registered via the optional `declared_quality_check_file` key on the pack's `platform.yaml`.
+      This skill is a governed shell. It owns ceremony, stack routing, and contract enforcement for the quality-check family. Stack-specific check commands live in the dominant pack `validation_gate`, not in a second pack skill.
 
       Keep this shell thin:
 
       - detect the dominant stack in the current unit of work via manifest-driven discovery
-      - resolve the dominant pack and its declared checker through `skillbill.scaffold.platformpack.routeQualityCheck` in `runtime-infra-fs`, which uses the same manifest loader and content contract
-      - pass through the same scope and relevant context to the routed skill
-      - refuse to run when a routed pack declares a quality-check file that does not exist or is missing a required section — never silently fall back
+      - resolve the dominant pack through `skillbill.scaffold.platformpack.routeQualityCheck` in `runtime-infra-fs`
+      - run that pack's `validation_gate.collect_all_full_gate_command`, then after in-session repair run `validation_gate.cache_bypassing_collect_all_full_gate_command` once
+      - refuse to run when the dominant pack has no `validation_gate` — never silently fall back to another pack or a sidecar
 
-      The shell targets shell contract version `1.8`. Packs that do not declare `declared_quality_check_file` are still contract-compliant; declaring the key opts the pack into quality-check routing.
+      The shell targets shell contract version `1.8`.
 
   - heading: Setup
     body: |
@@ -36,61 +36,47 @@ sections:
 
   - heading: Routing Rules
     body: |
-      Stack detection and routing are manifest-driven. The shell discovers every `platform-packs/<slug>/platform.yaml` from the skill-adjacent installed `platform-packs` link (or `~/.skill-bill/platform-packs/` / the install-published review catalog), not from the reviewed repository root unless that repository is itself the Skill Bill source tree. It reads each pack's declared routing signals and chooses the dominant stack using manifest-declared tie-breakers. The shell does not enumerate platform names inline.
+      Stack detection and routing are manifest-driven. The shell discovers every `platform-packs/<slug>/platform.yaml` from the skill-adjacent installed `platform-packs` link (or `~/.skill-bill/platform-packs/` / the install-published review catalog), not from the reviewed repository root unless that repository is itself the Skill Bill source tree. It reads each pack's declared routing signals and chooses the dominant stack using manifest-declared tie-breakers.
 
-      - For the dominant pack, read the optional top-level `declared_quality_check_file` key from the manifest. The runtime authority is `skillbill.scaffold.platformpack.routeQualityCheck` in `runtime-infra-fs`; it discovers manifests dynamically and loud-fails ambiguous or invalid routes.
-      - The routed skill name is the `name:` frontmatter field of the declared quality-check `content.md`. The declared content must also carry `internal-for: bill-code-check`, so the routed checker installs as a sibling `<routed-skill-name>.md` sidecar inside `bill-code-check` rather than as a separately listed skill.
-      - Route every dominant pack through its manifest-declared `declared_quality_check_file`, including KMP through `bill-kmp-code-check`. A pack without that key loud-fails via `MissingContentFileError`; the shell never silently substitutes another pack.
-      - If multiple independent supported stacks appear in one repo, run the matching stack-specific quality checks sequentially, not in parallel, so fixes stay deterministic. When Kotlin/JVM and KMP ownership share one scope, route once to the KMP superset checker; it partitions Kotlin/JVM and multiplatform work by module and source set.
-      - Resolve the routed checker by reading the sibling sidecar file `<routed-skill-name>.md` co-located with this skill's `SKILL.md`, then execute those instructions in-session. Do not use the Skill tool for stack-specific quality-check overrides — they are internal skills and are not listed.
-      - The routed stack-specific sidecar is the source of truth for build commands, filtering rules, and fix strategy.
-
-      ### Loud-fail contract enforcement
-
-      Before executing a routed quality-check, the shell validates the chosen pack's quality-check file against the shell+content contract. Any failure stops the run immediately and prints a specific error naming the failing artifact:
-
-      - `ShellContentContractException(MISSING_CONTENT_FILE)` from `runtime-contracts` — the pack does not declare `declared_quality_check_file` or the referenced file does not exist.
-      - `ShellContentContractException(MISSING_REQUIRED_SECTION)` from `runtime-contracts` — the declared quality-check content file is missing one of the required H2 sections.
-      - `ShellContentContractException(INVALID_MANIFEST_SCHEMA)` from `runtime-contracts` — the declared quality-check content file is not internal to `bill-code-check`.
-
-      The shell never silently substitutes a default checker. A broken pack must be repaired before `/bill-code-check` can complete.
+      - `routeQualityCheck` selects the winning pack slug; `routed_skill` for telemetry and output is always `bill-code-check`.
+      - Collect-all and confirmation argv come only from the winning pack `validation_gate`. Do not read `declared_quality_check_file`, sibling sidecars, or rediscover build files, wrappers, or CI configuration.
+      - When Kotlin/JVM and KMP ownership share one scope, adjacent-pack dominance still applies; argv always come from the winning pack gate.
+      - A pack without `validation_gate` loud-fails with `MissingValidationGateError`; the shell never substitutes another pack.
 
   - heading: Delegation Contract
     body: |
-      When routing to another sidecar, pass along:
+      Pass along:
 
       - the current unit of work and changed files
       - the detected stack and key signals
       - relevant `AGENTS.md` guidance and matching `.agents/skill-overrides.md` sections
-      - the rule that the delegated sidecar must follow its own rendered runtime instructions as the primary rubric
+      - the pack `validation_gate` argv as the only full-suite commands
 
   - heading: Output Format
     body: |
       ```text
-      Routed to: <skill-name(s)>
+      Routed to: bill-code-check
       Detected stack: <stack> | Mixed | Unknown/Unsupported
       Signals: <markers>
-      Reason: <why this stack-specific quality-checker was selected>
+      Reason: <why this pack was selected>
 
-      <delegated quality-check output, or "No matching skill available yet" for unsupported>
+      <quality-check output>
       ```
 
   - heading: Telemetry
     body: |
-      This shell is thin by design and never emits telemetry on its own — routing metadata is carried in the concrete stack-specific skill's telemetry call.
-
-      This skill is telemeterable via the `quality_check_started` and `quality_check_finished` MCP tools.
+      This shell emits quality-check lifecycle telemetry via `quality_check_started` and `quality_check_finished` with `routed_skill` always `bill-code-check`.
 
       Standalone invocation (user runs `bill-code-check` directly):
 
-      1. Call `quality_check_started` once stack routing is decided, with `routed_skill`, `detected_stack`, `fallback`, `scope_type` (`files` / `working_tree` / `branch_diff` / `repo`), and `initial_failure_count` (0 if the first check has not run yet). Include `fallback_reason` when `fallback=true` or a reason is known.
+      1. Call `quality_check_started` once stack routing is decided, with `routed_skill` set to `bill-code-check`, `detected_stack`, `fallback`, `scope_type` (`files` / `working_tree` / `branch_diff` / `repo`), and `initial_failure_count` (0 if the first check has not run yet). Include `fallback_reason` when `fallback=true` or a reason is known.
       2. Save the returned `session_id`.
       3. Call `quality_check_finished` when the quality-check loop finishes, with `session_id`, `final_failure_count`, `iterations`, `result` (`pass` / `fail` / `skipped` / `unsupported_stack`), optional `failing_check_names` and `unsupported_reason`.
 
       Orchestrated invocation (invoked by another workflow skill that passes `orchestrated=true`):
 
       1. Skip `quality_check_started` entirely.
-      2. Call `quality_check_finished` once with `orchestrated=true` and all started+finished fields combined (`routed_skill`, `detected_stack`, `fallback`, `scope_type`, `initial_failure_count`, `final_failure_count`, `iterations`, `result`, `failing_check_names`, `unsupported_reason`, `duration_seconds`, and optional `fallback_reason`).
+      2. Call `quality_check_finished` once with `orchestrated=true` and all started+finished fields combined (`routed_skill` must be `bill-code-check`, `detected_stack`, `fallback`, `scope_type`, `initial_failure_count`, `final_failure_count`, `iterations`, `result`, `failing_check_names`, `unsupported_reason`, `duration_seconds`, and optional `fallback_reason`).
       3. The tool returns `{"mode": "orchestrated", "telemetry_payload": {...}}`. Return that payload to the orchestrator — it will embed it in its own finished event.
 
       The orchestrated flag must come from the caller. Never assume orchestrated mode from ambient state.

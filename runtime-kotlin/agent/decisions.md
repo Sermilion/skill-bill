@@ -2032,3 +2032,10 @@ Alternatives considered: Keeping stores public for tests (rejected: widens the D
 
 Scaffold telemetry omits `duration_seconds` because this adapter does not measure
 elapsed time. Reporting zero would present an unmeasured value as a measurement.
+
+## [2026-09-19] Pack validation_gate owns quality-check argv (SKILL-360)
+
+Context: Shipped platform packs carried a second `quality-check/` skill and `declared_quality_check_file`; `bill-code-check` routed to pack checker sidecars.
+Decision: Quality-check collect-all and confirmation are the dominant pack `validation_gate` argv only. `routeQualityCheck` selects the pack slug and fixes `routed_skill` to `bill-code-check`; missing `validation_gate` on the winning pack raises `MissingValidationGateError`. Scaffold, install, and review-structure validation no longer emit or require pack checker skills. Optional `declared_quality_check_file` remains schema-parseable for leftover custom packs. Install still treats that path as a declared skill directory when present, and skips undeclared `quality-check/` `addon_usage` keys so a leftover checker registration cannot block reconcile.
+Reason: One shell (`bill-code-check`), one gate surface per pack, no duplicate command-discovery sidecars. Reconcile enumerates the existing local pack copy with the new runtime before upstream can replace it.
+Alternatives considered: Keep pack checker skills as documentation-only (rejected: install and routing still duplicated argv). Generic command-discovery fallback when gate is absent (rejected: silent wrong-suite risk). Loud-fail leftover `quality-check/` `addon_usage` (rejected: `install reconcile` cannot apply the cleaned upstream pack).

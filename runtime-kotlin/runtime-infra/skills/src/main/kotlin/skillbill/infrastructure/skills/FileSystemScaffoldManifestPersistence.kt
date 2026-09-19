@@ -5,13 +5,11 @@ import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.skills.scaffold.manifest.appendCodeReviewArea
 import skillbill.infrastructure.skills.scaffold.manifest.appendGovernedAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.manifest.renderGovernedAddonManifestRegistration
-import skillbill.infrastructure.skills.scaffold.manifest.setDeclaredQualityCheckFile
 import skillbill.ports.scaffold.manifest.ScaffoldManifestPersistencePort
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestAppendCodeReviewAreaRequest
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestReadResult
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestRegisterGovernedAddonRequest
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestRenderPlatformPackRequest
-import skillbill.ports.scaffold.manifest.model.ScaffoldManifestSetDeclaredQualityCheckRequest
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestSnapshot
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestWriteRequest
 import skillbill.scaffold.policy.platformpack.model.PlatformPackManifestRenderRequest
@@ -49,7 +47,6 @@ class FileSystemScaffoldManifestPersistence : ScaffoldManifestPersistencePort {
         declaredCodeReviewAreas = request.declaredCodeReviewAreas,
         baselineContentPath = request.baselineContentPath,
         declaredAreaFiles = request.declaredAreaFiles,
-        declaredQualityCheckFile = request.declaredQualityCheckFile,
         areaMetadata = request.areaMetadata,
         baselineLayers = request.baselineLayers,
       ),
@@ -61,13 +58,6 @@ class FileSystemScaffoldManifestPersistence : ScaffoldManifestPersistencePort {
       area = request.area,
       relativeContentPath = request.relativeContentPath,
       areaFocus = request.areaFocus,
-    )
-  }
-
-  override fun setDeclaredQualityCheckFile(request: ScaffoldManifestSetDeclaredQualityCheckRequest) {
-    setDeclaredQualityCheckFile(
-      manifestPath = request.manifestPath,
-      relativeContentPath = request.relativeContentPath,
     )
   }
 

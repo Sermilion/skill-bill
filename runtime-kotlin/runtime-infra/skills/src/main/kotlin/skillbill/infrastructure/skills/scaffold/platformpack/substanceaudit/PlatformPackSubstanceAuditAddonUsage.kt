@@ -1,17 +1,8 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit
 
-import skillbill.model.toPath
-import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
 import java.util.Locale
 import kotlin.io.path.name
-
-internal fun qualitySections(text: String): List<String> = REQUIRED_QUALITY_SECTIONS.filter { section ->
-  text.lineSequence().any { it.trim() == "## $section" }
-}
-
-internal fun resolveQualityCheck(slug: String, packs: Map<String, PlatformManifest>): Path? =
-  packs[slug]?.declaredQualityCheckFile?.toPath()
 
 internal fun correspondingPairs(files: List<AuthoredFile>): List<SimilarityPair> = files.groupBy {
   roleKey(it)
@@ -35,9 +26,7 @@ internal fun correspondingPairs(files: List<AuthoredFile>): List<SimilarityPair>
 internal fun roleKey(file: AuthoredFile): String = when (file.role) {
   AuthoredFileRole.SPECIALIST -> "specialist:${file.area}"
   AuthoredFileRole.SIDECAR -> "sidecar:${file.area}:${file.path.name}"
-  AuthoredFileRole.BASELINE,
-  AuthoredFileRole.QUALITY_CHECK,
-  -> file.role.name.lowercase(Locale.ROOT)
+  AuthoredFileRole.BASELINE -> file.role.name.lowercase(Locale.ROOT)
 }
 
 internal fun relative(path: Path): String {

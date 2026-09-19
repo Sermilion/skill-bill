@@ -109,22 +109,11 @@ class ReviewSkillStructureConformanceTest {
     assertTrue(structureViolations(pack).any { it.rule == "specialist H2 sequence" })
 
     writeConformingFixture(pack)
-    Files.writeString(pack.resolve("quality-check/bill-fixture-code-check/content.md"), "## Purpose\n")
-    assertTrue(structureViolations(pack).any { it.rule == "quality-check H2 sequence" })
-
-    writeConformingFixture(pack)
     Files.writeString(
       pack.resolve("code-review/bill-fixture-code-review/content.md"),
       fixtureBaseline.replace("internal-for: bill-code-review", "internal-for: bill-code-check"),
     )
     assertTrue(structureViolations(pack).any { it.rule == "code-review internal parent" })
-
-    writeConformingFixture(pack)
-    Files.writeString(
-      pack.resolve("quality-check/bill-fixture-code-check/content.md"),
-      fixtureQualityCheck.replace("internal-for: bill-code-check", "internal-for: bill-code-review"),
-    )
-    assertTrue(structureViolations(pack).any { it.rule == "quality-check internal parent" })
 
     writeConformingFixture(pack)
     Files.writeString(
@@ -139,7 +128,6 @@ class ReviewSkillStructureConformanceTest {
   private fun assertSemanticNegativeFixtures(pack: Path) {
     assertBaselineNegativeFixtures(pack)
     assertSpecialistNegativeFixtures(pack)
-    assertQualityCheckNegativeFixtures(pack)
     assertManifestAndSidecarNegativeFixtures(pack)
   }
 
@@ -257,17 +245,6 @@ class ReviewSkillStructureConformanceTest {
     assertSpecialistRuleViolation(pack, "ux-accessibility", fixtureSpecialist, "UX accessibility lane deferrals")
   }
 
-  private fun assertQualityCheckNegativeFixtures(pack: Path) {
-    assertQualityCheckRuleViolation(pack, shallowQualityCheck, "quality-check command discovery")
-    assertQualityCheckRuleViolation(pack, misplacedQualityCheckDiscovery, "quality-check command discovery")
-    assertQualityCheckRuleViolation(pack, defaultFirstQualityCheck, "quality-check fallback ordering")
-    assertQualityCheckRuleViolation(pack, unscopedQualityCheck, "quality-check scoped files")
-    assertQualityCheckRuleViolation(pack, noEntrypointQualityCheck, "quality-check pack entrypoint")
-    assertQualityCheckRuleViolation(pack, suppressingQualityCheck, "quality-check fix discipline")
-    assertQualityCheckRuleViolation(pack, noRepairWindowQualityCheck, "quality-check repair window")
-    assertQualityCheckRuleViolation(pack, unconditionalFullSuiteQualityCheck, "quality-check escalation")
-  }
-
   private fun assertManifestAndSidecarNegativeFixtures(pack: Path) {
     assertManifestRuleAccepted(pack, labelIndependentAreaMetadataManifest, "manifest bespoke area metadata")
     assertManifestRuleAccepted(pack, dominantStackRoutingManifest, "routing adjacent-pack disambiguation")
@@ -309,12 +286,6 @@ class ReviewSkillStructureConformanceTest {
     assertTrue(structureViolations(pack).any { it.rule == rule }, "Expected $rule")
     Files.delete(file)
     Files.delete(file.parent)
-  }
-
-  private fun assertQualityCheckRuleViolation(pack: Path, content: String, rule: String) {
-    writeConformingFixture(pack)
-    Files.writeString(pack.resolve("quality-check/bill-fixture-code-check/content.md"), content)
-    assertTrue(structureViolations(pack).any { it.rule == rule }, "Expected $rule")
   }
 
   private fun assertManifestRuleViolation(pack: Path, manifest: String, rule: String) {
@@ -449,12 +420,10 @@ private fun allContentFiles(root: Path): List<Path> = Files.walk(root).use { pat
 private fun writeConformingFixture(pack: Path) {
   Files.createDirectories(pack.resolve("code-review/bill-fixture-code-review-security"))
   Files.createDirectories(pack.resolve("code-review/bill-fixture-code-review/native-agents"))
-  Files.createDirectories(pack.resolve("quality-check/bill-fixture-code-check"))
   Files.writeString(pack.resolve("platform.yaml"), fixtureManifest)
   Files.writeString(pack.resolve("code-review/bill-fixture-code-review-security/content.md"), fixtureSpecialist)
   Files.writeString(pack.resolve("code-review/bill-fixture-code-review/content.md"), fixtureBaseline)
   Files.writeString(pack.resolve("code-review/bill-fixture-code-review/native-agents/agents.yaml"), fixtureAgents)
-  Files.writeString(pack.resolve("quality-check/bill-fixture-code-check/content.md"), fixtureQualityCheck)
 }
 
 private val allowedSeverities = setOf("Blocker", "Major", "Minor")
@@ -475,7 +444,6 @@ private val fixtureManifest = """
       area_metadata:
         security:
           focus: Fixture security boundaries for .fixture sources
-      declared_quality_check_file: quality-check/bill-fixture-code-check/content.md
       pointers:
         code-review/bill-fixture-code-review: []
         code-review/bill-fixture-code-review-security: []

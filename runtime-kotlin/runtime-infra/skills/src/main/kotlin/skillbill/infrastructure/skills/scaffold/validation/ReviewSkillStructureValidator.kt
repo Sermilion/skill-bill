@@ -51,7 +51,6 @@ internal object ReviewSkillStructureValidator {
           ReviewSkillStructureValidatorContent.authoredSidecarViolations(reviewFiles, manifest),
         )
       }
-      addAll(ReviewSkillStructureValidatorContent.qualityCheckViolations(pack, manifest))
       addAll(
         allContentFiles(pack).flatMap(::severityViolations),
       )

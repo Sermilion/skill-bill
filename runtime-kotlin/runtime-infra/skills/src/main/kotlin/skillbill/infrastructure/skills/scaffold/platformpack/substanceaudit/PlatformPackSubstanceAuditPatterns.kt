@@ -32,21 +32,6 @@ internal val PLACEHOLDERS =
       "\\b(fill|replace)\\s+(this|me|content)\\b",
     RegexOption.IGNORE_CASE,
   )
-internal val QUALITY_FACETS = mapOf(
-  "command-discovery" to listOf(Regex("discover|repository|wrapper|ci", RegexOption.IGNORE_CASE)),
-  "concrete-tooling" to listOf(
-    Regex("`[^`]*(?:check|test|lint|build|gradle|npm|cargo|go|swift)[^`]*`", RegexOption.IGNORE_CASE),
-  ),
-  "scoped-execution" to listOf(Regex("scope|targeted|changed files", RegexOption.IGNORE_CASE)),
-  "failure-ownership" to listOf(Regex("belong|ownership|owned|scoped work", RegexOption.IGNORE_CASE)),
-  "priority-fixes" to listOf(Regex("priority|ordered|fix ladder", RegexOption.IGNORE_CASE)),
-  "rerun-escalation" to listOf(
-    Regex("re-run|rerun", RegexOption.IGNORE_CASE),
-    Regex("full suite|escalat", RegexOption.IGNORE_CASE),
-  ),
-  "blockers" to listOf(Regex("blocker|maintainer decision", RegexOption.IGNORE_CASE)),
-)
-internal val REQUIRED_QUALITY_SECTIONS = listOf("Purpose", "Execution Steps", "Fix Strategy")
 internal val EVIDENCE = Regex(
   "`([^`]+)`|(?:^|\\s)(?:./)?[a-z0-9_.-]+(?:gradle|lint|test|build|check|config)[a-z0-9_.:/-]*",
   RegexOption.IGNORE_CASE,

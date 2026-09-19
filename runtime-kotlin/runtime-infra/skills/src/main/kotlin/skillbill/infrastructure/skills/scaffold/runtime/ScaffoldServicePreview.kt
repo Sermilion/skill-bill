@@ -48,9 +48,7 @@ internal fun previewManifestPreviews(plan: ScaffoldPlan, repoRoot: Path): Map<Pa
   SKILL_KIND_PLATFORM_PACK -> {
     val manifestPath = plan.manifestPath ?: platformPackManifestPath(repoRoot, plan.platform)
     val baselineSkillPath = plan.baselineSkillPath ?: error("Platform pack plan missing baseline skill path.")
-    val qualityCheckSkillPath =
-      plan.qualityCheckSkillPath ?: error("Platform pack plan missing quality-check skill path.")
-    mapOf(manifestPath to renderPlatformPackManifestContent(plan, repoRoot, baselineSkillPath, qualityCheckSkillPath))
+    mapOf(manifestPath to renderPlatformPackManifestContent(plan, repoRoot, baselineSkillPath))
   }
   SKILL_KIND_ADD_ON -> {
     if (plan.addonConsumerSkillDirs.isEmpty()) {

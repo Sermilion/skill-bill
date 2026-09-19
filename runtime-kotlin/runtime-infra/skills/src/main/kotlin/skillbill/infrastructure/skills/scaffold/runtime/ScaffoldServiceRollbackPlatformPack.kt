@@ -9,12 +9,7 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
 import java.nio.file.Path
 import skillbill.scaffold.policy.platformpack.renderPlatformPackManifestContent as renderPackManifest
 
-internal fun renderPlatformPackManifestContent(
-  plan: ScaffoldPlan,
-  repoRoot: Path,
-  baselineSkillPath: Path,
-  qualityCheckSkillPath: Path,
-): String {
+internal fun renderPlatformPackManifestContent(plan: ScaffoldPlan, repoRoot: Path, baselineSkillPath: Path): String {
   val packRoot = plan.manifestPath?.parent ?: repoRoot.resolve("platform-packs").resolve(plan.platform)
   return renderPackManifest(
     PlatformPackManifestContentRenderRequest(
@@ -27,7 +22,6 @@ internal fun renderPlatformPackManifestContent(
       baselineLayers = plan.baselineLayers,
       packRoot = packRoot.toFileLocation(),
       baselineSkillPath = baselineSkillPath.toFileLocation(),
-      qualityCheckSkillPath = qualityCheckSkillPath.toFileLocation(),
       specialistSkillPaths = plan.specialistSkillPaths.mapValues { (_, entry) -> entry.toFileLocation() },
     ),
   )
@@ -37,7 +31,6 @@ internal fun stagePlatformPackSkills(
   txn: ScaffoldTransaction,
   plan: ScaffoldPlan,
   baselineSkillPath: Path,
-  qualityCheckSkillPath: Path,
 ): List<Path> {
   val symlinks = mutableListOf<Path>()
   val baselineContext =
@@ -52,16 +45,6 @@ internal fun stagePlatformPackSkills(
     txn,
     baselineSkillPath.resolve("content.md"),
     renderContentBody(baselineContext, baselineDescription, internalFor = "bill-code-review"),
-  )
-
-  val qualityCheckContext =
-    TemplateContext(plan.qualityCheckSkillName, "quality-check", plan.platform, "", plan.displayName)
-  val qualityCheckDescription =
-    "Use when validating ${plan.displayName} changes with the shared quality-check contract."
-  stageFile(
-    txn,
-    qualityCheckSkillPath.resolve("content.md"),
-    renderContentBody(qualityCheckContext, qualityCheckDescription, internalFor = "bill-code-check"),
   )
 
   plan.specialistAreas.forEach { area ->
@@ -86,9 +69,6 @@ internal fun stagePlatformPackArea(txn: ScaffoldTransaction, plan: ScaffoldPlan,
 internal fun previewPlatformPackCreatedFiles(plan: ScaffoldPlan): List<Path> = buildList {
   plan.manifestPath?.let(::add)
   plan.baselineSkillPath?.let {
-    add(it.resolve("content.md"))
-  }
-  plan.qualityCheckSkillPath?.let {
     add(it.resolve("content.md"))
   }
   plan.specialistSkillPaths.values.forEach { path ->

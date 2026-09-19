@@ -46,8 +46,6 @@ internal data class ScaffoldPlan(
   val specialistSkillPaths: Map<String, Path> = emptyMap(),
   val baselineSkillName: String = "",
   val baselineSkillPath: Path? = null,
-  val qualityCheckSkillName: String = "",
-  val qualityCheckSkillPath: Path? = null,
   val installPaths: List<Path> = emptyList(),
   val createdFiles: List<Path> = emptyList(),
   val contentBody: String? = null,

@@ -4,7 +4,6 @@ import skillbill.ports.scaffold.manifest.model.ScaffoldManifestAppendCodeReviewA
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestReadResult
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestRegisterGovernedAddonRequest
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestRenderPlatformPackRequest
-import skillbill.ports.scaffold.manifest.model.ScaffoldManifestSetDeclaredQualityCheckRequest
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestSnapshot
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestWriteRequest
 import java.nio.file.Path
@@ -34,9 +33,6 @@ interface ScaffoldManifestPersistencePort {
 
   /** Appends a new code-review area entry to an existing manifest. */
   fun appendCodeReviewArea(request: ScaffoldManifestAppendCodeReviewAreaRequest)
-
-  /** Sets the `declared_quality_check_file:` line in an existing manifest. */
-  fun setDeclaredQualityCheckFile(request: ScaffoldManifestSetDeclaredQualityCheckRequest)
 
   /** Registers a governed add-on (pointer + addon-usage entries) in an existing manifest. */
   fun registerGovernedAddon(request: ScaffoldManifestRegisterGovernedAddonRequest)

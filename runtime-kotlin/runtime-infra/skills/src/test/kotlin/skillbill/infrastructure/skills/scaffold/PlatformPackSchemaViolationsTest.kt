@@ -386,6 +386,26 @@ class PlatformPackSchemaViolationsTest {
   }
 
   @Test
+  fun `retired quality-check addon_usage without a declared checker does not block pack load`() {
+    val manifest = """
+      platform: scenarioslug
+      contract_version: "1.8"
+      routing_signals:
+        strong: [".kt"]
+      declared_code_review_areas: []
+      declared_files:
+        baseline: code-review/bill-scenarioslug-code-review/content.md
+        areas: {}
+      addon_usage:
+        quality-check/bill-scenarioslug-code-check:
+          - slug: android-r8
+            entrypoint: android-r8-review.md
+    """.trimIndent()
+
+    loadPackFromInMemory("scenarioslug", manifest)
+  }
+
+  @Test
   fun `coherence rule addon_usage must reference declared pointer under same skill dir`() {
     val manifest = """
       platform: scenarioslug

@@ -56,7 +56,6 @@ declared_files:
     ui: code-review/bill-kmp-code-review-ui/content.md
     ux-accessibility: code-review/bill-kmp-code-review-ux-accessibility/content.md
 
-declared_quality_check_file: quality-check/bill-kmp-code-check/content.md
 
 validation_gate:
   full_gate_command:
@@ -219,10 +218,6 @@ addon_usage:
       activation:
         any_content: ["materialtheme", "design system", "colorscheme"]
         exclude_path: ["/commonMain/"]
-  quality-check/bill-kmp-code-check:
-    - slug: android-r8
-      entrypoint: android-r8-review.md
-
 feature_addon_usage:
   feature-task:
     - slug: android-compose-implementation
@@ -324,13 +319,6 @@ pointers:
   code-review/bill-kmp-code-review-ux-accessibility:
     - name: specialist-contract.md
       target: orchestration/review-orchestrator/specialist-contract.md
-  quality-check/bill-kmp-code-check:
-    - name: shell-ceremony.md
-      target: orchestration/shell-content-contract/shell-ceremony.md
-    - name: telemetry-contract.md
-      target: orchestration/telemetry-contract/PLAYBOOK.md
-    - name: android-r8-review.md
-      target: platform-packs/kmp/addons/android-r8-review.md
 
 required_rubric_companions:
   ui:

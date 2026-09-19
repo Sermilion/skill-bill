@@ -1,25 +1,17 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit
 
-import skillbill.infrastructure.skills.scaffold.platformpack.CODE_REVIEW_FALLBACK_CAPABILITY
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.relativeTo
 
-internal data class PackAuditContext(
+internal data class PlatformPackSubstanceAuditPointerCatalog(
   val root: Path,
   val policy: SubstancePolicy,
   val manifestsBySlug: Map<String, PlatformManifest>,
   val effectiveAreas: Map<String, Set<String>>,
   val files: List<AuthoredFile>,
   val pairs: List<SimilarityPair>,
-)
-
-internal data class PackQualityState(
-  val path: Path?,
-  val sections: List<String>,
-  val facets: List<String>,
 )
 
 internal fun auditPlatformPacksImpl(repoRoot: Path, policy: SubstancePolicy): PlatformPackSubstanceReport {
@@ -33,7 +25,7 @@ internal fun auditPlatformPacksImpl(repoRoot: Path, policy: SubstancePolicy): Pl
   }
   val files = manifests.flatMap(::authoredFiles).sortedBy { it.path.toString() }
   val pairs = correspondingPairs(files)
-  val context = PackAuditContext(root, policy, manifestsBySlug, effectiveAreas, files, pairs)
+  val context = PlatformPackSubstanceAuditPointerCatalog(root, policy, manifestsBySlug, effectiveAreas, files, pairs)
   val rawViolations = mutableListOf<SubstanceViolation>()
   val metrics = manifests.map { pack -> auditSinglePack(pack, context, rawViolations) }
   return PlatformPackSubstanceReport(
@@ -47,7 +39,7 @@ internal fun auditPlatformPacksImpl(repoRoot: Path, policy: SubstancePolicy): Pl
 
 internal fun auditSinglePack(
   pack: PlatformManifest,
-  context: PackAuditContext,
+  context: PlatformPackSubstanceAuditPointerCatalog,
   rawViolations: MutableList<SubstanceViolation>,
 ): PackMetric {
   rawViolations += compositionViolations(pack, context.manifestsBySlug)
@@ -55,8 +47,6 @@ internal fun auditSinglePack(
   val specialists = specialistMetrics(context.root, pack, context.effectiveAreas, context.manifestsBySlug)
   auditPackAreaCoverageViolations(pack, context, rawViolations)
   auditPackSpecialistViolations(specialists, context.policy, rawViolations)
-  val quality = auditPackQualityState(pack, context)
-  auditPackQualityViolations(pack, context, quality, rawViolations)
   val shared = auditPackSharedShingleViolation(pack, packFiles, context, rawViolations)
   val packPairs = context.pairs.filter { pair ->
     pair.firstFile.startsWith("platform-packs/${pack.slug}/") ||
@@ -68,9 +58,9 @@ internal fun auditSinglePack(
     pack.declaredCodeReviewAreas.sorted(),
     (context.effectiveAreas.getValue(pack.slug) - pack.declaredCodeReviewAreas.toSet()).sorted(),
     specialists,
-    quality.path?.relativeTo(context.root)?.toString(),
-    quality.sections,
-    quality.facets,
+    null,
+    emptyList(),
+    emptyList(),
     shared,
     packPairs.maxByOrNull { it.similarity },
   )
@@ -78,7 +68,7 @@ internal fun auditSinglePack(
 
 internal fun auditPackAreaCoverageViolations(
   pack: PlatformManifest,
-  context: PackAuditContext,
+  context: PlatformPackSubstanceAuditPointerCatalog,
   rawViolations: MutableList<SubstanceViolation>,
 ) {
   val missingAreas = APPROVED_CODE_REVIEW_AREAS - context.effectiveAreas.getValue(pack.slug)
@@ -131,67 +121,10 @@ internal fun auditPackSpecialistViolations(
   }
 }
 
-internal fun auditPackQualityState(pack: PlatformManifest, context: PackAuditContext): PackQualityState {
-  val qualityPath = resolveQualityCheck(pack.slug, context.manifestsBySlug)
-  val qualityText = qualityPath?.let(Files::readString)
-  return PackQualityState(
-    path = qualityPath,
-    sections = qualityText?.let(::qualitySections).orEmpty(),
-    facets = qualityText?.let(::qualityFacets).orEmpty(),
-  )
-}
-
-internal fun auditPackQualityViolations(
-  pack: PlatformManifest,
-  context: PackAuditContext,
-  quality: PackQualityState,
-  rawViolations: MutableList<SubstanceViolation>,
-) {
-  if (quality.path == null) {
-    if (CODE_REVIEW_FALLBACK_CAPABILITY !in pack.fallbackCapabilities) {
-      rawViolations += packViolation(
-        PackViolationArgs(
-          pack = pack.slug,
-          role = "quality-check",
-          files = emptyList(),
-          measured = "absent",
-          target = "present",
-          rule = "maintained pack must declare a quality checker",
-        ),
-      )
-    }
-    return
-  }
-  if (quality.sections.size < REQUIRED_QUALITY_SECTIONS.size) {
-    rawViolations += packViolation(
-      PackViolationArgs(
-        pack = pack.slug,
-        role = "quality-check-sections",
-        files = listOf(quality.path.relativeTo(context.root).toString()),
-        measured = quality.sections.joinToString(",").ifEmpty { "none" },
-        target = REQUIRED_QUALITY_SECTIONS.joinToString(","),
-        rule = "quality checker must contain every governed section",
-      ),
-    )
-  }
-  if (quality.facets.size < context.policy.minimumQualityFacets) {
-    rawViolations += packViolation(
-      PackViolationArgs(
-        pack = pack.slug,
-        role = "quality-check",
-        files = listOf(quality.path.relativeTo(context.root).toString()),
-        measured = quality.facets.size.toString(),
-        target = "${context.policy.minimumQualityFacets}",
-        rule = "quality checker must cover every depth facet",
-      ),
-    )
-  }
-}
-
 internal fun auditPackSharedShingleViolation(
   pack: PlatformManifest,
   packFiles: List<AuthoredFile>,
-  context: PackAuditContext,
+  context: PlatformPackSubstanceAuditPointerCatalog,
   rawViolations: MutableList<SubstanceViolation>,
 ): Fraction {
   val packShingles = packFiles.flatMap { it.shingles }.toSet()

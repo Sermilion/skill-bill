@@ -40,7 +40,7 @@ internal fun parseAddonUsage(
       "Platform pack '$slug': 'addon_usage' must be a mapping of skill-relative-dir to add-on entries.",
     )
   val pointersByDir = manifestContext.pointers.groupBy { spec -> spec.skillRelativeDir }
-  return usageMap.map { (dirKey, entriesRaw) ->
+  return usageMap.mapNotNull { (dirKey, entriesRaw) ->
     val skillRelativeDir = dirKey as? String
       ?: invalidManifestSchema(
         "Platform pack '$slug': 'addon_usage' keys must be strings (skill-relative directory paths).",
@@ -52,6 +52,9 @@ internal fun parseAddonUsage(
     }
     requireSafePointerSubpath(slug, skillRelativeDir, "addon_usage skill-relative directory")
     if (skillRelativeDir !in manifestContext.declaredSkillDirs) {
+      if (isRetiredQualityCheckSkillDir(skillRelativeDir)) {
+        return@mapNotNull null
+      }
       invalidManifestSchema(
         "Platform pack '$slug': 'addon_usage' key '$skillRelativeDir' must match a declared skill directory. " +
           "Declared skill directories: ${manifestContext.declaredSkillDirs.sorted()}.",
@@ -241,6 +244,11 @@ internal fun parseSpecialistAreas(
 
 internal fun isReviewAddon(context: AddonUsageParseContext): Boolean =
   context.fieldName == "addon_usage" && context.skillRelativeDir.startsWith("code-review/")
+
+private const val RETIRED_QUALITY_CHECK_SKILL_DIR_PREFIX: String = "quality-check/"
+
+private fun isRetiredQualityCheckSkillDir(skillRelativeDir: String): Boolean =
+  skillRelativeDir.startsWith(RETIRED_QUALITY_CHECK_SKILL_DIR_PREFIX)
 
 internal fun requirePackOwnedAddonPointer(
   context: AddonUsageParseContext,

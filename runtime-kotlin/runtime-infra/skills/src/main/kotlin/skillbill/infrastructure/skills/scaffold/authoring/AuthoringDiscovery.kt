@@ -121,22 +121,6 @@ private fun recordPackTargets(discovered: MutableMap<String, AuthoringTarget>, p
         internalFor = parseInternalForFrontmatter(contentFile),
       )
   }
-  pack.declaredQualityCheckFile?.let { declaredFile ->
-    val contentFile = declaredContentFile(declaredFile.toPath())
-    discovered[contentFile.parent.name] =
-      AuthoringTarget(
-        contentFile.parent.name,
-        pack.slug,
-        pack.slug,
-        displayName,
-        "quality-check",
-        "",
-        contentFile.resolveSibling("SKILL.md"),
-        contentFile,
-        addonUsage = pack.addonUsageFor(contentFile),
-        internalFor = parseInternalForFrontmatter(contentFile),
-      )
-  }
 }
 
 private fun recordSkillTarget(repoRoot: Path, discovered: MutableMap<String, AuthoringTarget>, contentFile: Path) {

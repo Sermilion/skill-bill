@@ -5,7 +5,6 @@ import skillbill.infrastructure.skills.scaffold.authoring.InternalSkillDeclarati
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.infrastructure.skills.scaffold.authoring.requireValidInternalSkillClassification
 import skillbill.infrastructure.skills.scaffold.platformpack.discoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.platformpack.loadQualityCheckContent
 import skillbill.infrastructure.skills.scaffold.platformpack.validatePlatformPack
 import skillbill.infrastructure.skills.scaffold.runtime.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.validation.ReviewSkillStructureValidator
@@ -79,17 +78,13 @@ internal fun platformSkills(
   manifest: PlatformManifest,
   enforceContractVersion: Boolean = true,
 ): List<InstallPlanSkill> {
-  val contentFiles = listOfNotNull(
-    manifest.declaredFiles.baseline,
-    manifest.declaredQualityCheckFile,
-  ) + manifest.declaredFiles.areas.values
+  val contentFiles = listOfNotNull(manifest.declaredFiles.baseline) + manifest.declaredFiles.areas.values
   val skillDirs = contentFiles.map { contentFile -> platformSkillDir(manifest, contentFile.toPath()) }
   val duplicateSkillDir = skillDirs.groupingBy { it }.eachCount().entries.firstOrNull { it.value > 1 }?.key
   require(duplicateSkillDir == null) {
     "Platform pack '${manifest.slug}' produces duplicate skill name '${duplicateSkillDir?.fileName}'."
   }
   validatePlatformPack(manifest, SHELL_CONTRACT_VERSION, enforceContractVersion)
-  manifest.declaredQualityCheckFile?.let { loadQualityCheckContent(manifest) }
   ReviewSkillStructureValidator.validate(manifest.packRoot.toPath())
   return skillDirs
     .sortedBy { skillDir -> skillDir.fileName.toString() }

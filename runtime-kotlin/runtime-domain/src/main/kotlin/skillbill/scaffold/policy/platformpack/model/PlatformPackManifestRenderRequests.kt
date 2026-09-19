@@ -11,7 +11,6 @@ data class PlatformPackManifestRenderRequest(
   val declaredCodeReviewAreas: List<String> = emptyList(),
   val baselineContentPath: String,
   val declaredAreaFiles: Map<String, String> = emptyMap(),
-  val declaredQualityCheckFile: String? = null,
   val areaMetadata: Map<String, String> = emptyMap(),
   val baselineLayers: List<CodeReviewBaselineLayer> = emptyList(),
   val notes: String? = null,
@@ -27,6 +26,5 @@ data class PlatformPackManifestContentRenderRequest(
   val baselineLayers: List<CodeReviewBaselineLayer>,
   val packRoot: FileLocation,
   val baselineSkillPath: FileLocation,
-  val qualityCheckSkillPath: FileLocation,
   val specialistSkillPaths: Map<String, FileLocation>,
 )

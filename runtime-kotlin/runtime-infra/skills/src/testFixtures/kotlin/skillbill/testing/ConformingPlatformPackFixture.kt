@@ -4,7 +4,6 @@ import skillbill.infrastructure.skills.scaffold.platformpack.CODE_REVIEW_FALLBAC
 import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.rendering.areaReviewContent
 import skillbill.infrastructure.skills.scaffold.rendering.baselineReviewContent
-import skillbill.infrastructure.skills.scaffold.rendering.qualityCheckContent
 import skillbill.infrastructure.skills.scaffold.rendering.renderFrontmatter
 import skillbill.install.model.InstallPlan
 import skillbill.model.toPath
@@ -30,7 +29,6 @@ internal fun seedConformingPlatformPack(
   repoRoot: Path,
   slug: String,
   areaNames: List<String> = listOf("architecture"),
-  qualityCheckName: String = "bill-$slug-code-check",
   baselinePointerTarget: String? = null,
 ) {
   require(areaNames.isNotEmpty()) { "A conforming review pack must declare at least one specialist area." }
@@ -40,12 +38,11 @@ internal fun seedConformingPlatformPack(
   val baselineDir = packRoot.resolve("code-review").resolve(baselineName)
   Files.createDirectories(baselineDir.resolve("native-agents"))
   areaSkillNames.values.forEach { skillName -> Files.createDirectories(packRoot.resolve("code-review/$skillName")) }
-  Files.createDirectories(packRoot.resolve("quality-check/$qualityCheckName"))
 
   val focuses = areaNames.associateWith { area -> "$slug $area boundary APIs and failure modes" }
   Files.writeString(
     packRoot.resolve("platform.yaml"),
-    conformingManifest(slug, qualityCheckName, areaSkillNames, focuses, baselinePointerTarget),
+    conformingManifest(slug, areaSkillNames, focuses, baselinePointerTarget),
   )
 
   Files.writeString(
@@ -69,15 +66,6 @@ internal fun seedConformingPlatformPack(
     )
   }
   Files.writeString(
-    packRoot.resolve("quality-check/$qualityCheckName/content.md"),
-    governedContent(
-      qualityCheckName,
-      "Test $slug quality check.",
-      "bill-code-check",
-      qualityCheckContent("Check $slug changes."),
-    ),
-  )
-  Files.writeString(
     baselineDir.resolve("native-agents/agents.yaml"),
     conformingNativeAgents(slug, areaNames, focuses),
   )
@@ -85,7 +73,6 @@ internal fun seedConformingPlatformPack(
 
 private fun conformingManifest(
   slug: String,
-  qualityCheckName: String,
   areaSkillNames: Map<String, String>,
   focuses: Map<String, String>,
   baselinePointerTarget: String?,
@@ -111,7 +98,6 @@ private fun conformingManifest(
     appendLine("    focus: \"$focus\"")
   }
   appendLine("display_name: \"$slug\"")
-  appendLine("declared_quality_check_file: \"quality-check/$qualityCheckName/content.md\"")
   appendLine("pointers:")
   if (baselinePointerTarget == null) {
     appendLine("  code-review/$baselineName: []")

@@ -19,12 +19,10 @@ fun platformPackNotes(platform: String, presetUsed: Boolean, selectedAreas: List
 fun buildPlatformPackInstallPaths(
   packRoot: FileLocation,
   baselineName: String,
-  qualityCheckName: String,
   specialistPaths: Map<String, FileLocation>,
   selectedAreas: List<String>,
 ): List<FileLocation> = buildList {
   add(packRoot.resolve("code-review").resolve(baselineName))
-  add(packRoot.resolve("quality-check").resolve(qualityCheckName))
   selectedAreas.forEach { area ->
     add(specialistPaths.getValue(area))
   }

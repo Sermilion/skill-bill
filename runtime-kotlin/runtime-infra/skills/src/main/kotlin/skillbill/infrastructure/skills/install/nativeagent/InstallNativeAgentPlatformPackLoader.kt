@@ -32,7 +32,6 @@ internal fun PlatformManifest.toNativeAgentPlatformPack(): NativeAgentPlatformPa
     baseline = declaredFiles.baseline?.toPath(),
     areas = declaredFiles.areas.mapValues { (_, entry) -> entry.toPath() },
   ),
-  declaredQualityCheckFile = declaredQualityCheckFile?.toPath(),
   pointers = pointers.map(PointerSpec::toNativeAgentPointerSpec),
   addonUsage = addonUsage.map(GovernedAddonUsage::toNativeAgentGovernedAddonUsage),
 )

@@ -83,7 +83,6 @@ class ScaffoldAddonGovernanceTest {
     )
     val manifest = Files.readString(repo.resolve("platform-packs/qualityonly/platform.yaml"))
 
-    assertContains(manifest, "  quality-check/bill-qualityonly-code-check:")
     assertContains(manifest, "    - name: \"lint-helper.md\"")
     assertContains(manifest, "addon_usage:")
     assertContains(manifest, "    - slug: \"lint-helper\"")
@@ -204,8 +203,10 @@ private fun seedRepo(): Path {
 private fun seedQualityCheckOnlyRepo(): Path {
   val repo = Files.createTempDirectory("skillbill-scaffold-addon-quality-repo")
   val packRoot = repo.resolve("platform-packs/qualityonly")
-  val qualityCheck = packRoot.resolve("quality-check/bill-qualityonly-code-check")
-  Files.createDirectories(qualityCheck)
+  val baselineDir = packRoot.resolve("code-review/bill-qualityonly-code-review")
+  val consumerDir = packRoot.resolve("code-review/bill-qualityonly-code-review-architecture")
+  Files.createDirectories(baselineDir)
+  Files.createDirectories(consumerDir)
   Files.writeString(
     packRoot.resolve("platform.yaml"),
     """
@@ -218,15 +219,41 @@ private fun seedQualityCheckOnlyRepo(): Path {
         - "qualityonly.marker"
       tie_breakers: []
 
-    declared_code_review_areas: []
-
-    declared_quality_check_file: "quality-check/bill-qualityonly-code-check/content.md"
+    declared_code_review_areas:
+      - architecture
+    declared_files:
+      baseline: code-review/bill-qualityonly-code-review/content.md
+      areas:
+        architecture: code-review/bill-qualityonly-code-review-architecture/content.md
+    pointers:
+      code-review/bill-qualityonly-code-review-architecture: []
     """.trimIndent() + "\n",
   )
-  val context = TemplateContext("bill-qualityonly-code-check", "quality-check", "qualityonly", "", "Quality Only")
   Files.writeString(
-    qualityCheck.resolve("content.md"),
-    renderContentBody(context, inferSkillDescription(context), internalFor = "bill-code-check"),
+    baselineDir.resolve("content.md"),
+    """
+    ---
+    name: bill-qualityonly-code-review
+    description: Quality Only review.
+    internal-for: bill-code-review
+    ---
+    # Baseline
+
+    Review changes.
+    """.trimIndent() + "\n",
+  )
+  Files.writeString(
+    consumerDir.resolve("content.md"),
+    """
+    ---
+    name: bill-qualityonly-code-review-architecture
+    description: Quality Only architecture review.
+    internal-for: bill-code-review
+    ---
+    # Architecture
+
+    Review architecture boundaries.
+    """.trimIndent() + "\n",
   )
   return repo
 }
