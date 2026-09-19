@@ -15,6 +15,11 @@ class InvalidValidationGateDeclarationError(
   cause: Throwable? = null,
 ) : ShellContentContractException(message, cause)
 
+class MissingValidationGateError(
+  message: String,
+  cause: Throwable? = null,
+) : ShellContentContractException(message, cause)
+
 class ReviewCompositionCycleError(message: String) : ShellContentContractException(message)
 
 class AmbiguousLaneOwnershipError(message: String) : ShellContentContractException(message)

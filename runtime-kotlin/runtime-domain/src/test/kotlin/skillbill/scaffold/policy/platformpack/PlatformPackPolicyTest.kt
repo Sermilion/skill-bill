@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 
 class PlatformPackPolicyTest {
   @Test
-  fun `buildPlatformPackInstallPaths includes baseline, quality-check, and selected specialists`() {
+  fun `buildPlatformPackInstallPaths includes baseline and selected specialists`() {
     val packRoot = FileLocation("/repo/platform-packs/java")
     val specialistPaths = mapOf(
       "ui" to packRoot.resolve("code-review").resolve("bill-java-code-review-ui"),
@@ -17,15 +17,13 @@ class PlatformPackPolicyTest {
     val paths = buildPlatformPackInstallPaths(
       packRoot = packRoot,
       baselineName = "bill-java-code-review",
-      qualityCheckName = "bill-java-code-check",
       specialistPaths = specialistPaths,
       selectedAreas = listOf("ui"),
     )
 
-    assertEquals(3, paths.size)
+    assertEquals(2, paths.size)
     assertEquals(packRoot.resolve("code-review").resolve("bill-java-code-review"), paths[0])
-    assertEquals(packRoot.resolve("quality-check").resolve("bill-java-code-check"), paths[1])
-    assertEquals(specialistPaths.getValue("ui"), paths[2])
+    assertEquals(specialistPaths.getValue("ui"), paths[1])
   }
 
   @Test

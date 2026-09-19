@@ -25,7 +25,7 @@ Bundled skills and packs are defaults, not the framework boundary. Teams may rep
 ## Taxonomy
 
 - `skills/` — canonical user-facing skill sources
-- `platform-packs/<platform>/` — pack roots for review and quality-check only; `addons/` flat pack-owned add-ons. Packs are excluded from goal-planning discovery; eligible `agent/history.md` and `agent/decisions.md` reach planning as a heading catalog only — bodies arrive for headings preplanning selected.
+- `platform-packs/<platform>/` — pack roots for code review and pack `validation_gate` quality-check argv; `addons/` flat pack-owned add-ons. Packs are excluded from goal-planning discovery; eligible `agent/history.md` and `agent/decisions.md` reach planning as a heading catalog only — bodies arrive for headings preplanning selected.
 - `orchestration/contracts/` — runtime contract schemas
 
 Naming: `bill-<capability>`; overrides `bill-<platform>-<base-capability>`; review areas `bill-<platform>-code-review-<area>`. Approved areas: `architecture`, `performance`, `platform-correctness`, `security`, `testing`, `api-contracts`, `persistence`, `reliability`, `ui`, `ux-accessibility`.
@@ -46,7 +46,7 @@ Packs are the extension surface; routing and install read manifests, not hard-co
 
 Per-repo customization: top-level custom fields allowed; runtime-consumed fields use `x-runtime-anchored: true`; non-anchored fields flow to `PlatformManifest.customFields`. Product vs extension: horizontal `skills/bill-*/` and `.bill-shared` are protected; `platform-packs/<slug>/` (including shipped `kotlin`/`kmp`) are removable — no paired `skills/<platform>/` trees.
 
-`kmp` covers Android and Kotlin Multiplatform on the Kotlin baseline and routes quality checks to `bill-kmp-code-check` (no Kotlin fallback). `bill-feature-verify` remains pre-shell.
+`kmp` covers Android and Kotlin Multiplatform on the Kotlin baseline. Its `validation_gate` owns quality-check commands, with no Kotlin fallback. `bill-feature-verify` remains pre-shell.
 
 ## Runtime Contract Schemas
 
@@ -68,7 +68,7 @@ Scaffold with `skill-bill new` (or `--payload <file>`). Author via `skill-bill s
 
 ## Adding Platforms
 
-Code review: pack root + conforming manifest/`content.md`, manifest-registered pointers, README catalog, pack tests, validate. Quality-check: manifest entry + governed `content.md`; every pack routes to its own checker. Feature-task/verify: stay on horizontal + manifest surfaces — no legacy `skills/<platform>/` overrides.
+Code review: pack root + conforming manifest/`content.md`, manifest-registered pointers, README catalog, pack tests, validate. Quality-check: declare `validation_gate` on packs that can win dominant-stack routing; `bill-code-check` runs that gate's collect-all argv (optional `declared_quality_check_file` may still parse on leftover custom packs but routing, install, and scaffold do not consume it). Feature-task/verify: stay on horizontal + manifest surfaces — no legacy `skills/<platform>/` overrides.
 
 ## Runtime Agent Behavior
 
@@ -112,4 +112,4 @@ Follow [Code Principles](docs/code-principles.md) for Kotlin patterns, package c
 
 ## Quality Checks
 
-Prefer `bill-code-check`; document fallback if no platform checker. Bias: stable base commands, platform depth behind routers, explicit overrides, validator-backed rules, acceptance and rejection tests.
+Prefer `bill-code-check`; it runs the dominant pack `validation_gate.collect_all_full_gate_command`. Bias: stable base commands, platform depth behind routers, explicit gate argv, validator-backed rules, acceptance and rejection tests.

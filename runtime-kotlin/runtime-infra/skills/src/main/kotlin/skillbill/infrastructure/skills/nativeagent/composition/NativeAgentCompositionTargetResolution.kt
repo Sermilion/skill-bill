@@ -77,8 +77,7 @@ private fun canonicalize(path: Path): Path {
 
 private fun declaredContentPaths(pack: NativeAgentPlatformPack): List<Path> =
   listOfNotNull(pack.declaredFiles.baseline) +
-    pack.declaredFiles.areas.values.sortedBy { it.toString() } +
-    listOfNotNull(pack.declaredQualityCheckFile)
+    pack.declaredFiles.areas.values.sortedBy { it.toString() }
 
 private fun readContentFrontmatterName(contentPath: Path): String? {
   val text = Files.readString(contentPath).replace("\r\n", "\n")

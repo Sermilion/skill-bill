@@ -18,13 +18,11 @@ fun renderPlatformPackManifest(request: PlatformPackManifestRenderRequest): Stri
   lines += ""
   appendDeclaredFiles(lines, request.baselineContentPath, request.declaredCodeReviewAreas, request.declaredAreaFiles)
   appendAreaMetadata(lines, request.declaredCodeReviewAreas, request.areaMetadata)
-  appendQualityCheckDeclaration(lines, request.declaredQualityCheckFile)
   appendPointers(
     lines,
     request.baselineContentPath,
     request.declaredCodeReviewAreas,
     request.declaredAreaFiles,
-    request.declaredQualityCheckFile,
   )
   appendBaselineLayers(lines, request.baselineLayers)
   if (request.notes != null) {
@@ -48,9 +46,6 @@ fun renderPlatformPackManifestContent(request: PlatformPackManifestContentRender
       declaredAreaFiles = request.specialistSkillPaths.mapValues { (_, path) ->
         request.packRoot.relativize(path.resolve("content.md")).toString().replace('\\', '/')
       },
-      declaredQualityCheckFile = request.packRoot.relativize(request.qualityCheckSkillPath.resolve("content.md"))
-        .toString()
-        .replace('\\', '/'),
       areaMetadata = request.specialistAreaMetadata,
       baselineLayers = request.baselineLayers,
     ),
@@ -110,13 +105,6 @@ private fun appendAreaMetadata(
         lines += "    focus: ${yamlScalar(it)}"
       }
     }
-  }
-}
-
-private fun appendQualityCheckDeclaration(lines: MutableList<String>, declaredQualityCheckFile: String?) {
-  if (declaredQualityCheckFile != null) {
-    lines += ""
-    lines += "declared_quality_check_file: ${yamlScalar(declaredQualityCheckFile)}"
   }
 }
 

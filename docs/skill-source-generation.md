@@ -61,7 +61,7 @@ Platform packs use their own source layout:
 
 - `platform-packs/<slug>/platform.yaml`
 - `platform-packs/<slug>/code-review/<skill>/content.md`
-- `platform-packs/<slug>/quality-check/<skill>/content.md` when declared
+- optional `validation_gate` on `platform.yaml` for dominant-stack quality-check argv (legacy `declared_quality_check_file` may still parse but is unused by routing, install, and scaffold)
 - `platform-packs/<slug>/addons/*.md` for pack-owned add-ons
 - one co-located, specialist-owned authored Markdown rubric sidecar when the
   review-skill structure standard explicitly permits and names it; it belongs
@@ -194,11 +194,12 @@ entries plus their 77 specialists — all carry `internal-for: bill-code-review`
 and all install as siblings inside `bill-code-review/`. The stack entry skills
 do **not** become parents of their specialists.
 
-The maintained manifest-derived totals are 85 review sidecars, eight direct
-quality-check sidecars, and 77 provider-neutral specialist agents. KMP accounts
-for one review entry, seven physical specialists, one direct checker, and seven
-neutral agents; its three inherited review lanes reuse Kotlin rather than
-duplicating Kotlin source or native-agent declarations.
+The maintained manifest-derived totals are 85 review sidecars and 77
+provider-neutral specialist agents. KMP accounts for one review entry, seven
+physical specialists, and seven neutral agents; its three inherited review
+lanes reuse Kotlin rather than duplicating Kotlin source or native-agent
+declarations. Quality checks have no pack sidecars; their commands live in each
+dominant pack's `validation_gate`.
 
 ### Selection-aware sidecars for platform-pack internals (PD3)
 
@@ -276,13 +277,10 @@ specialist rubric sidecars as siblings. With only the Kotlin pack selected,
 the Kotlin entry plus its ten specialists stage; other packs contribute nothing (PD3). The KMP pack declares
 `bill-kotlin-code-review` as a required baseline layer, so selecting KMP without
 Kotlin fails install planning with the typed baseline-co-presence error (PD8).
-SKILL-105 applies the same platform-pack internal-sidecar mechanism to the
-quality-check family: pack quality-check skills (`bill-ios-code-check`,
-`bill-go-code-check`, `bill-kotlin-code-check`, `bill-kmp-code-check`, `bill-php-code-check`, `bill-python-code-check`, `bill-rust-code-check`,
-`bill-typescript-code-check`) carry
-`internal-for: bill-code-check`, install as selected-pack sidecars inside
-`bill-code-check/`, and are not listed commands. Their routed skill names remain
-stable identity strings for manifests, routing output, and telemetry.
+Quality checks use the same manifest-discovered pack selection, but they do not
+have pack skill sidecars. A dominant pack's `validation_gate` owns the
+collect-all and cache-bypassing collect-all argv; `bill-code-check` remains the
+single listed entry point and telemetry identity.
 
 `content.md` must not contain generated wrapper headings:
 
@@ -503,8 +501,9 @@ Supported scaffold kinds:
 
 - `horizontal`: creates `skills/<name>/content.md`
 - `platform-pack`: creates `platform-packs/<slug>/platform.yaml`, baseline
-  code-review content, quality-check content, and specialist content stubs for
-  every approved code-review area. Payloads may also declare `baseline_layers`;
+  code-review content and specialist content stubs for every approved
+  code-review area. Quality-check commands belong in the optional
+  `validation_gate`. Payloads may also declare `baseline_layers`;
   the scaffolder validates those references before mutation and writes them as
   `code_review_composition.baseline_layers` in the new manifest.
 - `add-on`: creates one pack-owned skeleton add-on under

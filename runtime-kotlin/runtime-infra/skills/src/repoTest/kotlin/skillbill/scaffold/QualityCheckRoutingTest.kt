@@ -1,8 +1,11 @@
 package skillbill.scaffold
 
+import skillbill.error.MissingValidationGateError
 import skillbill.infrastructure.skills.scaffold.platformpack.routeQualityCheck
 import skillbill.testing.repoRootFromTest
+import java.nio.file.Files
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -12,22 +15,22 @@ import kotlin.test.assertTrue
 
 class QualityCheckRoutingTest {
   @Test
-  fun `every maintained dominant stack routes directly to its own declared checker`() {
+  fun `every maintained dominant stack routes to bill-code-check with pack slug unchanged`() {
     val cases = listOf(
-      Triple("go", "services/orders/main.go", "bill-go-code-check"),
-      Triple("ios", "App.xcodeproj/project.pbxproj", "bill-ios-code-check"),
-      Triple("kotlin", "config/detekt.yml", "bill-kotlin-code-check"),
-      Triple("kmp", "shared/src/commonMain/kotlin/App.kt org.jetbrains.kotlin.multiplatform", "bill-kmp-code-check"),
-      Triple("php", "composer.json", "bill-php-code-check"),
-      Triple("python", "pyproject.toml", "bill-python-code-check"),
-      Triple("rust", "Cargo.toml", "bill-rust-code-check"),
-      Triple("typescript", "tsconfig.json", "bill-typescript-code-check"),
+      Triple("go", "services/orders/main.go", "bill-code-check"),
+      Triple("ios", "App.xcodeproj/project.pbxproj", "bill-code-check"),
+      Triple("kotlin", "config/detekt.yml", "bill-code-check"),
+      Triple("kmp", "shared/src/commonMain/kotlin/App.kt org.jetbrains.kotlin.multiplatform", "bill-code-check"),
+      Triple("php", "composer.json", "bill-code-check"),
+      Triple("python", "pyproject.toml", "bill-code-check"),
+      Triple("rust", "Cargo.toml", "bill-code-check"),
+      Triple("typescript", "tsconfig.json", "bill-code-check"),
     )
 
-    cases.forEach { (stack, evidence, checker) ->
+    cases.forEach { (stack, evidence, routedSkill) ->
       val route = assertNotNull(routeQualityCheck(repoRootFromTest(), listOf(evidence)))
       assertEquals(stack, route.detectedStack)
-      assertEquals(checker, route.routedSkill)
+      assertEquals(routedSkill, route.routedSkill)
       assertFalse(route.fallback)
       assertNull(route.fallbackReason)
     }
@@ -50,7 +53,7 @@ class QualityCheckRoutingTest {
   }
 
   @Test
-  fun `mixed Kotlin and KMP ownership routes through the KMP superset checker`() {
+  fun `mixed Kotlin and KMP ownership routes through the KMP pack with bill-code-check`() {
     val route = assertNotNull(
       routeQualityCheck(
         repoRootFromTest(),
@@ -65,7 +68,25 @@ class QualityCheckRoutingTest {
     )
 
     assertEquals("kmp", route.detectedStack)
-    assertEquals("bill-kmp-code-check", route.routedSkill)
+    assertEquals("bill-code-check", route.routedSkill)
+  }
+
+  @Test
+  fun `bill-code-check shell uses only the winning pack validation gate commands`() {
+    val content = Files.readString(repoRootFromTest().resolve("skills/bill-code-check/content.md"))
+
+    assertTrue("validation_gate.collect_all_full_gate_command" in content)
+    assertTrue("validation_gate.cache_bypassing_collect_all_full_gate_command" in content)
+    assertTrue("Do not read a pack quality-check sidecar" in content)
+    assertTrue("Do not fall back to another pack, a sidecar, or a conventional task name." in content)
+  }
+
+  @Test
+  fun `dominant pack without validation_gate throws typed missing-gate error`() {
+    val error = assertFailsWith<MissingValidationGateError> {
+      routeQualityCheck(repoRootFromTest(), listOf("manifest-declared code-review fallback"))
+    }
+    assertContains(error.message.orEmpty(), "generic")
   }
 
   @Test

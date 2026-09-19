@@ -100,59 +100,6 @@ internal object ReviewSkillStructureValidatorContent {
     }
   }
 
-  fun qualityCheckViolations(pack: Path, manifest: Map<*, *>): List<ReviewSkillStructureViolation> {
-    val declared = manifest["declared_quality_check_file"] as? String ?: return emptyList()
-    val file = pack.resolve(declared)
-    if (!Files.isRegularFile(file)) {
-      return listOf(violation(file, "declared quality-check source"))
-    }
-    val content = Files.readString(file)
-    val execution = h2Section(content, "Execution Steps")
-    val fixStrategy = h2Section(content, "Fix Strategy")
-    return buildList {
-      if (!hasInternalParent(file, "bill-code-check")) {
-        add(violation(file, "quality-check internal parent"))
-      }
-      if (headings(file) != listOf("Purpose", "Execution Steps", "Fix Strategy")) {
-        add(violation(file, "quality-check H2 sequence"))
-      }
-      if (!containsAll(execution, "Discover", "build file", "wrapper", "CI")) {
-        add(violation(file, "quality-check command discovery"))
-      }
-      if (!orderedFragments(
-          execution,
-          "build file",
-          "wrapper",
-          "CI configuration",
-          "before falling back",
-        )
-      ) {
-        add(violation(file, "quality-check fallback ordering"))
-      }
-      if (!containsAll(execution, "files in scope")) {
-        add(violation(file, "quality-check scoped files"))
-      }
-      if (!containsAll(execution, "pack's quality-check entrypoint")) {
-        add(violation(file, "quality-check pack entrypoint"))
-      }
-      if (!containsAll(fixStrategy, "priority-ordered", "never suppress")) {
-        add(violation(file, "quality-check fix discipline"))
-      }
-      if (!containsAll(fixStrategy, "Repair Window") ||
-        !containsAll(fixStrategy, "do not invoke")
-      ) {
-        add(violation(file, "quality-check repair window"))
-      }
-      if (!containsAll(
-          fixStrategy,
-          "full suite when targeted checks cannot establish safety",
-        )
-      ) {
-        add(violation(file, "quality-check escalation"))
-      }
-    }
-  }
-
   fun authoredSidecarViolations(reviewFiles: List<Path>, manifest: Map<*, *>): List<ReviewSkillStructureViolation> =
     reviewFiles
       .filter { !it.parent.name.endsWith("code-review") }

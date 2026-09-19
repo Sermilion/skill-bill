@@ -97,7 +97,7 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
     assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-kotlin-code-review").kind)
     assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-kotlin-code-review-architecture").kind)
     assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-kotlin-code-review-testing").kind)
-    assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-kotlin-code-check").kind)
+    assertFalse(skillsByName.containsKey("bill-kotlin-code-check"))
     assertFalse(skillsByName.containsKey("bill-kmp-code-review"))
     assertFalse(skillsByName.containsKey("bill-kmp-code-review-architecture"))
   }
@@ -124,7 +124,7 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
     assertEquals(InstallPlanSkillKind.BASE, skillsByName.getValue("bill-update-check").kind)
     assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-python-code-review").kind)
     assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-python-code-review-security").kind)
-    assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-python-code-check").kind)
+    assertFalse(skillsByName.containsKey("bill-python-code-check"))
     assertFalse(skillsByName.containsKey("bill-kotlin-code-review"))
     assertFalse(skillsByName.containsKey("bill-kmp-code-review"))
   }
@@ -370,8 +370,15 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
     seedPlatformPack(
       fixture.repoRoot,
       slug = "duplicate",
-      qualityCheckName = "bill-code-review",
-      areaNames = emptyList(),
+      areaNames = listOf("architecture"),
+    )
+    val duplicateManifest = fixture.repoRoot.resolve("platform-packs/duplicate/platform.yaml")
+    Files.writeString(
+      duplicateManifest,
+      Files.readString(duplicateManifest).replace(
+        "architecture: \"code-review/bill-duplicate-code-review-architecture/content.md\"",
+        "architecture: \"code-review/bill-duplicate-code-review/content.md\"",
+      ),
     )
 
     val error = assertFailsWith<IllegalArgumentException> {
@@ -386,7 +393,7 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
     }
 
     assertContains(error.message.orEmpty(), "duplicate skill name")
-    assertContains(error.message.orEmpty(), "bill-code-review")
+    assertContains(error.message.orEmpty(), "bill-duplicate-code-review")
   }
 
   @Test
@@ -401,17 +408,8 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
     Files.writeString(
       manifest,
       Files.readString(manifest).replace(
-        "declared_quality_check_file: \"quality-check/bill-collapsed-code-check/content.md\"",
-        "declared_quality_check_file: \"code-review/bill-collapsed-code-review/content.md\"",
-      ),
-    )
-    val collapsedContent = fixture.repoRoot
-      .resolve("platform-packs/collapsed/code-review/bill-collapsed-code-review/content.md")
-    Files.writeString(
-      collapsedContent,
-      Files.readString(collapsedContent).replace(
-        "description: Test skill.\n",
-        "description: Test skill.\ninternal-for: bill-code-check\n",
+        "architecture: \"code-review/bill-collapsed-code-review-architecture/content.md\"",
+        "architecture: \"code-review/bill-collapsed-code-review/content.md\"",
       ),
     )
 

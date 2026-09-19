@@ -32,8 +32,9 @@ Every payload MUST include:
 - `kind` — one of:
   - `"horizontal"` — placed under `skills/<name>/content.md`.
   - `"platform-pack"` — creates a new `platform-packs/<slug>/` root with a
-    baseline `code-review` skill, a default `quality-check` skill,
-    and a freshly rendered `platform.yaml`.
+    baseline `code-review` skill, approved specialist stubs, and a freshly
+    rendered `platform.yaml` (quality-check commands belong in optional
+    `validation_gate`, not a second pack skill).
   - `"add-on"` — placed at `platform-packs/<platform>/addons/<name>.md` (flat; no
     sub-directory) unless `addon_location_path` is provided.
   - `"agent-addon"` — creates `agent-addons/<slug>/agent-addon.yaml` and
@@ -196,8 +197,7 @@ authoring/removal commands.
 ```
 
 This creates `platform-packs/java/platform.yaml`,
-`platform-packs/java/code-review/bill-java-code-review/content.md`, and
-`platform-packs/java/quality-check/bill-java-code-check/content.md`, plus
+`platform-packs/java/code-review/bill-java-code-review/content.md`, plus
 bare specialist content stubs for every approved code-review area. The built-in
 `java` preset supplies the routing signals. Generated wrappers and platform
 pointer files are not staged into source. `skeleton_mode` and
@@ -304,18 +304,18 @@ outside the desktop app must register the source themselves.
 Platform-pack scaffolds deliberately emit TODO-bearing specialist prompts for
 ten mechanism-plus-consequence rules across state/lifecycle/ordering,
 contract/data/security, and resource/toolchain/operational failure clusters.
-The quality-check starter likewise prompts for repository command discovery,
-exact tools and commands, scoped execution, failure ownership, fix ordering,
-targeted reruns with full-suite escalation, and blocker reporting. These prompts
-make the required authoring work explicit, but TODO is forbidden by the
-maintained-repository substance audit. A newly generated pack must be filled with
-concrete platform evidence before it can be promoted into the maintained set.
+Quality-check commands belong in the optional `validation_gate`; the scaffolder
+does not emit a quality-check skill. These prompts make the required authoring
+work explicit, but TODO is forbidden by the maintained-repository substance
+audit. A newly generated pack must be filled with concrete platform evidence
+before it can be promoted into the maintained set.
 Promotion uses the normal exemption-free repository gate: every effective
 specialist needs at least three platform-specific failure-mode clusters and ten
 evidence-bearing rules with zero forbidden placeholders; pack-wide shared
 normalized five-word sequences must be at most 35%, and corresponding authored
-rubrics at most 65% similar. A composed pack must still declare its own quality
-checker. Discovery and enforcement remain manifest-driven rather than
+rubrics at most 65% similar. A pack that can win quality-check routing must
+declare its own `validation_gate`. Discovery and enforcement remain
+manifest-driven rather than
 enumerating the currently maintained platform slugs.
 
 ## Loud-Fail Exception Catalog

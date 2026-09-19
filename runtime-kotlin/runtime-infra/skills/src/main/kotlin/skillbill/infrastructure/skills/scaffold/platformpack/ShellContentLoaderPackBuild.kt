@@ -82,7 +82,7 @@ internal fun assemblePlatformManifest(
         slug = slug,
         packRoot = packRoot,
         pointers = pointers,
-        declaredSkillDirs = declaredSkillRelativeDirs(packRoot, declaredFiles, declaredQualityCheckFile),
+        declaredSkillDirs = declaredSkillRelativeDirs(packRoot, declaredFiles),
         declaredAreas = declaredAreas.toSet(),
         strictReviewRouting = laneConditions.isNotEmpty(),
       ),

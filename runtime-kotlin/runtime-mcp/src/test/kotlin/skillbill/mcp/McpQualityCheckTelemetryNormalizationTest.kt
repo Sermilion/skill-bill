@@ -133,7 +133,7 @@ private fun assertDirectKmpPayloads(connection: Connection, sessionId: String) {
   val startedPayload = qualityCheckPayload(connection, "skillbill_quality_check_started", sessionId)
   val finishedPayload = qualityCheckPayload(connection, "skillbill_quality_check_finished", sessionId)
   listOf(startedPayload, finishedPayload).forEach { payload ->
-    assertEquals("bill-kmp-code-check", payload["routed_skill"])
+    assertEquals("bill-code-check", payload["routed_skill"])
     assertEquals("kmp", payload["detected_stack"])
     assertEquals(false, payload["fallback"])
     assertFalse("fallback_reason" in payload)
@@ -143,7 +143,7 @@ private fun assertDirectKmpPayloads(connection: Connection, sessionId: String) {
 private fun assertBlankRoutingPayload(connection: Connection) {
   val blankFinishedPayload =
     qualityCheckPayload(connection, "skillbill_quality_check_finished", "qck-blank-routing")
-  assertEquals("unrouted", blankFinishedPayload["routed_skill"])
+  assertEquals("bill-code-check", blankFinishedPayload["routed_skill"])
   assertEquals("unknown", blankFinishedPayload["detected_stack"])
   assertEquals(false, blankFinishedPayload["fallback"])
   assertFalse("fallback_reason" in blankFinishedPayload)

@@ -13,7 +13,6 @@ class PlatformPackManifestPolicyTest {
   fun `renderPlatformPackManifestContent emits the canonical platform yaml for a starter java pack`() {
     val packRoot = FileLocation("/repo/platform-packs/java")
     val baselineSkillPath = packRoot.resolve("code-review").resolve("bill-java-code-review")
-    val qualityCheckSkillPath = packRoot.resolve("quality-check").resolve("bill-java-code-check")
 
     val rendered = renderPlatformPackManifestContent(
       PlatformPackManifestContentRenderRequest(
@@ -26,7 +25,6 @@ class PlatformPackManifestPolicyTest {
         baselineLayers = emptyList(),
         packRoot = packRoot,
         baselineSkillPath = baselineSkillPath,
-        qualityCheckSkillPath = qualityCheckSkillPath,
         specialistSkillPaths = emptyMap(),
       ),
     )
@@ -50,8 +48,6 @@ class PlatformPackManifestPolicyTest {
         "  baseline: \"code-review/bill-java-code-review/content.md\"",
         "  areas: {}",
         "area_metadata: {}",
-        "",
-        "declared_quality_check_file: \"quality-check/bill-java-code-check/content.md\"",
       ) + expectedPointerLines()
       ).joinToString("\n") + "\n"
 
@@ -62,7 +58,6 @@ class PlatformPackManifestPolicyTest {
   fun `renderPlatformPackManifestContent appends baseline layers when provided`() {
     val packRoot = FileLocation("/repo/platform-packs/java")
     val baselineSkillPath = packRoot.resolve("code-review").resolve("bill-java-code-review")
-    val qualityCheckSkillPath = packRoot.resolve("quality-check").resolve("bill-java-code-check")
 
     val rendered = renderPlatformPackManifestContent(
       PlatformPackManifestContentRenderRequest(
@@ -75,7 +70,6 @@ class PlatformPackManifestPolicyTest {
         baselineLayers = sampleBaselineLayers(),
         packRoot = packRoot,
         baselineSkillPath = baselineSkillPath,
-        qualityCheckSkillPath = qualityCheckSkillPath,
         specialistSkillPaths = emptyMap(),
       ),
     )
@@ -118,8 +112,6 @@ class PlatformPackManifestPolicyTest {
       "  baseline: \"code-review/bill-java-code-review/content.md\"",
       "  areas: {}",
       "area_metadata: {}",
-      "",
-      "declared_quality_check_file: \"quality-check/bill-java-code-check/content.md\"",
     ) + expectedPointerLines() + listOf(
       "",
       "code_review_composition:",
@@ -151,13 +143,6 @@ class PlatformPackManifestPolicyTest {
     "      target: \"orchestration/shell-content-contract/shell-ceremony.md\"",
     "    - name: \"specialist-contract.md\"",
     "      target: \"orchestration/review-orchestrator/specialist-contract.md\"",
-    "    - name: \"stack-routing.md\"",
-    "      target: \"orchestration/stack-routing/PLAYBOOK.md\"",
-    "    - name: \"telemetry-contract.md\"",
-    "      target: \"orchestration/telemetry-contract/PLAYBOOK.md\"",
-    "  quality-check/bill-java-code-check:",
-    "    - name: \"shell-ceremony.md\"",
-    "      target: \"orchestration/shell-content-contract/shell-ceremony.md\"",
     "    - name: \"stack-routing.md\"",
     "      target: \"orchestration/stack-routing/PLAYBOOK.md\"",
     "    - name: \"telemetry-contract.md\"",

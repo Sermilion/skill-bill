@@ -17,16 +17,11 @@ internal fun PlatformManifest.addonUsageFor(contentFile: Path): List<GovernedAdd
 }
 
 internal fun PlatformManifest.declaredSkillRelativeDirs(): Set<String> =
-  declaredSkillRelativeDirs(packRoot.toPath(), declaredFiles, declaredQualityCheckFile?.toPath())
+  declaredSkillRelativeDirs(packRoot.toPath(), declaredFiles)
 
-internal fun declaredSkillRelativeDirs(
-  packRoot: Path,
-  declaredFiles: DeclaredFiles,
-  declaredQualityCheckFile: Path?,
-): Set<String> = buildSet {
+internal fun declaredSkillRelativeDirs(packRoot: Path, declaredFiles: DeclaredFiles): Set<String> = buildSet {
   declaredFiles.baseline?.let { add(packRelativeSkillDir(packRoot, it.toPath())) }
   declaredFiles.areas.values.forEach { add(packRelativeSkillDir(packRoot, it.toPath())) }
-  declaredQualityCheckFile?.let { add(packRelativeSkillDir(packRoot, it)) }
 }
 
 private fun PlatformManifest.packRelativeSkillDir(contentFile: Path): String = packRoot.toPath()

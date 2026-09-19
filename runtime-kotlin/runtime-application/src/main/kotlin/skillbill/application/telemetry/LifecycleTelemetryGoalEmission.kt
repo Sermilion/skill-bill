@@ -12,13 +12,14 @@ import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.TelemetrySettingsProvider
-import skillbill.review.normalizeRoutedSkill
 import skillbill.review.normalizeStackLabel
 import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
+
+private const val QUALITY_CHECK_ROUTED_SKILL = "bill-code-check"
 
 class LifecycleTelemetryGoalEmission(
   private val database: DatabaseSessionFactory,
@@ -100,7 +101,7 @@ internal fun Map<String, String>.firstIncompletePhase(): String =
 internal fun QualityCheckStartedRequest.normalizedLabels(): QualityCheckStartedRequest {
   val stack = normalizeStackLabel(detectedStack)
   return copy(
-    routedSkill = normalizeRoutedSkill(routedSkill),
+    routedSkill = QUALITY_CHECK_ROUTED_SKILL,
     detectedStack = stack.stack,
     fallback = fallback || stack.fallback,
     fallbackReason = fallbackReason ?: stack.fallbackReason,
@@ -110,7 +111,7 @@ internal fun QualityCheckStartedRequest.normalizedLabels(): QualityCheckStartedR
 internal fun QualityCheckFinishedRequest.normalizedLabels(): QualityCheckFinishedRequest {
   val stack = normalizeStackLabel(detectedStack)
   return copy(
-    routedSkill = normalizeRoutedSkill(routedSkill),
+    routedSkill = QUALITY_CHECK_ROUTED_SKILL,
     detectedStack = stack.stack,
     fallback = fallback || stack.fallback,
     fallbackReason = fallbackReason ?: stack.fallbackReason,

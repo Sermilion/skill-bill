@@ -74,13 +74,13 @@ Skill Bill ships complete Go, iOS, Kotlin/KMP, PHP, Python, Rust, and TypeScript
 - `/bill-feature` prepares the feature spec, then routes to implementation or the goal loop
 - `/bill-feature-spec` prepares a parent spec, one or more executable subtask specs, and the authoritative manifest before implementation
 - `/bill-code-review` routes to the matching platform review stack; use `mode:delegated` for the default specialist fan-out or `mode:inline` for the single-prompt review to select review execution explicitly (the stack-specific review skills are internal sidecars, not separately invocable)
-- `/bill-code-check` routes to the matching stack-specific checker (the stack-specific checker skills are internal sidecars, not separately invocable)
+- `/bill-code-check` runs the dominant pack's `validation_gate` collect-all argv
 - `/bill-pr-description` generates PR text and QA steps
 - `/bill-feature-verify` verifies a PR against a spec or design doc
 
 **Shipped platform packs:**
 
-Go, iOS, Kotlin, PHP, Python, Rust, and TypeScript each own all ten approved review areas. The KMP pack covers Android and Kotlin Multiplatform: it owns seven declared areas — `architecture`, `platform-correctness`, `security`, `persistence`, `reliability`, `ui`, and `ux-accessibility` — and composes the remaining three (`performance`, `testing`, `api-contracts`) from its required Kotlin baseline. Every pack routes quality checks directly to its own manifest-declared checker, including KMP through `bill-kmp-code-check`.
+Go, iOS, Kotlin, PHP, Python, Rust, and TypeScript each own all ten approved review areas. The KMP pack covers Android and Kotlin Multiplatform: it owns seven declared areas — `architecture`, `platform-correctness`, `security`, `persistence`, `reliability`, `ui`, and `ux-accessibility` — and composes the remaining three (`performance`, `testing`, `api-contracts`) from its required Kotlin baseline. Every dominant pack declares quality commands in its `validation_gate`; KMP uses its own gate without a Kotlin fallback.
 
 The shipped `generic` pack is the manifest-declared code-review fallback for
 unsupported, documentation-only, and unresolved paths. Concrete path ownership
@@ -91,14 +91,14 @@ owners fail validation. Installed native-worker inventory keeps delegated
 preflight independent of both the reviewed repository and the source checkout.
 
 - `generic` — default review fallback for paths without concrete pack ownership
-- `kotlin` — baseline Kotlin review and quality-check behavior
-- `kmp` — Android and Kotlin Multiplatform review, declaring `architecture`, `platform-correctness`, `security`, `persistence`, `reliability`, `ui`, and `ux-accessibility` on top of the required Kotlin baseline, plus governed Android add-ons and direct multiplatform quality-check behavior
-- `ios` — native iOS review and quality-check behavior via `bill-ios-code-review` and `bill-ios-code-check`, routed from `.xcodeproj`, `.xcworkspace`, SwiftUI/UIKit, lifecycle, concurrency, UI, and accessibility signals
-- `go` — Go services, libraries, CLIs, modules, APIs, persistence, concurrency, security, testing, Go-rendered UI, UX/accessibility, and quality-check behavior
-- `php` — PHP applications, services, Composer projects, APIs, persistence, security, testing, server-rendered UI, UX/accessibility, and quality-check behavior
-- `python` — Python applications, libraries, CLIs, APIs, persistence, security, testing, UI, UX/accessibility, and quality-check behavior
-- `rust` — Rust crates and workspaces, services, CLIs, async runtimes, FFI, persistence, safety, testing, UI/UX, and Cargo-aware quality-check behavior
-- `typescript` — TypeScript applications, libraries, services, Node/browser runtimes, APIs, persistence, async behavior, TSX UI/UX, and package-manager-aware quality checks
+- `kotlin` — baseline Kotlin review and validation-gate quality checks
+- `kmp` — Android and Kotlin Multiplatform review, declaring `architecture`, `platform-correctness`, `security`, `persistence`, `reliability`, `ui`, and `ux-accessibility` on top of the required Kotlin baseline, plus governed Android add-ons and its own validation gate
+- `ios` — native iOS review and Xcode/SPM-aware validation gate, routed from `.xcodeproj`, `.xcworkspace`, SwiftUI/UIKit, lifecycle, concurrency, UI, and accessibility signals
+- `go` — Go services, libraries, CLIs, modules, APIs, persistence, concurrency, security, testing, Go-rendered UI, UX/accessibility, and validation gate
+- `php` — PHP applications, services, Composer projects, APIs, persistence, security, testing, server-rendered UI, UX/accessibility, and validation gate
+- `python` — Python applications, libraries, CLIs, APIs, persistence, security, testing, UI, UX/accessibility, and validation gate
+- `rust` — Rust crates and workspaces, services, CLIs, async runtimes, FFI, persistence, safety, testing, UI/UX, and validation gate
+- `typescript` — TypeScript applications, libraries, services, Node/browser runtimes, APIs, persistence, async behavior, TSX UI/UX, and validation gate
 
 Maintained packs share one exemption-free substance gate: every effective specialist needs at least three platform-specific failure-mode clusters and ten evidence-bearing rules, forbidden generic placeholders are rejected, shared normalized five-word sequences are capped at 35%, and corresponding authored rubrics are capped at 65% similarity. Discovery remains manifest-driven; the current pack list is not hard-coded into the gate.
 
@@ -117,7 +117,7 @@ Omit `mode:` to use inline review, the default single-prompt light tier; `mode:d
 |-------|---------|
 | `/bill-boundary-decisions` | Record architectural and implementation decisions in `agent/decisions.md` |
 | `/bill-boundary-history` | Record reusable feature history in `agent/history.md` |
-| `/bill-code-check` | Stable quality-check entry point that routes to the matching platform checker (stack-specific checker skills install as internal sidecars, not listed commands) |
+| `/bill-code-check` | Stable quality-check entry point that runs the dominant pack's `validation_gate` |
 | `/bill-code-review` | Stable code-review entry point that routes to the matching platform pack; accepts `mode:auto|inline|delegated` (stack-specific review skills install as internal sidecars, not listed commands) |
 | `/bill-feature` | Primary feature entry point that prepares a spec, then routes to implementation or the goal loop (dispatches internally to the feature-execution family, which is not listed) |
 | `/bill-feature-guard` | Add feature-flag rollout safety to an implementation |

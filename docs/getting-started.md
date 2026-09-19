@@ -87,7 +87,8 @@ workflows, learnings, telemetry, and workflow resume are available after
 install.
 
 Base skills are always included. Optional platform packs add their declared
-review and quality-check skills after manifest validation. All installed
+review skills after manifest validation; dominant packs provide quality-check
+commands through their `validation_gate`. All installed
 content-managed skills are rendered into `~/.skill-bill/installed-skills/` and
 agent entries link to that staging cache, not directly to source directories.
 When `bill-code-review` is present, install planning also selects the unique
@@ -136,7 +137,7 @@ Feature-task model and effort preferences also belong in this machine-wide JSON 
 
 The pre-install cleanup still wipes the rest of `~/.skill-bill/`, preserving `skills/`, `platform-packs/`, `orchestration/`, `baseline-manifest.json`, and durable `*.db` state (goal/workflow stores, `review-metrics.db`). Only the config was ever at risk, and it now lives outside that tree. See [External Addon Sources](external-addons.md#persisting-config-across-installs) for details. For a one-off install that must not wipe any state, `SKILL_BILL_SKIP_PREINSTALL_UNINSTALL=1 ./install.sh …` skips the cleanup entirely (intended for dev iteration).
 
-On Claude, Codex, and Junie, orchestrators that delegate review work also install native subagent definitions for supported runtime surfaces. The stack-specific code-review skills (e.g. `bill-go-code-review-security`, `bill-kotlin-code-review`, `bill-php-code-review-security`, `bill-python-code-review-security`) are **internal sidecars** of `/bill-code-review` — they are not listed slash commands; `/bill-code-review` detects the dominant stack and routes to the matching sidecar. The stack-specific quality-check skills (e.g. `bill-go-code-check`, `bill-kotlin-code-check`, `bill-php-code-check`, `bill-python-code-check`) are likewise internal sidecars of `/bill-code-check`; invoke quality checks through `/bill-code-check`. Each declared platform-pack bundle registers its baseline reviewer and specialist reviewers as native subagents. Native subagent sources live as provider-neutral `native-agents/agents.yaml` bundles or standalone `native-agents/<name>.md` files. New and rendered neutral sources include `contract_version: "0.1"`; the parser still accepts older unpinned sources so existing repos can migrate gradually. Install renders those sources into `~/.skill-bill/native-agents/` before linking Claude markdown into `~/.claude/agents/`, Codex TOMLs into `~/.codex/agents/`, and Junie markdown into `~/.junie/agents/`; generated provider files are not checked into the repo. `~/.agents/agents/` is only a Skill Bill compatibility path for Codex homes without a `.codex` root, not the primary documented Codex custom-agent location. Claude and Junie use Markdown/YAML custom-subagent frontmatter; Codex resolves spawn instructions by TOML `name`. Today this covers shipped platform-pack baseline and specialist reviewers selected by manifest. Feature-task execution uses the Kotlin runtime driver (`skill-bill feature-task` / `skill-bill goal`); `bill-feature-verify` has no verify-specific native subagents and delegates review through `bill-code-review` while keeping feature-flag, completeness, and verdict audits inline.
+On Claude, Codex, and Junie, orchestrators that delegate review work also install native subagent definitions for supported runtime surfaces. The stack-specific code-review skills (e.g. `bill-go-code-review-security`, `bill-kotlin-code-review`, `bill-php-code-review-security`, `bill-python-code-review-security`) are **internal sidecars** of `/bill-code-review` — they are not listed slash commands; `/bill-code-review` detects the dominant stack and routes to the matching sidecar. Invoke quality checks through `/bill-code-check`; it selects the dominant pack and runs that pack's `validation_gate` collect-all argv (`routed_skill` telemetry stays `bill-code-check`). Each declared platform-pack bundle registers its baseline reviewer and specialist reviewers as native subagents. Native subagent sources live as provider-neutral `native-agents/agents.yaml` bundles or standalone `native-agents/<name>.md` files. New and rendered neutral sources include `contract_version: "0.1"`; the parser still accepts older unpinned sources so existing repos can migrate gradually. Install renders those sources into `~/.skill-bill/native-agents/` before linking Claude markdown into `~/.claude/agents/`, Codex TOMLs into `~/.codex/agents/`, and Junie markdown into `~/.junie/agents/`; generated provider files are not checked into the repo. `~/.agents/agents/` is only a Skill Bill compatibility path for Codex homes without a `.codex` root, not the primary documented Codex custom-agent location. Claude and Junie use Markdown/YAML custom-subagent frontmatter; Codex resolves spawn instructions by TOML `name`. Today this covers shipped platform-pack baseline and specialist reviewers selected by manifest. Feature-task execution uses the Kotlin runtime driver (`skill-bill feature-task` / `skill-bill goal`); `bill-feature-verify` has no verify-specific native subagents and delegates review through `bill-code-review` while keeping feature-flag, completeness, and verdict audits inline.
 
 ## Runtime Model
 
@@ -239,16 +240,16 @@ The shipped platform packs are reference packs. They are real, validated, ready 
 
 Reference packs currently shipped:
 
-Seven packs—Go, iOS, Kotlin, PHP, Python, Rust, and TypeScript—declare all ten approved review areas directly. KMP reaches the same effective coverage for Android and Kotlin Multiplatform by declaring `architecture`, `platform-correctness`, `security`, `persistence`, `reliability`, `ui`, and `ux-accessibility` and composing the remaining three areas (`performance`, `testing`, `api-contracts`) from Kotlin. Quality checks do not follow review composition: every pack declares and routes directly to its own checker, including `bill-kmp-code-check`.
+Seven packs—Go, iOS, Kotlin, PHP, Python, Rust, and TypeScript—declare all ten approved review areas directly. KMP reaches the same effective coverage for Android and Kotlin Multiplatform by declaring `architecture`, `platform-correctness`, `security`, `persistence`, `reliability`, `ui`, and `ux-accessibility` and composing the remaining three areas (`performance`, `testing`, `api-contracts`) from Kotlin. Quality checks use the dominant pack's `validation_gate`; review composition does not supply quality commands.
 
-- `kotlin`: Kotlin baseline review and quality-check behavior
-- `kmp`: Android and Kotlin Multiplatform review declaring `architecture`, `platform-correctness`, `security`, `persistence`, `reliability`, `ui`, and `ux-accessibility` on the Kotlin baseline, governed Android add-ons, and direct multiplatform quality-check behavior
-- `ios`: native iOS review and direct Xcode/SPM-aware quality-check behavior
-- `go`: Go services, libraries, CLIs, modules, APIs, persistence, concurrency, security, testing, Go-rendered UI, UX/accessibility, and quality-check behavior
-- `php`: PHP applications, services, Composer projects, APIs, persistence, security, testing, server-rendered UI, UX/accessibility, and quality-check behavior
-- `python`: Python applications, libraries, CLIs, APIs, persistence, security, testing, UI, UX/accessibility, and quality-check behavior
-- `rust`: Rust crates and Cargo workspaces, services, CLIs, async runtimes, FFI, persistence, safety, testing, UI/UX, and quality-check behavior
-- `typescript`: TypeScript applications, libraries, services, Node/browser runtimes, APIs, persistence, async behavior, TSX UI/UX, and package-manager-aware quality-check behavior
+- `kotlin`: Kotlin baseline review and validation-gate quality checks
+- `kmp`: Android and Kotlin Multiplatform review declaring `architecture`, `platform-correctness`, `security`, `persistence`, `reliability`, `ui`, and `ux-accessibility` on the Kotlin baseline, governed Android add-ons, and its own validation gate
+- `ios`: native iOS review and Xcode/SPM-aware validation gate
+- `go`: Go services, libraries, CLIs, modules, APIs, persistence, concurrency, security, testing, Go-rendered UI, UX/accessibility, and validation gate
+- `php`: PHP applications, services, Composer projects, APIs, persistence, security, testing, server-rendered UI, UX/accessibility, and validation gate
+- `python`: Python applications, libraries, CLIs, APIs, persistence, security, testing, UI, UX/accessibility, and validation gate
+- `rust`: Rust crates and Cargo workspaces, services, CLIs, async runtimes, FFI, persistence, safety, testing, UI/UX, and validation gate
+- `typescript`: TypeScript applications, libraries, services, Node/browser runtimes, APIs, persistence, async behavior, TSX UI/UX, and validation gate
 
 `skill-bill validate` discovers maintained packs from their manifests and applies the normal substance gate without exemptions: at least three platform-specific failure-mode clusters and ten evidence-bearing rules per effective specialist, no forbidden placeholders, at most 35% shared normalized five-word sequences per pack, and at most 65% similarity for corresponding authored rubrics.
 
@@ -337,8 +338,9 @@ rm /tmp/skill-bill-agent/skills/bill-java-code-review
 rm -rf platform-packs/java
 ```
 
-Platform-pack scaffolds create the baseline code-review skill, default
-quality-check skill, and every approved code-review specialist. Remove unwanted
+Platform-pack scaffolds create the baseline code-review skill and every
+approved code-review specialist. Declare `validation_gate` on the pack when it
+can win dominant-stack quality-check routing. Remove unwanted
 focus areas afterward through governed removal paths. In normal team usage,
 remove scaffolded example files with your usual VCS workflow instead of
 deleting committed pack files by hand. The explicit `link-skill` target

@@ -26,7 +26,8 @@ class ScaffoldReviewStructureAcceptanceTest {
     assertSpecialistPointers(pack)
     assertRenderedSharedContract(repo)
     assertBaseline(pack)
-    assertQualityCheck(pack)
+    assertFalse(Files.exists(pack.resolve("quality-check")))
+    assertFalse(Files.readString(pack.resolve("platform.yaml")).contains("declared_quality_check_file"))
     assertNativeAgents(pack)
     val violations = ReviewSkillStructureValidator.violations(pack)
     assertEquals(emptyList(), violations, violations.joinToString("\n"))
@@ -100,18 +101,6 @@ class ScaffoldReviewStructureAcceptanceTest {
     APPROVED_CODE_REVIEW_AREAS.forEach { area ->
       assertContains(content, "-> `$area` specialist.")
     }
-  }
-
-  private fun assertQualityCheck(pack: Path) {
-    val content = Files.readString(pack.resolve("quality-check/bill-java-code-check/content.md"))
-    assertContains(content, "internal-for: bill-code-check")
-    assertEquals(listOf("Purpose", "Execution Steps", "Fix Strategy"), headings(content))
-    assertContains(content, "files in scope")
-    assertContains(content, "build files, wrappers, and CI configuration before falling back")
-    assertContains(content, "pack's quality-check entrypoint")
-    assertContains(content, "priority-ordered fix ladder and never suppress")
-    assertContains(content, "Repair Window")
-    assertContains(content, "full suite when targeted checks cannot establish safety")
   }
 
   private fun assertNativeAgents(pack: Path) {

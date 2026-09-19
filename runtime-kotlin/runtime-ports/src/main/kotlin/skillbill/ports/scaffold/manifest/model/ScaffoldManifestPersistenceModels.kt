@@ -15,11 +15,6 @@ data class ScaffoldManifestAppendCodeReviewAreaRequest(
   val areaFocus: String,
 )
 
-data class ScaffoldManifestSetDeclaredQualityCheckRequest(
-  val manifestPath: Path,
-  val relativeContentPath: String,
-)
-
 data class ScaffoldManifestRegisterGovernedAddonRequest(
   val manifestPath: Path,
   val platform: String,
@@ -40,7 +35,6 @@ data class ScaffoldManifestRenderPlatformPackRequest(
   val declaredCodeReviewAreas: List<String>,
   val baselineContentPath: String,
   val declaredAreaFiles: Map<String, String>,
-  val declaredQualityCheckFile: String?,
   val areaMetadata: Map<String, String>,
   val baselineLayers: List<CodeReviewBaselineLayer>,
 )

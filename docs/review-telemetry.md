@@ -361,7 +361,7 @@ When the parent's finished event fires, it embeds each collected `telemetry_payl
     },
     {
       "skill": "bill-code-check",
-      "routed_skill": "bill-kotlin-code-check",
+      "routed_skill": "bill-code-check",
       "result": "pass",
       "iterations": 2,
       ...
@@ -421,7 +421,7 @@ Both `anonymous` and `full`:
 | Field | Type | Description |
 |-------|------|-------------|
 | `session_id` | string | `qck-YYYYMMDD-HHMMSS-XXXX` |
-| `routed_skill` | string | Concrete checker delegated to, normalized without namespace prefixes; blank/unresolved routing emits `unrouted` |
+| `routed_skill` | string | Always `bill-code-check` for quality-check lifecycle events; blank/unresolved routing emits `unrouted` |
 | `detected_stack` | string | Normalized stack slug routed for; blank/unresolved stack emits `unknown` |
 | `fallback` | boolean | Whether routing used a fallback path |
 | `fallback_reason` | string | Optional stable reason supplied by a route that actually used a fallback |

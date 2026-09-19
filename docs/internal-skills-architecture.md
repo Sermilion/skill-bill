@@ -240,9 +240,11 @@ With only the Kotlin pack selected, its entry and ten review specialists stage; 
 nothing. With no review packs selected, `bill-code-review` stages
 byte-identically to a repo with no internal pack skills (inertness). `ALL`
 selection stages every opted-in review sidecar. SKILL-105 applies the same
-selection-aware sidecar model to quality-check overrides: selected
-`bill-<platform>-code-check` skills stage inside `bill-code-check/` and are not
-listed commands. KMP stages and routes `bill-kmp-code-check` directly; review baseline composition never substitutes the Kotlin checker.
+selection-aware review sidecar model. Quality checks do not use pack sidecars:
+the selected dominant pack declares its collect-all and
+cache-bypassing collect-all argv in `validation_gate`, and `bill-code-check`
+is the only quality-check entry point. KMP uses its own gate; review baseline
+composition does not provide a quality-check fallback.
 
 ### Baseline co-presence guard (PD8)
 

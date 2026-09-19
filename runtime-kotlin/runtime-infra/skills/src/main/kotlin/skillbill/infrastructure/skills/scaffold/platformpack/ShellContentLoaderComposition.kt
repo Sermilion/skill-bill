@@ -7,7 +7,6 @@ import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
-import java.nio.file.Path
 
 internal fun validatePlatformPackCompositions(packs: List<PlatformManifest>) {
   val packsBySlug = packs.associateBy { it.slug }
@@ -155,14 +154,4 @@ fun PlatformManifest.declaredCodeReviewSkillNames(): Set<String> {
       ?.let(names::add)
   }
   return names
-}
-
-internal fun loadQualityCheckContent(pack: PlatformManifest): Path {
-  val filePath = pack.declaredQualityCheckFile
-    ?: missingManifestContent(
-      "Platform pack '${pack.slug}': declared_quality_check_file not set " +
-        "(call is only valid after checking pack.declaredQualityCheckFile is not null).",
-    )
-  validateGovernedSkill(pack, "quality-check", filePath.toPath(), "quality-check")
-  return filePath.toPath()
 }

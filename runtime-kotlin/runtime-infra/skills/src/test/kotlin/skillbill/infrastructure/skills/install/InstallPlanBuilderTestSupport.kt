@@ -73,14 +73,12 @@ open class InstallPlanBuilderTestSupport {
   protected fun seedPlatformPack(
     repoRoot: Path,
     slug: String,
-    qualityCheckName: String = "bill-$slug-code-check",
     areaNames: List<String> = listOf("architecture"),
     pointerTarget: String? = null,
   ) {
     seedConformingPlatformPack(
       repoRoot = repoRoot,
       slug = slug,
-      qualityCheckName = qualityCheckName,
       areaNames = areaNames.ifEmpty { listOf("architecture") },
       baselinePointerTarget = pointerTarget,
     )

@@ -7,9 +7,7 @@ import skillbill.error.InvalidSkillMdShapeError
 import skillbill.error.MissingContentFileError
 import skillbill.error.MissingManifestError
 import skillbill.error.MissingRequiredSectionError
-import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.platformpack.loadPlatformPack
-import skillbill.infrastructure.skills.scaffold.platformpack.loadQualityCheckContent
 import skillbill.infrastructure.skills.scaffold.runtime.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.validation.validateSkillMdShape
 import skillbill.model.toPath
@@ -36,17 +34,6 @@ class ShellContentLoaderParityTest {
     assertEquals(listOf("architecture"), pack.declaredCodeReviewAreas)
     assertEquals(listOf(".valid-pack", "*.valid-pack"), pack.routingSignals.strong)
     assertEquals("bill-valid-pack-code-review", pack.declaredFiles.baseline?.toPath()?.parent?.name)
-  }
-
-  @Test
-  fun `loads optional quality check content without fallback`() {
-    val repo = Files.createTempDirectory("quality-check-contract")
-    seedConformingPlatformPack(repo, "code-review-and-quality-check")
-    val pack = loadPlatformPack(repo.resolve("platform-packs/code-review-and-quality-check"))
-    val contentPath = loadQualityCheckContent(pack)
-
-    assertEquals(pack.declaredQualityCheckFile?.toPath(), contentPath)
-    assertTrue(Files.isRegularFile(contentPath))
   }
 
   @Test
@@ -125,15 +112,6 @@ class ShellContentLoaderParityTest {
     assertNamedFailure<InvalidManifestSchemaError>("schema_areas_wrong_type", "declared_code_review_areas")
     assertNamedFailure<InvalidManifestSchemaError>("schema_unapproved_area", "laravel")
     assertNamedFailure<InvalidManifestSchemaError>("extra_area", "performance")
-  }
-
-  @Test
-  fun `quality check declaration fails loudly when declared content file is missing`() {
-    val missingFilePack = loadPlatformManifest(fixture("quality_check_missing_file"))
-    val missingFileError = assertFailsWith<MissingContentFileError> {
-      loadQualityCheckContent(missingFilePack)
-    }
-    assertContains(missingFileError.message.orEmpty(), "does-not-exist/content.md")
   }
 
   @Test
@@ -241,7 +219,7 @@ class ShellContentLoaderParityTest {
   }
 
   @Test
-  fun `area and quality check declarations require non empty authored content`() {
+  fun `area declarations require non empty authored content`() {
     val areaRoot = copyFixture("valid_pack")
     val areaContent = areaRoot.resolve("code-review").resolve("architecture").resolve("content.md")
     Files.writeString(
@@ -254,57 +232,6 @@ class ShellContentLoaderParityTest {
     }
     assertContains(areaError.message.orEmpty(), "authored content")
     assertContains(areaError.message.orEmpty(), "code-review/architecture/content.md")
-
-    val qualityRoot = copyFixture("code_review_and_quality_check")
-    val qualityContent = qualityRoot.resolve("quality-check").resolve("content.md")
-    Files.writeString(
-      qualityContent,
-      "---\nname: quality-check\ndescription: Empty quality-check fixture.\ninternal-for: bill-code-check\n---\n",
-    )
-    val pack = loadPlatformManifest(qualityRoot)
-
-    val qualityError = assertFailsWith<MissingRequiredSectionError> {
-      loadQualityCheckContent(pack)
-    }
-    assertContains(qualityError.message.orEmpty(), "authored content")
-    assertContains(qualityError.message.orEmpty(), "quality-check/content.md")
-  }
-
-  @Test
-  fun `quality check declaration must be internal to bill-code-check`() {
-    val root = copyFixture("code_review_and_quality_check")
-    val contentFile = root.resolve("quality-check").resolve("content.md")
-    Files.writeString(
-      contentFile,
-      Files.readString(contentFile).replace("internal-for: bill-code-check\n", ""),
-    )
-    val pack = loadPlatformManifest(root)
-
-    val error = assertFailsWith<InvalidManifestSchemaError> {
-      loadQualityCheckContent(pack)
-    }
-    assertContains(error.message.orEmpty(), "internal-for: bill-code-check")
-    assertContains(error.message.orEmpty(), "quality-check")
-  }
-
-  @Test
-  fun `quality check declaration validates content_md frontmatter`() {
-    val root = copyFixture("code_review_and_quality_check")
-    val contentFile = root.resolve("quality-check").resolve("content.md")
-    Files.writeString(
-      contentFile,
-      Files.readString(contentFile).replace(
-        Regex("(?m)^description:.*$"),
-        "description:",
-      ),
-    )
-    val pack = loadPlatformManifest(root)
-
-    val error = assertFailsWith<InvalidSkillMdShapeError> {
-      loadQualityCheckContent(pack)
-    }
-    assertContains(error.message.orEmpty(), "description")
-    assertContains(error.message.orEmpty(), "quality-check/content.md")
   }
 
   @Test

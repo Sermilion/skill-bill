@@ -5,7 +5,6 @@ internal fun appendPointers(
   baselineContentPath: String,
   declaredCodeReviewAreas: List<String>,
   declaredAreaFiles: Map<String, String>,
-  declaredQualityCheckFile: String?,
 ) {
   lines += ""
   lines += "pointers:"
@@ -13,7 +12,6 @@ internal fun appendPointers(
   declaredCodeReviewAreas.forEach { area ->
     declaredAreaFiles[area]?.let { appendPointerConsumer(lines, it, specialistPointers) }
   }
-  declaredQualityCheckFile?.let { appendPointerConsumer(lines, it, qualityCheckPointers) }
 }
 
 private fun appendPointerConsumer(
@@ -42,10 +40,4 @@ private val baselinePointers = listOf(
 
 private val specialistPointers = listOf(
   "specialist-contract.md" to "orchestration/review-orchestrator/specialist-contract.md",
-)
-
-private val qualityCheckPointers = listOf(
-  "shell-ceremony.md" to "orchestration/shell-content-contract/shell-ceremony.md",
-  "stack-routing.md" to "orchestration/stack-routing/PLAYBOOK.md",
-  "telemetry-contract.md" to "orchestration/telemetry-contract/PLAYBOOK.md",
 )

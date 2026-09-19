@@ -33,7 +33,7 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
     assertFalse(Files.exists(agentRoot.resolve("bill-kotlin-code-review"), LinkOption.NOFOLLOW_LINKS))
     assertFalse(Files.exists(packRoot.resolve("code-review/bill-kotlin-code-review"), LinkOption.NOFOLLOW_LINKS))
     assertTrue(Files.isRegularFile(agentRoot.resolve("bill-code-review/bill-kotlin-code-review.md")))
-    assertTrue(Files.isRegularFile(packRoot.resolve("quality-check/bill-kotlin-code-check/content.md")))
+    assertFalse(Files.exists(packRoot.resolve("quality-check"), LinkOption.NOFOLLOW_LINKS))
     assertFalse(
       Files.exists(agentRoot.resolve("platform-packs/kmp/platform.yaml"), LinkOption.NOFOLLOW_LINKS),
       "unselected pack manifest must not be discoverable",
@@ -41,10 +41,26 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
   }
 
   @Test
-  fun `apply copies only declared internal quality check content into platform pack view`() {
+  fun `apply does not stage leftover pack quality-check files under bill-code-check`() {
     val fixture = setupApplyFixture()
     val qualityCheckDir = fixture.repoRoot.resolve("platform-packs/kotlin/quality-check/bill-kotlin-code-check")
-    Files.writeString(qualityCheckDir.resolve("notes.txt"), "private implementation notes")
+    Files.createDirectories(qualityCheckDir)
+    Files.writeString(
+      qualityCheckDir.resolve("content.md"),
+      """
+      ---
+      name: bill-kotlin-code-check
+      internal-for: bill-code-check
+      ---
+      # leftover
+      """.trimIndent(),
+    )
+    val manifestPath = fixture.repoRoot.resolve("platform-packs/kotlin/platform.yaml")
+    Files.writeString(
+      manifestPath,
+      Files.readString(manifestPath) +
+        "\ndeclared_quality_check_file: quality-check/bill-kotlin-code-check/content.md\n",
+    )
     Files.createDirectories(fixture.home.resolve(".codex"))
 
     val plan = planInstallForTest(
@@ -57,12 +73,10 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
     val result = applyInstallForTest(plan)
 
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
-    val packQualityCheck = fixture.home
-      .resolve("agent-skill-targets/codex/platform-packs/kotlin/quality-check/bill-kotlin-code-check")
-    assertTrue(Files.isRegularFile(packQualityCheck.resolve("content.md")))
+    val agentRoot = fixture.home.resolve("agent-skill-targets/codex")
     assertFalse(
-      Files.exists(packQualityCheck.resolve("notes.txt"), LinkOption.NOFOLLOW_LINKS),
-      "platform-pack view must not expose undeclared files from internal skill source directories",
+      Files.exists(agentRoot.resolve("bill-code-check/bill-kotlin-code-check.md"), LinkOption.NOFOLLOW_LINKS),
+      "leftover pack checker must not install as bill-code-check sidecar",
     )
   }
 

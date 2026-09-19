@@ -32,13 +32,9 @@ class ScaffoldPlatformPackInstallTest {
     val codexSkills = home.resolve(".codex/skills")
     assertFalse(
       Files.exists(codexSkills.resolve("bill-java-code-check"), LinkOption.NOFOLLOW_LINKS),
-      "internal platform quality-check skill must not install as a listed skill",
+      "platform quality-check skill must not install as a listed skill",
     )
-    val parentTarget = readSymlinkTarget(codexSkills.resolve("bill-code-check"))
-    assertTrue(
-      Files.isRegularFile(parentTarget.resolve("bill-java-code-check.md")),
-      "platform quality-check skill must install as a sidecar of bill-code-check",
-    )
+    assertFalse(Files.exists(repo.resolve("platform-packs/java/quality-check"), LinkOption.NOFOLLOW_LINKS))
     val reviewParentTarget = readSymlinkTarget(codexSkills.resolve("bill-code-review"))
     assertTrue(
       Files.isRegularFile(reviewParentTarget.resolve("bill-java-code-review.md")),

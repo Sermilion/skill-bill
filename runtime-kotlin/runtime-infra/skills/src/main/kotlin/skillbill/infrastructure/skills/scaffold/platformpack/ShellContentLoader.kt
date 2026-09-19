@@ -29,7 +29,6 @@ internal fun loadPlatformPack(packRoot: Path, enforceGovernedReviewStructure: Bo
   validatePlatformPackCompositions(closure)
   validatePlatformPackFallbacks(closure)
   validatePlatformPack(pack, SHELL_CONTRACT_VERSION)
-  pack.declaredQualityCheckFile?.let { loadQualityCheckContent(pack) }
   if (enforceGovernedReviewStructure) {
     ReviewSkillStructureValidator.validate(pack.packRoot.toPath())
   }
@@ -42,7 +41,6 @@ internal fun discoverPlatformPacks(platformPacksRoot: Path): List<PlatformManife
   validatePlatformPackFallbacks(packs)
   packs.forEach { pack ->
     validatePlatformPack(pack, SHELL_CONTRACT_VERSION)
-    pack.declaredQualityCheckFile?.let { loadQualityCheckContent(pack) }
   }
   return packs
 }

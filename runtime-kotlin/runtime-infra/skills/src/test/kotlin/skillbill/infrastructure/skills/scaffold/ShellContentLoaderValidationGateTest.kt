@@ -8,6 +8,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -117,21 +118,35 @@ class ShellContentLoaderValidationGateTest {
   }
 
   @Test
-  fun `every quality-check platform pack declares a parseable validation_gate`() {
+  fun `dominant quality-check stacks declare a parseable validation_gate`() {
     val packsRoot = repoRootFromTest().resolve("platform-packs")
     val yaml = Yaml()
+    val dominantStacks = setOf("kotlin", "kmp", "go", "ios", "php", "python", "rust", "typescript")
+    Files.list(packsRoot).use { stream ->
+      stream.filter(Files::isDirectory).forEach { packDir ->
+        val slug = packDir.fileName.toString()
+        if (slug !in dominantStacks) return@forEach
+        val manifestPath = packDir.resolve("platform.yaml")
+        if (!Files.isRegularFile(manifestPath)) return@forEach
+        val manifest = yaml.load<Map<String, Any?>>(Files.readString(manifestPath))
+        assertNotNull(
+          parseValidationGate(manifest, slug),
+          "Pack '$slug' is a dominant quality-check stack but validation_gate is missing or invalid.",
+        )
+      }
+    }
+  }
+
+  @Test
+  fun `shipped packs do not declare quality-check skill paths`() {
+    val packsRoot = repoRootFromTest().resolve("platform-packs")
     Files.list(packsRoot).use { stream ->
       stream.filter(Files::isDirectory).forEach { packDir ->
         val manifestPath = packDir.resolve("platform.yaml")
         if (!Files.isRegularFile(manifestPath)) return@forEach
-        val manifest = yaml.load<Map<String, Any?>>(Files.readString(manifestPath))
-        val qualityCheck = manifest["declared_quality_check_file"] as? String
-        if (qualityCheck.isNullOrBlank()) return@forEach
-        val slug = manifest["platform"] as? String ?: packDir.fileName.toString()
-        assertNotNull(
-          parseValidationGate(manifest, slug),
-          "Pack '$slug' declares quality-check but validation_gate is missing or invalid.",
-        )
+        val manifest = Files.readString(manifestPath)
+        assertFalse(manifest.contains("declared_quality_check_file"), packDir.toString())
+        assertFalse(manifest.contains("quality-check/"), packDir.toString())
       }
     }
   }

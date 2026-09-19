@@ -82,14 +82,12 @@ internal fun retainManifestsWithReadableDeclaredContent(
 internal fun declaredContentPaths(pack: PlatformManifest): List<Path> = buildList {
   pack.declaredFiles.baseline?.let { baseline -> add(baseline.toPath()) }
   addAll(pack.declaredFiles.areas.values.map { area -> area.toPath() })
-  pack.declaredQualityCheckFile?.let { qualityCheck -> add(qualityCheck.toPath()) }
 }.distinct().sortedBy(Path::toString)
 
 internal fun authoredFiles(pack: PlatformManifest): List<AuthoredFile> {
   val declared = buildList {
     pack.declaredFiles.baseline?.let { add(Triple(AuthoredFileRole.BASELINE, null, it)) }
     pack.declaredFiles.areas.forEach { (area, path) -> add(Triple(AuthoredFileRole.SPECIALIST, area, path)) }
-    pack.declaredQualityCheckFile?.let { add(Triple(AuthoredFileRole.QUALITY_CHECK, null, it)) }
   }
   return declared.flatMap { (role, area, path) ->
     val names = listOf(pack.slug, pack.displayName.orEmpty(), path.toPath().parent.name)

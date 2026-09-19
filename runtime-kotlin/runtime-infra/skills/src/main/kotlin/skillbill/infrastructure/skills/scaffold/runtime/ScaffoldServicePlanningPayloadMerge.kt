@@ -214,7 +214,6 @@ internal fun planShelledPlatformOverride(args: ScaffoldPlatformOverridePlanArgs)
 
 internal fun buildPlatformPackScaffoldPlan(args: PlatformPackScaffoldPlanArgs): ScaffoldPlan {
   val baselineName = canonicalName(args.payload, defaultName = "bill-${args.platform}-code-review")
-  val qualityCheckName = "bill-${args.platform}-code-check"
   val baselineLayers = args.adapters.optionalBaselineLayers(args.payload, args.repoRoot, args.platform)
   val selection = policyResolvePlatformPackSelection(args.payload)
   val selectedAreas = selection.selectedAreas
@@ -224,7 +223,6 @@ internal fun buildPlatformPackScaffoldPlan(args: PlatformPackScaffoldPlanArgs): 
     PlatformPackScaffoldPlanBodyArgs(
       scaffold = args,
       baselineName = baselineName,
-      qualityCheckName = qualityCheckName,
       baselineLayers = baselineLayers,
       specialistPlan = specialistPlan,
       notes = notes,
