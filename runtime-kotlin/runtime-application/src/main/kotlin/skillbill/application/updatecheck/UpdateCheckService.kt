@@ -8,7 +8,6 @@ import skillbill.application.updatecheck.model.UpdateCheckResult
 import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.contracts.JsonCodec
 import skillbill.error.ShellContentContractException
-import skillbill.model.TransportContext
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import java.io.IOException
@@ -16,7 +15,7 @@ import java.io.IOException
 @Inject
 class UpdateCheckService(
   private val systemService: SystemService,
-  private val transportContext: TransportContext,
+  private val requester: RemoteTransportPort,
 ) {
   fun check(includePrereleases: Boolean): UpdateCheckResult {
     val installedVersion = systemService.version().version
@@ -69,12 +68,9 @@ class UpdateCheckService(
     else -> UpdateCheckStatus.UP_TO_DATE
   }
 
-  private fun requireRequester(): RemoteTransportPort = transportContext.requester
-    ?: error("Remote transport is not configured for this runtime context.")
-
   private fun fetchReleases(): ReleaseFetchResult {
     val response = try {
-      requireRequester().execute(
+      requester.execute(
         method = "GET",
         url = RELEASES_URL,
         bodyJson = null,

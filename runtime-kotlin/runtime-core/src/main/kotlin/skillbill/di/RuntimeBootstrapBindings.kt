@@ -1,15 +1,17 @@
 package skillbill.di
 
+import skillbill.error.UnresolvedRemoteTransportPortError
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.http.JdkHttpRemoteTransport
-import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
 import skillbill.model.RepositoryRoot
 import skillbill.model.RuntimeContext
+import skillbill.model.TransportContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.repository.RepositoryEnclosingRootPort
+import skillbill.ports.telemetry.RemoteTransportPort
 import java.nio.file.Path
 import java.time.Clock
 
@@ -34,15 +36,8 @@ internal object RuntimeBootstrapBindings {
     val inputTransport = inputRuntimeContext.transport
     val resolvedTransport =
       inputTransport.copy(
-        requester =
-        inputTransport.requester ?: if (
-          inputTransport.connectTimeout == null &&
-          inputTransport.requestTimeout == null
-        ) {
-          JdkHttpRequester
-        } else {
-          JdkHttpRemoteTransport.create(inputTransport.connectTimeout, inputTransport.requestTimeout)
-        },
+        requester = inputTransport.requester
+          ?: JdkHttpRemoteTransport.create(inputTransport.connectTimeout, inputTransport.requestTimeout),
       )
     val resolvedRepositoryRoot =
       if (environmentWithEnv.repositoryRoot == EnvironmentContext.UnspecifiedRepositoryRoot) {
@@ -59,6 +54,9 @@ internal object RuntimeBootstrapBindings {
   }
 
   fun repositoryRoot(context: EnvironmentContext): RepositoryRoot = RepositoryRoot(context.repositoryRoot)
+
+  fun remoteTransportPort(context: TransportContext): RemoteTransportPort =
+    context.requester ?: throw UnresolvedRemoteTransportPortError()
 
   fun databaseSessionFactory(
     context: EnvironmentContext,

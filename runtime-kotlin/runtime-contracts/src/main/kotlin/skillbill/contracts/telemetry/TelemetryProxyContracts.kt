@@ -1,7 +1,5 @@
 package skillbill.contracts.telemetry
 
-import skillbill.contracts.SharedPayloadKeys
-
 data class TelemetryProxyBatchEvent(
   val event: String,
   val distinctId: String,
@@ -9,17 +7,17 @@ data class TelemetryProxyBatchEvent(
   val timestamp: String,
 ) {
   fun toPayload(): Map<String, Any?> = mapOf(
-    "event" to event,
-    "distinct_id" to distinctId,
-    "properties" to properties,
-    "timestamp" to timestamp,
+    TelemetryProxyPayloadKeys.EVENT to event,
+    TelemetryProxyPayloadKeys.DISTINCT_ID to distinctId,
+    TelemetryProxyPayloadKeys.PROPERTIES to properties,
+    TelemetryProxyPayloadKeys.TIMESTAMP to timestamp,
   )
 }
 
 data class TelemetryProxyBatchPayload(
   val batch: List<TelemetryProxyBatchEvent>,
 ) {
-  fun toPayload(): Map<String, Any?> = mapOf("batch" to batch.map { it.toPayload() })
+  fun toPayload(): Map<String, Any?> = mapOf(TelemetryProxyPayloadKeys.BATCH to batch.map { it.toPayload() })
 }
 
 data class RemoteStatsQueryPayload(
@@ -37,13 +35,3 @@ data class RemoteStatsQueryPayload(
     }
   }
 }
-
-fun defaultProxyCapabilities(proxyUrl: String, capabilitiesUrl: String): Map<String, Any?> = mapOf(
-  SharedPayloadKeys.CONTRACT_VERSION to "0",
-  TelemetryProxyPayloadKeys.SOURCE to "remote_proxy",
-  TelemetryProxyPayloadKeys.PROXY_URL to proxyUrl,
-  TelemetryProxyPayloadKeys.CAPABILITIES_URL to capabilitiesUrl,
-  TelemetryProxyPayloadKeys.SUPPORTS_INGEST to true,
-  TelemetryProxyPayloadKeys.SUPPORTS_STATS to false,
-  TelemetryProxyPayloadKeys.SUPPORTED_WORKFLOWS to emptyList<String>(),
-)

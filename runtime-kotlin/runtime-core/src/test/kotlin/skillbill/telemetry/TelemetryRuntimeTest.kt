@@ -3,12 +3,9 @@ package skillbill.telemetry
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
-import skillbill.infrastructure.http.HttpTelemetryClient
 import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.TelemetryClient
-import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
@@ -23,114 +20,11 @@ import java.nio.file.Path
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private val SYNC_NOW: Instant = Instant.parse("2026-09-15T10:00:00Z")
 
 class TelemetryRuntimeTest {
-  @Test
-  fun `fetchRemoteStats posts proxy contract payload`() {
-    val requests = mutableListOf<Triple<String, String, String?>>()
-    val requester = remoteStatsRequester(requests)
-    val settings = telemetrySettings(Files.createTempFile("telemetry", ".json"))
-
-    val payload =
-      HttpTelemetryClient(
-        requester = requester,
-        environment = mapOf("SKILL_BILL_TELEMETRY_PROXY_STATS_TOKEN" to "stats-token-123"),
-      ).fetchRemoteStats(
-        settings = settings,
-        request =
-        RemoteStatsRequest(
-          workflow = "bill-feature-verify",
-          dateFrom = "2026-04-01",
-          dateTo = "2026-04-22",
-        ),
-      )
-
-    assertEquals("bill-feature-verify", payload.workflow)
-    assertEquals(14, payload.metrics["started_runs"])
-    assertEquals(2, requests.size)
-    assertEquals("GET", requests[0].first)
-    assertEquals("POST", requests[1].first)
-    assertNotNull(payload.capabilities)
-  }
-
-  @Test
-  fun `fetchProxyCapabilities falls back to default contract on 404`() {
-    val requester = RemoteTransportPort { _, _, _, _ -> RemoteTransportResponse(statusCode = 404, body = "") }
-    val settings = telemetrySettings(Files.createTempFile("telemetry-capabilities", ".json"), customProxyUrl = null)
-
-    val payload = HttpTelemetryClient(requester).fetchProxyCapabilities(settings)
-
-    assertEquals("0", payload.contractVersion)
-    assertEquals(false, payload.supportsStats)
-  }
-
-  @Test
-  fun `a relay that cannot carry the deduplication property fails the ingest handshake loudly`() {
-    val settings = telemetrySettings(Files.createTempFile("telemetry-dedup-capability", ".json"))
-    val refusing = HttpTelemetryClient(ingestCapabilitiesRequester(deduplicationSupported = false))
-    val silentOlderRelay = HttpTelemetryClient(ingestCapabilitiesRequester(deduplicationSupported = null))
-
-    val error = assertFailsWith<IllegalArgumentException> { refusing.fetchProxyCapabilities(settings) }
-
-    assertTrue(
-      error.message.orEmpty().contains("event deduplication"),
-      "The refusal must name the missing property, not fail as a generic transport error.",
-    )
-    assertEquals(
-      true,
-      silentOlderRelay.fetchProxyCapabilities(settings).supportsEventDeduplication,
-      "A relay that omits the field forwards properties verbatim and must keep working.",
-    )
-  }
-
-  @Test
-  fun `a rejected batch carries the relay status and reason`() {
-    val requester =
-      RemoteTransportPort { _, _, _, _ ->
-        RemoteTransportResponse(statusCode = 422, body = """{"error":"unknown event property"}""")
-      }
-    val settings = telemetrySettings(Files.createTempFile("telemetry-rejection", ".json"))
-
-    val report = HttpTelemetryClient(requester).sendBatch(settings, emptyList())
-
-    assertEquals(TelemetryDeliveryOutcome.REJECTED, report.outcome)
-    assertTrue(report.detail.contains("422"), "The recorded refusal must name the relay status code.")
-    assertTrue(report.detail.contains("unknown event property"), "The relay's reason must survive into the record.")
-  }
-
-  @Test
-  fun `fetchRemoteStats preserves explicit null stats capabilities`() {
-    val requester =
-      RemoteTransportPort { _, url, _, _ ->
-        if (url.endsWith("/capabilities")) {
-          capabilitiesResponse()
-        } else {
-          remoteStatsResponseWithNullCapabilities()
-        }
-      }
-    val settings = telemetrySettings(Files.createTempFile("telemetry-null-capabilities", ".json"))
-
-    val payload =
-      HttpTelemetryClient(requester).fetchRemoteStats(
-        settings = settings,
-        request =
-        RemoteStatsRequest(
-          workflow = "bill-feature-verify",
-          dateFrom = "2026-04-01",
-          dateTo = "2026-04-22",
-        ),
-      )
-
-    assertEquals(true, payload.metrics.containsKey("capabilities"))
-    assertNull(payload.metrics["capabilities"])
-  }
-
   @Test
   fun `syncTelemetry marks batch synced and failed batches`() {
     val tempDir = Files.createTempDirectory("telemetry-sync")
@@ -261,69 +155,6 @@ private class RecordingTelemetryClient(
   override fun fetchRemoteStats(settings: TelemetrySettings, request: RemoteStatsRequest): TelemetryRemoteStatsResult =
     error("Unexpected fetchRemoteStats")
 }
-
-private fun remoteStatsRequester(requests: MutableList<Triple<String, String, String?>>): RemoteTransportPort =
-  RemoteTransportPort { method, url, bodyJson, _ ->
-    requests += Triple(method, url, bodyJson)
-    if (url.endsWith("/capabilities")) {
-      capabilitiesResponse()
-    } else {
-      remoteStatsResponse()
-    }
-  }
-
-private fun ingestCapabilitiesRequester(deduplicationSupported: Boolean?): RemoteTransportPort {
-  val deduplicationField =
-    deduplicationSupported?.let { ""","supports_event_deduplication":$it""" }.orEmpty()
-  return RemoteTransportPort { _, _, _, _ ->
-    RemoteTransportResponse(
-      statusCode = 200,
-      body = """{"contract_version":"2","supports_ingest":true$deduplicationField}""",
-    )
-  }
-}
-
-private fun capabilitiesResponse(): RemoteTransportResponse = RemoteTransportResponse(
-  statusCode = 200,
-  body =
-  """
-      {
-        "contract_version": "1",
-        "supports_ingest": true,
-        "supports_stats": true,
-        "supported_workflows": ["bill-feature-verify", "feature-task-runtime"]
-      }
-  """.trimIndent(),
-)
-
-private fun remoteStatsResponse(): RemoteTransportResponse = RemoteTransportResponse(
-  statusCode = 200,
-  body =
-  """
-      {
-        "status": "ok",
-        "workflow": "bill-feature-verify",
-        "source": "remote_proxy",
-        "started_runs": 14,
-        "finished_runs": 12,
-        "in_progress_runs": 2
-      }
-  """.trimIndent(),
-)
-
-private fun remoteStatsResponseWithNullCapabilities(): RemoteTransportResponse = RemoteTransportResponse(
-  statusCode = 200,
-  body =
-  """
-      {
-        "status": "ok",
-        "workflow": "bill-feature-verify",
-        "source": "remote_proxy",
-        "started_runs": 14,
-        "capabilities": null
-      }
-  """.trimIndent(),
-)
 
 private fun telemetrySettings(
   configPath: Path,

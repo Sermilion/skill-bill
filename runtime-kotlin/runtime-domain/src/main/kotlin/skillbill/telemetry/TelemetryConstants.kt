@@ -11,8 +11,6 @@ const val TELEMETRY_BATCH_SIZE_ENVIRONMENT_KEY: String = "SKILL_BILL_TELEMETRY_B
 const val DEFAULT_TELEMETRY_PROXY_URL: String = "https://skill-bill-telemetry-proxy.skillbill.workers.dev"
 const val DEFAULT_TELEMETRY_BATCH_SIZE: Int = 50
 const val TELEMETRY_PROXY_CONTRACT_VERSION: String = "2"
-const val HTTP_OK_MIN: Int = 200
-const val HTTP_OK_MAX: Int = 299
 
 val telemetryLevels: List<String> = listOf("off", "anonymous", "full")
 val remoteStatsWorkflows: List<String> =

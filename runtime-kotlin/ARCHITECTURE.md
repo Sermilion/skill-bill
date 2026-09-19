@@ -600,8 +600,8 @@ reads through the production coordinator and recorders.
   installer process adapter, and governed review MCP config.
 - `skillbill.infrastructure.workflow`: git workflow operations, review evidence
   adapters, feature-task stores, goal-planning discovery, and validation gates.
-- `skillbill.infrastructure.http`: HTTP telemetry client and telemetry proxy
-  payload mapping.
+- `skillbill.infrastructure.http`: the injected remote transport, telemetry
+  client, installer-script fetch adapter, and telemetry proxy payload mapping.
 - `skillbill.infrastructure.sqlite`: SQLite session factory, schema, migrations,
   SQL statement bindings, repositories, review stores, stats, and telemetry
   outbox persistence owned by `runtime-infra/sqlite` (`:runtime-infra:sqlite`).
@@ -624,16 +624,21 @@ request does not backdate a later batch lease. Settlement through
 the lost portion so the drain does not count another owner's row as synced. The
 drain stops without altering another owner's row.
 
-`JdkHttpRemoteTransport` reuses one JDK `HttpClient` for the process. Default
-connect timeout is ten seconds and per-request timeout is four minutes, both
-below the claim lease; `TransportContext.connectTimeout` and
-`requestTimeout` override those defaults for tests only. Cooperative
+`JdkHttpRequester` is the named default remote transport. Non-default
+`TransportContext.connectTimeout` or `requestTimeout` values go through the
+single `JdkHttpRemoteTransport.create` factory; the bootstrap supplies the
+resolved `RemoteTransportPort` to adapters. The shared JDK client keeps its
+default `NEVER` redirect policy. Default connect timeout is ten seconds and
+per-request timeout is four minutes, both below the claim lease. Cooperative
 cancellation and `InterruptedException` propagate through manual sync, auto
 sync, drain, and stale-session reconciliation; cancellation does not consume
 delivery attempts or become an UNKNOWN delivery report. Ordinary auto-sync
 failure stays non-fatal to callers and records the payload-free
 `telemetry background sync failed` diagnostic; the same signature is emitted
 again when the follow-up outbox exception enqueue fails.
+`HttpTelemetryClientTest` covers the capability fallback, stats request,
+deduplication handshake, rejected batch detail, and explicit null metrics;
+`HttpTelemetryTypedErrorsTest` covers peer and response failures.
 
 SQLite integration tests prove stale-owner settlement rejection. A loopback
 HTTP peer that accepts a connection but never completes a response proves
@@ -677,11 +682,13 @@ for a live drain worker.
 `SkillBillUpdateService` in runtime-application owns update planning, release
 skip/check_failed handling, installer script fetch, and post-download execution.
 It downloads `install.sh` through `InstallerScriptFetchPort` (production adapter
-`HttpInstallerScriptFetchAdapter` in runtime-infra/http) and only calls
-`InstallerProcessPort` after a complete 2xx body is persisted. Failed or
-interrupted fetch deletes partial staging bytes and never executes a script path.
-The fetch port owns its temporary staging directory and removes it after the
-installer process settles.
+`HttpInstallerScriptFetchAdapter` in runtime-infra/http) through the injected
+`RemoteTransportPort` and only calls `InstallerProcessPort` after a complete
+2xx body is persisted. Failed or interrupted fetch deletes partial staging bytes
+through one non-Ready teardown path and never executes a script path. The fetch
+port owns its temporary staging directory and removes it after the installer
+process settles. `HttpInstallerScriptFetchAdapterTest` covers non-2xx, I/O,
+interruption, atomic promotion, and foreign-directory refusal.
 
 `InstallerProcessAdapter` in runtime-infra modules (see Gradle Modules) starts an argv vector with an
 explicit environment map, closes child stdin immediately after start, captures

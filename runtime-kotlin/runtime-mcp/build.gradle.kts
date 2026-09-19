@@ -28,7 +28,6 @@ dependencies {
   testImplementation(project(":runtime-infra:host"))
   testImplementation(project(":runtime-infra:workflow"))
   testImplementation(project(":runtime-infra:contracts"))
-  testImplementation(project(":runtime-infra:http"))
   testImplementation(project(":runtime-cli"))
   testImplementation(project(":runtime-infra:sqlite"))
   testImplementation(testFixtures(project(":runtime-infra:sqlite")))

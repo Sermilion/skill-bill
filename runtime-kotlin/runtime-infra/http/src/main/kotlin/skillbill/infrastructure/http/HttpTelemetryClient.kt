@@ -3,15 +3,16 @@ package skillbill.infrastructure.http
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.RemoteStatsQueryPayload
-import skillbill.contracts.telemetry.defaultProxyCapabilities
-import skillbill.contracts.time.JvmSystemClock
+import skillbill.error.ShellContentContractException
+import skillbill.error.TelemetryProxyInvalidResponseError
+import skillbill.error.TelemetryProxyRequestFailureError
+import skillbill.error.TelemetryRelayUrlUnconfiguredError
 import skillbill.model.EnvironmentContext
-import skillbill.model.TransportContext
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
-import skillbill.telemetry.TELEMETRY_PROXY_CONTRACT_VERSION
 import skillbill.telemetry.TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryReport
@@ -22,45 +23,25 @@ import skillbill.telemetry.parseRemoteStatsWindow
 import skillbill.telemetry.validateIngestCapabilities
 import skillbill.telemetry.validateRemoteStatsCapabilities
 import skillbill.telemetry.validateRemoteStatsRequest
-import java.nio.file.Path
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneOffset
 
 @Inject
 class HttpTelemetryClient(
+  private val requester: RemoteTransportPort,
   private val environmentContext: EnvironmentContext,
-  private val transportContext: TransportContext,
   private val clock: Clock,
+  private val diagnostics: RuntimeDiagnostics,
 ) : TelemetryClient {
-  private val resolvedEnvironment = environmentContext.withProcessDefaults()
-  private val resolvedRequester =
-    transportContext.requester
-      ?: JdkHttpRemoteTransport.create(transportContext.connectTimeout, transportContext.requestTimeout)
-
-  constructor(
-    requester: RemoteTransportPort,
-    environment: Map<String, String> = System.getenv(),
-  ) : this(requester, environment, Path.of(System.getProperty("user.home")))
-
-  constructor(
-    requester: RemoteTransportPort,
-    environment: Map<String, String>,
-    userHome: Path,
-  ) : this(
-    EnvironmentContext(environment = environment, userHome = userHome),
-    TransportContext(requester = requester),
-    JvmSystemClock,
-  )
-
   override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport {
-    require(settings.proxyUrl.isNotBlank()) { "Telemetry relay URL is not configured." }
+    requireConfiguredRelayUrl(settings)
     val response =
-      resolvedRequester.execute(
+      requester.execute(
         "POST",
         settings.proxyUrl,
         JsonCodec.mapToJsonString(telemetryProxyBatchPayload(settings, rows).toPayload()),
-        defaultJsonHeaders(),
+        requestHeaders("POST"),
       )
     return TelemetryDeliveryReport(
       outcome = classifyDeliveryOutcome(response.statusCode),
@@ -69,40 +50,37 @@ class HttpTelemetryClient(
   }
 
   override fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities {
-    require(settings.proxyUrl.isNotBlank()) { "Telemetry relay URL is not configured." }
+    requireConfiguredRelayUrl(settings)
     val capabilitiesUrl = settings.proxyUrl.trimEnd('/') + "/capabilities"
     return try {
-      requestJsonGet(
-        url = capabilitiesUrl,
-        errorContext = "Telemetry proxy capabilities request",
-        headers = proxyAuthHeaders(resolvedEnvironment.environment),
-        requester = resolvedRequester,
-      ).toMutableMap().apply {
-        putIfAbsent("contract_version", TELEMETRY_PROXY_CONTRACT_VERSION)
-        putIfAbsent("source", "remote_proxy")
-        putIfAbsent("proxy_url", settings.proxyUrl)
-        putIfAbsent("capabilities_url", capabilitiesUrl)
-        putIfAbsent("supports_ingest", true)
-        putIfAbsent("supports_stats", false)
-        putIfAbsent("supported_workflows", emptyList<String>())
-      }.toTelemetryProxyCapabilities().also(::validateIngestCapabilities)
-    } catch (error: HttpFailureException) {
+      requestJson(
+        request =
+        JsonRequest(
+          method = "GET",
+          url = capabilitiesUrl,
+          payload = null,
+          errorContext = "Telemetry proxy capabilities request",
+          headers = proxyAuthHeaders(environmentContext.environment),
+        ),
+        requester = requester,
+      ).toTelemetryProxyCapabilities(settings.proxyUrl, capabilitiesUrl, diagnostics)
+        .also(::validateIngestCapabilities)
+    } catch (error: TelemetryProxyRequestFailureError) {
       if (error.statusCode == HTTP_NOT_FOUND || error.statusCode == HTTP_METHOD_NOT_ALLOWED) {
-        defaultProxyCapabilities(settings.proxyUrl, capabilitiesUrl).toTelemetryProxyCapabilities()
-      } else {
-        throw IllegalArgumentException(
-          error.message ?: "Telemetry proxy capabilities request failed.",
-          error,
+        diagnostics.warning(
+          "seam=telemetry.capabilities.fallback expected=capabilities response " +
+            "used=typed default for HTTP ${error.statusCode}",
         )
+        TelemetryProxyCapabilities.defaultProxyCapabilities(settings.proxyUrl, capabilitiesUrl)
+      } else {
+        throw error
       }
     }
   }
 
   override fun fetchRemoteStats(settings: TelemetrySettings, request: RemoteStatsRequest): TelemetryRemoteStatsResult {
     validateRemoteStatsRequest(request)
-    require(settings.proxyUrl.isNotBlank()) {
-      "Telemetry relay URL is not configured."
-    }
+    requireConfiguredRelayUrl(settings)
     val (resolvedDateFrom, resolvedDateTo) =
       parseRemoteStatsWindow(
         request.since,
@@ -119,92 +97,107 @@ class HttpTelemetryClient(
     val statsUrl = settings.proxyUrl.trimEnd('/') + "/stats"
     val payload =
       requestJson(
-        url = statsUrl,
-        payload =
-        RemoteStatsQueryPayload(
-          workflow = request.workflow,
-          dateFrom = resolvedDateFrom,
-          dateTo = resolvedDateTo,
-          groupBy = request.groupBy,
-        ).toPayload(),
-        errorContext = "Remote telemetry stats request",
-        headers = proxyAuthHeaders(resolvedEnvironment.environment),
-        requester = resolvedRequester,
-      ).toMutableMap()
-    val responseCapabilitiesPresent = payload.containsKey("capabilities")
-    payload.putIfAbsent("workflow", request.workflow)
-    payload.putIfAbsent("date_from", resolvedDateFrom)
-    payload.putIfAbsent("date_to", resolvedDateTo)
-    payload.putIfAbsent("source", "remote_proxy")
-    payload.putIfAbsent("stats_url", statsUrl)
-    if (!payload.containsKey("capabilities")) {
-      payload["capabilities"] = capabilities
-    }
-    if (request.groupBy.isNotBlank()) {
-      payload.putIfAbsent("group_by", request.groupBy)
-    }
+        request =
+        JsonRequest(
+          method = "POST",
+          url = statsUrl,
+          payload =
+          RemoteStatsQueryPayload(
+            workflow = request.workflow,
+            dateFrom = resolvedDateFrom,
+            dateTo = resolvedDateTo,
+            groupBy = request.groupBy,
+          ).toPayload(),
+          errorContext = "Remote telemetry stats request",
+          headers = proxyAuthHeaders(environmentContext.environment),
+        ),
+        requester = requester,
+      )
     return payload.toTelemetryRemoteStatsResult(
-      capabilities = capabilities,
-      preserveResponseCapabilities = responseCapabilitiesPresent,
+      context =
+      RemoteStatsResultContext(
+        workflow = request.workflow,
+        dateFrom = resolvedDateFrom,
+        dateTo = resolvedDateTo,
+        groupBy = request.groupBy,
+        statsUrl = statsUrl,
+        capabilities = capabilities,
+      ),
     )
   }
 }
 
-private fun requestJson(
-  url: String,
-  payload: Map<String, Any?>,
-  errorContext: String,
-  headers: Map<String, String>,
-  requester: RemoteTransportPort,
-): Map<String, Any?> {
-  val response =
-    requester.execute(
-      "POST",
-      url,
-      JsonCodec.mapToJsonString(payload),
-      defaultJsonHeaders() + headers,
-    )
-  ensureSuccessfulResponse(response, errorContext)
-  return decodeJsonObject(response.body, errorContext)
-}
+internal data class RemoteStatsResultContext(
+  val workflow: String,
+  val dateFrom: String,
+  val dateTo: String,
+  val groupBy: String,
+  val statsUrl: String,
+  val capabilities: TelemetryProxyCapabilities,
+)
 
-private fun requestJsonGet(
-  url: String,
-  errorContext: String,
-  headers: Map<String, String>,
-  requester: RemoteTransportPort,
-): Map<String, Any?> {
+private data class JsonRequest(
+  val method: String,
+  val url: String,
+  val payload: Map<String, Any?>?,
+  val errorContext: String,
+  val headers: Map<String, String>,
+)
+
+private fun requestJson(request: JsonRequest, requester: RemoteTransportPort): Map<String, Any?> {
   val response =
     requester.execute(
-      "GET",
-      url,
-      null,
-      mapOf("User-Agent" to "skill-bill-telemetry/1.0") + headers,
+      request.method,
+      request.url,
+      request.payload?.let(JsonCodec::mapToJsonString),
+      requestHeaders(request.method) + request.headers,
     )
-  ensureSuccessfulResponse(response, errorContext)
-  return decodeJsonObject(response.body, errorContext)
+  ensureSuccessfulResponse(response, request.errorContext)
+  return decodeJsonObject(response.body, request.errorContext)
 }
 
 private fun ensureSuccessfulResponse(response: RemoteTransportResponse, errorContext: String) {
-  if (response.statusCode !in HTTP_OK_MIN..HTTP_OK_MAX) {
-    throw HttpFailureException(
-      response.statusCode,
-      httpFailureMessage(response, errorContext),
+  if (response.statusCode !in HTTP_SUCCESS_RANGE) {
+    throw TelemetryProxyRequestFailureError(
+      statusCode = response.statusCode,
+      seam = errorContext,
+      detail = boundedHttpFailureDetail(response, errorContext),
     )
   }
 }
 
 private fun decodeJsonObject(body: String, errorContext: String): Map<String, Any?> {
   if (body.isBlank()) {
-    return emptyMap()
+    return invalidJsonResponse(errorContext, "empty response body")
   }
   val decoded =
-    JsonCodec.parseObjectOrNull(body)
-      ?: throw IllegalArgumentException("$errorContext returned invalid JSON.")
-  return JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(decoded))
-    ?: throw IllegalArgumentException(
-      "$errorContext returned a non-object JSON payload.",
-    )
+    try {
+      JsonCodec.parseValue(body)
+    } catch (_: ShellContentContractException) {
+      return invalidJsonResponse(errorContext, "$errorContext returned invalid JSON.")
+    }
+  return JsonCodec.anyToStringAnyMap(decoded)
+    ?: if (isJsonNonObjectRoot(body)) {
+      invalidJsonResponse(errorContext, "$errorContext returned a non-object JSON payload.")
+    } else {
+      invalidJsonResponse(errorContext, "$errorContext returned invalid JSON.")
+    }
+}
+
+private fun invalidJsonResponse(errorContext: String, detail: String): Nothing =
+  throw TelemetryProxyInvalidResponseError(
+    seam = errorContext,
+    detail = detail,
+  )
+
+private fun isJsonNonObjectRoot(body: String): Boolean {
+  val normalized = body.trim()
+  return normalized.startsWith("[") ||
+    normalized.startsWith("\"") ||
+    normalized == "true" ||
+    normalized == "false" ||
+    normalized == "null" ||
+    normalized.toBigDecimalOrNull() != null
 }
 
 private fun deliveryDetail(response: RemoteTransportResponse): String {
@@ -216,44 +209,36 @@ private fun deliveryDetail(response: RemoteTransportResponse): String {
   }
 }
 
-private fun httpFailureMessage(response: RemoteTransportResponse, errorContext: String): String =
-  if (response.body.isBlank()) {
-    "$errorContext failed with HTTP ${response.statusCode}."
-  } else {
-    "$errorContext failed with HTTP ${response.statusCode}. ${response.body.trim()}"
+private fun boundedHttpFailureDetail(response: RemoteTransportResponse, errorContext: String): String {
+  val message =
+    if (response.body.isBlank()) {
+      "$errorContext failed with HTTP ${response.statusCode}."
+    } else {
+      "$errorContext failed with HTTP ${response.statusCode}. ${response.body.trim()}"
+    }
+  return message.take(HTTP_BOUNDED_DETAIL_MAX_LENGTH)
+}
+
+private fun requireConfiguredRelayUrl(settings: TelemetrySettings) {
+  if (settings.proxyUrl.isBlank()) {
+    throw TelemetryRelayUrlUnconfiguredError()
   }
+}
 
 private fun proxyAuthHeaders(environment: Map<String, String>): Map<String, String> =
   environment[TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY]
     ?.trim()
     ?.takeIf(String::isNotBlank)
-    ?.let { mapOf("Authorization" to "Bearer $it") }
+    ?.let { mapOf(HttpHeaders.AUTHORIZATION to "Bearer $it") }
     ?: emptyMap()
 
-private fun defaultJsonHeaders(): Map<String, String> = mapOf(
-  "Content-Type" to "application/json",
-  "User-Agent" to "skill-bill-telemetry/1.0",
-)
-
-private fun EnvironmentContext.withProcessDefaults(): EnvironmentContext {
-  val withUserHome =
-    if (userHome == EnvironmentContext.UnspecifiedUserHome) {
-      copy(userHome = Path.of(System.getProperty("user.home")).toAbsolutePath().normalize())
-    } else {
-      copy(userHome = userHome.toAbsolutePath().normalize())
-    }
-  return if (withUserHome.environment === EnvironmentContext.UnspecifiedEnvironment) {
-    withUserHome.copy(environment = System.getenv())
-  } else {
-    withUserHome
-  }
+private fun requestHeaders(method: String): Map<String, String> = if (method == "GET") {
+  mapOf(HttpHeaders.USER_AGENT to TELEMETRY_USER_AGENT)
+} else {
+  mapOf(
+    HttpHeaders.CONTENT_TYPE to JSON_CONTENT_TYPE,
+    HttpHeaders.USER_AGENT to TELEMETRY_USER_AGENT,
+  )
 }
 
-private const val HTTP_OK_MIN: Int = 200
-private const val HTTP_OK_MAX: Int = 299
 private const val DELIVERY_DETAIL_MAX_LENGTH: Int = 300
-
-private class HttpFailureException(
-  val statusCode: Int,
-  message: String,
-) : IllegalArgumentException(message)

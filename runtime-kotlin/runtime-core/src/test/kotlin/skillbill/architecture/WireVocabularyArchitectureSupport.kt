@@ -244,7 +244,13 @@ internal object WireVocabularyArchitectureSupport {
       if (openBrace < 0 || closeBrace < 0) return@forEach
       val owner = file.packageName + "." + match.groupValues[1]
       wireVocabularyConstPattern.findAll(source.substring(openBrace + 1, closeBrace)).forEach { key ->
-        declarations += declaration("key", key.groupValues[2], owner, file, openBrace + 1 + key.range.first)
+        declarations += declaration(
+          "key",
+          key.groupValues[2].replace("\\\$", "\$"),
+          owner,
+          file,
+          openBrace + 1 + key.range.first,
+        )
       }
     }
     return declarations

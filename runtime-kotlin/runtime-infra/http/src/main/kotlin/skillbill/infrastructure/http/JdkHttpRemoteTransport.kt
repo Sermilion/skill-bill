@@ -2,7 +2,6 @@ package skillbill.infrastructure.http
 
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
-import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse.BodyHandlers
@@ -26,7 +25,7 @@ class JdkHttpRemoteTransport(
   ): RemoteTransportResponse {
     val requestBuilder =
       HttpRequest
-        .newBuilder(URI.create(url))
+        .newBuilder(httpRequestUri(url))
         .timeout(requestTimeout)
         .method(method, bodyPublisher(bodyJson))
     headers.forEach(requestBuilder::header)
@@ -35,30 +34,28 @@ class JdkHttpRemoteTransport(
   }
 
   companion object {
-    private val defaultClient: HttpClient =
-      HttpClient
-        .newBuilder()
-        .connectTimeout(DEFAULT_HTTP_CONNECT_TIMEOUT)
-        .build()
-
     fun create(connectTimeout: Duration? = null, requestTimeout: Duration? = null): RemoteTransportPort =
-      JdkHttpRemoteTransport(
-        httpClient = httpClient(connectTimeout ?: DEFAULT_HTTP_CONNECT_TIMEOUT),
-        requestTimeout = requestTimeout ?: DEFAULT_HTTP_REQUEST_TIMEOUT,
-      )
-
-    private fun httpClient(connectTimeout: Duration): HttpClient = if (connectTimeout == DEFAULT_HTTP_CONNECT_TIMEOUT) {
-      defaultClient
-    } else {
-      HttpClient
-        .newBuilder()
-        .connectTimeout(connectTimeout)
-        .build()
-    }
+      if (connectTimeout == null && requestTimeout == null) {
+        JdkHttpRequester
+      } else {
+        JdkHttpRemoteTransport(
+          httpClient = HttpClient
+            .newBuilder()
+            .connectTimeout(connectTimeout ?: DEFAULT_HTTP_CONNECT_TIMEOUT)
+            .build(),
+          requestTimeout = requestTimeout ?: DEFAULT_HTTP_REQUEST_TIMEOUT,
+        )
+      }
   }
 }
 
-object JdkHttpRequester : RemoteTransportPort by JdkHttpRemoteTransport.create()
+object JdkHttpRequester : RemoteTransportPort by JdkHttpRemoteTransport(
+  httpClient = HttpClient
+    .newBuilder()
+    .connectTimeout(DEFAULT_HTTP_CONNECT_TIMEOUT)
+    .build(),
+  requestTimeout = DEFAULT_HTTP_REQUEST_TIMEOUT,
+)
 
 private fun bodyPublisher(bodyJson: String?): HttpRequest.BodyPublisher = if (bodyJson == null) {
   HttpRequest.BodyPublishers.noBody()

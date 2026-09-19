@@ -4,6 +4,36 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-18] SKILL-359 subtask 2: TELEMETRY_PROXY_CONTRACT_VERSION stays in runtime-domain
+
+`TELEMETRY_PROXY_CONTRACT_VERSION` remains in `runtime-domain` `TelemetryConstants.kt` with value `2` because it is the protocol version constant the HTTP client uses when the proxy omits `contract_version`. `SharedPayloadKeys.CONTRACT_VERSION` remains the map key on proxy payloads; wire keys for proxy fields live in `TelemetryProxyPayloadKeys` without moving the version constant beside them.
+
+## [2026-09-18] SKILL-359: shared HTTP transport does not follow redirects
+
+The shared JDK transport keeps redirect handling at `NEVER`; the live HEAD of
+`https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh`
+returned 200 with zero redirects. Callers must receive the peer response
+instead of silently crossing an unapproved URL boundary.
+
+## [2026-09-18] SKILL-359: bootstrap remains the only transport fallback owner
+
+`TransportContext.requester` fallback resolution remains only in
+`RuntimeBootstrapBindings`. Adapters receive the bootstrap-resolved
+`RemoteTransportPort`, so they do not mint or resolve another transport.
+
+## [2026-09-18] SKILL-359: malformed workflow entries are observable and dropped
+
+Non-string `supported_workflows` entries are recorded through
+`RuntimeDiagnostics` and dropped while valid strings continue into the typed
+capabilities result. A malformed extension entry does not invalidate the
+well-formed capability fields.
+
+## [2026-09-18] SKILL-359: message helpers remain local where no shared owner exists
+
+The message-or-class-name helper copies in `UpdateCheckService` and
+`TelemetryOutboxDrain` remain local because no shared owner exists in
+`runtime-contracts` or `runtime-domain`.
+
 ## [2026-09-18] SKILL-358 subtask 2: typed accounting, wire-key owners, ports raw-map scanner
 
 `ReviewAccountingRecord` carries `ReviewAccountingSummary`; SQLite encode/decode lives in

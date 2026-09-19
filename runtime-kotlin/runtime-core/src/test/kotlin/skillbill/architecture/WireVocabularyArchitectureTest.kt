@@ -170,6 +170,39 @@ class WireVocabularyArchitectureTest {
   }
 
   @Test
+  fun `telemetry proxy seam rejects inline supports_stats access`() {
+    val files = listOf(
+      syntheticSourceFile(
+        "infrastructure/http/TelemetryProxyPayloadKeys.kt",
+        """
+        package fixture
+
+        object TelemetryProxyPayloadKeys {
+          const val SUPPORTS_STATS: String = "supports_stats"
+        }
+        """.trimIndent(),
+      ),
+      syntheticSourceFile(
+        "infrastructure/http/HttpTelemetryResultMappers.kt",
+        """
+        package fixture
+
+        fun read(payload: Map<String, Any?>) = payload["supports_stats"]
+        """.trimIndent(),
+      ),
+    )
+    val report = WireVocabularyArchitectureSupport.scanSourceFiles(
+      files = files,
+      includePayloadKeyAccesses = true,
+      enforceGovernedSeams = true,
+      schemaPropertyKeysByPath = mapOf(
+        WireVocabularyGovernedSeamInventory.TELEMETRY_PROXY_AUTHORITY to setOf("supports_stats"),
+      ),
+    )
+    assertTrue(report.violations.any { it.contains("accesses key 'supports_stats'") })
+  }
+
+  @Test
   fun `new schema field without kotlin owner fails through the production scanner`() {
     val report = WireVocabularyArchitectureSupport.scanSourceFiles(
       files = listOf(
