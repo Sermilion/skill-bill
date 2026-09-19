@@ -122,6 +122,31 @@ class WorktreeEditJournalWriterTest {
     assertEquals(1, persistDiagnostics.warnings.size)
     assertTrue(persistDiagnostics.warnings.single().contains("seam=worktree_edit_journal_persist"))
   }
+
+  @Test
+  fun `sqlite busy beyond retry bound records failure without publishing a tick`() {
+    val repository = InMemoryWorktreeEditJournalRepository()
+    val diagnostics = RecordingJournalDiagnostics()
+    val database = JournalDatabaseSessionFactory(repository, busyWrites = 3)
+    val git = ScriptedWorkflowGitOperations(
+      WorkflowWorktreeNumstatResult(
+        status = WorkflowGitOperationStatus.OK,
+        files = listOf(GoalObservabilityFileDiffStat("src/A.kt", insertions = 1, deletions = 0)),
+      ),
+    )
+
+    WorktreeEditJournalWriter(
+      database,
+      Clock.fixed(Instant.parse("2026-09-18T12:00:00Z"), ZoneOffset.UTC),
+      diagnostics,
+      git,
+    ).observer(Path.of("/tmp/worktree-edit-journal-busy"), { "wfl-busy" }, { "implement" }).observe()
+
+    assertEquals(3, database.writeAttempts)
+    assertEquals(1, diagnostics.warnings.size)
+    assertTrue(diagnostics.warnings.single().contains("seam=worktree_edit_journal_persist"))
+    assertTrue(repository.appends.isEmpty())
+  }
 }
 
 private class ScriptedWorkflowGitOperations(
@@ -148,9 +173,12 @@ private class InMemoryWorktreeEditJournalRepository : WorktreeEditJournalReposit
 
 private class JournalDatabaseSessionFactory(
   private val journal: WorktreeEditJournalRepository,
+  private val busyWrites: Int = 0,
 ) : DatabaseSessionFactory {
   private val dbPath = Path.of("/fake/worktree-edit-journal.db")
   private val writes = AtomicInteger(0)
+  val writeAttempts: Int
+    get() = writes.get()
 
   override fun resolveDbPath(): Path = dbPath
 
@@ -159,7 +187,10 @@ private class JournalDatabaseSessionFactory(
   override fun <T> read(block: (UnitOfWork) -> T): T = block(unit())
 
   override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
-    writes.incrementAndGet()
+    val write = writes.incrementAndGet()
+    if (write <= busyWrites) {
+      error("SQLITE_BUSY: database is locked")
+    }
     return block(unit())
   }
 

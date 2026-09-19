@@ -24,11 +24,11 @@ Prepared in local mode on 2026-09-19. SKILL-362 follows SKILL-361, the highest e
 2. `executionLiveness == idle` without operator pause projects `lifecycle_state: idle` (schema already allows it). The plugin maps that payload to Idle, not Paused. The status bar does not say paused.
 3. While a parent goal JVM or child feature-task process is running, `execution_liveness` is `live` even if concurrent stamp or journal writes hit `SQLITE_BUSY`. Process inspect is consulted when the lease row is expired or the heartbeat write failed.
 4. `AgentActivityStampWriter` and `WorktreeEditJournalWriter` either persist after contention or emit their existing bounded failure record without changing lifecycle to paused. A test holds the database busy longer than the current 5s timeout and still yields live or idle as in (1)–(3), never paused.
-5. `IdeStatusServiceGoalProjectionTest` no longer requires an expired parent lease to project paused. Operator-pause tests still project paused. `ARCHITECTURE.md` or `runtime-kotlin/agent/decisions.md` records that idle liveness is not pause, and amends the 2026-06-26 SQLite busy-timeout entry if the timeout or retry policy changes.
+5. `IdeStatusServiceGoalProjectionTest` no longer requires an expired parent lease to project paused. Operator-pause tests still project paused. `ARCHITECTURE.md` or `../../../runtime-kotlin/agent/decisions.md` records that idle liveness is not pause, and amends the 2026-06-26 SQLite busy-timeout entry if the timeout or retry policy changes.
 
 ## Constraints
 
-- Follow `runtime-kotlin/ARCHITECTURE.md` design principles, `docs/code-principles.md`, `docs/observability-policy.md`, and AGENTS.md.
+- Follow `../../../runtime-kotlin/ARCHITECTURE.md` design principles, `docs/code-principles.md`, `docs/observability-policy.md`, and AGENTS.md.
 - Keep one user-level review-metrics SQLite file. Do not add a global lock that forbids concurrent goals.
 - Do not change phase order, review policy, or commit-before-review. This is status truth and heartbeat persistence.
 - Kotlin under `runtime-kotlin` and `intellij-plugin` carries no `//` comments and no non-KDoc block comments. Wire keys stay in `runtime-contracts`.

@@ -26,7 +26,7 @@ flowchart LR
     child -->|"still running"| sqlite
 ```
 
-`orchestration/contracts/ide-status-schema.yaml` already enumerates `idle` next to `paused`. The plugin already maps `idle` to `SkillBillStatusOutcome.Idle`. The projector never emits idle for a running-but-lease-expired goal.
+`../../../orchestration/contracts/ide-status-schema.yaml` already enumerates `idle` next to `paused`. The plugin already maps `idle` to `SkillBillStatusOutcome.Idle`. The projector never emits idle for a running-but-lease-expired goal.
 
 ## Principles assessment
 

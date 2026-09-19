@@ -6,7 +6,9 @@ import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.testHarnessClock
 import skillbill.contracts.JsonCodec
+import skillbill.engine.DeadProcessSupervisor
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
+import skillbill.engine.LiveProcessSupervisor
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
@@ -106,6 +108,13 @@ import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
 import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
+import skillbill.ports.taskruntime.NoopFeatureTaskRuntimeHeartbeat
+import skillbill.ports.taskruntime.NoopFeatureTaskRuntimeWorkerSupervisor
+import skillbill.ports.taskruntime.model.FeatureTaskRuntimeHeartbeatPlan
+import skillbill.ports.taskruntime.model.FeatureTaskRuntimeHeartbeatTick
+import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
+import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
 import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
@@ -157,6 +166,7 @@ import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.coroutines.cancellation.CancellationException
@@ -1872,18 +1882,65 @@ private class CommitAllRecordingGitOperations(
 
 class GoalRunnerStatusProjectionTest {
   @Test
-  fun `execution liveness is live only while a runtime worker lease is strictly unexpired`() {
+  fun `execution liveness uses process inspect when the runtime worker lease is expired`() {
     val harness = GoalStatusPhaseLedgerHarness()
     harness.openRuntimeWorkflow("wfl-live")
     harness.seedOwnership("wfl-live", expiresAt = "2026-07-27T12:00:01Z")
-    val service = statusServiceForLiveness(harness, "wfl-live")
+    val service = statusServiceForLiveness(harness, "wfl-live", LiveProcessSupervisor)
 
     val live = requireNotNull(service.status(goalStatusRequest()))
     assertEquals(ExecutionLiveness.LIVE, live.executionLiveness)
 
     harness.seedOwnership("wfl-live", expiresAt = "2026-07-27T12:00:00Z")
     val boundary = requireNotNull(service.status(goalStatusRequest()))
-    assertEquals(ExecutionLiveness.IDLE, boundary.executionLiveness)
+    assertEquals(ExecutionLiveness.LIVE, boundary.executionLiveness)
+  }
+
+  @Test
+  fun `live parent stays live when a SQLITE_BUSY heartbeat leaves an expired lease`() {
+    val staleLease = GoalRunnerExecutionLease(
+      generation = 1,
+      ownerToken = "parent-owner",
+      hostIdentity = "host",
+      bootIdentity = "boot",
+      pid = 42,
+      processBirthToken = "birth-42",
+      heartbeatAt = "2026-07-27T11:59:00Z",
+      expiresAt = "2026-07-27T11:59:30Z",
+    )
+    val store = InMemoryGoalManifestStore(manifest(subtaskCount = 1)).apply {
+      executionLeaseForTest = staleLease
+      failHeartbeatWithSqliteBusy = true
+    }
+
+    val heartbeatFailure = assertFailsWith<IllegalStateException> {
+      store.heartbeatExecutionLease("wfl-parent", staleLease.copy(heartbeatAt = "2026-07-27T12:00:00Z"))
+    }
+    assertTrue(heartbeatFailure.message?.contains("SQLITE_BUSY") == true)
+    val status = requireNotNull(
+      testGoalRunnerStatusService(
+        manifestStore = store,
+        outcomeStore = RecordingOutcomeStore(),
+        phaseRecorder = goalTestPhaseRecorder(),
+        clock = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC),
+        ports = GoalRunnerStatusTestPorts(workerSupervisor = LiveProcessSupervisor),
+      ).status(goalStatusRequest()),
+    )
+
+    assertEquals(ExecutionLiveness.LIVE, status.executionLiveness)
+    assertFalse(status.paused)
+  }
+
+  @Test
+  fun `execution liveness is idle when inspect reports no live owner after lease expiry`() {
+    val harness = GoalStatusPhaseLedgerHarness()
+    harness.openRuntimeWorkflow("wfl-idle-expired")
+    harness.seedOwnership("wfl-idle-expired", expiresAt = "2026-07-27T11:59:59Z")
+    val service = statusServiceForLiveness(harness, "wfl-idle-expired", DeadProcessSupervisor)
+
+    val status = requireNotNull(service.status(goalStatusRequest()))
+
+    assertEquals(ExecutionLiveness.IDLE, status.executionLiveness)
   }
 
   @Test
@@ -1959,17 +2016,27 @@ class GoalRunnerStatusProjectionTest {
         expiresAt = "2026-07-27T12:00:01Z",
       )
     }
-    val service = testGoalRunnerStatusService(
+    val liveService = testGoalRunnerStatusService(
       manifestStore = store,
       outcomeStore = RecordingOutcomeStore(),
       phaseRecorder = goalTestPhaseRecorder(),
       clock = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC),
+      ports = GoalRunnerStatusTestPorts(workerSupervisor = LiveProcessSupervisor),
     )
 
-    assertEquals(ExecutionLiveness.LIVE, requireNotNull(service.status(goalStatusRequest())).executionLiveness)
+    assertEquals(ExecutionLiveness.LIVE, requireNotNull(liveService.status(goalStatusRequest())).executionLiveness)
 
     store.executionLeaseForTest = store.executionLeaseForTest!!.copy(expiresAt = "2026-07-27T11:59:59Z")
-    assertEquals(ExecutionLiveness.IDLE, requireNotNull(service.status(goalStatusRequest())).executionLiveness)
+    assertEquals(ExecutionLiveness.LIVE, requireNotNull(liveService.status(goalStatusRequest())).executionLiveness)
+
+    val idleService = testGoalRunnerStatusService(
+      manifestStore = store,
+      outcomeStore = RecordingOutcomeStore(),
+      phaseRecorder = goalTestPhaseRecorder(),
+      clock = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC),
+      ports = GoalRunnerStatusTestPorts(workerSupervisor = DeadProcessSupervisor),
+    )
+    assertEquals(ExecutionLiveness.IDLE, requireNotNull(idleService.status(goalStatusRequest())).executionLiveness)
   }
 
   @Test
@@ -1998,6 +2065,7 @@ class GoalRunnerStatusProjectionTest {
       outcomeStore = RecordingOutcomeStore(),
       phaseRecorder = harness.recorder,
       clock = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC),
+      ports = GoalRunnerStatusTestPorts(workerSupervisor = ParentLiveChildDeadSupervisor),
     )
 
     assertEquals(ExecutionLiveness.LIVE, requireNotNull(service.status(goalStatusRequest())).executionLiveness)
@@ -2531,9 +2599,35 @@ class GoalRunnerPauseStatusTest {
   }
 }
 
+private object ParentLiveChildDeadSupervisor : FeatureTaskRuntimeWorkerSupervisor {
+  override fun currentProcess(): FeatureTaskRuntimeProcessIdentity =
+    FeatureTaskRuntimeProcessIdentity("host", "boot", 9, "birth-9")
+
+  override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership): FeatureTaskRuntimeProcessInspection =
+    if (ownership.workflowId.startsWith("wfl-child")) {
+      FeatureTaskRuntimeProcessInspection.NotRunning
+    } else {
+      FeatureTaskRuntimeProcessInspection.ExactLive
+    }
+
+  override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) = Unit
+
+  override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership) = true
+
+  override fun terminateForcibly(ownership: FeatureTaskRuntimeWorkerOwnership) = true
+
+  override fun startHeartbeat(
+    plan: FeatureTaskRuntimeHeartbeatPlan,
+    heartbeat: () -> FeatureTaskRuntimeHeartbeatTick,
+  ) = NoopFeatureTaskRuntimeHeartbeat
+
+  override fun pause(durationMillis: Long) = Unit
+}
+
 private fun statusServiceForLiveness(
   harness: GoalStatusPhaseLedgerHarness,
   workflowId: String,
+  workerSupervisor: FeatureTaskRuntimeWorkerSupervisor = NoopFeatureTaskRuntimeWorkerSupervisor,
 ): GoalRunnerStatusService = testGoalRunnerStatusService(
   manifestStore = InMemoryGoalManifestStore(
     manifest(subtaskCount = 1)
@@ -2543,6 +2637,7 @@ private fun statusServiceForLiveness(
   outcomeStore = RecordingOutcomeStore(),
   phaseRecorder = harness.recorder,
   clock = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC),
+  ports = GoalRunnerStatusTestPorts(workerSupervisor = workerSupervisor),
 )
 
 private fun goalStatusRequest() = GoalRunnerStatusRequest(issueKey = "SKILL-56", invokedAgentId = "codex")
@@ -3294,6 +3389,7 @@ internal class InMemoryGoalManifestStore(
   var controlState: GoalRunnerControlState = initialControlState
     private set
   var executionLeaseForTest: GoalRunnerExecutionLease? = null
+  var failHeartbeatWithSqliteBusy: Boolean = false
   var boundaryTransitionCount: Int = 0
     private set
   var beforeLaunchAuthorization: ((Int) -> Unit)? = null
@@ -3342,7 +3438,12 @@ internal class InMemoryGoalManifestStore(
     expectedOwnerToken: String?,
   ): Boolean = true
 
-  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = true
+  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean {
+    if (failHeartbeatWithSqliteBusy) {
+      error("SQLITE_BUSY: database is locked")
+    }
+    return true
+  }
 
   override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = true
 

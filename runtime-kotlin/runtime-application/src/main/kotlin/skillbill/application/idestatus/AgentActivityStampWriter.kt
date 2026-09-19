@@ -85,7 +85,7 @@ class AgentActivityStampWriter(
 
   private fun persist(context: StampContext, stamp: AgentActivityStamp): Boolean {
     val outcome = runCatching {
-      database.selfManagedWrite { unitOfWork ->
+      database.selfManagedWriteWithBusyRetry { unitOfWork ->
         writeStamp(unitOfWork.agentActivityStamps, context.workflowId, stamp)
         context.parentWorkflowId?.let { parentId ->
           writeStamp(unitOfWork.agentActivityStamps, parentId, stamp)

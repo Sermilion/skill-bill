@@ -1,3 +1,12 @@
+## [2026-09-19] SKILL-362 — Truthful IDE liveness
+Areas: runtime-kotlin/{runtime-engine,runtime-application,runtime-infra/sqlite,runtime-ports,agent}, intellij-plugin
+- Separated operator pause from execution liveness: expired leases and idle execution project idle/active, while explicit pauses retain `paused_at`; the plugin maps idle to Idle.
+- Process inspection preserves live parent/child visibility when leases expire; stamp and worktree journal writes retry SQLite contention with bounded attempts. reusable
+- Pattern: keep the shared metrics database and existing 5000 ms `busy_timeout`; add application-level retry at self-managed write seams.
+- Known limitation: progress-idle kill timers and per-project database behavior remain unchanged.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-19] SKILL-361 subtask 3 — Nest remaining runtime packages under the sibling-count ceiling
 Areas: runtime-kotlin/{runtime-domain,runtime-application,runtime-infra,runtime-cli,runtime-contracts,runtime-core,runtime-ports}, intellij-plugin, runtime-kotlin architecture
 - Nested the remaining mixed runtime package families and matching tests by noun responsibility, leaving the `PrincipleEnforcementInventory` remainder empty and preserving module boundaries and plugin layer names.

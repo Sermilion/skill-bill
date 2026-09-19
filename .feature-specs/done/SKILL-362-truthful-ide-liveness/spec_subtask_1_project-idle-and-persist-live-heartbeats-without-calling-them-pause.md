@@ -7,7 +7,7 @@ Issue key: SKILL-362
 
 Deliver the whole feature in this commit. Resolve F-001, F-002, and F-003 in [investigation.md](investigation.md).
 
-Own `IdeStatusProjector.goalLifecycleFromProjection`, `GoalRunnerStatusProjectionAssembler.resolveParentExecutionLiveness` / `resolveChildExecutionLiveness` / `livenessOfLeaseOwner`, `AgentActivityStampWriter.persist`, `WorktreeEditJournalWriter` persist, `DatabaseRuntime` busy_timeout if the retry policy changes, plugin mapping only if an idle payload currently cannot reach Idle, `IdeStatusServiceGoalProjectionTest` and sibling engine liveness tests, golden IDE-status fixtures that treat expired-lease as paused, and a decision entry in `runtime-kotlin/agent/decisions.md`.
+Own `IdeStatusProjector.goalLifecycleFromProjection`, `GoalRunnerStatusProjectionAssembler.resolveParentExecutionLiveness` / `resolveChildExecutionLiveness` / `livenessOfLeaseOwner`, `AgentActivityStampWriter.persist`, `WorktreeEditJournalWriter` persist, `DatabaseRuntime` busy_timeout if the retry policy changes, plugin mapping only if an idle payload currently cannot reach Idle, `IdeStatusServiceGoalProjectionTest` and sibling engine liveness tests, golden IDE-status fixtures that treat expired-lease as paused, and a decision entry in `../../../runtime-kotlin/agent/decisions.md`.
 
 Stop mapping idle liveness to paused. Consult process inspect when the lease is expired or the heartbeat write failed so a live parent or child JVM stays `live`. Keep operator pause as paused with `paused_at`. Make stamp and journal writes survive SQLITE_BUSY beyond the current 5s wait, or retry in-process, without splitting the metrics database.
 

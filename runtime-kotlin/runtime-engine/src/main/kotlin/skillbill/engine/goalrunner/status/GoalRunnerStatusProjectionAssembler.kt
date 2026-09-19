@@ -452,10 +452,10 @@ internal fun GoalRunnerStatusProjectionAssembler.resolveChildExecutionLiveness(
     ExecutionLiveness.UNKNOWN
   } else {
     val ownership = phaseRecorder.workerOwnership(workflowId)
-    if (ownership != null && ownership.expiresAtInstant.isAfter(clock.instant())) {
-      livenessOfLeaseOwner(ownership)
-    } else {
+    if (ownership == null) {
       ExecutionLiveness.IDLE
+    } else {
+      livenessOfLeaseOwner(ownership)
     }
   }
 }.getOrElse { error ->
@@ -474,11 +474,7 @@ internal fun GoalRunnerStatusProjectionAssembler.resolveParentExecutionLiveness(
 ): ExecutionLiveness = runCatching {
   val lease = manifestStore.executionLease(parentWorkflowId)
     ?: return@runCatching ExecutionLiveness.IDLE
-  if (lease.expiresAtInstant.isAfter(clock.instant())) {
-    livenessOfLeaseOwner(lease.asWorkerOwnership(parentWorkflowId))
-  } else {
-    ExecutionLiveness.IDLE
-  }
+  livenessOfLeaseOwner(lease.asWorkerOwnership(parentWorkflowId))
 }.getOrElse { error ->
   durableRead.recordDegradedRead(
     seam = "goal-status.parent_execution_liveness",

@@ -1367,6 +1367,31 @@ idempotent.
 Revisit when: the DB is moved off a local filesystem (WAL needs shared-memory
 support), or measured contention shows 5s is the wrong timeout.
 
+## 2026-09-19 — Idle execution liveness is not operator pause (SKILL-362)
+
+Context: IDE status treated expired parent execution leases and idle
+`execution_liveness` as `lifecycle_state: paused` even when `GoalRunnerControlState.paused`
+was false and the wire carried no `paused_at`. A live parent or child JVM could also
+disappear from status when lease heartbeats failed under SQLite write contention.
+
+Decision: `IdeStatusProjector` projects operator pause only from consumed pause control
+state; idle liveness maps to `lifecycle_state: idle` (or active when process inspect
+reports a live owner). `GoalRunnerStatusProjectionAssembler` consults process inspect
+for parent and child worker ownership even when the stored lease is expired. Activity
+stamp and worktree journal writers retry `selfManagedWrite` up to
+`ReviewMetricsDatabasePolicy.SELF_MANAGED_WRITE_BUSY_ATTEMPTS` on `SQLITE_BUSY` before
+emitting the existing bounded failure diagnostics.
+
+Reason: Operator pause, heartbeat loss, and between-phase idle are distinct signals.
+Inspect keeps a running JVM visible when durable lease rows lag; bounded in-process
+retries complement the existing per-connection `busy_timeout` without forking the shared
+review-metrics database.
+
+Relative to 2026-06-26: `PRAGMA busy_timeout` remains
+`ReviewMetricsDatabasePolicy.BUSY_TIMEOUT_MILLIS` (5000 ms). Application-level stamp and
+journal persistence adds three total `selfManagedWrite` attempts on `SQLITE_BUSY`; the
+SQLite pragma value itself is unchanged.
+
 ## 2026-06-12 — Retain split `skillbill.contracts.*` package for validator moves
 
 Context: SKILL-52.4 F16 leaves contract DTOs/constants/helpers in

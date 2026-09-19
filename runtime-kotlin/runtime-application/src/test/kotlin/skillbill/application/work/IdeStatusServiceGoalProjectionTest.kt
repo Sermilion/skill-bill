@@ -21,14 +21,18 @@ import kotlin.test.assertTrue
 class IdeStatusServiceGoalProjectionTest {
 
   @Test
-  fun `running goal whose parent lease expired projects paused anchored at the last heartbeat`() {
+  fun `running goal whose parent lease expired projects idle or active without operator pause`() {
     val fixture = gitRepoFixture("ide-status-goal-lease-expired")
     val identity = testGoalRepositoryIdentity(fixture)
     val heartbeatAt = Instant.parse("2026-08-06T11:50:00Z")
     val lease = expiredLease(heartbeatAt)
     val controls = object : GoalRunnerControlRepository by EmptyGoalRunnerControlRepository {
       override fun controlState(parentWorkflowId: String): GoalRunnerControlState =
-        GoalRunnerControlState(repositoryIdentity = identity, executionLease = lease)
+        GoalRunnerControlState(
+          repositoryIdentity = identity,
+          executionLease = lease,
+          pausedAt = "2026-08-06T11:55:00Z",
+        )
     }
     val service = ideStatusService(
       TrackingDatabase(
@@ -44,17 +48,18 @@ class IdeStatusServiceGoalProjectionTest {
     )
 
     val result = service.status(
-
       IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
     )
 
-    assertEquals(IdeStatusLifecycleState.PAUSED, result.snapshot.lifecycleState)
+    assertTrue(
+      result.snapshot.lifecycleState == IdeStatusLifecycleState.IDLE ||
+        result.snapshot.lifecycleState == IdeStatusLifecycleState.ACTIVE,
+    )
     assertEquals(heartbeatAt, result.snapshot.updatedAt)
     val wire = result.snapshot.toStatusWireMap()
     assertFalse(wire.containsKey("paused_at"))
     assertEquals(heartbeatAt.toString(), wire["updated_at"])
-    assertEquals("Goal SKILL-148 is paused.", result.snapshot.summary)
+    assertFalse(result.snapshot.summary.contains("paused", ignoreCase = true))
     assertEquals("planning", result.snapshot.currentStep.id)
   }
 
@@ -207,6 +212,7 @@ class IdeStatusServiceGoalProjectionTest {
 
     assertEquals("paused", wire["lifecycle_state"])
     assertEquals("2026-08-02T10:00:00Z", wire["paused_at"])
+    assertEquals("operator_request", nestedWireMap(wire, "pause_reason")["code"])
     assertFalse(wire.containsKey("pause_requested"))
   }
 

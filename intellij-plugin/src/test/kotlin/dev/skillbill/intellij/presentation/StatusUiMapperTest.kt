@@ -95,6 +95,19 @@ class StatusUiMapperTest {
     }
 
     @Test
+    fun `idle lifecycle headline is idle and paused lifecycle uses paused wording`() {
+        val idleUi = StatusUiMapper.map(SkillBillStatusOutcome.Idle(now, "Goal SKILL-148 is idle.", repositoryIdentity = "repo"), now)
+        assertTrue(idleUi is SkillBillStatusUiState.Idle)
+        assertEquals("Skill Bill: idle", (idleUi as SkillBillStatusUiState.Idle).headline)
+        assertEquals("Skill Bill · idle", SkillBillStatusBarPresentation.map(idleUi).barText)
+
+        val pausedUi = StatusUiMapper.map(paused(updatedAt = now), now)
+        assertTrue(pausedUi is SkillBillStatusUiState.Paused)
+        assertEquals("Skill Bill: SKILL-165 · paused", (pausedUi as SkillBillStatusUiState.Paused).headline)
+        assertTrue(SkillBillStatusBarPresentation.map(pausedUi).barText.contains("paused"))
+    }
+
+    @Test
     fun `an idle carrying the unconfirmed marker renders exactly like a plain idle`() {
         val plain = SkillBillStatusOutcome.Idle(now, "idle", repositoryIdentity = "repo")
         val marked = plain.copy(diagnostic = StatusDiagnostic(reasonCode = NO_MATCHING_WORK_REASON_CODE))

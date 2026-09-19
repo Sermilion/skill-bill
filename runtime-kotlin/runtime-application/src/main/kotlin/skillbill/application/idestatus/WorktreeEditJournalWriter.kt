@@ -65,16 +65,14 @@ class WorktreeEditJournalWriter(
     val maxRows = WorktreeEditJournalPayloadKeys.MAX_ROWS_PER_WORKFLOW
     val persistEntries = entries.take(maxRows)
     val truncatedRows = entries.size - persistEntries.size
-    val droppedRows = database.selfManagedWrite { unitOfWork ->
-      unitOfWork.worktreeEditJournal.append(
-        workflowId,
-        WorktreeEditTick(
-          recordedAt = clock.instant(),
-          phaseId = phaseId,
-          source = WorktreeEditSource.WORKTREE_PROBE,
-          entries = persistEntries,
-        ),
-      )
+    val tick = WorktreeEditTick(
+      recordedAt = clock.instant(),
+      phaseId = phaseId,
+      source = WorktreeEditSource.WORKTREE_PROBE,
+      entries = persistEntries,
+    )
+    val droppedRows = database.selfManagedWriteWithBusyRetry { unitOfWork ->
+      unitOfWork.worktreeEditJournal.append(workflowId, tick)
       unitOfWork.worktreeEditJournal.trimToCap(workflowId, maxRows)
     } + truncatedRows
     if (droppedRows > 0) {

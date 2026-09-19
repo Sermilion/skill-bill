@@ -124,7 +124,8 @@ class IdeStatusProjector(
       planning = planning,
       currentPhaseExecution = planningStep?.let { null } ?: childContext.currentPhaseExecution,
       pauseRequested = projection?.pauseRequested == true && projection.paused != true,
-      pausedAt = parseInstantOrNull(projection?.pausedAt),
+      pausedAt = parseInstantOrNull(projection?.pausedAt)
+        ?.takeIf { lifecycle == IdeStatusLifecycleState.PAUSED },
       pauseReason = goalPauseReason(lifecycle, projection, childContext),
       activeDurationMs = projection?.recordedActiveDurationMs(),
       activeDurationAsOf = projection?.liveActiveDurationAnchor(),
@@ -157,7 +158,7 @@ class IdeStatusProjector(
     if (candidate.lifecycleState != IdeStatusLifecycleState.ACTIVE) return candidate.lifecycleState
     return when {
       projection?.paused == true -> IdeStatusLifecycleState.PAUSED
-      projection?.executionLiveness == ExecutionLiveness.IDLE -> IdeStatusLifecycleState.PAUSED
+      projection?.executionLiveness == ExecutionLiveness.IDLE -> IdeStatusLifecycleState.IDLE
       else -> IdeStatusLifecycleState.ACTIVE
     }
   }

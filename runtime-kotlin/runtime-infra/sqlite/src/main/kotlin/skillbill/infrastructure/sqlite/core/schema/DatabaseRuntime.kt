@@ -4,6 +4,7 @@ import skillbill.error.core.DatabaseAccessError
 import skillbill.error.core.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics
+import skillbill.ports.db.ReviewMetricsDatabasePolicy
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.nio.file.Files
 import java.nio.file.Path
@@ -139,7 +140,7 @@ internal object DatabaseRuntime {
   private fun configureConnection(connection: Connection, enableWal: Boolean) {
     connection.createStatement().use { statement ->
 
-      statement.execute("PRAGMA busy_timeout = 5000")
+      statement.execute("PRAGMA busy_timeout = ${ReviewMetricsDatabasePolicy.BUSY_TIMEOUT_MILLIS}")
       if (enableWal) statement.execute("PRAGMA journal_mode = WAL")
       statement.execute("PRAGMA foreign_keys = ON")
     }
