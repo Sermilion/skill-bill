@@ -1,6 +1,6 @@
 package skillbill.engine.goalrunner
 
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.model.GoalRunnerAppliedRepair
 import skillbill.engine.goalrunner.model.GoalRunnerChildWedgeDiagnosis
 import skillbill.engine.goalrunner.model.GoalRunnerChildWedgeDiagnosisRequest

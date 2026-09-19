@@ -2,8 +2,8 @@ package skillbill.engine.goalrunner.planning
 
 import org.junit.jupiter.api.Test
 import skillbill.application.testHarnessClock
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.engine.manifest
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.ports.db.DatabaseSessionFactory

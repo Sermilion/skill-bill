@@ -1,8 +1,8 @@
 package skillbill.cli.featuretask
 
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusProjection
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimePhaseStatus
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusProjection
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
 import skillbill.workflow.taskruntime.model.ValidationGateCacheMode

@@ -3,7 +3,7 @@ package skillbill.engine.goalrunner.findings
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
 import skillbill.error.UnaddressedFindingsLedgerAbsentError
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_CATEGORIES

@@ -1,7 +1,7 @@
 package skillbill.engine
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseBriefingAssembler
+import skillbill.engine.featuretask.phase.briefing.FeatureTaskRuntimePhaseBriefingAssembler
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FORBIDDEN_PROJECTION_FIELD_NAMES

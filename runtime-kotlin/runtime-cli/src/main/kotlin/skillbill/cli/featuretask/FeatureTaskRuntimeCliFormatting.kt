@@ -7,9 +7,9 @@ import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
 import skillbill.application.workflow.openFeatureTask
 import skillbill.cli.model.CliRunInputs
-import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEventSink
+import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEventSink
 import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
 

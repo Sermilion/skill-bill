@@ -11,7 +11,7 @@ import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.engine.decomposition.encodeDecompositionManifestYaml
-import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.goalrunner.GoalPreflightService
 import skillbill.engine.goalrunner.model.GoalPreflightRequest
 import skillbill.error.InvalidAgentAddonSelectionError

@@ -1,7 +1,7 @@
 package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY

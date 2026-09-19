@@ -5,9 +5,9 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.engine.featuretask.emitFeatureTaskRuntimeEventSafely
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
-import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
+import skillbill.engine.featuretask.runloop.observability.emitFeatureTaskRuntimeEventSafely
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
+import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCyclePhase
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
@@ -17,7 +17,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateProgressWrite
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
 import skillbill.engine.featuretask.validation.model.requiresUnparseableGateTriage
-import skillbill.engine.featuretask.workflowArtifactEntryMap
+import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics

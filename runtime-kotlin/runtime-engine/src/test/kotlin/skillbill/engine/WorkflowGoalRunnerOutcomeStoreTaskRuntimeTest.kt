@@ -3,7 +3,7 @@ import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
-import skillbill.engine.featuretask.AlwaysValidValidator
+import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
 import skillbill.engine.goalrunner.OutcomeStoreTestArtifactPorts
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
 import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError

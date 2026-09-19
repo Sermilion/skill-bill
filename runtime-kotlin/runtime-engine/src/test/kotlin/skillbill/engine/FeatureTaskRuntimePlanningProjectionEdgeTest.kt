@@ -2,7 +2,7 @@
 package skillbill.engine
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseBriefingAssembler
+import skillbill.engine.featuretask.phase.briefing.FeatureTaskRuntimePhaseBriefingAssembler
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition

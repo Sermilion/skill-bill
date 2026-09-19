@@ -1,8 +1,8 @@
 package skillbill.engine.goalrunner
 
 import skillbill.application.decomposition.withParentStatus
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointRefPruneRequest
-import skillbill.engine.featuretask.pruneCompletedSubtaskCheckpointRefs
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointRefPruneRequest
+import skillbill.engine.featuretask.lifecycle.checkpoint.pruneCompletedSubtaskCheckpointRefs
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore

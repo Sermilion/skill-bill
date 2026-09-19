@@ -9,8 +9,8 @@ import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY
 import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.GoalRunnerStatusTestPorts

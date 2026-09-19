@@ -2,9 +2,9 @@ package skillbill.mcp.featuretask
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
-import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementAcknowledgment
-import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementBlockRequest
-import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequest
+import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementAcknowledgment
+import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementBlockRequest
+import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementCompleteRequest
 import skillbill.error.InvalidMcpToolArgumentError
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.optionalInt

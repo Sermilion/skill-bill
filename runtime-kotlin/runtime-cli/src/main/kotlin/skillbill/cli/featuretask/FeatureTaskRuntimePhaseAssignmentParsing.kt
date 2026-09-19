@@ -6,9 +6,9 @@ import skillbill.application.review.model.CodeReviewExecutionMode
 import skillbill.cli.kernel.requireInvokingAgentId
 import skillbill.config.model.CompactionSettings
 import skillbill.config.model.PhaseModelDirective
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeAgentAssignment
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeModelAssignment
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeAgentAssignment
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path

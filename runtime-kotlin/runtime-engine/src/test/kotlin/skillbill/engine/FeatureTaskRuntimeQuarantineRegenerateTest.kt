@@ -1,6 +1,6 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQuarantineEntry

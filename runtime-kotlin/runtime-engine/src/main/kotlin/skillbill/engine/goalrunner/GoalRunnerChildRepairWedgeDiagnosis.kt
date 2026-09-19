@@ -2,10 +2,10 @@ package skillbill.engine.goalrunner
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
-import skillbill.engine.featuretask.decodePhaseRecords
-import skillbill.engine.featuretask.diagnoseUnsettledCompletedUpstreamPhaseId
-import skillbill.engine.featuretask.featureSizeFromArtifacts
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.engine.featuretask.phase.core.decodePhaseRecords
+import skillbill.engine.featuretask.lifecycle.remediation.diagnoseUnsettledCompletedUpstreamPhaseId
+import skillbill.engine.featuretask.lifecycle.remediation.featureSizeFromArtifacts
 import skillbill.engine.goalrunner.model.GoalRunnerChildWedgeDiagnosis
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeClass
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeFinding

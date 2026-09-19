@@ -1,6 +1,6 @@
 package skillbill.engine
-import skillbill.engine.featuretask.AlwaysValidValidator
-import skillbill.engine.featuretask.FeatureTaskRuntimeRunState
+import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.goalrunner.GoalRunnerChildProgressRead
 import skillbill.engine.goalrunner.GoalRunnerProgressReader
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError

@@ -1,6 +1,6 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.FeatureTaskRuntimeAttemptBudgets
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains

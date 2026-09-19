@@ -5,8 +5,8 @@ import skillbill.application.config.ConfigResolutionService
 import skillbill.application.telemetry.TelemetryService
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.model.CliRunInputs
-import skillbill.engine.featuretask.FeatureTaskRuntimeRunner
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkerCoordinator
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
+import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeWorkerCoordinator
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.diagnostics.RuntimeDiagnostics

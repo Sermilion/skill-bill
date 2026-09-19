@@ -3,7 +3,7 @@ package skillbill.engine.featuretask.validation
 import skillbill.config.model.RepoLocalConfig
 import skillbill.config.model.ValidationGateRepoConfig
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLauncher
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest

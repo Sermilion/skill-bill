@@ -9,7 +9,7 @@ import skillbill.application.telemetry.TelemetryService
 import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.workflow.WorkflowService
 import skillbill.di.RuntimeComponent
-import skillbill.engine.featuretask.FeatureTaskPhaseSettlementService
+import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.time.Clock

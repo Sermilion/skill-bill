@@ -1,7 +1,7 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.featureTaskRuntimePhaseRecordFor
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecordFor
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals

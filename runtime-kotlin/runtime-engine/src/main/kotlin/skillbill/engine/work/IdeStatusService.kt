@@ -1,7 +1,7 @@
 package skillbill.engine.work
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.engine.featuretask.FeatureTaskRuntimeBranchSetup
+import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchSetup
 import skillbill.engine.goalrunner.goalRepositoryIdentity
 import skillbill.engine.work.model.IdeStatusCandidate
 import skillbill.engine.work.model.IdeStatusRequest

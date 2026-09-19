@@ -1,6 +1,6 @@
 package skillbill.application.evidence
 
-import skillbill.engine.featuretask.FeatureTaskRuntimeSharedReviewEvidenceResolver
+import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeSharedReviewEvidenceResolver
 import skillbill.error.FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.review.model.ReviewCheckpointFileIdentity

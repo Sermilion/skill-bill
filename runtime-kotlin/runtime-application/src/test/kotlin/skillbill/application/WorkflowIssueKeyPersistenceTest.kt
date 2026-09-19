@@ -6,7 +6,7 @@ import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
 import skillbill.application.workflow.openFeatureTask
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.goalrunner.testPhaseRecorder
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.WorkflowIssueKeyConflictError

@@ -9,11 +9,11 @@ import skillbill.cli.kernel.parseAgentAddonSelection
 import skillbill.cli.kernel.refuseUnavailableAgentLaunchers
 import skillbill.cli.kernel.refuseUnsupportedModelDirectives
 import skillbill.cli.kernel.resolveCliRepositoryRoot
-import skillbill.engine.featuretask.FeatureTaskRuntimeAgentResolver
-import skillbill.engine.featuretask.FeatureTaskRuntimeModelResolver
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeAgentAssignment
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeModelAssignment
+import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeAgentResolver
+import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeModelResolver
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeAgentAssignment
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.goal.model.ValidationDepth

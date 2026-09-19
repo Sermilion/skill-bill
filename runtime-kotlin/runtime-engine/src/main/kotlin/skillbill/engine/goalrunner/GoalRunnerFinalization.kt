@@ -2,8 +2,8 @@ package skillbill.engine.goalrunner
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.resolvedParentSpecPath
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointRefPruneRequest
-import skillbill.engine.featuretask.pruneCompletedSubtaskCheckpointRefs
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointRefPruneRequest
+import skillbill.engine.featuretask.lifecycle.checkpoint.pruneCompletedSubtaskCheckpointRefs
 import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError

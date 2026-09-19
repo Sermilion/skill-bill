@@ -1,6 +1,6 @@
 package skillbill.engine
 import skillbill.application.testHarnessClock
-import skillbill.engine.featuretask.FeatureTaskRuntimeCrashReconciler
+import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeCrashReconciler
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership

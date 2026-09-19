@@ -1,6 +1,6 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.featureTaskRuntimeAgentContext
+import skillbill.engine.featuretask.lifecycle.core.featureTaskRuntimeAgentContext
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import kotlin.test.Test

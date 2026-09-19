@@ -1,8 +1,8 @@
 package skillbill.cli.featuretask
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskOutcome
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeSubtaskOutcome
 import skillbill.workflow.model.DecompositionStatus
 
 internal fun FeatureTaskRuntimeRunReport.toRuntimeRunCliMap(): Map<String, Any?> = when (this) {

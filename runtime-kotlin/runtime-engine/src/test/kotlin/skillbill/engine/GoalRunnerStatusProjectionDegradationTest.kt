@@ -3,8 +3,8 @@ package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.engine.featuretask.FeatureTaskRuntimeContinuationKind
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeContinuationKind
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.goalrunner.GoalRunnerStatusTestPorts
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.engine.goalrunner.testGoalRunnerStatusService

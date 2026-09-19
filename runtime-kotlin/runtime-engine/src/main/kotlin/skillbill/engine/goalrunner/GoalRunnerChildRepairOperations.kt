@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyRequest

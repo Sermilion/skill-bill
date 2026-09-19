@@ -1,8 +1,8 @@
 package skillbill.engine
 
 import skillbill.contracts.time.JvmSystemClock
-import skillbill.engine.featuretask.FeatureTaskRuntimeContinuationKind
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeContinuationKind
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningContextDiscovery
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import java.nio.file.Files

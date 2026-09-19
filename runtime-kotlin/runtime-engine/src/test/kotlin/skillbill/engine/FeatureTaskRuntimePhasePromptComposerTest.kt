@@ -2,8 +2,8 @@
 package skillbill.engine
 
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.engine.featuretask.AUDIT_READONLY_EVIDENCE_SENTENCE
-import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
+import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
+import skillbill.engine.featuretask.phase.prompt.directives.AUDIT_READONLY_EVIDENCE_SENTENCE
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.CodeReviewExecutionMode

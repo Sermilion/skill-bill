@@ -1,8 +1,8 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.FeatureTaskRuntimePhasePromptComposeInputs
-import skillbill.engine.featuretask.FeatureTaskRuntimePhasePromptComposer
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.phase.prompt.compose.FeatureTaskRuntimePhasePromptComposeInputs
+import skillbill.engine.featuretask.phase.prompt.compose.FeatureTaskRuntimePhasePromptComposer
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
 
 internal fun composePhasePrompt(inputs: FeatureTaskRuntimePhasePromptComposeInputs): String =
   FeatureTaskRuntimePhasePromptComposer.compose(inputs)

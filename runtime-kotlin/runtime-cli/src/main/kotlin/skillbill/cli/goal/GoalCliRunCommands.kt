@@ -19,7 +19,7 @@ import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.engine.featuretask.model.FeatureTaskContinuationCandidate
+import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
 import skillbill.engine.goalrunner.GoalPreflightService
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.model.GoalPreflightRequest

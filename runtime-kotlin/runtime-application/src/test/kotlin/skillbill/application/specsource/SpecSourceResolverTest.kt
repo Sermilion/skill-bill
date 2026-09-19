@@ -4,7 +4,7 @@ import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.decomposition.writeDecompositionManifestText
 import skillbill.application.testDecompositionManifestValidator
-import skillbill.engine.featuretask.SpecSourceResolver
+import skillbill.engine.featuretask.prepare.SpecSourceResolver
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent

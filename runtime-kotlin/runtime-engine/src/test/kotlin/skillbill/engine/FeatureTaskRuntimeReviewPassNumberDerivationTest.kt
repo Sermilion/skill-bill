@@ -1,6 +1,6 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.resolveReviewPassNumber
+import skillbill.engine.featuretask.runloop.core.resolveReviewPassNumber
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

@@ -8,8 +8,8 @@ import skillbill.application.workflow.model.WorkflowResumeResult
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLedgerRequest
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
 import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionContext
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError

@@ -10,7 +10,7 @@ import skillbill.engine.InMemoryGoalManifestStore
 import skillbill.engine.PlanningProjectionFixtures
 import skillbill.engine.RecordingOutcomeStore
 import skillbill.engine.RecordingPullRequestPort
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
+import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.GoalPlanningSweepPortsParams
 import skillbill.engine.goalrunner.goalRunnerDeps

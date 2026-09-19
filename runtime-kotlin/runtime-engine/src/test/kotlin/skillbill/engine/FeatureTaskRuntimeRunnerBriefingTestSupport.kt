@@ -1,11 +1,11 @@
 package skillbill.engine
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseBriefingAssembler
-import skillbill.engine.featuretask.GoalContinuationStateRecordRequest
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.phase.briefing.FeatureTaskRuntimePhaseBriefingAssembler
+import skillbill.engine.featuretask.lifecycle.continuation.GoalContinuationStateRecordRequest
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputFailureReason

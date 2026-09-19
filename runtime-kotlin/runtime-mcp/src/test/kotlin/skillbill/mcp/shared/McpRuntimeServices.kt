@@ -7,8 +7,7 @@ import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.telemetry.TelemetryService
 import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.workflow.WorkflowService
-import skillbill.engine.featuretask.FeatureTaskPhaseSettlementService
-
+import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
 internal class McpRuntimeServices(private val component: McpComponent) {
   val learningService: LearningService get() = component.learningService
   val lifecycleTelemetryService: LifecycleTelemetryService get() = component.lifecycleTelemetryService

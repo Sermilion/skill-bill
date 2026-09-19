@@ -4,6 +4,15 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-19] Runtime package sibling ceilings
+
+Production packages use a 12-sibling ceiling for non-model noun families and a
+20-sibling ceiling for area-owned model packages. Packages with multiple noun
+families nest those families below the area package instead of keeping mixed
+files together. The model exception gives public inputs and results one
+cohesive boundary while the lower non-model ceiling keeps services,
+orchestration, and adapters small enough to locate and own.
+
 ## [2026-09-18] SKILL-359 subtask 2: TELEMETRY_PROXY_CONTRACT_VERSION stays in runtime-domain
 
 `TELEMETRY_PROXY_CONTRACT_VERSION` remains in `runtime-domain` `TelemetryConstants.kt` with value `2` because it is the protocol version constant the HTTP client uses when the proxy omits `contract_version`. `SharedPayloadKeys.CONTRACT_VERSION` remains the map key on proxy payloads; wire keys for proxy fields live in `TelemetryProxyPayloadKeys` without moving the version constant beside them.

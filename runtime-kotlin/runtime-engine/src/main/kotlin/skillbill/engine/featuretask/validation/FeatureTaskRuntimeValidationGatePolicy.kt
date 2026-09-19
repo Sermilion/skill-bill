@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask.validation
 import skillbill.config.model.applyValidationGateGradleWrapper
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.validation.model.ValidationGateCyclePhase
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError

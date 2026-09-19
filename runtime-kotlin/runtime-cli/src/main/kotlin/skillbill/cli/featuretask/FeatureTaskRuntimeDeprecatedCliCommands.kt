@@ -9,9 +9,9 @@ import skillbill.application.workflow.WorkflowService
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.resolveCliRepositoryRoot
-import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
-import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
+import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 
 private const val FEATURE_TASK_RUNTIME_DEPRECATION_NOTE: String =
   "feature-task-runtime is a deprecated alias for feature-task. Use feature-task; behavior is unchanged.\n"

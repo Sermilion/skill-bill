@@ -106,6 +106,8 @@ object PrincipleEnforcementInventory {
     "Wire vocabulary and contract-key declarations must be unique, dynamically indexed, and referenced " +
       "without local token collections or literal payload-key accesses.",
     "Package clustering: loose files in a subpackaged area must not belong to a sibling area cluster.",
+    "Production package siblings: non-model packages stay at or below 12 files and model packages at or below " +
+      "20 files, except for the named remainder inventory.",
     "Production line ceiling: no production Kotlin file may exceed $PRODUCTION_LINE_CEILING lines without an " +
       "explicit exemption.",
     "Production logical-type line ceiling: attribute extension files to receiver types and enforce combined totals.",
@@ -508,13 +510,54 @@ object PrincipleEnforcementInventory {
     "session",
     "db",
     "verification",
+    "phaseoutput",
+    "process",
+    "agentaddon",
   )
 
-  val packageClusteringSourceRoots: List<String> = listOf(
-    RUNTIME_APPLICATION_MAIN,
-    "runtime-kotlin/runtime-domain/src/main/kotlin",
-    "runtime-kotlin/runtime-ports/src/main/kotlin",
+  val productionPackageSiblingCountSourceRoots: List<String> =
+    RuntimeModuleCatalog.declaredGradleModules
+      .filterNot { moduleName -> moduleName == "runtime-infra" }
+      .map { moduleName ->
+        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin"
+      } + "intellij-plugin/src/main/kotlin"
+
+  val packageSiblingCountRemainderInventory: Map<String, String> = mapOf(
+    "skillbill.application.review" to "Application review noun families are owned by subtask 3.",
+    "skillbill.application.telemetry" to "Application telemetry noun families are owned by subtask 3.",
+    "skillbill.application.workflow" to "Application workflow noun families are owned by subtask 3.",
+    "skillbill.cli.goal" to "CLI goal noun families are owned by subtask 3.",
+    "skillbill.cli.install" to "CLI install noun families are owned by subtask 3.",
+    "skillbill.cli.kernel" to "CLI kernel noun families are owned by subtask 3.",
+    "skillbill.cli.scaffold" to "CLI scaffold noun families are owned by subtask 3.",
+    "skillbill.contracts.workflow" to "Contract workflow noun families are owned by subtask 3.",
+    "skillbill.di" to "The composition-root taxonomy is owned by subtask 3.",
+    "skillbill.engine.goalrunner" to "Goalrunner noun families are owned by subtask 2.",
+    "skillbill.engine.goalrunner.planning" to "Goalrunner planning noun families are owned by subtask 2.",
+    "skillbill.error" to "Error taxonomy noun families are owned by subtask 3.",
+    "skillbill.infrastructure.contracts.workflow" to "Infrastructure contract workflow noun families are owned by subtask 3.",
+    "skillbill.infrastructure.launcher.process" to "Launcher process noun families are owned by subtask 3.",
+    "skillbill.infrastructure.skills" to "Infrastructure skills noun families are owned by subtask 3.",
+    "skillbill.infrastructure.skills.install.nativeagent" to "Native-agent install noun families are owned by subtask 3.",
+    "skillbill.infrastructure.skills.install.staging" to "Install staging noun families are owned by subtask 3.",
+    "skillbill.infrastructure.skills.scaffold.platformpack" to "Platform-pack scaffold noun families are owned by subtask 3.",
+    "skillbill.infrastructure.skills.scaffold.runtime" to "Scaffold runtime noun families are owned by subtask 3.",
+    "skillbill.infrastructure.skills.scaffold.validation" to "Scaffold validation noun families are owned by subtask 3.",
+    "skillbill.infrastructure.sqlite.core" to "SQLite core noun families are owned by subtask 3.",
+    "skillbill.infrastructure.sqlite.goalrunner" to "SQLite goalrunner noun families are owned by subtask 3.",
+    "skillbill.infrastructure.sqlite.review" to "SQLite review noun families are owned by subtask 3.",
+    "skillbill.infrastructure.sqlite.telemetry" to "SQLite telemetry noun families are owned by subtask 3.",
+    "skillbill.infrastructure.sqlite.workflow" to "SQLite workflow noun families are owned by subtask 3.",
+    "skillbill.infrastructure.workflow" to "Infrastructure workflow noun families are owned by subtask 3.",
+    "skillbill.ports.review" to "Review port noun families are owned by subtask 3.",
+    "skillbill.ports.telemetry" to "Telemetry port noun families are owned by subtask 3.",
+    "skillbill.review" to "Review taxonomy noun families are owned by subtask 3.",
+    "skillbill.review.context.model" to "Review context model noun families are owned by subtask 3.",
+    "skillbill.workflow.taskruntime" to "Workflow taskruntime noun families are owned by subtask 3.",
+    "skillbill.workflow.taskruntime.model" to "Workflow taskruntime models are owned by subtask 3.",
   )
+
+  val packageClusteringSourceRoots: List<String> = productionPackageSiblingCountSourceRoots
 
   val conventionOwnedTestPatterns: List<Pair<String, String>> = listOf(
     """if\s*\(\s*project\.hasProperty\(\s*"update-snapshots"\s*\)\s*\)""" to "update-snapshots Test systemProperty",

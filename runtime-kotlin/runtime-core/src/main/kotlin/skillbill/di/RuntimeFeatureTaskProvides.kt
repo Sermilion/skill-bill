@@ -2,8 +2,8 @@ package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.runtime.RuntimeSingleton
-import skillbill.engine.featuretask.FeatureTaskLastCommitReviewDriver
-import skillbill.engine.featuretask.FeatureTaskRuntimeReviewDriver
+import skillbill.engine.featuretask.review.core.FeatureTaskLastCommitReviewDriver
+import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.infrastructure.host.JdkFeatureTaskRuntimeWorkerSupervisor
 import skillbill.infrastructure.sqlite.SqliteFeatureTaskPhaseSettlementRepository
 import skillbill.infrastructure.workflow.FileSystemCheckedOutBranchSource

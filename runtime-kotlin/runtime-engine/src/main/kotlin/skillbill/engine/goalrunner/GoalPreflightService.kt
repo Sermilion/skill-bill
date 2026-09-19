@@ -2,7 +2,7 @@ package skillbill.engine.goalrunner
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.resolveDecompositionManifest
-import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.goalrunner.model.GoalPreflightLookupInput
 import skillbill.engine.goalrunner.model.GoalPreflightRequest
 import skillbill.engine.goalrunner.model.GoalPreflightResult

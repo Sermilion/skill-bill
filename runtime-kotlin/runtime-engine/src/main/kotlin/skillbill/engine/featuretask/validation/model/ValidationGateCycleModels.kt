@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask.validation.model
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.goal.model.ValidationDepth
@@ -25,19 +26,6 @@ sealed interface ValidationGateResolution {
   data class Absent(val routedPackSlug: String?) : ValidationGateResolution
 
   data class Incompatible(val reason: String) : ValidationGateResolution
-}
-
-data class ValidationFindingSetProjection(
-  val findings: List<ValidationGateFinding>,
-) {
-  fun toHandoffMaps(): List<Map<String, String?>> = findings.map { finding ->
-    linkedMapOf(
-      "module" to finding.module,
-      "rule_or_test_id" to finding.ruleOrTestId,
-      "message" to finding.message,
-      "location" to finding.location,
-    )
-  }
 }
 
 const val UNPARSEABLE_GATE_FAILURE_RULE_ID: String = "unparseable_gate_failure"

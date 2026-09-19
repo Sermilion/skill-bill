@@ -7,9 +7,9 @@ import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.testHarnessClock
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.goalrunner.GoalRunnerLaunchReconciler
 import skillbill.engine.goalrunner.GoalRunnerLedgerContext
 import skillbill.engine.goalrunner.GoalRunnerLedgerRecorder

@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.planning
 
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.boundedSchemaGateDetail
+import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.goalrunner.EmptyOrStoppedArgs
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.engine.planningprojection.producerProjectionGateReason

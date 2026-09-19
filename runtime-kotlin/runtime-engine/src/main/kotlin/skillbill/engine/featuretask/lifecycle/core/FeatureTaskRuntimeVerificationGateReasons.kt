@@ -1,0 +1,57 @@
+package skillbill.engine.featuretask.lifecycle.core
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.error.InvalidFeatureTaskRuntimeFindingVerificationRecordError
+import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
+import skillbill.workflow.taskruntime.model.validateDispositionCoverage
+
+object FeatureTaskRuntimeVerificationGateReasons {
+  internal fun findingVerificationDisposition(
+    phaseId: String,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
+    reviewFindingIds: Set<String>,
+  ): String? {
+    if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS || reviewFindingIds.isEmpty()) {
+      return null
+    }
+    val dispositionsKey = FeatureTaskRuntimeVerificationSignalKeys.FINDINGS_VERIFICATION_DISPOSITIONS
+    val dispositionsRaw = outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS]
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?.get(dispositionsKey) as? List<*>
+      ?: return "verify_findings reported 'completed' without produced_outputs.$dispositionsKey."
+    return runCatching {
+      FeatureTaskRuntimeFindingVerificationDisposition.parseList(
+        dispositionsRaw,
+        "produced_outputs.$dispositionsKey",
+      )
+    }.fold(
+      onSuccess = { validateDispositionCoverage(it, reviewFindingIds) },
+      onFailure = { failure ->
+        when (failure) {
+          is InvalidFeatureTaskRuntimeFindingVerificationRecordError ->
+            failure.message ?: "finding verification dispositions are not contract-safe."
+          else -> failure.message ?: "finding verification dispositions are not contract-safe."
+        }
+      },
+    )
+  }
+
+  internal fun reviewVerificationSignal(phaseId: String, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? {
+    if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) return null
+    val hasVerdict = (outputMap[FeatureTaskRuntimeVerificationSignalKeys.VERDICT] as? String)?.isNotBlank() == true
+    val producedOutputs = outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS] as? Map<*, *>
+    val findingsKey = FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS
+    val hasFindingsArray = producedOutputs?.containsKey(findingsKey) == true && producedOutputs[findingsKey] is List<*>
+    return if (hasVerdict || hasFindingsArray) {
+      null
+    } else {
+      "Review phase reported 'completed' without a verification signal: the output must carry either a " +
+        "top-level 'verdict' or a 'produced_outputs.findings' array (an explicit empty array affirms no " +
+        "blocking findings). A review that emits neither cannot advance past a possible Blocker/Major; " +
+        "the schema gate fails rather than silently advancing to validation."
+    }
+  }
+}

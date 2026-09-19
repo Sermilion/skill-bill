@@ -2,7 +2,7 @@ package skillbill.engine.goalrunner.planning
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.planning.model.GoalPlanningRejectionRecord
 
 fun interface GoalPlanningRejectionRecorder {

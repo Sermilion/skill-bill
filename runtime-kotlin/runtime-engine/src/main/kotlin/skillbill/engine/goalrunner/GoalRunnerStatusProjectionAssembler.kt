@@ -5,11 +5,11 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.contracts.workflow.WorktreeEditJournalPayloadKeys
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
-import skillbill.engine.featuretask.agentAttributionFromPhaseState
-import skillbill.engine.featuretask.auditGapIterationCount
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
+import skillbill.engine.featuretask.lifecycle.continuation.agentAttributionFromPhaseState
+import skillbill.engine.featuretask.review.core.auditGapIterationCount
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.featuretask.validation.ValidationGateResolver
 import skillbill.engine.featuretask.validation.durableValidationChangedPaths
 import skillbill.engine.featuretask.validation.requiredValidationGateCommand

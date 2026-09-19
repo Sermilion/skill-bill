@@ -2,7 +2,7 @@ package skillbill.engine.goalrunner
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.pruneResetSubtaskCheckpointRefs
+import skillbill.engine.featuretask.lifecycle.checkpoint.pruneResetSubtaskCheckpointRefs
 import skillbill.engine.goalrunner.model.GoalRunnerChildRecoveryDiagnostic
 import skillbill.engine.goalrunner.model.GoalRunnerReplanRequest
 import skillbill.engine.goalrunner.model.GoalRunnerReplanResult

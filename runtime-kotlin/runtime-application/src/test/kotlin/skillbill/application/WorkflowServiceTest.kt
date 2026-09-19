@@ -27,8 +27,8 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.engine.RecordingWorkflowGitOperations
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.engine.featuretask.AlwaysValidValidator
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
 import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.OutcomeStoreTestArtifactPorts
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest

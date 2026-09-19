@@ -16,7 +16,7 @@ import skillbill.cli.kernel.drainTelemetryOnCompletion
 import skillbill.cli.kernel.invokingAgentResolutionHelp
 import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveInput
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveResult
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision

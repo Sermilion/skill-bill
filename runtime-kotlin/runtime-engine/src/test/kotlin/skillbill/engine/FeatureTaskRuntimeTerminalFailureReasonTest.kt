@@ -2,10 +2,10 @@ package skillbill.engine
 
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.telemetry.LifecycleTelemetryService
-import skillbill.engine.featuretask.blockedReasonOf
-import skillbill.engine.featuretask.emitFeatureTaskRuntimeFinishedError
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeFinishedTelemetryContext
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.lifecycle.core.blockedReasonOf
+import skillbill.engine.featuretask.lifecycle.core.emitFeatureTaskRuntimeFinishedError
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFinishedTelemetryContext
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import java.time.Clock
 import kotlin.test.Test

@@ -15,11 +15,11 @@ import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.kernel.toPayload
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
-import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
-import skillbill.engine.featuretask.model.FeatureTaskContinuationCandidate
-import skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
+import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
+import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
+import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import java.nio.file.Path
 
 @Inject

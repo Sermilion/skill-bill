@@ -6,7 +6,7 @@ import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.FeatureSpecPreparationWriter
+import skillbill.engine.featuretask.prepare.FeatureSpecPreparationWriter
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.error.InvalidFeatureSpecPreparationRequestError
 import skillbill.featurespec.model.FeatureSpecPreparationDecision

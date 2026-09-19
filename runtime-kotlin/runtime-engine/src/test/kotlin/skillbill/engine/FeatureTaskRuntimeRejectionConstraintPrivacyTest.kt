@@ -2,8 +2,8 @@
 package skillbill.engine
 import skillbill.application.assertNoRawResponseSpan
 import skillbill.application.assertPrivateDiagnosticRejection
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimePhaseOutputTestValidator
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import kotlin.test.Test
 import kotlin.test.assertContains

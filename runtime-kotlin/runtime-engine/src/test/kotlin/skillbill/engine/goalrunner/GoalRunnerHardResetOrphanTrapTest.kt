@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner
 
 import skillbill.engine.RecordingWorkflowGitOperations
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskCommitIdentity
+import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommitIdentity
 import skillbill.engine.goalrunner.planning.goalPlanningHardResetRemedy
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent

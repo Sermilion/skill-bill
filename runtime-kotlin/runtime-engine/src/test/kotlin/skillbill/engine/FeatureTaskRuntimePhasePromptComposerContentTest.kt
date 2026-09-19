@@ -1,6 +1,6 @@
 
 package skillbill.engine
-import skillbill.engine.featuretask.auditPhaseTaskDirective
+import skillbill.engine.featuretask.phase.prompt.directives.auditPhaseTaskDirective
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import kotlin.test.Test

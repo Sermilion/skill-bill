@@ -3,7 +3,7 @@ package skillbill.engine
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.planningprojection.producerProjectionGateReason
 import kotlin.test.Test
 import kotlin.test.assertContains

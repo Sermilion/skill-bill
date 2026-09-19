@@ -1,9 +1,9 @@
 package skillbill.engine
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
-import skillbill.engine.featuretask.ApprovingReviewDriverStub
-import skillbill.engine.featuretask.FeatureTaskRuntimeReviewDriver
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.lifecycle.core.ApprovingReviewDriverStub
+import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_REJECTED_DISPOSITION
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.CodeReviewExecutionMode

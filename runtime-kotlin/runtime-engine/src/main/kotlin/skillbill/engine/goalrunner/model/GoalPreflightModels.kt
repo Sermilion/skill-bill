@@ -1,8 +1,8 @@
 package skillbill.engine.goalrunner.model
 
 import skillbill.application.continuation.model.GoalContinuationCandidate
-import skillbill.engine.featuretask.model.FeatureTaskContinuationCandidate
-import skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult
+import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
+import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.DecompositionManifest

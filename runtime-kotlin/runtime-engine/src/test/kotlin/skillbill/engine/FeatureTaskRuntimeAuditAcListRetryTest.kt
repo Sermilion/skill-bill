@@ -1,7 +1,7 @@
 package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult

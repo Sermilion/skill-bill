@@ -484,8 +484,8 @@ class RuntimeArchitectureTest {
   @Test
   fun `crash reconciliation liveness stays behind the injectable supervisor and out of the process runner`() {
     val reconciliationSources = sourceFiles().filter { file ->
-      file.relativePath.endsWith("featuretask/FeatureTaskRuntimeCrashReconciler.kt") ||
-        file.relativePath.endsWith("featuretask/FeatureTaskRuntimeWorkerCoordinator.kt") ||
+      file.relativePath.endsWith("featuretask/lifecycle/core/FeatureTaskRuntimeCrashReconciler.kt") ||
+        file.relativePath.endsWith("featuretask/lifecycle/core/FeatureTaskRuntimeWorkerCoordinator.kt") ||
         file.relativePath.endsWith("goalrunner/WorkflowGoalRunnerOutcomeStore.kt")
     }
     assertTrue(reconciliationSources.isNotEmpty(), "crash-reconciliation source scan must be non-vacuous.")

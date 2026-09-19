@@ -1,10 +1,10 @@
 package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
-import skillbill.engine.featuretask.GoalContinuationStateRecordRequest
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
-import skillbill.engine.featuretask.reviewState
+import skillbill.engine.featuretask.lifecycle.continuation.GoalContinuationStateRecordRequest
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY

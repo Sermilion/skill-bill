@@ -5,7 +5,7 @@ import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.DefaultGoalPlanningSweep

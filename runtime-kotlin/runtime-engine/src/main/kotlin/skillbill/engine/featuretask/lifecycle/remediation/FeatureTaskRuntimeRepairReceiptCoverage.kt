@@ -1,0 +1,66 @@
+package skillbill.engine.featuretask.lifecycle.remediation
+
+
+
+
+import skillbill.engine.featuretask.lifecycle.continuation.reviewState
+import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.goal.model.withoutRefutedFindings
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptEntry
+import skillbill.workflow.taskruntime.model.attemptedUnresolvedEntries
+import skillbill.workflow.taskruntime.model.omittedCarriedFindings
+import skillbill.workflow.taskruntime.model.withStableFindingRefs
+
+fun featureTaskRuntimeCarriedFindings(
+  reviewState: GoalSubtaskReviewState,
+  refutedFindingIds: Set<String> = emptySet(),
+): List<GoalSubtaskReviewCompactFinding> = withoutRefutedFindings(
+  withStableFindingRefs(reviewState.passResults.lastOrNull()?.findings.orEmpty()),
+  refutedFindingIds,
+)
+
+fun featureTaskRuntimeRepairReceiptOmittedFindings(
+  receipt: FeatureTaskRuntimeRepairReceipt,
+  reviewState: GoalSubtaskReviewState,
+  refutedFindingIds: Set<String> = emptySet(),
+): List<GoalSubtaskReviewCompactFinding> =
+  receipt.omittedCarriedFindings(featureTaskRuntimeCarriedFindings(reviewState, refutedFindingIds))
+
+fun featureTaskRuntimeCompactFindingRef(finding: GoalSubtaskReviewCompactFinding): String =
+  finding.findingId?.takeIf(String::isNotBlank)
+    ?: error("Carried finding must carry a stable finding_id before coverage runs.")
+
+fun featureTaskRuntimeOmittedFindingsRetryReason(omitted: List<GoalSubtaskReviewCompactFinding>): String =
+  "The repair receipt left these carried findings unaccounted for under finding_id: " +
+    omitted.joinToString(", ", transform = ::featureTaskRuntimeCompactFindingRef) +
+    ". Continue this round: add one entry per owed ref using finding_id (aliases finding_ref, id, " +
+    "and ref are accepted), or, if the fix was attempted and the finding is still open, declare " +
+    "outcome 'attempted_unresolved' with unresolved_reason and the constructs you touched. A " +
+    "carried finding may never be left out of the receipt."
+
+class FeatureTaskRuntimeUnresolvedFindings(
+  val refs: Set<String>,
+  val detail: String,
+) {
+  val retryReason: String get() = "You reported these carried findings still open after your " +
+    "attempt: $detail. You have one more attempt at each. Close it, or report it unresolved again " +
+    "and the run stops for an operator instead of trying a third time. Do not silently drop it from " +
+    "the receipt and do not restate the same attempt as if it were new work."
+}
+
+fun featureTaskRuntimeUnresolvedFindings(
+  receipt: FeatureTaskRuntimeRepairReceipt,
+): FeatureTaskRuntimeUnresolvedFindings? {
+  val unresolved = receipt.attemptedUnresolvedEntries().ifEmpty { return null }
+  return FeatureTaskRuntimeUnresolvedFindings(
+    refs = unresolved.mapTo(linkedSetOf(), ::unresolvedEntryRef),
+    detail = unresolved.joinToString("; ", transform = ::unresolvedEntryDetail),
+  )
+}
+
+private fun unresolvedEntryRef(entry: FeatureTaskRuntimeRepairReceiptEntry): String = entry.findingId
+
+private fun unresolvedEntryDetail(entry: FeatureTaskRuntimeRepairReceiptEntry): String =
+  "${unresolvedEntryRef(entry)} (${entry.unresolvedReason.orEmpty()})"

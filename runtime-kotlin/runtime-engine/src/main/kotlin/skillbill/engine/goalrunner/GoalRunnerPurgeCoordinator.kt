@@ -4,7 +4,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
 import skillbill.engine.decomposition.encodeDecompositionManifestYaml
 import skillbill.engine.decomposition.findMatchingDecompositionManifests
-import skillbill.engine.featuretask.pruneGoalPurgeCheckpointRefs
+import skillbill.engine.featuretask.lifecycle.checkpoint.pruneGoalPurgeCheckpointRefs
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeResult
 import skillbill.goalrunner.model.ExecutionLiveness

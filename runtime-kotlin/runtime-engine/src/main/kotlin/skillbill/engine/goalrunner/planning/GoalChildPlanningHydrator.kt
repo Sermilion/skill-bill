@@ -1,8 +1,8 @@
 package skillbill.engine.goalrunner.planning
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
-import skillbill.engine.featuretask.workflowArtifactEntryMap
+import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
 import skillbill.engine.goalrunner.planning.model.GoalChildPlanningHydration
 import skillbill.engine.planningprojection.requireValidPlanningProjection
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError

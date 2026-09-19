@@ -3,10 +3,10 @@ package skillbill.engine.work
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
-import skillbill.engine.featuretask.OPERATOR_DECISION_QUALITY_GATE_PHASE_IDS
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeOperatorDecisionPause
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
+import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
+import skillbill.engine.featuretask.runner.OPERATOR_DECISION_QUALITY_GATE_PHASE_IDS
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeOperatorDecisionPause
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.engine.work.model.IdeStatusCandidate

@@ -5,10 +5,10 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.emitFeatureTaskRuntimeEventSafely
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
-import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.runloop.observability.emitFeatureTaskRuntimeEventSafely
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
+import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
 import skillbill.engine.featuretask.validation.model.ValidationGateCyclePhase
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
@@ -16,7 +16,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminal
 import skillbill.engine.featuretask.validation.model.ValidationGateProgressStore
 import skillbill.engine.featuretask.validation.model.ValidationGateProgressWrite
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
-import skillbill.engine.featuretask.workflowArtifactEntryMap
+import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest

@@ -1,7 +1,7 @@
 
 package skillbill.engine
 import skillbill.application.realPlanningProjectionValidator
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseBriefingAssembler
+import skillbill.engine.featuretask.phase.briefing.FeatureTaskRuntimePhaseBriefingAssembler
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
