@@ -1,5 +1,15 @@
 # featuretask runtime boundary history
 
+## [2026-09-19] SKILL-364 subtask 1 — Make PR readiness authoritative
+Areas: orchestration/contracts, runtime-kotlin/runtime-engine/featuretask, runtime-kotlin/runtime-domain/taskruntime, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra
+- Added durable PR-readiness evidence binding validation to exact tree, head, and base identities plus selected checks before commit/push or PR.
+- Routes affected runtime Kotlin paths through the governed pack gate and IntelliJ plugin paths through the plugin clean-check; reruns only invalidated checks.
+- Pattern: snapshot identities and explicit check selection at the boundary; exclude allowed history writes from source invalidation. reusable
+- Failed, missing, skipped, unpersisted, stale, and degraded checks remain blocking and retain diagnostics and observability.
+- Limitation: no repository-wide workflow replacement; selection remains governed by affected paths and declarations.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-18] commit_push is runtime-owned with no agent turn
 Areas: runtime-kotlin/runtime-engine/featuretask
 - `commit_push` no longer launches an agent. The runtime stages dirty paths, writes the commit subject from the issue key and subtask name, pushes, and records `commit_sha`.

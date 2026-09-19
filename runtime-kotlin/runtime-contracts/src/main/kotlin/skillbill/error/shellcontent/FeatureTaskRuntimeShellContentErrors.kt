@@ -253,6 +253,15 @@ class InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
   cause,
 )
 
+class InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError(
+  val sourceLabel: String,
+  val reason: String,
+  cause: Throwable? = null,
+) : ShellContentContractException(
+  "Feature-task-runtime readiness evidence '$sourceLabel' fails schema validation: $reason",
+  cause,
+)
+
 class FeatureTaskRuntimePhaseOrderViolationError(
   val phaseId: String,
   val requiredPhaseId: String,

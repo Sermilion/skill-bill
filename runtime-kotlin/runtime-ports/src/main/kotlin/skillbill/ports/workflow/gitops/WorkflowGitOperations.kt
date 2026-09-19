@@ -1,6 +1,7 @@
 package skillbill.ports.workflow.gitops
 
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
 import java.nio.file.Path
 
 interface WorkflowGitOperations :
@@ -14,6 +15,8 @@ interface WorkflowGitOperations :
   val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations
 
   val repositoryFingerprintOperations: RepositoryFingerprintGitOperations
+
+  val readinessTreeIdentityOperations: ReadinessTreeIdentityGitOperations
 
   val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations
 

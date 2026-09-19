@@ -1,0 +1,51 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://skill-bill.dev/contracts/feature-task-runtime-readiness-evidence-schema.yaml"
+title: Feature-task-runtime readiness evidence
+type: object
+additionalProperties: false
+required:
+  - contract_version
+  - source_tree_sha
+  - base_ref_sha
+  - head_sha
+  - selected_checks
+  - check_results
+properties:
+  contract_version:
+    const: "0.1"
+  source_tree_sha:
+    type: string
+    minLength: 1
+  base_ref_sha:
+    type: string
+    minLength: 1
+  head_sha:
+    type: string
+    minLength: 1
+  selected_checks:
+    type: array
+    minItems: 0
+    maxItems: 20
+    items:
+      type: string
+      minLength: 1
+  check_results:
+    type: array
+    minItems: 0
+    maxItems: 20
+    items:
+      type: object
+      additionalProperties: false
+      required: [check_id, command, exit_code, status]
+      properties:
+        check_id:
+          type: string
+          minLength: 1
+        command:
+          type: string
+          minLength: 1
+        exit_code:
+          type: integer
+        status:
+          type: string
+          enum: [passed, failed, skipped, missing, unpersisted]

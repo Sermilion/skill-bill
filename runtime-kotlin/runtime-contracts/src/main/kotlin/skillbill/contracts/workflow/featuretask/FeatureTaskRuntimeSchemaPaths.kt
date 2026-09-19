@@ -159,3 +159,14 @@ object FeatureTaskRuntimeValidationEvidenceSchemaPaths {
   const val EXPECTED_SCHEMA_ID: String =
     "https://skill-bill.dev/contracts/feature-task-runtime-validation-evidence-schema.yaml"
 }
+
+const val FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION: String = "0.1"
+
+object FeatureTaskRuntimeReadinessEvidenceSchemaPaths {
+  const val REPO_RELATIVE_PATH: String =
+    "orchestration/contracts/feature-task-runtime-readiness-evidence-schema.yaml"
+  const val CLASSPATH_RESOURCE: String =
+    "skillbill/infrastructure/contracts/feature-task-runtime-readiness-evidence-schema.yaml"
+  const val EXPECTED_SCHEMA_ID: String =
+    "https://skill-bill.dev/contracts/feature-task-runtime-readiness-evidence-schema.yaml"
+}

@@ -12,6 +12,7 @@ import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoop
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.readinessChangedPathsAgainstBase
 import skillbill.ports.workflow.gitops.stagedPaths
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
@@ -45,6 +46,21 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
           sha,
         ),
       ),
+    )
+  }
+
+  internal fun commitPushChangedPaths(
+    request: FeatureTaskRuntimeRunRequest,
+    phaseGates: FeatureTaskRuntimePhaseGates,
+    baseBranch: String,
+  ): ReadinessChangedPaths {
+    val changed = phaseGates.gitOperations.readinessChangedPathsAgainstBase(request.repoRoot, baseBranch)
+    if (changed !is WorkflowGitOperationResult.Ok) {
+      return ReadinessChangedPaths(emptyList(), changed.error)
+    }
+    return ReadinessChangedPaths(
+      paths = changed.value.orEmpty().split('\u0000').filter(String::isNotBlank),
+      error = null,
     )
   }
 
@@ -117,3 +133,8 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     .requireAcceptedOutput(phaseId)
     .normalizedOutput
 }
+
+internal data class ReadinessChangedPaths(
+  val paths: List<String>,
+  val error: String?,
+)

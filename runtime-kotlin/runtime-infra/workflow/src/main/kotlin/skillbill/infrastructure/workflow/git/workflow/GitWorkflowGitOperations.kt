@@ -17,6 +17,7 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitRemoteOperations
 import skillbill.ports.workflow.gitops.WorkflowGitWorktreeOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
 import java.nio.file.Path
 
 class GitWorkflowGitOperations :
@@ -32,6 +33,8 @@ class GitWorkflowGitOperations :
   override val runtimePhaseFileManifestOperations: RuntimePhaseFileManifestGitOperations =
     GitRuntimePhaseFileManifestOperations
   override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations = GitRepositoryFingerprintOperations
+  override val readinessTreeIdentityOperations: ReadinessTreeIdentityGitOperations =
+    GitReadinessTreeIdentityOperations
   override val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations = GitRepositoryOwnedPathsOperations
 }
 

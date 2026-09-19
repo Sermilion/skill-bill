@@ -9,6 +9,7 @@ import skillbill.engine.featuretask.prepare.FeatureTaskRuntimeSpecGate
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.engine.featuretask.review.finding.FeatureTaskRuntimeFindingVerificationBoundaryMemory
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
+import skillbill.engine.featuretask.validation.FeatureTaskRuntimeReadinessGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
 import skillbill.engine.featuretask.validation.ValidationGateResolver
 import skillbill.ports.diff.DiffResolverPort
@@ -32,6 +33,7 @@ data class FeatureTaskRuntimePhaseGateValidationBoundaries(
   val validationGateResolver: ValidationGateResolver,
   val validationGateRunner: ValidationGateRunner,
   val validationGateCoordinator: FeatureTaskRuntimeValidationGateCoordinator,
+  val readinessGateCoordinator: FeatureTaskRuntimeReadinessGateCoordinator,
   val buildGateCoordinator: FeatureTaskRuntimeBuildGateCoordinator,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort,
   val diffResolver: DiffResolverPort,

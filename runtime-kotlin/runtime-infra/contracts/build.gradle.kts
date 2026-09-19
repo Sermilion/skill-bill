@@ -126,6 +126,9 @@ private val governedResourceSpecs =
     "copyFeatureTaskRuntimeValidationEvidenceSchema|" +
       "$contractSource/feature-task-runtime-validation-evidence-schema.yaml|" +
       "$infraContractsResourceRoot|SKILL-360: canonical validation-evidence schema",
+    "copyFeatureTaskRuntimeReadinessEvidenceSchema|" +
+      "$contractSource/feature-task-runtime-readiness-evidence-schema.yaml|" +
+      "$infraContractsResourceRoot|SKILL-364: canonical readiness-evidence schema",
     "copyGoalPlanningPreparationSchema|" +
       "$contractSource/goal-planning-preparation-schema.yaml|" +
       "$infraContractsResourceRoot|SKILL-128: canonical goal planning preparation schema",

@@ -6,18 +6,21 @@ import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_BUILD_RECEI
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_HANDOFF_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PROJECTION_MEASUREMENT_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECTION_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeBuildReceiptSchemaPaths
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePersistenceSchemaPaths
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseHandoffSchemaPaths
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeProjectionMeasurementSchemaPaths
+import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeReadinessEvidenceSchemaPaths
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeSharedEvidenceProjectionSchemaPaths
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeValidationEvidenceSchemaPaths
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeBuildReceiptSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePersistenceSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeProjectionMeasurementSchemaError
+import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeSharedEvidenceProjectionSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.error.shellcontent.ShellContentContractException
@@ -94,6 +97,18 @@ object FeatureTaskRuntimeValidationEvidenceSchemaValidator {
       expectedId = FeatureTaskRuntimeValidationEvidenceSchemaPaths.EXPECTED_SCHEMA_ID,
       expectedContractVersion = FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
       error = { reason -> InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(sourceLabel, reason) },
+    ),
+  )
+}
+
+object FeatureTaskRuntimeReadinessEvidenceSchemaValidator {
+  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+    FeatureTaskRuntimeSchemaValidationRequest(
+      payload = payload,
+      classpathResource = FeatureTaskRuntimeReadinessEvidenceSchemaPaths.CLASSPATH_RESOURCE,
+      expectedId = FeatureTaskRuntimeReadinessEvidenceSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION,
+      error = { reason -> InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError(sourceLabel, reason) },
     ),
   )
 }

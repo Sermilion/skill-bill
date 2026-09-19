@@ -1,5 +1,7 @@
 package skillbill.ports.workflow.gitops
 
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
+
 object NoopWorkflowGitOperations :
   WorkflowGitOperations,
   WorkflowGitBranchOperations by NoopWorkflowGitBranchOperations,
@@ -14,6 +16,9 @@ object NoopWorkflowGitOperations :
 
   override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations =
     NoopRepositoryFingerprintGitOperations
+
+  override val readinessTreeIdentityOperations: ReadinessTreeIdentityGitOperations =
+    UnavailableReadinessTreeIdentityGitOperations
 
   override val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations =
     UnavailableRepositoryOwnedPathsGitOperations

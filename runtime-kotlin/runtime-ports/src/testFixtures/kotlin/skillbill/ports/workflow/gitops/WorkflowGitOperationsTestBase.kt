@@ -2,6 +2,7 @@ package skillbill.ports.workflow.gitops
 
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
 import java.nio.file.Path
 
 abstract class WorkflowGitOperationsTestBase :
@@ -17,6 +18,9 @@ abstract class WorkflowGitOperationsTestBase :
 
   override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations =
     UnavailableRepositoryFingerprintGitOperations
+
+  override val readinessTreeIdentityOperations: ReadinessTreeIdentityGitOperations =
+    UnavailableReadinessTreeIdentityGitOperations
 
   override val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations =
     UnavailableRepositoryOwnedPathsGitOperations

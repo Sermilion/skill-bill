@@ -16,6 +16,7 @@
   "skillbill/infrastructure/contracts/feature-task-runtime-projection-measurement-schema.yaml": "0ba87d5cd5e01b8dfa684a34d1cb87d5bd2f2b81661f96fd792c332fda0056cd",
   "skillbill/infrastructure/contracts/feature-task-runtime-quarantine-schema.yaml": "32906967dcaa55da1381ecbf940d4d1fe661d054bc34750a460dc03981e41ca6",
   "skillbill/infrastructure/contracts/feature-task-runtime-shared-evidence-projection-schema.yaml": "6451aed338b15d60f89780d978222d4ee83aa27b704c07a58ea174d0f0dedc55",
+  "skillbill/infrastructure/contracts/feature-task-runtime-readiness-evidence-schema.yaml": "012e8acafcd145175dfb6afea42196dd4887ecb85af6a82f888b1b5d43df74db",
   "skillbill/infrastructure/contracts/feature-task-runtime-validation-evidence-schema.yaml": "6138ad09049181535d5481f316b290d795345bb32c074ba5a36fc80fb3f66305",
   "skillbill/infrastructure/contracts/feature-task-runtime-worker-ownership-schema.yaml": "07440c48151dcdff6cc78772ee883f7f77b38a3d13956f6bd2c990837e46b37d",
   "skillbill/infrastructure/contracts/goal-observability-event-schema.yaml": "36a78265ee0b04d1dfac305f0a12e338ad81142f6d355583558aaa65e4813356",

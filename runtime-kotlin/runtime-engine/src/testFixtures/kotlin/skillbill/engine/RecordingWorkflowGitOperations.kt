@@ -2,6 +2,9 @@ package skillbill.engine
 
 import skillbill.ports.workflow.gitops.CheckpointHistoryGitOperations
 import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
+import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
+import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityPayloadCodec
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
 import skillbill.ports.workflow.gitops.RepositoryOwnedPathsGitOperations
 import skillbill.ports.workflow.gitops.RuntimePhaseFileManifestGitOperations
@@ -44,6 +47,11 @@ class RecordingWorkflowGitOperations(
   val repositoryFingerprintSequence = ArrayDeque<String>()
   var repositoryFingerprintValue: String? = null
   var repositoryFingerprintCalls: Int = 0
+  var readinessTreeIdentity: ReadinessTreeIdentity = ReadinessTreeIdentity(
+    sourceTreeSha = "a".repeat(40),
+    baseRefSha = "b".repeat(40),
+    headSha = "c".repeat(40),
+  )
   val createCommitMessages = mutableListOf<String>()
   var createCommitResult: WorkflowGitOperationResult? = null
   var localBranchHasUnpushedCommitsValue: Boolean = true
@@ -315,6 +323,26 @@ class RecordingWorkflowGitOperations(
         ?: WorkflowGitOperationResult.Ok(
           value = ownedPathsValue.joinToString(separator = "") { "$it\u0000" },
         )
+    }
+
+  override val readinessTreeIdentityOperations: ReadinessTreeIdentityGitOperations =
+    object : ReadinessTreeIdentityGitOperations {
+      override fun resolveReadinessTreeIdentity(
+        repoRoot: Path,
+        baseBranch: String,
+        workflowId: String,
+      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(
+        value = ReadinessTreeIdentityPayloadCodec.encode(
+          readinessTreeIdentity.copy(headSha = headCommitShaValue.ifBlank { readinessTreeIdentity.headSha }),
+        ),
+      )
+
+      override fun changedPathsAgainstBase(
+        repoRoot: Path,
+        baseBranch: String,
+      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(
+        value = ownedPathsValue.joinToString(separator = "\u0000"),
+      )
     }
 
   override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations =

@@ -19,6 +19,8 @@ import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
+import skillbill.engine.featuretask.validation.ReadinessCommitPushSettleRequest
+import skillbill.engine.featuretask.validation.ReadinessCommitPushSettleResult
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 private data class FinaliseSubtaskArgs(
@@ -46,32 +48,92 @@ object FeatureTaskRuntimeRunLoopCommitPush {
     FeatureTaskRuntimeSubtaskFinalisationHandoff.runtimeOwnedOutput(receipt)
 
   private fun FeatureTaskRuntimeRunLoopContext.settle(run: PhaseRun, iteration: Int): PhaseOutcome {
-    val identity = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitIdentity(request)
-    val subject = commitSubject(identity.subtaskId)
     val branch = FeatureTaskRuntimeRunLoopSubtaskCommit.finalisationBranch(request, session, phaseGates)
       ?: return settleUnownedHead(run, iteration)
+    val baseBranch = recorder.loadResolvedBranch(request.workflowId)?.baseBranch ?: "main"
+    val readiness = commitPushReadiness(baseBranch)
+    if (readiness is ReadinessCommitPushSettleResult.Blocked) {
+      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
+        request,
+        state,
+        recorder,
+        goalContinuationRecorder,
+        phaseBlockArgs(run, iteration, readiness.reason, observability)
+          .copy(failureDisposition = readiness.failureDisposition),
+      )
+    }
+    return finaliseAndBindCommitPush(run, iteration, branch, baseBranch)
+  }
+
+  private fun FeatureTaskRuntimeRunLoopContext.commitPushReadiness(
+    baseBranch: String,
+  ): ReadinessCommitPushSettleResult {
+    val changedPaths = FeatureTaskRuntimeRunLoopSubtaskCommit.commitPushChangedPaths(
+      request,
+      phaseGates,
+      baseBranch,
+    )
+    return phaseGates.readinessGateCoordinator.settleBeforeCommitPush(
+      ReadinessCommitPushSettleRequest(
+        workflowId = request.workflowId,
+        repoRoot = request.repoRoot,
+        baseBranch = baseBranch,
+        changedPaths = changedPaths.paths,
+        changedPathsError = changedPaths.error,
+        gitOperations = phaseGates.gitOperations,
+      ),
+    )
+  }
+
+  private fun FeatureTaskRuntimeRunLoopContext.finaliseAndBindCommitPush(
+    run: PhaseRun,
+    iteration: Int,
+    branch: String,
+    baseBranch: String,
+  ): PhaseOutcome {
+    val identity = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitIdentity(request)
     val ledger = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitLedgerState(
       request,
       recorder,
       diagnostics,
       identity,
     )
-    return when (
-      val outcome = finaliseSubtask(
-        this,
-        run,
-        FinaliseSubtaskArgs(branch, ledger, identity, subject),
-      )
-    ) {
+    val outcome = finaliseSubtask(
+      this,
+      run,
+      FinaliseSubtaskArgs(branch, ledger, identity, commitSubject(identity.subtaskId)),
+    )
+    return when (outcome) {
       is FeatureTaskRuntimeSubtaskFinalisationBlocked -> block(run, iteration, outcome.reason)
-      is FeatureTaskRuntimeSubtaskFinalised -> complete(
+      is FeatureTaskRuntimeSubtaskFinalised -> bindCommittedHead(run, iteration, branch, baseBranch, outcome)
+    }
+  }
+
+  private fun FeatureTaskRuntimeRunLoopContext.bindCommittedHead(
+    run: PhaseRun,
+    iteration: Int,
+    branch: String,
+    baseBranch: String,
+    outcome: FeatureTaskRuntimeSubtaskFinalised,
+  ): PhaseOutcome {
+    val rebound = phaseGates.readinessGateCoordinator.bindCommittedHead(
+      workflowId = request.workflowId,
+      repoRoot = request.repoRoot,
+      baseBranch = baseBranch,
+      gitOperations = phaseGates.gitOperations,
+      commitSha = outcome.commitSha,
+    )
+    return if (rebound is ReadinessCommitPushSettleResult.Blocked) {
+      block(run, iteration, rebound.reason)
+    } else {
+      complete(
         run,
         iteration,
         runtimeOwnedCommitPushOutput(
           FeatureTaskRuntimeCommitPushReceipt(
             commitSha = outcome.commitSha,
             branch = branch,
-            baseBranch = recorder.loadResolvedBranch(request.workflowId)?.baseBranch ?: "main",
+            baseBranch = baseBranch,
             pushed = true,
           ),
         ),

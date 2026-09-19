@@ -18,8 +18,18 @@ internal const val GIT_PROCESS_POLL_MILLIS = PROCESS_POLL_MILLIS
 internal fun startGitProcess(repoRoot: Path, args: List<String>, configure: ProcessBuilder.() -> Unit = {}): Process =
   ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args).apply(configure).start()
 
-internal fun invokeGitProcess(repoRoot: Path, args: List<String>, stdin: ByteArray?): GitProcessResult {
-  val process = startGitProcess(repoRoot, args) { redirectErrorStream(true) }
+internal fun invokeGitProcess(
+  repoRoot: Path,
+  args: List<String>,
+  stdin: ByteArray?,
+  extraEnvironment: Map<String, String> = emptyMap(),
+): GitProcessResult {
+  val process = startGitProcess(repoRoot, args) {
+    redirectErrorStream(true)
+    if (extraEnvironment.isNotEmpty()) {
+      environment().putAll(extraEnvironment)
+    }
+  }
   return GitProcessSession(process, args, stdin).run()
 }
 
