@@ -4,8 +4,8 @@ import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
-import skillbill.engine.goalrunner.OutcomeStoreTestArtifactPorts
-import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
+import skillbill.engine.goalrunner.persist.OutcomeStoreTestArtifactPorts
+import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
 import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalAttemptLedgerEntry

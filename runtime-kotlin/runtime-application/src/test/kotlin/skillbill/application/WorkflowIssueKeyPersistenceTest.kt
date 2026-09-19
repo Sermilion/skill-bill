@@ -7,7 +7,7 @@ import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
 import skillbill.application.workflow.openFeatureTask
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.engine.goalrunner.testPhaseRecorder
+import skillbill.engine.goalrunner.execution.core.testPhaseRecorder
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.WorkflowIssueKeyConflictError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics

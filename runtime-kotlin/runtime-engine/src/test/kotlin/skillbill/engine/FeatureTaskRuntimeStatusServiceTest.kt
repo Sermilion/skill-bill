@@ -1,4 +1,6 @@
 package skillbill.engine
+import skillbill.engine.goalrunner.manifest
+
 
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath

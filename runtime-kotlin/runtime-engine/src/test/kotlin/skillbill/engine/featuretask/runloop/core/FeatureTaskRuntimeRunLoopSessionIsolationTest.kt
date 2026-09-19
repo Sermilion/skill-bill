@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask.runloop.core
+import skillbill.engine.goalrunner.manifest
+
 
 
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport

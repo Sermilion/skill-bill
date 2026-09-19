@@ -1,4 +1,6 @@
 package skillbill.engine
+import skillbill.engine.goalrunner.manifest
+
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY

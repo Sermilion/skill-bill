@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.checkpoint
+import skillbill.engine.goalrunner.manifest
+
 
 
 

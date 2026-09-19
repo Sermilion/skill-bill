@@ -532,8 +532,6 @@ object PrincipleEnforcementInventory {
     "skillbill.cli.scaffold" to "CLI scaffold noun families are owned by subtask 3.",
     "skillbill.contracts.workflow" to "Contract workflow noun families are owned by subtask 3.",
     "skillbill.di" to "The composition-root taxonomy is owned by subtask 3.",
-    "skillbill.engine.goalrunner" to "Goalrunner noun families are owned by subtask 2.",
-    "skillbill.engine.goalrunner.planning" to "Goalrunner planning noun families are owned by subtask 2.",
     "skillbill.error" to "Error taxonomy noun families are owned by subtask 3.",
     "skillbill.infrastructure.contracts.workflow" to "Infrastructure contract workflow noun families are owned by subtask 3.",
     "skillbill.infrastructure.launcher.process" to "Launcher process noun families are owned by subtask 3.",

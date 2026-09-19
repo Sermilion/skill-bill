@@ -1,9 +1,11 @@
 package skillbill.engine.goalrunner.planning
+import skillbill.engine.goalrunner.RecordingOutcomeStore
+import skillbill.engine.goalrunner.manifest
+
 import skillbill.application.testHarnessClock
-import skillbill.engine.RecordingOutcomeStore
 import skillbill.engine.goalrunner.planning.model.GoalPlanningAttemptOutcome
 import skillbill.engine.goalrunner.planning.model.GoalPlanningLogRequest
-import skillbill.engine.manifest
+import skillbill.engine.goalrunner.manifest
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator

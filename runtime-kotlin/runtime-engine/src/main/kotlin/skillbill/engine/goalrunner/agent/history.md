@@ -1,5 +1,14 @@
 # goalrunner boundary history
 
+## [2026-09-19] SKILL-361 subtask 2 — Nest engine goal-runner packages
+Areas: runtime-kotlin/runtime-engine/{goalrunner, tests}, runtime-kotlin/{runtime-core, runtime-domain, runtime-ports, runtime-infra-sqlite, runtime-application}
+- Nested goal-runner production and test types into responsibility-named packages; moved public inputs and results into `goalrunner.model` without behavior changes.
+- Updated package-ceiling inventory, DI, and consumer ownership seams so the root and planning sibling counts remain within limits.
+- Pattern: co-locate tests with moved production types and use noun-family package boundaries for runtime ownership. reusable
+- Limitation: no behavior, schema, or CLI changes; remaining module nesting is subtask 3.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-16] SKILL-248 subtask 1 — Own goal execution cleanup and failure propagation
 Areas: runtime-kotlin/{ARCHITECTURE.md, runtime-engine/{goalrunner, tests}}
 - Goal-runner execution now owns reverse-order lease/heartbeat/shutdown-hook cleanup across startup, cancellation, interruption, body, and teardown failures while preserving primary errors and continuing cleanup.

@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.subtask
+import skillbill.engine.goalrunner.manifest
+
 
 import skillbill.engine.featuretask.lifecycle.continuation.commitShaFromPhasePayload
 

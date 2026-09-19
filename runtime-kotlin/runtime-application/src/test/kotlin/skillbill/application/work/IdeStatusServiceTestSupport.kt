@@ -11,9 +11,9 @@ import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunInvariant
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
-import skillbill.engine.goalrunner.GoalRunnerStatusTestPorts
+import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
 import skillbill.engine.goalrunner.goalRepositoryIdentity
-import skillbill.engine.goalrunner.testGoalRunnerStatusService
+import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
 import skillbill.engine.work.IdeStatusProjector
 import skillbill.engine.work.IdeStatusService
 import skillbill.engine.work.model.IdeStatusRequest

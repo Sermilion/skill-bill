@@ -1,9 +1,11 @@
 package skillbill.engine.featuretask.lifecycle.checkpoint
+import skillbill.engine.goalrunner.manifest
+
 
 
 import skillbill.engine.featuretask.lifecycle.subtask.push
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointRefPruneRequest
-import skillbill.engine.goalrunner.pruneEligibleCheckpointRefsForManifest
+import skillbill.engine.goalrunner.manifest.pruneEligibleCheckpointRefsForManifest
 import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.deleteCheckpointRef

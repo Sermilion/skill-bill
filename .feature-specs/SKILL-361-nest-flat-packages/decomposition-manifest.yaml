@@ -9,18 +9,18 @@ base_branch: "main"
 feature_branch: "feat/SKILL-361-nest-flat-packages"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 1
+  subtask_id: 2
   action: "resume"
 subtasks:
 - id: 1
   name: "Nest engine feature-task packages and add the sibling-count guard"
   spec_path: ".feature-specs/SKILL-361-nest-flat-packages/spec_subtask_1_nest-engine-feature-task-packages-and-add-the-sibling-count-guard.md"
-  status: "in_progress"
+  status: "complete"
   branch: null
   commit_sha: null
   workflow_id: "wftr-20260919-064928-wox8"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   finalizing_agent_id: null
   participating_agent_ids: []
@@ -28,10 +28,10 @@ subtasks:
 - id: 2
   name: "Nest engine goal-runner packages"
   spec_path: ".feature-specs/SKILL-361-nest-flat-packages/spec_subtask_2_nest-engine-goal-runner-packages.md"
-  status: "pending"
+  status: "in_progress"
   branch: null
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wftr-20260919-070918-szq7"
   blocked_reason: null
   last_resumable_step: null
   linear_issue_id: null
