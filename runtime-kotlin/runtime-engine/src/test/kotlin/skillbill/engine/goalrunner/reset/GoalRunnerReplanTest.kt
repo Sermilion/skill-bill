@@ -1,6 +1,8 @@
 package skillbill.engine.goalrunner.reset
+import skillbill.engine.DeadProcessSupervisor
 import skillbill.engine.goalrunner.InMemoryGoalManifestStore
 import skillbill.engine.goalrunner.RecordingOutcomeStore
+import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
 import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
 import skillbill.engine.goalrunner.goalTestPhaseRecorder
 import skillbill.engine.goalrunner.manifest
@@ -45,12 +47,7 @@ class GoalRunnerReplanTest {
       )
       seedIdleLease()
     }
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = idleClock,
-    )
+    val service = idleReplanService(store)
 
     val result = requireNotNull(
       service.replan(GoalRunnerReplanRequest(issueKey = "SKILL-56", subtaskId = 3)),
@@ -90,12 +87,7 @@ class GoalRunnerReplanTest {
       plannedSubtaskIds = mutableSetOf(1, 2)
       seedIdleLease()
     }
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = idleClock,
-    )
+    val service = idleReplanService(store)
 
     service.replan(GoalRunnerReplanRequest("SKILL-56", subtaskId = 2))
 
@@ -162,13 +154,7 @@ class GoalRunnerReplanTest {
       ),
     ).apply { seedIdleLease() }
     val failure = assertFailsWith<IllegalArgumentException> {
-      testGoalRunnerStatusService(
-        manifestStore = store,
-        outcomeStore = RecordingOutcomeStore(),
-        phaseRecorder = goalTestPhaseRecorder(),
-        clock = idleClock,
-      )
-        .replan(GoalRunnerReplanRequest("SKILL-56", 2))
+      idleReplanService(store).replan(GoalRunnerReplanRequest("SKILL-56", 2))
     }
     assertTrue(failure.message!!.contains("reset"), failure.message)
     assertEquals(0, store.scopedReplanCount)
@@ -178,13 +164,7 @@ class GoalRunnerReplanTest {
   fun `scoped replan refuses absent subtask without mutation`() {
     val store = refusalBaseStore().apply { seedIdleLease() }
     val failure = assertFailsWith<IllegalArgumentException> {
-      testGoalRunnerStatusService(
-        manifestStore = store,
-        outcomeStore = RecordingOutcomeStore(),
-        phaseRecorder = goalTestPhaseRecorder(),
-        clock = idleClock,
-      )
-        .replan(GoalRunnerReplanRequest("SKILL-56", 9))
+      idleReplanService(store).replan(GoalRunnerReplanRequest("SKILL-56", 9))
     }
     assertTrue(failure.message!!.contains("not part of goal"), failure.message)
     assertEquals(0, store.scopedReplanCount)
@@ -193,12 +173,8 @@ class GoalRunnerReplanTest {
   @Test
   fun `scoped replan returns null for unknown issue key without mutation`() {
     assertNull(
-      testGoalRunnerStatusService(
-        manifestStore = refusalBaseStore().apply { seedIdleLease() },
-        outcomeStore = RecordingOutcomeStore(),
-        phaseRecorder = goalTestPhaseRecorder(),
-        clock = idleClock,
-      ).replan(GoalRunnerReplanRequest("SKILL-999", 1)),
+      idleReplanService(refusalBaseStore().apply { seedIdleLease() })
+        .replan(GoalRunnerReplanRequest("SKILL-999", 1)),
     )
   }
 
@@ -228,12 +204,7 @@ class GoalRunnerReplanTest {
       )
       seedIdleLease()
     }
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = idleClock,
-    )
+    val service = idleReplanService(store)
 
     service.replan(GoalRunnerReplanRequest("SKILL-56", 2))
 
@@ -267,12 +238,7 @@ class GoalRunnerReplanTest {
       )
       seedIdleLease()
     }
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = idleClock,
-    )
+    val service = idleReplanService(store)
 
     val result = requireNotNull(
       service.replan(
@@ -318,12 +284,7 @@ class GoalRunnerReplanTest {
       sharedPreplanPrepared = true
       seedIdleLease()
     }
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = idleClock,
-    )
+    val service = idleReplanService(store)
 
     val result = requireNotNull(
       service.replan(
@@ -357,12 +318,7 @@ class GoalRunnerReplanTest {
       sharedPreplanPrepared = true
       seedIdleLease()
     }
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = idleClock,
-    )
+    val service = idleReplanService(store)
 
     val result = requireNotNull(service.replan(GoalRunnerReplanRequest("SKILL-56", 3)))
 
@@ -395,12 +351,7 @@ class GoalRunnerReplanTest {
       seedIdleLease()
     }
     val failure = assertFailsWith<IncompatibleGoalPlanningPreparationRecoveryError> {
-      testGoalRunnerStatusService(
-        manifestStore = store,
-        outcomeStore = RecordingOutcomeStore(),
-        phaseRecorder = goalTestPhaseRecorder(),
-        clock = idleClock,
-      )
+      idleReplanService(store)
         .replan(GoalRunnerReplanRequest("SKILL-56", 3, includeSharedPreplan = true))
     }
     assertTrue(failure.message!!.contains("shared preplan changed"), failure.message)
@@ -428,12 +379,7 @@ class GoalRunnerReplanTest {
       sharedPreplanPrepared = true
       seedIdleLease()
     }
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = idleClock,
-    )
+    val service = idleReplanService(store)
     service.replan(GoalRunnerReplanRequest("SKILL-56", 3, includeSharedPreplan = true))
 
     val status = requireNotNull(
@@ -475,6 +421,14 @@ class GoalRunnerReplanTest {
   private fun InMemoryGoalManifestStore.seedIdleLease() {
     executionLeaseForTest = idleLease()
   }
+
+  private fun idleReplanService(store: InMemoryGoalManifestStore) = testGoalRunnerStatusService(
+    manifestStore = store,
+    outcomeStore = RecordingOutcomeStore(),
+    phaseRecorder = goalTestPhaseRecorder(),
+    clock = idleClock,
+    ports = GoalRunnerStatusTestPorts(workerSupervisor = DeadProcessSupervisor),
+  )
 
   private fun idleLease(): GoalRunnerExecutionLease = GoalRunnerExecutionLease(
     generation = 1,

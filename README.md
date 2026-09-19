@@ -130,7 +130,6 @@ Omit `mode:` to use inline review, the default single-prompt light tier; `mode:d
 | `/bill-pr-review-fix` | Resolve PR review comments end-to-end with an approval gate and reply automation |
 | `/bill-unit-test-value-check` | Review unit tests for low-value or tautological coverage |
 | `/bill-release` | Cut a Skill Bill release: generate a curated changelog, confirm the semver bump, create and push the annotated tag |
-| `/bill-shortcut-debt` | Harvest shortcut: markers into a debt ledger |
 | `/bill-update-check` | Check the installed Skill Bill version against GitHub releases |
 
 ## Learn more

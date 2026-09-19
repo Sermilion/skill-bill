@@ -109,7 +109,7 @@ internal fun goalSummary(
   IdeStatusLifecycleState.FAILED -> "Goal $issueKey failed."
   IdeStatusLifecycleState.TERMINAL -> "Goal $issueKey is complete."
   IdeStatusLifecycleState.ACTIVE -> "Goal $issueKey is active on $stepLabel."
-  IdeStatusLifecycleState.IDLE -> "No matching Skill Bill work for this repository."
+  IdeStatusLifecycleState.IDLE -> "Goal $issueKey is idle."
 }
 
 internal fun familySummary(

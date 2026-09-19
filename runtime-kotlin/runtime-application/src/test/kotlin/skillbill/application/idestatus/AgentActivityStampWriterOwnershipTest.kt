@@ -93,6 +93,58 @@ class AgentActivityStampWriterOwnershipTest {
   }
 
   @Test
+  fun `sqlite busy on stamp persist retries in process before recording bounded failure`() {
+    val base = memoryFactory("activity-busy-retry")
+    val attempts = AtomicInteger(0)
+    val database = object : DatabaseSessionFactory by base {
+      override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
+        if (attempts.getAndIncrement() < 2) {
+          error("database is locked")
+        }
+        return base.selfManagedWrite(block)
+      }
+    }
+    val diagnostics = RecordingDiagnostics()
+    val writer = AgentActivityStampWriter(
+      database,
+      Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC),
+      diagnostics,
+    )
+    writer.sink("wfl-busy-retry", null).stamp(AgentActivityLabel.STDOUT)
+    assertEquals(3, attempts.get())
+    assertEquals(0, diagnostics.warnings.size)
+    base.read { unitOfWork ->
+      assertEquals(AgentActivityLabel.STDOUT, unitOfWork.agentActivityStamps.read("wfl-busy-retry")?.label)
+    }
+  }
+
+  @Test
+  fun `sqlite busy beyond retry bound records failure without publishing a stamp`() {
+    val base = memoryFactory("activity-busy-failure")
+    val attempts = AtomicInteger(0)
+    val database = object : DatabaseSessionFactory by base {
+      override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
+        attempts.incrementAndGet()
+        error("SQLITE_BUSY: database is locked")
+      }
+    }
+    val diagnostics = RecordingDiagnostics()
+    val writer = AgentActivityStampWriter(
+      database,
+      Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC),
+      diagnostics,
+    )
+
+    writer.sink("wfl-busy-failure", null).stamp(AgentActivityLabel.STDOUT)
+
+    assertEquals(3, attempts.get())
+    assertEquals(1, diagnostics.warnings.size)
+    base.read { unitOfWork ->
+      assertEquals(null, unitOfWork.agentActivityStamps.read("wfl-busy-failure"))
+    }
+  }
+
+  @Test
   fun `same-label activity remains debounced while evidence reads publish`() {
     val database = CountingDatabase(memoryFactory("activity-debounce"))
     val writer = AgentActivityStampWriter(

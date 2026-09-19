@@ -257,13 +257,13 @@ class IdeStatusGoldenFixturesTest {
         "workflow_id" to "goal-5",
         "workflow_family" to "feature-goal",
 
-        "lifecycle_state" to "paused",
+        "lifecycle_state" to "idle",
         "current_step" to linkedMapOf("id" to "implement", "label" to "Implement"),
         "progress" to linkedMapOf("completed" to 1, "total" to 3),
         "started_at" to "2026-08-06T08:00:00Z",
         "updated_at" to "2026-08-06T09:50:00Z",
         "freshness" to "fresh",
-        "summary" to "Goal SKILL-168 is paused.",
+        "summary" to "Goal SKILL-168 is idle.",
       ),
       "golden-goal-lease-expired",
     )

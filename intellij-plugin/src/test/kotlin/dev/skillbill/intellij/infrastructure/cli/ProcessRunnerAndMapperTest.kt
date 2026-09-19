@@ -378,6 +378,15 @@ class IdeStatusJsonMapperTest {
     }
 
     @Test
+    fun `lifecycle idle and paused map to distinct outcomes`() {
+        val idle = IdeStatusJsonMapper.map(runtimeFixture(lifecycle = "idle"), now, 0)
+        assertTrue(idle is SkillBillStatusOutcome.Idle)
+
+        val paused = IdeStatusJsonMapper.map(runtimeFixture(lifecycle = "paused"), now, 0)
+        assertTrue(paused is SkillBillStatusOutcome.Paused)
+    }
+
+    @Test
     fun `fresh paused maps to Paused and stale paused still maps to Stale`() {
         val fresh = IdeStatusJsonMapper.map(runtimeFixture(lifecycle = "paused"), now, 0)
         assertTrue(fresh is SkillBillStatusOutcome.Paused)
