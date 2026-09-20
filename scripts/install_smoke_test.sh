@@ -165,15 +165,18 @@ STUB
   chmod +x "$stub_path"
 }
 
-make_runtime_zip() {
-  local token="$1" name="$2" bin_name="$3" stub_src="$4" out_dir="$5"
-  local work zip_name
-  work="$(mktemp -d)"
-  WORK_TMPDIRS+=("$work")
-  mkdir -p "$work/$name-0.0.0-smoke/bin"
-  cp "$stub_src" "$work/$name-0.0.0-smoke/bin/$bin_name"
-  zip_name="${name}-0.0.0-smoke-${token}.zip"
-  python3 - "$work" "$name-0.0.0-smoke" "$out_dir/$zip_name" <<'PY'
+# Prefer Info-ZIP over python3: Apple's /usr/bin/python3 is an Xcode stub and
+# exits 69 when the Command Line Tools license is not accepted.
+write_runtime_zip() {
+  local src_root="$1" top_dir="$2" out_path="$3"
+  if command -v zip >/dev/null 2>&1; then
+    (cd "$src_root" && zip -rq "$out_path" "$top_dir")
+    return
+  fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    fail "need zip or python3 to pack smoke-test runtime images"
+  fi
+  python3 - "$src_root" "$top_dir" "$out_path" <<'PY'
 import sys, os, zipfile
 src_root, top_dir, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
 with zipfile.ZipFile(out_path, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -187,6 +190,18 @@ with zipfile.ZipFile(out_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             with open(fpath, 'rb') as f:
                 zf.writestr(info, f.read())
 PY
+}
+
+make_runtime_zip() {
+  local token="$1" name="$2" bin_name="$3" stub_src="$4" out_dir="$5"
+  local work zip_name
+  work="$(mktemp -d)"
+  WORK_TMPDIRS+=("$work")
+  mkdir -p "$work/$name-0.0.0-smoke/bin"
+  cp "$stub_src" "$work/$name-0.0.0-smoke/bin/$bin_name"
+  chmod +x "$work/$name-0.0.0-smoke/bin/$bin_name"
+  zip_name="${name}-0.0.0-smoke-${token}.zip"
+  write_runtime_zip "$work" "$name-0.0.0-smoke" "$out_dir/$zip_name"
   rm -rf "$work"
   local sha
   sha="$(cd "$out_dir" && sha256sum "$zip_name" 2>/dev/null || shasum -a 256 "$zip_name")"

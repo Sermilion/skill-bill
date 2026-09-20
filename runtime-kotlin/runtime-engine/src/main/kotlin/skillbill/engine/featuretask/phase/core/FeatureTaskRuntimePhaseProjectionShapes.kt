@@ -111,10 +111,10 @@ object FeatureTaskRuntimePhaseProjectionShapes {
       "      compile, run tests, or invoke `./gradlew check` / the pack collect-all gate here."
 
   private const val VALIDATION: String =
-    "\n    - Report the project validation result as a boolean and keep details in a non-blank value string.\n" +
-      "      Use status completed for both true and false. Only true permits advancement.\n" +
+    "\n    - Emit the envelope only when every required project check passed.\n" +
+      "      Use status completed with validation_passed true and a non-blank value string of checks run.\n" +
       "      Example: { \"validation_passed\": true, \"value\": \"<checks run and result>\" }\n" +
-      "      On failure, return false and describe what failed so the next attempt can repair it.\n" +
+      "      Keep repairing in this session until that is true. Do not emit false as a successful handoff.\n" +
       "      Do not emit validation_evidence, validation_result, gate_run_count, or gate_runs.\n" +
       "      Never introduce suppressions, baselines, disabled rules, or skipped tests to silence findings."
 

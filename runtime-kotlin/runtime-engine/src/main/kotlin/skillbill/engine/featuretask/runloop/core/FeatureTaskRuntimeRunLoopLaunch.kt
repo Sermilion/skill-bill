@@ -650,6 +650,12 @@ internal sealed interface AttemptResult {
     override val fileManifest: FeatureTaskRuntimePhaseFileManifest,
   ) : AttemptResult
 
+  data class ValidationRemaining(
+    val remainingFingerprint: String,
+    val remainingDetail: String,
+    override val fileManifest: FeatureTaskRuntimePhaseFileManifest,
+  ) : AttemptResult
+
   val settledOutcome: PhaseOutcome? get() = (this as? Settled)?.outcome
   val schemaInvalidOperatorReason: String? get() = (this as? SchemaInvalid)?.operatorReason
   val schemaInvalidRetryReason: String? get() = (this as? SchemaInvalid)?.retryReason
@@ -662,6 +668,7 @@ internal sealed interface AttemptResult {
       is FindingsOwed -> fileManifest
       is BoundaryBodyDelivery -> fileManifest
       is AuditRetry -> fileManifest
+      is ValidationRemaining -> fileManifest
     }
   val rejectedOutput: String? get() = (this as? SchemaInvalid)?.rejectedOutput
   val malformedOutput: Boolean get() = (this as? SchemaInvalid)?.malformedOutput == true
@@ -677,6 +684,7 @@ internal sealed interface AttemptResult {
       is FindingsOwed -> operatorReason
       is BoundaryBodyDelivery -> null
       is AuditRetry -> null
+      is ValidationRemaining -> remainingDetail
     }
 
   val semanticRetryReason: String?
@@ -688,6 +696,7 @@ internal sealed interface AttemptResult {
       is FindingsOwed -> null
       is BoundaryBodyDelivery -> null
       is AuditRetry -> null
+      is ValidationRemaining -> remainingDetail
     }
 
   val retryableTerminalRetryReason: String? get() = (this as? RetryableTerminal)?.retryReason
@@ -713,6 +722,10 @@ internal sealed interface AttemptResult {
 
   val auditRetryContinuation: Boolean get() = this is AuditRetry
 
+  val validationRemainingFingerprint: String? get() = (this as? ValidationRemaining)?.remainingFingerprint
+
+  val validationRemainingDetail: String? get() = (this as? ValidationRemaining)?.remainingDetail
+
   companion object {
     fun settled(outcome: PhaseOutcome): AttemptResult = Settled(outcome)
 
@@ -730,6 +743,12 @@ internal sealed interface AttemptResult {
 
     fun auditRetry(focusHint: String, fileManifest: FeatureTaskRuntimePhaseFileManifest): AttemptResult =
       AuditRetry(focusHint, fileManifest)
+
+    fun validationRemaining(
+      remainingFingerprint: String,
+      remainingDetail: String,
+      fileManifest: FeatureTaskRuntimePhaseFileManifest,
+    ): AttemptResult = ValidationRemaining(remainingFingerprint, remainingDetail, fileManifest)
 
     fun unaccountedItems(
       phaseId: String,

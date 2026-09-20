@@ -66,16 +66,18 @@ internal fun requirePassedValidationResult(
   if ((envelope[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return
   when (validationPassedFromEnvelope(envelope)) {
     true -> Unit
-    false -> throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
-      run.phaseId,
-      "Validation reported validation_passed=false. " +
-        "Discover the project checks, repair failures, and rerun validation.",
-    )
+    false -> Unit
     null -> throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
       run.phaseId,
       "Validation requires a boolean produced_outputs.validation_passed result.",
     )
   }
+}
+
+internal fun validationRemainingDetail(envelope: Map<String, Any?>): String {
+  val produced = JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
+  val value = produced?.get(SharedPayloadKeys.VALUE) as? String ?: return ""
+  return value.trim().replace(Regex("\\s+"), " ")
 }
 
 internal fun validationPassedFromEnvelope(envelope: Map<String, Any?>): Boolean? =
