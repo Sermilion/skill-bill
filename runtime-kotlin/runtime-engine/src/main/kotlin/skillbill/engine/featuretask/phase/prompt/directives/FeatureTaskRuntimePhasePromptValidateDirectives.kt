@@ -15,15 +15,18 @@ private const val VALIDATE_TRIAGE_FORBIDDEN_PACK_GATE: String =
 
 fun runtimeOwnedValidateAgentPhaseTask(): String {
   return "Discover the validation checks required by this project from its repository instructions, " +
-    "build and test configuration, scripts, and CI workflows. Use the project's commands and environment; " +
-    "do not assume a platform-wide gate. Run the relevant checks, repair failures in this session, and " +
-    "confirm the repairs. Do not spawn delegated subagents. Return produced_outputs.validation_passed as " +
-    "a boolean: true only when all required checks passed, false when checks failed, were skipped, or " +
-    "could not run. Put the checks run and remaining failure details in produced_outputs.value. Use " +
-    "status completed to report either boolean result; the runtime advances only on true and may rerun " +
-    "this phase once on false. The runtime does not rerun the checks itself. Do not emit command evidence " +
-    "or runtime execution receipts. Never silence findings with annotations, baselines, disabled rules, " +
-    "weakened configuration, or skipped tests; fix root causes instead."
+    "build and test configuration, scripts, and CI workflows. Use the project's commands and environment. " +
+    "Do not run pack validation_gate argv, `bill-code-check`, or any other pack-declared full-suite command. " +
+    VALIDATE_PHASE_FORBIDDEN_EXTRAS +
+    "Run the relevant checks, repair failures, and rerun those same project checks until they pass or " +
+    "you have used three attempts in this session. Do not spawn delegated subagents. Return " +
+    "produced_outputs.validation_passed as a boolean: true only when all required checks passed, false " +
+    "when checks failed, were skipped, or could not run. Put the checks run and remaining failure details " +
+    "in produced_outputs.value. Use status completed to report either boolean result; the runtime advances " +
+    "only on true and may relaunch this phase, up to three times total, if the result is false. The runtime " +
+    "does not rerun the checks itself. Do not emit command evidence or runtime execution receipts. Never " +
+    "silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped " +
+    "tests; fix root causes instead."
 }
 
 fun validateGateTriagePhaseTask(): String =

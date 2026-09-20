@@ -102,7 +102,6 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.review.repository.ReviewRepository
-import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSpecStatusWriter
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
@@ -650,15 +649,12 @@ private fun validationGateBoundaries(
   validationGateCoordinator = FeatureTaskRuntimeValidationGateCoordinator(),
   readinessGateCoordinator = FeatureTaskRuntimeReadinessGateCoordinator(
     ReadinessCheckSelection(
-      InstalledPlatformPackCatalogPort { deps.validationGatePlatformManifests },
       GitHubPullRequestCheckDiscovery(),
     ),
-    validationGateRunner,
     object : PrCheckProcessRunner {
       override fun run(command: String, repoRoot: Path): PrCheckRunResult =
         PrCheckRunResult(exitCode = 0, durationMs = 1)
     },
-    defaultRepoLocalConfigPort(),
     deps.recorder,
     NoopRuntimeDiagnostics,
   ),

@@ -4,7 +4,7 @@ object FeatureTaskRuntimeAttemptBudgets {
   const val MAX_OUTPUT_GATE_RETRY_ATTEMPTS: Int = 1
   const val MAX_FORMAT_RETRY_ATTEMPTS: Int = MAX_OUTPUT_GATE_RETRY_ATTEMPTS
   const val MAX_PROCESS_FAILURE_ATTEMPTS: Int = 3
-  private const val MAX_VALIDATE_OUTPUT_ATTEMPTS: Int = 2
+  private const val MAX_VALIDATE_OUTPUT_ATTEMPTS: Int = 3
 
   fun auditRemainingUnchangedBlockReason(): String =
     "Phase '${FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT}' returned the same remaining-criteria " +

@@ -1,9 +1,28 @@
 # featuretask runtime boundary decisions
 
+## [2026-09-20] Commit_push does not block on validate tree fingerprint
+Context: After validate, the worktree fingerprint no longer matched the capture. commit_push treated that as stale identity and blocked instead of committing.
+Decision: A validate-era tree fingerprint that no longer matches the worktree is not a commit_push block, including HEAD that moved by committing that tree. Stage every uncommitted and unstaged dirty path and commit. Base-ref identity still blocks.
+Reason: The operator said the fingerprint mismatch is not a block reason and required the uncommitted, unstaged tree to land.
+
+## [2026-09-20] Validate discovers project checks and retries up to three times
+Context: Pack `validation_gate` argv, including cache-bypassing collect-all, told the agent which command to run. That is a platform-pack recipe, not the project's own checks. The operator rejected pack-defined validate commands.
+Decision: The validate agent discovers commands from the repository (instructions, build and test config, scripts, CI). It does not run pack `validation_gate` argv or `bill-code-check`. It repairs and reruns those project checks up to three times in session, then returns boolean `produced_outputs.validation_passed`. False, missing, or malformed output relaunches the phase up to three times. Runtime does not rerun the checks. Commit_push readiness selects project CI checks only, not pack collect-all.
+Reason: The project's AGENTS.md, Gradle, and CI are the source of truth. A pack flag such as `--no-build-cache` is not a project command. Three occupancies keep a repair window without substituting pack argv for discovery.
+Supersedes: Validate reruns the pack gate up to three times (2026-09-20)
+
+## [2026-09-20] Validate reruns the pack gate up to three times
+Context: After validate reported a boolean success, commit_push blocked on readiness check `pack-collect-all` with no repair occupancy. The 2026-09-19 boolean-only phase trusted the agent and reran the phase once on false; it did not rerun the pack gate.
+Decision: Validate is again runtime-owned: each occupancy invokes `bill-code-check` to fix the open set, then the runtime reruns the pack cache-bypassing collect-all gate. Repeat until the gate is green or three verify reruns are exhausted. `MAX_REPAIR_TURNS` is 3. A green runtime confirmation, not `validation_passed`, advances the phase. Paused launches and `needs_user_action` still stop immediately.
+Reason: The operator required the validation phase to rerun gates up to three times to fix remaining findings before commit_push. A boolean envelope cannot stand in for pack-collect-all.
+Supersedes: Validate returns a boolean project check result (2026-09-19)
+Superseded by: Validate discovers project checks and retries up to three times (2026-09-20)
+
 ## [2026-09-19] Validate returns a boolean project check result
 Context: Projects choose their own checks and environments. A runtime command receipt added detail without proving execution, and a second runtime check duplicated phase work.
 Decision: The agent discovers and runs project checks, repairs failures, and returns boolean `produced_outputs.validation_passed` with details in `value`. True advances. False, missing, or malformed output gets one retry, then blocks. Process failures retain their separate bounded retry policy. Resume and goal status use the same boolean. Runtime never infers success from command strings or exit codes.
 Reason: The user explicitly chose to trust the phase result. This is an orchestration signal, not execution attestation. Readiness still tracks its existing selected checks against repository identity after a successful phase.
+Superseded by: Validate reruns the pack gate up to three times (2026-09-20)
 
 ## [2026-09-19] Validate relies on the phase check
 Context: The validate agent invoked `bill-code-check`, which confirmed its repairs, then the runtime ran the same cache-bypassing gate again.

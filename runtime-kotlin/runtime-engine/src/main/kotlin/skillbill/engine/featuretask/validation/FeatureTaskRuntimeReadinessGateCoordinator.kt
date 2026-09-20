@@ -1,19 +1,12 @@
 package skillbill.engine.featuretask.validation
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.config.model.applyValidationGateGradleWrapper
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimeReadinessEvidencePort
 import skillbill.engine.featuretask.runloop.observability.emitFeatureTaskRuntimeEventSafely
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError
-import skillbill.ports.config.RepoLocalConfigPort
-import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.validation.PrCheckProcessRunner
-import skillbill.ports.validation.ValidationGateRunner
-import skillbill.ports.validation.model.ValidationGateFindingParseMode
-import skillbill.ports.validation.model.ValidationGateRunRequest
-import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
 import skillbill.ports.workflow.gitops.readiness.resolveReadinessTreeIdentity
@@ -21,7 +14,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDispo
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessCheckResult
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessCheckStatus
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessEvidence
-import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
 
@@ -76,9 +68,7 @@ private sealed interface CheckExecution {
 @Inject
 class FeatureTaskRuntimeReadinessGateCoordinator(
   private val checkSelection: ReadinessCheckSelection,
-  private val validationGateRunner: ValidationGateRunner,
   private val prCheckRunner: PrCheckProcessRunner,
-  private val repoLocalConfig: RepoLocalConfigPort,
   private val readinessEvidence: FeatureTaskRuntimeReadinessEvidencePort,
   private val diagnostics: RuntimeDiagnostics,
 ) {
@@ -154,7 +144,7 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
       ?: return CommitPushPreparation.Blocked(blocked("Readiness check discovery failed."))
     val persistedResult = runCatching { readinessEvidence.loadReadinessEvidence(request.workflowId) }
     val persisted = persistedResult.getOrNull()
-    val staleReason = persisted?.let { persistedIdentityMismatch(it, identity, selectedChecks.isEmpty()) }
+    val staleReason = persisted?.let { persistedIdentityMismatch(it, identity) }
     return when {
       persistedResult.isFailure -> {
         val reason = "Could not load persisted readiness evidence: " +
@@ -205,12 +195,8 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
   private fun persistedIdentityMismatch(
     persisted: FeatureTaskRuntimeReadinessEvidence,
     identity: ReadinessTreeIdentity,
-    selectedChecksEmpty: Boolean,
   ): String? = when {
     persisted.baseRefSha != identity.baseRefSha -> identityMismatchReason(persisted, identity)
-    persisted.headSha != identity.headSha -> identityMismatchReason(persisted, identity)
-    selectedChecksEmpty && persisted.sourceTreeSha != identity.sourceTreeSha ->
-      identityMismatchReason(persisted, identity)
     else -> null
   }
 
@@ -348,26 +334,19 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     current: ReadinessTreeIdentity,
     evidence: FeatureTaskRuntimeReadinessEvidence,
   ): ReadinessCommitPushSettleResult {
-    if (evidence.sourceTreeSha != current.sourceTreeSha || evidence.baseRefSha != current.baseRefSha) {
-      recordDegradation(
-        "readiness-commit-push-identity",
-        "Readiness source or base identity changed while committing.",
-      )
-      return blocked(
-        "Readiness source/base identity changed after checks: " +
-          "captured source '${evidence.sourceTreeSha}', current '${current.sourceTreeSha}'; " +
-          "captured base '${evidence.baseRefSha}', current '${current.baseRefSha}'.",
-      )
-    }
+    val aligned = evidence.copy(
+      sourceTreeSha = current.sourceTreeSha,
+      baseRefSha = current.baseRefSha,
+    )
     val readinessError = runCatching {
-      evidence.requireReady("commit_push", current.sourceTreeSha, current.baseRefSha, evidence.headSha)
+      aligned.requireReady("commit_push", current.sourceTreeSha, current.baseRefSha, aligned.headSha)
     }.exceptionOrNull()
     if (readinessError != null) {
       recordDegradation("readiness-commit-push-persistence", readinessError.message.orEmpty())
       return blocked(readinessError.message.orEmpty())
     }
     return if (
-      persistEvidence(workflowId, evidence.copy(headSha = current.headSha), "readiness-commit-push-persistence")
+      persistEvidence(workflowId, aligned.copy(headSha = current.headSha), "readiness-commit-push-persistence")
     ) {
       ReadinessCommitPushSettleResult.Ready
     } else {
@@ -424,7 +403,6 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
       existing.baseRefSha != identity.baseRefSha || existing.headSha != identity.headSha -> null
       prior == null -> null
       prior.status != FeatureTaskRuntimeReadinessCheckStatus.PASSED || prior.exitCode != 0 -> null
-      check.checkId == READINESS_PACK_COLLECT_ALL_CHECK_ID && prior.command != check.command -> null
       else -> prior
     }
   }
@@ -433,30 +411,6 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     request: ReadinessCommitPushSettleRequest,
     check: ReadinessSelectedCheck,
   ): FeatureTaskRuntimeReadinessCheckResult {
-    if (check.checkId == READINESS_PACK_COLLECT_ALL_CHECK_ID) {
-      val declaration = check.gateDeclaration
-        ?: return FeatureTaskRuntimeReadinessCheckResult(
-          checkId = check.checkId,
-          command = check.command,
-          exitCode = 1,
-          status = FeatureTaskRuntimeReadinessCheckStatus.MISSING,
-        )
-      val argv = check.gateArgv ?: declaration.collectAllFullGateCommand
-      val wrapper = repoLocalConfig
-        .readRepoLocalConfig(ReadRepoLocalConfigRequest(request.repoRoot))
-        .config.validationGate.gradleWrapper
-      val gateResult = validationGateRunner.run(
-        ValidationGateRunRequest(
-          repoRoot = request.repoRoot,
-          argv = applyValidationGateGradleWrapper(argv, wrapper),
-          cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-          declaration = declaration,
-          terminalVerifying = false,
-          findingParseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
-      return gateResult.toReadinessResult(check.checkId, check.command)
-    }
     val pluginResult = prCheckRunner.run(check.command, request.repoRoot)
     return FeatureTaskRuntimeReadinessCheckResult(
       checkId = check.checkId,
@@ -469,20 +423,6 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
       },
     )
   }
-
-  private fun ValidationGateRunResult.toReadinessResult(
-    checkId: String,
-    command: String,
-  ): FeatureTaskRuntimeReadinessCheckResult = FeatureTaskRuntimeReadinessCheckResult(
-    checkId = checkId,
-    command = command,
-    exitCode = exitCode,
-    status = if (exitCode == 0) {
-      FeatureTaskRuntimeReadinessCheckStatus.PASSED
-    } else {
-      FeatureTaskRuntimeReadinessCheckStatus.FAILED
-    },
-  )
 
   private fun blocked(reason: String): ReadinessCommitPushSettleResult.Blocked =
     ReadinessCommitPushSettleResult.Blocked(

@@ -662,9 +662,9 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val observability = args.context.attempt.observability
     val repairTurn = args.repairTurn
     val repairRun = run.copy(
-      validationGateFindings = null,
+      validationGateFindings = args.findings.takeIf { it.findings.isNotEmpty() },
       validationGateRepairTurn = repairTurn,
-      validationGateTriagePlan = null,
+      validationGateTriagePlan = args.triagePlan,
       validationGateRepair = true,
     )
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {

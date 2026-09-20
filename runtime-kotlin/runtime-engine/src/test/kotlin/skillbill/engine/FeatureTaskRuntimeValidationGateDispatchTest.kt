@@ -65,7 +65,7 @@ class FeatureTaskRuntimeValidationGateDispatchTest {
       val report = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
 
       assertEquals("validate", report.lastIncompletePhase)
-      assertEquals(2, harness.launchedPromptPhaseOrder().count { it == "validate" })
+      assertEquals(3, harness.launchedPromptPhaseOrder().count { it == "validate" })
       assertFalse("write_history" in harness.launchedPromptPhaseOrder())
       val records = harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()
       assertEquals(WorkflowStepStatus.BLOCKED, records["validate"]?.status)
@@ -111,6 +111,26 @@ class FeatureTaskRuntimeValidationGateDispatchTest {
     val validationPrompts = harness.launcher.requests.mapNotNull { it.skillRunRequest.promptOverride }
       .filter { phaseIdFromPrompt(it) == "validate" }
     assertContains(validationPrompts.last(), "WidgetTest failed: expected 2 but got 3.")
+  }
+
+  @Test
+  fun `two false results then a true result still advance within three attempts`() {
+    val harness = validationHarness { attempt ->
+      facts(
+        validJsonOutput("validate").let { output ->
+          if (attempt < 3) {
+            output.replace("\"validation_passed\":true", "\"validation_passed\":false")
+              .replace("Project checks passed.", "detekt failed on LongMethod.")
+          } else {
+            output
+          }
+        },
+      )
+    }
+
+    val report = harness.runner.run(harness.request())
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(report, report.toString())
+    assertEquals(3, harness.launchedPromptPhaseOrder().count { it == "validate" })
   }
 
   @Test

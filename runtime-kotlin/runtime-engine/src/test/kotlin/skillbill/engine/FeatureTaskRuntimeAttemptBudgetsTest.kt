@@ -45,6 +45,16 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
   }
 
   @Test
+  fun `validate allows three output-gate attempts so remaining findings can be repaired`() {
+    val phase = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+    assertEquals(null, FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(phase, 1))
+    assertEquals(null, FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(phase, 2))
+    val blocked = requireNotNull(FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(phase, 3))
+    assertContains(blocked, "cap=3")
+    assertContains(blocked, "3 attempts")
+  }
+
+  @Test
   fun `the first schema-invalid output blocks instead of relaunching`() {
     val reason = FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason("audit", 1)
     assertContains(requireNotNull(reason), "cap=1")

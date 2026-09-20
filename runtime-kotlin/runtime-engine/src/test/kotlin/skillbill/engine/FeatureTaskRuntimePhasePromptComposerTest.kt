@@ -185,6 +185,7 @@ class FeatureTaskRuntimePhasePromptComposerTest {
       "validate must not carry the non-validate forbid; it owns the gate",
     )
     assertContains(validatePrompt, "Discover the validation checks")
+    assertFalse(validatePrompt.contains("Invoke `bill-code-check` exactly once"))
     assertFalse(validatePrompt.contains("Invoke bill-code-check for collect-all and confirmation"))
 
     val reviewPrompt = composePhasePrompt(
@@ -237,12 +238,17 @@ class FeatureTaskRuntimePhasePromptComposerTest {
     )
 
     assertContains(prompt, "Discover the validation checks required by this project")
+    assertContains(prompt, "Do not run pack validation_gate argv")
+    assertContains(prompt, "three attempts in this session")
+    assertContains(prompt, "up to three times total")
     assertContains(prompt, "The runtime does not rerun the checks")
     assertContains(prompt, "Required final output (validated schema gate)")
     assertContains(prompt, "validation_passed")
     assertContains(prompt, "boolean")
     assertFalse(prompt.contains("Do not emit a phase envelope"))
     assertFalse(prompt.contains("runtime independently confirms"))
+    assertFalse(prompt.contains("Invoke `bill-code-check` exactly once"))
+    assertFalse(prompt.contains("cache_bypassing_collect_all_full_gate_command"))
   }
 
   @Test
@@ -299,7 +305,8 @@ class FeatureTaskRuntimePhasePromptComposerTest {
       validatePrompt,
       "Never silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped tests",
     )
-    assertFalse(validatePrompt.contains("Invoke bill-code-check for collect-all and confirmation"))
+    assertContains(validatePrompt, "Discover the validation checks required by this project")
+    assertFalse(validatePrompt.contains("Invoke `bill-code-check` exactly once"))
     assertFalse(validatePrompt.contains("Invoke bill-kotlin-code-check"))
     assertContains(validatePrompt, "Required final output (validated schema gate)")
 

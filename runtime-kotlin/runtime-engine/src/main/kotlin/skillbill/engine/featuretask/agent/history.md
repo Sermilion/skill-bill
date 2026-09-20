@@ -1,5 +1,21 @@
 # featuretask runtime boundary history
 
+## [2026-09-20] Commit_push ignores validate tree fingerprint drift
+Areas: runtime-kotlin/runtime-engine/featuretask
+- commit_push no longer treats a drifted source_tree_sha or HEAD as stale identity. It adopts the current write-tree, stages every dirty non-ignored path, and commits.
+- Base-ref mismatch still blocks. After commit, readiness evidence is rebound to the current source tree and new HEAD instead of failing the fingerprint.
+- Pattern: dirty worktree at commit_push is payload, not a stale snapshot. reusable
+Feature flag: N/A
+Acceptance criteria: N/A (hotfix)
+
+## [2026-09-20] Validate discovers project checks, not pack argv
+Areas: runtime-kotlin/runtime-engine/featuretask
+- Validate no longer runs pack `validation_gate` collect-all or cache-bypassing argv. The agent discovers commands from the project, repairs, and reruns them up to three times, then returns `validation_passed`.
+- False or malformed results relaunch the phase up to three times. Commit_push readiness no longer selects pack-collect-all; it keeps project CI checks.
+- Pattern: quality commands come from the repository, not from a platform pack recipe. reusable
+Feature flag: N/A
+Acceptance criteria: N/A (hotfix)
+
 ## [2026-09-19] SKILL-364 subtask 1 — Make PR readiness authoritative
 Areas: orchestration/contracts, runtime-kotlin/runtime-engine/featuretask, runtime-kotlin/runtime-domain/taskruntime, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra
 - Added durable PR-readiness evidence binding validation to exact tree, head, and base identities plus selected checks before commit/push or PR.

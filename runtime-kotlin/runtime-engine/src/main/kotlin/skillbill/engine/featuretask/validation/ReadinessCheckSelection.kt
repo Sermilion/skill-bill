@@ -1,15 +1,9 @@
 package skillbill.engine.featuretask.validation
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.validation.PrCheckDiscovery
 import skillbill.ports.validation.model.PrCheckDiscoveryResult
 import skillbill.review.plan.ReviewPathMatcher
-import skillbill.review.plan.ReviewStackRouting
-import skillbill.review.plan.model.ReviewRoutingChangedFile
-import skillbill.review.plan.model.ReviewStackRoutingResult
-import skillbill.scaffold.model.PlatformManifest
-import skillbill.scaffold.model.ValidationGateDeclaration
 import java.nio.file.Path
 
 const val READINESS_PACK_COLLECT_ALL_CHECK_ID: String = "pack-collect-all"
@@ -18,8 +12,6 @@ data class ReadinessSelectedCheck(
   val checkId: String,
   val command: String,
   val pathPatterns: List<String>,
-  val gateArgv: List<String>? = null,
-  val gateDeclaration: ValidationGateDeclaration? = null,
 )
 
 sealed interface ReadinessCheckSelectionResult {
@@ -30,7 +22,6 @@ sealed interface ReadinessCheckSelectionResult {
 
 @Inject
 class ReadinessCheckSelection(
-  private val installedCatalog: InstalledPlatformPackCatalogPort,
   private val prCheckDiscovery: PrCheckDiscovery,
 ) {
   fun select(repoRoot: Path, changedPaths: List<String>): ReadinessCheckSelectionResult {
@@ -46,10 +37,6 @@ class ReadinessCheckSelection(
         selected += ReadinessSelectedCheck(check.checkId, check.command, check.pathPatterns)
       }
     }
-    val packCheck = packCollectAllCheck(sourcePaths)
-    if (packCheck != null) {
-      selected += packCheck
-    }
     return ReadinessCheckSelectionResult.Selected(selected.distinctBy(ReadinessSelectedCheck::checkId))
   }
 
@@ -58,46 +45,6 @@ class ReadinessCheckSelection(
     return selected.filter { check ->
       sourcePaths.any { path -> ReadinessPathRules.matchesAnyFilter(path, check.pathPatterns) }
     }.map(ReadinessSelectedCheck::checkId).toSet()
-  }
-
-  private fun packCollectAllCheck(sourcePaths: List<String>): ReadinessSelectedCheck? =
-    sourcePaths.takeIf(List<String>::isNotEmpty)
-      ?.let { paths ->
-        installedCatalog.manifests().takeIf(List<PlatformManifest>::isNotEmpty)?.let { manifests ->
-          val routing = ReviewStackRouting.route(
-            manifests,
-            paths.map { ReviewRoutingChangedFile(it, "") },
-          )
-          dominantRoutedPack(manifests, routing)?.let { dominant ->
-            dominant.validationGate?.let { gate ->
-              val argv = gate.collectAllFullGateCommand
-              val patterns = (dominant.routingSignals.path + dominant.routingSignals.strong).distinct()
-              argv.takeIf(List<String>::isNotEmpty)
-                ?.takeIf { patterns.isNotEmpty() }
-                ?.let {
-                  ReadinessSelectedCheck(
-                    checkId = READINESS_PACK_COLLECT_ALL_CHECK_ID,
-                    command = argv.joinToString(" "),
-                    pathPatterns = patterns,
-                    gateArgv = argv,
-                    gateDeclaration = gate,
-                  )
-                }
-            }
-          }
-        }
-      }
-
-  private fun dominantRoutedPack(
-    manifests: List<PlatformManifest>,
-    routing: ReviewStackRoutingResult,
-  ): PlatformManifest? {
-    if (routing.routedSlugs.isEmpty()) return null
-    val bySlug = manifests.associateBy { it.slug }
-    val routed = routing.routedSlugs.mapNotNull(bySlug::get)
-    val gated = routed.filter { it.validationGate != null }
-    if (gated.isEmpty()) return null
-    return gated.maxByOrNull { pack -> routing.ownedPathsBySlug[pack.slug]?.size ?: 0 }
   }
 }
 

@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask.validation
 
 import skillbill.infrastructure.workflow.github.GitHubPullRequestCheckDiscovery
-import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -13,9 +12,6 @@ class ReadinessCheckSelectionTest {
   @Test
   fun `PR 389 plugin hole selects plugin check not pack collect-all`() {
     val selection = ReadinessCheckSelection(
-      InstalledPlatformPackCatalogPort {
-        listOf(kotlinPackWithoutGate().copy(validationGate = validationGateTestDeclaration))
-      },
       GitHubPullRequestCheckDiscovery(),
     ).select(
       repositoryRoot,
@@ -30,26 +26,20 @@ class ReadinessCheckSelectionTest {
   }
 
   @Test
-  fun `kotlin-only runtime-kotlin dirt selects pack not plugin`() {
+  fun `kotlin-only runtime-kotlin dirt does not select pack collect-all`() {
     val selection = ReadinessCheckSelection(
-      InstalledPlatformPackCatalogPort {
-        listOf(kotlinPackWithoutGate().copy(validationGate = validationGateTestDeclaration))
-      },
       GitHubPullRequestCheckDiscovery(),
     ).select(
       validationGateTestRepoRoot,
       changedPaths = listOf("runtime-kotlin/runtime-engine/src/Foo.kt"),
     )
     val checks = assertIs<ReadinessCheckSelectionResult.Selected>(selection).checks
-    assertEquals(listOf(READINESS_PACK_COLLECT_ALL_CHECK_ID), checks.map(ReadinessSelectedCheck::checkId))
+    assertTrue(checks.none { it.checkId == READINESS_PACK_COLLECT_ALL_CHECK_ID })
   }
 
   @Test
-  fun `history and run evidence do not invalidate the runtime pack check`() {
+  fun `history and run evidence do not invalidate selected project checks`() {
     val selection = ReadinessCheckSelection(
-      InstalledPlatformPackCatalogPort {
-        listOf(kotlinPackWithoutGate().copy(validationGate = validationGateTestDeclaration))
-      },
       GitHubPullRequestCheckDiscovery(),
     )
     val selected = assertIs<ReadinessCheckSelectionResult.Selected>(
