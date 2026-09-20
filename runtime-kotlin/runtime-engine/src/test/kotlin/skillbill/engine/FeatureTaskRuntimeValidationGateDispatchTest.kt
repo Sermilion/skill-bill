@@ -51,26 +51,41 @@ class FeatureTaskRuntimeValidationGateDispatchTest {
   }
 
   @Test
-  fun `false missing and nonboolean results cannot advance beyond validate`() {
+  fun `false missing and malformed results cannot advance beyond validate`() {
     val valid = validJsonOutput("validate")
-    val outputs = listOf(
-      valid.replace("\"validation_passed\":true", "\"validation_passed\":false"),
+    val malformed = listOf(
       valid.replace("validation_passed", "missing_signal"),
       valid.replace("\"validation_passed\":true", "\"validation_passed\":\"true\""),
       "finished",
     )
-    outputs.forEach { output ->
+    malformed.forEach { output ->
       val harness = validationHarness(output)
 
       val report = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
 
       assertEquals("validate", report.lastIncompletePhase)
-      assertEquals(3, harness.launchedPromptPhaseOrder().count { it == "validate" })
+      assertEquals(2, harness.launchedPromptPhaseOrder().count { it == "validate" })
       assertFalse("write_history" in harness.launchedPromptPhaseOrder())
       val records = harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()
       assertEquals(WorkflowStepStatus.BLOCKED, records["validate"]?.status)
       assertNull(records["commit_push"])
     }
+  }
+
+  @Test
+  fun `the same remaining failures twice blocks validate without treating false as success`() {
+    val remaining = "detekt failed on LongMethod in RankingService."
+    val output = validJsonOutput("validate")
+      .replace("\"validation_passed\":true", "\"validation_passed\":false")
+      .replace("Project checks passed.", remaining)
+    val harness = validationHarness(output)
+
+    val report = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
+
+    assertEquals("validate", report.lastIncompletePhase)
+    assertEquals(2, harness.launchedPromptPhaseOrder().count { it == "validate" })
+    assertFalse("write_history" in harness.launchedPromptPhaseOrder())
+    assertContains(report.blockedReason, "leftover set did not shrink")
   }
 
   @Test
@@ -114,15 +129,16 @@ class FeatureTaskRuntimeValidationGateDispatchTest {
   }
 
   @Test
-  fun `two false results then a true result still advance within three attempts`() {
+  fun `two shrinking false results then a true result still advance`() {
     val harness = validationHarness { attempt ->
       facts(
         validJsonOutput("validate").let { output ->
-          if (attempt < 3) {
-            output.replace("\"validation_passed\":true", "\"validation_passed\":false")
-              .replace("Project checks passed.", "detekt failed on LongMethod.")
-          } else {
-            output
+          when (attempt) {
+            1 -> output.replace("\"validation_passed\":true", "\"validation_passed\":false")
+              .replace("Project checks passed.", "detekt failed on LongMethod A and LongMethod B.")
+            2 -> output.replace("\"validation_passed\":true", "\"validation_passed\":false")
+              .replace("Project checks passed.", "detekt failed on LongMethod B.")
+            else -> output
           }
         },
       )

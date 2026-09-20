@@ -156,6 +156,51 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     return null
   }
 
+  internal fun settleValidationRemaining(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    observability: FeatureTaskRuntimeRunObservability,
+    context: FixLoopBranchContext,
+  ): PhaseOutcome? {
+    val run = context.run
+    val attempt = context.attempt
+    val loop = context.loop
+    val remaining = requireNotNull(attempt.validationRemainingFingerprint)
+    val detail = requireNotNull(attempt.validationRemainingDetail)
+    if (loop.validationRemainingFingerprint != null && loop.validationRemainingFingerprint == remaining) {
+      return blockInPhase(
+        request,
+        state,
+        recorder,
+        observability,
+        PhaseBlockRequest(
+          run = run,
+          attemptCount = loop.iteration,
+          reason = FeatureTaskRuntimeAttemptBudgets.validateRemainingUnchangedBlockReason(),
+          observability = observability,
+          payload = BlockAndPersistPayload(fileManifest = attempt.fileManifest),
+          failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
+        ),
+      )
+    }
+    loop.validationRemainingFingerprint = remaining
+    loop.continuationSegmentCount += 1
+    loop.iteration += 1
+    loop.priorCorrection = PriorAttemptCorrection.schemaGate(
+      "Remaining project checks are still failing. Keep repairing in this session until every required " +
+        "check passes, then emit validation_passed true. Last remaining failures: $detail",
+    )
+    observability.continuation(
+      run.phaseId,
+      context.agentId,
+      loop.iteration,
+      loop.continuationSegmentCount,
+      FeatureTaskRuntimeContinuationKind.VALIDATE_REPAIR,
+    )
+    return null
+  }
+
   internal fun settleFindingsOwed(
     request: FeatureTaskRuntimeRunRequest,
     state: FeatureTaskRuntimeRunState,

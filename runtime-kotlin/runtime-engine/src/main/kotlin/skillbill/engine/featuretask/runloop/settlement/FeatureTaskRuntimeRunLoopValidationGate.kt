@@ -841,6 +841,13 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val phaseAttempts = FeatureTaskRuntimeRunLoopPhaseAttempts
     return attempt.settledOutcome ?: when {
       attempt.auditRetryContinuation -> phaseAttempts.settleAuditRetry(observability, session, context)
+      attempt.validationRemainingFingerprint != null -> phaseAttempts.settleValidationRemaining(
+        request,
+        state,
+        recorder,
+        observability,
+        context,
+      )
       attempt.incompleteWorkContinuationReason != null -> phaseAttempts.settleIncompleteWork(
         request,
         state,
