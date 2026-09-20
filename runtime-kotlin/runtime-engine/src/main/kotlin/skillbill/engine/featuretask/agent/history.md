@@ -1,5 +1,13 @@
 # featuretask runtime boundary history
 
+## [2026-09-20] Validate keeps repairing until true
+Areas: runtime-kotlin/runtime-engine/featuretask
+- Validate no longer treats `validation_passed: false` as a schema-gate exhaust. The agent keeps repairing until true.
+- The same remaining-failure text twice is a stall. Malformed envelopes retry twice. Wall-clock timeout still ends the subtask.
+- Pattern: remaining check failures are repair occupancy, not a completed boolean handoff. reusable
+Feature flag: N/A
+Acceptance criteria: N/A (hotfix)
+
 ## [2026-09-20] Commit_push ignores validate tree fingerprint drift
 Areas: runtime-kotlin/runtime-engine/featuretask
 - commit_push no longer treats a drifted source_tree_sha or HEAD as stale identity. It adopts the current write-tree, stages every dirty non-ignored path, and commits.

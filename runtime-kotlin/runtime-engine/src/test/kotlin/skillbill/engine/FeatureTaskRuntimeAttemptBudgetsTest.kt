@@ -45,13 +45,19 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
   }
 
   @Test
-  fun `validate allows three output-gate attempts so remaining findings can be repaired`() {
+  fun `validate malformed envelopes retry twice then block`() {
     val phase = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
     assertEquals(null, FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(phase, 1))
-    assertEquals(null, FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(phase, 2))
-    val blocked = requireNotNull(FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(phase, 3))
-    assertContains(blocked, "cap=3")
-    assertContains(blocked, "3 attempts")
+    val blocked = requireNotNull(FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(phase, 2))
+    assertContains(blocked, "cap=2")
+    assertContains(blocked, "2 attempts")
+  }
+
+  @Test
+  fun `the same remaining check failures as the prior validate repair is a stall`() {
+    val reason = FeatureTaskRuntimeAttemptBudgets.validateRemainingUnchangedBlockReason()
+    assertContains(reason, "leftover set did not shrink")
+    assertContains(reason, "no progress")
   }
 
   @Test

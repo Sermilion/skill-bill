@@ -111,6 +111,7 @@ internal class PhaseAttemptLoopState(
   var outputGateFailures: Int,
   var semanticIteration: Int,
   var continuationSegmentCount: Int,
+  var validationRemainingFingerprint: String? = null,
   private var carryForward: PhaseAttemptLoopCarryForward = PhaseAttemptLoopCarryForward(),
 ) {
   var priorCorrection: PriorAttemptCorrection?

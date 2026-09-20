@@ -4,12 +4,17 @@ object FeatureTaskRuntimeAttemptBudgets {
   const val MAX_OUTPUT_GATE_RETRY_ATTEMPTS: Int = 1
   const val MAX_FORMAT_RETRY_ATTEMPTS: Int = MAX_OUTPUT_GATE_RETRY_ATTEMPTS
   const val MAX_PROCESS_FAILURE_ATTEMPTS: Int = 3
-  private const val MAX_VALIDATE_OUTPUT_ATTEMPTS: Int = 3
+  private const val MAX_VALIDATE_MALFORMED_ATTEMPTS: Int = 2
 
   fun auditRemainingUnchangedBlockReason(): String =
     "Phase '${FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT}' returned the same remaining-criteria " +
       "text as the prior session; the run blocks rather than relaunching an audit that made no progress " +
       "on the remaining list."
+
+  fun validateRemainingUnchangedBlockReason(): String =
+    "Phase '${FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE}' reported the same remaining check " +
+      "failures as the prior repair turn; the leftover set did not shrink, so the run blocks rather than " +
+      "repeating a session that made no progress."
 
   fun processFailureBlockReason(phaseId: String, processFailureCount: Int, lastFailureReason: String?): String? {
     require(processFailureCount >= 0) {
@@ -32,7 +37,7 @@ object FeatureTaskRuntimeAttemptBudgets {
       "failureCount must be >= 1, was $failureCount."
     }
     val cap = if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
-      MAX_VALIDATE_OUTPUT_ATTEMPTS
+      MAX_VALIDATE_MALFORMED_ATTEMPTS
     } else {
       MAX_OUTPUT_GATE_RETRY_ATTEMPTS
     }

@@ -12,7 +12,7 @@ class FeatureTaskRuntimeContinuationKindTest {
   fun `the continuation kinds are distinguishable on the wire`() {
     val wireValues = FeatureTaskRuntimeContinuationKind.entries.map { it.wireValue }
 
-    assertEquals(8, wireValues.size)
+    assertEquals(9, wireValues.size)
     assertEquals(wireValues.size, wireValues.distinct().size, "continuation kinds must not collide on the wire")
     assertEquals(
       listOf(
@@ -24,6 +24,7 @@ class FeatureTaskRuntimeContinuationKindTest {
         "item_coverage",
         "verification_body_delivery",
         "audit_ac_retry",
+        "validate_repair",
       ),
       wireValues,
     )

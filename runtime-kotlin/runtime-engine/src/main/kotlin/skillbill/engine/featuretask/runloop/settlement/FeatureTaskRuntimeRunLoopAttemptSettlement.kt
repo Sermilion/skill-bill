@@ -73,6 +73,8 @@ import skillbill.engine.featuretask.runloop.state.FEATURE_TASK_RUNTIME_PROCESS_F
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeChildOutput
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runloop.state.requirePassedValidationResult
+import skillbill.engine.featuretask.runloop.state.validationPassedFromEnvelope
+import skillbill.engine.featuretask.runloop.state.validationRemainingDetail
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.featuretask.runner.terminalBlockedReasonFrom
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
@@ -278,11 +280,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         run,
         attested.envelopeWireMap(),
       )
-      return settleValidatedOutputWithEvidence(
-        args,
-        capture,
-        attested,
-      )
     } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
       return rejectValidatedOutput(
         args,
@@ -292,6 +289,21 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         error.message.orEmpty(),
       )
     }
+    if (validationPassedFromEnvelope(attested.envelopeWireMap()) == false) {
+      val remaining = validationRemainingDetail(attested.envelopeWireMap())
+      return AttemptResult.validationRemaining(
+        remainingFingerprint = remaining,
+        remainingDetail = remaining.ifBlank {
+          "validation_passed is false and produced_outputs.value listed no remaining failures."
+        },
+        fileManifest = capture.fileManifest,
+      )
+    }
+    return settleValidatedOutputWithEvidence(
+      args,
+      capture,
+      attested,
+    )
   }
 
   private fun settleValidatedOutputWithEvidence(

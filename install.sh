@@ -1013,6 +1013,7 @@ unpack_runtime_image() {
     err "Could not locate bin/$base inside $archive"
     return 1
   fi
+  chmod +x "$bin_path"
   # The source_dir for install_packaged_runtime_distribution is the directory two
   # levels above bin/<base> (i.e. the image root that contains bin/ and lib/).
   printf '%s' "$(dirname "$(dirname "$bin_path")")"
