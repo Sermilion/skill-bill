@@ -1,6 +1,8 @@
 package skillbill.application.typesafe
 
 import skillbill.config.model.TypeSafeSettingsPatch
+import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.ExperimentNames
 import skillbill.contracts.typesafe.SystemOneConfigPayloadKeys
 import skillbill.contracts.typesafe.SystemOneDefaults
 import skillbill.contracts.typesafe.SystemOneEnvironmentKeys
@@ -21,15 +23,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class SystemOneServiceTest {
   @Test
-  fun `disabled client rejects evaluate and probe even when env api key is set`() {
+  fun `client without typesafe experiment rejects evaluate and probe even when env api key is set`() {
     val port = RecordingPort()
     val service =
       service(
         environment = mapOf(SystemOneEnvironmentKeys.API_KEY to "env-secret"),
-        payload = mapOf(SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.ENABLED to false)),
+        payload = mapOf(SystemOneConfigPayloadKeys.ROOT to emptyMap<String, Any?>()),
         port = port,
       )
     val request = sampleRequest()
@@ -53,14 +56,24 @@ class SystemOneServiceTest {
   }
 
   @Test
-  fun `enabled client without api key rejects evaluate`() {
+  fun `other experiments without typesafe reject evaluate`() {
     val port = RecordingPort()
     val service =
       service(
-        payload =
-        mapOf(
-          SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.ENABLED to true),
-        ),
+        environment = mapOf(SystemOneEnvironmentKeys.API_KEY to "env-secret"),
+        payload = mapOf(ExperimentConfigPayloadKeys.EXPERIMENTS to listOf("codegraph")),
+        port = port,
+      )
+    assertFailsWith<SystemOneNotEnabledError> { service.evaluate(sampleRequest()) }
+    assertEquals(0, port.calls.size)
+  }
+
+  @Test
+  fun `listed typesafe experiment without api key rejects evaluate`() {
+    val port = RecordingPort()
+    val service =
+      service(
+        payload = mapOf(ExperimentConfigPayloadKeys.EXPERIMENTS to listOf(ExperimentNames.TYPESAFE)),
         port = port,
       )
     assertFailsWith<SystemOneApiKeyMissingError> { service.evaluate(sampleRequest()) }
@@ -68,17 +81,14 @@ class SystemOneServiceTest {
   }
 
   @Test
-  fun `enabled client with stored api key forwards evaluate to the port`() {
+  fun `listed typesafe experiment with stored api key forwards evaluate to the port`() {
     val port = RecordingPort()
     val service =
       service(
         payload =
         mapOf(
-          SystemOneConfigPayloadKeys.ROOT to
-            mapOf(
-              SystemOneConfigPayloadKeys.ENABLED to true,
-              SystemOneConfigPayloadKeys.API_KEY to "stored-secret",
-            ),
+          ExperimentConfigPayloadKeys.EXPERIMENTS to listOf(ExperimentNames.TYPESAFE),
+          SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.API_KEY to "stored-secret"),
         ),
         port = port,
       )
@@ -90,15 +100,12 @@ class SystemOneServiceTest {
   }
 
   @Test
-  fun `enabled client uses env api key when config key is absent`() {
+  fun `listed typesafe experiment uses env api key when config key is absent`() {
     val port = RecordingPort()
     val service =
       service(
         environment = mapOf(SystemOneEnvironmentKeys.API_KEY to "env-secret"),
-        payload =
-        mapOf(
-          SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.ENABLED to true),
-        ),
+        payload = mapOf(ExperimentConfigPayloadKeys.EXPERIMENTS to listOf(ExperimentNames.TYPESAFE)),
         port = port,
       )
     service.evaluate(sampleRequest())
@@ -106,10 +113,10 @@ class SystemOneServiceTest {
   }
 
   @Test
-  fun `configure enable without api key throws and does not persist enabled`() {
+  fun `configure enable without api key throws and does not persist typesafe on experiments`() {
     val store = FakeTypeSafeConfigStore(
       mapOf(
-        SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.ENABLED to false),
+        SystemOneConfigPayloadKeys.ROOT to emptyMap<String, Any?>(),
       ),
     )
     val service =
@@ -121,19 +128,15 @@ class SystemOneServiceTest {
     assertFailsWith<SystemOneApiKeyMissingError> {
       service.configure(TypeSafeSettingsPatch(enabled = true))
     }
-    val typesafe = store.document.payload[SystemOneConfigPayloadKeys.ROOT] as Map<*, *>
-    assertFalse(typesafe[SystemOneConfigPayloadKeys.ENABLED] as Boolean)
+    assertFalse(store.document.payload.containsKey(ExperimentConfigPayloadKeys.EXPERIMENTS))
   }
 
   @Test
-  fun `configure enable persists when a stored api key exists`() {
+  fun `configure enable lists typesafe without dropping other experiments`() {
     val store = FakeTypeSafeConfigStore(
       mapOf(
-        SystemOneConfigPayloadKeys.ROOT to
-          mapOf(
-            SystemOneConfigPayloadKeys.ENABLED to false,
-            SystemOneConfigPayloadKeys.API_KEY to "stored-secret",
-          ),
+        ExperimentConfigPayloadKeys.EXPERIMENTS to listOf("codegraph"),
+        SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.API_KEY to "stored-secret"),
       ),
     )
     val service =
@@ -145,19 +148,16 @@ class SystemOneServiceTest {
 
     val configuration = service.configure(TypeSafeSettingsPatch(enabled = true))
 
-    assertEquals(true, configuration.enabled)
-    val typesafe = store.document.payload[SystemOneConfigPayloadKeys.ROOT] as Map<*, *>
-    assertEquals(true, typesafe[SystemOneConfigPayloadKeys.ENABLED])
-    assertEquals("stored-secret", typesafe[SystemOneConfigPayloadKeys.API_KEY])
+    assertTrue(configuration.enabled)
+    assertEquals(
+      listOf("codegraph", ExperimentNames.TYPESAFE),
+      store.document.payload[ExperimentConfigPayloadKeys.EXPERIMENTS],
+    )
   }
 
   @Test
-  fun `configure enable persists a supplied api key`() {
-    val store = FakeTypeSafeConfigStore(
-      mapOf(
-        SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.ENABLED to false),
-      ),
-    )
+  fun `configure enable persists a supplied api key and lists typesafe`() {
+    val store = FakeTypeSafeConfigStore(mapOf("install_id" to "test"))
     val service =
       SystemOneService(
         EnvironmentContext(environment = emptyMap()),
@@ -170,11 +170,12 @@ class SystemOneServiceTest {
         TypeSafeSettingsPatch(enabled = true, apiKey = "supplied-secret"),
       )
 
-    assertEquals(true, configuration.enabled)
-    assertEquals(true, configuration.apiKeyConfigured)
+    assertTrue(configuration.enabled)
+    assertTrue(configuration.apiKeyConfigured)
+    assertEquals(listOf(ExperimentNames.TYPESAFE), store.document.payload[ExperimentConfigPayloadKeys.EXPERIMENTS])
     val typesafe = store.document.payload[SystemOneConfigPayloadKeys.ROOT] as Map<*, *>
-    assertEquals(true, typesafe[SystemOneConfigPayloadKeys.ENABLED])
     assertEquals("supplied-secret", typesafe[SystemOneConfigPayloadKeys.API_KEY])
+    assertFalse(typesafe.containsKey(SystemOneConfigPayloadKeys.ENABLED))
   }
 
   @Test
@@ -183,16 +184,13 @@ class SystemOneServiceTest {
       service(
         payload =
         mapOf(
-          SystemOneConfigPayloadKeys.ROOT to
-            mapOf(
-              SystemOneConfigPayloadKeys.ENABLED to true,
-              SystemOneConfigPayloadKeys.API_KEY to "stored-secret",
-            ),
+          ExperimentConfigPayloadKeys.EXPERIMENTS to listOf(ExperimentNames.TYPESAFE),
+          SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.API_KEY to "stored-secret"),
         ),
       )
     val configuration = service.configuration()
-    assertEquals(true, configuration.enabled)
-    assertEquals(true, configuration.apiKeyConfigured)
+    assertTrue(configuration.enabled)
+    assertTrue(configuration.apiKeyConfigured)
     assertEquals(SystemOneDefaults.BASE_URL, configuration.baseUrl)
     assertEquals(SystemOneDefaults.MODEL, configuration.defaultModel)
   }

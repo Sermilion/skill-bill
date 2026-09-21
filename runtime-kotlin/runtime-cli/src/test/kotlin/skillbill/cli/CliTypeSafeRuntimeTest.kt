@@ -3,6 +3,8 @@ package skillbill.cli
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.ExperimentNames
 import skillbill.contracts.typesafe.SystemOneConfigPayloadKeys
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.transport.RemoteTransportPort
@@ -28,6 +30,7 @@ class CliTypeSafeRuntimeTest {
         context,
       )
     assertEquals(true, payload[SystemOneConfigPayloadKeys.API_KEY_CONFIGURED])
+    assertEquals(false, payload[SystemOneConfigPayloadKeys.ENABLED])
 
     val stored = decodeJsonObject(Files.readString(configPath))
     assertEquals("retained-install-id", stored["install_id"])
@@ -39,10 +42,11 @@ class CliTypeSafeRuntimeTest {
     assertEquals(10, telemetry["batch_size"])
     val typesafe = stored[SystemOneConfigPayloadKeys.ROOT] as Map<*, *>
     assertEquals(secret, typesafe[SystemOneConfigPayloadKeys.API_KEY])
+    assertFalse(stored.containsKey(ExperimentConfigPayloadKeys.EXPERIMENTS))
   }
 
   @Test
-  fun `configure enable accepts a supplied key and a previously stored key`() {
+  fun `configure enable lists typesafe and accepts a supplied or previously stored key`() {
     val suppliedDir = Files.createTempDirectory("skillbill-cli-typesafe-enable-supplied")
     val suppliedPath = writeRichConfig(suppliedDir)
     val suppliedContext =
@@ -64,10 +68,11 @@ class CliTypeSafeRuntimeTest {
 
     assertEquals(true, supplied[SystemOneConfigPayloadKeys.ENABLED])
     assertEquals(true, supplied[SystemOneConfigPayloadKeys.API_KEY_CONFIGURED])
-    val suppliedTypesafe =
-      decodeJsonObject(Files.readString(suppliedPath))[SystemOneConfigPayloadKeys.ROOT] as Map<*, *>
-    assertEquals(true, suppliedTypesafe[SystemOneConfigPayloadKeys.ENABLED])
+    val suppliedStored = decodeJsonObject(Files.readString(suppliedPath))
+    assertEquals(listOf(ExperimentNames.TYPESAFE), suppliedStored[ExperimentConfigPayloadKeys.EXPERIMENTS])
+    val suppliedTypesafe = suppliedStored[SystemOneConfigPayloadKeys.ROOT] as Map<*, *>
     assertEquals("supplied-secret", suppliedTypesafe[SystemOneConfigPayloadKeys.API_KEY])
+    assertFalse(suppliedTypesafe.containsKey(SystemOneConfigPayloadKeys.ENABLED))
 
     val storedDir = Files.createTempDirectory("skillbill-cli-typesafe-enable-stored")
     val storedPath = writeRichConfig(storedDir)
@@ -93,13 +98,14 @@ class CliTypeSafeRuntimeTest {
 
     assertEquals(true, stored[SystemOneConfigPayloadKeys.ENABLED])
     assertEquals(true, stored[SystemOneConfigPayloadKeys.API_KEY_CONFIGURED])
-    val storedTypesafe = decodeJsonObject(Files.readString(storedPath))[SystemOneConfigPayloadKeys.ROOT] as Map<*, *>
-    assertEquals(true, storedTypesafe[SystemOneConfigPayloadKeys.ENABLED])
+    val storedConfig = decodeJsonObject(Files.readString(storedPath))
+    assertEquals(listOf(ExperimentNames.TYPESAFE), storedConfig[ExperimentConfigPayloadKeys.EXPERIMENTS])
+    val storedTypesafe = storedConfig[SystemOneConfigPayloadKeys.ROOT] as Map<*, *>
     assertEquals("stored-secret", storedTypesafe[SystemOneConfigPayloadKeys.API_KEY])
   }
 
   @Test
-  fun `status json reports enablement without leaking api key`() {
+  fun `status json reports experiment listing without leaking api key`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-typesafe-status")
     val configPath = writeRichConfig(tempDir)
     val secret = "status-secret-value"
@@ -108,11 +114,8 @@ class CliTypeSafeRuntimeTest {
       JsonCodec.mapToJsonString(
         richConfigPayload() +
           mapOf(
-            SystemOneConfigPayloadKeys.ROOT to
-              mapOf(
-                SystemOneConfigPayloadKeys.ENABLED to true,
-                SystemOneConfigPayloadKeys.API_KEY to secret,
-              ),
+            ExperimentConfigPayloadKeys.EXPERIMENTS to listOf(ExperimentNames.TYPESAFE),
+            SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.API_KEY to secret),
           ),
       ) + "\n",
     )
@@ -128,7 +131,7 @@ class CliTypeSafeRuntimeTest {
   }
 
   @Test
-  fun `probe with disabled client makes no http calls`() {
+  fun `probe without typesafe experiment makes no http calls`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-typesafe-probe")
     val configPath = writeRichConfig(tempDir)
     val capturedCalls = mutableListOf<String>()
@@ -160,6 +163,5 @@ class CliTypeSafeRuntimeTest {
     "external_addon_sources" to listOf("/tmp/addons"),
     "execution_matrix" to mapOf("default" to "claude"),
     "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 10),
-    SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.ENABLED to false),
   )
 }

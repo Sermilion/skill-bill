@@ -25,7 +25,10 @@ class TypeSafeTopLevelCommand(
   statusCommand: TypeSafeStatusCommand,
   configureCommand: TypeSafeConfigureCommand,
   probeCommand: TypeSafeProbeCommand,
-) : DocumentedCliCommand("typesafe", "Experimental TypeSafe System One client (off until enabled in config).") {
+) : DocumentedCliCommand(
+  "typesafe",
+  "Experimental TypeSafe System One client (off until typesafe is listed in machine experiments).",
+) {
   init {
     subcommands(statusCommand, configureCommand, probeCommand)
   }
@@ -37,7 +40,10 @@ class TypeSafeTopLevelCommand(
 class TypeSafeStatusCommand(
   private val service: SystemOneService,
   private val state: CliRunState,
-) : DocumentedCliCommand("status", "Show TypeSafe enablement and whether an API key is stored.") {
+) : DocumentedCliCommand(
+  "status",
+  "Show whether the typesafe experiment is listed and whether an API key is stored.",
+) {
   private val format by formatOption()
 
   override fun run() {
@@ -60,13 +66,19 @@ class TypeSafeConfigureCommand(
   private val state: CliRunState,
 ) : DocumentedCliCommand(
   "configure",
-  "Store a TypeSafe API key and opt into the experimental client in machine config.",
+  "Store a TypeSafe API key and add or remove typesafe on the machine experiments list.",
 ) {
   private val apiKey by option("--api-key", help = "TypeSafe API key written to machine config.json.")
   private val baseUrl by option("--base-url", help = "Optional TypeSafe API root URL.")
   private val model by option("--model", help = "Optional default System One model.")
-  private val enable by option("--enable", help = "Turn the experimental TypeSafe client on.").flag()
-  private val disable by option("--disable", help = "Turn the experimental TypeSafe client off.").flag()
+  private val enable by option(
+    "--enable",
+    help = "Add typesafe to the machine config experiments array.",
+  ).flag()
+  private val disable by option(
+    "--disable",
+    help = "Remove typesafe from the machine config experiments array.",
+  ).flag()
   private val format by formatOption()
 
   override fun run() {
@@ -114,7 +126,10 @@ class TypeSafeConfigureCommand(
 class TypeSafeProbeCommand(
   private val service: SystemOneService,
   private val state: CliRunState,
-) : DocumentedCliCommand("probe", "Call TypeSafe with a built-in connectivity noul (requires enablement).") {
+) : DocumentedCliCommand(
+  "probe",
+  "Call TypeSafe with a built-in connectivity noul (requires typesafe on the experiments list).",
+) {
   private val stateText by argument(help = "State text to evaluate")
   private val format by formatOption()
 

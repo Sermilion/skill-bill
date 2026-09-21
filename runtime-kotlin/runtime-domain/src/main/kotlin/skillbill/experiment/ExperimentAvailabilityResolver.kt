@@ -29,4 +29,10 @@ object ExperimentAvailabilityResolver {
       ExperimentAvailabilityPolicy.Disabled -> false
       is ExperimentAvailabilityPolicy.ExplicitNames -> name in policy.names
     }
+
+  fun isExplicitlyListed(name: String, policy: ExperimentAvailabilityPolicy?): Boolean =
+    policy is ExperimentAvailabilityPolicy.ExplicitNames && name in policy.names
+
+  fun listedNames(policy: ExperimentAvailabilityPolicy?): List<String> =
+    (policy as? ExperimentAvailabilityPolicy.ExplicitNames)?.names.orEmpty()
 }

@@ -6,13 +6,12 @@ import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.model.TelemetryOpenDocument
 
 data class TypeSafeSettings(
-  val enabled: Boolean = false,
   val apiKey: String? = null,
   val baseUrl: String = SystemOneDefaults.BASE_URL,
   val defaultModel: String = SystemOneDefaults.MODEL,
 ) {
   companion object {
-    val DISABLED: TypeSafeSettings = TypeSafeSettings()
+    val DEFAULT: TypeSafeSettings = TypeSafeSettings()
   }
 }
 
@@ -44,7 +43,7 @@ fun parseTypeSafeSettings(raw: Any?): TypeSafeSettingsParse = try {
 fun TelemetryConfigDocument.withTypeSafeSettings(patch: TypeSafeSettingsPatch): TelemetryConfigDocument {
   val updatedPayload = payload.toMutableMap()
   val current = typeSafeObject(updatedPayload[SystemOneConfigPayloadKeys.ROOT])
-  patch.enabled?.let { current[SystemOneConfigPayloadKeys.ENABLED] = it }
+  current.remove(SystemOneConfigPayloadKeys.ENABLED)
   patch.apiKey?.let { current[SystemOneConfigPayloadKeys.API_KEY] = it }
   patch.baseUrl?.let { current[SystemOneConfigPayloadKeys.BASE_URL] = it }
   patch.defaultModel?.let { current[SystemOneConfigPayloadKeys.DEFAULT_MODEL] = it }
@@ -54,7 +53,7 @@ fun TelemetryConfigDocument.withTypeSafeSettings(patch: TypeSafeSettingsPatch): 
 
 private fun parseTypeSafeMapping(raw: Any?): TypeSafeSettings {
   if (raw == null) {
-    return TypeSafeSettings.DISABLED
+    return TypeSafeSettings.DEFAULT
   }
   val root = raw as? Map<*, *> ?: invalidTypeSafe(SystemOneConfigPayloadKeys.ROOT, raw, "must be a mapping.")
   val fields = root.entries.associate { (key, value) -> key.toString() to value }
@@ -62,7 +61,6 @@ private fun parseTypeSafeMapping(raw: Any?): TypeSafeSettings {
     invalidTypeSafe("${SystemOneConfigPayloadKeys.ROOT}.$key", value, "is not a supported typesafe field.")
   }
   return TypeSafeSettings(
-    enabled = booleanField(SystemOneConfigPayloadKeys.ENABLED, fields, default = false),
     apiKey = optionalString(SystemOneConfigPayloadKeys.API_KEY, fields),
     baseUrl = optionalString(SystemOneConfigPayloadKeys.BASE_URL, fields) ?: SystemOneDefaults.BASE_URL,
     defaultModel = optionalString(SystemOneConfigPayloadKeys.DEFAULT_MODEL, fields) ?: SystemOneDefaults.MODEL,
@@ -79,15 +77,6 @@ private fun typeSafeObject(raw: Any?): MutableMap<String, Any?> = when (raw) {
   else -> throw IllegalArgumentException(
     "Machine config '${SystemOneConfigPayloadKeys.ROOT}' must be an object.",
   )
-}
-
-private fun booleanField(key: String, fields: Map<String, Any?>, default: Boolean): Boolean {
-  val value = fields[key]
-  return when (value) {
-    null -> default
-    is Boolean -> value
-    else -> invalidTypeSafe("${SystemOneConfigPayloadKeys.ROOT}.$key", value, "must be a boolean.")
-  }
 }
 
 private fun optionalString(key: String, fields: Map<String, Any?>): String? {

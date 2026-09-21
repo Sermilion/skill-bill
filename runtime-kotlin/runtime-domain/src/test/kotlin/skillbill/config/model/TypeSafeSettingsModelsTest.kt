@@ -8,13 +8,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 
 class TypeSafeSettingsModelsTest {
   @Test
-  fun `parse on null returns default-off settings`() {
+  fun `parse on null returns default credential settings`() {
     val parsed = parseTypeSafeSettings(null)
     assertIs<TypeSafeSettingsParse.Valid>(parsed)
-    assertFalse(parsed.settings.enabled)
+    assertNull(parsed.settings.apiKey)
     assertEquals(SystemOneDefaults.BASE_URL, parsed.settings.baseUrl)
     assertEquals(SystemOneDefaults.MODEL, parsed.settings.defaultModel)
   }
@@ -24,7 +25,7 @@ class TypeSafeSettingsModelsTest {
     val parsed =
       parseTypeSafeSettings(
         mapOf(
-          SystemOneConfigPayloadKeys.ENABLED to true,
+          SystemOneConfigPayloadKeys.API_KEY to "secret",
           "typo_field" to "oops",
         ),
       )
@@ -33,7 +34,7 @@ class TypeSafeSettingsModelsTest {
   }
 
   @Test
-  fun `withTypeSafeSettings preserves unrelated payload keys`() {
+  fun `withTypeSafeSettings preserves unrelated payload keys and strips enabled`() {
     val document =
       TelemetryConfigDocument(
         TelemetryOpenDocument.from(
@@ -42,6 +43,7 @@ class TypeSafeSettingsModelsTest {
             "external_addon_sources" to listOf("/tmp/addons"),
             "execution_matrix" to mapOf("default" to "claude"),
             "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 10),
+            SystemOneConfigPayloadKeys.ROOT to mapOf(SystemOneConfigPayloadKeys.ENABLED to true),
           ),
         ),
       )
@@ -60,5 +62,6 @@ class TypeSafeSettingsModelsTest {
     assertEquals(10, telemetry["batch_size"])
     val typesafe = updated.payload[SystemOneConfigPayloadKeys.ROOT] as Map<*, *>
     assertEquals("stored-key", typesafe[SystemOneConfigPayloadKeys.API_KEY])
+    assertFalse(typesafe.containsKey(SystemOneConfigPayloadKeys.ENABLED))
   }
 }

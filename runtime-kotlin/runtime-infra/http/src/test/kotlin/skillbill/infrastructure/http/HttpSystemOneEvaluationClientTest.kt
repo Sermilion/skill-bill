@@ -4,8 +4,8 @@ import skillbill.contracts.typesafe.SystemOneHttpHeaderKeys
 import skillbill.error.SystemOneHttpResponseError
 import skillbill.error.SystemOneMalformedResponseError
 import skillbill.model.TransportContext
-import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.ports.typesafe.model.SystemOneChoiceAnswer
 import skillbill.ports.typesafe.model.SystemOneCredentials
 import skillbill.ports.typesafe.model.SystemOneEvaluateRequest

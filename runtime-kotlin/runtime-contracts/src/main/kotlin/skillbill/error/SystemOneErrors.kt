@@ -1,13 +1,15 @@
 package skillbill.error
 
+import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.ExperimentNames
 import skillbill.contracts.typesafe.SystemOneConfigPayloadKeys
 import skillbill.error.core.SkillBillRuntimeException
 
 class SystemOneNotEnabledError :
   SkillBillRuntimeException(
-    "TypeSafe is experimental and off. Enable it with `skill-bill typesafe configure --enable` " +
-      "after setting ${SystemOneConfigPayloadKeys.ROOT}.${SystemOneConfigPayloadKeys.API_KEY} " +
-      "in machine config.",
+    "TypeSafe is experimental and off. Add '${ExperimentNames.TYPESAFE}' to the machine config " +
+      "'${ExperimentConfigPayloadKeys.EXPERIMENTS}' array, or run `skill-bill typesafe configure --enable` " +
+      "after setting an API key.",
   )
 
 class SystemOneApiKeyMissingError :

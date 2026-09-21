@@ -1,5 +1,6 @@
 package skillbill.experiment
 
+import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
 import skillbill.error.shellcontent.ExperimentParameterMalformedError
 import skillbill.experiment.model.ExperimentConfigParse
 import skillbill.experiment.model.parseExperimentAvailabilityValue
@@ -51,7 +52,7 @@ class ExperimentParameterParserTest {
 
     invalidValues.forEach { value ->
       when (val result = parseExperimentAvailabilityValue(value)) {
-        is ExperimentConfigParse.Invalid -> assertEquals("experiments", result.key)
+        is ExperimentConfigParse.Invalid -> assertEquals(ExperimentConfigPayloadKeys.EXPERIMENTS, result.key)
         is ExperimentConfigParse.Valid -> assertTrue(false, "expected malformed value: $value")
       }
     }
