@@ -1,3 +1,12 @@
+## [2026-09-21] SKILL-365 subtask 1 — Managed CodeGraph treatment
+Areas: orchestration/{contracts,dependencies,experiments}, runtime-kotlin/{runtime-cli,runtime-contracts,runtime-core,runtime-engine,runtime-infra,runtime-ports}, skills/bill-feature, install/uninstall
+- Registered `codegraph` as a manifest-backed goal-pair treatment with pinned optional installation, verified override/provisioning, control isolation, bounded retrieval, and usage receipts.
+- Treatment supplements now feed discovery/implementation and broker-authorized review evidence; pair reports project setup/query/degradation/not-exercised observations without changing quality authority. reusable
+- Added Kotlin fixture coverage for cross-file retrieval and pair-entry control/treatment behavior; documentation distinguishes availability from explicit selection and default-none runs.
+- Known limitation: pre-read worktree/index identity invalidation under concurrent implementation edits remains sync-on-query rather than a full bounded retry policy.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-21] SKILL-366 subtask 1 — Experiment execution and reports
 Areas: orchestration/contracts, runtime-kotlin/{runtime-contracts,runtime-domain,runtime-engine,runtime-ports,runtime-infra,runtime-cli}, skills/bill-feature
 - Added manifest-backed experiment selection, paired goal/navigation execution seams, arm isolation and persistence, observation/report projections, telemetry boundaries, and CLI surfaces.
