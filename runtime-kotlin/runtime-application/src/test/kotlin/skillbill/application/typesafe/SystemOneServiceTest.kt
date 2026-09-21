@@ -1,8 +1,8 @@
 package skillbill.application.typesafe
 
 import skillbill.config.model.TypeSafeSettingsPatch
-import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
-import skillbill.contracts.experiment.ExperimentNames
+import skillbill.contracts.experiment.config.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.config.ExperimentNames
 import skillbill.contracts.typesafe.SystemOneConfigPayloadKeys
 import skillbill.contracts.typesafe.SystemOneDefaults
 import skillbill.contracts.typesafe.SystemOneEnvironmentKeys

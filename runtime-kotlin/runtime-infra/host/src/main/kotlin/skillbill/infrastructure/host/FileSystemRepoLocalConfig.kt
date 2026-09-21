@@ -12,7 +12,7 @@ import skillbill.config.model.ValidationGateRepoConfigParse
 import skillbill.config.model.parseSpecType
 import skillbill.config.model.parseValidationGateRepoConfig
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.config.ExperimentConfigPayloadKeys
 import skillbill.error.shellcontent.ExperimentConfigMalformedError
 import skillbill.error.shellcontent.MalformedRepoLocalConfigError
 import skillbill.error.shellcontent.UnreadableRepoLocalConfigError

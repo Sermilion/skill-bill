@@ -1,7 +1,7 @@
 package skillbill.infrastructure.host.experiment
 import me.tatarka.inject.annotations.Inject
 import skillbill.config.model.ExperimentAvailabilityPolicy
-import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.config.ExperimentConfigPayloadKeys
 import skillbill.error.shellcontent.ExperimentConfigMalformedError
 import skillbill.experiment.model.ExperimentConfigParse
 import skillbill.experiment.model.parseExperimentAvailabilityValue

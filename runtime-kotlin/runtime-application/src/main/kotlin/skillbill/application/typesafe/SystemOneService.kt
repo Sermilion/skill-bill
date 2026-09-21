@@ -6,8 +6,8 @@ import skillbill.config.model.TypeSafeSettingsParse
 import skillbill.config.model.TypeSafeSettingsPatch
 import skillbill.config.model.parseTypeSafeSettings
 import skillbill.config.model.withTypeSafeSettings
-import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
-import skillbill.contracts.experiment.ExperimentNames
+import skillbill.contracts.experiment.config.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.config.ExperimentNames
 import skillbill.contracts.typesafe.SystemOneConfigPayloadKeys
 import skillbill.contracts.typesafe.SystemOneEnvironmentKeys
 import skillbill.error.SystemOneApiKeyMissingError
@@ -153,11 +153,10 @@ class SystemOneService(
     return document.withListedExperimentNames(nextNames.sorted())
   }
 
-  private fun parseSettings(raw: Any?): TypeSafeSettings =
-    when (val parsed = parseTypeSafeSettings(raw)) {
-      is TypeSafeSettingsParse.Valid -> parsed.settings
-      is TypeSafeSettingsParse.Invalid -> throw malformed(parsed)
-    }
+  private fun parseSettings(raw: Any?): TypeSafeSettings = when (val parsed = parseTypeSafeSettings(raw)) {
+    is TypeSafeSettingsParse.Valid -> parsed.settings
+    is TypeSafeSettingsParse.Invalid -> throw malformed(parsed)
+  }
 
   private fun parseExperimentPolicy(payload: Map<String, Any?>) =
     if (!payload.containsKey(ExperimentConfigPayloadKeys.EXPERIMENTS)) {

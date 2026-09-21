@@ -1,7 +1,7 @@
 package skillbill.experiment.model
 
 import skillbill.config.model.ExperimentAvailabilityPolicy
-import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.config.ExperimentConfigPayloadKeys
 import skillbill.experiment.EXPERIMENT_DISABLE_TOKEN
 import skillbill.experiment.parseExperimentNameList
 import skillbill.telemetry.model.TelemetryConfigDocument

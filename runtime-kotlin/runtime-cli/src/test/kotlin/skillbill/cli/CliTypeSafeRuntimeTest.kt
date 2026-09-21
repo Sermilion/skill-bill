@@ -3,8 +3,8 @@ package skillbill.cli
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
-import skillbill.contracts.experiment.ExperimentNames
+import skillbill.contracts.experiment.config.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.config.ExperimentNames
 import skillbill.contracts.typesafe.SystemOneConfigPayloadKeys
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.transport.RemoteTransportPort

@@ -1,6 +1,6 @@
 package skillbill.experiment
 
-import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.config.ExperimentConfigPayloadKeys
 import skillbill.error.shellcontent.ExperimentParameterMalformedError
 import skillbill.experiment.model.ExperimentConfigParse
 import skillbill.experiment.model.parseExperimentAvailabilityValue

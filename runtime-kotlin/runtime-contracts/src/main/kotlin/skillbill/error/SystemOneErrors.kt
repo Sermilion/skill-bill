@@ -1,7 +1,7 @@
 package skillbill.error
 
-import skillbill.contracts.experiment.ExperimentConfigPayloadKeys
-import skillbill.contracts.experiment.ExperimentNames
+import skillbill.contracts.experiment.config.ExperimentConfigPayloadKeys
+import skillbill.contracts.experiment.config.ExperimentNames
 import skillbill.contracts.typesafe.SystemOneConfigPayloadKeys
 import skillbill.error.core.SkillBillRuntimeException
 
