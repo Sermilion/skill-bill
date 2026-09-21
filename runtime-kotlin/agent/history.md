@@ -1,3 +1,13 @@
+## [2026-09-22] SKILL-368 subtask 1 — Default CodeGraph session
+Areas: runtime-kotlin/{runtime-ports,runtime-domain,runtime-contracts,runtime-infra/launcher,runtime-infra/workflow,runtime-infra/skills,build-logic}, orchestration/contracts, docs
+- Managed agent sessions detect the CodeGraph CLI, initialize or reuse the repository graph, and start one scoped MCP process with only the declared session configuration.
+- Missing CLI, initialization failure, unsupported commands, and MCP startup failure record typed redacted degradations and leave the child on ordinary tools.
+- Pattern: one session port and lease own prepare, activate, degradation, and cleanup for normal exit, failure, timeout, cancellation, and crash. reusable
+- Generated `.codegraph` data and `.skill-bill/runtime/codegraph-sessions` stay out of commits. Managed CodeGraph telemetry is disabled without changing Skill Bill's telemetry preference.
+- Known limitations: end-to-end provider query callbacks and the full lifecycle matrix named for boundary tests remain partial.
+Feature flag: N/A
+Acceptance criteria: 7/9 implemented
+
 ## [2026-09-21] SKILL-366 subtask 1 — Experiment execution and reports
 Areas: orchestration/contracts, runtime-kotlin/{runtime-contracts,runtime-domain,runtime-engine,runtime-ports,runtime-infra,runtime-cli}, skills/bill-feature
 - Added manifest-backed experiment selection, paired goal/navigation execution seams, arm isolation and persistence, observation/report projections, telemetry boundaries, and CLI surfaces.

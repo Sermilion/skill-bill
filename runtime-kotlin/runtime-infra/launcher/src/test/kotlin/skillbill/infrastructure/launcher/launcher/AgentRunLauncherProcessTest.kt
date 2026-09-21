@@ -9,6 +9,7 @@ import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.AgentRunOutputStream
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -19,6 +20,25 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 class AgentRunLauncherProcessTest {
+  @Test
+  fun `ordinary shell process creates neither a graph nor a CodeGraph session`() {
+    val directory = Files.createTempDirectory("ordinary-shell-codegraph-boundary")
+    try {
+      val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
+        testAgentRunProcessRequest(
+          listOf("sh", "-c", "printf ordinary-tool-result"),
+          directory,
+        ) { timeout = 3.seconds },
+      )
+      assertEquals(0, result.exitStatus)
+      assertEquals("ordinary-tool-result", result.stdout)
+      assertFalse(Files.exists(directory.resolve(".codegraph")))
+      assertFalse(Files.exists(directory.resolve(".skill-bill/runtime/codegraph-sessions")))
+    } finally {
+      directory.toFile().deleteRecursively()
+    }
+  }
+
   @Test
   fun `a phase-briefing prompt override drives the per-agent CLI for stdin-delivered agents`() {
     val runner = RecordingAgentRunProcessRunner()

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.git.standard
+import skillbill.codegraph.isCodeGraphGeneratedPath
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.infrastructure.workflow.process.runGitForActivity
 import skillbill.infrastructure.workflow.process.withValue
@@ -35,7 +36,12 @@ internal fun gitCheckoutPreservingLocalChanges(repoRoot: Path, args: List<String
   }
   val outcome = gitMergeCheckout(repoRoot, args, existingConflictMarkers)
   if (previouslyStaged.isEmpty()) return outcome
-  val restaged = runGitCommand(repoRoot, listOf("add", "--all", "--") + previouslyStaged)
+  val stageable = previouslyStaged.filterNot(::isCodeGraphGeneratedPath)
+  if (stageable.isEmpty()) return outcome
+  val restaged = runGitCommand(
+    repoRoot,
+    listOf("add", "--all", "--") + stageable,
+  )
   return if (restaged is WorkflowGitOperationResult.Ok) outcome else restaged
 }
 
@@ -45,11 +51,16 @@ private fun gitMergeCheckout(
   existingConflictMarkers: List<String>,
 ): WorkflowGitOperationResult {
   val checkout = runGitCommand(repoRoot, args)
-  val paths = gitConflictMarkerPaths(repoRoot).filterNot(existingConflictMarkers::contains)
+  val paths = gitConflictMarkerPaths(repoRoot)
+    .filterNot(existingConflictMarkers::contains)
+    .filterNot(::isCodeGraphGeneratedPath)
   if (paths.isEmpty()) return checkout
   val resolved = runGitCommand(repoRoot, listOf("checkout", "--theirs", "--") + paths)
   if (resolved !is WorkflowGitOperationResult.Ok) return checkout
-  val staged = runGitCommand(repoRoot, listOf("add", "--all", "--") + paths)
+  val staged = runGitCommand(
+    repoRoot,
+    listOf("add", "--all", "--") + paths,
+  )
   return if (staged is WorkflowGitOperationResult.Ok) {
     WorkflowGitOperationResult.Ok(value = checkout.value)
   } else {

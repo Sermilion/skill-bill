@@ -1,4 +1,6 @@
 package skillbill.infrastructure.workflow.git.scoped
+import skillbill.infrastructure.workflow.git.standard.GitStandardWorkflowGitWorktreeOperations
+import skillbill.infrastructure.workflow.git.standard.gitCreateCommit
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Files
@@ -31,6 +33,43 @@ class GitScopedStagingOperationsTest {
   @AfterTest
   fun tearDown() {
     repo.toFile().deleteRecursively()
+  }
+
+  @Test
+  fun `directory staging excludes generated graph and lifecycle data but commits source`() {
+    write(".codegraph/index.db", "generated index")
+    write(".skill-bill/runtime/codegraph-sessions/session.json", "private lifecycle")
+    write(".skill-bill/authored.txt", "authored")
+    write("owned/Source.kt", "source")
+    val scoped = GitScopedStagingOperations.stagePaths(repo, listOf(".codegraph/", ".skill-bill/", "owned/"))
+    assertTrue(scoped is WorkflowGitOperationResult.Ok, scoped.error)
+    assertFalse(
+      indexSnapshot().keys.any {
+        it.startsWith(".codegraph/") || it.startsWith(".skill-bill/runtime/codegraph-sessions/")
+      },
+    )
+    assertTrue("owned/Source.kt" in indexSnapshot().keys)
+    assertTrue(".skill-bill/authored.txt" in indexSnapshot().keys)
+    val all = GitStandardWorkflowGitWorktreeOperations.stageAll(repo)
+    assertTrue(all is WorkflowGitOperationResult.Ok, all.error)
+    val commit = gitCreateCommit(repo, "source only")
+    assertTrue(commit is WorkflowGitOperationResult.Ok, commit.error)
+    val tree = runGitCommand(repo, "ls-tree", "-r", "--name-only", "HEAD").value
+    assertFalse(tree.contains(".codegraph"))
+    assertFalse(tree.contains("codegraph-sessions"))
+    assertTrue(tree.contains("owned/Source.kt"))
+    assertEquals("generated index", Files.readString(repo.resolve(".codegraph/index.db")))
+  }
+
+  @Test
+  fun `commit rejects graph data already staged by another process`() {
+    write(".codegraph/index.db", "private graph")
+    git("add", "--", ".codegraph/index.db")
+    val before = runGitCommand(repo, "rev-parse", "HEAD").value
+    val commit = gitCreateCommit(repo, "must not commit graph")
+    assertTrue(commit is WorkflowGitOperationResult.Failed)
+    assertEquals(before, runGitCommand(repo, "rev-parse", "HEAD").value)
+    assertEquals("private graph", Files.readString(repo.resolve(".codegraph/index.db")))
   }
 
   @Test

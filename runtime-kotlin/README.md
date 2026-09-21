@@ -4,6 +4,10 @@ Standalone Kotlin runtime for the local `skill-bill` CLI, MCP server, install
 planner/apply path, telemetry, workflow state, scaffolding, and governed
 validation.
 
+Managed agent sessions can use the optional local CodeGraph capability. See
+[`docs/codegraph.md`](../docs/codegraph.md) for prerequisites, fallback, local
+graph data, telemetry, and cleanup behavior.
+
 ## Build
 
 ```bash

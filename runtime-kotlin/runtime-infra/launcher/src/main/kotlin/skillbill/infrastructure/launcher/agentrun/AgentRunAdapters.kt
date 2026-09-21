@@ -1,11 +1,16 @@
 package skillbill.infrastructure.launcher.agentrun
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import skillbill.codegraph.model.CodeGraphSessionConfiguration
+import skillbill.contracts.codegraph.CodeGraphDegradationReason
+import skillbill.contracts.codegraph.CodeGraphLifecycleState
+import skillbill.infrastructure.launcher.codegraph.CodeGraphAgentLaunchConfigurer
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessEnvironmentFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessExperimentCapabilityFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessLaunchFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessProbeFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRequest
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessResult
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessReviewFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRunner
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessTimingFields
@@ -17,7 +22,12 @@ import skillbill.install.model.agentLauncherUnavailableMessage
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.SkillRunRequest
+import skillbill.ports.codegraph.CodeGraphSessionLease
+import skillbill.ports.codegraph.CodeGraphSessionPort
+import skillbill.ports.codegraph.model.CodeGraphSessionPreparation
+import skillbill.ports.codegraph.model.CodeGraphSessionRequest
 import java.nio.file.Path
+import kotlin.coroutines.cancellation.CancellationException
 internal interface AgentRunAdapter {
   val agent: InstallAgent
   fun launch(request: SkillRunRequest): AgentRunLaunchFacts
@@ -33,6 +43,7 @@ internal class ProcessAgentRunAdapter(
   private val commandBuilder: AgentRunCommandBuilder,
   private val processRunner: AgentRunProcessRunner,
   private val executableLookup: ExecutableLookup = PathExecutableLookup(),
+  private val codeGraphSession: CodeGraphSessionPort? = null,
 ) : AgentRunAdapter {
   override fun launch(request: SkillRunRequest): AgentRunLaunchFacts {
     val built = commandBuilder.build(request)
@@ -40,44 +51,130 @@ internal class ProcessAgentRunAdapter(
       is LauncherResolution.Resolved -> built.copy(command = resolution.command)
       is LauncherResolution.Missing -> return unavailableLauncherFacts(request, built, resolution.message)
     }
-    val result = processRunner.run(processRequest(command, request))
-    val decoder = command.outputDecoder ?: commandBuilder.outputDecoder
-    val decoded = runCatching { decoder.decode(result.stdout) }.getOrElse { error ->
+    val childSessionId = childSessionId(agent, request, command.workingDirectory)
+    val repositoryRoot = request.repoRoot.toAbsolutePath().normalize()
+    val codeGraphRequest = CodeGraphSessionRequest(
+      repositoryRoot = repositoryRoot,
+      childSessionId = childSessionId,
+      agentId = agent.id,
+      launchDirectory = command.workingDirectory.toAbsolutePath().normalize(),
+      configuration = CodeGraphSessionConfiguration(repositoryRoot.toString()),
+    )
+    val preparation = if (request.promptOverride == null && request.goalContinuation != null) {
+      null
+    } else {
+      codeGraphSession?.prepare(codeGraphRequest)
+    }
+    val lease = (preparation as? CodeGraphSessionPreparation.Ready)?.lease
+    val (configuredCommand, completedResult) = runChild(command, request, codeGraphRequest, lease)
+    return launchFacts(configuredCommand, childSessionId, completedResult)
+  }
+
+  private fun configureCodeGraphCommand(
+    command: AgentRunCommand,
+    request: CodeGraphSessionRequest,
+    lease: CodeGraphSessionLease?,
+  ): AgentRunCommand {
+    if (lease == null) return command
+    return try {
+      CodeGraphAgentLaunchConfigurer.apply(command, agent, request, lease.launchConfiguration)
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (_: Exception) {
+      lease.recordDegradation(CodeGraphDegradationReason.MCP_STARTUP_FAILURE, "CodeGraph configuration failed.")
+      command
+    }
+  }
+
+  private fun runChild(
+    command: AgentRunCommand,
+    request: SkillRunRequest,
+    codeGraphRequest: CodeGraphSessionRequest,
+    lease: CodeGraphSessionLease?,
+  ): Pair<AgentRunCommand, AgentRunProcessResult> {
+    val result = runCatching {
+      val configured = configureCodeGraphCommand(command, codeGraphRequest, lease)
+      lease?.activate()
+      configured to processRunner.run(processRequest(configured, request))
+    }
+    val failure = result.exceptionOrNull()
+    val terminal = when (failure) {
+      is CancellationException, is InterruptedException -> CodeGraphLifecycleState.CANCELLED
+      null -> codeGraphTerminalState(result.getOrThrow().second)
+      else -> CodeGraphLifecycleState.FAILED
+    }
+    closeCodeGraph(lease, failure, terminal)
+    return result.getOrThrow()
+  }
+
+  private fun closeCodeGraph(
+    lease: CodeGraphSessionLease?,
+    primaryFailure: Throwable?,
+    terminal: CodeGraphLifecycleState,
+  ) {
+    runCatching { lease?.closeWithTerminalState(primaryFailure, terminal) }.onFailure { cleanupFailure ->
+      primaryFailure?.addSuppressed(cleanupFailure)
+      System.err.println("CodeGraph cleanup failed; the child outcome is preserved.")
+    }
+  }
+
+  private fun launchFacts(
+    configuredCommand: AgentRunCommand,
+    childSessionId: String,
+    completedResult: AgentRunProcessResult,
+  ): AgentRunLaunchFacts {
+    val decoder = configuredCommand.outputDecoder ?: commandBuilder.outputDecoder
+    val decoded = runCatching { decoder.decode(completedResult.stdout) }.getOrElse { error ->
       if (!decoder.undecodable(error)) throw error
 
-      DecodedAgentRunOutput(text = "", rawOutputPreview = result.stdout.take(RAW_OUTPUT_PREVIEW_MAX_CHARS))
+      DecodedAgentRunOutput(text = "", rawOutputPreview = completedResult.stdout.take(RAW_OUTPUT_PREVIEW_MAX_CHARS))
     }
 
-    require(result.spawnFailed != result.processStarted) {
+    require(completedResult.spawnFailed != completedResult.processStarted) {
       "AgentRunProcessRunner result must report exactly one of spawnFailed/processStarted; got " +
-        "spawnFailed=${result.spawnFailed}, processStarted=${result.processStarted}."
+        "spawnFailed=${completedResult.spawnFailed}, processStarted=${completedResult.processStarted}."
     }
     val normalizedStdout = decoded.text
-    val decodedBodyBytes = if (normalizedStdout == result.stdout) {
-      result.stdoutBytes
+    val decodedBodyBytes = if (normalizedStdout == completedResult.stdout) {
+      completedResult.stdoutBytes
     } else {
       normalizedStdout.encodeToByteArray()
     }
     return AgentRunLaunchFacts(
       agent = agent,
-      exitStatus = result.exitStatus,
+      exitStatus = completedResult.exitStatus,
       stdout = normalizedStdout,
       stdoutBytes = decodedBodyBytes,
-      stderr = result.stderr,
-      timedOut = result.timedOut,
-      interrupted = result.interrupted,
-      spawnFailed = result.spawnFailed,
-      liveness = result.liveness,
-      processStarted = result.processStarted,
-      mcpStartupObserved = result.mcpStartupObserved,
-      stdoutTruncated = result.stdoutTruncated,
-      stdoutByteSize = if (result.stdoutTruncated) result.stdoutByteSize else decodedBodyBytes.size.toLong(),
-      stdoutSha256 = if (result.stdoutTruncated) result.stdoutSha256 else launcherSha256Hex(decodedBodyBytes),
-      childSessionPath = command.workingDirectory.toString(),
-      childSessionId = childSessionId(agent, request, command.workingDirectory),
+      stderr = completedResult.stderr,
+      timedOut = completedResult.timedOut,
+      interrupted = completedResult.interrupted,
+      spawnFailed = completedResult.spawnFailed,
+      liveness = completedResult.liveness,
+      processStarted = completedResult.processStarted,
+      mcpStartupObserved = completedResult.mcpStartupObserved,
+      stdoutTruncated = completedResult.stdoutTruncated,
+      stdoutByteSize = if (completedResult.stdoutTruncated) {
+        completedResult.stdoutByteSize
+      } else {
+        decodedBodyBytes.size.toLong()
+      },
+      stdoutSha256 = if (completedResult.stdoutTruncated) {
+        completedResult.stdoutSha256
+      } else {
+        launcherSha256Hex(decodedBodyBytes)
+      },
+      childSessionPath = configuredCommand.workingDirectory.toString(),
+      childSessionId = childSessionId,
       assistantEventCount = decoded.assistantEventCount,
       rawOutputPreview = decoded.rawOutputPreview,
     )
+  }
+
+  private fun codeGraphTerminalState(result: AgentRunProcessResult): CodeGraphLifecycleState = when {
+    result.interrupted -> CodeGraphLifecycleState.CANCELLED
+    result.timedOut -> CodeGraphLifecycleState.TIMED_OUT
+    result.spawnFailed || result.exitStatus?.let { it != 0 } == true -> CodeGraphLifecycleState.FAILED
+    else -> CodeGraphLifecycleState.EXITED
   }
 
   private fun resolveLauncherExecutable(command: List<String>, launcher: AgentLauncherCli): LauncherResolution {
@@ -253,6 +350,7 @@ internal fun headlessAgentRunAdapters(
   processRunner: AgentRunProcessRunner,
   executableLookup: ExecutableLookup = PathExecutableLookup(),
   databasePath: Path? = null,
+  codeGraphSession: CodeGraphSessionPort? = null,
 ): Map<InstallAgent, AgentRunAdapter> = listOf(
   ClaudeAgentRunCommandBuilder(databasePath = databasePath),
   CodexAgentRunCommandBuilder(databasePath = databasePath),
@@ -264,5 +362,6 @@ internal fun headlessAgentRunAdapters(
     commandBuilder = builder,
     processRunner = processRunner,
     executableLookup = executableLookup,
+    codeGraphSession = codeGraphSession,
   )
 }

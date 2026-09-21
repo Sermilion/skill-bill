@@ -1,0 +1,58 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://skill-bill.dev/contracts/codegraph-session-schema.yaml
+title: CodeGraph session lifecycle observation
+type: object
+additionalProperties: false
+required:
+  - contract_version
+  - session_id
+  - repository
+  - capability
+  - telemetry_disabled
+  - lifecycle_state
+  - cleanup_attempted
+properties:
+  contract_version:
+    const: "0.1"
+  session_id:
+    type: string
+    minLength: 1
+  repository:
+    const: "<repository>"
+  capability:
+    const: explore
+  telemetry_disabled:
+    const: true
+  lifecycle_state:
+    enum:
+      - preparing
+      - fallback
+      - ready
+      - active
+      - exited
+      - failed
+      - timed_out
+      - cancelled
+      - cleanup_failed
+  degradation_reason:
+    enum:
+      - missing_cli
+      - missing_graph
+      - initialization_failure
+      - unsupported_command
+      - unavailable_capability
+      - pending_synchronization
+      - mcp_startup_failure
+      - query_failure
+      - cleanup_failure
+  detail:
+    type: [string, "null"]
+    maxLength: 240
+  cleanup_attempted:
+    type: boolean
+  cleanup_failure:
+    type: [string, "null"]
+    maxLength: 240
+  primary_failure:
+    type: [string, "null"]
+    maxLength: 240

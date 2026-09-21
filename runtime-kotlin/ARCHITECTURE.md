@@ -507,6 +507,7 @@ and `:runtime-infra:sqlite`.
   not under `skillbill.infrastructure.contracts`, because they are
   adapter-owned parse/repair engines rather than schema validators.
 - `skillbill.error`: runtime exception taxonomy.
+- `skillbill.codegraph`: CodeGraph repository boundaries and session models owned by `runtime-domain`.
 - `skillbill.agent.model`: phase handoff string envelopes for agent phase input and output owned by `runtime-domain`.
 - `skillbill.agentaddon` and `skillbill.agentaddon.model`: governed agent-add-on
   filesystem discovery and schema validation owned by `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`, plus
@@ -853,6 +854,7 @@ skillbill.agent.model
 skillbill.agentaddon
 skillbill.application
 skillbill.cli
+skillbill.codegraph
 skillbill.config
 skillbill.contracts
 skillbill.di

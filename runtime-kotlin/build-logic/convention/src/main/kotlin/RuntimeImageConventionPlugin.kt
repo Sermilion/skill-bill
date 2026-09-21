@@ -32,6 +32,7 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
         "java.sql",
         "java.xml",
         "java.desktop",
+        "jdk.httpserver",
         "jdk.crypto.ec",
         "jdk.unsupported",
       )

@@ -54,6 +54,10 @@ these seams:
 - worktree edit journal cap: when `trimToCap` drops rows records
   `seam=worktree_edit_journal_cap value_expected=rows_within_cap value_used=dropped_oldest_ticks`
   with `dropped_rows`
+- CodeGraph setup and session lifetime use typed degradation reasons and bounded,
+  redacted details for missing CLI or graph, initialization, unsupported command,
+  unavailable capability, pending synchronization, MCP startup, query, and cleanup
+  outcomes. A fallback record never claims successful CodeGraph use.
 
 Each record names the seam, the value actually used, the value that was expected,
 and why the substitution happened. A fallback that cannot be attributed to a

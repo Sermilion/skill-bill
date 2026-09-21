@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.git.standard
+import skillbill.infrastructure.workflow.git.scoped.codeGraphCommitBoundaryFailure
 import skillbill.infrastructure.workflow.process.gitTimedOutError
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.infrastructure.workflow.process.runGitProcess
@@ -32,6 +33,7 @@ internal fun gitBranchExists(repoRoot: Path, branch: String): WorkflowGitOperati
 }
 
 internal fun gitCreateCommit(repoRoot: Path, message: String): WorkflowGitOperationResult {
+  codeGraphCommitBoundaryFailure(repoRoot)?.let { return it }
   val commit = runGitCommand(repoRoot, "commit", "-m", message)
   return when {
     commit is WorkflowGitOperationResult.Ok -> runGitCommand(repoRoot, "rev-parse", "HEAD")

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.git.checkpoint
+import skillbill.infrastructure.workflow.git.scoped.codeGraphCommitBoundaryFailure
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.infrastructure.workflow.process.withValue
 import skillbill.ports.workflow.gitops.CheckpointHistoryGitOperations
@@ -12,6 +13,7 @@ internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations 
     replacementMessage: String?,
     allowUnchangedIndex: Boolean,
   ): WorkflowGitOperationResult {
+    codeGraphCommitBoundaryFailure(repoRoot)?.let { return it }
     val expected = expectedOwnedHeadSha.trim()
     val precondition = gitCheckpointProtectedBranchFailure(repoRoot)
       ?: gitCheckpointOwnedHeadFailure(repoRoot, expected)

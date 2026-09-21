@@ -173,6 +173,7 @@ object RuntimeModuleCatalog {
       "skillbill.agentaddon",
       "skillbill.application",
       "skillbill.cli",
+      "skillbill.codegraph",
       "skillbill.config",
       "skillbill.contracts",
       "skillbill.di",

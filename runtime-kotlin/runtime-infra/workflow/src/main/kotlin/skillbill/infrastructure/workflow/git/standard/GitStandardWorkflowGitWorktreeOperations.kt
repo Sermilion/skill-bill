@@ -10,7 +10,19 @@ import skillbill.ports.workflow.gitops.worktree.WorkflowGitWorktreeOperations
 import java.nio.file.Path
 
 internal object GitStandardWorkflowGitWorktreeOperations : WorkflowGitWorktreeOperations {
-  override fun stageAll(repoRoot: Path): WorkflowGitOperationResult = runGitCommand(repoRoot, "add", "-A")
+  override fun stageAll(repoRoot: Path): WorkflowGitOperationResult = runGitCommand(
+    repoRoot,
+    listOf(
+      "add",
+      "-A",
+      "--",
+      ".",
+      ":!.codegraph",
+      ":!.codegraph/**",
+      ":!.skill-bill/runtime/codegraph-sessions",
+      ":!.skill-bill/runtime/codegraph-sessions/**",
+    ),
+  )
 
   override fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult =
     runGitCommand(repoRoot, "status", "--porcelain", "-uall")

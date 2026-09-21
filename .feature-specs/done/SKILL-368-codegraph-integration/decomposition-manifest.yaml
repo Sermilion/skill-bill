@@ -1,0 +1,27 @@
+---
+contract_version: "0.5"
+issue_key: "SKILL-368"
+feature_name: "codegraph-integration"
+parent_spec_path: ".feature-specs/SKILL-368-codegraph-integration/spec.md"
+status: "in_progress"
+execution_model: "same_branch_commit_per_subtask"
+base_branch: "main"
+feature_branch: "feat/SKILL-368-codegraph-integration"
+stack_branches: []
+current_subtask_intent:
+  subtask_id: 1
+  action: "resume"
+subtasks:
+- id: 1
+  name: "Default CodeGraph session"
+  spec_path: ".feature-specs/SKILL-368-codegraph-integration/spec_subtask_1_default-codegraph-session.md"
+  status: "in_progress"
+  branch: null
+  commit_sha: null
+  workflow_id: "wftr-20260921-202018-w8oz"
+  blocked_reason: null
+  last_resumable_step: null
+  linear_issue_id: null
+  finalizing_agent_id: null
+  participating_agent_ids: []
+  dependencies: []

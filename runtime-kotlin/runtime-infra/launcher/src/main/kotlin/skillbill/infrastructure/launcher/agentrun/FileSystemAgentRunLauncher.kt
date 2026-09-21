@@ -1,6 +1,9 @@
 package skillbill.infrastructure.launcher.agentrun
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.launcher.codegraph.FileSystemCodeGraphLifecycleStore
+import skillbill.infrastructure.launcher.codegraph.FileSystemCodeGraphSession
+import skillbill.infrastructure.launcher.codegraph.JvmCodeGraphExecutable
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRunner
 import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
 import skillbill.install.model.InstallAgent
@@ -9,12 +12,14 @@ import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
+import skillbill.ports.codegraph.CodeGraphSessionPort
 import skillbill.ports.db.DatabaseSessionFactory
 import java.nio.file.Path
 class FileSystemAgentRunLauncher internal constructor(
   processRunner: AgentRunProcessRunner,
   executableLookup: ExecutableLookup = PathExecutableLookup(),
   databasePath: Path? = null,
+  codeGraphSession: CodeGraphSessionPort? = null,
 ) : AgentRunLauncher {
   @Inject
   constructor(
@@ -28,7 +33,15 @@ class FileSystemAgentRunLauncher internal constructor(
   )
 
   private val adapters: Map<InstallAgent, AgentRunAdapter> =
-    headlessAgentRunAdapters(processRunner, executableLookup, databasePath)
+    headlessAgentRunAdapters(
+      processRunner = processRunner,
+      executableLookup = executableLookup,
+      databasePath = databasePath,
+      codeGraphSession = codeGraphSession ?: FileSystemCodeGraphSession(
+        executable = JvmCodeGraphExecutable(executableLookup),
+        lifecycleStoreFactory = { root -> FileSystemCodeGraphLifecycleStore(root) },
+      ),
+    )
 
   override fun launch(request: AgentRunLaunchRequest): AgentRunLaunchOutcome {
     val agent = InstallAgent.fromNormalizedId(request.agentId)

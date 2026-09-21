@@ -26,9 +26,25 @@ import java.time.temporal.ChronoUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 class FileSystemValidationGateRunnerTest {
+  @Test
+  fun `deterministic gate execution does not initialize CodeGraph or create an agent session`() {
+    val repo = Files.createTempDirectory("gate-without-codegraph")
+    try {
+      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+        request(repo, listOf("sh", "-c", "printf deterministic-gate"), ValidationGateFindingParseMode.COLLECT_ALL),
+      )
+      assertEquals(0, result.exitCode)
+      assertFalse(Files.exists(repo.resolve(".codegraph")))
+      assertFalse(Files.exists(repo.resolve(".skill-bill/runtime/codegraph-sessions")))
+    } finally {
+      repo.toFile().deleteRecursively()
+    }
+  }
+
   @Test
   fun `COLLECT_ALL unions compiler findings from module A with JUnit from compiling module B`() {
     val repo = Files.createTempDirectory("gate-collect-all")

@@ -1,5 +1,6 @@
 package skillbill.infrastructure.workflow.git.workflow
 
+import skillbill.codegraph.isCodeGraphGeneratedPath
 import skillbill.infrastructure.host.jvm.requirePathContainedIn
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
@@ -96,7 +97,20 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
     val tempIndex = tempDir.resolve("index")
     Files.copy(resolvedIndex, tempIndex)
     val environment = mapOf("GIT_INDEX_FILE" to tempIndex.toString())
-    val stagedWorktree = runGitCommand(repoRoot, environment, "add", "--all", "--", ".")
+    val stagedWorktree = runGitCommand(
+      repoRoot,
+      environment,
+      listOf(
+        "add",
+        "--all",
+        "--",
+        ".",
+        ":!.codegraph",
+        ":!.codegraph/**",
+        ":!.skill-bill/runtime/codegraph-sessions",
+        ":!.skill-bill/runtime/codegraph-sessions/**",
+      ),
+    )
     if (stagedWorktree !is WorkflowGitOperationResult.Ok) return stagedWorktree
     val listed = runGitCommand(repoRoot, environment, "ls-files", "-s", "-z")
     if (listed !is WorkflowGitOperationResult.Ok) return listed
@@ -154,5 +168,5 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
   }
 
   internal fun isExcludedFromSourceTree(path: String, runEvidencePrefix: String): Boolean =
-    path.endsWith("agent/history.md") || path.startsWith(runEvidencePrefix)
+    isCodeGraphGeneratedPath(path) || path.endsWith("agent/history.md") || path.startsWith(runEvidencePrefix)
 }

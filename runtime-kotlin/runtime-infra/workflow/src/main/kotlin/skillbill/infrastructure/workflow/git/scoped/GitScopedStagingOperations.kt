@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.git.scoped
+import skillbill.codegraph.isCodeGraphGeneratedPath
 import skillbill.infrastructure.workflow.process.GitProcessResult
 import skillbill.infrastructure.workflow.process.gitTimedOutError
 import skillbill.infrastructure.workflow.process.runGitCommand
@@ -18,7 +19,7 @@ private const val PATHSPEC_BATCH_SIZE = 200
 
 internal object GitScopedStagingOperations : ScopedStagingGitOperations {
   override fun stagePaths(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult {
-    val normalized = paths.filter(String::isNotBlank).distinct()
+    val normalized = paths.filter(String::isNotBlank).filterNot(::isCodeGraphGeneratedPath).distinct()
     if (normalized.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
     val resolved = resolveStageablePaths(repoRoot, normalized)
     if (resolved !is WorkflowGitOperationResult.Ok) return resolved
@@ -32,21 +33,23 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
   }
 
   override fun captureIndexState(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult {
-    val normalized = paths.filter(String::isNotBlank).distinct()
+    val normalized = paths.filter(String::isNotBlank).filterNot(::isCodeGraphGeneratedPath).distinct()
     if (normalized.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
     val entries = mutableListOf<String>()
     normalized.chunked(PATHSPEC_BATCH_SIZE).forEach { batch ->
       val listed = runGitCommand(repoRoot, listOf("ls-files", "--stage", "-z", "--") + batch)
       if (listed !is WorkflowGitOperationResult.Ok) return listed
       entries += listed.value.orEmpty().split(GIT_NUL).filter(String::isNotBlank)
+        .filterNot { indexEntryPath(it)?.let(::isCodeGraphGeneratedPath) == true }
     }
     return WorkflowGitOperationResult.Ok(value = entries.joinToString(GIT_NUL.toString()))
   }
 
   override fun restoreIndexState(repoRoot: Path, paths: List<String>, snapshot: String): WorkflowGitOperationResult {
-    val normalized = paths.filter(String::isNotBlank).distinct()
+    val normalized = paths.filter(String::isNotBlank).filterNot(::isCodeGraphGeneratedPath).distinct()
     if (normalized.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
     val entries = snapshot.split(GIT_NUL).filter(String::isNotBlank)
+      .filterNot { indexEntryPath(it)?.let(::isCodeGraphGeneratedPath) == true }
     val snapshotPaths = entries.mapNotNull(::indexEntryPath).toSet()
 
     val removals = normalized.filterNot { it in snapshotPaths }
@@ -97,7 +100,7 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
     val ignored = ignoredUntrackedPaths(repoRoot, presentOrIndexed)
     if (ignored !is WorkflowGitOperationResult.Ok) return ignored
     val ignoredSet = ignored.value.orEmpty().split(GIT_NUL).filter(String::isNotBlank).toSet()
-    val stageable = presentOrIndexed.filterNot { it in ignoredSet }
+    val stageable = presentOrIndexed.filterNot { it in ignoredSet || isCodeGraphGeneratedPath(it) }
     return WorkflowGitOperationResult.Ok(value = stageable.joinToString(GIT_NUL.toString()))
   }
 
