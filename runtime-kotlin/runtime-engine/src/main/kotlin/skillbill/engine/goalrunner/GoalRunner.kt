@@ -119,7 +119,7 @@ class GoalRunner(
     val finalReport = requireNotNull(loopResult.report)
     closeGoalTelemetrySegment(telemetryEmitter, state, finalReport, loopResult.attempted)
     emitCompletedGoalEvent(effectiveRequest, finalReport)
-    return finalReport
+    return finalReport.withParentWorkflowId(state.parentWorkflowId)
   }
 
   private fun planningStoppedReport(
@@ -150,7 +150,7 @@ class GoalRunner(
       ),
     )
     closeGoalTelemetrySegment(telemetryEmitter, state, planningStop, attempted)
-    return planningStop
+    return planningStop.withParentWorkflowId(state.parentWorkflowId)
   }
 
   private fun emitCompletedGoalEvent(request: GoalRunnerRunRequest, finalReport: GoalRunnerRunReport) {
@@ -182,4 +182,9 @@ class GoalRunner(
       }
     }
   }
+}
+
+private fun GoalRunnerRunReport.withParentWorkflowId(parentWorkflowId: String): GoalRunnerRunReport = when (this) {
+  is GoalRunnerRunReport.Completed -> copy(parentWorkflowId = parentWorkflowId)
+  is GoalRunnerRunReport.Stopped -> copy(parentWorkflowId = parentWorkflowId)
 }

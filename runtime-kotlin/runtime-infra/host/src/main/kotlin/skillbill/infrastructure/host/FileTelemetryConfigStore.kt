@@ -54,6 +54,7 @@ internal fun ensureTelemetryConfigFile(
   val telemetry = normalizedTelemetryMap(payload, defaults)
   payload["install_id"] = normalizedInstallId(payload, defaults)
   payload["telemetry"] = telemetry
+  preserveUnownedTopLevelKeys(payload, existing?.payload)
   val document = TelemetryConfigDocument(TelemetryOpenDocument.from(payload))
   if (!Files.exists(path) || existing != document) {
     writeTelemetryConfigFile(path, document)
@@ -92,6 +93,15 @@ private fun normalizeLegacyEnabledFlag(telemetry: MutableMap<String, Any?>) {
     telemetry["level"] = legacyEnabledLevel(enabledRaw)
   } else {
     telemetry.remove("enabled")
+  }
+}
+
+private fun preserveUnownedTopLevelKeys(payload: MutableMap<String, Any?>, existing: Map<String, Any?>?) {
+  val ownedKeys = setOf("install_id", "telemetry")
+  existing?.forEach { (key, value) ->
+    if (key !in ownedKeys && !payload.containsKey(key)) {
+      payload[key] = value
+    }
   }
 }
 

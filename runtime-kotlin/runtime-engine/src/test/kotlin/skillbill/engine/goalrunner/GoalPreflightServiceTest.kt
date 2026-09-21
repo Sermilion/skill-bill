@@ -11,18 +11,22 @@ import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.engine.decomposition.encodeDecompositionManifestYaml
+import skillbill.engine.experiment.NoopExperimentSelectionPort
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.goalrunner.model.GoalPreflightRequest
 import skillbill.engine.goalrunner.preflight.GoalPreflightService
 import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
+import skillbill.experiment.model.ExperimentExecutionMode
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.install.model.ExternalAgentAddonSource
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigResult
+import skillbill.ports.experiment.selection.ExperimentLaunchSelection
+import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStoreDefaults
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
@@ -86,6 +90,70 @@ class GoalPreflightServiceTest {
     assertEquals("requires subtask 1", gate.subtasks[1].dependencies.single().note)
     assertEquals(2, gate.expectedFirstRunnableSubtask)
     assertEquals(emptyList(), states.listFeatureTaskRuntimeWorkflows())
+  }
+
+  @Test
+  fun `gate block shows the complete selected experiment pair`() {
+    val root = Files.createTempDirectory("goal-preflight-experiment")
+    val service = service(
+      database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+      manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
+      experimentSelectionPort = object : ExperimentSelectionPort {
+        override fun resolveForLaunch(
+          repoRoot: Path,
+          parameter: String?,
+          mode: ExperimentExecutionMode,
+          savedSelection: List<String>?,
+        ): ExperimentLaunchSelection = ExperimentLaunchSelection(
+          normalizedNames = listOf("first-fixture", "second-fixture"),
+          descriptors = listOf("first-fixture", "second-fixture"),
+          availabilitySummary = "explicit",
+        )
+      },
+    )
+
+    val gate = requireNotNull(
+      service.preflight(
+        request(root).copy(experimentsParameter = "first-fixture,second-fixture"),
+      ).gateBlock,
+    )
+
+    assertEquals(listOf("first-fixture", "second-fixture"), gate.experiment?.selectedNames)
+    assertEquals(listOf("control", "treatment"), gate.experiment?.arms)
+    assertEquals("control", gate.experiment?.deliveryArm)
+    assertTrue(gate.experimentSelectionSummary.orEmpty().contains("first-fixture, second-fixture"))
+  }
+
+  @Test
+  fun `ordinary and explicit none preflight requests do not activate a treatment`() {
+    val root = Files.createTempDirectory("goal-preflight-ordinary-experiment")
+    val parameters = mutableListOf<String?>()
+    val service = service(
+      database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+      manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
+      experimentSelectionPort = object : ExperimentSelectionPort {
+        override fun resolveForLaunch(
+          repoRoot: Path,
+          parameter: String?,
+          mode: ExperimentExecutionMode,
+          savedSelection: List<String>?,
+        ): ExperimentLaunchSelection {
+          parameters += parameter
+          return ExperimentLaunchSelection(
+            normalizedNames = emptyList(),
+            descriptors = emptyList(),
+            availabilitySummary = "none",
+          )
+        }
+      },
+    )
+
+    val omitted = service.preflight(request(root)).gateBlock!!
+    val disabled = service.preflight(request(root).copy(experimentsParameter = "none")).gateBlock!!
+
+    assertEquals(null, omitted.experiment)
+    assertEquals(null, disabled.experiment)
+    assertEquals(listOf(null, null, "none", "none"), parameters)
   }
 
   @Test
@@ -265,6 +333,7 @@ class GoalPreflightServiceTest {
     externalAgentAddonSourceConfigPort: ExternalAgentAddonSourceConfigPort =
       EmptyExternalAgentAddonSourceConfigPort,
     persistedReviewPolicy: GoalRunnerReviewPolicy? = null,
+    experimentSelectionPort: ExperimentSelectionPort = NoopExperimentSelectionPort,
   ): GoalPreflightService {
     val fileStore: DecompositionManifestStore = TestDecompositionManifestStore
     return GoalPreflightService(
@@ -279,6 +348,7 @@ class GoalPreflightServiceTest {
       manifestFileStore = fileStore,
       manifestValidator = testDecompositionManifestValidator,
       repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
+      experimentSelectionPort = experimentSelectionPort,
     )
   }
 

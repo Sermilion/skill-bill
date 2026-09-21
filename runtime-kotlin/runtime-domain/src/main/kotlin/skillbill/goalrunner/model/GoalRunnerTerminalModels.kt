@@ -101,6 +101,7 @@ data class GoalRunnerStopReport(
 enum class GoalPullRequestStatus(val wireValue: String) {
   OPENED("opened"),
   EXISTING("existing"),
+  DEFERRED("deferred"),
   ;
 
   companion object {
@@ -111,6 +112,8 @@ enum class GoalPullRequestStatus(val wireValue: String) {
 sealed interface GoalRunnerRunReport {
   val issueKey: String
   val attemptedSubtasks: List<Int>
+  val parentWorkflowId: String?
+    get() = null
 
   data class Completed(
     override val issueKey: String,
@@ -123,11 +126,13 @@ sealed interface GoalRunnerRunReport {
     val unaddressedFindingCount: Int? = 0,
     val unaddressedSeverityBreakdown: Map<String, Int> = emptyMap(),
     val featureName: String? = null,
+    override val parentWorkflowId: String? = null,
   ) : GoalRunnerRunReport
 
   data class Stopped(
     override val issueKey: String,
     override val attemptedSubtasks: List<Int>,
     val stop: GoalRunnerStopReport,
+    override val parentWorkflowId: String? = null,
   ) : GoalRunnerRunReport
 }

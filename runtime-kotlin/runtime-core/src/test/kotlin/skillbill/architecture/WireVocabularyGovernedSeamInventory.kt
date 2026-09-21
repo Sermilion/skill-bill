@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
+import skillbill.contracts.experiment.ExperimentDescriptorSchemaPaths
+import skillbill.contracts.experiment.ExperimentObservationSchemaPaths
+import skillbill.contracts.experiment.ExperimentPairSchemaPaths
+import skillbill.contracts.experiment.ExperimentReportSchemaPaths
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
@@ -103,12 +107,79 @@ internal object WireVocabularyGovernedSeamInventory {
       ),
     ),
     GovernedPayloadSeam(
+      seamId = "experiment-descriptor",
+      schemaRepoRelativePath = ExperimentDescriptorSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "infrastructure/contracts/experiment/",
+        "ports/experiment/descriptor/",
+      ),
+    ),
+    GovernedPayloadSeam(
+      seamId = "experiment-pair",
+      schemaRepoRelativePath = ExperimentPairSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "infrastructure/sqlite/experiment/",
+        "engine/goalrunner/experiment/",
+        "ports/experiment/pair/",
+      ),
+    ),
+    GovernedPayloadSeam(
+      seamId = "experiment-observation",
+      schemaRepoRelativePath = ExperimentObservationSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "infrastructure/sqlite/experiment/SqliteExperimentPairOwnerStore",
+      ),
+    ),
+    GovernedPayloadSeam(
+      seamId = "experiment-report",
+      schemaRepoRelativePath = ExperimentReportSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "engine/experiment/report/",
+      ),
+    ),
+    GovernedPayloadSeam(
       seamId = "telemetry-proxy",
       schemaRepoRelativePath = TELEMETRY_PROXY_AUTHORITY,
       governedRelativePathMarkers = listOf(
         "contracts/telemetry/TelemetryProxyContracts",
         "infrastructure/http/",
         "cli/telemetry/TelemetryCliResultMappers",
+      ),
+    ),
+    GovernedPayloadSeam(
+      seamId = "experiment-descriptor",
+      schemaRepoRelativePath = ExperimentDescriptorSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "contracts/experiment/ExperimentDescriptor",
+        "infrastructure/contracts/experiment/",
+        "infrastructure/sqlite/experiment/",
+        "engine/goalrunner/experiment/",
+      ),
+    ),
+    GovernedPayloadSeam(
+      seamId = "experiment-pair",
+      schemaRepoRelativePath = ExperimentPairSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "contracts/experiment/ExperimentPair",
+        "infrastructure/sqlite/experiment/",
+        "engine/goalrunner/experiment/",
+      ),
+    ),
+    GovernedPayloadSeam(
+      seamId = "experiment-observation",
+      schemaRepoRelativePath = ExperimentObservationSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "contracts/experiment/ExperimentObservation",
+        "infrastructure/sqlite/experiment/",
+      ),
+    ),
+    GovernedPayloadSeam(
+      seamId = "experiment-report",
+      schemaRepoRelativePath = ExperimentReportSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "contracts/experiment/ExperimentReport",
+        "engine/goalrunner/experiment/report/",
+        "cli/experiment/",
       ),
     ),
   )

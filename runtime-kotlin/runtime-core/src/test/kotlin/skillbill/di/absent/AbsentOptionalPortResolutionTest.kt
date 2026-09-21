@@ -13,6 +13,7 @@ import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.transport.RemoteTransportPort
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 import kotlin.test.assertSame
 
 class AbsentOptionalPortResolutionTest {
@@ -57,8 +58,6 @@ class AbsentOptionalPortResolutionTest {
 
   @Test
   fun `absent workflow git operations resolve to the git adapter`() {
-    val git = GitWorkflowGitOperations()
-
-    assertSame(git, provides.workflowGitOperations(WorkflowOpsContext(), git))
+    assertIs<GitWorkflowGitOperations>(provides.workflowGitOperations(WorkflowOpsContext()))
   }
 }

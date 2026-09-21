@@ -58,6 +58,7 @@ data class AgentRunProcessRequest(
   val probes: AgentRunProcessProbeFields = AgentRunProcessProbeFields(),
   val environmentFields: AgentRunProcessEnvironmentFields = AgentRunProcessEnvironmentFields(),
   val review: AgentRunProcessReviewFields = AgentRunProcessReviewFields(),
+  val experimentCapabilities: AgentRunProcessExperimentCapabilityFields = AgentRunProcessExperimentCapabilityFields(),
 ) {
   val command: List<String> get() = launch.command
   val workingDirectory: Path get() = launch.workingDirectory
@@ -83,6 +84,9 @@ data class AgentRunProcessRequest(
   val reviewEvidenceBroker: ReviewEvidenceBroker? get() = review.reviewEvidenceBroker
   val reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? get() = review.reviewEvidenceEndpoint
   val spawnAuthorization: AgentRunSpawnAuthorization? get() = review.spawnAuthorization
+  val treatmentCapabilitiesEnabled: Set<String> get() = experimentCapabilities.treatmentCapabilitiesEnabled
+  val treatmentCapabilitiesDenied: Set<String> get() = experimentCapabilities.treatmentCapabilitiesDenied
+  val denyRemotePublication: Boolean get() = experimentCapabilities.denyRemotePublication
 
   init {
     require(command.isNotEmpty()) { "Agent run command is required." }
@@ -136,6 +140,9 @@ internal class AgentRunProcessRequestDsl {
   var reviewEvidenceBroker: ReviewEvidenceBroker? = null
   var reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? = null
   var spawnAuthorization: AgentRunSpawnAuthorization? = null
+  var treatmentCapabilitiesEnabled: Set<String> = emptySet()
+  var treatmentCapabilitiesDenied: Set<String> = emptySet()
+  var denyRemotePublication: Boolean = false
 
   internal fun build(command: List<String>, workingDirectory: Path): AgentRunProcessRequest = AgentRunProcessRequest(
     launch = AgentRunProcessLaunchFields(
@@ -171,6 +178,11 @@ internal class AgentRunProcessRequestDsl {
       reviewEvidenceBroker = reviewEvidenceBroker,
       reviewEvidenceEndpoint = reviewEvidenceEndpoint,
       spawnAuthorization = spawnAuthorization,
+    ),
+    experimentCapabilities = AgentRunProcessExperimentCapabilityFields(
+      treatmentCapabilitiesEnabled = treatmentCapabilitiesEnabled,
+      treatmentCapabilitiesDenied = treatmentCapabilitiesDenied,
+      denyRemotePublication = denyRemotePublication,
     ),
   )
 }

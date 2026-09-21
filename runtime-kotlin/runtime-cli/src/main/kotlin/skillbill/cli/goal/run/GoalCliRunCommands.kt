@@ -16,6 +16,7 @@ import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.experiment.ExperimentPreflightPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
@@ -59,6 +60,10 @@ class GoalPreflightCommand(
     help = "Raw agent add-on slug. Repeat to preserve caller order.",
   ).multiple()
   private val format by formatOption()
+  private val experiments by option(
+    "--experiments",
+    help = "Experiment selection for this goal run. Use none to disable or a comma-separated kebab-case list.",
+  )
 
   override fun run() {
     val root = resolveCliRepositoryRoot(repoRoot, inputs)
@@ -74,6 +79,7 @@ class GoalPreflightCommand(
         requestedAgentAddonSlugs = agentAddonSlugs,
         userHome = inputs.userHome,
         environment = inputs.environment,
+        experimentsParameter = experiments,
       ),
     )
     val payload = result.toGoalPreflightCliMap()
@@ -137,6 +143,16 @@ internal fun GoalPreflightResult.toGoalPreflightCliMap(): Map<String, Any?> = li
         linkedMapOf(
           "slug" to addon.slug,
           "description" to addon.description,
+        )
+      },
+      "experiment_selection_summary" to block.experimentSelectionSummary,
+      ExperimentPreflightPayloadKeys.EXPERIMENT to block.experiment?.let { experiment ->
+        linkedMapOf(
+          ExperimentPreflightPayloadKeys.SELECTED_NAMES to experiment.selectedNames,
+          ExperimentPreflightPayloadKeys.ARMS to experiment.arms,
+          ExperimentPreflightPayloadKeys.DELIVERY_ARM to experiment.deliveryArm,
+          ExperimentPreflightPayloadKeys.DECLARED_SETUP to experiment.declaredSetup,
+          ExperimentPreflightPayloadKeys.ADDITIONAL_TIME_AND_SPEND to experiment.additionalTimeAndSpend,
         )
       },
     )

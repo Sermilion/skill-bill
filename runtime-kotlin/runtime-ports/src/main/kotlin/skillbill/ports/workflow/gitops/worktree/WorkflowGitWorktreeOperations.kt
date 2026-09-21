@@ -1,4 +1,4 @@
-package skillbill.ports.workflow.gitops
+package skillbill.ports.workflow.gitops.worktree
 
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest

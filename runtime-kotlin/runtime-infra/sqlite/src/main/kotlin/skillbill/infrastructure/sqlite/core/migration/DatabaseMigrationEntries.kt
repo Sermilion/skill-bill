@@ -568,4 +568,99 @@ internal val databaseMigrations: List<DatabaseMigration> =
       name = "migrate-legacy-telemetry-outbox",
       operation = ::migrateLegacyTelemetryOutboxLedger,
     ),
+    DatabaseMigration(
+      version = 42,
+      name = "skill-366-add-experiment-pair-tables",
+      operation = { connection ->
+        connection.createStatement().use { statement ->
+          statement.execute(
+            """
+              CREATE TABLE IF NOT EXISTS experiment_pairs (
+                pair_id TEXT PRIMARY KEY,
+                contract_version TEXT NOT NULL CHECK (contract_version = '0.1'),
+                execution_mode TEXT NOT NULL,
+                selected_experiment_names_json TEXT NOT NULL,
+                arm_order_json TEXT NOT NULL,
+                random_seed TEXT,
+                delivery_arm TEXT NOT NULL,
+                pair_status TEXT NOT NULL,
+                frozen_input_identity_json TEXT NOT NULL,
+                delivery_status TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+              )
+            """.trimIndent(),
+          )
+          statement.execute(
+            """
+              CREATE TABLE IF NOT EXISTS experiment_observations (
+                observation_id TEXT PRIMARY KEY,
+                pair_id TEXT NOT NULL,
+                arm_id TEXT NOT NULL,
+                event_identity_json TEXT NOT NULL,
+                recorded_at TEXT NOT NULL,
+                measurements_json TEXT NOT NULL,
+                UNIQUE(pair_id, arm_id, event_identity_json),
+                FOREIGN KEY(pair_id) REFERENCES experiment_pairs(pair_id) ON DELETE CASCADE
+              )
+            """.trimIndent(),
+          )
+          statement.execute(
+            """
+              CREATE TABLE IF NOT EXISTS experiment_arm_outcomes (
+                pair_id TEXT NOT NULL,
+                arm_id TEXT NOT NULL,
+                workflow_id TEXT,
+                terminal_status TEXT NOT NULL,
+                worktree_path TEXT,
+                deferred_publication INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY(pair_id, arm_id),
+                FOREIGN KEY(pair_id) REFERENCES experiment_pairs(pair_id) ON DELETE CASCADE
+              )
+            """.trimIndent(),
+          )
+        }
+      },
+    ),
+    DatabaseMigration(
+      version = 43,
+      name = "skill-366-add-experiment-pair-leases",
+      operation = { connection ->
+        connection.createStatement().use { statement ->
+          statement.execute(
+            """
+              CREATE TABLE IF NOT EXISTS experiment_pair_leases (
+                pair_id TEXT PRIMARY KEY,
+                owner_token TEXT NOT NULL,
+                generation INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL
+              )
+            """.trimIndent(),
+          )
+          statement.execute(
+            """
+              CREATE TABLE IF NOT EXISTS experiment_reports (
+                pair_id TEXT PRIMARY KEY,
+                report_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(pair_id) REFERENCES experiment_pairs(pair_id) ON DELETE CASCADE
+              )
+            """.trimIndent(),
+          )
+        }
+      },
+    ),
+    DatabaseMigration(
+      version = 44,
+      name = "skill-366-preserve-experiment-arm-outcomes",
+      operation = { connection ->
+        connection.createStatement().use { statement ->
+          statement.execute(
+            """
+              ALTER TABLE experiment_arm_outcomes ADD COLUMN outcome_json TEXT
+            """.trimIndent(),
+          )
+        }
+      },
+    ),
   )

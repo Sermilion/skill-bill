@@ -13,26 +13,21 @@ import skillbill.workflow.goal.GoalProgressEventValidator
 
 internal interface RuntimeWorkflowValidatorProvides {
   @Provides @JvmSynthetic
-  fun decompositionManifestValidator(validator: DecompositionManifestSchemaValidator): DecompositionManifestValidator =
-    validator
+  fun decompositionManifestValidator(): DecompositionManifestValidator = DecompositionManifestSchemaValidator()
 
   @Provides @JvmSynthetic
-  fun workflowSnapshotValidator(validator: WorkflowStateSchemaValidator): WorkflowSnapshotValidator = validator
+  fun workflowSnapshotValidator(): WorkflowSnapshotValidator = WorkflowStateSchemaValidator()
 
   @Provides @JvmSynthetic
-  fun goalPlanningPreparationEnvelopeValidator(
-    validator: FeatureTaskRuntimeWireArtifactValidator,
-  ): GoalPlanningPreparationEnvelopeValidator = validator
+  fun goalPlanningPreparationEnvelopeValidator(): GoalPlanningPreparationEnvelopeValidator =
+    FeatureTaskRuntimeWireArtifactValidator()
 
   @Provides @JvmSynthetic
-  fun goalObservabilityEventValidator(
-    validator: FeatureTaskRuntimeWireArtifactValidator,
-  ): GoalObservabilityEventValidator = validator
+  fun goalObservabilityEventValidator(): GoalObservabilityEventValidator = FeatureTaskRuntimeWireArtifactValidator()
 
   @Provides @JvmSynthetic
-  fun goalProgressEventValidator(validator: FeatureTaskRuntimeWireArtifactValidator): GoalProgressEventValidator =
-    validator
+  fun goalProgressEventValidator(): GoalProgressEventValidator = FeatureTaskRuntimeWireArtifactValidator()
 
   @Provides @JvmSynthetic
-  fun ideStatusValidator(validator: IdeStatusSchemaValidator): IdeStatusValidator = validator
+  fun ideStatusValidator(): IdeStatusValidator = IdeStatusSchemaValidator()
 }

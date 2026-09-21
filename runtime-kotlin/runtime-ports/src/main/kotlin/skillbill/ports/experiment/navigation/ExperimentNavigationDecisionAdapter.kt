@@ -1,0 +1,11 @@
+package skillbill.ports.experiment.navigation
+
+import skillbill.ports.experiment.navigation.model.ExperimentNavigationDecision as ExperimentNavigationDecisionModel
+import skillbill.ports.experiment.navigation.model.ExperimentNavigationDecisionContext as ExperimentNavigationDecisionContextModel
+
+typealias ExperimentNavigationDecision = ExperimentNavigationDecisionModel
+typealias ExperimentNavigationDecisionContext = ExperimentNavigationDecisionContextModel
+
+fun interface ExperimentNavigationDecisionAdapter {
+  fun decide(context: ExperimentNavigationDecisionContext): List<ExperimentNavigationDecision>
+}

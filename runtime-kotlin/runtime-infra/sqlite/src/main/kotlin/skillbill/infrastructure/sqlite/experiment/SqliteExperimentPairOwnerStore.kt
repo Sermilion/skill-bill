@@ -1,0 +1,92 @@
+package skillbill.infrastructure.sqlite.experiment
+import me.tatarka.inject.annotations.Inject
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.experiment.ExperimentObservationPayloadKeys
+import skillbill.contracts.experiment.ExperimentPairPayloadKeys
+import skillbill.experiment.model.ExperimentArmId
+import skillbill.experiment.model.ExperimentExecutionMode
+import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
+import skillbill.ports.experiment.pair.ExperimentPairPersistedState
+import skillbill.ports.experiment.pair.model.ExperimentObservationImport
+import skillbill.ports.experiment.validation.ExperimentPayloadValidationPort
+
+@Inject
+class SqliteExperimentPairOwnerStore(
+  private val database: DatabaseSessionFactory,
+  private val payloadValidation: ExperimentPayloadValidationPort?,
+) : ExperimentPairOwnerPort {
+  override fun load(pairId: String): ExperimentPairPersistedState? = database.read { session ->
+    val loaded = session.experimentPairs.loadPairPayload(pairId) ?: return@read null
+    val (modeWire, payload) = loaded
+    val mode = ExperimentExecutionMode.fromWire(modeWire) ?: return@read null
+    val names = (payload[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES] as? List<*>)?.map { it.toString() }
+      ?: emptyList()
+    val armOrder = (payload[ExperimentPairPayloadKeys.ARM_ORDER] as? List<*>)?.mapNotNull {
+      ExperimentArmId.fromWire(it.toString())
+    } ?: listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT)
+    val seed = payload[ExperimentPairPayloadKeys.RANDOM_SEED]?.toString() ?: ""
+    ExperimentPairPersistedState(pairId, mode, names, armOrder, seed, payload)
+  }
+
+  override fun save(state: ExperimentPairPersistedState) {
+    payloadValidation?.validatePair(state.pairPayload, "experiment-pair:${state.pairId}")
+    database.transaction { session ->
+      session.experimentPairs.upsertPairRecord(
+        state.pairId,
+        state.executionMode.wireValue,
+        state.pairPayload,
+      )
+    }
+  }
+
+  override fun importObservation(payload: Map<String, Any?>): Boolean {
+    payloadValidation?.validateObservation(payload, "experiment-observation-import")
+    val observationId = payload[ExperimentObservationPayloadKeys.OBSERVATION_ID]?.toString() ?: return false
+    val pairId = payload[ExperimentObservationPayloadKeys.PAIR_ID]?.toString() ?: return false
+    val armId = payload[ExperimentObservationPayloadKeys.ARM_ID]?.toString() ?: return false
+    val eventIdentity = payload[ExperimentObservationPayloadKeys.EVENT_IDENTITY] as? Map<*, *> ?: return false
+    val recordedAt = payload[ExperimentObservationPayloadKeys.RECORDED_AT]?.toString() ?: return false
+    val identityJson = JsonCodec.mapToJsonString(
+      JsonCodec.anyToStringAnyMap(eventIdentity)
+        ?.toSortedMap()
+        .orEmpty(),
+    )
+    return database.transaction { session ->
+      session.experimentPairs.insertObservationIfAbsent(
+        ExperimentObservationImport(
+          observationId = observationId,
+          pairId = pairId,
+          armId = armId,
+          eventIdentityJson = identityJson,
+          payloadJson = JsonCodec.mapToJsonString(payload),
+          recordedAt = recordedAt,
+        ),
+      )
+    }
+  }
+
+  override fun saveReport(pairId: String, reportPayload: Map<String, Any?>) {
+    payloadValidation?.validateReport(reportPayload, "experiment-report:$pairId")
+    database.transaction { session ->
+      session.experimentPairs.saveReport(pairId, reportPayload)
+    }
+  }
+
+  override fun loadReport(pairId: String): Map<String, Any?>? =
+    database.read { session -> session.experimentPairs.loadReport(pairId) }
+
+  override fun listReports(): List<Map<String, Any?>> =
+    database.read { session -> session.experimentPairs.listReports() }
+
+  override fun acquireLease(pairId: String, ownerToken: String, nowEpochMillis: Long, leaseMillis: Long): Boolean =
+    database.transaction { session ->
+      session.experimentPairs.acquireLease(pairId, ownerToken, nowEpochMillis, leaseMillis)
+    }
+
+  override fun releaseLease(pairId: String, ownerToken: String) {
+    database.transaction { session ->
+      session.experimentPairs.releaseLease(pairId, ownerToken)
+    }
+  }
+}

@@ -1,12 +1,12 @@
 package skillbill.infrastructure.workflow.git.standard
 import skillbill.infrastructure.workflow.git.workflow.GitRepositoryFingerprintOperations
 import skillbill.infrastructure.workflow.process.runGitCommand
-import skillbill.ports.workflow.gitops.WorkflowGitWorktreeOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
+import skillbill.ports.workflow.gitops.worktree.WorkflowGitWorktreeOperations
 import java.nio.file.Path
 
 internal object GitStandardWorkflowGitWorktreeOperations : WorkflowGitWorktreeOperations {

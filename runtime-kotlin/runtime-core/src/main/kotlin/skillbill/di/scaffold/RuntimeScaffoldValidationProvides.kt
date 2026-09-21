@@ -7,6 +7,7 @@ import skillbill.infrastructure.workflow.github.GitHubPullRequestCheckDiscovery
 import skillbill.infrastructure.workflow.validation.FileSystemPrCheckProcessRunner
 import skillbill.infrastructure.workflow.validation.FileSystemValidationGateRunner
 import skillbill.ports.config.RepoLocalConfigPort
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.scaffold.repo.ScaffoldRepoValidationPort
 import skillbill.ports.validation.PrCheckDiscovery
 import skillbill.ports.validation.PrCheckProcessRunner
@@ -18,7 +19,7 @@ internal interface RuntimeScaffoldValidationProvides {
   fun scaffoldRepoValidationPort(adapter: FileSystemScaffoldRepoValidation): ScaffoldRepoValidationPort = adapter
 
   @Provides @JvmSynthetic
-  fun repoLocalConfigPort(adapter: FileSystemRepoLocalConfig): RepoLocalConfigPort = adapter
+  fun repoLocalConfigPort(diagnostics: RuntimeDiagnostics): RepoLocalConfigPort = FileSystemRepoLocalConfig(diagnostics)
 
   @Provides @JvmSynthetic
   fun repoValidationGateway(gateway: FileSystemRepoValidationGateway): RepoValidationGateway = gateway

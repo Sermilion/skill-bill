@@ -1,0 +1,105 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://skill-bill.dev/contracts/experiment-observation-schema.yaml"
+title: Experiment observation ledger entry
+description: >
+  Identity-checked measurement import for experiment arms. Duplicate identities are
+  no-ops; unavailable quantities retain reasons rather than zero.
+type: object
+additionalProperties: false
+required:
+  - contract_version
+  - observation_id
+  - pair_id
+  - arm_id
+  - event_identity
+  - recorded_at
+properties:
+  contract_version:
+    const: "0.1"
+  observation_id:
+    type: string
+    minLength: 1
+    maxLength: 128
+  pair_id:
+    type: string
+    minLength: 1
+    maxLength: 128
+  arm_id:
+    type: string
+    enum:
+      - control
+      - treatment
+  event_identity:
+    type: object
+    additionalProperties: false
+    required:
+      - workflow_id
+      - phase_id
+      - attempt
+      - event_kind
+    properties:
+      workflow_id:
+        type: string
+        minLength: 1
+      phase_id:
+        type: string
+        minLength: 1
+      attempt:
+        type: integer
+        minimum: 1
+        maximum: 2147483647
+      event_kind:
+        type: string
+        minLength: 1
+        maxLength: 64
+  recorded_at:
+    type: string
+    minLength: 1
+  measurements:
+    type: array
+    minItems: 0
+    maxItems: 64
+    items:
+      $ref: "#/$defs/measurement"
+$defs:
+  measurement:
+    type: object
+    additionalProperties: false
+    required:
+      - metric_id
+      - availability
+    properties:
+      metric_id:
+        type: string
+        minLength: 1
+        maxLength: 64
+      availability:
+        type: string
+        enum:
+          - measured
+          - unavailable_no_durable_state
+          - unavailable_unsupported
+          - unavailable_incomplete
+          - unknown
+      quantity:
+        type: number
+      reason:
+        type: string
+        minLength: 1
+        maxLength: 512
+    allOf:
+      - if:
+          properties:
+            availability:
+              const: measured
+        then:
+          required:
+            - quantity
+      - if:
+          properties:
+            availability:
+              not:
+                const: measured
+        then:
+          required:
+            - reason
