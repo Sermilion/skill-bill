@@ -1,12 +1,12 @@
-# SKILL-365 subtask 2 - Managed CodeGraph treatment
+# SKILL-365 subtask 1 - Managed CodeGraph treatment
 
 ## Scope
 
-Register `codegraph` as the sole production experiment and make
+Register `codegraph` as a production goal-pair experiment and make
 `/bill-feature <issue-key> experiments:codegraph` execute the complete paired
 workflow. Add managed optional installation, bounded graph retrieval, treatment
-capability enforcement, and CodeGraph-specific measurements. Use the first
-subtask's runtime, persistence, and comparison interfaces.
+capability enforcement, and CodeGraph-specific measurements. Use SKILL-366's
+runtime, persistence, and comparison interfaces.
 
 ## Required behavior
 
@@ -57,13 +57,14 @@ Retain any degraded treatment's outcome and cost, but exclude it from clean
 comparison aggregates. Distinguish enabled, queried, evidence-consumed, degraded,
 and not-exercised treatment states without inventing savings from tool availability.
 
-Wire setup/query counters and receipts into the first subtask's measurement owner.
+Wire setup/query counters and receipts into SKILL-366's measurement owner.
 The same report shows phase usage, graph overhead, actual graph consumption,
 ordinary discovery counts when observable, quality evidence, and total pair cost.
 Document what each launcher can measure. Refuse unsupported isolation rather than
 claiming an uncontaminated control based only on absent MCP registration.
 
-Document optional installation, the public feature invocation, resume behavior,
+Document optional installation, machine/repository config availability, per-run
+comma-separated selection and default-none behavior, the public feature invocation, resume behavior,
 fixed control delivery, report/stat commands, supported harness/host capabilities,
 fallback semantics, and the cost of running both arms. The example command uses
 an ordinary prepared feature key, not SKILL-365 while the option is unimplemented.
@@ -71,18 +72,18 @@ Retain the default single-run path and do not activate CodeGraph from global sta
 
 ## Acceptance Criteria
 
-1. Dynamic production discovery exposes only `codegraph`; its declared capability, phase, dependency, and compatibility requirements resolve through the first subtask's registry and gate.
+1. Dynamic production discovery registers `codegraph` for goal pairs without excluding other registered experiments. A `bill-feature` parameter selects it through SKILL-366's resolver and gate, alone or in a compatible comma-separated combination. Config governs availability; omission or `experiments:none` performs no graph setup even when config enables CodeGraph.
 2. Optional install and post-confirmation provisioning use a pinned verified asset or explicit validated override. Cached offline reuse, corrupt downloads, unsupported hosts, concurrent installation, active-version retention, and owned cleanup have defined observable outcomes.
 3. A feature invocation produces a control with CodeGraph inaccessible and a treatment with usable bounded graph retrieval, while both retain the original source/spec/settings snapshot and existing quality authority.
 4. Treatment discovery and implementation can consume graph candidates, and review receives only revision-bound authorized evidence through the broker. Neither source races nor out-of-scope graph paths bypass evidence validation.
 5. Retrieval failure, timeout, output caps, and ordinary-discovery fallback emit attributable records and preserve real costs. Degraded or not-exercised treatment cannot appear as a clean CodeGraph gain.
 6. The pair report includes installation/index/sync/query overhead, actual treatment use, available token/cost/discovery metrics, and comparable quality evidence. Ordinary runs incur no graph install/index/query work.
 7. A pinned-binary integration fixture demonstrates cross-file Kotlin retrieval and explicitly records unresolved constructs. An automated full pair with fixture agents proves treatment-only invocation and the resulting comparison report without paid model access.
-8. Documentation and installed skill output describe `experiments:codegraph` as two executions with fixed control delivery and explain how to inspect both results. No global agent configuration or upstream telemetry preference is changed by managed invocation.
+8. Documentation and installed skill output distinguish config availability from explicit per-run selection, show comma-separated combinations, and state that omission means none for new runs. Selected experiments use two executions with fixed control delivery; docs explain resume and inspection of both results. No global agent configuration or upstream telemetry preference is changed by managed invocation.
 
 ## Dependency notes
 
-Requires subtask 1. Use its pair/arm identities, descriptor loader, capability
+Requires completed SKILL-366 before this goal starts. Use its pair/arm identities, descriptor loader, capability
 policies, local measurement ledger, and report projections. Do not add a separate
 CodeGraph experiment state machine, usage database, or reporting implementation.
 
@@ -93,16 +94,16 @@ than assuming documentation for a different version describes its behavior.
 ## Non-goals
 
 - Vendoring the CodeGraph source, embedding its Node library into the JVM, or running its interactive agent installer.
-- Mandatory installation, automatic dependency upgrades, or experiment activation without an explicit persisted selection.
+- Mandatory installation, automatic dependency upgrades, or experiment activation without an explicit persisted per-run selection.
 - Substituting graph reachability for compiler correctness, complete test selection, or authorization to read broader evidence.
-- A second production experiment, an IDE dashboard, or any guaranteed speed/cost improvement.
+- Implementing another treatment, an IDE dashboard, or any guaranteed speed/cost improvement.
 
 ## Validation strategy
 
 Name and reproduce these bugs before adding coverage:
 
 - A checksum mismatch or interrupted install leaves an executable that later launches, or a concurrent upgrade changes a resumable pair's version.
-- CodeGraph runs in the control arm through an inherited server, shell, or index path, or runs at all in ordinary feature mode.
+- CodeGraph runs in the control arm through an inherited server, shell, or index path, or runs when the parameter is absent or `none` despite enabled config. A compatible multi-name selection drops CodeGraph or creates separate pairs instead of one pair.
 - A changed/deleted Kotlin file leaves a graph response that is accepted as current evidence.
 - A graph result reaches an unauthorized path, exceeds broker budgets, or substitutes working-tree source for the reviewed commit.
 - A failed query or unused graph still produces a clean claimed gain, or cold indexing is absent from setup-inclusive cost.

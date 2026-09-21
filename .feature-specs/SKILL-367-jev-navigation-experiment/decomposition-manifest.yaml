@@ -1,0 +1,23 @@
+contract_version: '0.5'
+issue_key: SKILL-367
+feature_name: jev-navigation-experiment
+parent_spec_path: .feature-specs/SKILL-367-jev-navigation-experiment/spec.md
+execution_model: same_branch_commit_per_subtask
+base_branch: main
+feature_branch: feat/SKILL-367-jev-navigation-experiment
+stack_branches: []
+current_subtask_intent:
+  subtask_id: 0
+  action: none
+subtasks:
+- id: 1
+  name: Autonomous navigation comparison
+  spec_path: .feature-specs/SKILL-367-jev-navigation-experiment/spec_subtask_1_autonomous-navigation-comparison.md
+  status: pending
+  branch: null
+  commit_sha: null
+  workflow_id: null
+  blocked_reason: null
+  last_resumable_step: null
+  linear_issue_id: null
+  dependencies: []

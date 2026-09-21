@@ -2,130 +2,58 @@
 
 ## Mode
 
-decomposed
+single_spec
 
 ## Intended outcome
 
 Let a user run `/bill-feature <issue-key> experiments:codegraph` to perform the
-same feature work twice, once with CodeGraph disabled and once with it enabled,
-then inspect the measured differences. Both runs start from the same source and
-spec snapshot. Each performs its own planning, implementation, and existing
-quality phases. The experiment costs include both runs.
+same prepared feature twice, once with CodeGraph disabled and once enabled.
+Measure the difference with SKILL-366's goal-pair runner and reports. Both arms
+start from the same source/spec/config snapshot and perform their own planning,
+implementation, and existing quality phases.
 
-Ship the paired-run infrastructure as the first subtask and CodeGraph as the
-first production experiment in the second. CodeGraph is an optional, pinned
-external executable managed by Skill Bill. Do not copy or fork its implementation.
-Ordinary feature runs retain their existing behavior.
+The shared experiment support formerly assigned to subtask 1 now belongs to
+SKILL-366. This goal contains one executable subtask for the managed CodeGraph
+treatment. CodeGraph remains an optional pinned external executable. Do not copy
+or fork its implementation, and do not activate it in ordinary feature runs.
 
-## User contract
+## Dependency notes
 
-Accept at most one `experiments:<comma-separated names>` token on `bill-feature`.
-Forward its value to both goal preflight and launch as `--experiments <names>`.
-Expose the same input through governed entry points that create or resume goals.
-Parse and validate it once in the runtime. Trim surrounding whitespace per name,
-require lowercase kebab-case names, and reject empty values, empty elements,
-duplicates, repeated options, and unknown names before any launch or provisioning.
-The only production name in this release is `codegraph`.
+Complete [SKILL-366](../SKILL-366-experiment-support/spec.md) before starting this
+goal. Its selection, immutable input, lifecycle, isolation, delivery, measurement,
+reporting, persistence, and recovery contracts are prerequisites. Consume those
+interfaces without maintaining another pair runner or measurement ledger.
 
-Omission on a new goal means ordinary execution with no experiment. Omission on
-resume preserves the stored selection. An explicit different selection on an
-existing pair fails with an actionable typed conflict. An already-started ordinary
-goal cannot become an experiment on resume. Legacy ordinary records resolve to
-ordinary execution without rewriting historical measurements.
+SKILL-367 is an independent consumer of the same support and is not a prerequisite.
+`codegraph` supports goal pairs. `jev-navigation` supports navigation pairs; reject
+attempts to combine modes through the shared descriptor compatibility checks.
+The dependency on SKILL-366 is cross-spec documentation, not a local subtask ID.
 
-For future supported combinations, a comma-separated list means exactly two arms:
-the control has all selected experiments disabled, and the treatment has all of
-them enabled. It does not request one pair per name or a factorial study. Reject
-incompatible combinations from descriptor declarations. Do not attribute a
-combined result to an individual experiment.
+## User and execution contract
 
-The existing single confirmation gate shows the selected experiment, the two
-runs, the delivery arm, CodeGraph download/index work if needed, and the expected
-extra time and model spend. Say that two runs are required; do not promise exactly
-twice the cost. Preflight stays read-only. Provisioning and execution begin only
-after the existing confirmation. Do not introduce a second confirmation ceremony.
+Select CodeGraph for a new run with `experiments:codegraph` on `bill-feature`.
+A compatible comma-separated list may include CodeGraph with other registered
+goal treatments. Config can enable or disable its availability through SKILL-366's
+policy, but config alone never selects it. Omitting the parameter or passing
+`experiments:none` runs ordinary feature work. Resumes retain the saved selection.
 
-## Paired execution
+Use the shared `experiments:<names>` input and single confirmation gate. Preflight
+is read-only. The gate discloses two executions, fixed control delivery, optional
+CodeGraph provisioning, and extra cost. Provision only after confirmation and
+before either arm starts. Include both arm costs and treatment setup in reports.
 
-The experiment unit is the whole prepared goal, including all its subtasks. The
-parent spec and decomposition are inputs shared by both arms. Runtime discovery,
-preplan, and plan execute independently inside each arm. Never give the treatment
-the control's generated plans, edits, findings, or conversation, or vice versa.
-Spec preparation and the initial confirmation occur once and are excluded from
-the arm comparison.
+The experiment covers the whole prepared goal, including all subtasks. Both arms
+use independent model sessions, plans, worktrees, writable caches, learning state,
+and revision-bound evidence. Enforce CodeGraph exclusion in control through the
+launcher boundary, including inherited servers and alternate shell invocations.
+Refuse unsupported isolation before launch and invalidate observed contamination.
 
-Capture an immutable input identity before either arm starts: canonical source
-repository identity, starting commit/tree, exact prepared spec bundle hashes,
-effective configuration and guidance hashes, selected pack/add-on versions,
-Skill Bill version, provider/model/effort assignments, phase routes, and budgets.
-Both arms receive byte-identical input snapshots apart from the declared
-experiment capability and arm-specific operational identities.
+Both arms retain local review commits and defer publication to the shared parent.
+Only ready control work can enter normal delivery; treatment never becomes the
+winner automatically. Shared pause/resume and idempotent receipts retain failed
+arms and do not repeat completed work. Changing the descriptor, binary version,
+inputs, or model settings requires a new pair.
 
-Prepared specs may be untracked. Copy the exact frozen bundle to both worktrees.
-Require the remaining source tree to be clean before launch; report dirty paths
-without stashing, committing, discarding, or silently excluding them. Recheck the
-captured identities after confirmation. Record submodule revisions when present;
-refuse a source layout that cannot be reproduced faithfully in both worktrees.
-
-Run the arms sequentially to avoid concurrent build and model contention. Choose
-and persist the first arm before execution using an injected random source;
-record the order and seed so resume never redraws it. This balances order effects
-across repeated pairs but does not make a single pair statistically conclusive.
-Use separate worktrees, arm branches, agent sessions, runtime databases, mutable
-learning stores, graph indexes, build outputs, and per-arm writable caches.
-Namespace Git checkpoint refs and other common-directory resources by pair and
-arm because worktrees share a Git directory. Snapshot any read-only dependency
-cache input equally; record cache policy and unavoidable shared host caches.
-
-One parent owns the pair lifecycle, lease, cancellation, and recovery. Its durable
-records link pair id, arm id, workflow and attempt ids, worktree identity, and
-terminal outcome. Each arm retains the existing goal runner and phase machinery.
-An arm cannot recursively launch another experiment. Nested goal children inherit
-the arm identity and capability policy rather than the public experiments option.
-
-Pause or cancellation stops the current arm and prevents the other from starting.
-Failure or timeout in one arm is retained as an outcome; the other may still run
-unless the failure affects shared prerequisites. Resume reuses completed arms and
-settled measurements, restarts only eligible unfinished work, and never changes
-inputs, order, model settings, or dependency versions in place. Changed inputs
-require a new pair identity through the established reset/new-run path. Process
-takeover and cleanup retain the runtime's lease and resource-ownership rules.
-
-## Isolation and delivery
-
-The initial delivery policy selects the control arm before either run begins.
-Retain both implementations and receipts for inspection. Do not select a winner
-by speed, cost, changed-line count, or a model's opinion. A later product change
-may add explicit delivery selection; it is not needed for this release.
-
-During comparison, both arms may create local commits needed for review and the
-one-commit-per-subtask contract. They must not push, create PRs, update external
-issues, deploy, or publish shared learnings. Defer those actions to the parent
-delivery path. Mark each arm's local finalization as deferred publication; never
-pretend it pushed or fabricate remote completion evidence. Preserve checkpoint
-refs until the existing push-and-manifest prerequisites are actually satisfied.
-
-The parent may publish only the predetermined control result after its normal
-completion and readiness requirements pass. Treatment failure does not conceal
-control failure or promote treatment automatically. Control success may still
-deliver when the comparison is incomplete, but report the incomplete comparison.
-Promotion preserves the control's reviewed commit/tree identities, one commit per
-subtask, and existing finalization rules. Changed source/base identities follow
-the current readiness policy and may block delivery. Never overwrite concurrent
-user edits. Publication is idempotent across a crash after push or PR creation.
-Record delivery overhead separately from the measured arm work.
-
-Enforce arm tool, filesystem, and external-write restrictions through supported
-launcher capabilities, not prompt wording alone. The control cannot query a
-globally installed CodeGraph MCP server or executable, read the treatment index,
-reuse CodeGraph results, or install its own copy through an alternate command.
-Both arms lack external publication capability until parent delivery. A harness
-that cannot enforce the declared isolation is unsupported for this experiment;
-preflight reports a typed capability refusal before either arm runs. Ordinary
-feature execution on that harness remains available. Discover support through
-injected strategies/capability declarations, not provider identity branches in
-the process runner. Detect and record any observed policy breach and invalidate
-the pair's affected comparisons.
 
 ## CodeGraph integration
 
@@ -187,142 +115,76 @@ review clearance, changes acceptance criteria, or widens the compile-only build
 session. A supported language claim is not proof that Kotlin extension functions,
 overloads, injected interfaces, or callbacks resolve correctly in this repository.
 
-## Measurement and comparison
+## Measurement and reporting
 
-Persist raw observations locally even when remote telemetry is disabled. Reuse
-existing usage, review, and workflow measurements where available. Extend the
-owning provider strategy where a reliable measurement is missing; do not infer
-tokens, cost, tool calls, or correctness from an agent's narrative. Every optional
-quantity carries the existing measurement-availability vocabulary. Unsupported
-or incomplete measurements are null/absent with a reason, never zero.
+Use SKILL-366's local ledger, text/JSON report, and cohort statistics. Add actual
+install, verification, index, sync, query, source-delivery, and degradation
+observations through those interfaces. Separate enabled, queried, evidence-consumed,
+degraded, and not-exercised states. Record ordinary discovery counters only when
+the launcher can observe them. Missing usage remains unavailable with a reason.
 
-| Measure | Required interpretation |
-| --- | --- |
-| Arm duration | Active execution through the same terminal boundary, including retries and local review commits; report pause/wait time separately. |
-| Pair duration | Actual end-to-end experiment time, both arms and setup; identify delivery and report-generation time separately. |
-| Tokens | Provider-reported input, output, cache read/write categories and totals under a recorded accounting definition; retain category availability. |
-| Cost | Provider-reported billed usage where available; any estimate names its pricing source/version and remains distinct from billed cost. |
-| Discovery | Graph query count, ordinary search/read calls when observable, delivered evidence bytes, failures, and fallbacks per phase. |
-| Setup | Download, verification, installation, initial index, incremental sync time, and cache state; cached setup is measured as reuse, not guessed savings. |
-| Quality evidence | Acceptance outcomes, review dispositions and findings by severity, selected validation commands and results, repair attempts, and terminal completion status. |
+Compare the same ACs and actual quality checks for both implementations. Review
+finding counts and arm-authored test counts are observations, not correctness
+scores. Show execution-only and setup-inclusive deltas, actual total pair spend,
+cache policy, and failed/incomplete outcomes. Degraded and unused treatments
+cannot claim clean graph gains. Local reports work with remote telemetry disabled.
 
-Compare identical prepared acceptance criteria and record the actual validation
-set for each arm. Use the same external acceptance checks when such checks exist;
-arm-authored tests are additional evidence and their counts are not a quality
-score. Mark differing or missing quality checks explicitly. Review finding counts
-are observations, not ground truth or proof that either implementation is better.
-
-Deduplicate measurements by pair/arm/workflow/phase/attempt/event identity. Sum
-actual attempts once, including failures and repair work; exclude reused planning
-receipts from new usage. Record collection/version differences and provider model
-resolution when known. Fresh agent sessions avoid transcript sharing, but report
-provider cache usage and unresolved model identity rather than claiming perfect
-environmental equivalence.
-
-Provide read-only `skill-bill experiments report <pair-id> --format text|json`
-and `skill-bill experiments stats --name codegraph --format text|json`. Goal
-status and the terminal relay include pair status and the report reference. The
-report shows arm identities, delivery arm, actual treatment use, source/settings
-fingerprints, completeness, raw measurements, and explicit comparability reasons.
-Both JSON and text derive from the same validated durable projection. Regenerate
-a failed report projection without rerunning either arm.
-
-For each comparable lower-is-better metric, report absolute savings as control
-minus treatment and percent savings as `100 * (control - treatment) / control`.
-When control is zero or either value is unavailable, omit the percentage with a
-reason. Negative savings remain negative. Show execution-only and setup-inclusive
-treatment comparisons, plus total experiment spend for both arms. Do not present
-the combined experiment spend as a saving or hide the setup cost.
-
-A single pair is a measured observation, not a causal or statistical conclusion.
-Aggregate only comparable completed pairs, grouped by experiment/version,
-runtime/provider/model settings, budget policy, repository/input cohort, and
-cache policy. Report sample counts, medians of per-pair deltas, failures, degraded
-and not-exercised pairs, and every exclusion reason. Do not silently drop bad
-treatment outcomes or claim significance from a fixed small sample. Quality
-regressions stay visible beside speed/cost changes; do not emit an automatic
-overall winner. Telemetry uses bounded identifiers and aggregates with no source,
-queries, paths, or code bodies, and follows the existing outbox consent policy.
-Keep ordinary goal statistics from counting the two experiment arms as two
-independently delivered features or double-counting parent and child cost.
-
-## Architecture and persistence
-
-Extend the current goal owner and phase runner through explicit ports and narrow
-request values. Keep filesystem/process adapters in infrastructure, orchestration
-in the engine/application owners, typed identities in their owning contract/domain
-families, and composition in runtime-core. Do not implement a second phase engine.
-
-The parent database owns pair identity, immutable settings, arm outcome receipts,
-measurement ledger, and delivery status. Arm databases own their workflow state.
-There is no cross-database transaction: publish idempotent, identity-checked arm
-receipts and reconcile them into the parent. A filesystem report is a projection,
-not continuation authority. A receipt conflict fails loudly. Recovery cannot
-turn an incomplete arm into success or rerun a completed arm to rebuild a report.
-
-Define new runtime contracts as Draft 2020-12 YAML schemas first, with Kotlin
-version/key owners, parity tests, typed parse errors, and loud failures at every
-producer and consumer seam. Extend existing envelopes through their contract
-owners. Preserve existing no-experiment records and quarantine incompatible
-experiment records through the runtime's governed recovery path. Account for
-experiments in status, resume, reset, purge, retained artifacts, and telemetry.
-Purge refuses live leases and removes only owned resources; retain failed arm
-evidence until explicit cleanup. No generated outputs belong in authored source.
+Inspect a pair with `skill-bill experiments report <pair-id> --format text|json`
+and comparable cohorts with
+`skill-bill experiments stats --name codegraph --format text|json`.
+No speed or cost improvement is assumed.
 
 ## Acceptance Criteria
 
-1. `experiments:codegraph` reaches preflight and launch as the same validated selection, creates one control/treatment pair, and omission on new work retains ordinary single-run behavior. Invalid input fails before side effects.
-2. The single gate describes paired execution, delivery policy, setup, and extra spend; read-only preflight creates no processes, indexes, worktrees, or experiment state.
-3. Both arms use the same frozen source/spec/config inputs and independent planning and execution state. The stored order, inputs, and selection survive pause, crash, and resume without rerunning completed arms.
-4. Supported launchers enforce CodeGraph exclusion in control and deferred publication for both arms. Unsupported isolation fails before launch; detected contamination invalidates comparison.
-5. Only the predetermined control result can enter normal delivery, with existing readiness and commit identity requirements. Reconciliation cannot publish twice or overwrite user changes.
-6. CodeGraph installs as an optional pinned verified executable, works from cache offline, preserves active versions, and never rewrites global agent configuration or runs when experiments are omitted.
-7. Treatment retrieval reaches planning and implementation through a bounded port and review through the existing evidence broker. Stale or unauthorized results cannot count as evidence, and every fallback records a degradation.
-8. Durable measurements attribute actual time, usage, setup, query activity, retries, and quality evidence to the right pair, arm, phase, and attempt without duplicates. Missing quantities retain availability reasons.
-9. Text/JSON reports and cohort statistics expose raw values, defined savings, total experiment cost, correctness evidence, and all incomplete/degraded/not-exercised outcomes without an automatic winner or unsupported causal claim.
-10. Local reports work with remote telemetry disabled; optional telemetry remains bounded and consent-controlled. Existing goal statistics count experimental work without inflating delivered-feature totals.
-11. Contract validation, receipt recovery, resource cleanup, and recorded degradation obey the repository's architecture and observability requirements. Existing ordinary goal, build, review, and install behavior remains covered.
+1. Dynamic production discovery registers `codegraph` for goal pairs without excluding other registered experiments. A `bill-feature` parameter selects it through SKILL-366's resolver and gate, alone or in a compatible comma-separated combination. Config governs availability; omission or `experiments:none` performs no graph setup even when config enables CodeGraph.
+2. Optional install and post-confirmation provisioning use a pinned verified asset or explicit validated override. Cached offline reuse, corrupt downloads, unsupported hosts, concurrent installation, active-version retention, and owned cleanup have defined observable outcomes.
+3. A feature invocation produces a control with CodeGraph inaccessible and a treatment with usable bounded graph retrieval, while both retain the original source/spec/settings snapshot and existing quality authority.
+4. Treatment discovery and implementation can consume graph candidates, and review receives only revision-bound authorized evidence through the broker. Neither source races nor out-of-scope graph paths bypass evidence validation.
+5. Retrieval failure, timeout, output caps, and ordinary-discovery fallback emit attributable records and preserve real costs. Degraded or not-exercised treatment cannot appear as a clean CodeGraph gain.
+6. The pair report includes installation/index/sync/query overhead, actual treatment use, available token/cost/discovery metrics, and comparable quality evidence. Ordinary runs incur no graph install/index/query work.
+7. A pinned-binary integration fixture demonstrates cross-file Kotlin retrieval and explicitly records unresolved constructs. An automated full pair with fixture agents proves treatment-only invocation and the resulting comparison report without paid model access.
+8. Documentation and installed skill output distinguish config availability from explicit per-run selection, show comma-separated combinations, and state that omission means none for new runs. Selected experiments use two executions with fixed control delivery; docs explain resume and inspection of both results. No global agent configuration or upstream telemetry preference is changed by managed invocation.
+
+## Executable scope
+
+One managed CodeGraph treatment subtask registers the descriptor, installs the
+optional dependency, provides bounded retrieval, and completes its reports and
+documentation through SKILL-366.
 
 ## Non-goals
 
-- Copying, forking, or reimplementing CodeGraph's parser, resolver, or graph database.
-- Making CodeGraph mandatory, adding another production experiment, or rolling treatment out by default.
-- Factorial experiments, automatic traffic allocation, a remote experiment service, or automatic winner promotion.
-- Duplicating feature-spec preparation, publishing both arms, or letting graph results replace acceptance and validation evidence.
-- General support for arbitrary external tools through executable configuration, or unrestricted graph access by review workers.
-- IDE dashboard work, comprehensive hardware benchmarking, or claiming savings before measured pairs exist.
-
-## Executable subtasks
-
-1. Paired experiment infrastructure and comparison reporting. Own the runtime contract, isolated execution, lifecycle recovery, publication boundary, measurements, reports, and skill/CLI forwarding. Prove the pair behavior with an injected deterministic experiment fixture; do not ship a fake public experiment name.
-2. Managed CodeGraph treatment. Register the sole production experiment, add pinned provisioning and bounded retrieval, connect it to the first subtask's policies and measurements, and exercise a complete CodeGraph pair.
-
-The split separates two independently reviewable systems: durable paired workflow
-execution and a third-party executable's installation/retrieval lifecycle. The
-second consumes the first's settled arm identity, capability, and measurement
-contracts. Do not split schemas, consumers, and their tests into extra commits.
+- Vendoring the CodeGraph source, embedding its Node library into the JVM, or running its interactive agent installer.
+- Mandatory installation, automatic dependency upgrades, or experiment activation without an explicit persisted per-run selection.
+- Substituting graph reachability for compiler correctness, complete test selection, or authorization to read broader evidence.
+- Implementing another treatment, an IDE dashboard, or any guaranteed speed/cost improvement.
 
 ## Validation strategy
 
-Use deterministic fixture agents and real temporary Git worktrees/databases for
-lifecycle evidence. Name each regression before adding its test. Focus on input
-drift, control contamination, duplicate receipt accounting, resumed publication,
-stale graph evidence, and missing usage treated as zero. Subtask specs identify
-the required acceptance and rejection cases. Exercise comparison math with known
-values rather than stochastic model output.
+Name and reproduce these bugs before adding coverage:
 
-Use the pinned real CodeGraph binary for a bounded integration fixture containing
-Kotlin extension functions, an interface/implementation call, and cross-file
-callers. Record what resolves and what does not. An optional live paired feature
-run can populate the first report, but do not make paid agent access or a claimed
-performance improvement a prerequisite for code acceptance. No live gain has been
-measured during this spec preparation.
+- A checksum mismatch or interrupted install leaves an executable that later launches, or a concurrent upgrade changes a resumable pair's version.
+- CodeGraph runs in the control arm through an inherited server, shell, or index path, or runs when the parameter is absent or `none` despite enabled config. A compatible multi-name selection drops CodeGraph or creates separate pairs instead of one pair.
+- A changed/deleted Kotlin file leaves a graph response that is accepted as current evidence.
+- A graph result reaches an unauthorized path, exceeds broker budgets, or substitutes working-tree source for the reviewed commit.
+- A failed query or unused graph still produces a clean claimed gain, or cold indexing is absent from setup-inclusive cost.
+- Process cancellation leaves an owned child/index lock alive, or cleanup removes another pair's state.
 
-During implementation, use the repository's phase-appropriate checks. A routed
-compile-only build session remains compile-only. Run focused contract/runtime
-tests and the declared quality validation in their proper phases. Refresh install
-output with `./install.sh` after authored skill, renderer, or pointer changes.
-Spec preparation itself does not install tools or start implementation.
+Use a fake distribution server/process for fault and timeout tests and a bounded
+real-binary integration fixture for CLI parsing and Kotlin retrieval. Include an
+extension function, overloaded names, an injected interface with an implementation,
+and a known cross-file caller. Assert only supported observed relationships and
+document limitations; do not define complete call-graph recall as acceptance.
+
+Execute an end-to-end fixture pair through the public entry path with actual
+CodeGraph calls in treatment, control attempts denied, deterministic usage
+receipts, and a recorded publication port. Check that both arms' receipts survive
+resume and produce the expected report. A separately authorized live feature pair
+may supply observational benchmark data, but is not required for deterministic
+acceptance and must never publish two implementations.
+
+Run the appropriate focused integration/contract tests and declared quality
+validation in their owning phases. Run `./install.sh` after authored skills or
+installation/rendering behavior changes. Preserve compile-only build semantics.
 
 ## References
 
@@ -332,9 +194,10 @@ Spec preparation itself does not install tools or start implementation.
 - `runtime-kotlin/ARCHITECTURE.md`, design principles and durable state ownership.
 - `docs/code-principles.md`, `docs/observability-policy.md`, and `docs/skill-source-generation.md`.
 - [CodeGraph CLI and integration documentation](https://github.com/colbymchenry/codegraph#cli-reference). Verify the selected release's actual CLI contract before binding the adapter.
+- [Shared experiment support](../SKILL-366-experiment-support/spec.md).
 
 ## Next path
 
-Run `skill-bill goal SKILL-365` to implement this prepared feature. The new
-`experiments:codegraph` option applies to later feature runs after this work lands;
-do not pass an unimplemented option while implementing the option itself.
+After SKILL-366 lands, run `skill-bill goal SKILL-365`. The
+`experiments:codegraph` option applies to later prepared feature work; do not
+pass the unimplemented option while implementing this goal.
