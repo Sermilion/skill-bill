@@ -7,25 +7,7 @@ import skillbill.infrastructure.skills.scaffold.runtime.service.support.required
 import skillbill.testsupport.SkillClassFixtures
 import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
-internal fun completeTransitionalLicense(): String = Files.readString(repositoryRoot().resolve("LICENSE"))
-
-internal fun writeSuccessorApproval(repoRoot: Path, license: String) {
-  val sha256 = MessageDigest.getInstance("SHA-256")
-    .digest(license.trimEnd().encodeToByteArray())
-    .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
-  Files.createDirectories(repoRoot.resolve("docs"))
-  Files.writeString(
-    repoRoot.resolve("docs/release-successor-license-approval.md"),
-    """
-      Status: Approved
-      Approved License Identifier: LicenseRef-Skill-Bill-Use-1.0
-      Approved LICENSE SHA-256: $sha256
-      Approved by: Braian Gapur
-      Approval location: https://example.test/approvals/successor-license
-    """.trimIndent() + "\n",
-  )
-}
+internal fun completeMitLicense(): String = Files.readString(repositoryRoot().resolve("LICENSE"))
 
 internal fun repositoryRoot(): Path = generateSequence(Path.of("").toAbsolutePath().normalize()) { it.parent }
   .first { Files.isRegularFile(it.resolve("LICENSE")) }

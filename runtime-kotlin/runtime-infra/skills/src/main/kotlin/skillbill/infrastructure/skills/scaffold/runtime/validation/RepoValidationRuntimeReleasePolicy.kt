@@ -1,18 +1,9 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.nio.file.Path
 
 internal object RepoValidationRuntimeReleasePolicy {
-  internal const val NORMALIZED_TRANSITIONAL_LICENSE_SHA256 =
-    "4c6d42f5a704b5722d707f92e1f0312cacc6cbee1058171987cc46393ad8f8f3"
-  internal const val LICENSE_IDENTIFIER_MARKER = "Identifier:"
-  internal const val STABLE_LICENSE_APPROVAL_PATH = "docs/release-successor-license-approval.md"
-  internal const val APPROVED_LICENSE_STATUS = "Status: Approved"
-  internal const val APPROVED_LICENSE_IDENTIFIER_PREFIX = "Approved License Identifier: "
-  internal const val APPROVED_LICENSE_SHA256_PREFIX = "Approved LICENSE SHA-256: "
-  internal const val APPROVED_LICENSE_HOLDER = "Approved by: Braian Gapur"
-  internal const val APPROVED_LICENSE_LOCATION_PREFIX = "Approval location: "
-  internal const val UNSIGNED_BYTE_MASK = 0xff
+  internal const val NORMALIZED_MIT_LICENSE_SHA256 =
+    "7f6d941b05cd24c92bdfe2d35fa2c6729d638edeab1d42d10774e07c8061fbfa"
   private val semverTagPattern =
     Regex(
       "^v(?<major>0|[1-9]\\d*)\\.(?<minor>0|[1-9]\\d*)\\.(?<patch>0|[1-9]\\d*)" +

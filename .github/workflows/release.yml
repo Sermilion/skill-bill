@@ -245,8 +245,6 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          HOLDER_RELEASE_TOKEN: ${{ secrets.SKILL_BILL_COPYRIGHT_HOLDER_RELEASE_TOKEN }}
-          HOLDER_GITHUB_LOGIN: ${{ vars.SKILL_BILL_COPYRIGHT_HOLDER_GITHUB_LOGIN }}
           RELEASE_TAG: ${{ steps.release_meta.outputs.tag || steps.staging_meta.outputs.tag }}
           RELEASE_PRERELEASE: ${{ steps.release_meta.outputs.prerelease || steps.staging_meta.outputs.prerelease }}
           IS_STAGING: ${{ github.event_name == 'workflow_dispatch' }}
@@ -256,21 +254,6 @@ jobs:
           if [[ -z "${RELEASE_TAG}" ]]; then
             echo "No release tag resolved; refusing to publish." >&2
             exit 1
-          fi
-
-          holder_release=false
-          if [[ "${RELEASE_TAG}" == "v1.0.0" && "${RELEASE_PRERELEASE}" != "true" ]]; then
-            if [[ -z "${HOLDER_RELEASE_TOKEN}" || -z "${HOLDER_GITHUB_LOGIN}" ]]; then
-              echo "Stable v1.0.0 publication requires the copyright holder's release token and GitHub login." >&2
-              exit 1
-            fi
-            GH_TOKEN="${HOLDER_RELEASE_TOKEN}"
-            authenticated_login="$(gh api user --jq '.login')"
-            if [[ "${authenticated_login}" != "${HOLDER_GITHUB_LOGIN}" ]]; then
-              echo "Stable v1.0.0 publication token is not authenticated as the configured copyright holder." >&2
-              exit 1
-            fi
-            holder_release=true
           fi
 
           expected_commit="${GITHUB_SHA}"
@@ -329,18 +312,14 @@ jobs:
           fi
 
           if [[ "${release_exists}" == "true" ]]; then
-            release_metadata="$(gh release view "${RELEASE_TAG}" --repo "${{ github.repository }}" --json author,isDraft,isPrerelease,targetCommitish,tagName --jq '[.isDraft, .isPrerelease, .targetCommitish, .tagName, .author.login] | @tsv')"
-            IFS=$'\t' read -r existing_draft existing_prerelease existing_target existing_tag existing_author <<< "${release_metadata}"
+            release_metadata="$(gh release view "${RELEASE_TAG}" --repo "${{ github.repository }}" --json isDraft,isPrerelease,targetCommitish,tagName --jq '[.isDraft, .isPrerelease, .targetCommitish, .tagName] | @tsv')"
+            IFS=$'\t' read -r existing_draft existing_prerelease existing_target existing_tag <<< "${release_metadata}"
             if [[ "${existing_tag}" != "${RELEASE_TAG}" || "${existing_prerelease}" != "${RELEASE_PRERELEASE}" ]]; then
               echo "Existing draft ${RELEASE_TAG} does not match this validated tag, commit, and prerelease classification." >&2
               exit 1
             fi
             if [[ "${IS_STAGING}" == "true" && "${existing_target}" != "${expected_commit}" ]]; then
               echo "Existing staging release ${RELEASE_TAG} does not target the validated commit ${expected_commit}." >&2
-              exit 1
-            fi
-            if [[ "${holder_release}" == "true" && "${existing_author}" != "${HOLDER_GITHUB_LOGIN}" ]]; then
-              echo "Stable v1.0.0 release ${RELEASE_TAG} was not created by the configured copyright holder." >&2
               exit 1
             fi
             if [[ "${existing_draft}" != "true" ]]; then

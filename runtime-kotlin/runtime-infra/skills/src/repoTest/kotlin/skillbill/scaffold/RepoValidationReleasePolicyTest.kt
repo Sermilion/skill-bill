@@ -58,139 +58,51 @@ class RepoValidationReleasePolicyTest {
   }
 
   @Test
-  fun `release policy preserves historical lines and requires complete custom policy from v0 1 2`() {
-    val repoRoot = Files.createTempDirectory("skillbill-release-policy")
+  fun `MIT releases pass across version lines without an approval record`() {
+    val repoRoot = Files.createTempDirectory("skillbill-mit-release-policy")
+    Files.writeString(repoRoot.resolve("LICENSE"), completeMitLicense())
 
-    listOf("v0.0.9", "v0.1.0", "v0.1.1+rebuild.1").forEach { ref ->
-      RepoValidationRuntime.validateReleaseRef(repoRoot, ref, forcePrerelease = false)
-    }
+    listOf("v0.1.1", "v0.1.2", "v0.9.9-rc.1", "v1.0.0-rc.1", "v1.0.0", "v1.1.0", "v2.0.0+build.7")
+      .forEach { ref -> RepoValidationRuntime.validateReleaseRef(repoRoot, ref) }
 
-    val coveredPrerelease = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v0.1.2-rc.1", forcePrerelease = false)
-    }
-    assertTrue(coveredPrerelease.message.orEmpty().contains("LICENSE"))
-
-    val missingPolicy = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v0.1.2", forcePrerelease = false)
-    }
-    assertTrue(missingPolicy.message.orEmpty().contains("LICENSE"))
-
-    listOf(
-      "identifier-only" to RepoValidationRuntime.PRE_1_LICENSE_IDENTIFIER,
-      "marker-only" to RepoValidationRuntime.TRANSITIONAL_LICENSE_MARKER,
-      "wrong-boundary" to completeTransitionalLicense().replace("v0.1.2", "v0.1.3"),
-      "truncated" to completeTransitionalLicense().substringBefore("10. Termination and cure"),
-      "material-clause-change" to
-        completeTransitionalLicense().replace(
-          "hosted-service use",
-          "hosted-product use",
-        ),
-    ).forEach { (fixture, license) ->
-      Files.writeString(repoRoot.resolve("LICENSE"), license)
-      val failure = assertFailsWith<IllegalArgumentException> {
-        RepoValidationRuntime.validateReleaseRef(repoRoot, "v0.1.2", forcePrerelease = false)
-      }
-      assertTrue(failure.message.orEmpty().contains("complete current"), fixture)
-    }
-
-    Files.writeString(repoRoot.resolve("LICENSE"), completeTransitionalLicense())
-    listOf("v0.1.2", "v0.2.0+build.7", "v0.9.9-rc.1").forEach { ref ->
-      RepoValidationRuntime.validateReleaseRef(repoRoot, ref, forcePrerelease = false)
-    }
-    Files.writeString(repoRoot.resolve("LICENSE"), completeTransitionalLicense().replace("\n", "\r\n"))
-    RepoValidationRuntime.validateReleaseRef(repoRoot, "v0.1.2", forcePrerelease = false)
+    Files.writeString(repoRoot.resolve("LICENSE"), completeMitLicense().replace("\n", "\r\n"))
+    RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0")
   }
 
   @Test
-  fun `release policy keeps rc and manual staging non triggering while rejecting stable v1`() {
-    val repoRoot = Files.createTempDirectory("skillbill-pre-one-staging")
-    Files.writeString(repoRoot.resolve("LICENSE"), completeTransitionalLicense())
-
-    val releaseCandidate = RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0-rc.1", forcePrerelease = false)
-    val staging = RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0-staging.1", forcePrerelease = false)
-    val forcedStableFailure = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0", forcePrerelease = true)
-    }
-    val stableFailure = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0", forcePrerelease = false)
-    }
-
-    assertTrue(releaseCandidate.prerelease)
-    assertTrue(staging.prerelease)
-    assertEquals("v1.0.0-staging.1", staging.tag)
-    assertTrue(forcedStableFailure.message.orEmpty().contains("prerelease identifier"))
-    assertTrue(stableFailure.message.orEmpty().contains("approved stable license policy"))
-  }
-
-  @Test
-  fun `v1 release candidates require the exact transitional policy`() {
-    val repoRoot = Files.createTempDirectory("skillbill-v1-rc-policy")
-
+  fun `release policy rejects missing truncated and restricted MIT licenses`() {
+    val repoRoot = Files.createTempDirectory("skillbill-invalid-mit-license")
     val missing = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0-rc.1", forcePrerelease = false)
+      RepoValidationRuntime.validateReleaseRef(repoRoot, "v0.1.2")
     }
-    Files.writeString(repoRoot.resolve("LICENSE"), RepoValidationRuntime.TRANSITIONAL_LICENSE_MARKER)
-    val incomplete = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0-rc.1", forcePrerelease = false)
-    }
-    Files.writeString(repoRoot.resolve("LICENSE"), completeTransitionalLicense().replace("Skill Bill Use", "Other Use"))
-    val otherPolicy = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0-rc.1", forcePrerelease = false)
-    }
-
     assertTrue(missing.message.orEmpty().contains("LICENSE"))
-    assertTrue(incomplete.message.orEmpty().contains("complete current Skill Bill use license"))
-    assertTrue(otherPolicy.message.orEmpty().contains("complete current Skill Bill use license"))
-  }
 
-  @Test
-  fun `post one lines including prereleases require stable policy approval`() {
-    val repoRoot = Files.createTempDirectory("skillbill-post-one-policy")
-    Files.writeString(repoRoot.resolve("LICENSE"), completeTransitionalLicense())
-
-    listOf("v1.0.1-rc.1", "v1.0.1", "v1.1.0", "v2.0.0+build.7").forEach { ref ->
-      val failure = assertFailsWith<IllegalArgumentException> {
-        RepoValidationRuntime.validateReleaseRef(repoRoot, ref, forcePrerelease = false)
-      }
-      assertTrue(failure.message.orEmpty().contains("approved stable license policy"), ref)
-    }
-  }
-
-  @Test
-  fun `post one releases require an approved stable license record tied to its exact bytes`() {
-    val repoRoot = Files.createTempDirectory("skillbill-successor-license")
-    val successor = completeTransitionalLicense()
-    Files.writeString(
-      repoRoot.resolve("LICENSE"),
-      successor,
-    )
-
-    assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.1.0", forcePrerelease = false)
-    }
-    writeSuccessorApproval(repoRoot, successor)
-    RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.1.0", forcePrerelease = false)
-    Files.writeString(repoRoot.resolve("LICENSE"), successor.replace("Commercial License", "Business Agreement"))
-    val changedLicense = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.1.0", forcePrerelease = false)
-    }
-    assertTrue(changedLicense.message.orEmpty().contains("approved stable license policy"))
-  }
-
-  @Test
-  fun `post one release rejects unapproved or altered policy placeholders`() {
-    val repoRoot = Files.createTempDirectory("skillbill-invalid-successor-license")
     listOf(
       "",
-      "Identifier: LicenseRef-Skill-Bill-Use-1.0\n",
-      "Historical notice\n\n${completeTransitionalLicense()}",
-      completeTransitionalLicense().replace("Commercial License", "Business Agreement"),
+      "MIT License",
+      completeMitLicense().substringBefore("THE SOFTWARE IS PROVIDED"),
+      completeMitLicense().replace("without restriction", "for noncommercial use only"),
     ).forEach { license ->
       Files.writeString(repoRoot.resolve("LICENSE"), license)
-      val failure = assertFailsWith<IllegalArgumentException> {
-        RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.1", forcePrerelease = false)
+      listOf("v0.1.1", "v0.1.2", "v1.0.0-rc.1", "v1.0.0", "v2.0.0").forEach { ref ->
+        val failure = assertFailsWith<IllegalArgumentException> {
+          RepoValidationRuntime.validateReleaseRef(repoRoot, ref)
+        }
+        assertTrue(failure.message.orEmpty().contains("complete current MIT license"), ref)
       }
-      assertTrue(failure.message.orEmpty().contains("approved stable license policy"))
     }
+  }
+
+  @Test
+  fun `manual staging requires a prerelease tag under MIT`() {
+    val repoRoot = Files.createTempDirectory("skillbill-mit-staging")
+    Files.writeString(repoRoot.resolve("LICENSE"), completeMitLicense())
+
+    val staging = RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0-staging.1", forcePrerelease = true)
+    assertTrue(staging.prerelease)
+    val failure = assertFailsWith<IllegalArgumentException> {
+      RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0", forcePrerelease = true)
+    }
+    assertTrue(failure.message.orEmpty().contains("prerelease identifier"))
   }
 }

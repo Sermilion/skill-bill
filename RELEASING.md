@@ -8,37 +8,12 @@ The release contract is:
 - push the tag to GitHub
 - let the `Release` workflow rerun validation and publish the GitHub Release
 
-The root [LICENSE](LICENSE) governs release licensing. Its non-authoritative
-[version matrix](docs/licensing.md) is deliberately short: v0.1.0 and v0.1.1
-retain their shipped terms; releases starting with v0.1.2, including v0.1.2
-prereleases distributed with the license, permit lawful use including commercial
-use before the Stable Release Event. At and after the event, personal and
-qualifying open-source-project use remain free while other commercial use
-requires a purchased Commercial License. Documented customization materials may
-be modified for permitted use; public redistribution is not granted.
+Releases use the [MIT License](LICENSE). The [licensing summary](docs/licensing.md)
+describes the permissions and treatment of earlier releases. The release
+validator requires the complete MIT license text for every release tag.
 
 Pre-release tags such as `v0.5.0-rc.1` are also supported and publish GitHub
-prereleases. Versions preceding v0.1.2 by SemVer precedence, including
-`v0.1.1+rebuild.1`, retain their historical terms. Starting at v0.1.2, the
-release validator requires the complete custom policy, not just its identifier
-or a marker. A `v1.0.0` release candidate remains non-triggering. Stable
-`v1.0.0` and later release lines use the same policy and are rejected until the
-copyright holder approves its exact normalized bytes for stable publication.
-
-Use the [stable-policy approval record](docs/release-successor-license-approval.md)
-before any `v1.0.0` or later release. The record must name the governing license
-identifier and exact normalized SHA-256. This gate prevents placeholder or
-substitute terms from being published as the stable policy.
-
-For the exact stable `v1.0.0` publication, configure the repository secret
-`SKILL_BILL_COPYRIGHT_HOLDER_RELEASE_TOKEN` and variable
-`SKILL_BILL_COPYRIGHT_HOLDER_GITHUB_LOGIN` for Braian Gapur. The workflow
-fails closed unless that token authenticates as the configured holder and the
-release is created by that account.
-
-The [LICENSE](LICENSE) alone defines the Stable Release Event. A successful
-workflow, an existing GitHub Release object, a bare tag, or a local artifact is
-not proof that the event occurred.
+prereleases. Stable and prerelease versions use the same license checks.
 
 ## What a tag push builds
 
@@ -161,17 +136,11 @@ under the hood.
    scripts/validate_agent_configs
    ```
 
-3. Before creating `v0.1.2`, obtain and record explicit approval of the exact
-   final [LICENSE](LICENSE) text from the copyright holder, Braian Gapur.
-   Automated checks do not replace this approval or external legal review.
-   Use the [pre-1.0 license approval record](docs/release-license-approval.md)
-   to capture the approved `LICENSE` SHA-256 and approval location.
-4. Pick the next canonical `v`-prefixed version tag. For releases from `v0.1.2`
-   through pre-1.0, run
-   `scripts/validate_release_ref v0.x.y`; a staging build must use a SemVer
-   prerelease label such as `v0.x.y-staging.1`. Do not create stable `v1.0.0` or
-   later until the exact governing policy has the completed copyright-holder
-   approval record described above.
+3. Confirm that the root [LICENSE](LICENSE) contains the MIT license and that
+   release artifacts include it.
+4. Pick the next canonical `v`-prefixed version tag and run
+   `scripts/validate_release_ref v0.x.y`. A staging build must use a SemVer
+   prerelease label such as `v0.x.y-staging.1`.
 5. Create an annotated tag:
 
    ```bash

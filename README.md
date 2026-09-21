@@ -2,7 +2,7 @@
 
 # Skill Bill
 
-[![License: Skill Bill Use License](https://img.shields.io/badge/License-Skill%20Bill%20Use-4c1.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-4c1.svg)](LICENSE)
 ![Latest release](https://img.shields.io/github/v/release/oila-gmbh/skill-bill?include_prereleases&sort=semver)
 ![Validate agent configs](https://img.shields.io/github/actions/workflow/status/oila-gmbh/skill-bill/validate-agent-configs.yml?branch=main&label=validate)
 
@@ -362,6 +362,5 @@ Some diagnostic events still queue locally while telemetry is off. [Telemetry Pr
 
 ## License
 
-The [Skill Bill Use License 1.0](LICENSE), `LicenseRef-Skill-Bill-Use-1.0`, governs use. The [licensing summary](docs/licensing.md) gives the version matrix. Versions v0.1.0 and v0.1.1 retain their shipped terms. Releases from v0.1.2 allow lawful use, including commercial use, before the stable `v1.0.0` Stable Release Event. At and after that event, personal use and qualifying open-source-project use remain free; other commercial use requires a purchased Commercial License.
-
-Documented skills, packs, and other customization materials may be modified for permitted use, but the license does not grant public redistribution. User-authored materials and generated outputs remain the user's, subject to protected Skill Bill material and third-party rights.
+Skill Bill is licensed under the [MIT License](LICENSE). See the
+[licensing summary](docs/licensing.md) for details.

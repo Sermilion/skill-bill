@@ -46,11 +46,7 @@ class CliRepoValidationRuntimeTest {
     val repoRoot = Files.createTempDirectory("skillbill-cli-release-policy")
     Files.writeString(
       repoRoot.resolve("LICENSE"),
-      """
-      Skill Bill Use License 1.0
-      Identifier: LicenseRef-Skill-Bill-Use-1.0
-      Prospective Effective Version: v0.1.2
-      """.trimIndent() + "\n",
+      "MIT License\n",
     )
 
     val result = CliRuntime.run(
@@ -67,7 +63,7 @@ class CliRepoValidationRuntimeTest {
 
     assertEquals(1, result.exitCode)
     assertContains(result.stdout, "\"status\": \"failed\"")
-    assertContains(result.stdout, "stable license policy")
+    assertContains(result.stdout, "complete current MIT license")
   }
 
   @Test

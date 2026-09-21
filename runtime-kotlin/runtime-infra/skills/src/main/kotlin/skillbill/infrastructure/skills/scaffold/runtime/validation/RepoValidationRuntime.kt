@@ -87,10 +87,6 @@ data class ReleaseRefMetadata(
 
 internal class ReleaseLicensePolicyError(message: String) : IllegalArgumentException(message)
 object RepoValidationRuntime {
-  const val PRE_1_LICENSE_IDENTIFIER = "LicenseRef-Skill-Bill-Use-1.0"
-  const val PROSPECTIVE_EFFECTIVE_VERSION_MARKER = "Prospective Effective Version: v0.1.2"
-  const val TRANSITIONAL_LICENSE_MARKER = "Skill Bill Use License 1.0"
-
   internal fun validateRepo(
     repoRoot: Path,
     nativeAgentCompositionContext: NativeAgentCompositionContext,
