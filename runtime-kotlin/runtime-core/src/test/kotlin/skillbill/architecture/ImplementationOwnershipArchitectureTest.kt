@@ -344,6 +344,7 @@ class ImplementationOwnershipArchitectureTest {
       "RuntimeScaffoldProvides.kt",
       "RuntimeScaffoldValidationProvides.kt",
       "RuntimeDiagnosticsProvides.kt",
+      "RuntimeTypeSafeProvides.kt",
     ).joinToString("\n") { fileName ->
       kotlinFilesUnder(runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di"))
         .single { path -> path.fileName.toString() == fileName }

@@ -1,3 +1,21 @@
+## [2026-09-21] SKILL-248 — TypeSafe enablement uses experiment availability
+Areas: runtime-application/typesafe, runtime-contracts/experiment, runtime-domain/{config,experiment}, runtime-cli/typesafe, runtime-infra-host
+- TypeSafe evaluate/probe now require `typesafe` in the machine `experiments` array instead of a private `typesafe.enabled` flag. Credentials stay under the `typesafe` object; `--enable`/`--disable` add or remove the experiment name and leave other listed experiments intact.
+- Absent `experiments` stays default-off for the HTTP client even when an API key is stored. Leftover `typesafe.enabled` is ignored and stripped on configure. reusable
+- Pattern: experimental client opt-in shares the SKILL-366 availability list rather than a second config switch.
+- Known limitation: TypeSafe is still not registered as a goal-pair or navigation descriptor; listing it makes the client available, it does not start paired execution.
+Feature flag: N/A
+Acceptance criteria: N/A
+
+## [2026-09-16] SKILL-248 subtask 1 — Config-gated System One client
+Areas: runtime-application/typesafe, runtime-contracts/typesafe, runtime-domain/config, runtime-ports/typesafe, runtime-infra-http, runtime-core/di, runtime-cli/typesafe
+- Added an experimental TypeSafe System One port, HTTP adapter, typed settings, and application service gated by `typesafe.enabled`; absent settings default to disabled and enabled calls require a non-blank configured or environment API key.
+- Added CLI `configure`, `status`, and `probe` surfaces with machine-config preservation and API-key redaction; wire and environment vocabulary is centralized in contracts. reusable
+- Pattern: keep provider credentials and wire keys at explicit boundary seams, with typed errors for disabled, missing-key, HTTP, and malformed-response cases.
+- Known limitation: the client is intentionally not wired into review, feature-task, or goal execution.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (validate phase owns pack gate)
+
 ## [2026-09-16] SKILL-347 subtask 3 — Review composition and stateless use cases
 Areas: runtime-application/{review,telemetry/config,featurespec,updatecheck}, runtime-core/architecture
 - Before: runner unwrapped dual boundary bags and rebuilt planning, lane launch, result assembly, and verification; duplicate launcher and evidence-locator bindings; mutable update-check parser flags; unused `TelemetryConfigMutationRuntime`, `ReviewCommitSequenceResolver`, and `TelemetryConfigRuntime` forwarding; test-only feature-preparation aliases.
