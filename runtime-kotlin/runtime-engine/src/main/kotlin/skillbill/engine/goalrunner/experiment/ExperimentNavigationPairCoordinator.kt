@@ -7,6 +7,7 @@ import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.engine.experiment.navigation.NavigationHiddenLabelScore
 import skillbill.engine.experiment.navigation.NavigationHiddenLabelScorer
 import skillbill.engine.experiment.observation.ExperimentObservationMeasurement
+import skillbill.engine.experiment.observation.ExperimentObservationRecordRequest
 import skillbill.engine.experiment.observation.ExperimentObservationRecorder
 import skillbill.engine.experiment.telemetry.ExperimentTelemetryRecorder
 import skillbill.error.shellcontent.ExperimentIsolationCapabilityRefusalError
@@ -39,6 +40,35 @@ import java.time.Instant
 import java.util.UUID
 import kotlin.time.Duration.Companion.minutes
 
+data class ExperimentNavigationPairSource(
+  val name: String,
+  val repoRoot: Path,
+  val revision: String,
+  val specBytes: ByteArray,
+  val criteria: List<String>,
+)
+
+data class ExperimentNavigationPairEvaluation(
+  val hiddenLabels: Map<String, Set<String>> = emptyMap(),
+  val annotationsExhaustive: Boolean = false,
+)
+
+data class ExperimentNavigationPairRequest(
+  val source: ExperimentNavigationPairSource,
+  val pairId: String? = null,
+  val evaluation: ExperimentNavigationPairEvaluation = ExperimentNavigationPairEvaluation(),
+)
+
+private data class PreparedNavigationPair(
+  val request: ExperimentNavigationPairRequest,
+  val pairId: String,
+  val resolvedRevision: String,
+  val repositoryIdentity: String,
+  val specBytes: ByteArray,
+  val criteria: List<String>,
+  val persisted: ExperimentPairPersistedState?,
+)
+
 @Inject
 class ExperimentNavigationPairCoordinator(
   private val selectionPort: ExperimentSelectionPort,
@@ -49,24 +79,10 @@ class ExperimentNavigationPairCoordinator(
   private val telemetryRecorder: ExperimentTelemetryRecorder? = null,
   private val clock: Clock = Clock.systemUTC(),
 ) {
-  fun run(
-    name: String,
-    repoRoot: Path,
-    revision: String,
-    specBytes: ByteArray,
-    criteria: List<String>,
-    pairId: String? = null,
-    hiddenLabels: Map<String, Set<String>> = emptyMap(),
-    annotationsExhaustive: Boolean = false,
-  ): String {
-    val resolvedPairId = pairId ?: UUID.randomUUID().toString()
+  fun run(request: ExperimentNavigationPairRequest): String {
+    val resolvedPairId = request.pairId ?: UUID.randomUUID().toString()
     validateBeforeLease(
-      pairId = resolvedPairId,
-      repoRoot = repoRoot,
-      name = name,
-      revision = revision,
-      specBytes = specBytes,
-      criteria = criteria,
+      request = request.copy(pairId = resolvedPairId),
     )
     val leaseToken = UUID.randomUUID().toString()
     if (!pairOwner.acquireLease(resolvedPairId, leaseToken, clock.millis(), 30.minutes.inWholeMilliseconds)) {
@@ -75,238 +91,239 @@ class ExperimentNavigationPairCoordinator(
       )
     }
     return try {
-      runPair(
-        name = name,
-        repoRoot = repoRoot,
-        revision = revision,
-        specBytes = specBytes,
-        criteria = criteria,
-        pairId = resolvedPairId,
-        hiddenLabels = hiddenLabels,
-        annotationsExhaustive = annotationsExhaustive,
-      )
+      runPair(request.copy(pairId = resolvedPairId))
     } finally {
       pairOwner.releaseLease(resolvedPairId, leaseToken)
     }
   }
 
-  private fun validateBeforeLease(
-    pairId: String,
-    repoRoot: Path,
-    name: String,
-    revision: String,
-    specBytes: ByteArray,
-    criteria: List<String>,
-  ) {
-    if (specBytes.isEmpty()) {
-      throw ExperimentNavigationSpecError(repoRoot.toString(), "the spec is empty")
-    }
-    if (criteria.isEmpty() || criteria.any(String::isBlank)) {
-      throw ExperimentNavigationSpecError(repoRoot.toString(), "at least one acceptance criterion is required")
-    }
+  private fun validateBeforeLease(request: ExperimentNavigationPairRequest) {
+    val pairId = requireNotNull(request.pairId)
+    val source = request.source
+    validateSpec(source)
     val persisted = pairOwner.load(pairId)
     val selection = selectionPort.resolveForLaunch(
-      repoRoot = repoRoot,
-      parameter = name,
+      repoRoot = source.repoRoot,
+      parameter = source.name,
       mode = ExperimentExecutionMode.NAVIGATION,
       savedSelection = persisted?.selectedNames,
     )
-    if (selection.normalizedNames != listOf(name)) {
-      throw ExperimentNavigationSpecError(
-        repoRoot.toString(),
-        "the requested navigation descriptor did not resolve to exactly '$name'",
-      )
-    }
-    val resolvedRevision = when (val result = gitOperations.resolveCommit(repoRoot, revision)) {
-      is WorkflowGitOperationResult.Ok -> result.value.trim().takeIf(String::isNotBlank)
-      is WorkflowGitOperationResult.Failed -> null
-    } ?: throw ExperimentNavigationRevisionError(
-      revision = revision,
-      reason = "the revision could not be resolved",
-    )
-    val repositoryIdentity = when (val result = gitOperations.repositoryFingerprint(repoRoot)) {
-      is WorkflowGitOperationResult.Ok -> result.value.trim().takeIf(String::isNotBlank)
-      is WorkflowGitOperationResult.Failed -> null
-    } ?: throw ExperimentNavigationRevisionError(
-      revision = revision,
-      reason = "the repository identity could not be captured",
-    )
+    validateSelection(source, selection.normalizedNames)
+    val resolvedRevision = resolveRevision(source)
+    val repositoryIdentity = resolveRepositoryIdentity(source)
     verifyPersistedInputs(
       persisted = persisted,
       repositoryIdentity = repositoryIdentity,
       revision = resolvedRevision,
-      specBytes = specBytes,
+      specBytes = source.specBytes,
     )
   }
 
-  private fun runPair(
-    name: String,
-    repoRoot: Path,
-    revision: String,
-    specBytes: ByteArray,
-    criteria: List<String>,
-    pairId: String,
-    hiddenLabels: Map<String, Set<String>>,
-    annotationsExhaustive: Boolean,
-  ): String {
-    if (specBytes.isEmpty()) {
-      throw ExperimentNavigationSpecError(repoRoot.toString(), "the spec is empty")
-    }
-    if (criteria.isEmpty() || criteria.any(String::isBlank)) {
-      throw ExperimentNavigationSpecError(repoRoot.toString(), "at least one acceptance criterion is required")
-    }
-    val resolvedPairId = pairId
-    val persisted = pairOwner.load(resolvedPairId)
-    val selection = selectionPort.resolveForLaunch(
-      repoRoot,
-      name,
-      ExperimentExecutionMode.NAVIGATION,
-      persisted?.selectedNames,
-    )
-    if (selection.normalizedNames != listOf(name)) {
-      throw ExperimentNavigationSpecError(
-        repoRoot.toString(),
-        "the requested navigation descriptor did not resolve to exactly '$name'",
-      )
-    }
-    val resolvedRevision = when (val result = gitOperations.resolveCommit(repoRoot, revision)) {
-      is WorkflowGitOperationResult.Ok -> result.value.trim().takeIf(String::isNotBlank)
-      is WorkflowGitOperationResult.Failed -> null
-    } ?: throw ExperimentNavigationRevisionError(
-      revision = revision,
-      reason = "the revision could not be resolved",
-    )
-    val repositoryIdentity = when (val result = gitOperations.repositoryFingerprint(repoRoot)) {
-      is WorkflowGitOperationResult.Ok -> result.value.trim().takeIf(String::isNotBlank)
-      is WorkflowGitOperationResult.Failed -> null
-    } ?: throw ExperimentNavigationRevisionError(
-      revision = revision,
-      reason = "the repository identity could not be captured",
-    )
-    verifyPersistedInputs(
-      persisted = persisted,
-      repositoryIdentity = repositoryIdentity,
-      revision = resolvedRevision,
-      specBytes = specBytes,
-    )
-    if (persisted == null) {
-      pairOwner.save(
-        ExperimentPairPersistedState(
-          pairId = resolvedPairId,
-          executionMode = ExperimentExecutionMode.NAVIGATION,
-          selectedNames = selection.normalizedNames,
-          armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
-          randomSeed = resolvedPairId,
-          pairPayload = navigationPairPayload(
-            resolvedPairId,
-            name,
-            repositoryIdentity,
-            resolvedRevision,
-            specBytes,
-          ),
-        ),
-      )
-    }
-    val completedArms = persisted?.pairPayload
-      ?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
-      ?.let { it as? List<*> }
-      ?.filterIsInstance<Map<*, *>>()
-      ?.filter { it[ExperimentPairPayloadKeys.TERMINAL_STATUS] == "completed" }
-      ?.mapNotNull { it[ExperimentPairPayloadKeys.ARM_ID]?.toString()?.let(ExperimentArmId::fromWire) }
-      ?.toSet()
-      .orEmpty()
-    completedArms.forEach { arm ->
-      val outcome = armOutcome(pairOwner.load(resolvedPairId)?.pairPayload, arm) ?: return@forEach
-      recordArmObservation(
-        pairId = resolvedPairId,
-        arm = arm,
-        workflowId = outcome[ExperimentPairPayloadKeys.WORKFLOW_ID]?.toString()
-          ?: "$resolvedPairId:${arm.wireValue}",
-      )
-    }
-    for (arm in listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT).filterNot(completedArms::contains)) {
-      verifyCurrentInputs(repoRoot, resolvedRevision, repositoryIdentity)
-      pairOwner.save(
-        updateNavigationLifecycle(
-          payload = pairOwner.load(resolvedPairId)?.pairPayload.orEmpty(),
-          pairId = resolvedPairId,
-          arm = arm,
-          terminalStatus = "running",
-        ),
-      )
-      var snapshot: Path? = null
-      var primaryFailure: Throwable? = null
-      val result = try {
-        snapshot = createNavigationSnapshot(repoRoot, resolvedPairId, arm, resolvedRevision)
-        sessionRunner.runSession(
-          ExperimentNavigationSessionRequest(
-            pairId = resolvedPairId,
-            armId = arm.wireValue,
-            repoRoot = snapshot,
-            revision = resolvedRevision,
-            frozenSpecBytes = specBytes.copyOf(),
-            acceptanceCriteria = criteria.toList(),
-            treatmentEnabled = arm == ExperimentArmId.TREATMENT,
-          ),
-        )
-      } catch (failure: Throwable) {
-        primaryFailure = failure
-        pairOwner.save(
-          updateNavigationLifecycle(
-            payload = pairOwner.load(resolvedPairId)?.pairPayload.orEmpty(),
-            pairId = resolvedPairId,
-            arm = arm,
-            terminalStatus = "failed",
-            failureReason = failure.message.orEmpty().ifBlank { failure::class.simpleName.orEmpty() },
-          ),
-        )
-        throw failure
-      } finally {
-        snapshot?.let { snapshotPath ->
-          try {
-            removeNavigationSnapshot(repoRoot, snapshotPath)
-          } catch (cleanupFailure: Throwable) {
-            primaryFailure?.addSuppressed(cleanupFailure) ?: throw cleanupFailure
-          }
-        }
-      }
-      pairOwner.save(
-        updateOutcome(
-          pairOwner.load(resolvedPairId)?.pairPayload.orEmpty(),
-          resolvedPairId,
-          arm,
-          result,
-          NavigationHiddenLabelScorer.score(
-            acceptanceCriteria = criteria,
-            hiddenLabels = hiddenLabels,
-            reads = result.readReceipts,
-            deliveredPaths = result.deliveredPaths,
-            annotationsExhaustive = annotationsExhaustive,
-          ),
-        ),
-      )
-      val workflowId = "$resolvedPairId:${arm.wireValue}"
-      recordArmObservation(
-        pairId = resolvedPairId,
-        arm = arm,
-        workflowId = workflowId,
-        result = result,
-      )
-      if (result.outcome == ExperimentNavigationTerminalOutcome.CANCELLED) break
-    }
+  private fun runPair(request: ExperimentNavigationPairRequest): String {
+    val prepared = preparePair(request)
+    recordCompletedArmObservations(prepared)
+    runPendingArms(prepared)
     telemetryRecorder?.record(
-      pairId = resolvedPairId,
+      pairId = prepared.pairId,
       cohort = ExperimentExecutionMode.NAVIGATION.wireValue,
       metrics = mapOf(
-        ExperimentTelemetryPayloadKeys.PAIR_STATUS to pairOwner.load(resolvedPairId)
+        ExperimentTelemetryPayloadKeys.PAIR_STATUS to pairOwner.load(prepared.pairId)
           ?.pairPayload?.get(ExperimentPairPayloadKeys.PAIR_STATUS),
         ExperimentTelemetryPayloadKeys.ARM_COUNT to
-          pairOwner.load(resolvedPairId)?.pairPayload?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
+          pairOwner.load(prepared.pairId)?.pairPayload?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
             .let { (it as? List<*>)?.size ?: 0 },
         ExperimentTelemetryPayloadKeys.DELIVERED_FEATURE_COUNT to 0,
       ),
     )
-    return resolvedPairId
+    return prepared.pairId
+  }
+
+  private fun preparePair(request: ExperimentNavigationPairRequest): PreparedNavigationPair {
+    val pairId = requireNotNull(request.pairId)
+    val source = request.source
+    validateSpec(source)
+    val persisted = pairOwner.load(pairId)
+    val selection = selectionPort.resolveForLaunch(
+      source.repoRoot,
+      source.name,
+      ExperimentExecutionMode.NAVIGATION,
+      persisted?.selectedNames,
+    )
+    validateSelection(source, selection.normalizedNames)
+    val resolvedRevision = resolveRevision(source)
+    val repositoryIdentity = resolveRepositoryIdentity(source)
+    verifyPersistedInputs(persisted, repositoryIdentity, resolvedRevision, source.specBytes)
+    if (persisted == null) saveNewPair(request, pairId, selection.normalizedNames, repositoryIdentity, resolvedRevision)
+    return PreparedNavigationPair(
+      request = request,
+      pairId = pairId,
+      resolvedRevision = resolvedRevision,
+      repositoryIdentity = repositoryIdentity,
+      specBytes = source.specBytes,
+      criteria = source.criteria,
+      persisted = persisted,
+    )
+  }
+
+  private fun validateSpec(source: ExperimentNavigationPairSource) {
+    if (source.specBytes.isEmpty() || source.criteria.isEmpty() || source.criteria.any(String::isBlank)) {
+      throw ExperimentNavigationSpecError(source.repoRoot.toString(), "at least one acceptance criterion is required")
+    }
+  }
+
+  private fun validateSelection(source: ExperimentNavigationPairSource, names: List<String>) {
+    if (names != listOf(source.name)) {
+      throw ExperimentNavigationSpecError(
+        source.repoRoot.toString(),
+        "the requested navigation descriptor did not resolve to exactly '${source.name}'",
+      )
+    }
+  }
+
+  private fun resolveRevision(source: ExperimentNavigationPairSource): String =
+    when (val result = gitOperations.resolveCommit(source.repoRoot, source.revision)) {
+      is WorkflowGitOperationResult.Ok -> result.value.trim().takeIf(String::isNotBlank)
+      is WorkflowGitOperationResult.Failed -> null
+    } ?: throw ExperimentNavigationRevisionError(source.revision, "the revision could not be resolved")
+
+  private fun resolveRepositoryIdentity(source: ExperimentNavigationPairSource): String =
+    when (val result = gitOperations.repositoryFingerprint(source.repoRoot)) {
+      is WorkflowGitOperationResult.Ok -> result.value.trim().takeIf(String::isNotBlank)
+      is WorkflowGitOperationResult.Failed -> null
+    } ?: throw ExperimentNavigationRevisionError(source.revision, "the repository identity could not be captured")
+
+  private fun saveNewPair(
+    request: ExperimentNavigationPairRequest,
+    pairId: String,
+    selectedNames: List<String>,
+    repositoryIdentity: String,
+    revision: String,
+  ) {
+    pairOwner.save(
+      ExperimentPairPersistedState(
+        pairId = pairId,
+        executionMode = ExperimentExecutionMode.NAVIGATION,
+        selectedNames = selectedNames,
+        armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
+        randomSeed = pairId,
+        pairPayload = navigationPairPayload(
+          pairId,
+          request.source.name,
+          repositoryIdentity,
+          revision,
+          request.source.specBytes,
+        ),
+      ),
+    )
+  }
+
+  private fun recordCompletedArmObservations(prepared: PreparedNavigationPair) {
+    completedArms(prepared.persisted).forEach { arm ->
+      val outcome = armOutcome(pairOwner.load(prepared.pairId)?.pairPayload, arm) ?: return@forEach
+      recordArmObservation(
+        pairId = prepared.pairId,
+        arm = arm,
+        workflowId = outcome[ExperimentPairPayloadKeys.WORKFLOW_ID]?.toString()
+          ?: "${prepared.pairId}:${arm.wireValue}",
+      )
+    }
+  }
+
+  private fun completedArms(persisted: ExperimentPairPersistedState?): Set<ExperimentArmId> = persisted?.pairPayload
+    ?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
+    ?.let { it as? List<*> }
+    ?.filterIsInstance<Map<*, *>>()
+    ?.filter { it[ExperimentPairPayloadKeys.TERMINAL_STATUS] == "completed" }
+    ?.mapNotNull { it[ExperimentPairPayloadKeys.ARM_ID]?.toString()?.let(ExperimentArmId::fromWire) }
+    ?.toSet()
+    .orEmpty()
+
+  private fun runPendingArms(prepared: PreparedNavigationPair) {
+    val completed = completedArms(prepared.persisted)
+    for (arm in listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT).filterNot(completed::contains)) {
+      val result = runArm(prepared, arm)
+      if (result.outcome == ExperimentNavigationTerminalOutcome.CANCELLED) break
+    }
+  }
+
+  private fun runArm(prepared: PreparedNavigationPair, arm: ExperimentArmId): ExperimentNavigationSessionResult {
+    verifyCurrentInputs(prepared.request.source.repoRoot, prepared.resolvedRevision, prepared.repositoryIdentity)
+    pairOwner.save(
+      updateNavigationLifecycle(
+        payload = pairOwner.load(prepared.pairId)?.pairPayload.orEmpty(),
+        pairId = prepared.pairId,
+        arm = arm,
+        terminalStatus = "running",
+      ),
+    )
+    val result = executeArm(prepared, arm)
+    pairOwner.save(
+      updateOutcome(
+        pairOwner.load(prepared.pairId)?.pairPayload.orEmpty(),
+        prepared.pairId,
+        arm,
+        result,
+        NavigationHiddenLabelScorer.score(
+          acceptanceCriteria = prepared.criteria,
+          hiddenLabels = prepared.request.evaluation.hiddenLabels,
+          reads = result.readReceipts,
+          deliveredPaths = result.deliveredPaths,
+          annotationsExhaustive = prepared.request.evaluation.annotationsExhaustive,
+        ),
+      ),
+    )
+    recordArmObservation(
+      pairId = prepared.pairId,
+      arm = arm,
+      workflowId = "${prepared.pairId}:${arm.wireValue}",
+      result = result,
+    )
+    return result
+  }
+
+  private fun executeArm(prepared: PreparedNavigationPair, arm: ExperimentArmId): ExperimentNavigationSessionResult {
+    var snapshot: Path? = null
+    val result = runCatching {
+      snapshot = createNavigationSnapshot(
+        prepared.request.source.repoRoot,
+        prepared.pairId,
+        arm,
+        prepared.resolvedRevision,
+      )
+      sessionRunner.runSession(
+        ExperimentNavigationSessionRequest(
+          pairId = prepared.pairId,
+          armId = arm.wireValue,
+          repoRoot = requireNotNull(snapshot),
+          revision = prepared.resolvedRevision,
+          frozenSpecBytes = prepared.specBytes.copyOf(),
+          acceptanceCriteria = prepared.criteria.toList(),
+          treatmentEnabled = arm == ExperimentArmId.TREATMENT,
+        ),
+      )
+    }
+    val cleanupFailure = snapshot?.let { snapshotPath ->
+      runCatching {
+        removeNavigationSnapshot(prepared.request.source.repoRoot, snapshotPath)
+      }.exceptionOrNull()
+    }
+    val primaryFailure = result.exceptionOrNull()
+    if (primaryFailure != null) {
+      cleanupFailure?.let(primaryFailure::addSuppressed)
+      pairOwner.save(
+        updateNavigationLifecycle(
+          payload = pairOwner.load(prepared.pairId)?.pairPayload.orEmpty(),
+          pairId = prepared.pairId,
+          arm = arm,
+          terminalStatus = "failed",
+          failureReason = primaryFailure.message.orEmpty()
+            .ifBlank { primaryFailure::class.simpleName.orEmpty() },
+        ),
+      )
+      throw primaryFailure
+    }
+    cleanupFailure?.let { throw it }
+    return result.getOrThrow()
   }
 
   private fun verifyPersistedInputs(
@@ -333,30 +350,9 @@ class ExperimentNavigationPairCoordinator(
   }
 
   private fun verifyCurrentInputs(repoRoot: Path, revision: String, repositoryIdentity: String) {
-    val currentRevision = when (val result = gitOperations.resolveCommit(repoRoot, revision)) {
-      is WorkflowGitOperationResult.Ok -> result.value.trim()
-      is WorkflowGitOperationResult.Failed ->
-        throw ExperimentNavigationRevisionError(
-          revision = revision,
-          reason = "the revision could not be revalidated",
-        )
-    }
-    val currentRepositoryIdentity = when (val result = gitOperations.repositoryFingerprint(repoRoot)) {
-      is WorkflowGitOperationResult.Ok -> result.value.trim()
-      is WorkflowGitOperationResult.Failed ->
-        throw ExperimentNavigationRevisionError(
-          revision = revision,
-          reason = "the repository identity could not be revalidated",
-        )
-    }
-    val status = when (val result = gitOperations.worktreeStatus(repoRoot)) {
-      is WorkflowGitOperationResult.Ok -> result.value.orEmpty()
-      is WorkflowGitOperationResult.Failed ->
-        throw ExperimentNavigationRevisionError(
-          revision = revision,
-          reason = "the source worktree status could not be revalidated",
-        )
-    }
+    val currentRevision = currentRevision(repoRoot, revision)
+    val currentRepositoryIdentity = currentRepositoryIdentity(repoRoot, revision)
+    val status = currentWorktreeStatus(repoRoot, revision)
     val dirty = status.isNotBlank()
     if (currentRevision != revision || currentRepositoryIdentity != repositoryIdentity || dirty) {
       throw ExperimentNavigationRevisionError(
@@ -369,6 +365,27 @@ class ExperimentNavigationPairCoordinator(
       )
     }
   }
+
+  private fun currentRevision(repoRoot: Path, revision: String): String =
+    when (val result = gitOperations.resolveCommit(repoRoot, revision)) {
+      is WorkflowGitOperationResult.Ok -> result.value.trim()
+      is WorkflowGitOperationResult.Failed ->
+        throw ExperimentNavigationRevisionError(revision, "the revision could not be revalidated")
+    }
+
+  private fun currentRepositoryIdentity(repoRoot: Path, revision: String): String =
+    when (val result = gitOperations.repositoryFingerprint(repoRoot)) {
+      is WorkflowGitOperationResult.Ok -> result.value.trim()
+      is WorkflowGitOperationResult.Failed ->
+        throw ExperimentNavigationRevisionError(revision, "the repository identity could not be revalidated")
+    }
+
+  private fun currentWorktreeStatus(repoRoot: Path, revision: String): String =
+    when (val result = gitOperations.worktreeStatus(repoRoot)) {
+      is WorkflowGitOperationResult.Ok -> result.value.orEmpty()
+      is WorkflowGitOperationResult.Failed ->
+        throw ExperimentNavigationRevisionError(revision, "the source worktree status could not be revalidated")
+    }
 
   private fun navigationPairPayload(
     pairId: String,
@@ -533,13 +550,15 @@ class ExperimentNavigationPairCoordinator(
   ) {
     val measurements = measurementPort?.measure(pairId, arm.wireValue, workflowId) ?: unavailableMeasurement()
     ExperimentObservationRecorder(pairOwner).record(
-      pairId = pairId,
-      armId = arm.wireValue,
-      workflowId = workflowId,
-      phaseId = "navigation",
-      attempt = 1,
-      recordedAt = Instant.now(clock).toString(),
-      measurements = navigationMeasurements(result, measurements),
+      ExperimentObservationRecordRequest(
+        pairId = pairId,
+        armId = arm.wireValue,
+        workflowId = workflowId,
+        phaseId = "navigation",
+        attempt = 1,
+        recordedAt = Instant.now(clock).toString(),
+        measurements = navigationMeasurements(result, measurements),
+      ),
     )
   }
 

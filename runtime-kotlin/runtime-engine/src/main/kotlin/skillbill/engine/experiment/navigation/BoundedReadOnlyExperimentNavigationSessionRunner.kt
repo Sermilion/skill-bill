@@ -16,6 +16,13 @@ import java.nio.file.Path
 
 private const val MINIMUM_CRITERION_TERM_LENGTH = 4
 
+private class NavigationEvidenceState(
+  val receipts: MutableList<ExperimentNavigationReadReceipt>,
+  val delivered: MutableSet<String>,
+  val shortlisted: MutableSet<String>,
+  val criteria: List<String>,
+)
+
 @Inject
 class BoundedReadOnlyExperimentNavigationSessionRunner(
   private val decisionAdapter: ExperimentNavigationDecisionAdapter,
@@ -28,6 +35,7 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
     val receipts = mutableListOf<ExperimentNavigationReadReceipt>()
     val delivered = linkedSetOf<String>()
     val shortlisted = linkedSetOf<String>()
+    val evidence = NavigationEvidenceState(receipts, delivered, shortlisted, request.acceptanceCriteria)
     var satisfied = 0
     val decisions = decisionAdapter.decide(
       ExperimentNavigationDecisionContext(
@@ -42,30 +50,10 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
         is ExperimentNavigationDecision.Search -> satisfied += search(
           root,
           decision.query,
-          receipts,
-          delivered,
-          shortlisted,
-          request.acceptanceCriteria,
+          evidence,
         )
         is ExperimentNavigationDecision.Read -> {
-          val path = root.resolve(decision.path).normalize()
-          if (!Files.isRegularFile(path) || !isAllowed(root, path)) {
-            throw ExperimentIsolationCapabilityRefusalError(
-              "Navigation decision attempted to read an unavailable snapshot path.",
-            )
-          }
-          val relative = root.relativize(path).toString().replace('\\', '/')
-          val text = readText(path)
-          if (text != null) {
-            request.acceptanceCriteria.forEach { criterion ->
-              if (criterionTerms(criterion).any { term -> text.contains(term, ignoreCase = true) }) {
-                satisfied += 1
-                delivered += relative
-              }
-            }
-            shortlisted += relative
-            receipts += ExperimentNavigationReadReceipt(relative, "direct_read")
-          }
+          satisfied += readDecision(root, decision.path, evidence)
         }
         ExperimentNavigationDecision.Complete -> break
       }
@@ -77,8 +65,8 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
       } else {
         ExperimentNavigationTerminalOutcome.INSUFFICIENT_EVIDENCE
       },
-      deliveredPaths = delivered.toList(),
-      shortlistedPaths = shortlisted.toList(),
+      deliveredPaths = evidence.delivered.toList(),
+      shortlistedPaths = evidence.shortlisted.toList(),
       readReceipts = receipts,
       attemptCount = request.acceptanceCriteria.size,
       labelCoverage = ExperimentNavigationLabelCoverage(
@@ -92,14 +80,25 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
     )
   }
 
-  private fun search(
-    root: Path,
-    query: String,
-    receipts: MutableList<ExperimentNavigationReadReceipt>,
-    delivered: MutableSet<String>,
-    shortlisted: MutableSet<String>,
-    criteria: List<String>,
-  ): Int {
+  private fun readDecision(root: Path, requestedPath: String, state: NavigationEvidenceState): Int {
+    val path = root.resolve(requestedPath).normalize()
+    if (!Files.isRegularFile(path) || !isAllowed(root, path)) {
+      throw ExperimentIsolationCapabilityRefusalError(
+        "Navigation decision attempted to read an unavailable snapshot path.",
+      )
+    }
+    val relative = root.relativize(path).toString().replace('\\', '/')
+    val text = readText(path) ?: return 0
+    val satisfied = state.criteria.count { criterion ->
+      criterionTerms(criterion).any { term -> text.contains(term, ignoreCase = true) }
+    }
+    if (satisfied > 0) state.delivered += relative
+    state.shortlisted += relative
+    state.receipts += ExperimentNavigationReadReceipt(relative, "direct_read")
+    return satisfied
+  }
+
+  private fun search(root: Path, query: String, state: NavigationEvidenceState): Int {
     var satisfied = 0
     Files.walk(root).use { paths ->
       paths
@@ -113,12 +112,12 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
             return@forEach
           }
           val relative = root.relativize(path).toString().replace('\\', '/')
-          receipts += ExperimentNavigationReadReceipt(relative, "search")
-          shortlisted += relative
-          criteria.forEach { criterion ->
+          state.receipts += ExperimentNavigationReadReceipt(relative, "search")
+          state.shortlisted += relative
+          state.criteria.forEach { criterion ->
             if (criterionTerms(criterion).any { term -> text.contains(term, ignoreCase = true) }) {
               satisfied += 1
-              delivered += relative
+              state.delivered += relative
             }
           }
         }

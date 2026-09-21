@@ -22,14 +22,14 @@ import skillbill.workflow.goal.GoalProgressEventValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.time.Clock
 
-internal class GoalRunnerManifestPersistenceDependencies(
+class GoalRunnerManifestPersistenceDependencies(
   val database: DatabaseSessionFactory,
   val workflowSnapshotValidator: WorkflowSnapshotValidator,
   val decompositionManifestValidator: DecompositionManifestValidator,
   val decompositionManifestStore: DecompositionManifestStore,
 )
 
-internal class GoalRunnerManifestProjectionDependencies(
+class GoalRunnerManifestProjectionDependencies(
   val clock: Clock,
   val decompositionManifestWriter: DecompositionManifestProjectionWriter,
   val repositoryRoot: RepositoryRoot,

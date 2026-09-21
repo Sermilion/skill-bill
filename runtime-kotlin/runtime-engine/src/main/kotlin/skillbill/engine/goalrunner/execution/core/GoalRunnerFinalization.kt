@@ -67,6 +67,14 @@ class GoalRunnerFinalization(
         findingsLedger,
       )
     }
+    return finalizePublication(finalState, request, attempted)
+  }
+
+  private fun finalizePublication(
+    finalState: GoalRunnerManifestState,
+    request: GoalRunnerRunRequest,
+    attempted: List<Int>,
+  ): GoalRunnerRunReport {
     commitAllRemainingWorktree(finalState.manifest, request)?.let { reason ->
       return stopped(
         StoppedReportArgs(

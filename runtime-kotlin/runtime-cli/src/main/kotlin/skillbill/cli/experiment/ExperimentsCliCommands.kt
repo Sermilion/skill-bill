@@ -12,6 +12,8 @@ import skillbill.contracts.experiment.ExperimentStatsPayloadKeys
 import skillbill.engine.experiment.report.ExperimentReportProjector
 import skillbill.engine.experiment.report.ExperimentStatsProjector
 import skillbill.engine.goalrunner.experiment.ExperimentNavigationPairCoordinator
+import skillbill.engine.goalrunner.experiment.ExperimentNavigationPairRequest
+import skillbill.engine.goalrunner.experiment.ExperimentNavigationPairSource
 import skillbill.engine.goalrunner.experiment.parseNavigationAcceptanceCriteria
 import skillbill.error.shellcontent.ExperimentNavigationSpecError
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
@@ -49,7 +51,17 @@ class ExperimentsRunCommand(
         reason = "the governed acceptance criteria section is missing or empty",
       )
     }
-    val pairId = navigationCoordinator.run(name, repo, revision, specPath.readBytes(), criteria)
+    val pairId = navigationCoordinator.run(
+      ExperimentNavigationPairRequest(
+        source = ExperimentNavigationPairSource(
+          name = name,
+          repoRoot = repo,
+          revision = revision,
+          specBytes = specPath.readBytes(),
+          criteria = criteria,
+        ),
+      ),
+    )
     echo("navigation pair started: $pairId revision=$revision")
   }
 }

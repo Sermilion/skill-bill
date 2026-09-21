@@ -42,29 +42,41 @@ class SqliteExperimentPairOwnerStore(
 
   override fun importObservation(payload: Map<String, Any?>): Boolean {
     payloadValidation?.validateObservation(payload, "experiment-observation-import")
-    val observationId = payload[ExperimentObservationPayloadKeys.OBSERVATION_ID]?.toString() ?: return false
-    val pairId = payload[ExperimentObservationPayloadKeys.PAIR_ID]?.toString() ?: return false
-    val armId = payload[ExperimentObservationPayloadKeys.ARM_ID]?.toString() ?: return false
-    val eventIdentity = payload[ExperimentObservationPayloadKeys.EVENT_IDENTITY] as? Map<*, *> ?: return false
-    val recordedAt = payload[ExperimentObservationPayloadKeys.RECORDED_AT]?.toString() ?: return false
-    val identityJson = JsonCodec.mapToJsonString(
-      JsonCodec.anyToStringAnyMap(eventIdentity)
-        ?.toSortedMap()
-        .orEmpty(),
-    )
+    val observation = observationImport(payload) ?: return false
     return database.transaction { session ->
-      session.experimentPairs.insertObservationIfAbsent(
-        ExperimentObservationImport(
-          observationId = observationId,
-          pairId = pairId,
-          armId = armId,
-          eventIdentityJson = identityJson,
-          payloadJson = JsonCodec.mapToJsonString(payload),
-          recordedAt = recordedAt,
+      session.experimentPairs.insertObservationIfAbsent(observation)
+    }
+  }
+
+  private fun observationImport(payload: Map<String, Any?>): ExperimentObservationImport? {
+    val observationId = payload[ExperimentObservationPayloadKeys.OBSERVATION_ID]?.toString()
+    val pairId = payload[ExperimentObservationPayloadKeys.PAIR_ID]?.toString()
+    val armId = payload[ExperimentObservationPayloadKeys.ARM_ID]?.toString()
+    val recordedAt = payload[ExperimentObservationPayloadKeys.RECORDED_AT]?.toString()
+    val eventIdentity = payload[ExperimentObservationPayloadKeys.EVENT_IDENTITY] as? Map<*, *>
+    return if (!hasRequiredObservationFields(observationId, pairId, armId, recordedAt, eventIdentity)) {
+      null
+    } else {
+      ExperimentObservationImport(
+        observationId = requireNotNull(observationId),
+        pairId = requireNotNull(pairId),
+        armId = requireNotNull(armId),
+        eventIdentityJson = JsonCodec.mapToJsonString(
+          JsonCodec.anyToStringAnyMap(eventIdentity)?.toSortedMap().orEmpty(),
         ),
+        payloadJson = JsonCodec.mapToJsonString(payload),
+        recordedAt = requireNotNull(recordedAt),
       )
     }
   }
+
+  private fun hasRequiredObservationFields(
+    observationId: String?,
+    pairId: String?,
+    armId: String?,
+    recordedAt: String?,
+    eventIdentity: Map<*, *>?,
+  ): Boolean = listOf(observationId, pairId, armId, recordedAt, eventIdentity).all { it != null }
 
   override fun saveReport(pairId: String, reportPayload: Map<String, Any?>) {
     payloadValidation?.validateReport(reportPayload, "experiment-report:$pairId")

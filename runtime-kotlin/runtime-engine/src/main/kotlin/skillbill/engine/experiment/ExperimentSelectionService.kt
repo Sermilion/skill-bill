@@ -45,15 +45,7 @@ class ExperimentSelectionService(
       parsed.explicitDisable -> ResolvedExperimentSelection(emptyList(), explicitDisable = true)
       else -> parsed
     }
-    if (savedSelection != null && parameter != null) {
-      val requested = ExperimentParameterParser.parse(parameter)
-      val requestedNames = if (requested.explicitDisable) emptyList() else requested.normalizedNames
-      if (requestedNames.toSet() != saved?.normalizedNames.orEmpty().toSet()) {
-        throw ExperimentSelectionConflictError(
-          "Requested experiments $requestedNames do not match saved selection ${saved?.normalizedNames.orEmpty()}.",
-        )
-      }
-    }
+    validateSavedSelection(parameter, savedSelection, saved)
     val repoConfig = repoLocalConfigPort.readRepoLocalConfig(ReadRepoLocalConfigRequest(repoRoot)).config
     val machinePolicy = machineConfig.readExperimentsAvailability()
     val availability = ExperimentAvailabilityResolver.resolve(machinePolicy, repoConfig.experimentsAvailability)
@@ -100,29 +92,7 @@ class ExperimentSelectionService(
   ) {
     val names = mutableSetOf<String>()
     descriptors.forEach { descriptor ->
-      val reason = when {
-        validateExperimentName(descriptor.name) != descriptor.name ->
-          "name must be a unique kebab-case experiment name"
-        descriptor.executionMode != requestedMode ->
-          "execution mode does not match the requested mode"
-        descriptor.descriptorVersion.isBlank() ||
-          descriptor.descriptorVersion.length > MAX_DESCRIPTOR_VERSION_LENGTH ->
-          "descriptor version must be non-blank and at most 32 characters"
-        descriptor.requiredLauncherCapabilities.any { it.isBlank() } ->
-          "launcher capabilities must be non-blank"
-        descriptor.treatmentCapability.isBlank() ->
-          "treatment capability must be non-blank"
-        descriptor.setupRequirements.any { it.isBlank() } ->
-          "setup requirements must be non-blank"
-        descriptor.measurementRequirements.any { it.isBlank() } ->
-          "measurement requirements must be non-blank"
-        descriptor.setupRequirements.size > MAX_DESCRIPTOR_REQUIREMENTS ||
-          descriptor.measurementRequirements.size > MAX_DESCRIPTOR_REQUIREMENTS ->
-          "descriptor requirements exceed the supported limit"
-        !names.add(descriptor.name) ->
-          "descriptor names must be unique"
-        else -> null
-      }
+      val reason = descriptorValidationReason(descriptor, requestedMode, names)
       reason?.let { detail ->
         throw InvalidExperimentDescriptorSchemaError(
           sourceLabel = "descriptor:${descriptor.name}",
@@ -130,5 +100,47 @@ class ExperimentSelectionService(
         )
       }
     }
+  }
+
+  private fun validateSavedSelection(
+    parameter: String?,
+    savedSelection: List<String>?,
+    saved: ResolvedExperimentSelection?,
+  ) {
+    if (savedSelection == null || parameter == null) return
+    val requested = ExperimentParameterParser.parse(parameter)
+    val requestedNames = if (requested.explicitDisable) emptyList() else requested.normalizedNames
+    if (requestedNames.toSet() != saved?.normalizedNames.orEmpty().toSet()) {
+      throw ExperimentSelectionConflictError(
+        "Requested experiments $requestedNames do not match saved selection ${saved?.normalizedNames.orEmpty()}.",
+      )
+    }
+  }
+
+  private fun descriptorValidationReason(
+    descriptor: ExperimentDescriptorRecord,
+    requestedMode: ExperimentExecutionMode,
+    names: MutableSet<String>,
+  ): String? = when {
+    validateExperimentName(descriptor.name) != descriptor.name ->
+      "name must be a unique kebab-case experiment name"
+    descriptor.executionMode != requestedMode ->
+      "execution mode does not match the requested mode"
+    descriptor.descriptorVersion.isBlank() ||
+      descriptor.descriptorVersion.length > MAX_DESCRIPTOR_VERSION_LENGTH ->
+      "descriptor version must be non-blank and at most 32 characters"
+    descriptor.requiredLauncherCapabilities.any { it.isBlank() } ->
+      "launcher capabilities must be non-blank"
+    descriptor.treatmentCapability.isBlank() ->
+      "treatment capability must be non-blank"
+    descriptor.setupRequirements.any { it.isBlank() } ->
+      "setup requirements must be non-blank"
+    descriptor.measurementRequirements.any { it.isBlank() } ->
+      "measurement requirements must be non-blank"
+    descriptor.setupRequirements.size > MAX_DESCRIPTOR_REQUIREMENTS ||
+      descriptor.measurementRequirements.size > MAX_DESCRIPTOR_REQUIREMENTS ->
+      "descriptor requirements exceed the supported limit"
+    !names.add(descriptor.name) -> "descriptor names must be unique"
+    else -> null
   }
 }

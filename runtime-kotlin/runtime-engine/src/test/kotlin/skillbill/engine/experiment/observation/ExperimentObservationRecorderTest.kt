@@ -25,17 +25,29 @@ class ExperimentObservationRecorderTest {
 
     assertTrue(
       recorder.record(
-        pairId = "pair",
-        armId = "control",
-        workflowId = "workflow",
-        phaseId = "implement",
-        attempt = 2,
-        recordedAt = "2026-09-21T00:00:00Z",
-        measurements = listOf(
-          ExperimentObservationMeasurement("attempt_count", 2.0, "measured"),
-          ExperimentObservationMeasurement("setup_cost", 30.0, "measured"),
-          ExperimentObservationMeasurement("usage", null, "unavailable_incomplete", "provider did not report usage"),
-          ExperimentObservationMeasurement("cost", null, "unavailable_incomplete", "provider did not report cost"),
+        ExperimentObservationRecordRequest(
+          pairId = "pair",
+          armId = "control",
+          workflowId = "workflow",
+          phaseId = "implement",
+          attempt = 2,
+          recordedAt = "2026-09-21T00:00:00Z",
+          measurements = listOf(
+            ExperimentObservationMeasurement("attempt_count", 2.0, "measured"),
+            ExperimentObservationMeasurement("setup_cost", 30.0, "measured"),
+            ExperimentObservationMeasurement(
+              "usage",
+              null,
+              "unavailable_incomplete",
+              "provider did not report usage",
+            ),
+            ExperimentObservationMeasurement(
+              "cost",
+              null,
+              "unavailable_incomplete",
+              "provider did not report cost",
+            ),
+          ),
         ),
       ),
     )

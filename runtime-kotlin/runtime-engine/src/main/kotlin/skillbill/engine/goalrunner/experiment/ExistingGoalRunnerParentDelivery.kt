@@ -22,28 +22,14 @@ class ExistingGoalRunnerParentDelivery(
     controlCompleted: Boolean,
     request: ExperimentParentDeliveryRequest,
   ): ExperimentPublicationResult {
-    if (!controlCompleted || controlCommitSha.isNullOrBlank()) {
+    val refusal = deliveryRefusalReason(request, controlCommitSha, controlCompleted)
+    if (refusal != null) {
       return ExperimentPublicationResult(
         published = false,
-        reason = "control arm is not ready for parent delivery",
+        reason = refusal,
       )
     }
-    val head = (gitOperations.headCommitSha(request.controlRepoRoot) as? WorkflowGitOperationResult.Ok)
-      ?.value?.trim()
-    if (head != controlCommitSha) {
-      return ExperimentPublicationResult(
-        published = false,
-        reason = "control worktree changed after the reviewed commit was captured",
-      )
-    }
-    val branch = (gitOperations.currentBranch(request.controlRepoRoot) as? WorkflowGitOperationResult.Ok)
-      ?.value?.trim().orEmpty()
-    if (branch.isBlank()) {
-      return ExperimentPublicationResult(
-        published = false,
-        reason = "control worktree has no publishable branch",
-      )
-    }
+    val branch = currentBranch(request)
     val state = manifestStore.loadByIssueKey(request.issueKey, request.controlRepoRoot)
       ?: return ExperimentPublicationResult(
         published = false,
@@ -65,4 +51,25 @@ class ExistingGoalRunnerParentDelivery(
       )
     }
   }
+
+  private fun deliveryRefusalReason(
+    request: ExperimentParentDeliveryRequest,
+    controlCommitSha: String?,
+    controlCompleted: Boolean,
+  ): String? {
+    if (!controlCompleted || controlCommitSha.isNullOrBlank()) {
+      return "control arm is not ready for parent delivery"
+    }
+    val head = (gitOperations.headCommitSha(request.controlRepoRoot) as? WorkflowGitOperationResult.Ok)
+      ?.value?.trim()
+    if (head != controlCommitSha) {
+      return "control worktree changed after the reviewed commit was captured"
+    }
+    return currentBranch(request).takeIf(String::isNotBlank)?.let { null }
+      ?: "control worktree has no publishable branch"
+  }
+
+  private fun currentBranch(request: ExperimentParentDeliveryRequest): String =
+    (gitOperations.currentBranch(request.controlRepoRoot) as? WorkflowGitOperationResult.Ok)
+      ?.value?.trim().orEmpty()
 }

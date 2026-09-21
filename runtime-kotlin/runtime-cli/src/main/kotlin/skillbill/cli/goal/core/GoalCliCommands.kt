@@ -91,9 +91,17 @@ class GoalRunSubcommands(
 )
 
 @Inject
-class GoalRunCommand(
+class GoalRunExecution(
   private val goalRunner: GoalRunner,
   private val experimentPairCoordinator: ExperimentPairCoordinator,
+) {
+  fun run(request: GoalRunnerRunRequest) =
+    if (request.experimentsParameter == null) goalRunner.run(request) else experimentPairCoordinator.run(request)
+}
+
+@Inject
+class GoalRunCommand(
+  private val execution: GoalRunExecution,
   private val runtimeProvenanceService: RuntimeProvenanceService,
   private val agentAddonSelectionPort: AgentAddonSelectionPort,
   private val externalAgentAddonSourceConfigPort: ExternalAgentAddonSourceConfigPort,
@@ -237,11 +245,7 @@ class GoalRunCommand(
     )
     presenter.emitStartupProvenance()
     val request = runRequest(runIssueKey, invokedAgentId, hydratedSelection, presenter, effectiveRepoRoot)
-    val report = if (request.experimentsParameter == null) {
-      goalRunner.run(request)
-    } else {
-      experimentPairCoordinator.run(request)
-    }
+    val report = execution.run(request)
     val payload = report.toGoalRunCliMap()
     state.completeText(goalRunText(payload), payload, exitCode = payload.goalExitCode())
     drainTelemetryOnCompletion(telemetryService, diagnostics)

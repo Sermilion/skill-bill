@@ -12,18 +12,27 @@ data class ExperimentObservationMeasurement(
   val reason: String? = null,
 )
 
+data class ExperimentObservationRecordRequest(
+  val pairId: String,
+  val armId: String,
+  val workflowId: String,
+  val phaseId: String,
+  val attempt: Int,
+  val recordedAt: String,
+  val measurements: List<ExperimentObservationMeasurement>,
+)
+
 class ExperimentObservationRecorder(
   private val pairOwner: ExperimentPairOwnerPort,
 ) {
-  fun record(
-    pairId: String,
-    armId: String,
-    workflowId: String,
-    phaseId: String,
-    attempt: Int,
-    recordedAt: String,
-    measurements: List<ExperimentObservationMeasurement>,
-  ): Boolean {
+  fun record(request: ExperimentObservationRecordRequest): Boolean {
+    val pairId = request.pairId
+    val armId = request.armId
+    val workflowId = request.workflowId
+    val phaseId = request.phaseId
+    val attempt = request.attempt
+    val recordedAt = request.recordedAt
+    val measurements = request.measurements
     val eventIdentity = mapOf(
       ExperimentObservationPayloadKeys.WORKFLOW_ID to workflowId,
       ExperimentObservationPayloadKeys.PHASE_ID to phaseId,

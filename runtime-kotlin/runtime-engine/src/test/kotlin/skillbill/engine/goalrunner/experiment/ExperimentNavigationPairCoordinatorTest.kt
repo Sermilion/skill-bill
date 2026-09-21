@@ -59,11 +59,9 @@ class ExperimentNavigationPairCoordinatorTest {
     )
 
     val pairId = coordinator.run(
-      name = "fixture-navigation",
-      repoRoot = Path.of("."),
-      revision = "main",
-      specBytes = "## Acceptance Criteria\n1. Find the file.".toByteArray(),
-      criteria = listOf("Find the file."),
+      navigationRequest(
+        specBytes = "## Acceptance Criteria\n1. Find the file.".toByteArray(),
+      ),
     )
 
     assertEquals(listOf("resolved-commit", "resolved-commit"), requests.map { it.revision })
@@ -116,14 +114,7 @@ class ExperimentNavigationPairCoordinatorTest {
       },
     )
 
-    coordinator.run(
-      name = "fixture-navigation",
-      repoRoot = Path.of("."),
-      revision = "main",
-      specBytes = "spec".toByteArray(),
-      criteria = listOf("Find the file."),
-      pairId = "pair-resume",
-    )
+    coordinator.run(navigationRequest("spec".toByteArray(), "pair-resume"))
 
     assertEquals(listOf("treatment"), requests.map { it.armId })
   }
@@ -143,13 +134,7 @@ class ExperimentNavigationPairCoordinatorTest {
     )
 
     assertFailsWith<ExperimentNavigationRevisionError> {
-      coordinator.run(
-        name = "fixture-navigation",
-        repoRoot = Path.of("."),
-        revision = "main",
-        specBytes = "spec".toByteArray(),
-        criteria = listOf("Find the file."),
-      )
+      coordinator.run(navigationRequest("spec".toByteArray()))
     }
 
     assertEquals(emptyList(), requests)
@@ -170,13 +155,7 @@ class ExperimentNavigationPairCoordinatorTest {
       outcome = ExperimentNavigationTerminalOutcome.CANCELLED,
     )
 
-    val pairId = coordinator.run(
-      name = "fixture-navigation",
-      repoRoot = Path.of("."),
-      revision = "main",
-      specBytes = "spec".toByteArray(),
-      criteria = listOf("Find the file."),
-    )
+    val pairId = coordinator.run(navigationRequest("spec".toByteArray()))
 
     assertEquals(listOf("control"), requests.map { it.armId })
     assertEquals("cancelled", owner.load(pairId)?.pairPayload?.get(ExperimentPairPayloadKeys.PAIR_STATUS))
@@ -193,17 +172,25 @@ class ExperimentNavigationPairCoordinatorTest {
     )
 
     assertFailsWith<ExperimentIsolationCapabilityRefusalError> {
-      coordinator.run(
-        name = "fixture-navigation",
-        repoRoot = Path.of("."),
-        revision = "main",
-        specBytes = "spec".toByteArray(),
-        criteria = listOf("Find the file."),
-      )
+      coordinator.run(navigationRequest("spec".toByteArray()))
     }
 
     assertEquals(emptyList(), requests)
   }
+
+  private fun navigationRequest(
+    specBytes: ByteArray = "spec".toByteArray(),
+    pairId: String? = null,
+  ): ExperimentNavigationPairRequest = ExperimentNavigationPairRequest(
+    source = ExperimentNavigationPairSource(
+      name = "fixture-navigation",
+      repoRoot = Path.of("."),
+      revision = "main",
+      specBytes = specBytes,
+      criteria = listOf("Find the file."),
+    ),
+    pairId = pairId,
+  )
 
   private fun coordinator(
     requests: MutableList<ExperimentNavigationSessionRequest>,

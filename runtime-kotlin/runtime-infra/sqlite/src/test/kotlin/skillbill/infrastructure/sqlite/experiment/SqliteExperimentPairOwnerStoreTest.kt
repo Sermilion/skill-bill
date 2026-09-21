@@ -63,48 +63,7 @@ class SqliteExperimentPairOwnerStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).close()
     val factory =
       sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
-    val store = SqliteExperimentPairOwnerStore(factory, null)
-    store.save(
-      ExperimentPairPersistedState(
-        pairId = "pair-recovery",
-        executionMode = ExperimentExecutionMode.GOAL_PAIR,
-        selectedNames = listOf("fixture-goal"),
-        armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
-        randomSeed = "seed",
-        pairPayload = pairPayload("pair-recovery") + mapOf(
-          ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
-          ExperimentPairPayloadKeys.ARM_OUTCOMES to listOf(
-            mapOf(
-              ExperimentPairPayloadKeys.ARM_ID to "control",
-              ExperimentPairPayloadKeys.WORKFLOW_ID to "control-workflow",
-              ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
-              ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
-            ),
-            mapOf(
-              ExperimentPairPayloadKeys.ARM_ID to "treatment",
-              ExperimentPairPayloadKeys.WORKFLOW_ID to "treatment-workflow",
-              ExperimentPairPayloadKeys.TERMINAL_STATUS to "running",
-              ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
-            ),
-          ),
-        ),
-      ),
-    )
-    assertTrue(
-      store.importObservation(
-        observationPayload("recovery-observation").plus(
-          ExperimentObservationPayloadKeys.PAIR_ID to "pair-recovery",
-        ).plus(
-          ExperimentObservationPayloadKeys.MEASUREMENTS to listOf(
-            mapOf(
-              ExperimentObservationPayloadKeys.METRIC_ID to "cost",
-              ExperimentObservationPayloadKeys.AVAILABILITY to "measured",
-              ExperimentObservationPayloadKeys.QUANTITY to 12.0,
-            ),
-          ),
-        ),
-      ),
-    )
+    seedRecoveryData(SqliteExperimentPairOwnerStore(factory, null))
 
     val reloadedStore = SqliteExperimentPairOwnerStore(
       sqliteDatabaseSessionFactory(
@@ -212,6 +171,51 @@ class SqliteExperimentPairOwnerStoreTest {
     assertTrue(store.acquireLease("pair-lease", "owner-b", 1200L, 100L))
     store.releaseLease("pair-lease", "owner-b")
     assertTrue(store.acquireLease("pair-lease", "owner-a", 1300L, 100L))
+  }
+
+  private fun seedRecoveryData(store: SqliteExperimentPairOwnerStore) {
+    store.save(
+      ExperimentPairPersistedState(
+        pairId = "pair-recovery",
+        executionMode = ExperimentExecutionMode.GOAL_PAIR,
+        selectedNames = listOf("fixture-goal"),
+        armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
+        randomSeed = "seed",
+        pairPayload = pairPayload("pair-recovery") + mapOf(
+          ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
+          ExperimentPairPayloadKeys.ARM_OUTCOMES to listOf(
+            mapOf(
+              ExperimentPairPayloadKeys.ARM_ID to "control",
+              ExperimentPairPayloadKeys.WORKFLOW_ID to "control-workflow",
+              ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
+              ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
+            ),
+            mapOf(
+              ExperimentPairPayloadKeys.ARM_ID to "treatment",
+              ExperimentPairPayloadKeys.WORKFLOW_ID to "treatment-workflow",
+              ExperimentPairPayloadKeys.TERMINAL_STATUS to "running",
+              ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
+            ),
+          ),
+        ),
+      ),
+    )
+    assertTrue(
+      store.importObservation(
+        observationPayload("recovery-observation").plus(
+          mapOf(
+            ExperimentObservationPayloadKeys.PAIR_ID to "pair-recovery",
+            ExperimentObservationPayloadKeys.MEASUREMENTS to listOf(
+              mapOf(
+                ExperimentObservationPayloadKeys.METRIC_ID to "cost",
+                ExperimentObservationPayloadKeys.AVAILABILITY to "measured",
+                ExperimentObservationPayloadKeys.QUANTITY to 12.0,
+              ),
+            ),
+          ),
+        ),
+      ),
+    )
   }
 
   private fun observationPayload(observationId: String): Map<String, Any?> = mapOf(

@@ -8,16 +8,60 @@ import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.experiment.model.ExperimentExecutionMode
 
 object ExperimentReportProjector {
+  private val sourceFingerprintKeys = setOf(
+    ExperimentPairPayloadKeys.REPOSITORY_IDENTITY,
+    ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA,
+    ExperimentPairPayloadKeys.SOURCE_TREE_SHA,
+    ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH,
+    ExperimentPairPayloadKeys.EFFECTIVE_CONFIG_HASH,
+    ExperimentPairPayloadKeys.SKILL_BILL_VERSION,
+  )
+
+  private val summaryKeys = listOf(
+    ExperimentReportPayloadKeys.DELIVERED_PATHS,
+    ExperimentReportPayloadKeys.SHORTLISTED_PATHS,
+    ExperimentReportPayloadKeys.READ_RECEIPTS,
+    ExperimentReportPayloadKeys.ATTEMPT_COUNT,
+    ExperimentReportPayloadKeys.LABELLED_CRITERIA,
+    ExperimentReportPayloadKeys.TOTAL_CRITERIA,
+    ExperimentReportPayloadKeys.PRECISION_AVAILABLE,
+    ExperimentReportPayloadKeys.EXCLUDED_PATHS,
+    ExperimentReportPayloadKeys.RESTRICTED_BASELINE,
+    ExperimentReportPayloadKeys.DELIVERED_CRITERIA,
+    ExperimentReportPayloadKeys.RELEVANT_READS,
+    ExperimentReportPayloadKeys.PRECISION,
+    ExperimentReportPayloadKeys.WORKFLOW_ID,
+    ExperimentReportPayloadKeys.WORKTREE_PATH,
+    ExperimentReportPayloadKeys.FAILURE_REASON,
+  )
+
+  private val metricKeys = listOf(
+    ExperimentReportPayloadKeys.METRIC_COMPARISONS,
+    ExperimentReportPayloadKeys.TOTAL_EXPERIMENT_SPEND,
+    ExperimentReportPayloadKeys.EXECUTION_COST,
+    ExperimentReportPayloadKeys.SETUP_COST,
+  )
+
   fun project(pairPayload: Map<String, Any?>, cohort: String): Map<String, Any?> {
-    val normalizedCohort = when (cohort) {
-      ExperimentExecutionMode.GOAL_PAIR.wireValue -> ExperimentReportPayloadKeys.GOAL_COHORT
-      ExperimentReportPayloadKeys.GOAL_COHORT,
-      ExperimentReportPayloadKeys.NAVIGATION_COHORT,
-      -> cohort
-      else -> cohort
+    val projection = baseProjection(pairPayload, cohort)
+    addSourceFingerprints(pairPayload, projection)
+    addObservations(pairPayload, projection)
+    addArmSummaries(pairPayload, projection)
+    addDurableMetrics(pairPayload, projection)
+    exclusionReasons(pairPayload).takeIf { it.isNotEmpty() }?.let { reasons ->
+      projection[ExperimentReportPayloadKeys.EXCLUSION_REASONS] = reasons
+    }
+    return projection
+  }
+
+  private fun baseProjection(pairPayload: Map<String, Any?>, cohort: String): LinkedHashMap<String, Any?> {
+    val normalizedCohort = if (cohort == ExperimentExecutionMode.GOAL_PAIR.wireValue) {
+      ExperimentReportPayloadKeys.GOAL_COHORT
+    } else {
+      cohort
     }
     val pairStatus = pairPayload[ExperimentPairPayloadKeys.PAIR_STATUS]?.toString()
-    val projection = linkedMapOf<String, Any?>(
+    return linkedMapOf(
       ExperimentReportPayloadKeys.CONTRACT_VERSION to EXPERIMENT_REPORT_CONTRACT_VERSION,
       ExperimentReportPayloadKeys.PAIR_ID to pairPayload[ExperimentPairPayloadKeys.PAIR_ID],
       ExperimentReportPayloadKeys.COHORT to normalizedCohort,
@@ -28,72 +72,49 @@ object ExperimentReportProjector {
       },
       ExperimentReportPayloadKeys.SELECTED_EXPERIMENT_NAMES to
         (pairPayload[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES] as? List<*>)
-          ?.map { it.toString() }
-          .orEmpty(),
+          ?.map { it.toString() }.orEmpty(),
       ExperimentReportPayloadKeys.DELIVERY_ARM to
         (pairPayload[ExperimentPairPayloadKeys.DELIVERY_ARM]?.toString() ?: "undecided"),
     )
+  }
+
+  private fun addSourceFingerprints(pairPayload: Map<String, Any?>, projection: MutableMap<String, Any?>) {
     (pairPayload[ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY] as? Map<*, *>)?.let { identity ->
       projection[ExperimentReportPayloadKeys.SOURCE_FINGERPRINTS] = identity.entries
-        .filter { entry ->
-          entry.key.toString() in setOf(
-            ExperimentPairPayloadKeys.REPOSITORY_IDENTITY,
-            ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA,
-            ExperimentPairPayloadKeys.SOURCE_TREE_SHA,
-            ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH,
-            ExperimentPairPayloadKeys.EFFECTIVE_CONFIG_HASH,
-            ExperimentPairPayloadKeys.SKILL_BILL_VERSION,
-          )
-        }
+        .filter { entry -> entry.key.toString() in sourceFingerprintKeys }
         .associate { entry -> entry.key.toString() to entry.value }
     }
-    val observationLedger = observationLedger(pairPayload)
-    if (observationLedger.isNotEmpty()) {
-      projection[ExperimentReportPayloadKeys.RAW_MEASUREMENTS] = observationLedger
-      projection[ExperimentReportPayloadKeys.METRIC_COMPARISONS] =
-        metricComparisons(observationLedger)
-      if (pairPayload[ExperimentReportPayloadKeys.TOTAL_EXPERIMENT_SPEND] == null) {
-        projection[ExperimentReportPayloadKeys.TOTAL_EXPERIMENT_SPEND] =
-          spendMap(totalExperimentSpend(observationLedger))
-      }
+  }
+
+  private fun addObservations(pairPayload: Map<String, Any?>, projection: MutableMap<String, Any?>) {
+    val ledger = observationLedger(pairPayload)
+    if (ledger.isEmpty()) return
+    projection[ExperimentReportPayloadKeys.RAW_MEASUREMENTS] = ledger
+    projection[ExperimentReportPayloadKeys.METRIC_COMPARISONS] = metricComparisons(ledger)
+    if (pairPayload[ExperimentReportPayloadKeys.TOTAL_EXPERIMENT_SPEND] == null) {
+      projection[ExperimentReportPayloadKeys.TOTAL_EXPERIMENT_SPEND] = spendMap(totalExperimentSpend(ledger))
     }
-    val armSummaries = pairPayload[ExperimentReportPayloadKeys.ARM_SUMMARIES]
+  }
+
+  private fun addArmSummaries(pairPayload: Map<String, Any?>, projection: MutableMap<String, Any?>) {
+    val summaries = pairPayload[ExperimentReportPayloadKeys.ARM_SUMMARIES]
       ?: (pairPayload[ExperimentPairPayloadKeys.ARM_OUTCOMES] as? List<*>)
         ?.filterIsInstance<Map<*, *>>()
-        ?.mapNotNull { outcome ->
-          val armId = outcome[ExperimentPairPayloadKeys.ARM_ID]?.toString() ?: return@mapNotNull null
-          val terminalStatus =
-            outcome[ExperimentPairPayloadKeys.TERMINAL_STATUS]?.toString() ?: return@mapNotNull null
-          mapOf(
-            ExperimentReportPayloadKeys.ARM_ID to armId,
-            ExperimentReportPayloadKeys.TERMINAL_STATUS to terminalStatus,
-          ).plus(
-            listOf(
-              ExperimentReportPayloadKeys.DELIVERED_PATHS,
-              ExperimentReportPayloadKeys.SHORTLISTED_PATHS,
-              ExperimentReportPayloadKeys.READ_RECEIPTS,
-              ExperimentReportPayloadKeys.ATTEMPT_COUNT,
-              ExperimentReportPayloadKeys.LABELLED_CRITERIA,
-              ExperimentReportPayloadKeys.TOTAL_CRITERIA,
-              ExperimentReportPayloadKeys.PRECISION_AVAILABLE,
-              ExperimentReportPayloadKeys.EXCLUDED_PATHS,
-              ExperimentReportPayloadKeys.RESTRICTED_BASELINE,
-              ExperimentReportPayloadKeys.DELIVERED_CRITERIA,
-              ExperimentReportPayloadKeys.RELEVANT_READS,
-              ExperimentReportPayloadKeys.PRECISION,
-              ExperimentReportPayloadKeys.WORKFLOW_ID,
-              ExperimentReportPayloadKeys.WORKTREE_PATH,
-              ExperimentReportPayloadKeys.FAILURE_REASON,
-            ).mapNotNull { key -> outcome[key]?.let { key to it } }.toMap(),
-          )
-        }
-    armSummaries?.let { projection[ExperimentReportPayloadKeys.ARM_SUMMARIES] = it }
-    listOf(
-      ExperimentReportPayloadKeys.METRIC_COMPARISONS,
-      ExperimentReportPayloadKeys.TOTAL_EXPERIMENT_SPEND,
-      ExperimentReportPayloadKeys.EXECUTION_COST,
-      ExperimentReportPayloadKeys.SETUP_COST,
-    ).forEach { key ->
+        ?.mapNotNull(::armSummary)
+    summaries?.let { projection[ExperimentReportPayloadKeys.ARM_SUMMARIES] = it }
+  }
+
+  private fun armSummary(outcome: Map<*, *>): Map<String, Any?>? {
+    val armId = outcome[ExperimentPairPayloadKeys.ARM_ID]?.toString() ?: return null
+    val terminalStatus = outcome[ExperimentPairPayloadKeys.TERMINAL_STATUS]?.toString() ?: return null
+    return mapOf(
+      ExperimentReportPayloadKeys.ARM_ID to armId,
+      ExperimentReportPayloadKeys.TERMINAL_STATUS to terminalStatus,
+    ).plus(summaryKeys.mapNotNull { key -> outcome[key]?.let { key to it } }.toMap())
+  }
+
+  private fun addDurableMetrics(pairPayload: Map<String, Any?>, projection: MutableMap<String, Any?>) {
+    metricKeys.forEach { key ->
       pairPayload[key]?.let { value ->
         projection[key] = if (key == ExperimentReportPayloadKeys.TOTAL_EXPERIMENT_SPEND && value is Number) {
           mapOf(
@@ -105,10 +126,6 @@ object ExperimentReportProjector {
         }
       }
     }
-    exclusionReasons(pairPayload).takeIf { it.isNotEmpty() }?.let { reasons ->
-      projection[ExperimentReportPayloadKeys.EXCLUSION_REASONS] = reasons
-    }
-    return projection
   }
 
   fun renderText(projection: Map<String, Any?>): String = buildString {
