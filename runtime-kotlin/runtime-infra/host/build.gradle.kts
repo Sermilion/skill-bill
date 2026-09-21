@@ -9,6 +9,7 @@ dependencies {
   implementation(project(":runtime-ports"))
   implementation(project(":runtime-domain"))
   implementation(project(":runtime-contracts"))
+  implementation(project(":runtime-infra:contracts"))
   implementation(libs.kotlin.inject.runtime)
   implementation(libs.jackson.databind)
   implementation(libs.jackson.dataformat.yaml)
@@ -22,6 +23,14 @@ dependencies {
 
 governedResources {
   missingSourceMessageTemplate.set("\$owner is missing at \$sourcePath.")
+  entry(
+    GovernedResourceEntry(
+      taskName = "copyCodeGraphDependencyDeclaration",
+      repoRelativeSource = "orchestration/dependencies/codegraph-dependency.yaml",
+      destinationDir = "skillbill/infrastructure/host/codegraph",
+      owner = "SKILL-365: pinned CodeGraph dependency declaration",
+    ),
+  )
   entry(
     GovernedResourceEntry(
       taskName = "copyJavaGuard",

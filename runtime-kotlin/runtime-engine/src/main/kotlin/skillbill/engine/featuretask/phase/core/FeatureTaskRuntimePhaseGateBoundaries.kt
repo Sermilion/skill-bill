@@ -2,6 +2,8 @@ package skillbill.engine.featuretask.phase.core
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.spec.SpecIntentProjectionResolver
+import skillbill.engine.experiment.codegraph.CodeGraphReviewBriefingSupplement
+import skillbill.engine.experiment.codegraph.CodeGraphTreatmentBriefingSupplement
 import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchSetupRunner
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeLifecycleTelemetry
 import skillbill.engine.featuretask.phase.planning.FeatureTaskRuntimePlanningStopper
@@ -40,4 +42,6 @@ data class FeatureTaskRuntimePhaseGateValidationBoundaries(
   val reviewDriver: FeatureTaskRuntimeReviewDriver,
   val specIntentProjectionResolver: SpecIntentProjectionResolver,
   val findingVerificationBoundaryMemory: FeatureTaskRuntimeFindingVerificationBoundaryMemory,
+  val codeGraphTreatmentBriefingSupplement: CodeGraphTreatmentBriefingSupplement,
+  val codeGraphReviewBriefingSupplement: CodeGraphReviewBriefingSupplement,
 )

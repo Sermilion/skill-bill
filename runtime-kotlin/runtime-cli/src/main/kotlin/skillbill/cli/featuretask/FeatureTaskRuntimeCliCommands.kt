@@ -82,6 +82,30 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
     "--goal-review-base-sha",
     help = "Review baseline commit captured by the goal runner before implementation.",
   )
+  internal val goalExperimentArm by option(
+    "--goal-experiment-arm",
+    help = "Experiment arm for goal-continuation runs: control or treatment.",
+  )
+  internal val goalExperimentPairId by option(
+    "--goal-experiment-pair-id",
+    help = "Experiment pair id when the goal child runs inside a paired experiment.",
+  )
+  internal val goalExperimentTreatmentCapabilities by option(
+    "--goal-experiment-treatment-capabilities",
+    help = "Comma-separated treatment capabilities enabled for this experiment arm.",
+  )
+  internal val goalExperimentRequiredLauncherCapabilities by option(
+    "--goal-experiment-required-launcher-capabilities",
+    help = "Comma-separated launcher isolation capabilities for this experiment arm.",
+  )
+  internal val goalExperimentManagedToolsBin by option(
+    "--goal-experiment-managed-tools-bin",
+    help = "Managed experiment tools directory for this arm.",
+  )
+  internal val goalExperimentGraphIndexDirectory by option(
+    "--goal-experiment-graph-index-directory",
+    help = "Isolated graph index directory for this arm.",
+  )
   internal val goalBaselineUntrackedPaths by option(
     "--goal-baseline-untracked-path",
     help = "Baseline untracked path. Repeat for every path owned before this child starts.",

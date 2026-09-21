@@ -1,0 +1,58 @@
+contract_version: "0.1"
+upstream:
+  repository: colbymchenry/codegraph
+  release_tag: v1.6.0
+  license_spdx: MIT
+allowed_download_hosts:
+  - github.com
+  - release-assets.githubusercontent.com
+platform_assets:
+  - platform_id: linux-x64
+    archive_kind: tar_gz
+    asset_name: codegraph-linux-x64.tar.gz
+    download_url: https://github.com/colbymchenry/codegraph/releases/download/v1.6.0/codegraph-linux-x64.tar.gz
+    sha256: de3391f79ed42622d937e6cd5b7642a7ea8bb7d1473607e80b879ba73ef216b0
+  - platform_id: linux-arm64
+    archive_kind: tar_gz
+    asset_name: codegraph-linux-arm64.tar.gz
+    download_url: https://github.com/colbymchenry/codegraph/releases/download/v1.6.0/codegraph-linux-arm64.tar.gz
+    sha256: 6dc935a7b8f1a61e688a578b98ea34680eb2e36d7b91db079d64f4011f1a668f
+  - platform_id: darwin-x64
+    archive_kind: tar_gz
+    asset_name: codegraph-darwin-x64.tar.gz
+    download_url: https://github.com/colbymchenry/codegraph/releases/download/v1.6.0/codegraph-darwin-x64.tar.gz
+    sha256: cb86a2b62ee676b62a56bf8423600e7d867e752e57f323cdc98c0f6236efd908
+  - platform_id: darwin-arm64
+    archive_kind: tar_gz
+    asset_name: codegraph-darwin-arm64.tar.gz
+    download_url: https://github.com/colbymchenry/codegraph/releases/download/v1.6.0/codegraph-darwin-arm64.tar.gz
+    sha256: 1c73033512d55f67be04717e81532e8beaf7be6fb8531f51a179fa23064ad480
+  - platform_id: win32-x64
+    archive_kind: zip
+    asset_name: codegraph-win32-x64.zip
+    download_url: https://github.com/colbymchenry/codegraph/releases/download/v1.6.0/codegraph-win32-x64.zip
+    sha256: cd76c3c3391f2d40abef12b142151950b6d77abc2d8429e648f89eaa90f5b68a
+  - platform_id: win32-arm64
+    archive_kind: zip
+    asset_name: codegraph-win32-arm64.zip
+    download_url: https://github.com/colbymchenry/codegraph/releases/download/v1.6.0/codegraph-win32-arm64.zip
+    sha256: 3ca980010bd718a6b5e75be1145806ae6491afb1a59a2cec6cee4bf5c39f1b3a
+cli:
+  binary_name: codegraph
+  version_argv:
+    - version
+  init_argv:
+    - init
+    - --yes
+  index_argv:
+    - index
+  sync_argv:
+    - sync
+  query_json_argv_prefix:
+    - query
+    - --json
+  query_output_contract_version: "0.1"
+telemetry:
+  disable_environment:
+    - CODEGRAPH_TELEMETRY=0
+    - DO_NOT_TRACK=1

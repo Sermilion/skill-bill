@@ -1,6 +1,7 @@
 package skillbill.infrastructure.launcher.launcher
 
 import skillbill.config.model.PhaseCompactionDirective
+import skillbill.contracts.experiment.launcher.ExperimentLauncherCapabilityWire
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.shellcontent.GovernedReviewLaunchCapabilityError
 import skillbill.infrastructure.launcher.agentrun.AgentRunOutputDecoder
@@ -16,6 +17,7 @@ import skillbill.install.model.MODEL_DIRECTIVE_CAPABLE_AGENTS
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 import skillbill.review.context.model.launch.ReviewConversationIsolation
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -39,6 +41,28 @@ class AgentRunCommandBuildersTest {
 
     assertFalse(command.environment.containsKey("CLAUDE_CODE_AUTO_COMPACT_WINDOW"))
     assertFalse(command.environment.containsKey("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"))
+  }
+
+  @Test
+  fun `control builders enforce inherited mcp stripping and graph denial`() {
+    val control = request().copy(
+      treatmentCapabilitiesEnabled = setOf("codegraph"),
+      treatmentCapabilitiesDenied = setOf("codegraph"),
+      experimentRequiredLauncherCapabilities = setOf(
+        ExperimentLauncherCapabilityWire.STRIP_INHERITED_MCP_SERVERS,
+        ExperimentLauncherCapabilityWire.PATH_ISOLATION,
+        ExperimentLauncherCapabilityWire.DISTINCT_GRAPH_INDEX,
+      ),
+      experimentGraphIndexDirectory = Path.of("/repo/.skill-bill/graph-index"),
+      experimentManagedToolsBin = Path.of("/home/user/.skill-bill/tools/codegraph/v1.6.0"),
+    )
+
+    val command = ClaudeAgentRunCommandBuilder().build(control)
+
+    assertFalse(command.inheritEnvironment)
+    assertEquals("/repo/.skill-bill/experiment-isolation/claude", command.environment["CLAUDE_CONFIG_DIR"])
+    assertEquals("/repo/.skill-bill/experiment-isolation/codex", command.environment["CODEX_HOME"])
+    assertFalse(command.environment.containsKey("CODEGRAPH_INDEX_DIR"))
   }
 
   @Test

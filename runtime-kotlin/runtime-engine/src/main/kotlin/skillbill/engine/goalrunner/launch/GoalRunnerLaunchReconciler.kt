@@ -145,6 +145,9 @@ class GoalRunnerLaunchReconciler(
         } else {
           emptySet()
         },
+        experimentRequiredLauncherCapabilities = request.experimentRequiredLauncherCapabilities,
+        experimentManagedToolsBin = request.experimentManagedToolsBin,
+        experimentGraphIndexDirectory = request.experimentGraphIndexDirectory,
         denyRemotePublication = request.deferRemotePublication ||
           dependencies.goalContinuation?.deferRemotePublication == true,
         goalContinuation = dependencies.goalContinuation,
@@ -184,7 +187,11 @@ class GoalRunnerLaunchReconciler(
         childWorkflowId = childWorkflowId,
         assignedWorkflowId = assignedWorkflowId,
         experimentArmId = request.experimentArmId,
+        experimentPairId = request.experimentPairId?.takeIf(String::isNotBlank),
         experimentTreatmentCapabilities = request.experimentTreatmentCapabilities,
+        experimentRequiredLauncherCapabilities = request.experimentRequiredLauncherCapabilities,
+        experimentManagedToolsBin = request.experimentManagedToolsBin,
+        experimentGraphIndexDirectory = request.experimentGraphIndexDirectory,
         deferRemotePublication = request.deferRemotePublication,
         codeReviewMode = request.codeReviewMode ?: CodeReviewExecutionMode.DEFAULT,
         validationDepth = ValidationDepth.FULL,

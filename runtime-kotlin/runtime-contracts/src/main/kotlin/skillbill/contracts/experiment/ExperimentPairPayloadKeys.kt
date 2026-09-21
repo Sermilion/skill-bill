@@ -37,6 +37,8 @@ object ExperimentPairPayloadKeys {
   const val SOURCE_COMMIT_SHA: String = "source_commit_sha"
   const val SOURCE_TREE_SHA: String = "source_tree_sha"
   const val SPEC_BUNDLE_HASH: String = "spec_bundle_hash"
+  const val CODEGRAPH_TOOL_RELEASE_TAG: String = "codegraph_tool_release_tag"
+  const val CODEGRAPH_TOOL_PROVENANCE: String = "codegraph_tool_provenance"
   const val EFFECTIVE_CONFIG_HASH: String = "effective_config_hash"
   const val RUN_SETTINGS_HASH: String = "run_settings_hash"
   const val PHASE_ROUTES_HASH: String = "phase_routes_hash"

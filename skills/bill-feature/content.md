@@ -57,6 +57,17 @@ detection. Forward the review and agent add-on values as flags. When the user
 supplies `experiments:<names>` or `experiments:none`, forward it unchanged as
 `--experiments <names>` or `--experiments none`. Do not resolve experiment names
 from config or omit the flag when the user did not request experiments.
+Machine or repository config may list experiments such as `codegraph` as
+available; that only governs whether a name can be selected. Per-run selection
+uses `experiments:<names>` (comma-separated registered goal treatments) or
+`experiments:none`; omitting the flag means no experiments for a new run.
+Selected goal-pair experiments run two isolated arms with fixed control delivery;
+resume keeps the saved selection. Inspect a pair with
+`skill-bill experiments report <pair-id>` and
+`skill-bill experiments stats --name codegraph`. Managed CodeGraph invocation
+disables CodeGraph telemetry and does not change global agent configuration or
+Skill Bill telemetry preference.
+
 Derive the next action from the returned `verdict`. Invoke `bill-feature-spec`
 after this preflight when the verdict reports new work, retaining the returned
 gate state without recomputing it. Report and stop for an already-running or

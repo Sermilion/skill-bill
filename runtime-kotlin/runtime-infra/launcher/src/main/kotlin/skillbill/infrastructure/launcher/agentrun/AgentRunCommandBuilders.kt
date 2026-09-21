@@ -1,6 +1,7 @@
 package skillbill.infrastructure.launcher.agentrun
 
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
+import skillbill.infrastructure.launcher.experiment.ExperimentLaunchIsolationResult
 import skillbill.infrastructure.launcher.mcp.GovernedReviewMcpConfigWriter
 import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
@@ -128,7 +129,6 @@ internal val REVIEW_FAN_OUT_TOOLS = (listOf("Agent", "Task") + GOVERNED_REVIEW_T
 
 internal fun governedReviewToolList(fanOut: Boolean): String =
   if (fanOut) REVIEW_FAN_OUT_TOOLS else GOVERNED_REVIEW_TOOLS.joinToString(",")
-
 internal class ClaudeAgentRunCommandBuilder(
   internal val providerEnvironment: Map<String, String> = System.getenv(),
   override val governedReviewLaunchCapability: GovernedReviewLaunchCapability = GovernedReviewLaunchCapability(
@@ -146,52 +146,68 @@ internal class ClaudeAgentRunCommandBuilder(
     requireProcessLaunch(request, reviewIsolation)
     requireGovernedReviewLaunch(request, agent, governedReviewLaunchCapability)
     val streaming = request.streamProviderOutput || request.streamOutputForLiveness
-    return goalContinuationCommand(request, agent, databasePath) ?: AgentRunCommand(
-      command = buildList {
-        add(InstallAgent.CLAUDE.wireValue)
-        add("--print")
-        add("--output-format")
-
-        add(if (streaming) "stream-json" else "json")
-        if (streaming) add("--verbose")
-        resolveClaudeModelDirective(request.modelOverride, providerEnvironment)?.let {
-          add("--model")
-          add(it)
-        }
-        request.effortOverride?.let {
-          add("--effort")
-          add(it)
-        }
-        request.reviewEvidenceEndpoint?.let { endpoint ->
-          request.nativeReviewWorkerName?.let { worker ->
-            add("--agent")
-            add(worker)
-          }
-          add("--mcp-config")
-          add(endpoint.descriptor.mcpConfigPath.toString())
-          add("--strict-mcp-config")
-          add("--tools")
-          add(governedReviewToolList(request.reviewFanOut))
-        }
-        add("--dangerously-skip-permissions")
-        add("--add-dir")
-        add(request.repoRoot.toString())
-      },
-      workingDirectory = request.repoRoot,
-      timeout = request.timeout,
-      stdinText = launchPrompt(request),
-      environment = goalContinuationEnvironment(request) + compactionEnvironment(request),
-      inheritEnvironment = request.reviewEvidenceBroker == null,
-      conversationIsolation = governedReviewConversationIsolation(request),
-      idlePolicy = when {
-        request.streamOutputForLiveness -> AgentRunIdlePolicy.OUTPUT_EXTENDED
-        request.readOnlyPhase -> AgentRunIdlePolicy.HEARTBEAT_EXTENDED
-        else -> AgentRunIdlePolicy.DB_PROGRESS_ONLY
-      },
-      outputDecoder = AgentRunOutputDecoder.CLAUDE_STREAM_JSON.takeIf { streaming },
-      environmentPassthroughKeys =
-      if (request.reviewEvidenceBroker != null) CLAUDE_PROVIDER_PASSTHROUGH_KEYS else emptySet(),
+    val launchIsolation = experimentLaunchIsolation(request, providerEnvironment["PATH"])
+    return goalContinuationCommand(request, agent, databasePath, launchIsolation) ?: standardCommand(
+      request,
+      streaming,
+      launchIsolation,
     )
+  }
+
+  private fun standardCommand(
+    request: SkillRunRequest,
+    streaming: Boolean,
+    launchIsolation: ExperimentLaunchIsolationResult,
+  ): AgentRunCommand = AgentRunCommand(
+    command = claudeArguments(request, streaming),
+    workingDirectory = request.repoRoot,
+    timeout = request.timeout,
+    stdinText = launchPrompt(request),
+    environment = goalContinuationEnvironment(request) +
+      compactionEnvironment(request) +
+      launchIsolation.environment,
+    inheritEnvironment = request.reviewEvidenceBroker == null &&
+      launchIsolation.inheritEnvironment,
+    conversationIsolation = governedReviewConversationIsolation(request),
+    idlePolicy = when {
+      request.streamOutputForLiveness -> AgentRunIdlePolicy.OUTPUT_EXTENDED
+      request.readOnlyPhase -> AgentRunIdlePolicy.HEARTBEAT_EXTENDED
+      else -> AgentRunIdlePolicy.DB_PROGRESS_ONLY
+    },
+    outputDecoder = AgentRunOutputDecoder.CLAUDE_STREAM_JSON.takeIf { streaming },
+    environmentPassthroughKeys =
+    if (request.reviewEvidenceBroker != null) CLAUDE_PROVIDER_PASSTHROUGH_KEYS else emptySet(),
+  )
+
+  private fun claudeArguments(request: SkillRunRequest, streaming: Boolean): List<String> = buildList {
+    add(InstallAgent.CLAUDE.wireValue)
+    add("--print")
+    add("--output-format")
+
+    add(if (streaming) "stream-json" else "json")
+    if (streaming) add("--verbose")
+    resolveClaudeModelDirective(request.modelOverride, providerEnvironment)?.let {
+      add("--model")
+      add(it)
+    }
+    request.effortOverride?.let {
+      add("--effort")
+      add(it)
+    }
+    request.reviewEvidenceEndpoint?.let { endpoint ->
+      request.nativeReviewWorkerName?.let { worker ->
+        add("--agent")
+        add(worker)
+      }
+      add("--mcp-config")
+      add(endpoint.descriptor.mcpConfigPath.toString())
+      add("--strict-mcp-config")
+      add("--tools")
+      add(governedReviewToolList(request.reviewFanOut))
+    }
+    add("--dangerously-skip-permissions")
+    add("--add-dir")
+    add(request.repoRoot.toString())
   }
 }
 
@@ -211,60 +227,70 @@ internal class CodexAgentRunCommandBuilder(
   override fun build(request: SkillRunRequest): AgentRunCommand {
     requireProcessLaunch(request, reviewIsolation)
     requireGovernedReviewLaunch(request, agent, governedReviewLaunchCapability)
-    return goalContinuationCommand(request, agent, databasePath) ?: AgentRunCommand(
-      command = buildList {
-        add(InstallAgent.CODEX.wireValue)
-        add("exec")
-        add("--json")
-        add("--cd")
-        add(request.repoRoot.toString())
-        if (request.reviewEvidenceBroker == null) {
-          add("--dangerously-bypass-approvals-and-sandbox")
+    val launchIsolation = experimentLaunchIsolation(request)
+    return goalContinuationCommand(request, agent, databasePath, launchIsolation)
+      ?: standardCommand(request, launchIsolation)
+  }
+
+  private fun standardCommand(
+    request: SkillRunRequest,
+    launchIsolation: ExperimentLaunchIsolationResult,
+  ): AgentRunCommand = AgentRunCommand(
+    command = codexArguments(request),
+    workingDirectory = request.repoRoot,
+    timeout = request.timeout,
+    stdinText = launchPrompt(request),
+    environment = goalContinuationEnvironment(request) + launchIsolation.environment,
+    inheritEnvironment = request.reviewEvidenceBroker == null &&
+      launchIsolation.inheritEnvironment,
+    conversationIsolation = governedReviewConversationIsolation(request),
+    idlePolicy = codexLivenessPolicy(request),
+    environmentPassthroughKeys =
+    if (request.reviewEvidenceBroker != null) CODEX_PROVIDER_PASSTHROUGH_KEYS else emptySet(),
+  )
+
+  private fun codexArguments(request: SkillRunRequest): List<String> = buildList {
+    add(InstallAgent.CODEX.wireValue)
+    add("exec")
+    add("--json")
+    add("--cd")
+    add(request.repoRoot.toString())
+    if (request.reviewEvidenceBroker == null) {
+      add("--dangerously-bypass-approvals-and-sandbox")
+      add("--config")
+      add("shell_environment_policy.inherit=all")
+    } else {
+      add("--skip-git-repo-check")
+      add("--ignore-user-config")
+      add("--sandbox")
+      add("read-only")
+      add("--config")
+      add("shell_environment_policy.inherit=none")
+      add("--config")
+      add("fork_turns=none")
+      add("--config")
+      add("tools.web_search=false")
+      add("--config")
+      add("tools.shell=false")
+      request.reviewEvidenceEndpoint?.let { endpoint ->
+        GovernedReviewMcpConfigWriter.codexConfigOverrides(
+          mcpConfigPath = endpoint.descriptor.mcpConfigPath,
+          socketPath = endpoint.descriptor.socketPath,
+          token = endpoint.descriptor.token,
+          lane = endpoint.descriptor.lane,
+        ).forEach { override ->
           add("--config")
-          add("shell_environment_policy.inherit=all")
-        } else {
-          add("--skip-git-repo-check")
-          add("--ignore-user-config")
-          add("--sandbox")
-          add("read-only")
-          add("--config")
-          add("shell_environment_policy.inherit=none")
-          add("--config")
-          add("fork_turns=none")
-          add("--config")
-          add("tools.web_search=false")
-          add("--config")
-          add("tools.shell=false")
-          request.reviewEvidenceEndpoint?.let { endpoint ->
-            GovernedReviewMcpConfigWriter.codexConfigOverrides(
-              mcpConfigPath = endpoint.descriptor.mcpConfigPath,
-              socketPath = endpoint.descriptor.socketPath,
-              token = endpoint.descriptor.token,
-              lane = endpoint.descriptor.lane,
-            ).forEach { override ->
-              add("--config")
-              add(override)
-            }
-          }
+          add(override)
         }
-        request.modelOverride?.let {
-          add("--model")
-          add(it)
-        }
-        request.effortOverride?.let {
-          add("--config")
-          add("model_reasoning_effort=$it")
-        }
-      },
-      workingDirectory = request.repoRoot,
-      timeout = request.timeout,
-      stdinText = launchPrompt(request),
-      environment = goalContinuationEnvironment(request),
-      inheritEnvironment = request.reviewEvidenceBroker == null,
-      conversationIsolation = governedReviewConversationIsolation(request),
-      idlePolicy = codexLivenessPolicy(request),
-      environmentPassthroughKeys =
-      if (request.reviewEvidenceBroker != null) CODEX_PROVIDER_PASSTHROUGH_KEYS else emptySet(),
-    )
+      }
+    }
+    request.modelOverride?.let {
+      add("--model")
+      add(it)
+    }
+    request.effortOverride?.let {
+      add("--config")
+      add("model_reasoning_effort=$it")
+    }
   }
 }

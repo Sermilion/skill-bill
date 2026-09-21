@@ -156,6 +156,15 @@ private val governedResourceSpecs =
     "copyExperimentReportSchema|" +
       "$contractSource/experiment-report-schema.yaml|" +
       "$infraContractsResourceRoot|SKILL-366: canonical experiment report schema",
+    "copyCodeGraphDependencySchema|" +
+      "$contractSource/codegraph-dependency-schema.yaml|" +
+      "$infraContractsResourceRoot|SKILL-365: canonical CodeGraph dependency schema",
+    "copyCodeGraphQueryOutputSchema|" +
+      "$contractSource/codegraph-query-output-schema.yaml|" +
+      "$infraContractsResourceRoot|SKILL-365: canonical CodeGraph query output schema",
+    "copyCodeGraphQueryReceiptSchema|" +
+      "$contractSource/codegraph-query-receipt-schema.yaml|" +
+      "$infraContractsResourceRoot|SKILL-365: canonical CodeGraph query receipt schema",
   ).map(::governedResourceSpec)
 
 governedResources {

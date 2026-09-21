@@ -1,0 +1,154 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://skill-bill.dev/contracts/codegraph-dependency-schema.yaml"
+title: CodeGraph governed dependency declaration
+description: >
+  Pinned upstream CodeGraph release metadata. Skill Bill validates this
+  declaration before download, install, or CLI invocation.
+type: object
+additionalProperties: false
+required:
+  - contract_version
+  - upstream
+  - allowed_download_hosts
+  - platform_assets
+  - cli
+  - telemetry
+properties:
+  contract_version:
+    const: "0.1"
+  upstream:
+    type: object
+    additionalProperties: false
+    required:
+      - repository
+      - release_tag
+      - license_spdx
+    properties:
+      repository:
+        type: string
+        minLength: 1
+        maxLength: 256
+      release_tag:
+        type: string
+        pattern: "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+        maxLength: 32
+      license_spdx:
+        type: string
+        minLength: 1
+        maxLength: 64
+  allowed_download_hosts:
+    type: array
+    minItems: 1
+    maxItems: 8
+    items:
+      type: string
+      minLength: 1
+      maxLength: 128
+  platform_assets:
+    type: array
+    minItems: 1
+    maxItems: 16
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - platform_id
+        - archive_kind
+        - asset_name
+        - download_url
+        - sha256
+      properties:
+        platform_id:
+          type: string
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+          maxLength: 64
+        archive_kind:
+          type: string
+          enum:
+            - tar_gz
+            - zip
+        asset_name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        download_url:
+          type: string
+          format: uri
+          maxLength: 512
+        sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+  cli:
+    type: object
+    additionalProperties: false
+    required:
+      - binary_name
+      - version_argv
+      - init_argv
+      - index_argv
+      - sync_argv
+      - query_json_argv_prefix
+      - query_output_contract_version
+    properties:
+      binary_name:
+        type: string
+        minLength: 1
+        maxLength: 64
+      version_argv:
+        type: array
+        minItems: 1
+        maxItems: 8
+        items:
+          type: string
+          minLength: 1
+          maxLength: 64
+      init_argv:
+        type: array
+        minItems: 1
+        maxItems: 8
+        items:
+          type: string
+          minLength: 1
+          maxLength: 64
+      index_argv:
+        type: array
+        minItems: 1
+        maxItems: 8
+        items:
+          type: string
+          minLength: 1
+          maxLength: 64
+      sync_argv:
+        type: array
+        minItems: 1
+        maxItems: 8
+        items:
+          type: string
+          minLength: 1
+          maxLength: 64
+      query_json_argv_prefix:
+        type: array
+        minItems: 1
+        maxItems: 16
+        items:
+          type: string
+          minLength: 1
+          maxLength: 64
+      query_output_contract_version:
+        type: string
+        minLength: 1
+        maxLength: 16
+  telemetry:
+    type: object
+    additionalProperties: false
+    required:
+      - disable_environment
+    properties:
+      disable_environment:
+        type: array
+        minItems: 1
+        maxItems: 8
+        items:
+          type: string
+          minLength: 1
+          maxLength: 128

@@ -18,6 +18,8 @@ import skillbill.config.model.RepoLocalConfig
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.time.JvmSystemClock
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION
+import skillbill.engine.experiment.codegraph.CodeGraphReviewBriefingSupplement
+import skillbill.engine.experiment.codegraph.CodeGraphTreatmentBriefingSupplement
 import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchSetupRunner
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
@@ -68,9 +70,11 @@ import skillbill.featurespec.model.FeatureSpecPreparationDecision
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
+import skillbill.infrastructure.host.experiment.codegraph.InMemoryCodeGraphUsageLedger
 import skillbill.infrastructure.workflow.github.GitHubPullRequestCheckDiscovery
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningBoundaryBodyResolver
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningContextDiscovery
+import skillbill.infrastructure.workflow.review.broker.FileSystemReviewEvidenceBroker
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
@@ -101,6 +105,7 @@ import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.review.evidence.ReviewEvidenceBrokerFactory
 import skillbill.ports.review.repository.ReviewRepository
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSpecStatusWriter
@@ -679,6 +684,17 @@ private fun validationGateBoundaries(
   findingVerificationBoundaryMemory = FeatureTaskRuntimeFindingVerificationBoundaryMemory(
     FileSystemGoalPlanningContextDiscovery(JvmSystemClock),
     FileSystemGoalPlanningBoundaryBodyResolver(),
+  ),
+  codeGraphTreatmentBriefingSupplement = CodeGraphTreatmentBriefingSupplement(
+    retrievalPort = null,
+    usageLedger = InMemoryCodeGraphUsageLedger(),
+  ),
+  codeGraphReviewBriefingSupplement = CodeGraphReviewBriefingSupplement(
+    retrievalPort = null,
+    usageLedger = InMemoryCodeGraphUsageLedger(),
+    reviewEvidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
+      FileSystemReviewEvidenceBroker(binding)
+    },
   ),
 )
 

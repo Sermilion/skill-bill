@@ -337,7 +337,13 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
           briefing,
         ),
       ) +
-        FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, run)
+        FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, run) +
+        phaseGates.codeGraphTreatmentBriefingSupplement.phaseSupplement(run.request, run.phaseId) +
+        phaseGates.codeGraphReviewBriefingSupplement.phaseSupplement(
+          run.request,
+          run.phaseId,
+          run.goalReviewInput,
+        )
     }
   }
 

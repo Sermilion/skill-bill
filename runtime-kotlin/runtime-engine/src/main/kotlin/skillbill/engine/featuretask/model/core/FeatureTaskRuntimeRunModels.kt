@@ -4,6 +4,7 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.config.model.CompactionSettings
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
@@ -62,6 +63,12 @@ data class FeatureTaskRuntimeGoalContinuationContext(
   val reviewBaseline: GoalSubtaskReviewBaseline? = null,
   val agentAddonSelection: AgentAddonSelection =
     AgentAddonSelection(),
+  val experimentArmId: ExperimentArmId? = null,
+  val experimentPairId: String? = null,
+  val experimentTreatmentCapabilities: Set<String> = emptySet(),
+  val experimentRequiredLauncherCapabilities: Set<String> = emptySet(),
+  val experimentManagedToolsBin: Path? = null,
+  val experimentGraphIndexDirectory: Path? = null,
 ) {
   init {
     require(parentIssueKey.isNotBlank()) { "parentIssueKey is required." }

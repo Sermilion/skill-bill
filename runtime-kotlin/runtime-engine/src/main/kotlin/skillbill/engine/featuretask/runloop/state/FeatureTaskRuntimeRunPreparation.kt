@@ -327,6 +327,9 @@ private fun goalContinuationContext(
   subtaskName = continuation.subtaskName,
   reviewBaseline = baseline,
   agentAddonSelection = continuation.agentAddonSelection,
+  experimentArmId = request.goalContinuation?.experimentArmId,
+  experimentPairId = request.goalContinuation?.experimentPairId,
+  experimentTreatmentCapabilities = request.goalContinuation?.experimentTreatmentCapabilities.orEmpty(),
 )
 
 private fun blocked(

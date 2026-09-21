@@ -141,11 +141,19 @@ class GoalPreflightGateBlockBuilder(
       savedSelection = null,
     )
     if (launch.normalizedNames.isEmpty()) return null
+    val setupLines = launch.setupRequirementLines
+    val declaredSetup = buildString {
+      append("two sequential isolated arm runs")
+      if (setupLines.isNotEmpty()) {
+        append("; optional provisioning after confirmation: ")
+        append(setupLines.joinToString("; "))
+      }
+    }
     return GoalPreflightExperimentSummary(
       selectedNames = launch.normalizedNames,
       arms = listOf(ExperimentArmId.CONTROL.wireValue, ExperimentArmId.TREATMENT.wireValue),
       deliveryArm = ExperimentArmId.CONTROL.wireValue,
-      declaredSetup = "two sequential isolated arm runs",
+      declaredSetup = declaredSetup,
       additionalTimeAndSpend = "additional setup and execution cost is measured and reported",
     )
   }

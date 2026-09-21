@@ -1,4 +1,6 @@
 runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/FileTelemetryConfigStore.kt:45:System.getenv()
+runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/experiment/codegraph/CodeGraphHostPlatform.kt:5:System.getProperty()
+runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/experiment/codegraph/CodeGraphHostPlatform.kt:6:System.getProperty()
 runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:7:System.getProperty()
 runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:8:System.getProperty()
 runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:9:System.getProperty()

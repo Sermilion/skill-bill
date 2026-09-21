@@ -66,7 +66,7 @@ object ExperimentReportProjector {
       ExperimentReportPayloadKeys.PAIR_ID to pairPayload[ExperimentPairPayloadKeys.PAIR_ID],
       ExperimentReportPayloadKeys.COHORT to normalizedCohort,
       ExperimentReportPayloadKeys.COMPLETENESS to when (pairStatus) {
-        "completed" -> "complete"
+        "completed" -> if (hasUnavailableMeasurement(pairPayload)) "degraded" else "complete"
         "failed", "cancelled" -> "degraded"
         else -> "incomplete"
       },
@@ -184,8 +184,32 @@ object ExperimentReportProjector {
             ?.takeIf { it.isNotBlank() }
             ?.let { status -> "arm outcome: $status" }
       }
-    return (declared + armFailures).distinct().sorted()
+    val unavailableMeasurements = observationLedger(pairPayload)
+      .flatMap { observation ->
+        (observation[ExperimentObservationPayloadKeys.MEASUREMENTS] as? List<*>)
+          .orEmpty()
+          .filterIsInstance<Map<*, *>>()
+      }
+      .filter {
+        it[ExperimentObservationPayloadKeys.AVAILABILITY] !=
+          TelemetryMeasurementAvailability.MEASURED.wireValue
+      }
+      .mapNotNull { measurement ->
+        measurement[ExperimentObservationPayloadKeys.REASON]?.toString()
+      }
+    return (declared + armFailures + unavailableMeasurements).distinct().sorted()
   }
+
+  private fun hasUnavailableMeasurement(pairPayload: Map<String, Any?>): Boolean =
+    observationLedger(pairPayload).any { observation ->
+      (observation[ExperimentObservationPayloadKeys.MEASUREMENTS] as? List<*>)
+        .orEmpty()
+        .filterIsInstance<Map<*, *>>()
+        .any {
+          it[ExperimentObservationPayloadKeys.AVAILABILITY] !=
+            TelemetryMeasurementAvailability.MEASURED.wireValue
+        }
+    }
 
   private fun metricComparisons(ledger: List<Map<String, Any?>>): List<Map<String, Any?>> {
     val measurements = ledger.flatMap { observation ->

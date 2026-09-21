@@ -1,0 +1,51 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://skill-bill.dev/contracts/codegraph-query-receipt-schema.yaml"
+title: CodeGraph query receipt
+description: >
+  Bounded summary of one managed CodeGraph query invocation for measurement
+  and degradation reporting.
+type: object
+additionalProperties: false
+required:
+  - contract_version
+  - query_text
+  - hit_count
+  - truncated
+  - duration_ms
+  - outcome
+properties:
+  contract_version:
+    const: "0.1"
+  query_text:
+    type: string
+    minLength: 1
+    maxLength: 512
+  hit_count:
+    type: integer
+    minimum: 0
+    maximum: 256
+  truncated:
+    type: boolean
+  duration_ms:
+    type: integer
+    minimum: 0
+    maximum: 600000
+  outcome:
+    type: string
+    enum:
+      - ok
+      - timeout
+      - output_cap
+      - parse_error
+      - identity_refused
+      - unavailable
+  degradation_reason:
+    type: string
+    maxLength: 256
+  unresolved_construct_notes:
+    type: array
+    maxItems: 32
+    items:
+      type: string
+      minLength: 1
+      maxLength: 256

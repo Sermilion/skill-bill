@@ -625,13 +625,53 @@ clean_install_state() {
     err "--clean: SKILL_BILL_STATE_DIR is empty; refusing to wipe."
     return 1
   fi
-  info "--clean: wiping prior skill state under $SKILL_BILL_STATE_DIR"
+  info "--clean: wiping prior skill state under $SKILL_BILL_STATE_DIR (preserving tools/)"
   rm -rf \
     "$SKILL_BILL_STATE_DIR/skills" \
     "$SKILL_BILL_STATE_DIR/platform-packs" \
     "$SKILL_BILL_STATE_DIR/orchestration" \
     "$SKILL_BILL_BASELINE_MANIFEST"
   ok "Prior skill state wiped."
+}
+
+prompt_for_optional_codegraph_tools() {
+  if [[ "${INSTALL_CODEGRAPH_TOOLS:-}" == "1" ]]; then
+    return 0
+  fi
+  if [[ "${INSTALL_CODEGRAPH_TOOLS:-}" == "0" ]]; then
+    return 1
+  fi
+  if [[ ! -t 0 ]]; then
+    return 1
+  fi
+  echo ""
+  info "Optional: install pinned CodeGraph CLI tools under ~/.skill-bill/tools for experiment pairs."
+  printf "${CYAN}▸${NC} Install CodeGraph tools now? [y/N]: "
+  local answer
+  if ! read_prompt_input answer; then
+    return 1
+  fi
+  case "$(trim_string "$answer" | tr '[:upper:]' '[:lower:]')" in
+    y|yes) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+install_optional_codegraph_tools() {
+  if ! prompt_for_optional_codegraph_tools; then
+    return 0
+  fi
+  if [[ ! -x "$RUNTIME_CLI_BIN" ]]; then
+    warn "Runtime CLI is not installed yet; skip optional CodeGraph tools (pair runs can provision later)."
+    return 0
+  fi
+  info "CodeGraph tools are provisioned after experiment-pair confirmation; pre-install copies the pinned asset when the runtime exposes an install hook."
+  if "$RUNTIME_CLI_BIN" experiments --help 2>/dev/null | grep -q codegraph; then
+    "$RUNTIME_CLI_BIN" experiments codegraph install --user-home "$HOME" || \
+      warn "Optional CodeGraph tool install did not complete; pairs may provision on first use."
+  else
+    info "Runtime CodeGraph install hook is not available yet; skip pre-install."
+  fi
 }
 
 # Resolve the prebuilt asset filenames for this host by SUFFIX matching, not by
@@ -2136,6 +2176,9 @@ run_full_install() {
     prompt_for_telemetry_preference
   fi
   install_runtime_launchers
+  if [[ "$REUSE_LAST_SELECTION" -ne 1 ]]; then
+    install_optional_codegraph_tools
+  fi
   build_runtime_install_args
 
   echo ""

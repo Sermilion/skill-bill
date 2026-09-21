@@ -10,4 +10,5 @@ data class ExperimentArmMeasurement(
   val setupCost: ExperimentMeasuredValue,
   val usage: ExperimentMeasuredValue,
   val cost: ExperimentMeasuredValue,
+  val additionalMeasurements: Map<String, ExperimentMeasuredValue> = emptyMap(),
 )

@@ -12,6 +12,7 @@ import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStopReport
+import skillbill.model.EnvironmentContext
 import skillbill.ports.experiment.isolation.ExperimentArmIsolationContext
 import skillbill.ports.experiment.isolation.ExperimentIsolationCapabilityPort
 import skillbill.ports.experiment.isolation.ExperimentIsolationObservation
@@ -27,7 +28,6 @@ import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
-import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -65,7 +65,7 @@ class ExperimentPairCoordinatorTest {
     measurementPort = ExperimentArmMeasurementPort { _, _, _ ->
       ExperimentArmMeasurement(setupCost = measured(1.0), usage = measured(2.0), cost = measured(3.0))
     },
-    random = Random(0),
+    environmentContext = EnvironmentContext(userHome = Path.of("/tmp")),
   )
 
   private fun fixtureSelectionPort() = object : ExperimentSelectionPort {
@@ -169,6 +169,7 @@ class ExperimentPairCoordinatorTest {
     parentDelivery = ExperimentParentDeliveryPort { _, _, _, _, _ ->
       ExperimentPublicationResult(published = false)
     },
+    environmentContext = EnvironmentContext(userHome = Path.of("/tmp")),
   )
 
   private fun resumeSelectionPort() = object : ExperimentSelectionPort {
@@ -322,6 +323,7 @@ class ExperimentPairCoordinatorTest {
       parentDelivery = ExperimentParentDeliveryPort { _, _, _, _, _ ->
         ExperimentPublicationResult(published = false)
       },
+      environmentContext = EnvironmentContext(userHome = Path.of("/tmp")),
     )
 
     assertFailsWith<ExperimentDirtySourceRefusalError> {
@@ -395,6 +397,7 @@ class ExperimentPairCoordinatorTest {
       parentDelivery = ExperimentParentDeliveryPort { _, _, _, _, _ ->
         ExperimentPublicationResult(published = false)
       },
+      environmentContext = EnvironmentContext(userHome = Path.of("/tmp")),
     )
 
     coordinator.run(

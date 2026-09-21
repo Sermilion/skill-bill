@@ -1,5 +1,6 @@
 package skillbill.engine.experiment
 import me.tatarka.inject.annotations.Inject
+import skillbill.config.model.EffectiveExperimentAvailability
 import skillbill.error.shellcontent.ExperimentDescriptorUnavailableError
 import skillbill.error.shellcontent.ExperimentSelectionConflictError
 import skillbill.error.shellcontent.InvalidExperimentDescriptorSchemaError
@@ -20,6 +21,15 @@ import java.nio.file.Path
 private const val MAX_DESCRIPTOR_VERSION_LENGTH = 32
 private const val MAX_DESCRIPTOR_REQUIREMENTS = 16
 
+private data class DescriptorSelectionRequest(
+  val resolved: ResolvedExperimentSelection,
+  val descriptors: List<ExperimentDescriptorRecord>,
+  val compatible: Set<String>,
+  val availability: EffectiveExperimentAvailability,
+  val availabilityEnforced: Boolean,
+  val mode: ExperimentExecutionMode,
+)
+
 @Inject
 class ExperimentSelectionService(
   private val machineConfig: MachineExperimentConfigStore,
@@ -32,6 +42,31 @@ class ExperimentSelectionService(
     mode: ExperimentExecutionMode,
     savedSelection: List<String>?,
   ): ExperimentLaunchSelection {
+    val resolved = resolveRequestedSelection(parameter, savedSelection)
+    val repoConfig = repoLocalConfigPort.readRepoLocalConfig(ReadRepoLocalConfigRequest(repoRoot)).config
+    val machinePolicy = machineConfig.readExperimentsAvailability()
+    val availability = ExperimentAvailabilityResolver.resolve(machinePolicy, repoConfig.experimentsAvailability)
+    val compatibleDescriptors = descriptorCatalog?.listCompatible(mode).orEmpty()
+    validateDescriptors(compatibleDescriptors, mode)
+    if (resolved.normalizedNames.isEmpty()) return noExperimentsSelection()
+    val compatible = compatibleDescriptors.map { descriptor -> descriptor.name }.toSet()
+    val selectedDescriptors = selectedDescriptors(
+      DescriptorSelectionRequest(
+        resolved = resolved,
+        descriptors = compatibleDescriptors,
+        compatible = compatible,
+        availability = availability,
+        availabilityEnforced = savedSelection == null,
+        mode = mode,
+      ),
+    )
+    return launchSelection(resolved, selectedDescriptors, availability)
+  }
+
+  private fun resolveRequestedSelection(
+    parameter: String?,
+    savedSelection: List<String>?,
+  ): ResolvedExperimentSelection {
     val parsed = ExperimentParameterParser.parse(parameter)
     val saved = savedSelection?.let {
       if (it.isEmpty()) {
@@ -46,45 +81,54 @@ class ExperimentSelectionService(
       else -> parsed
     }
     validateSavedSelection(parameter, savedSelection, saved)
-    val repoConfig = repoLocalConfigPort.readRepoLocalConfig(ReadRepoLocalConfigRequest(repoRoot)).config
-    val machinePolicy = machineConfig.readExperimentsAvailability()
-    val availability = ExperimentAvailabilityResolver.resolve(machinePolicy, repoConfig.experimentsAvailability)
-    val compatibleDescriptors = descriptorCatalog?.listCompatible(mode).orEmpty()
-    validateDescriptors(compatibleDescriptors, mode)
-    if (resolved.normalizedNames.isEmpty()) {
-      return ExperimentLaunchSelection(emptyList(), emptyList(), "no experiments selected")
+    return resolved
+  }
+
+  private fun noExperimentsSelection() = ExperimentLaunchSelection(
+    normalizedNames = emptyList(),
+    descriptors = emptyList(),
+    availabilitySummary = "no experiments selected",
+  )
+
+  private fun selectedDescriptors(request: DescriptorSelectionRequest): List<ExperimentDescriptorRecord> {
+    val unavailable = request.resolved.normalizedNames.filter { name ->
+      name !in request.compatible ||
+        (
+          request.availabilityEnforced &&
+            !ExperimentAvailabilityResolver.isNameAvailable(name, request.availability)
+          )
     }
-    val compatible = compatibleDescriptors.map { descriptor -> descriptor.name }.toSet()
-    val unavailable = resolved.normalizedNames.filter { name ->
-      name !in compatible ||
-        (savedSelection == null && !ExperimentAvailabilityResolver.isNameAvailable(name, availability))
-    }
-    if (unavailable.isNotEmpty()) {
+    if (unavailable.isNotEmpty() && request.resolved.normalizedNames.isNotEmpty()) {
       throw ExperimentDescriptorUnavailableError(
-        requestedNames = resolved.normalizedNames.toSet(),
-        mode = mode.wireValue,
-        availableCompatible = compatible.filter { name ->
-          ExperimentAvailabilityResolver.isNameAvailable(name, availability)
+        requestedNames = request.resolved.normalizedNames.toSet(),
+        mode = request.mode.wireValue,
+        availableCompatible = request.compatible.filter { name ->
+          ExperimentAvailabilityResolver.isNameAvailable(name, request.availability)
         }.toSet(),
       )
     }
-    val descriptors = resolved.normalizedNames.map { name ->
-      descriptorCatalog?.resolve(name, mode)?.name
+    return request.resolved.normalizedNames.map { name ->
+      request.descriptors.firstOrNull { it.name == name }
         ?: throw ExperimentDescriptorUnavailableError(
           requestedNames = setOf(name),
-          mode = mode.wireValue,
-          availableCompatible = compatible,
+          mode = request.mode.wireValue,
+          availableCompatible = request.compatible,
         )
     }
-    return ExperimentLaunchSelection(
-      normalizedNames = resolved.normalizedNames,
-      descriptors = descriptors,
-      availabilitySummary = availability.policy.toString(),
-      treatmentCapabilities = resolved.normalizedNames
-        .mapNotNull { name -> compatibleDescriptors.firstOrNull { it.name == name }?.treatmentCapability }
-        .toSet(),
-    )
   }
+
+  private fun launchSelection(
+    resolved: ResolvedExperimentSelection,
+    selectedDescriptors: List<ExperimentDescriptorRecord>,
+    availability: EffectiveExperimentAvailability,
+  ) = ExperimentLaunchSelection(
+    normalizedNames = resolved.normalizedNames,
+    descriptors = selectedDescriptors.map { it.name },
+    availabilitySummary = availability.policy.toString(),
+    treatmentCapabilities = selectedDescriptors.map { it.treatmentCapability }.toSet(),
+    requiredLauncherCapabilities = selectedDescriptors.flatMap { it.requiredLauncherCapabilities }.toSet(),
+    setupRequirementLines = selectedDescriptors.flatMap { it.setupRequirements }.distinct(),
+  )
 
   private fun validateDescriptors(
     descriptors: List<ExperimentDescriptorRecord>,

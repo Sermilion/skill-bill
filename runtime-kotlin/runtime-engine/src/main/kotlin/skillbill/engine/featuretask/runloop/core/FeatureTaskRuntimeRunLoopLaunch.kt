@@ -26,6 +26,7 @@ import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionEr
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseBriefingFramingError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.verificationBoundaryFindingPaths
@@ -270,6 +271,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
     isVerifyFindingsPhase: Boolean,
   ): AgentRunLaunchOutcome {
     val launched = FeatureTaskRuntimeRunLoopOutputPersistence.launchedModelDirective(run)
+    val continuation = run.request.goalContinuation
     return subtaskLauncher.launch(
       GoalRunnerSubtaskLaunchRequest(
         invokedAgentId = run.resolvedAgent.invokedAgentId,
@@ -285,6 +287,18 @@ object FeatureTaskRuntimeRunLoopLaunch {
           readOnlyPhase = isReviewPhase || isVerifyFindingsPhase,
           progressIdleTimeout = READ_ONLY_PHASE_PROGRESS_IDLE_TIMEOUT_MINUTES.minutes
             .takeIf { isReviewPhase || isVerifyFindingsPhase },
+          treatmentCapabilitiesEnabled = continuation
+            ?.takeIf { it.experimentArmId == ExperimentArmId.TREATMENT }
+            ?.experimentTreatmentCapabilities
+            .orEmpty(),
+          treatmentCapabilitiesDenied = continuation
+            ?.takeIf { it.experimentArmId == ExperimentArmId.CONTROL }
+            ?.experimentTreatmentCapabilities
+            .orEmpty(),
+          experimentRequiredLauncherCapabilities =
+          continuation?.experimentRequiredLauncherCapabilities.orEmpty(),
+          experimentManagedToolsBin = continuation?.experimentManagedToolsBin,
+          experimentGraphIndexDirectory = continuation?.experimentGraphIndexDirectory,
           activityStampSink = activityStampWriter.sink(
             workflowId = run.request.workflowId,
             parentWorkflowId = run.request.goalContinuation?.parentWorkflowId,

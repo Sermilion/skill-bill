@@ -28,4 +28,6 @@ class FeatureTaskRuntimePhaseGates(
   val reviewDriver = validation.reviewDriver
   val specIntentProjectionResolver = validation.specIntentProjectionResolver
   val findingVerificationBoundaryMemory = validation.findingVerificationBoundaryMemory
+  val codeGraphTreatmentBriefingSupplement = validation.codeGraphTreatmentBriefingSupplement
+  val codeGraphReviewBriefingSupplement = validation.codeGraphReviewBriefingSupplement
 }

@@ -64,7 +64,12 @@ object RuntimeModuleCatalog {
       ),
       "runtime-infra:host" to ModuleEdgeExpectation(
         api = emptySet(),
-        implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
+        implementation = setOf(
+          "runtime-contracts",
+          "runtime-domain",
+          "runtime-infra:contracts",
+          "runtime-ports",
+        ),
       ),
       "runtime-infra:contracts" to ModuleEdgeExpectation(
         api = emptySet(),

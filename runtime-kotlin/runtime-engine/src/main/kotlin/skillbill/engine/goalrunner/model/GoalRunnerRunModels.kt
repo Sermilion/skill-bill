@@ -30,6 +30,9 @@ data class GoalRunnerRunRequest(
   val experimentArmId: ExperimentArmId? = null,
   val experimentTreatmentCapabilities: Set<String> = emptySet(),
   val experimentTreatmentCapabilitiesDenied: Set<String> = emptySet(),
+  val experimentRequiredLauncherCapabilities: Set<String> = emptySet(),
+  val experimentManagedToolsBin: Path? = null,
+  val experimentGraphIndexDirectory: Path? = null,
   val deferRemotePublication: Boolean = false,
 ) {
   init {

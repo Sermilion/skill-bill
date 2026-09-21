@@ -11,6 +11,9 @@
   "skillbill/infrastructure/contracts/experiment-observation-schema.yaml": "a2117e18901f7204a2013062de3c470b23b0f3cfc15f81ec4253ea67b9d1abd6",
   "skillbill/infrastructure/contracts/experiment-pair-schema.yaml": "373562e26ec09e39538e86c5fa490959f44ca7f6f57b2ba536d61f24044c080a",
   "skillbill/infrastructure/contracts/experiment-report-schema.yaml": "9efec2fdb640166e4a9d4cf997216e03e455d8e4c461b20a182b9fd013c85dda",
+  "skillbill/infrastructure/contracts/codegraph-query-receipt-schema.yaml": "0678ea21b641de8b0668f39e8dc94dac858d7126cf2f4caa10ee4b9a0b1c0f96",
+  "skillbill/infrastructure/contracts/codegraph-dependency-schema.yaml": "da13991c3e4ddbab5f896adc0cd108dcd9ac9a9df47474a6d10ad0a8117bbf1b",
+  "skillbill/infrastructure/contracts/codegraph-query-output-schema.yaml": "55a9200166917d7465791bd3f616914e08e624c87f241acf05530cda1e0c85e9",
     "skillbill/infrastructure/contracts/feature-task-runtime-implementation-attempt-schema.yaml": "559a878a04569839155da926a25fc05a14e0b607836ed88505d8c3d518dc1f67",
   "skillbill/infrastructure/contracts/feature-task-runtime-persistence-schema.yaml": "a0a42305773a376d5e40d62a1b0e9f99b913f49ab252894d822b1bf3527158db",
   "skillbill/infrastructure/contracts/feature-task-runtime-phase-handoff-schema.yaml": "88f02892077201ae8bfccf038461001ba8c8d3368099c3acc6d77cd6201878b7",
@@ -35,6 +38,7 @@
   "skillbill/infrastructure/contracts/producer-output-evidence-schema.yaml": "bbd35a817d727eecbe8737ffe8eb8ad45d639e37056c8413ab8dfd919400aa11",
   "skillbill/infrastructure/contracts/rejected-output-diagnostic-schema.yaml": "3887fd88c0fd64fbefb6efd82b80ed78a7174dcd3ac24ae5a53287a9814d9564",
   "skillbill/infrastructure/contracts/workflow-state-schema.yaml": "bae151de50e71a703d627a312a4e13d79fee44ad52b072a5701c6e438053080a",
+  "skillbill/infrastructure/host/codegraph/codegraph-dependency.yaml": "e3fd5a20b9766286255f4568ee196047b54623506e78620d216651a97b9a1672",
   "skillbill/infrastructure/host/jvm/skill-bill-java-guard.sh": "3673b9c7ad1f08a8014a2887adaa1507b3c94eb52ddf3c24328f38a5c9360732",
   "skillbill/review/specialist-contract.md": "9bd84d61e8753c6d5315ae8176db204cede2ea60b456bbf023403fde75fc5457"
 }

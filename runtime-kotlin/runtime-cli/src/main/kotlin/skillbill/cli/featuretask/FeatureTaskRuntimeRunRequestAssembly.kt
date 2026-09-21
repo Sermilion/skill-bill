@@ -14,6 +14,7 @@ import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeModelResolv
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeAgentAssignment
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.goal.model.ValidationDepth
@@ -105,6 +106,30 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.parseGoalContinuationContext(
     }.let { base ->
       GoalSubtaskReviewBaseline(base, goalBaselineUntrackedPaths.distinct().sorted())
     },
+    experimentArmId = goalExperimentArm?.takeIf(String::isNotBlank)?.let { wire ->
+      ExperimentArmId.fromWire(wire) ?: throw UsageError("Unknown experiment arm '$wire'.")
+    },
+    experimentPairId = goalExperimentPairId?.takeIf(String::isNotBlank),
+    experimentTreatmentCapabilities = goalExperimentTreatmentCapabilities
+      ?.takeIf(String::isNotBlank)
+      ?.split(',')
+      ?.map { it.trim() }
+      ?.filter { it.isNotEmpty() }
+      ?.toSet()
+      ?: emptySet(),
+    experimentRequiredLauncherCapabilities = goalExperimentRequiredLauncherCapabilities
+      ?.takeIf(String::isNotBlank)
+      ?.split(',')
+      ?.map { it.trim() }
+      ?.filter { it.isNotEmpty() }
+      ?.toSet()
+      ?: emptySet(),
+    experimentManagedToolsBin = goalExperimentManagedToolsBin
+      ?.takeIf(String::isNotBlank)
+      ?.let(Path::of),
+    experimentGraphIndexDirectory = goalExperimentGraphIndexDirectory
+      ?.takeIf(String::isNotBlank)
+      ?.let(Path::of),
   )
 }
 

@@ -728,6 +728,7 @@ remove_state_dir_preserving_source() {
     "platform-packs"
     "orchestration"
     "agent-addons"
+    "tools"
     "baseline-manifest.json"
   )
 

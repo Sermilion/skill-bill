@@ -188,11 +188,11 @@ installation/rendering behavior changes. Preserve compile-only build semantics.
 
 ## References
 
-- `skills/bill-feature/content.md`, token forwarding and the one-gate launch contract.
-- `runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner/preflight/GoalPreflightService.kt`, read-only preflight.
-- `runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/review/evidence/ReviewEvidenceBroker.kt`, review evidence authority.
-- `runtime-kotlin/ARCHITECTURE.md`, design principles and durable state ownership.
-- `docs/code-principles.md`, `docs/observability-policy.md`, and `docs/skill-source-generation.md`.
+- `../../../skills/bill-feature/content.md`, token forwarding and the one-gate launch contract.
+- `../../../runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner/preflight/GoalPreflightService.kt`, read-only preflight.
+- `../../../runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/review/evidence/ReviewEvidenceBroker.kt`, review evidence authority.
+- `../../../runtime-kotlin/ARCHITECTURE.md`, design principles and durable state ownership.
+- `../../../docs/code-principles.md`, `docs/observability-policy.md`, and `docs/skill-source-generation.md`.
 - [CodeGraph CLI and integration documentation](https://github.com/colbymchenry/codegraph#cli-reference). Verify the selected release's actual CLI contract before binding the adapter.
 - [Shared experiment support](../SKILL-366-experiment-support/spec.md).
 

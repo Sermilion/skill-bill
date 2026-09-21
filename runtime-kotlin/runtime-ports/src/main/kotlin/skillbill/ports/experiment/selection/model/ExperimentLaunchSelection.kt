@@ -5,4 +5,6 @@ data class ExperimentLaunchSelection(
   val descriptors: List<String>,
   val availabilitySummary: String,
   val treatmentCapabilities: Set<String> = emptySet(),
+  val requiredLauncherCapabilities: Set<String> = emptySet(),
+  val setupRequirementLines: List<String> = emptyList(),
 )

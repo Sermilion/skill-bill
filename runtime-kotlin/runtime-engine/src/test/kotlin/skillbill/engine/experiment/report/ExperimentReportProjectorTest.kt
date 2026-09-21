@@ -142,6 +142,11 @@ class ExperimentReportProjectorTest {
     )
 
     val comparison = (projection[ExperimentReportPayloadKeys.METRIC_COMPARISONS] as List<*>).single() as Map<*, *>
+    assertEquals("degraded", projection[ExperimentReportPayloadKeys.COMPLETENESS])
+    assertEquals(
+      listOf("usage was not reported"),
+      projection[ExperimentReportPayloadKeys.EXCLUSION_REASONS],
+    )
     val treatment = comparison[ExperimentReportPayloadKeys.TREATMENT_VALUE] as Map<*, *>
     assertEquals("unavailable_incomplete", treatment[ExperimentReportPayloadKeys.AVAILABILITY])
     assertEquals("usage was not reported", treatment[ExperimentReportPayloadKeys.REASON])

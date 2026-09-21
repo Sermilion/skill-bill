@@ -1,0 +1,43 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://skill-bill.dev/contracts/codegraph-query-output-schema.yaml"
+properties:
+  contract_version:
+    const: "0.1"
+title: CodeGraph query CLI JSON output
+description: >
+  Raw array emitted by `codegraph query … --json` from the pinned release.
+type: array
+maxItems: 256
+items:
+  type: object
+  additionalProperties: true
+  required:
+    - node
+    - score
+  properties:
+    node:
+      type: object
+      additionalProperties: true
+      required:
+        - name
+        - filePath
+        - kind
+        - startLine
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 512
+        filePath:
+          type: string
+          minLength: 1
+          maxLength: 1024
+        kind:
+          type: string
+          minLength: 1
+          maxLength: 64
+        startLine:
+          type: integer
+          minimum: 1
+    score:
+      type: number

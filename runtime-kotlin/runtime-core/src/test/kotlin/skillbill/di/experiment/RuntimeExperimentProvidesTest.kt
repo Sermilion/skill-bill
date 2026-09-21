@@ -1,6 +1,7 @@
 package skillbill.di.experiment
 
 import skillbill.error.shellcontent.ExperimentIsolationCapabilityRefusalError
+import skillbill.infrastructure.host.experiment.codegraph.CodeGraphUsageLedgerHolder
 import skillbill.ports.experiment.navigation.ExperimentNavigationSessionRequest
 import java.nio.file.Path
 import kotlin.test.Test
@@ -10,7 +11,12 @@ import kotlin.test.assertNull
 class RuntimeExperimentProvidesTest {
   @Test
   fun `production measurement binding is absent until a provider is configured`() {
-    assertNull(object : RuntimeExperimentProvides {}.experimentArmMeasurementPort())
+    assertNull(
+      object : RuntimeExperimentProvides {}.experimentArmMeasurementPort(
+        descriptorCatalog = null,
+        usageLedger = CodeGraphUsageLedgerHolder,
+      ),
+    )
   }
 
   @Test

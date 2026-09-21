@@ -1,0 +1,19 @@
+contract_version: "0.1"
+name: codegraph
+descriptor_version: "1"
+execution_mode: goal_pair
+treatment_capability: codegraph
+required_launcher_capabilities:
+  - argv_deny_treatment_capability
+  - strip_inherited_mcp_servers
+  - path_isolation
+  - distinct_graph_index
+setup_requirements:
+  - optional CodeGraph binary download, verification, and install under the Skill Bill tools directory
+  - treatment worktree index build and incremental sync before graph queries
+measurement_requirements:
+  - install_duration_ms
+  - index_duration_ms
+  - sync_duration_ms
+  - query_count
+  - evidence_consumed_bytes

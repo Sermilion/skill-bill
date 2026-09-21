@@ -1,6 +1,7 @@
 package skillbill.engine.goalrunner.experiment
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.experiment.EXPERIMENT_PAIR_CONTRACT_VERSION
+import skillbill.contracts.experiment.ExperimentObservationPayloadKeys
 import skillbill.contracts.experiment.ExperimentPairPayloadKeys
 import skillbill.contracts.experiment.ExperimentReportPayloadKeys
 import skillbill.contracts.experiment.ExperimentTelemetryPayloadKeys
@@ -23,6 +24,11 @@ import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStopReport
+import skillbill.model.EnvironmentContext
+import skillbill.ports.experiment.codegraph.CodeGraphConfigurationKeys
+import skillbill.ports.experiment.codegraph.CodeGraphPairSetupPort
+import skillbill.ports.experiment.codegraph.model.CodeGraphInstalledTool
+import skillbill.ports.experiment.codegraph.model.CodeGraphPairSetupRequest
 import skillbill.ports.experiment.isolation.ExperimentArmIsolationContext
 import skillbill.ports.experiment.isolation.ExperimentArmStatePaths
 import skillbill.ports.experiment.isolation.ExperimentIsolationCapabilityPort
@@ -59,8 +65,9 @@ class ExperimentPairCoordinator(
   private val isolationCapability: ExperimentIsolationCapabilityPort,
   private val measurementPort: ExperimentArmMeasurementPort?,
   private val parentDelivery: ExperimentParentDeliveryPort,
+  private val environmentContext: EnvironmentContext,
+  private val codeGraphPairSetup: CodeGraphPairSetupPort? = null,
   private val telemetryRecorder: ExperimentTelemetryRecorder? = null,
-  private val random: Random = Random.Default,
   private val clock: Clock = Clock.systemUTC(),
 ) {
   private data class ArmLifecycleUpdate(
@@ -138,6 +145,7 @@ class ExperimentPairCoordinator(
     val selection: ExperimentLaunchSelection,
     val armOrder: List<ExperimentArmId>,
     val persisted: ExperimentPairPersistedState?,
+    val managedToolsBin: Path? = null,
   )
 
   private fun prepareExecution(
@@ -147,38 +155,86 @@ class ExperimentPairCoordinator(
     val pairId = request.experimentPairId ?: UUID.randomUUID().toString()
     val persisted = pairOwner.load(pairId)
     val armSelection = persisted?.let { ArmSelection(it.armOrder, it.randomSeed) } ?: drawArmOrder()
-    armSelection.order.forEach { arm ->
-      val armWorktree = armWorktreePath(request.repoRoot, pairId, arm)
+    validateArmIsolation(request.repoRoot, pairId, armSelection.order)
+    ensureCleanSource(request)
+    val installedTool = provisionCodeGraph(pairId, selection, persisted)
+    val managedToolsBin = installedTool?.binaryPath?.parent
+    persistPairIfNeeded(
+      PairPersistenceRequest(request, selection, pairId, armSelection, persisted, installedTool),
+    )
+    return GoalPairExecution(request, pairId, selection, armSelection.order, persisted, managedToolsBin)
+  }
+
+  private fun validateArmIsolation(repositoryRoot: Path, pairId: String, armOrder: List<ExperimentArmId>) {
+    armOrder.forEach { arm ->
+      val armWorktree = armWorktreePath(repositoryRoot, pairId, arm)
       isolationCapability.assertLaunchSupported(
         ExperimentArmIsolationContext(
           pairId = pairId,
           armId = arm,
           checkpointNamespacePrefix = ExperimentCheckpointNamespace.prefix(pairId, arm),
           treatmentEnabled = arm == ExperimentArmId.TREATMENT,
-          statePaths = statePaths(request.repoRoot, armWorktree),
+          statePaths = statePaths(repositoryRoot, armWorktree),
         ),
       )
     }
-    ensureCleanSource(request)
-    if (persisted == null) {
-      pairOwner.save(
-        ExperimentPairPersistedState(
-          pairId = pairId,
-          executionMode = ExperimentExecutionMode.GOAL_PAIR,
-          selectedNames = selection.normalizedNames,
-          armOrder = armSelection.order,
-          randomSeed = armSelection.seed,
-          pairPayload = frozenPairPayload(
-            request = request,
-            pairId = pairId,
-            selection = selection,
-            armOrder = armSelection.order,
-            randomSeed = armSelection.seed,
-          ),
-        ),
+  }
+
+  private fun provisionCodeGraph(
+    pairId: String,
+    selection: ExperimentLaunchSelection,
+    persisted: ExperimentPairPersistedState?,
+  ): CodeGraphInstalledTool? {
+    val persistedReleaseTag = persisted?.pairPayload
+      ?.get(ExperimentPairPayloadKeys.CODEGRAPH_TOOL_RELEASE_TAG)
+      ?.toString()
+      ?.takeIf(String::isNotBlank)
+    val installedTool = codeGraphPairSetup?.provisionAfterConfirmation(
+      CodeGraphPairSetupRequest(
+        pairId = pairId,
+        userHome = environmentContext.userHome,
+        selectedExperimentNames = selection.normalizedNames,
+        pinnedReleaseTag = persistedReleaseTag,
+        localExecutableOverride = environmentContext.environment[
+          CodeGraphConfigurationKeys.EXECUTABLE_OVERRIDE_ENV,
+        ]?.trim()?.takeIf(String::isNotBlank)?.let { Path.of(it) },
+      ),
+    )?.installedTool
+    if (persistedReleaseTag != null && installedTool?.releaseTag != null &&
+      installedTool.releaseTag != persistedReleaseTag
+    ) {
+      throw ExperimentIsolationCapabilityRefusalError(
+        "Resumable CodeGraph pair $pairId changed its pinned release from '$persistedReleaseTag'.",
       )
     }
-    return GoalPairExecution(request, pairId, selection, armSelection.order, persisted)
+    return installedTool
+  }
+
+  private fun persistPairIfNeeded(request: PairPersistenceRequest) {
+    if (request.persisted != null) return
+    val payload = frozenPairPayload(
+      request = request.request,
+      pairId = request.pairId,
+      selection = request.selection,
+      armOrder = request.armSelection.order,
+      randomSeed = request.armSelection.seed,
+    ).toMutableMap()
+    request.installedTool?.releaseTag?.let { releaseTag ->
+      payload[ExperimentPairPayloadKeys.CODEGRAPH_TOOL_RELEASE_TAG] = releaseTag
+    }
+    request.installedTool?.provenance?.let { provenance ->
+      payload[ExperimentPairPayloadKeys.CODEGRAPH_TOOL_PROVENANCE] = provenance
+    }
+    pairOwner.save(
+      ExperimentPairPersistedState(
+        pairId = request.pairId,
+        executionMode = ExperimentExecutionMode.GOAL_PAIR,
+        selectedNames = request.selection.normalizedNames,
+        armOrder = request.armSelection.order,
+        randomSeed = request.armSelection.seed,
+        pairPayload = payload,
+      ),
+    )
   }
 
   private fun ensureCleanSource(request: GoalRunnerRunRequest) {
@@ -286,6 +342,13 @@ class ExperimentPairCoordinator(
       } else {
         emptySet()
       },
+      experimentRequiredLauncherCapabilities = execution.selection.requiredLauncherCapabilities,
+      experimentManagedToolsBin = if (arm == ExperimentArmId.TREATMENT) execution.managedToolsBin else null,
+      experimentGraphIndexDirectory = if (arm == ExperimentArmId.TREATMENT) {
+        statePaths(execution.request.repoRoot, armWorktree).graphIndex
+      } else {
+        null
+      },
       deferRemotePublication = true,
     )
 
@@ -348,26 +411,30 @@ class ExperimentPairCoordinator(
         ExperimentReportProjector.project(payload, ExperimentExecutionMode.GOAL_PAIR.wireValue),
       )
     }
-    val controlOutcome = pairOwner.load(pairId)?.pairPayload
-      ?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
-      .let { it as? List<*> }
-      ?.filterIsInstance<Map<*, *>>()
-      ?.firstOrNull { it[ExperimentPairPayloadKeys.ARM_ID] == ExperimentArmId.CONTROL.wireValue }
-    val controlWorktree = armWorktreePath(execution.request.repoRoot, pairId, ExperimentArmId.CONTROL)
-    val controlCommitSha = (gitOperations.headCommitSha(controlWorktree) as? WorkflowGitOperationResult.Ok)
-      ?.value?.trim()?.takeIf(String::isNotBlank)
-    val publication = parentDelivery.reconcile(
-      pairId = pairId,
-      controlWorkflowId = controlOutcome?.get(ExperimentPairPayloadKeys.WORKFLOW_ID)?.toString()
-        ?: "$pairId:${ExperimentArmId.CONTROL.wireValue}",
-      controlCommitSha = controlCommitSha,
-      controlCompleted = controlOutcome?.get(ExperimentPairPayloadKeys.TERMINAL_STATUS) == "completed",
-      request = ExperimentParentDeliveryRequest(
-        issueKey = execution.request.issueKey,
-        controlRepoRoot = controlWorktree,
-      ),
-    )
-    updateDeliveryState(pairId, publication)
+    val persistedState = pairOwner.load(pairId)
+    if (persistedState?.pairPayload?.get(ExperimentPairPayloadKeys.DELIVERY_STATUS) != "published") {
+      val controlOutcome = persistedState?.pairPayload
+        ?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
+        .let { it as? List<*> }
+        ?.filterIsInstance<Map<*, *>>()
+        ?.firstOrNull { it[ExperimentPairPayloadKeys.ARM_ID] == ExperimentArmId.CONTROL.wireValue }
+      val controlWorktree = armWorktreePath(execution.request.repoRoot, pairId, ExperimentArmId.CONTROL)
+      val controlCommitSha = (gitOperations.headCommitSha(controlWorktree) as? WorkflowGitOperationResult.Ok)
+        ?.value?.trim()?.takeIf(String::isNotBlank)
+      val publication = parentDelivery.reconcile(
+        pairId = pairId,
+        controlWorkflowId = controlOutcome?.get(ExperimentPairPayloadKeys.WORKFLOW_ID)?.toString()
+          ?: "$pairId:${ExperimentArmId.CONTROL.wireValue}",
+        controlCommitSha = controlCommitSha,
+        controlCompleted = controlOutcome?.get(ExperimentPairPayloadKeys.TERMINAL_STATUS) == "completed",
+        request = ExperimentParentDeliveryRequest(
+          issueKey = execution.request.issueKey,
+          controlRepoRoot = controlWorktree,
+        ),
+      )
+      updateDeliveryState(pairId, publication)
+    }
+    codeGraphPairSetup?.releaseOwnedResources(pairId)
     telemetryRecorder?.record(
       pairId = pairId,
       cohort = ExperimentExecutionMode.GOAL_PAIR.wireValue,
@@ -423,13 +490,6 @@ class ExperimentPairCoordinator(
     throw ExperimentIsolationCapabilityRefusalError(
       "Experiment pair $pairId has no resumable arm and no complete durable outcome.",
     )
-  }
-
-  private fun drawArmOrder(): ArmSelection {
-    val seed = random.nextLong()
-    val first = if ((seed and 1L) == 0L) ExperimentArmId.CONTROL else ExperimentArmId.TREATMENT
-    val second = if (first == ExperimentArmId.CONTROL) ExperimentArmId.TREATMENT else ExperimentArmId.CONTROL
-    return ArmSelection(listOf(first, second), seed.toString())
   }
 
   private fun verifyFrozenSourceIdentity(
@@ -661,8 +721,6 @@ class ExperimentPairCoordinator(
     ).forEach { path -> Files.createDirectories(path) }
   }
 
-  private fun safePairId(pairId: String): String = pairId.replace(Regex("[^A-Za-z0-9._-]"), "-")
-
   private fun sourceTreeIdentity(repositoryRoot: Path, pairId: String): String {
     val branch = (gitOperations.currentBranch(repositoryRoot) as? WorkflowGitOperationResult.Ok)
       ?.value?.trim().orEmpty()
@@ -738,29 +796,36 @@ class ExperimentPairCoordinator(
   private fun observationMeasurements(measurements: ExperimentArmMeasurement): List<ExperimentObservationMeasurement> =
     listOf(
       ExperimentObservationMeasurement(
-        metricId = "attempt_count",
+        metricId = ExperimentObservationPayloadKeys.ATTEMPT_COUNT_METRIC_ID,
         quantity = 1.0,
         availability = TelemetryMeasurementAvailability.MEASURED.wireValue,
       ),
       ExperimentObservationMeasurement(
-        metricId = "setup_cost",
+        metricId = ExperimentObservationPayloadKeys.SETUP_COST_METRIC_ID,
         quantity = measurements.setupCost.quantity,
         availability = measurements.setupCost.availability,
         reason = measurements.setupCost.reason,
       ),
       ExperimentObservationMeasurement(
-        metricId = "usage",
+        metricId = ExperimentObservationPayloadKeys.USAGE_METRIC_ID,
         quantity = measurements.usage.quantity,
         availability = measurements.usage.availability,
         reason = measurements.usage.reason,
       ),
       ExperimentObservationMeasurement(
-        metricId = "cost",
+        metricId = ExperimentObservationPayloadKeys.COST_METRIC_ID,
         quantity = measurements.cost.quantity,
         availability = measurements.cost.availability,
         reason = measurements.cost.reason,
       ),
-    )
+    ) + measurements.additionalMeasurements.map { (metricId, value) ->
+      ExperimentObservationMeasurement(
+        metricId = metricId,
+        quantity = value.quantity,
+        availability = value.availability,
+        reason = value.reason,
+      )
+    }
 
   private fun recordArmObservation(pairId: String, arm: ExperimentArmId, workflowId: String) {
     val measurements = measurementPort?.measure(pairId, arm.wireValue, workflowId) ?: unavailableMeasurement()
@@ -808,6 +873,24 @@ private data class ArmSelection(
   val order: List<ExperimentArmId>,
   val seed: String,
 )
+
+private data class PairPersistenceRequest(
+  val request: GoalRunnerRunRequest,
+  val selection: ExperimentLaunchSelection,
+  val pairId: String,
+  val armSelection: ArmSelection,
+  val persisted: ExperimentPairPersistedState?,
+  val installedTool: CodeGraphInstalledTool?,
+)
+
+private fun drawArmOrder(): ArmSelection {
+  val seed = Random.Default.nextLong()
+  val first = if ((seed and 1L) == 0L) ExperimentArmId.CONTROL else ExperimentArmId.TREATMENT
+  val second = if (first == ExperimentArmId.CONTROL) ExperimentArmId.TREATMENT else ExperimentArmId.CONTROL
+  return ArmSelection(listOf(first, second), seed.toString())
+}
+
+private fun safePairId(pairId: String): String = pairId.replace(Regex("[^A-Za-z0-9._-]"), "-")
 
 private fun sha256Hex(bytes: ByteArray): String =
   MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { byte ->

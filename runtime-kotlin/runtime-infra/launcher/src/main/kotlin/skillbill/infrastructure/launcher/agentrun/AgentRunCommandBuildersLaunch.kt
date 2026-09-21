@@ -3,6 +3,7 @@ package skillbill.infrastructure.launcher.agentrun
 import com.fasterxml.jackson.databind.ObjectMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.GovernedReviewLaunchCapabilityError
+import skillbill.infrastructure.launcher.experiment.ExperimentLaunchIsolationResult
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
@@ -46,6 +47,7 @@ internal fun goalContinuationCommand(
   request: SkillRunRequest,
   agent: InstallAgent,
   databasePath: Path?,
+  launchIsolation: ExperimentLaunchIsolationResult = experimentLaunchIsolation(request),
 ): AgentRunCommand? {
   val context = request.goalContinuation ?: return null
   if (request.promptOverride != null) return null
@@ -53,7 +55,8 @@ internal fun goalContinuationCommand(
     command = goalContinuationArguments(request, agent, databasePath),
     workingDirectory = request.repoRoot,
     timeout = request.timeout,
-    environment = goalContinuationEnvironment(request),
+    environment = goalContinuationEnvironment(request) + launchIsolation.environment,
+    inheritEnvironment = launchIsolation.inheritEnvironment,
     idlePolicy = unstreamedLivenessPolicy(request),
   )
 }
@@ -103,6 +106,13 @@ internal fun MutableList<String>.addGoalContinuationArguments(context: SkillRunG
   add("--goal-branch")
   add(context.goalBranch)
   add("--suppress-pr")
+  addOptionalGoalIdentity(context)
+  addExperimentArguments(context)
+  addReviewBaselineArguments(context)
+  addAddonSelectionArgument(context)
+}
+
+private fun MutableList<String>.addOptionalGoalIdentity(context: SkillRunGoalContinuationContext) {
   context.parentWorkflowId?.takeIf(String::isNotBlank)?.let { parentWorkflowId ->
     add("--goal-parent-workflow-id")
     add(parentWorkflowId)
@@ -113,6 +123,36 @@ internal fun MutableList<String>.addGoalContinuationArguments(context: SkillRunG
   }
   add("--code-review-mode")
   add(context.codeReviewMode.wireValue)
+}
+
+private fun MutableList<String>.addExperimentArguments(context: SkillRunGoalContinuationContext) {
+  context.experimentArmId?.let { arm ->
+    add("--goal-experiment-arm")
+    add(arm.wireValue)
+  }
+  context.experimentPairId?.takeIf(String::isNotBlank)?.let { pairId ->
+    add("--goal-experiment-pair-id")
+    add(pairId)
+  }
+  if (context.experimentTreatmentCapabilities.isNotEmpty()) {
+    add("--goal-experiment-treatment-capabilities")
+    add(context.experimentTreatmentCapabilities.joinToString(","))
+  }
+  if (context.experimentRequiredLauncherCapabilities.isNotEmpty()) {
+    add("--goal-experiment-required-launcher-capabilities")
+    add(context.experimentRequiredLauncherCapabilities.joinToString(","))
+  }
+  context.experimentManagedToolsBin?.let { path ->
+    add("--goal-experiment-managed-tools-bin")
+    add(path.toString())
+  }
+  context.experimentGraphIndexDirectory?.let { path ->
+    add("--goal-experiment-graph-index-directory")
+    add(path.toString())
+  }
+}
+
+private fun MutableList<String>.addReviewBaselineArguments(context: SkillRunGoalContinuationContext) {
   context.reviewBaseline?.let { baseline ->
     add("--goal-review-base-sha")
     add(baseline.reviewBaseSha)
@@ -121,6 +161,9 @@ internal fun MutableList<String>.addGoalContinuationArguments(context: SkillRunG
       add(path)
     }
   }
+}
+
+private fun MutableList<String>.addAddonSelectionArgument(context: SkillRunGoalContinuationContext) {
   if (context.agentAddonSelection.entries.isNotEmpty()) {
     add("--agent-addon-selection-json")
     add(

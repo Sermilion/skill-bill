@@ -1,0 +1,26 @@
+package skillbill.contracts.experiment.codegraph
+
+object CodeGraphDependencyPayloadKeys {
+  const val CONTRACT_VERSION: String = "contract_version"
+  const val UPSTREAM: String = "upstream"
+  const val REPOSITORY: String = "repository"
+  const val RELEASE_TAG: String = "release_tag"
+  const val LICENSE_SPDX: String = "license_spdx"
+  const val ALLOWED_DOWNLOAD_HOSTS: String = "allowed_download_hosts"
+  const val PLATFORM_ASSETS: String = "platform_assets"
+  const val PLATFORM_ID: String = "platform_id"
+  const val ARCHIVE_KIND: String = "archive_kind"
+  const val ASSET_NAME: String = "asset_name"
+  const val DOWNLOAD_URL: String = "download_url"
+  const val SHA256: String = "sha256"
+  const val CLI: String = "cli"
+  const val BINARY_NAME: String = "binary_name"
+  const val VERSION_ARGV: String = "version_argv"
+  const val INIT_ARGV: String = "init_argv"
+  const val INDEX_ARGV: String = "index_argv"
+  const val SYNC_ARGV: String = "sync_argv"
+  const val QUERY_JSON_ARGV_PREFIX: String = "query_json_argv_prefix"
+  const val QUERY_OUTPUT_CONTRACT_VERSION: String = "query_output_contract_version"
+  const val TELEMETRY: String = "telemetry"
+  const val DISABLE_ENVIRONMENT: String = "disable_environment"
+}

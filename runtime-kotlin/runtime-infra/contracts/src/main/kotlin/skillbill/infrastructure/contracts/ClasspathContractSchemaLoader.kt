@@ -127,7 +127,7 @@ object ClasspathContractSchemaLoader {
 
   fun validate(schema: JsonSchema, instance: JsonNode): Set<ValidationMessage> = schema.validate(instance)
 
-  fun valueToTree(map: Map<String, Any?>): JsonNode = objectMapper.valueToTree(map)
+  fun valueToTree(value: Any?): JsonNode = objectMapper.valueToTree(value)
 
   fun validateSchemaIdentity(request: SchemaIdentityRequest) = validateIdentity(request)
 
