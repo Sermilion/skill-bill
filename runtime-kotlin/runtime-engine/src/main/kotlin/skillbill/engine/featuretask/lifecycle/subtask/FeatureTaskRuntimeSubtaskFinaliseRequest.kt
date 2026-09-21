@@ -11,4 +11,5 @@ data class FeatureTaskRuntimeSubtaskFinaliseRequest(
   val handoff: FeatureTaskRuntimeCommitPushHandoff,
   val metadata: FeatureTaskRuntimeCheckpointMetadata,
   val manifestCommitSha: String? = null,
+  val deferRemotePublication: Boolean = false,
 )

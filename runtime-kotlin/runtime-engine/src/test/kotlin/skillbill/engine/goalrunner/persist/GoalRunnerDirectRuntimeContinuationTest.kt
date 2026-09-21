@@ -10,6 +10,7 @@ import skillbill.engine.goalrunner.execution.support.withWorkflowId
 import skillbill.engine.goalrunner.launch.GoalRunnerLaunchReconciler
 import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import java.nio.file.Path
 import kotlin.test.Test
@@ -85,6 +86,51 @@ class GoalRunnerDirectRuntimeContinuationTest {
 
     assertNull(context.childWorkflowId)
     assertEquals("wftr-fresh-assigned", context.assignedWorkflowId)
+  }
+
+  @Test
+  fun `nested child inherits treatment policy while an ordinary request has none`() {
+    val store = InMemoryGoalManifestStore(
+      manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-child-runtime"),
+    )
+    val outcomeStore = RecordingOutcomeStore()
+    val reconciler = GoalRunnerLaunchReconciler(
+      manifestStore = store,
+      outcomeStore = outcomeStore,
+      progressReader = GoalRunnerProgressReader(outcomeStore),
+      activityStampWriter = testActivityStampWriter(),
+      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
+      clock = testHarnessClock,
+      diagnostics = NoopRuntimeDiagnostics,
+    )
+
+    val treatment = reconciler.subtaskLaunchRequest(
+      SubtaskLaunchRequestArgs(
+        issueKey = "SKILL-56",
+        subtaskId = 1,
+        request = wiringRunRequest().copy(
+          experimentArmId = ExperimentArmId.TREATMENT,
+          experimentTreatmentCapabilities = setOf("fixture-treatment"),
+        ),
+        assignedWorkflowId = null,
+        reviewBaseline = null,
+        spawnAuthorization = null,
+      ),
+    )
+    val ordinary = reconciler.subtaskLaunchRequest(
+      SubtaskLaunchRequestArgs(
+        issueKey = "SKILL-56",
+        subtaskId = 1,
+        request = wiringRunRequest(),
+        assignedWorkflowId = null,
+        reviewBaseline = null,
+        spawnAuthorization = null,
+      ),
+    )
+
+    assertEquals(setOf("fixture-treatment"), treatment.skillRunRequest.treatmentCapabilitiesEnabled)
+    assertEquals(emptySet(), ordinary.skillRunRequest.treatmentCapabilitiesEnabled)
+    assertEquals(emptySet(), ordinary.skillRunRequest.treatmentCapabilitiesDenied)
   }
 
   private fun wiringRunRequest(): GoalRunnerRunRequest = GoalRunnerRunRequest(

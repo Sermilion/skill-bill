@@ -182,6 +182,10 @@ class GovernedResourceCopyParityTest {
         "copyFeatureTaskRuntimeImplementationAttemptSchema",
         "copyFeatureTaskRuntimeCheckpointIdentitySchema",
         "copyFeatureTaskRuntimeQuarantineSchema",
+        "copyExperimentDescriptorSchema",
+        "copyExperimentPairSchema",
+        "copyExperimentObservationSchema",
+        "copyExperimentReportSchema",
       )
     expected.forEach { taskName ->
       assertContains(result, taskName)

@@ -3,6 +3,7 @@ import skillbill.infrastructure.workflow.git.checkpoint.GitCheckpointHistoryOper
 import skillbill.infrastructure.workflow.git.goal.GitGoalSubtaskReviewOperations
 import skillbill.infrastructure.workflow.git.scoped.GitScopedStagingOperations
 import skillbill.infrastructure.workflow.git.standard.GitStandardWorkflowGitOperations
+import skillbill.infrastructure.workflow.git.worktree.GitLinkedWorktreeOperations
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.ports.workflow.gitops.CheckpointHistoryGitOperations
 import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
@@ -15,9 +16,10 @@ import skillbill.ports.workflow.gitops.WorkflowGitBranchOperations
 import skillbill.ports.workflow.gitops.WorkflowGitCommitHistoryOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitRemoteOperations
-import skillbill.ports.workflow.gitops.WorkflowGitWorktreeOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
+import skillbill.ports.workflow.gitops.worktree.WorkflowGitLinkedWorktreeOperations
+import skillbill.ports.workflow.gitops.worktree.WorkflowGitWorktreeOperations
 import java.nio.file.Path
 
 class GitWorkflowGitOperations :
@@ -28,6 +30,7 @@ class GitWorkflowGitOperations :
   WorkflowGitWorktreeOperations by GitStandardWorkflowGitOperations,
   SuppressionEvidenceGitOperations by GitSuppressionEvidenceOperations {
   override val checkpointHistoryOperations: CheckpointHistoryGitOperations = GitCheckpointHistoryOperations
+  override val linkedWorktreeOperations: WorkflowGitLinkedWorktreeOperations = GitLinkedWorktreeOperations
   override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations = GitGoalSubtaskReviewOperations
   override val scopedStagingOperations: ScopedStagingGitOperations = GitScopedStagingOperations
   override val runtimePhaseFileManifestOperations: RuntimePhaseFileManifestGitOperations =

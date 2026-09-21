@@ -1,13 +1,12 @@
 package skillbill.engine.featuretask.lifecycle.subtask
 
-import skillbill.engine.featuretask.lifecycle.checkpoint.featureTaskRuntimeSubtaskCheckpointRefPrefix
+import skillbill.engine.experiment.isolation.ExperimentCheckpointNamespace
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.amendHeadCommit
 import skillbill.ports.workflow.gitops.deleteCheckpointRefsUnderPrefix
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.resolveCheckpointRef
 import skillbill.ports.workflow.gitops.updateCheckpointRef
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
 import java.nio.file.Path
 internal fun WorkflowGitOperations.writeSubtaskCommitPreservingHistory(
   request: SubtaskCommitPreservationRequest,
@@ -55,7 +54,7 @@ private fun preservePreAmendCheckpoint(
 ): WorkflowGitOperationResult? {
   val existing = gitOperations.resolveCheckpointRef(
     request.repoRoot,
-    FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
+    ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
     refName,
   )
   if (existing !is WorkflowGitOperationResult.Ok) {
@@ -69,7 +68,7 @@ private fun preservePreAmendCheckpoint(
   if (sweepFailure != null) return sweepFailure
   val written = gitOperations.updateCheckpointRef(
     request.repoRoot,
-    FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
+    ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
     refName,
     ownedHeadSha,
   )
@@ -93,10 +92,12 @@ private fun sweepForeignOccupant(
         "this checkpoint's to reuse",
     )
   }
-  val prefix = featureTaskRuntimeSubtaskCheckpointRefPrefix(request.identity.issueKey, request.identity.subtaskId)
+  val prefix =
+    "${ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot)}/" +
+      "${request.identity.issueKey.trim()}/${request.identity.subtaskId}/"
   val swept = gitOperations.deleteCheckpointRefsUnderPrefix(
     request.repoRoot,
-    FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
+    ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
     prefix,
   )
   if (swept !is WorkflowGitOperationResult.Ok) {
@@ -120,7 +121,11 @@ private fun verifyPreservedCheckpoint(
   refName: String,
   ownedHeadSha: String,
 ): WorkflowGitOperationResult? {
-  val resolved = gitOperations.resolveCheckpointRef(repoRoot, FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE, refName)
+  val resolved = gitOperations.resolveCheckpointRef(
+    repoRoot,
+    ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
+    refName,
+  )
   val preserved = resolved.value.orEmpty().trim()
   if (resolved !is WorkflowGitOperationResult.Ok || preserved != ownedHeadSha) {
     return preAmendPreservationFailure(

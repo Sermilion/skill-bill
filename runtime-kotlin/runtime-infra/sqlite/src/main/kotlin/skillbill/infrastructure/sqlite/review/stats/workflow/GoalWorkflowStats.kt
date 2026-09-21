@@ -38,6 +38,18 @@ internal fun loadGoalRows(connection: Connection, tableName: String): List<Map<S
     statement.executeQuery().use(::collectRows)
   }
 
+internal fun loadGoalRowsExcludingExperimentArms(connection: Connection, tableName: String): List<Map<String, Any?>> =
+  connection.prepareStatement(
+    """
+      SELECT source.*
+      FROM $tableName source
+      LEFT JOIN experiment_arm_outcomes arm ON arm.workflow_id = source.workflow_id
+      WHERE arm.workflow_id IS NULL
+    """.trimIndent(),
+  ).use { statement ->
+    statement.executeQuery().use(::collectRows)
+  }
+
 internal fun buildGoalStats(runRows: List<Map<String, Any?>>, subtaskRows: List<Map<String, Any?>>): GoalWorkflowStats {
   val runs = runRows.map(::parseGoalRunRow)
   val subtasks = subtaskRows.map(::parseGoalSubtaskRow)

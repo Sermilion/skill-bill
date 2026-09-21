@@ -15,8 +15,8 @@ import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 
 internal interface RuntimeGoalRunnerLaunchProvides {
   @Provides @JvmSynthetic
-  fun goalPullRequestPort(callbacks: OptionalCallbacks, adapter: GhGoalPullRequestPort): GoalPullRequestPort =
-    callbacks.goalPullRequestPort ?: adapter
+  fun goalPullRequestPort(callbacks: OptionalCallbacks): GoalPullRequestPort =
+    callbacks.goalPullRequestPort ?: GhGoalPullRequestPort()
 
   @Provides @JvmSynthetic
   fun goalRunnerSubtaskLauncher(adapter: AgentRunGoalRunnerSubtaskLauncher): GoalRunnerSubtaskLauncher = adapter

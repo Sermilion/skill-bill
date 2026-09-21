@@ -1,0 +1,262 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://skill-bill.dev/contracts/experiment-report-schema.yaml"
+title: Experiment report projection
+description: >
+  Text and JSON reports derive from the same validated durable projection.
+type: object
+additionalProperties: false
+required:
+  - contract_version
+  - pair_id
+  - cohort
+  - completeness
+  - selected_experiment_names
+  - delivery_arm
+properties:
+  contract_version:
+    const: "0.1"
+  pair_id:
+    type: string
+    minLength: 1
+    maxLength: 128
+  cohort:
+    type: string
+    enum:
+      - goal
+      - navigation
+  completeness:
+    type: string
+    enum:
+      - complete
+      - incomplete
+      - degraded
+  selected_experiment_names:
+    type: array
+    minItems: 0
+    maxItems: 16
+    items:
+      type: string
+      minLength: 1
+  raw_measurements:
+    type: array
+    minItems: 0
+    maxItems: 256
+    items:
+      type: object
+      additionalProperties: true
+  delivery_arm:
+    type: string
+    enum:
+      - control
+      - treatment
+      - undecided
+  source_fingerprints:
+    type: object
+    additionalProperties: false
+    properties:
+      repository_identity:
+        type: string
+        minLength: 1
+      source_commit_sha:
+        type: string
+        minLength: 1
+      source_tree_sha:
+        type: string
+        minLength: 1
+      spec_bundle_hash:
+        type: string
+        minLength: 1
+      effective_config_hash:
+        type: string
+        minLength: 1
+      skill_bill_version:
+        type: string
+        minLength: 1
+  exclusion_reasons:
+    type: array
+    minItems: 0
+    maxItems: 16
+    items:
+      type: string
+      minLength: 1
+  arm_summaries:
+    type: array
+    minItems: 0
+    maxItems: 2
+    items:
+      $ref: "#/$defs/armSummary"
+  metric_comparisons:
+    type: array
+    minItems: 0
+    maxItems: 32
+    items:
+      $ref: "#/$defs/metricComparison"
+  total_experiment_spend:
+    $ref: "#/$defs/spendSummary"
+  execution_cost:
+    oneOf:
+      - type: number
+      - $ref: "#/$defs/quantityWithAvailability"
+  setup_cost:
+    oneOf:
+      - type: number
+      - $ref: "#/$defs/quantityWithAvailability"
+$defs:
+  armSummary:
+    type: object
+    additionalProperties: false
+    required:
+      - arm_id
+      - terminal_status
+    properties:
+      arm_id:
+        type: string
+        enum:
+          - control
+          - treatment
+      terminal_status:
+        type: string
+        minLength: 1
+      failure_reason:
+        type: string
+        minLength: 1
+        maxLength: 512
+      workflow_id:
+        type: string
+        minLength: 1
+      worktree_path:
+        type: string
+        minLength: 1
+      execution_cost:
+        $ref: "#/$defs/quantityWithAvailability"
+      setup_cost:
+        $ref: "#/$defs/quantityWithAvailability"
+      delivered_paths:
+        type: array
+        items:
+          type: string
+          minLength: 1
+      shortlisted_paths:
+        type: array
+        items:
+          type: string
+          minLength: 1
+      read_receipts:
+        type: array
+        items:
+          type: object
+          additionalProperties: true
+      attempt_count:
+        type: integer
+        minimum: 0
+      labelled_criteria:
+        type: integer
+        minimum: 0
+      total_criteria:
+        type: integer
+        minimum: 0
+      precision_available:
+        type: boolean
+      excluded_paths:
+        type: array
+        items:
+          type: string
+          minLength: 1
+      restricted_baseline:
+        type: boolean
+      delivered_criteria:
+        type: integer
+        minimum: 0
+      relevant_reads:
+        type: integer
+        minimum: 0
+      precision:
+        type: number
+        minimum: 0
+  metricComparison:
+    type: object
+    additionalProperties: false
+    required:
+      - metric_id
+      - direction
+      - control_value
+      - treatment_value
+      - absolute_savings
+    properties:
+      metric_id:
+        type: string
+        minLength: 1
+      direction:
+        type: string
+        enum:
+          - lower_is_better
+          - higher_is_better
+      control_value:
+        $ref: "#/$defs/quantityWithAvailability"
+      treatment_value:
+        $ref: "#/$defs/quantityWithAvailability"
+      absolute_savings:
+        $ref: "#/$defs/quantityWithAvailability"
+      percent_savings:
+        $ref: "#/$defs/quantityWithAvailability"
+      setup_inclusive_absolute_savings:
+        $ref: "#/$defs/quantityWithAvailability"
+      setup_inclusive_percent_savings:
+        $ref: "#/$defs/quantityWithAvailability"
+      percent_savings_omitted_reason:
+        type: string
+        minLength: 1
+  spendSummary:
+    type: object
+    additionalProperties: false
+    required:
+      - availability
+    properties:
+      availability:
+        type: string
+        enum:
+          - measured
+          - unavailable_no_durable_state
+          - unavailable_unsupported
+          - unavailable_incomplete
+          - unknown
+      amount:
+        type: number
+      reason:
+        type: string
+        minLength: 1
+  quantityWithAvailability:
+    type: object
+    additionalProperties: false
+    required:
+      - availability
+    properties:
+      availability:
+        type: string
+        enum:
+          - measured
+          - unavailable_no_durable_state
+          - unavailable_unsupported
+          - unavailable_incomplete
+          - unknown
+      quantity:
+        type: number
+      reason:
+        type: string
+        minLength: 1
+    allOf:
+      - if:
+          properties:
+            availability:
+              const: measured
+        then:
+          required:
+            - quantity
+      - if:
+          properties:
+            availability:
+              not:
+                const: measured
+        then:
+          required:
+            - reason

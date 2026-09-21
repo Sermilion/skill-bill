@@ -2,6 +2,7 @@ package skillbill.cli.core
 
 import com.github.ajalt.clikt.core.CliktCommand
 import me.tatarka.inject.annotations.Inject
+import skillbill.cli.experiment.ExperimentsCommand
 import skillbill.cli.install.core.InstallTopLevelCommands
 import skillbill.cli.learning.LearningsCommand
 import skillbill.cli.review.ReviewTopLevelCommands
@@ -33,6 +34,7 @@ class UtilityCliCommandGroup(
   workflowGoalFeature: WorkflowGoalFeatureCliCommands,
   systemMaintenance: SystemMaintenanceCliCommands,
   misc: MiscCliCommands,
+  experimentsCommand: ExperimentsCommand,
 ) {
   val commands: List<CliktCommand> =
     workflowGoalFeature.workflowCommands.commands +
@@ -51,6 +53,7 @@ class UtilityCliCommandGroup(
         misc.configCommand,
         misc.workCommands.command,
         misc.agentAddonCommand,
+        experimentsCommand,
       )
 }
 

@@ -1,6 +1,7 @@
 package skillbill.engine.goalrunner.model
 
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
@@ -23,6 +24,13 @@ data class GoalRunnerRunRequest(
   val agentAddonSelection: HydratedAgentAddonSelection = HydratedAgentAddonSelection(),
   val stopAfterSubtaskId: Int? = null,
   val observabilitySequenceStart: Int = DEFAULT_GOAL_OBSERVABILITY_SEQUENCE_START,
+  val experimentsParameter: String? = null,
+  val savedExperimentSelection: List<String>? = null,
+  val experimentPairId: String? = null,
+  val experimentArmId: ExperimentArmId? = null,
+  val experimentTreatmentCapabilities: Set<String> = emptySet(),
+  val experimentTreatmentCapabilitiesDenied: Set<String> = emptySet(),
+  val deferRemotePublication: Boolean = false,
 ) {
   init {
     require(issueKey.isNotBlank()) { "issueKey is required." }

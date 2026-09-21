@@ -132,9 +132,11 @@ private fun FeatureTaskRuntimeSubtaskFinalisation.finalizeCommittedSubtask(
   input: FinalizeCommittedSubtaskInput,
 ): FeatureTaskRuntimeSubtaskFinalisationResult {
   val forcedWithLease = input.rewrites && remoteDiverged(input.branch, input.commitSha)
-  val pushFailure = push(input.branch, input.request.identity, input.commitSha, forcedWithLease)
-  if (pushFailure != null) return blocked(pushFailure)
-  if (!input.request.manifestCommitSha.isNullOrBlank()) {
+  if (!input.request.deferRemotePublication) {
+    val pushFailure = push(input.branch, input.request.identity, input.commitSha, forcedWithLease)
+    if (pushFailure != null) return blocked(pushFailure)
+  }
+  if (!input.request.deferRemotePublication && !input.request.manifestCommitSha.isNullOrBlank()) {
     gitOperations.pruneSubtaskCheckpointRefs(
       repoRoot = repoRoot,
       request = FeatureTaskRuntimeCheckpointRefPruneRequest(

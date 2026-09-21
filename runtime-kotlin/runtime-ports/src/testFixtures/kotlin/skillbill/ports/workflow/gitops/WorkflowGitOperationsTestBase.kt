@@ -3,6 +3,7 @@ package skillbill.ports.workflow.gitops
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
+import skillbill.ports.workflow.gitops.worktree.WorkflowGitLinkedWorktreeOperations
 import java.nio.file.Path
 
 abstract class WorkflowGitOperationsTestBase :
@@ -13,6 +14,9 @@ abstract class WorkflowGitOperationsTestBase :
 
   override val checkpointHistoryOperations: CheckpointHistoryGitOperations =
     UnavailableCheckpointHistoryGitOperations
+
+  override val linkedWorktreeOperations: WorkflowGitLinkedWorktreeOperations =
+    UnavailableWorkflowGitLinkedWorktreeOperations
 
   override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations = NoopGoalSubtaskReviewGitOperations
 

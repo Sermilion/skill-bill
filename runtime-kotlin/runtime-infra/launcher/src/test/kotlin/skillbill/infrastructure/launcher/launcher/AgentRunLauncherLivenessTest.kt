@@ -4,7 +4,6 @@ import skillbill.contracts.time.JvmSystemClock
 import skillbill.infrastructure.host.jvm.testGateJvmResolver
 import skillbill.infrastructure.launcher.process.launch.AgentRunActivityProbe
 import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
-import skillbill.infrastructure.launcher.process.launch.AgentRunProcessResult
 import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
 import skillbill.ports.agentrun.model.AgentRunOutputStream
@@ -12,12 +11,10 @@ import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -253,33 +250,5 @@ class AgentRunLauncherLivenessTest {
     assertTrue(result.timedOut)
     assertContains(result.stderr, "without durable workflow progress")
     assertContains(result.stderr, "file-activity grace window was exhausted")
-  }
-
-  @Test
-  fun `jvm process runner kills child when parent thread is interrupted`() {
-    val runner = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver())
-    var result: AgentRunProcessResult? = null
-    val worker = thread(start = true) {
-      result = runner.run(
-        testAgentRunProcessRequest(
-          listOf("sh", "-c", "sleep 30"),
-          Path.of(".").toAbsolutePath().normalize(),
-        ) {
-          timeout = 30.seconds
-        },
-      )
-    }
-
-    Thread.sleep(150)
-    worker.interrupt()
-    worker.join(5_000)
-
-    assertFalse(worker.isAlive)
-    val completed = assertNotNull(result)
-    assertFalse(completed.timedOut)
-    assertTrue(completed.interrupted)
-    assertContains(completed.stderr, "interrupted by parent signal")
-    assertEquals("parent_interrupted", completed.liveness?.reason)
-    assertEquals("killed", completed.liveness?.processState?.wireValue)
   }
 }

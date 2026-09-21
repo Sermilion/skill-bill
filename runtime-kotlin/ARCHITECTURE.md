@@ -537,6 +537,8 @@ and `:runtime-infra:sqlite`.
   and stamp types for IDE status presentation owned by `runtime-domain`.
 - `skillbill.engine`: feature-task run loop, goal runner, goal planning, and
   planning projection use cases owned by `runtime-engine`.
+- `skillbill.experiment`: experiment selection policy owned by `runtime-domain`.
+- `skillbill.experiment.model`: experiment domain models owned by `runtime-domain`.
 
 ### Goal-runner execution lifetime (`DefaultGoalRunnerExecutionCoordinator`)
 
@@ -857,6 +859,8 @@ skillbill.di
 skillbill.domain.skillremove
 skillbill.engine
 skillbill.error
+skillbill.experiment
+skillbill.experiment.model
 skillbill.featurespec
 skillbill.goalrunner
 skillbill.idestatus

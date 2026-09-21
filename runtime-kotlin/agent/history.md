@@ -1,3 +1,11 @@
+## [2026-09-21] SKILL-366 subtask 1 — Experiment execution and reports
+Areas: orchestration/contracts, runtime-kotlin/{runtime-contracts,runtime-domain,runtime-engine,runtime-ports,runtime-infra,runtime-cli}, skills/bill-feature
+- Added manifest-backed experiment selection, paired goal/navigation execution seams, arm isolation and persistence, observation/report projections, telemetry boundaries, and CLI surfaces.
+- Pattern: keep experiment contracts, selection identity, durable pair ownership, and mode-specific evidence behind typed ports and one engine-owned projection path. reusable
+- Known limitations: goal entry wiring, full linked-worktree identity capture, read-only navigation discovery, complete preflight summary, and experiment-row purge remain partial or deferred.
+Feature flag: N/A
+Acceptance criteria: 8/12 implemented
+
 ## [2026-09-19] SKILL-362 — Truthful IDE liveness
 Areas: runtime-kotlin/{runtime-engine,runtime-application,runtime-infra/sqlite,runtime-ports,agent}, intellij-plugin
 - Separated operator pause from execution liveness: expired leases and idle execution project idle/active, while explicit pauses retain `paused_at`; the plugin maps idle to Idle.

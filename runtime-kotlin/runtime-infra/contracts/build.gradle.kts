@@ -144,6 +144,18 @@ private val governedResourceSpecs =
     "copyFeatureTaskRuntimeQuarantineSchema|" +
       "$contractSource/feature-task-runtime-quarantine-schema.yaml|" +
       "$infraContractsResourceRoot|SKILL-140: canonical quarantine schema",
+    "copyExperimentDescriptorSchema|" +
+      "$contractSource/experiment-descriptor-schema.yaml|" +
+      "$infraContractsResourceRoot|SKILL-366: canonical experiment descriptor schema",
+    "copyExperimentPairSchema|" +
+      "$contractSource/experiment-pair-schema.yaml|" +
+      "$infraContractsResourceRoot|SKILL-366: canonical experiment pair schema",
+    "copyExperimentObservationSchema|" +
+      "$contractSource/experiment-observation-schema.yaml|" +
+      "$infraContractsResourceRoot|SKILL-366: canonical experiment observation schema",
+    "copyExperimentReportSchema|" +
+      "$contractSource/experiment-report-schema.yaml|" +
+      "$infraContractsResourceRoot|SKILL-366: canonical experiment report schema",
   ).map(::governedResourceSpec)
 
 governedResources {

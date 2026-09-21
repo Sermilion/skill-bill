@@ -28,12 +28,14 @@ data class RepoLocalConfig(
   val specType: SpecType,
   val reviewContextBudget: ReviewContextBudgetPolicy = ReviewContextBudgetPolicy.DEFAULT,
   val validationGate: ValidationGateRepoConfig = ValidationGateRepoConfig.defaults(),
+  val experimentsAvailability: ExperimentAvailabilityPolicy? = null,
 ) {
   companion object {
     fun defaults(): RepoLocalConfig = RepoLocalConfig(
       specType = SpecType.LOCAL,
       reviewContextBudget = ReviewContextBudgetPolicy.DEFAULT,
       validationGate = ValidationGateRepoConfig.defaults(),
+      experimentsAvailability = null,
     )
   }
 }

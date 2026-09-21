@@ -46,6 +46,7 @@ import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
 import skillbill.engine.goalrunner.GoalRunner
+import skillbill.engine.goalrunner.experiment.ExperimentPairCoordinator
 import skillbill.engine.goalrunner.model.DEFAULT_GOAL_PLANNING_BUDGET
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
@@ -90,8 +91,17 @@ class GoalRunSubcommands(
 )
 
 @Inject
-class GoalRunCommand(
+class GoalRunExecution(
   private val goalRunner: GoalRunner,
+  private val experimentPairCoordinator: ExperimentPairCoordinator,
+) {
+  fun run(request: GoalRunnerRunRequest) =
+    if (request.experimentsParameter == null) goalRunner.run(request) else experimentPairCoordinator.run(request)
+}
+
+@Inject
+class GoalRunCommand(
+  private val execution: GoalRunExecution,
   private val runtimeProvenanceService: RuntimeProvenanceService,
   private val agentAddonSelectionPort: AgentAddonSelectionPort,
   private val externalAgentAddonSourceConfigPort: ExternalAgentAddonSourceConfigPort,
@@ -160,6 +170,10 @@ class GoalRunCommand(
     "--debug-child-output",
     help = "Show full child stdout/stderr. Noisy; default output keeps raw child streams hidden.",
   ).flag(default = false)
+  private val experiments by option(
+    "--experiments",
+    help = "Experiment selection for this goal run. Use none to disable or a comma-separated kebab-case list.",
+  )
 
   override val invokeWithoutSubcommand: Boolean = true
 
@@ -230,9 +244,8 @@ class GoalRunCommand(
       ),
     )
     presenter.emitStartupProvenance()
-    val report = goalRunner.run(
-      runRequest(runIssueKey, invokedAgentId, hydratedSelection, presenter, effectiveRepoRoot),
-    )
+    val request = runRequest(runIssueKey, invokedAgentId, hydratedSelection, presenter, effectiveRepoRoot)
+    val report = execution.run(request)
     val payload = report.toGoalRunCliMap()
     state.completeText(goalRunText(payload), payload, exitCode = payload.goalExitCode())
     drainTelemetryOnCompletion(telemetryService, diagnostics)
@@ -257,5 +270,6 @@ class GoalRunCommand(
     codeReviewMode = parseCodeReviewMode(codeReviewMode),
     agentAddonSelection = hydratedSelection,
     stopAfterSubtaskId = stopAfterSubtask,
+    experimentsParameter = experiments,
   )
 }
