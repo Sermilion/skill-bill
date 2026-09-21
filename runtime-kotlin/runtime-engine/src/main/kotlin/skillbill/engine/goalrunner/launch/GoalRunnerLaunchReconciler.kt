@@ -18,6 +18,7 @@ import skillbill.engine.goalrunner.model.missingPrefixRecoveryCandidate
 import skillbill.engine.goalrunner.model.missingResultPrefixDiagnostics
 import skillbill.engine.goalrunner.review.effectiveAgentAddonSelection
 import skillbill.engine.goalrunner.telemetry.GoalRunnerProgressEventEmitter
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.goalrunner.GoalRunnerOutcomeReconciler
 import skillbill.goalrunner.GoalRunnerQualityGateSelectionResolver
 import skillbill.goalrunner.model.GoalRunnerLaunchFacts
@@ -25,8 +26,11 @@ import skillbill.goalrunner.model.GoalRunnerLivenessSnapshot
 import skillbill.goalrunner.model.GoalRunnerLivenessState
 import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
+import skillbill.ports.agentrun.model.AgentRunActivityStampSink
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
+import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
+import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
@@ -51,6 +55,14 @@ class GoalRunnerLaunchReconciler(
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
 ) {
+  private data class SubtaskLaunchDependencies(
+    val tickReader: GoalRunnerTickProgressReader,
+    val progressEmitter: GoalRunnerProgressEventEmitter,
+    val goalContinuation: SkillRunGoalContinuationContext?,
+    val activityStampSink: AgentRunActivityStampSink,
+    val worktreeEditObserver: AgentRunWorktreeEditObserver,
+  )
+
   internal fun subtaskLaunchRequest(args: SubtaskLaunchRequestArgs): GoalRunnerSubtaskLaunchRequest {
     val issueKey = args.issueKey
     val subtaskId = args.subtaskId
@@ -88,25 +100,57 @@ class GoalRunnerLaunchReconciler(
       resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId },
       resolvePhaseId = { tickReader.progressState()?.childProgress?.currentStepId },
     )
+    return buildLaunchRequest(
+      args,
+      SubtaskLaunchDependencies(tickReader, progressEmitter, goalContinuation, activityStampSink, worktreeEditObserver),
+      spawnAuthorization,
+    )
+  }
+
+  private fun buildLaunchRequest(
+    args: SubtaskLaunchRequestArgs,
+    dependencies: SubtaskLaunchDependencies,
+    spawnAuthorization: AgentRunSpawnAuthorization?,
+  ): GoalRunnerSubtaskLaunchRequest {
+    val request = args.request
     return GoalRunnerSubtaskLaunchRequest(
       invokedAgentId = request.invokedAgentId,
       configuredAgentOverrideId = request.configuredAgentOverrideId,
       skillRunRequest = SkillRunRequest(
-        issueKey = issueKey,
+        issueKey = args.issueKey,
         repoRoot = request.repoRoot,
-        subtaskId = subtaskId,
+        subtaskId = args.subtaskId,
         timeout = request.timeout,
         progressIdleTimeout = request.progressIdleTimeout,
-        progressProbe = progressProbe(tickReader, subtaskId),
-        declaredProgressProbe = declaredProgressProbe(tickReader),
-        progressEmitter = progressEmitter,
+        progressProbe = progressProbe(dependencies.tickReader, args.subtaskId),
+        declaredProgressProbe = declaredProgressProbe(dependencies.tickReader),
+        progressEmitter = dependencies.progressEmitter,
         outputSink = request.outputSink,
-        readOnlyPhase = goalContinuation?.lastResumableStep ==
+        readOnlyPhase = dependencies.goalContinuation?.lastResumableStep ==
           FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-        goalContinuation = goalContinuation,
+        treatmentCapabilitiesEnabled = if (
+          request.experimentArmId == ExperimentArmId.TREATMENT ||
+          dependencies.goalContinuation?.experimentArmId == ExperimentArmId.TREATMENT
+        ) {
+          request.experimentTreatmentCapabilities.ifEmpty {
+            dependencies.goalContinuation?.experimentTreatmentCapabilities.orEmpty()
+          }
+        } else {
+          emptySet()
+        },
+        treatmentCapabilitiesDenied = if (request.experimentArmId == ExperimentArmId.CONTROL) {
+          request.experimentTreatmentCapabilitiesDenied.ifEmpty {
+            request.experimentTreatmentCapabilities
+          }
+        } else {
+          emptySet()
+        },
+        denyRemotePublication = request.deferRemotePublication ||
+          dependencies.goalContinuation?.deferRemotePublication == true,
+        goalContinuation = dependencies.goalContinuation,
         spawnAuthorization = spawnAuthorization,
-        activityStampSink = activityStampSink,
-        worktreeEditObserver = worktreeEditObserver,
+        activityStampSink = dependencies.activityStampSink,
+        worktreeEditObserver = dependencies.worktreeEditObserver,
       ),
     )
   }
@@ -139,6 +183,9 @@ class GoalRunnerLaunchReconciler(
         lastResumableStep = subtask.lastResumableStep?.takeIf(String::isNotBlank),
         childWorkflowId = childWorkflowId,
         assignedWorkflowId = assignedWorkflowId,
+        experimentArmId = request.experimentArmId,
+        experimentTreatmentCapabilities = request.experimentTreatmentCapabilities,
+        deferRemotePublication = request.deferRemotePublication,
         codeReviewMode = request.codeReviewMode ?: CodeReviewExecutionMode.DEFAULT,
         validationDepth = ValidationDepth.FULL,
         qualityGateSelection = GoalRunnerQualityGateSelectionResolver.resolve(state.manifest, subtaskId),

@@ -16,14 +16,11 @@ internal interface RuntimeWorkflowProvides {
   fun repositoryRoot(context: EnvironmentContext): RepositoryRoot = RuntimeBootstrapBindings.repositoryRoot(context)
 
   @Provides @JvmSynthetic
-  fun gitWorkflowGitOperations(): GitWorkflowGitOperations = GitWorkflowGitOperations()
+  fun workflowGitOperations(workflowOps: WorkflowOpsContext): WorkflowGitOperations =
+    workflowOps.workflowGitOperations ?: GitWorkflowGitOperations()
 
   @Provides @JvmSynthetic
-  fun workflowGitOperations(workflowOps: WorkflowOpsContext, git: GitWorkflowGitOperations): WorkflowGitOperations =
-    workflowOps.workflowGitOperations ?: git
-
-  @Provides @JvmSynthetic
-  fun decompositionManifestStore(store: FileSystemDecompositionManifestFileStore): DecompositionManifestStore = store
+  fun decompositionManifestStore(): DecompositionManifestStore = FileSystemDecompositionManifestFileStore()
 
   @Provides @JvmSynthetic
   fun decompositionManifestProjectionWriter(

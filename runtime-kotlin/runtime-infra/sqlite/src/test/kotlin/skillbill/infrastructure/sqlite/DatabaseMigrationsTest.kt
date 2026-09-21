@@ -99,6 +99,9 @@ class DatabaseMigrationsTest {
         39 to "ensure-schema-columns-and-heals",
         40 to "migrate-legacy-goal-runner-controls",
         41 to "migrate-legacy-telemetry-outbox",
+        42 to "skill-366-add-experiment-pair-tables",
+        43 to "skill-366-add-experiment-pair-leases",
+        44 to "skill-366-preserve-experiment-arm-outcomes",
       ),
       migrationDefinitions,
     )

@@ -57,6 +57,24 @@ class GoalRunnerFinalization(
   ): GoalRunnerRunReport {
     reconcileBeforeFinalization(state, request, ledger)
     val finalState = manifestStore.save(state)
+    if (request.deferRemotePublication) {
+      val findingsLedger = resolveFindingsLedger(finalState.manifest.issueKey)
+      return completed(
+        finalState.manifest,
+        attempted,
+        pullRequestUrl = null,
+        pullRequestStatus = GoalPullRequestStatus.DEFERRED,
+        findingsLedger,
+      )
+    }
+    return finalizePublication(finalState, request, attempted)
+  }
+
+  private fun finalizePublication(
+    finalState: GoalRunnerManifestState,
+    request: GoalRunnerRunRequest,
+    attempted: List<Int>,
+  ): GoalRunnerRunReport {
     commitAllRemainingWorktree(finalState.manifest, request)?.let { reason ->
       return stopped(
         StoppedReportArgs(

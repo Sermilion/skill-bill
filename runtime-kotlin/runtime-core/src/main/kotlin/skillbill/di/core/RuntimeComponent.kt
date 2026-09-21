@@ -19,6 +19,8 @@ import skillbill.application.uninstall.SkillBillUninstallService
 import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.work.WorkListService
 import skillbill.application.workflow.service.WorkflowService
+import skillbill.di.experiment.RuntimeExperimentProvides
+import skillbill.di.experiment.RuntimeExperimentTelemetryProvides
 import skillbill.di.featurespec.RuntimeFeatureSpecProvides
 import skillbill.di.featuretask.RuntimeFeatureTaskProvides
 import skillbill.di.featuretask.RuntimeFeatureTaskValidatorProvides
@@ -46,6 +48,8 @@ import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.GoalOperatorDecisionService
 import skillbill.engine.goalrunner.GoalRunner
+import skillbill.engine.goalrunner.experiment.ExperimentGoalRunnerFactory
+import skillbill.engine.goalrunner.experiment.ExperimentGoalRunnerPort
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.GoalPlanningLogService
 import skillbill.engine.goalrunner.preflight.GoalPreflightService
@@ -101,6 +105,8 @@ abstract class RuntimeComponent(
   RuntimeScaffoldProvides,
   RuntimeScaffoldValidationProvides,
   RuntimeInstallerProvides,
+  RuntimeExperimentProvides,
+  RuntimeExperimentTelemetryProvides,
   RuntimeDiagnosticsProvides {
   private val resolvedRuntimeContext: RuntimeContext by lazy {
     RuntimeBootstrapBindings.runtimeContext(inputRuntimeContext)
@@ -108,6 +114,12 @@ abstract class RuntimeComponent(
 
   @Provides @JvmSynthetic
   fun runtimeContext(): RuntimeContext = resolvedRuntimeContext
+
+  @Provides @JvmSynthetic
+  fun experimentGoalRunnerFactory(): ExperimentGoalRunnerFactory = ExperimentGoalRunnerFactory { context ->
+    val component = RuntimeComponent::class.create(context)
+    ExperimentGoalRunnerPort { request -> component.goalRunner.run(request) }
+  }
 
   @Provides @JvmSynthetic
   fun environmentContext(ctx: RuntimeContext): EnvironmentContext = ctx.environment

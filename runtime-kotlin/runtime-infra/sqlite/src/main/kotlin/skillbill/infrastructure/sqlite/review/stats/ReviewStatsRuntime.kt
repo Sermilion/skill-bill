@@ -16,7 +16,7 @@ import skillbill.infrastructure.sqlite.review.stats.health.buildReviewHealthStat
 import skillbill.infrastructure.sqlite.review.stats.workflow.buildFeatureTaskRuntimeStats
 import skillbill.infrastructure.sqlite.review.stats.workflow.buildFeatureVerifyStats
 import skillbill.infrastructure.sqlite.review.stats.workflow.buildGoalStats
-import skillbill.infrastructure.sqlite.review.stats.workflow.loadGoalRows
+import skillbill.infrastructure.sqlite.review.stats.workflow.loadGoalRowsExcludingExperimentArms
 import skillbill.infrastructure.sqlite.review.stats.workflow.loadRows
 import skillbill.ports.review.model.ReviewRepositoryStatsSnapshot
 import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
@@ -61,8 +61,8 @@ internal object ReviewStatsRuntime {
     buildFeatureTaskRuntimeStats(loadRows(connection, "feature_task_runtime_sessions"))
 
   fun goalStats(connection: Connection): GoalWorkflowStats = buildGoalStats(
-    loadGoalRows(connection, "goal_run_sessions"),
-    loadGoalRows(connection, "goal_subtask_events"),
+    loadGoalRowsExcludingExperimentArms(connection, "goal_run_sessions"),
+    loadGoalRowsExcludingExperimentArms(connection, "goal_subtask_events"),
   )
 
   fun clearReviewFinishedTelemetryState(connection: Connection, reviewRunId: String) {

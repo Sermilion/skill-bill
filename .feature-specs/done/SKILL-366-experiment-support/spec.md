@@ -60,7 +60,7 @@ formats. Example machine config at the existing resolved config path, normally
 }
 ```
 
-The optional repository override in `.skill-bill/config.yaml` uses the same key:
+The optional repository override in `../../../.skill-bill/config.yaml` uses the same key:
 
 ```yaml
 experiments: [codegraph]
@@ -462,11 +462,11 @@ are optional execution work after implementation, not acceptance prerequisites.
 
 ## References
 
-- [Original CodeGraph consumer](../SKILL-365-codegraph-paired-experiments/spec.md).
-- [Jev navigation consumer](../SKILL-367-jev-navigation-experiment/spec.md).
-- `runtime-kotlin/ARCHITECTURE.md`, `docs/code-principles.md`, and `docs/observability-policy.md`.
-- `skills/bill-feature/content.md` and `docs/skill-source-generation.md`.
-- `orchestration/contracts/decomposition-manifest-schema.yaml`.
+- [Original CodeGraph consumer](../../SKILL-365-codegraph-paired-experiments/spec.md).
+- [Jev navigation consumer](../../SKILL-367-jev-navigation-experiment/spec.md).
+- `../../../runtime-kotlin/ARCHITECTURE.md`, `docs/code-principles.md`, and `docs/observability-policy.md`.
+- `../../../skills/bill-feature/content.md` and `docs/skill-source-generation.md`.
+- `../../../orchestration/contracts/decomposition-manifest-schema.yaml`.
 
 ## Next path
 

@@ -2,6 +2,8 @@ package skillbill.ports.persistence
 
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
+import skillbill.ports.experiment.pair.ExperimentPairRepository
+import skillbill.ports.experiment.pair.UnavailableExperimentPairRepository
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.featuretask.UnavailableFeatureTaskPhaseSettlementRepository
 import skillbill.ports.goalrunner.UnaddressedFindingsRepository
@@ -19,6 +21,7 @@ abstract class UnitOfWorkDefaults : UnitOfWork {
   open override val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions? = null
   open override val featureTaskPhaseSettlements: FeatureTaskPhaseSettlementRepository =
     UnavailableFeatureTaskPhaseSettlementRepository
+  open override val experimentPairs: ExperimentPairRepository = UnavailableExperimentPairRepository
 
   override fun purgeDecomposedGoal(parentWorkflowId: String) = Unit
 }

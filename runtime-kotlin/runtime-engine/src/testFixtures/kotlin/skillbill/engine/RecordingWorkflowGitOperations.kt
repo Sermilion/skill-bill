@@ -20,6 +20,9 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityPayloadCodec
+import skillbill.ports.workflow.gitops.worktree.LinkedWorktreeAddRequest
+import skillbill.ports.workflow.gitops.worktree.LinkedWorktreeRemoveRequest
+import skillbill.ports.workflow.gitops.worktree.WorkflowGitLinkedWorktreeOperations
 import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
@@ -132,6 +135,13 @@ class RecordingWorkflowGitOperations(
 
   override fun localBranchHasUnpushedCommits(repoRoot: Path, branch: String): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Ok(value = localBranchHasUnpushedCommitsValue.toString())
+
+  override val linkedWorktreeOperations: WorkflowGitLinkedWorktreeOperations =
+    object : WorkflowGitLinkedWorktreeOperations {
+      override fun addLinkedWorktree(request: LinkedWorktreeAddRequest) = Unit
+
+      override fun removeLinkedWorktree(request: LinkedWorktreeRemoveRequest) = Unit
+    }
 
   override val checkpointHistoryOperations: CheckpointHistoryGitOperations =
     object : CheckpointHistoryGitOperations {

@@ -1,6 +1,8 @@
 package skillbill.ports.workflow.gitops
 
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
+import skillbill.ports.workflow.gitops.worktree.WorkflowGitLinkedWorktreeOperations
+import skillbill.ports.workflow.gitops.worktree.WorkflowGitWorktreeOperations
 
 object NoopWorkflowGitOperations :
   WorkflowGitOperations,
@@ -11,6 +13,9 @@ object NoopWorkflowGitOperations :
   SuppressionEvidenceGitOperations by NoopSuppressionEvidenceGitOperations {
   override val checkpointHistoryOperations: CheckpointHistoryGitOperations =
     UnavailableCheckpointHistoryGitOperations
+
+  override val linkedWorktreeOperations: WorkflowGitLinkedWorktreeOperations =
+    UnavailableWorkflowGitLinkedWorktreeOperations
 
   override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations = NoopGoalSubtaskReviewGitOperations
 

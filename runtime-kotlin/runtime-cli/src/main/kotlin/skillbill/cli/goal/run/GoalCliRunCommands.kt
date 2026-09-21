@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.continuation.model.GoalContinuationCandidate
 import skillbill.application.review.service.RuntimeOwnedReviewMode
 import skillbill.cli.kernel.agent.invokingAgentResolutionHelp
 import skillbill.cli.kernel.agent.requireSupportedOptionalAgentId
@@ -16,10 +17,12 @@ import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.experiment.ExperimentPreflightPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
+import skillbill.engine.goalrunner.model.GoalPreflightGateBlock
 import skillbill.engine.goalrunner.model.GoalPreflightRequest
 import skillbill.engine.goalrunner.model.GoalPreflightResult
 import skillbill.engine.goalrunner.planning.GoalPlanningLogService
@@ -59,6 +62,10 @@ class GoalPreflightCommand(
     help = "Raw agent add-on slug. Repeat to preserve caller order.",
   ).multiple()
   private val format by formatOption()
+  private val experiments by option(
+    "--experiments",
+    help = "Experiment selection for this goal run. Use none to disable or a comma-separated kebab-case list.",
+  )
 
   override fun run() {
     val root = resolveCliRepositoryRoot(repoRoot, inputs)
@@ -74,6 +81,7 @@ class GoalPreflightCommand(
         requestedAgentAddonSlugs = agentAddonSlugs,
         userHome = inputs.userHome,
         environment = inputs.environment,
+        experimentsParameter = experiments,
       ),
     )
     val payload = result.toGoalPreflightCliMap()
@@ -96,51 +104,8 @@ internal fun GoalPreflightResult.toGoalPreflightCliMap(): Map<String, Any?> = li
   SharedPayloadKeys.ISSUE_KEY to issueKey,
   "candidate" to candidate?.toGoalPreflightCandidateMap(),
   "candidates" to candidates.map { it.toGoalPreflightCandidateMap() },
-  "goal" to goal?.let {
-    linkedMapOf(
-      "parent_workflow_id" to it.parentWorkflowId,
-      SharedPayloadKeys.ISSUE_KEY to it.issueKey,
-      SharedPayloadKeys.STATUS to it.status,
-      "current_subtask_id" to it.currentSubtaskId,
-      "current_action" to it.currentAction,
-      "complete_count" to it.completeCount,
-      "pending_count" to it.pendingCount,
-      "blocked_count" to it.blockedCount,
-      "updated_at" to it.updatedAt,
-      SharedPayloadKeys.SUMMARY to it.summary,
-    )
-  },
-  "gate_block" to gateBlock?.let { block ->
-    linkedMapOf(
-      SharedPayloadKeys.ISSUE_KEY to block.issueKey,
-      "feature_name" to block.featureName,
-      "subtasks" to block.subtasks.map { subtask ->
-        linkedMapOf(
-          "id" to subtask.id,
-          "name" to subtask.name,
-          SharedPayloadKeys.STATUS to subtask.status,
-          "dependencies" to subtask.dependencies.map { dependency ->
-            linkedMapOf(
-              SharedPayloadKeys.SUBTASK_ID to dependency.subtaskId,
-              "optional" to dependency.optional,
-              "skipped" to dependency.skipped,
-              "note" to dependency.note,
-            )
-          },
-        )
-      },
-      "expected_first_runnable_subtask" to block.expectedFirstRunnableSubtask,
-      "child_agent" to block.childAgent,
-      "child_agent_override" to block.childAgentOverride,
-      "review_mode" to block.reviewMode,
-      "agent_addons" to block.agentAddons.map { addon ->
-        linkedMapOf(
-          "slug" to addon.slug,
-          "description" to addon.description,
-        )
-      },
-    )
-  },
+  "goal" to goal?.toGoalPreflightGoalMap(),
+  "gate_block" to gateBlock?.toGoalPreflightGateBlockMap(),
   "rehydrate_targets" to rehydrateTargets.map {
     linkedMapOf(
       SharedPayloadKeys.ISSUE_KEY to it.issueKey,
@@ -149,6 +114,56 @@ internal fun GoalPreflightResult.toGoalPreflightCliMap(): Map<String, Any?> = li
     )
   },
   "manifest_missing" to manifestMissing,
+)
+
+private fun GoalContinuationCandidate.toGoalPreflightGoalMap(): Map<String, Any?> = linkedMapOf(
+  "parent_workflow_id" to parentWorkflowId,
+  SharedPayloadKeys.ISSUE_KEY to issueKey,
+  SharedPayloadKeys.STATUS to status,
+  "current_subtask_id" to currentSubtaskId,
+  "current_action" to currentAction,
+  "complete_count" to completeCount,
+  "pending_count" to pendingCount,
+  "blocked_count" to blockedCount,
+  "updated_at" to updatedAt,
+  SharedPayloadKeys.SUMMARY to summary,
+)
+
+private fun GoalPreflightGateBlock.toGoalPreflightGateBlockMap(): Map<String, Any?> = linkedMapOf(
+  SharedPayloadKeys.ISSUE_KEY to issueKey,
+  "feature_name" to featureName,
+  "subtasks" to subtasks.map { subtask ->
+    linkedMapOf(
+      "id" to subtask.id,
+      "name" to subtask.name,
+      SharedPayloadKeys.STATUS to subtask.status,
+      "dependencies" to subtask.dependencies.map { dependency ->
+        linkedMapOf(
+          SharedPayloadKeys.SUBTASK_ID to dependency.subtaskId,
+          "optional" to dependency.optional,
+          "skipped" to dependency.skipped,
+          "note" to dependency.note,
+        )
+      },
+    )
+  },
+  "expected_first_runnable_subtask" to expectedFirstRunnableSubtask,
+  "child_agent" to childAgent,
+  "child_agent_override" to childAgentOverride,
+  "review_mode" to reviewMode,
+  "agent_addons" to agentAddons.map { addon ->
+    linkedMapOf("slug" to addon.slug, "description" to addon.description)
+  },
+  "experiment_selection_summary" to experimentSelectionSummary,
+  ExperimentPreflightPayloadKeys.EXPERIMENT to experiment?.let {
+    linkedMapOf(
+      ExperimentPreflightPayloadKeys.SELECTED_NAMES to it.selectedNames,
+      ExperimentPreflightPayloadKeys.ARMS to it.arms,
+      ExperimentPreflightPayloadKeys.DELIVERY_ARM to it.deliveryArm,
+      ExperimentPreflightPayloadKeys.DECLARED_SETUP to it.declaredSetup,
+      ExperimentPreflightPayloadKeys.ADDITIONAL_TIME_AND_SPEND to it.additionalTimeAndSpend,
+    )
+  },
 )
 
 internal fun FeatureTaskContinuationCandidate.toGoalPreflightCandidateMap(): Map<String, Any?> = linkedMapOf(
