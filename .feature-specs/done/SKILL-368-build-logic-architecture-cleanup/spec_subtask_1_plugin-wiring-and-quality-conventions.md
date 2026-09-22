@@ -7,7 +7,7 @@ Parent findings 4 through 13 except the governed-resource and Java-guard items,
 which belong to subtask 2.
 
 Plugin classpath and module build (`build-logic/convention/build.gradle.kts`,
-`runtime-kotlin/build.gradle.kts`):
+`../../../runtime-kotlin/build.gradle.kts`):
 
 - Make the Kotlin, Spotless, and Detekt Gradle plugins `implementation`
   dependencies beside Badass Runtime. Remove the four `alias(...) apply false`
@@ -19,11 +19,11 @@ Plugin classpath and module build (`build-logic/convention/build.gradle.kts`,
   stays.
 - Remove the manual `check -> spotlessCheck` wiring here and in `Quality.kt`.
 
-Formatter and linter (`Quality.kt`, `runtime-kotlin/.editorconfig`):
+Formatter and linter (`Quality.kt`, `../../../runtime-kotlin/.editorconfig`):
 
 - Delete both ktlint `editorConfigOverride` maps. Set `max_line_length = 120` and
   the trailing-comma keys (`ij_kotlin_allow_trailing_comma`,
-  `ij_kotlin_allow_trailing_comma_on_call_site`) in `runtime-kotlin/.editorconfig`
+  `ij_kotlin_allow_trailing_comma_on_call_site`) in `../../../runtime-kotlin/.editorconfig`
   so ktlint, detekt `MaxLineLength`, and the IDE agree.
 - Remove `ratchetFrom("origin/main")`. Run `spotlessApply` once over the tree and
   include any resulting formatting in this commit; if the diff is large, list the
@@ -70,7 +70,7 @@ runtime-image plugin registers `runtimeZip` depending on license verification
 and finalized by the sidecar task, and a unit test that the sidecar line is
 `"<hex>  <name>\n"`.
 
-Docs: update `docs/code-principles.md` Build And Tooling reference paths and add
+Docs: update `../../../docs/code-principles.md` Build And Tooling reference paths and add
 decisions for the plugin-classpath strategy and the removed ratchet in
 `runtime-kotlin/agent/decisions.md`.
 
@@ -79,7 +79,7 @@ decisions for the plugin-classpath strategy and the removed ratchet in
 1. `RuntimeImageConventionPlugin.kt` and every other build-logic source contain
    no `afterEvaluate`.
 2. `build-logic:convention` declares Kotlin, Spotless, Detekt, and Badass Runtime
-   as `implementation`; `runtime-kotlin/build.gradle.kts` has no `apply false`.
+   as `implementation`; `../../../runtime-kotlin/build.gradle.kts` has no `apply false`.
 3. `convention/build.gradle.kts` configures the JVM through `jvmToolchain(21)` and
    has no `sourceCompatibility`, `targetCompatibility`, or manual `jvmTarget`.
 4. No `editorConfigOverride`, `ratchetFrom`, or manual `check -> spotlessCheck`
@@ -124,7 +124,7 @@ decisions remain in force.
   passes; remove the worktree afterwards.
 - Bugs the new tests catch: `runtimeZip` runs without license verification; the
   sidecar is not produced after the zip; the sidecar line format drifts so
-  `install.sh` cannot verify a release asset.
+  `../../../install.sh` cannot verify a release asset.
 
 ## Next path
 

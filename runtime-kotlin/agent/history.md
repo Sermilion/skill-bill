@@ -1,3 +1,14 @@
+## [2026-09-22] SKILL-368 subtask 2 — Governed resources typed task and Java guard ownership
+Areas: runtime-kotlin/build-logic/convention, runtime-kotlin/runtime-infra/{contracts,workflow,host}, install.sh, uninstall.sh, docs/code-principles.md
+- `GovernedResourceCopy` is a typed task with one `@OutputFile` per entry (36 contracts entries share one destination directory, so `@OutputDirectory` would overlap); the extension and plugin wire only main `processResources`, with no `afterEvaluate` and no `processTestResources`. reusable
+- A missing governed source fails loudly, naming the owning module and absolute path, and writes nothing.
+- `StartScriptJavaGuard` is a pure transformation: it inserts the guard once before the anchor, is idempotent on regenerated scripts, and fails when the anchor is missing. reusable
+- `skill-bill-java-guard.sh` has one authored owner under `runtime-infra/host/src/main/resources/skillbill/infrastructure/host/jvm/`; `copyJavaGuard` is gone, and install/uninstall read the host path.
+- Deleted `GovernedResourceCopyParityTest`, its golden manifest, and `GateJvmGuardPackagingTest`; build-logic tests against a synthetic project own that coverage.
+- Pattern: Gradle TestKit is a narrow exception for build-logic convention tests (UP-TO-DATE and task-graph proof); `ProjectBuilder` stays the default. Recorded in `agent/decisions.md` and `docs/code-principles.md`.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-22] SKILL-368 subtask 1 — Plugin wiring, classpath, and quality conventions
 Areas: runtime-kotlin/build-logic/convention, runtime-kotlin/{build.gradle.kts,.editorconfig,runtime-application,runtime-cli,runtime-contracts,runtime-mcp,runtime-infra,runtime-core tests}, .github/workflows, docs
 - `build-logic:convention` declares Kotlin, Spotless, Detekt, and Badass Runtime as `implementation`; the root build drops every `apply false`, and the three modules that need `ksp` keep it in their own `plugins` blocks. One classpath, one version-catalog read.

@@ -6,7 +6,7 @@ decomposed
 
 ## Intended outcome
 
-`runtime-kotlin/build-logic` is the convention-plugin layer of the runtime build:
+`../../../runtime-kotlin/build-logic` is the convention-plugin layer of the runtime build:
 five plugins (`skillbill.version`, `skillbill.jvm-library`, `skillbill.quality`,
 `skillbill.runtime-image`, `skillbill.governed-resources`) consumed by fourteen
 modules. The module is small (about 970 lines) and its pure helpers (version
@@ -39,7 +39,7 @@ Ordered by impact. Each names the file and the observed behavior.
    assertion checks for the ticket key `SKILL-52` in Gradle output. This is
    build-plugin behavior tested from the wrong module at the wrong cost.
 2. `skill-bill-java-guard.sh` is a runtime asset: `GateJvmResolver` executes it
-   from the host jar, `install.sh` sources it, and the start scripts embed it.
+   from the host jar, `../../../install.sh` sources it, and the start scripts embed it.
    It lives in `build-logic/convention/src/main/resources`. Three consumers reach
    into the build-tooling tree by path: the `copyJavaGuard` governed entry in
    `runtime-infra/host/build.gradle.kts` (the only user of
@@ -76,7 +76,7 @@ Ordered by impact. Each names the file and the observed behavior.
 6. Formatter configuration is declared three times and disagrees: `Quality.kt`
    and `convention/build.gradle.kts` each carry an identical ktlint
    `editorConfigOverride` map with `max_line_length` 120,
-   `runtime-kotlin/.editorconfig` says 100, and detekt `MaxLineLength` says 120.
+   `../../../runtime-kotlin/.editorconfig` says 100, and detekt `MaxLineLength` says 120.
    ktlint reads `.editorconfig` natively.
 7. `ratchetFrom("origin/main")` in `Quality.kt` makes `spotlessCheck` depend on
    a remote-tracking ref: it fails in linked worktrees (jgit does not resolve
@@ -88,7 +88,7 @@ Ordered by impact. Each names the file and the observed behavior.
 9. `SkillBillVersionConventionPlugin` swallows every exception from
    `git tag -l` with `catch (_: Exception)` and returns an empty list silently,
    which violates the fallback-emits-a-record policy in
-   `docs/observability-policy.md`.
+   `../../../docs/observability-policy.md`.
 10. Packaging is split: the five plugin classes and `GovernedResourcesExtension`
     sit in the default package; helpers sit in `dev.skillbill.runtime.buildlogic`.
     `RuntimeGradleModuleLayeringTest` in runtime-core asserts a source-text
@@ -103,7 +103,7 @@ Ordered by impact. Each names the file and the observed behavior.
     already applied in its settings.
 13. Tests cover `resolveSkillBillVersion` and `RuntimeImageLicense` only. No
     plugin has a wiring test. The sidecar format `"<hex>  <name>\n"` written by
-    `Sha256Sidecar.kt` is parsed by `install.sh` and the release workflow and is
+    `Sha256Sidecar.kt` is parsed by `../../../install.sh` and the release workflow and is
     untested. `SHA256_BUFFER_BYTES` is public with no reader.
 
 What holds up and stays unchanged: the plugin split by capability; pure functions
@@ -125,7 +125,7 @@ the start-script guard anchor with a loud failure when Gradle's template changes
 - One plugin-classpath strategy: `implementation` in build-logic for every plugin
   the conventions apply; the root build file applies `skillbill.version` and
   `base` only.
-- One formatter configuration source: `runtime-kotlin/.editorconfig` at 120
+- One formatter configuration source: `../../../runtime-kotlin/.editorconfig` at 120
   columns, read by ktlint through Spotless and by the IDE. No
   `editorConfigOverride`, no ratchet.
 - Build tooling consumes product assets and owns none. The Java guard is a plain
@@ -141,7 +141,7 @@ the start-script guard anchor with a loud failure when Gradle's template changes
 
 ## Acceptance Criteria
 
-1. `runtime-kotlin/build-logic` contains no `afterEvaluate` call.
+1. `../../../runtime-kotlin/build-logic` contains no `afterEvaluate` call.
 2. `GovernedResourcesConventionPlugin` registers one typed task per entry; a
    missing source fails that task with a message naming the entry owner and the
    resolved source path, before any output is written.
@@ -149,7 +149,7 @@ the start-script guard anchor with a loud failure when Gradle's template changes
    contain no string encoding or `split` parsing; `runtime-infra/contracts/build.gradle.kts`
    has no `GovernedResourceSpec` type.
 4. `skill-bill-java-guard.sh` exists once, under `runtime-infra/host/src/main/resources`,
-   and `build-logic/convention/src/main/resources` no longer contains it; `install.sh`,
+   and `build-logic/convention/src/main/resources` no longer contains it; `../../../install.sh`,
    the start-script guard, and the host runtime read that one file.
 5. `stageRuntimeLicense` no longer exists; `LICENSE` reaches `build/install/<name>/`
    and `build/image/` through the `main` distribution contents, and
@@ -160,7 +160,7 @@ the start-script guard anchor with a loud failure when Gradle's template changes
 7. Kotlin, Spotless, Detekt, and Badass Runtime are all `implementation`
    dependencies of `build-logic:convention`; the root build file has no
    `apply false` plugin aliases.
-8. ktlint line length comes from `runtime-kotlin/.editorconfig` (120) and no
+8. ktlint line length comes from `../../../runtime-kotlin/.editorconfig` (120) and no
    `editorConfigOverride` map or `ratchetFrom` call remains in the repository.
 9. Neither `Quality.kt` nor `convention/build.gradle.kts` wires `spotlessCheck`
    into `check` by hand.
@@ -183,7 +183,7 @@ the start-script guard anchor with a loud failure when Gradle's template changes
 
 Two subtasks. The split condition: subtask 2 changes consumer-facing contracts
 (the `governedResources` DSL in three modules and the guard location read by
-`install.sh` and the runtime jar) and replaces a runtime-module test suite, so it
+`../../../install.sh` and the runtime jar) and replaces a runtime-module test suite, so it
 is verified by the install smoke path and host packaging tests; subtask 1 is
 internal to build-logic plus root wiring and is verified by `./gradlew check` and
 an image build. Each commit stands alone.
@@ -195,16 +195,16 @@ an image build. Each commit stands alone.
 
 ## Dependency notes
 
-- Read `runtime-kotlin/ARCHITECTURE.md` Design Principles and
+- Read `../../../runtime-kotlin/ARCHITECTURE.md` Design Principles and
   `docs/code-principles.md` (Build And Tooling, Imports And Simple Names,
   Comments And Interface KDoc) before changing build-logic. Its Kotlin is subject
   to `CommentAndInterfaceKdocArchitectureTest`, `InlineFqnArchitectureTest`, and
   the 500-line production ceiling.
 - Decision 2026-05-29 (Badass Runtime, additive `IMAGE_MODULES`) and the JDK 21
   toolchain decision stay in force.
-- Record new decisions in `runtime-kotlin/agent/decisions.md`: guard ownership,
+- Record new decisions in `../../../runtime-kotlin/agent/decisions.md`: guard ownership,
   no ratchet, single plugin-classpath strategy, plugin tests live in build-logic.
-- `install.sh` line 52 and `.github/workflows/release.yml` comments reference
+- `../../../install.sh` line 52 and `.github/workflows/release.yml` comments reference
   build-logic paths and names; update them where a path moves.
 
 ## Non-goals
@@ -240,23 +240,23 @@ an image build. Each commit stands alone.
 - Build-logic tests name these bugs: a governed entry whose source is absent
   copies nothing and the build stays green; a governed copy lands outside the
   declared destination; `processResources` does not depend on a governed copy
-  task; the sidecar line drifts from `"<hex>  <name>"` and `install.sh`
+  task; the sidecar line drifts from `"<hex>  <name>"` and `../../../install.sh`
   verification fails; the runtime-image plugin registers image tasks without the
   license verification dependency.
 
 ## References
 
-- `runtime-kotlin/build-logic/convention/build.gradle.kts`
+- `../../../runtime-kotlin/build-logic/convention/build.gradle.kts`
 - `runtime-kotlin/build-logic/convention/src/main/kotlin/*.kt`
 - `runtime-kotlin/build-logic/convention/src/main/kotlin/dev/skillbill/runtime/buildlogic/*.kt`
-- `runtime-kotlin/build.gradle.kts`, `runtime-kotlin/.editorconfig`
+- `../../../runtime-kotlin/build.gradle.kts`, `runtime-kotlin/.editorconfig`
 - `runtime-kotlin/runtime-infra/{host,contracts,workflow}/build.gradle.kts`
 - `runtime-kotlin/runtime-infra/contracts/src/test/kotlin/skillbill/infrastructure/contracts/GovernedResourceCopyParityTest.kt`
 - `runtime-kotlin/runtime-infra/host/src/test/kotlin/skillbill/infrastructure/host/jvm/GateJvmGuardPackagingTest.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeGradleModuleLayeringTest.kt`
-- `install.sh`, `.github/workflows/release.yml`
-- `runtime-kotlin/agent/decisions.md` (2026-05-29 Badass Runtime; JDK 21 toolchain)
-- `docs/code-principles.md`, `docs/observability-policy.md`
+- `../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeGradleModuleLayeringTest.kt`
+- `../../../install.sh`, `.github/workflows/release.yml`
+- `../../../runtime-kotlin/agent/decisions.md` (2026-05-29 Badass Runtime; JDK 21 toolchain)
+- `../../../docs/code-principles.md`, `docs/observability-policy.md`
 
 ## Next path
 

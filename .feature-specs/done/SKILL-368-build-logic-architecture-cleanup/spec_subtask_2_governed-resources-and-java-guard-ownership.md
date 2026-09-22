@@ -26,10 +26,10 @@ Governed resources (`GovernedResourcesConventionPlugin.kt`,
   added to the `main` resources source set. Drop the `includeInTestProcessResources`
   distinction unless a consumer outside `GovernedResourceCopyParityTest` depends
   on it; the investigation found none. If it is kept, name the consumer in
-  `runtime-kotlin/agent/decisions.md`.
+  `../../../runtime-kotlin/agent/decisions.md`.
 - Rewrite the three consumer blocks (`runtime-infra/{host,contracts,workflow}/build.gradle.kts`).
   In `contracts`, delete `GovernedResourceSpec`, `governedResourceSpec`, and the
-  pipe-delimited list; declare `sourceRoot` as `orchestration/contracts` and
+  pipe-delimited list; declare `sourceRoot` as `../../../orchestration/contracts` and
   `destination` as `skillbill/infrastructure/contracts` once, with per-entry
   overrides for `review-context-schema.yaml` (`skillbill/contracts`). Keep every
   existing task name so `tasks --all` output and any `dependsOn` by name remain
@@ -38,7 +38,7 @@ Governed resources (`GovernedResourcesConventionPlugin.kt`,
 
 Java guard ownership (`StartScriptJavaGuard.kt`, `RuntimeImageConventionPlugin.kt`,
 `runtime-infra/host/build.gradle.kts`, `GateJvmGuardPackagingTest.kt`,
-`install.sh`):
+`../../../install.sh`):
 
 - Move `skill-bill-java-guard.sh` to
   `runtime-infra/host/src/main/resources/skillbill/infrastructure/host/jvm/skill-bill-java-guard.sh`.
@@ -48,7 +48,7 @@ Java guard ownership (`StartScriptJavaGuard.kt`, `RuntimeImageConventionPlugin.k
   by the runtime-image plugin to that path under the root project, declared as an
   input of each `CreateStartScripts` task so a guard edit regenerates scripts.
   Keep the anchor, marker, and embedded-JRE checks and the loud failure.
-- Update `BUILD_JVM_GUARD` in `install.sh` to the new path.
+- Update `BUILD_JVM_GUARD` in `../../../install.sh` to the new path.
 - Add a build-logic test that the start-script guard is inserted before the
   Gradle anchor and is idempotent on a second run.
 
@@ -65,7 +65,7 @@ Replace the parity test (`runtime-infra/contracts/src/test`):
   repository tree or hashes real schemas.
 
 Docs and decisions: record guard ownership and the test relocation in
-`runtime-kotlin/agent/decisions.md`; update `docs/code-principles.md` if it names
+`../../../runtime-kotlin/agent/decisions.md`; update `docs/code-principles.md` if it names
 moved paths; update the `.github/workflows/release.yml` comment only if a
 referenced name changes.
 
@@ -83,7 +83,7 @@ referenced name changes.
    `copyJavaGuard`, still appears in `./gradlew :runtime-infra:<module>:tasks --all`.
 5. `skill-bill-java-guard.sh` exists only under
    `runtime-infra/host/src/main/resources/skillbill/infrastructure/host/jvm/`;
-   `install.sh` and `StartScriptJavaGuard` reference that path; `copyJavaGuard`
+   `../../../install.sh` and `StartScriptJavaGuard` reference that path; `copyJavaGuard`
    and `GateJvmGuardPackagingTest` are gone.
 6. Generated start scripts for `runtime-cli` and `runtime-mcp` contain
    `skill_bill_required_java_major=` exactly once after two consecutive
@@ -115,7 +115,7 @@ the authored location moves.
   wall-clock drop for that module in the commit body.
 - `./gradlew :runtime-infra:contracts:processResources --rerun-tasks` then a
   second run reports the governed copy tasks up to date; generated files match
-  their `orchestration/contracts` sources byte for byte (`cmp`).
+  their `../../../orchestration/contracts` sources byte for byte (`cmp`).
 - Temporarily rename one schema and run `processResources`: the failure names the
   owner and the absolute path and no output is written; restore the file.
 - `./gradlew :runtime-cli:installDist :runtime-mcp:installDist` twice; grep the
