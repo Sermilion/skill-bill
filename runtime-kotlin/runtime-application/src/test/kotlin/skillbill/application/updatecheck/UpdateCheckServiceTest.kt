@@ -169,7 +169,7 @@ class UpdateCheckServiceTest {
     ),
     requester = RemoteTransportPort { method, url, _, headers ->
       assertEquals("GET", method)
-      assertEquals("https://api.github.com/repos/oila-gmbh/skill-bill/releases", url)
+      assertEquals("https://api.github.com/repos/Sermilion/skill-bill/releases", url)
       assertEquals("skill-bill-update-check", headers["User-Agent"])
       RemoteTransportResponse(statusCode = statusCode, body = responseBody)
     },
