@@ -59,11 +59,12 @@ class IdeStatusGoldenFixturesTest {
         "current_step" to linkedMapOf("id" to "audit", "label" to "Completeness Audit"),
         "progress" to linkedMapOf("completed" to 3, "total" to 10),
         "started_at" to "2026-08-06T08:00:00Z",
-        "current_phase_execution" to linkedMapOf(
-          "phase_id" to "audit",
-          "kind" to "semantic_loop",
-          "count" to 2,
-        ),
+        "current_phase_execution" to
+          linkedMapOf(
+            "phase_id" to "audit",
+            "kind" to "semantic_loop",
+            "count" to 2,
+          ),
         "updated_at" to "2026-08-06T10:00:00Z",
         "freshness" to "fresh",
         "summary" to "feature-task-runtime SKILL-184 is active on Completeness Audit.",
@@ -86,10 +87,11 @@ class IdeStatusGoldenFixturesTest {
         "progress" to linkedMapOf("completed" to 1, "total" to 3),
         "started_at" to "2026-08-06T08:00:00Z",
         "current_subtask" to linkedMapOf("id" to "2"),
-        "current_model" to linkedMapOf(
-          "model" to "claude-opus-4-8[effort=high]",
-          "phase_id" to "implement",
-        ),
+        "current_model" to
+          linkedMapOf(
+            "model" to "claude-opus-4-8[effort=high]",
+            "phase_id" to "implement",
+          ),
         "updated_at" to "2026-08-06T10:00:00Z",
         "freshness" to "fresh",
         "summary" to "Goal SKILL-183 is active on Planning.",
@@ -154,15 +156,15 @@ class IdeStatusGoldenFixturesTest {
         "current_step" to linkedMapOf("id" to "planning", "label" to "Planning"),
         "progress" to linkedMapOf("completed" to 0, "total" to 5),
         "started_at" to "2026-08-06T08:00:00Z",
-
-        "planning" to linkedMapOf(
-          "state" to "partially_planned",
-          "shared_preplan_prepared" to true,
-          "planned_subtask_count" to 2,
-          "total_subtask_count" to 5,
-          "current_planning_subtask_id" to "3",
-          "reason" to "Planning subtask 3.",
-        ),
+        "planning" to
+          linkedMapOf(
+            "state" to "partially_planned",
+            "shared_preplan_prepared" to true,
+            "planned_subtask_count" to 2,
+            "total_subtask_count" to 5,
+            "current_planning_subtask_id" to "3",
+            "reason" to "Planning subtask 3.",
+          ),
         "updated_at" to "2026-08-06T10:00:00Z",
         "freshness" to "fresh",
         "summary" to "Goal SKILL-165 is planning subtasks (2/5 planned).",
@@ -184,15 +186,16 @@ class IdeStatusGoldenFixturesTest {
         "current_step" to linkedMapOf("id" to "planning", "label" to "Planning"),
         "progress" to linkedMapOf("completed" to 0, "total" to 8),
         "started_at" to "2026-08-06T08:00:00Z",
-        "planning" to linkedMapOf(
-          "state" to "partially_planned",
-          "shared_preplan_prepared" to true,
-          "planned_subtask_count" to 1,
-          "total_subtask_count" to 8,
-          "current_planning_subtask_id" to "2",
-          "planning_wave_subtask_ids" to listOf("2", "3", "4", "5", "6"),
-          "reason" to "Planning subtask 2.",
-        ),
+        "planning" to
+          linkedMapOf(
+            "state" to "partially_planned",
+            "shared_preplan_prepared" to true,
+            "planned_subtask_count" to 1,
+            "total_subtask_count" to 8,
+            "current_planning_subtask_id" to "2",
+            "planning_wave_subtask_ids" to listOf("2", "3", "4", "5", "6"),
+            "reason" to "Planning subtask 2.",
+          ),
         "updated_at" to "2026-08-06T10:00:00Z",
         "freshness" to "fresh",
         "summary" to
@@ -211,7 +214,6 @@ class IdeStatusGoldenFixturesTest {
         "issue_key" to "SKILL-168",
         "workflow_id" to "goal-3",
         "workflow_family" to "feature-goal",
-
         "lifecycle_state" to "active",
         "current_step" to linkedMapOf("id" to "implement", "label" to "Implement"),
         "progress" to linkedMapOf("completed" to 1, "total" to 3),
@@ -256,7 +258,6 @@ class IdeStatusGoldenFixturesTest {
         "issue_key" to "SKILL-168",
         "workflow_id" to "goal-5",
         "workflow_family" to "feature-goal",
-
         "lifecycle_state" to "idle",
         "current_step" to linkedMapOf("id" to "implement", "label" to "Implement"),
         "progress" to linkedMapOf("completed" to 1, "total" to 3),
@@ -309,10 +310,11 @@ class IdeStatusGoldenFixturesTest {
         "progress" to linkedMapOf("completed" to 1, "total" to 3),
         "started_at" to "2026-08-06T08:00:00Z",
         "current_subtask" to linkedMapOf("id" to "2"),
-        "pause_reason" to linkedMapOf(
-          "code" to "awaiting_operator_decision",
-          "label" to "Configure GITHUB_REGISTRY_AUTH then run npm ci:safe",
-        ),
+        "pause_reason" to
+          linkedMapOf(
+            "code" to "awaiting_operator_decision",
+            "label" to "Configure GITHUB_REGISTRY_AUTH then run npm ci:safe",
+          ),
         "updated_at" to "2026-08-06T10:00:00Z",
         "freshness" to "fresh",
         "summary" to "Goal SKILL-228 is blocked: Configure GITHUB_REGISTRY_AUTH then run npm ci:safe",

@@ -6,6 +6,7 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import java.time.Instant
 import java.time.format.DateTimeParseException
+
 data class GoalRunnerExecutionLease(
   val generation: Long,
   val ownerToken: String,
@@ -31,11 +32,15 @@ data class GoalRunnerExecutionLease(
   }
 }
 
-fun parseExecutionLeaseInstant(field: String, value: String): Instant = try {
-  Instant.parse(value)
-} catch (_: DateTimeParseException) {
-  throw InvalidWorkflowStateSchemaError("Goal runner execution lease field '$field' must be an RFC 3339 instant.")
-}
+fun parseExecutionLeaseInstant(
+  field: String,
+  value: String,
+): Instant =
+  try {
+    Instant.parse(value)
+  } catch (_: DateTimeParseException) {
+    throw InvalidWorkflowStateSchemaError("Goal runner execution lease field '$field' must be an RFC 3339 instant.")
+  }
 
 const val GOAL_PAUSE_REASON_OPERATOR_REQUEST: String = "operator_request"
 
@@ -57,7 +62,6 @@ data class GoalRunnerControlState(
   val stopAfterConsumed: Boolean = false,
   val repositoryIdentity: String? = null,
   val executionLease: GoalRunnerExecutionLease? = null,
-
   val activeDurationMs: Long = 0,
   val activeDurationAsOf: String? = null,
   val currentSubtaskId: Int? = null,
@@ -101,11 +105,12 @@ data class GoalRunnerControlState(
     )
   }
 
-  fun requiresPauseBoundary(manifest: DecompositionManifest): Boolean = pauseRequested || paused || (
-    stopAfterSubtaskId != null &&
-      !stopAfterConsumed &&
-      manifest.subtasks.any {
-        it.id == stopAfterSubtaskId && it.status.decompositionStatus() == DecompositionStatus.COMPLETE
-      }
+  fun requiresPauseBoundary(manifest: DecompositionManifest): Boolean =
+    pauseRequested || paused || (
+      stopAfterSubtaskId != null &&
+        !stopAfterConsumed &&
+        manifest.subtasks.any {
+          it.id == stopAfterSubtaskId && it.status.decompositionStatus() == DecompositionStatus.COMPLETE
+        }
     )
 }

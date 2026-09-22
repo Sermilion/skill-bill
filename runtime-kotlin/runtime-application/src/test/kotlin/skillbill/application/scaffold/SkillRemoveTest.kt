@@ -22,23 +22,26 @@ import kotlin.test.assertFailsWith
 class SkillRemoveTest {
   @Test
   fun `previewRemoval HorizontalSkill returns dossier with cascaded skill names`() {
-    val fs = FakeSkillRemoveFileSystem(
-      cascadedNames = listOf("bill-kmp-foo", "bill-kmp-foo-ui"),
-      filesystemPaths = listOf(
-        "skills/bill-foo",
-        "platform-packs/kmp/code-review/bill-kmp-foo",
-        "platform-packs/kmp/code-review/bill-kmp-foo-ui",
-      ),
-      symlinks = listOf(
-        AgentSymlinkUnlink(AgentSymlinkProvider.CLAUDE, "/home/u/.claude/agents/bill-foo.md"),
-        AgentSymlinkUnlink(AgentSymlinkProvider.CODEX, "/home/u/.codex/agents/bill-foo.md"),
-      ),
-    )
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
-      repoRootAbsolutePath = "/repo",
-    )
+    val fs =
+      FakeSkillRemoveFileSystem(
+        cascadedNames = listOf("bill-kmp-foo", "bill-kmp-foo-ui"),
+        filesystemPaths =
+          listOf(
+            "skills/bill-foo",
+            "platform-packs/kmp/code-review/bill-kmp-foo",
+            "platform-packs/kmp/code-review/bill-kmp-foo-ui",
+          ),
+        symlinks =
+          listOf(
+            AgentSymlinkUnlink(AgentSymlinkProvider.CLAUDE, "/home/u/.claude/agents/bill-foo.md"),
+            AgentSymlinkUnlink(AgentSymlinkProvider.CODEX, "/home/u/.codex/agents/bill-foo.md"),
+          ),
+      )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
+        repoRootAbsolutePath = "/repo",
+      )
     val preview = SkillRemove(fs).previewRemoval(request).preview
     assertEquals(listOf("bill-foo", "bill-kmp-foo", "bill-kmp-foo-ui"), preview.cascadedSkillNames)
     assertEquals(3, preview.filesystemPaths.size)
@@ -49,10 +52,11 @@ class SkillRemoveTest {
   @Test
   fun `previewRemoval refuses bill-prefixed horizontal product skill without allowShipped`() {
     val fs = FakeSkillRemoveFileSystem()
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = false),
-      repoRootAbsolutePath = "/repo",
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = false),
+        repoRootAbsolutePath = "/repo",
+      )
     val refusal = assertFailsWith<SkillRemovalRefusedException> { SkillRemove(fs).previewRemoval(request) }
     assertEquals(SkillRemovalRefusalReason.SHIPPED_REQUIRES_ALLOW_SHIPPED, refusal.refusalReason)
     assertTrue("--allow-shipped" in refusal.message.orEmpty())
@@ -61,16 +65,19 @@ class SkillRemoveTest {
 
   @Test
   fun `previewRemoval PlatformPack lists paired skills tree and per-provider symlinks`() {
-    val fs = FakeSkillRemoveFileSystem(
-      filesystemPaths = listOf("platform-packs/my-platform", "skills/my-platform"),
-      symlinks = AgentSymlinkProvider.values().map { provider ->
-        AgentSymlinkUnlink(provider, "/home/u/agents/bill-my-platform-*.md")
-      },
-    )
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.PlatformPack(platform = "my-platform"),
-      repoRootAbsolutePath = "/repo",
-    )
+    val fs =
+      FakeSkillRemoveFileSystem(
+        filesystemPaths = listOf("platform-packs/my-platform", "skills/my-platform"),
+        symlinks =
+          AgentSymlinkProvider.values().map { provider ->
+            AgentSymlinkUnlink(provider, "/home/u/agents/bill-my-platform-*.md")
+          },
+      )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.PlatformPack(platform = "my-platform"),
+        repoRootAbsolutePath = "/repo",
+      )
     val preview = SkillRemove(fs).previewRemoval(request).preview
     assertEquals(listOf("platform-packs/my-platform", "skills/my-platform"), preview.filesystemPaths)
     assertEquals(AgentSymlinkProvider.values().size, preview.agentSymlinkUnlinks.size)
@@ -79,13 +86,15 @@ class SkillRemoveTest {
 
   @Test
   fun `previewRemoval AddOn returns single-path dossier`() {
-    val fs = FakeSkillRemoveFileSystem(
-      filesystemPaths = listOf("platform-packs/kmp/addons/my-addon.md"),
-    )
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.AddOn(relativePath = "platform-packs/kmp/addons/my-addon.md"),
-      repoRootAbsolutePath = "/repo",
-    )
+    val fs =
+      FakeSkillRemoveFileSystem(
+        filesystemPaths = listOf("platform-packs/kmp/addons/my-addon.md"),
+      )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.AddOn(relativePath = "platform-packs/kmp/addons/my-addon.md"),
+        repoRootAbsolutePath = "/repo",
+      )
     val preview = SkillRemove(fs).previewRemoval(request).preview
     assertEquals(listOf("platform-packs/kmp/addons/my-addon.md"), preview.filesystemPaths)
     assertTrue(preview.manifestEdits.isEmpty())
@@ -94,17 +103,20 @@ class SkillRemoveTest {
 
   @Test
   fun `previewRemoval ExternalAddOn returns external source dossier`() {
-    val fs = FakeSkillRemoveFileSystem(
-      filesystemPaths = listOf("/external/addons/my-addon.md"),
-    )
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.ExternalAddOn(
-        sourceRootAbsolutePath = "/external/addons",
-        platform = "kmp",
-        fileName = "my-addon.md",
-      ),
-      repoRootAbsolutePath = "/repo",
-    )
+    val fs =
+      FakeSkillRemoveFileSystem(
+        filesystemPaths = listOf("/external/addons/my-addon.md"),
+      )
+    val request =
+      SkillRemovalRequest(
+        target =
+          SkillRemovalTarget.ExternalAddOn(
+            sourceRootAbsolutePath = "/external/addons",
+            platform = "kmp",
+            fileName = "my-addon.md",
+          ),
+        repoRootAbsolutePath = "/repo",
+      )
 
     val preview = SkillRemove(fs).previewRemoval(request).preview
 
@@ -117,10 +129,11 @@ class SkillRemoveTest {
   @Test
   fun `previewRemoval refuses dot-bill-shared horizontal skill`() {
     val fs = FakeSkillRemoveFileSystem()
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.HorizontalSkill(skillName = ".bill-shared", allowShipped = true),
-      repoRootAbsolutePath = "/repo",
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = ".bill-shared", allowShipped = true),
+        repoRootAbsolutePath = "/repo",
+      )
     val refusal = assertFailsWith<SkillRemovalRefusedException> { SkillRemove(fs).previewRemoval(request) }
     assertEquals(SkillRemovalRefusalReason.BILL_SHARED_PROTECTED, refusal.refusalReason)
   }
@@ -128,10 +141,11 @@ class SkillRemoveTest {
   @Test
   fun `previewRemoval treats kotlin as a normal horizontal skill name after pre-shell pruning`() {
     val fs = FakeSkillRemoveFileSystem()
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "kotlin", allowShipped = false),
-      repoRootAbsolutePath = "/repo",
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "kotlin", allowShipped = false),
+        repoRootAbsolutePath = "/repo",
+      )
     val preview = SkillRemove(fs).previewRemoval(request).preview
     assertNotNull(preview)
     assertEquals(listOf("kotlin"), preview.cascadedSkillNames)
@@ -140,10 +154,11 @@ class SkillRemoveTest {
   @Test
   fun `previewRemoval treats kmp as a normal horizontal skill name after pre-shell pruning`() {
     val fs = FakeSkillRemoveFileSystem()
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "kmp", allowShipped = false),
-      repoRootAbsolutePath = "/repo",
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "kmp", allowShipped = false),
+        repoRootAbsolutePath = "/repo",
+      )
     val preview = SkillRemove(fs).previewRemoval(request).preview
     assertNotNull(preview)
     assertEquals(listOf("kmp"), preview.cascadedSkillNames)
@@ -152,10 +167,11 @@ class SkillRemoveTest {
   @Test
   fun `previewRemoval accepts shipped kotlin platform pack without allowShipped`() {
     val fs = FakeSkillRemoveFileSystem(filesystemPaths = listOf("platform-packs/kotlin"))
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.PlatformPack(platform = "kotlin", allowShipped = false),
-      repoRootAbsolutePath = "/repo",
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.PlatformPack(platform = "kotlin", allowShipped = false),
+        repoRootAbsolutePath = "/repo",
+      )
     val preview = SkillRemove(fs).previewRemoval(request).preview
     assertNotNull(preview)
     assertEquals(listOf("platform-packs/kotlin"), preview.filesystemPaths)
@@ -164,10 +180,11 @@ class SkillRemoveTest {
   @Test
   fun `previewRemoval refuses dot-bill-shared platform pack`() {
     val fs = FakeSkillRemoveFileSystem()
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.PlatformPack(platform = ".bill-shared", allowShipped = true),
-      repoRootAbsolutePath = "/repo",
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.PlatformPack(platform = ".bill-shared", allowShipped = true),
+        repoRootAbsolutePath = "/repo",
+      )
     val refusal = assertFailsWith<SkillRemovalRefusedException> { SkillRemove(fs).previewRemoval(request) }
     assertEquals(SkillRemovalRefusalReason.BILL_SHARED_PROTECTED, refusal.refusalReason)
   }
@@ -175,10 +192,11 @@ class SkillRemoveTest {
   @Test
   fun `previewRemoval accepts kotlin when allowShipped is true`() {
     val fs = FakeSkillRemoveFileSystem(filesystemPaths = listOf("skills/custom-kotlin"))
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "kotlin", allowShipped = true),
-      repoRootAbsolutePath = "/repo",
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "kotlin", allowShipped = true),
+        repoRootAbsolutePath = "/repo",
+      )
     val preview = SkillRemove(fs).previewRemoval(request).preview
     assertNotNull(preview)
     assertEquals(listOf("skills/custom-kotlin"), preview.filesystemPaths)
@@ -186,15 +204,16 @@ class SkillRemoveTest {
 
   @Test
   fun `executeRemoval Failed maps non-rollback-aware throwable to rollbackComplete=false`() {
-    val fs = FakeSkillRemoveFileSystem(
-      filesystemPaths = listOf("skills/bill-foo"),
-      applyThrows = RuntimeException("disk on fire"),
-    )
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
-      repoRootAbsolutePath = "/repo",
-    )
+    val fs =
+      FakeSkillRemoveFileSystem(
+        filesystemPaths = listOf("skills/bill-foo"),
+        applyThrows = RuntimeException("disk on fire"),
+      )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
+        repoRootAbsolutePath = "/repo",
+      )
     val result = SkillRemove(fs).executeRemoval(request) as SkillRemovalResult.Failed
     assertEquals(false, result.rollbackComplete)
     assertEquals("disk on fire", result.exceptionMessage)
@@ -202,33 +221,36 @@ class SkillRemoveTest {
 
   @Test
   fun `executeRemoval Failed maps SkillBillRollbackException to rollbackComplete=false`() {
-    val fs = FakeSkillRemoveFileSystem(
-      filesystemPaths = listOf("skills/bill-foo"),
-      applyThrows = SkillBillRollbackException("rollback failed"),
-    )
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
-      repoRootAbsolutePath = "/repo",
-    )
+    val fs =
+      FakeSkillRemoveFileSystem(
+        filesystemPaths = listOf("skills/bill-foo"),
+        applyThrows = SkillBillRollbackException("rollback failed"),
+      )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
+        repoRootAbsolutePath = "/repo",
+      )
     val result = SkillRemove(fs).executeRemoval(request) as SkillRemovalResult.Failed
     assertEquals(false, result.rollbackComplete)
   }
 
   @Test
   fun `executeRemoval Failed maps generic SkillBillRuntimeException to rollbackComplete=true`() {
-    val fs = FakeSkillRemoveFileSystem(
-      filesystemPaths = listOf("skills/bill-foo"),
-      applyThrows = SkillRemovalRefusedException(
-        SkillRemovalRefusalReason.BILL_SHARED_PROTECTED,
-        "test",
-      ),
-    )
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
-      repoRootAbsolutePath = "/repo",
-    )
+    val fs =
+      FakeSkillRemoveFileSystem(
+        filesystemPaths = listOf("skills/bill-foo"),
+        applyThrows =
+          SkillRemovalRefusedException(
+            SkillRemovalRefusalReason.BILL_SHARED_PROTECTED,
+            "test",
+          ),
+      )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
+        repoRootAbsolutePath = "/repo",
+      )
     val result = SkillRemove(fs).executeRemoval(request) as SkillRemovalResult.Failed
     assertEquals(true, result.rollbackComplete)
   }
@@ -251,8 +273,10 @@ private class FakeSkillRemoveFileSystem(
 
   override fun targetExists(request: SkillRemovalRequest): Boolean = filesystemPaths.isNotEmpty()
 
-  override fun planManifestEdits(request: SkillRemovalRequest, cascadedSkillNames: List<String>): List<ManifestEdit> =
-    manifestEdits
+  override fun planManifestEdits(
+    request: SkillRemovalRequest,
+    cascadedSkillNames: List<String>,
+  ): List<ManifestEdit> = manifestEdits
 
   override fun planAgentSymlinkUnlinks(
     request: SkillRemovalRequest,
@@ -261,7 +285,10 @@ private class FakeSkillRemoveFileSystem(
 
   override fun planReadmeCatalogEdits(request: SkillRemovalRequest): List<ReadmeCatalogEdit> = readmeEdits
 
-  override fun applyCascade(request: SkillRemovalRequest, preview: SkillRemovalPreview): AppliedCascade {
+  override fun applyCascade(
+    request: SkillRemovalRequest,
+    preview: SkillRemovalPreview,
+  ): AppliedCascade {
     applyThrows?.let { throw it }
     return AppliedCascade(
       removedPaths = preview.filesystemPaths,

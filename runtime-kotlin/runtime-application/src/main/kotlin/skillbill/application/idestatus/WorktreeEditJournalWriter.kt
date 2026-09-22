@@ -15,6 +15,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
 import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
 import java.nio.file.Path
 import java.time.Clock
+
 @Inject
 class WorktreeEditJournalWriter(
   private val database: DatabaseSessionFactory,
@@ -26,22 +27,30 @@ class WorktreeEditJournalWriter(
     repoRoot: Path,
     resolveWorkflowId: () -> String?,
     resolvePhaseId: () -> String?,
-  ): AgentRunWorktreeEditObserver = AgentRunWorktreeEditObserver {
-    observe(repoRoot, resolveWorkflowId, resolvePhaseId)
-  }
-
-  private fun observe(repoRoot: Path, resolveWorkflowId: () -> String?, resolvePhaseId: () -> String?) {
-    val workflowId = runCatching { resolveWorkflowId() }
-      .getOrElseUnlessCooperative { null }
-      ?.takeIf(String::isNotBlank)
-      ?: return
-    val outcome = runCatching {
-      persistMeasuredTick(workflowId, repoRoot, resolvePhaseId)
+  ): AgentRunWorktreeEditObserver =
+    AgentRunWorktreeEditObserver {
+      observe(repoRoot, resolveWorkflowId, resolvePhaseId)
     }
+
+  private fun observe(
+    repoRoot: Path,
+    resolveWorkflowId: () -> String?,
+    resolvePhaseId: () -> String?,
+  ) {
+    val workflowId =
+      runCatching { resolveWorkflowId() }
+        .getOrElseUnlessCooperative { null }
+        ?.takeIf(String::isNotBlank)
+        ?: return
+    val outcome =
+      runCatching {
+        persistMeasuredTick(workflowId, repoRoot, resolvePhaseId)
+      }
     outcome.exceptionOrNull()?.rethrowIfCooperativeCancellationOrInterruption()
     val error = outcome.exceptionOrNull() ?: return
-    val cause = (error.message?.takeIf(String::isNotBlank) ?: error::class.simpleName.orEmpty())
-      .take(MAX_DIAGNOSTIC_CAUSE_LENGTH)
+    val cause =
+      (error.message?.takeIf(String::isNotBlank) ?: error::class.simpleName.orEmpty())
+        .take(MAX_DIAGNOSTIC_CAUSE_LENGTH)
     runCatching {
       diagnostics.warning(
         "seam=worktree_edit_journal_persist value_expected=persisted_tick value_used=failed " +
@@ -50,7 +59,11 @@ class WorktreeEditJournalWriter(
     }
   }
 
-  private fun persistMeasuredTick(workflowId: String, repoRoot: Path, resolvePhaseId: () -> String?) {
+  private fun persistMeasuredTick(
+    workflowId: String,
+    repoRoot: Path,
+    resolvePhaseId: () -> String?,
+  ) {
     val measured = gitOperations.worktreeNumstat(repoRoot)
     if (!emitMeasureSkipIfNeeded(workflowId, measured)) return
     val entries = measured.files.filterNot(::isRuntimePrivatePath)
@@ -65,16 +78,18 @@ class WorktreeEditJournalWriter(
     val maxRows = WorktreeEditJournalPayloadKeys.MAX_ROWS_PER_WORKFLOW
     val persistEntries = entries.take(maxRows)
     val truncatedRows = entries.size - persistEntries.size
-    val tick = WorktreeEditTick(
-      recordedAt = clock.instant(),
-      phaseId = phaseId,
-      source = WorktreeEditSource.WORKTREE_PROBE,
-      entries = persistEntries,
-    )
-    val droppedRows = database.selfManagedWriteWithBusyRetry { unitOfWork ->
-      unitOfWork.worktreeEditJournal.append(workflowId, tick)
-      unitOfWork.worktreeEditJournal.trimToCap(workflowId, maxRows)
-    } + truncatedRows
+    val tick =
+      WorktreeEditTick(
+        recordedAt = clock.instant(),
+        phaseId = phaseId,
+        source = WorktreeEditSource.WORKTREE_PROBE,
+        entries = persistEntries,
+      )
+    val droppedRows =
+      database.selfManagedWriteWithBusyRetry { unitOfWork ->
+        unitOfWork.worktreeEditJournal.append(workflowId, tick)
+        unitOfWork.worktreeEditJournal.trimToCap(workflowId, maxRows)
+      } + truncatedRows
     if (droppedRows > 0) {
       diagnostics.warning(
         "seam=worktree_edit_journal_cap value_expected=rows_within_cap value_used=dropped_oldest_ticks " +
@@ -84,10 +99,14 @@ class WorktreeEditJournalWriter(
     synchronized(memoState) { memoState[workflowId] = measuredSet }
   }
 
-  private fun emitMeasureSkipIfNeeded(workflowId: String, measured: WorkflowWorktreeNumstatResult): Boolean {
+  private fun emitMeasureSkipIfNeeded(
+    workflowId: String,
+    measured: WorkflowWorktreeNumstatResult,
+  ): Boolean {
     if (measured.status == WorkflowGitOperationStatus.OK) return true
-    val cause = (measured.error?.takeIf(String::isNotBlank) ?: measured.status.wireValue)
-      .take(MAX_DIAGNOSTIC_CAUSE_LENGTH)
+    val cause =
+      (measured.error?.takeIf(String::isNotBlank) ?: measured.status.wireValue)
+        .take(MAX_DIAGNOSTIC_CAUSE_LENGTH)
     diagnostics.warning(
       "seam=worktree_edit_journal_measure value_expected=numstat value_used=skipped " +
         "workflow_id=$workflowId cause=$cause",
@@ -95,30 +114,32 @@ class WorktreeEditJournalWriter(
     return false
   }
 
-  private fun memoizedSet(workflowId: String): Set<Triple<String, Int, Int>> = synchronized(memoState) {
-    memoState.getOrPut(workflowId) {
-      database.readIfPresent { unitOfWork ->
-        unitOfWork.worktreeEditJournal.latestTick(workflowId)
-          ?.entries
-          ?.map { Triple(it.path, it.insertions, it.deletions) }
-          ?.toSet()
-      } ?: emptySet()
+  private fun memoizedSet(workflowId: String): Set<Triple<String, Int, Int>> =
+    synchronized(memoState) {
+      memoState.getOrPut(workflowId) {
+        database.readIfPresent { unitOfWork ->
+          unitOfWork.worktreeEditJournal.latestTick(workflowId)
+            ?.entries
+            ?.map { Triple(it.path, it.insertions, it.deletions) }
+            ?.toSet()
+        } ?: emptySet()
+      }
     }
-  }
 
   private fun isRuntimePrivatePath(entry: GoalObservabilityFileDiffStat): Boolean {
     val path = entry.path
     return path == RUNTIME_PRIVATE_ROOT || path.startsWith(RUNTIME_PRIVATE_PREFIX)
   }
 
-  private val memoState = object : LinkedHashMap<String, Set<Triple<String, Int, Int>>>(
-    INITIAL_TRACKED_WORKFLOWS,
-    ACCESS_ORDER_LOAD_FACTOR,
-    true,
-  ) {
-    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Set<Triple<String, Int, Int>>>?): Boolean =
-      size > MAX_TRACKED_WORKFLOWS
-  }
+  private val memoState =
+    object : LinkedHashMap<String, Set<Triple<String, Int, Int>>>(
+      INITIAL_TRACKED_WORKFLOWS,
+      ACCESS_ORDER_LOAD_FACTOR,
+      true,
+    ) {
+      override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Set<Triple<String, Int, Int>>>?): Boolean =
+        size > MAX_TRACKED_WORKFLOWS
+    }
 
   private companion object {
     const val MAX_TRACKED_WORKFLOWS: Int = 512

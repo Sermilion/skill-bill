@@ -8,8 +8,10 @@ import skillbill.ports.process.InstallerScriptFetchPort
 
 internal interface RuntimeInstallerProvides {
   @Provides @JvmSynthetic
-  fun installerProcessPort(callbacks: OptionalCallbacks, adapter: InstallerProcessAdapter): InstallerProcessPort =
-    callbacks.installerProcessPort ?: adapter
+  fun installerProcessPort(
+    callbacks: OptionalCallbacks,
+    adapter: InstallerProcessAdapter,
+  ): InstallerProcessPort = callbacks.installerProcessPort ?: adapter
 
   @Provides @JvmSynthetic
   fun installerScriptFetchPort(

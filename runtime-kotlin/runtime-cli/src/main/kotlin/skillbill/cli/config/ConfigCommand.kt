@@ -14,6 +14,7 @@ import skillbill.config.model.SpecType
 import skillbill.config.model.parseSpecType
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.ShellContentContractException
+
 @Inject
 class ConfigCommand(
   resolveSpecTypeCommand: ConfigResolveSpecTypeCommand,
@@ -23,9 +24,9 @@ class ConfigCommand(
   registerExternalPlatformPackCommand: ConfigRegisterExternalPlatformPackCommand,
   unregisterExternalPlatformPackCommand: ConfigUnregisterExternalPlatformPackCommand,
 ) : DocumentedNoOpCliCommand(
-  "config",
-  "Inspect resolved repo-local configuration (.skill-bill/config.yaml).",
-) {
+    "config",
+    "Inspect resolved repo-local configuration (.skill-bill/config.yaml).",
+  ) {
   init {
     subcommands(
       resolveSpecTypeCommand,
@@ -44,9 +45,9 @@ class ConfigResolveSpecTypeCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "resolve-spec-type",
-  "Resolve the effective spec-source mode (arg > config spec_type > local).",
-) {
+    "resolve-spec-type",
+    "Resolve the effective spec-source mode (arg > config spec_type > local).",
+  ) {
   private val arg by option(
     "--arg",
     help = "The service override value (local|linear). Blank or 'default' defers to config.",
@@ -58,12 +59,13 @@ class ConfigResolveSpecTypeCommand(
 
   override fun run() {
     val explicit = resolveExplicit() ?: return
-    val resolved = try {
-      configResolutionService.resolveSpecType(resolveCliRepositoryRoot(repoRoot, inputs), explicit.value)
-    } catch (error: ShellContentContractException) {
-      state.completeText("${error.message}\n", failurePayload(error.message), exitCode = 1)
-      return
-    }
+    val resolved =
+      try {
+        configResolutionService.resolveSpecType(resolveCliRepositoryRoot(repoRoot, inputs), explicit.value)
+      } catch (error: ShellContentContractException) {
+        state.completeText("${error.message}\n", failurePayload(error.message), exitCode = 1)
+        return
+      }
     state.completeText(
       "${resolved.id}\n",
       mapOf(SharedPayloadKeys.STATUS to "ok", "spec_type" to resolved.id),

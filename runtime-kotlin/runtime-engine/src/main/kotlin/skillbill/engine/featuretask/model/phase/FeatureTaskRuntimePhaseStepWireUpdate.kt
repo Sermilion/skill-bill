@@ -6,9 +6,10 @@ internal data class FeatureTaskRuntimePhaseStepWireUpdate(
   val status: String,
   val attemptCount: Int,
 ) {
-  fun toWireMap(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.STEP_ID to stepId,
-    SharedPayloadKeys.STATUS to status,
-    "attempt_count" to attemptCount,
-  )
+  fun toWireMap(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.STEP_ID to stepId,
+      SharedPayloadKeys.STATUS to status,
+      "attempt_count" to attemptCount,
+    )
 }

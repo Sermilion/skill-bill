@@ -18,17 +18,17 @@ import java.nio.file.Path
 
 @Inject
 class FileExternalAddonSourceConfigStore : ExternalAddonSourceConfigPort {
-
   override fun readExternalAddonSources(request: ExternalAddonSourceConfigRequest): ExternalAddonSourceConfigResult {
     val configPath = resolveTelemetryConfigPath(request.environment, request.userHome)
     if (!Files.exists(configPath)) {
       return ExternalAddonSourceConfigResult()
     }
-    val payload = try {
-      readTelemetryConfigFile(configPath)?.payload
-    } catch (error: IllegalArgumentException) {
-      throw ExternalAddonConfigError(error.message.orEmpty(), error)
-    } ?: return ExternalAddonSourceConfigResult()
+    val payload =
+      try {
+        readTelemetryConfigFile(configPath)?.payload
+      } catch (error: IllegalArgumentException) {
+        throw ExternalAddonConfigError(error.message.orEmpty(), error)
+      } ?: return ExternalAddonSourceConfigResult()
 
     val raw = payload["external_addon_sources"] ?: return ExternalAddonSourceConfigResult()
     if (raw !is List<*>) {
@@ -44,36 +44,44 @@ class FileExternalAddonSourceConfigStore : ExternalAddonSourceConfigPort {
     request: ExternalAddonSourceRegistrationRequest,
   ): ExternalAddonSourceConfigResult {
     val configPath = resolveTelemetryConfigPath(request.environment, request.userHome)
-    val existing = try {
-      readTelemetryConfigFile(configPath)
-    } catch (error: IllegalArgumentException) {
-      throw ExternalAddonConfigError(error.message.orEmpty(), error)
-    }
+    val existing =
+      try {
+        readTelemetryConfigFile(configPath)
+      } catch (error: IllegalArgumentException) {
+        throw ExternalAddonConfigError(error.message.orEmpty(), error)
+      }
     val payload = LinkedHashMap<String, Any?>(existing?.payload.orEmpty())
     val rawSources = rawExternalAddonSources(configPath, payload)
-    val existingSources = rawSources.mapIndexedNotNull { index, entry ->
-      parseEntry(configPath, request.userHome, index, entry)
-    }
+    val existingSources =
+      rawSources.mapIndexedNotNull { index, entry ->
+        parseEntry(configPath, request.userHome, index, entry)
+      }
     val registeredSource = request.source.normalized()
-    val alreadyRegistered = existingSources.any { source ->
-      source.path == registeredSource.path && source.platform == registeredSource.platform
-    }
-    val sources = if (alreadyRegistered) {
-      existingSources
-    } else {
-      val updatedRawSources = rawSources +
-        mapOf(
-          "path" to registeredSource.path.toString(),
-          "platform" to registeredSource.platform,
-        )
-      payload["external_addon_sources"] = updatedRawSources
-      writeTelemetryConfigFile(configPath, TelemetryConfigDocument(TelemetryOpenDocument.from(payload)))
-      existingSources + registeredSource
-    }
+    val alreadyRegistered =
+      existingSources.any { source ->
+        source.path == registeredSource.path && source.platform == registeredSource.platform
+      }
+    val sources =
+      if (alreadyRegistered) {
+        existingSources
+      } else {
+        val updatedRawSources =
+          rawSources +
+            mapOf(
+              "path" to registeredSource.path.toString(),
+              "platform" to registeredSource.platform,
+            )
+        payload["external_addon_sources"] = updatedRawSources
+        writeTelemetryConfigFile(configPath, TelemetryConfigDocument(TelemetryOpenDocument.from(payload)))
+        existingSources + registeredSource
+      }
     return ExternalAddonSourceConfigResult(sources)
   }
 
-  private fun rawExternalAddonSources(configPath: Path, payload: Map<String, Any?>): List<Any?> {
+  private fun rawExternalAddonSources(
+    configPath: Path,
+    payload: Map<String, Any?>,
+  ): List<Any?> {
     val raw = payload["external_addon_sources"] ?: return emptyList()
     if (raw !is List<*>) {
       throw ExternalAddonConfigError(
@@ -83,7 +91,12 @@ class FileExternalAddonSourceConfigStore : ExternalAddonSourceConfigPort {
     return raw
   }
 
-  private fun parseEntry(configPath: Path, userHome: Path, index: Int, entry: Any?): ExternalAddonSource? {
+  private fun parseEntry(
+    configPath: Path,
+    userHome: Path,
+    index: Int,
+    entry: Any?,
+  ): ExternalAddonSource? {
     val map = requireExternalAddonEntryMap(configPath, index, entry)
     val kind = (map["kind"] as? String)?.trim()
     if (kind == "agent-addon") return null
@@ -98,12 +111,16 @@ class FileExternalAddonSourceConfigStore : ExternalAddonSourceConfigPort {
   private fun ExternalAddonSource.normalized(): ExternalAddonSource =
     ExternalAddonSource(path = path.toPath().toAbsolutePath().normalize().toFileLocation(), platform = platform.trim())
 
-  private fun resolveSourcePath(userHome: Path, rawPath: String): Path {
-    val expanded = when {
-      rawPath == "~" -> userHome.toString()
-      rawPath.startsWith("~/") -> userHome.resolve(rawPath.removePrefix("~/")).toString()
-      else -> rawPath
-    }
+  private fun resolveSourcePath(
+    userHome: Path,
+    rawPath: String,
+  ): Path {
+    val expanded =
+      when {
+        rawPath == "~" -> userHome.toString()
+        rawPath.startsWith("~/") -> userHome.resolve(rawPath.removePrefix("~/")).toString()
+        else -> rawPath
+      }
     val candidate = Path.of(expanded)
     return if (candidate.isAbsolute) {
       candidate.normalize()

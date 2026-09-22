@@ -10,20 +10,22 @@ object DecompositionManifestWriteGuard {
   fun requireWritten(
     outcome: DecompositionManifestProjectionOutcome,
     failureDetail: String,
-  ): DecompositionManifestWriteResult = when (outcome) {
-    is DecompositionManifestProjectionOutcome.Written -> outcome.result
-    is DecompositionManifestProjectionOutcome.Absent ->
-      error("$failureDetail Absent projection is not allowed here.")
-    is DecompositionManifestProjectionOutcome.Failed ->
-      error(
-        "$failureDetail operation=${outcome.operation} path=${outcome.targetPath}",
-      )
-  }
+  ): DecompositionManifestWriteResult =
+    when (outcome) {
+      is DecompositionManifestProjectionOutcome.Written -> outcome.result
+      is DecompositionManifestProjectionOutcome.Absent ->
+        error("$failureDetail Absent projection is not allowed here.")
+      is DecompositionManifestProjectionOutcome.Failed ->
+        error(
+          "$failureDetail operation=${outcome.operation} path=${outcome.targetPath}",
+        )
+    }
 
-  fun failureArtifact(outcome: DecompositionManifestProjectionOutcome.Failed): Map<String, String> = mapOf(
-    DecompositionManifestProjectionFailurePayloadKeys.OPERATION to outcome.operation,
-    DecompositionManifestProjectionFailurePayloadKeys.TARGET_PATH to outcome.targetPath,
-  )
+  fun failureArtifact(outcome: DecompositionManifestProjectionOutcome.Failed): Map<String, String> =
+    mapOf(
+      DecompositionManifestProjectionFailurePayloadKeys.OPERATION to outcome.operation,
+      DecompositionManifestProjectionFailurePayloadKeys.TARGET_PATH to outcome.targetPath,
+    )
 
   fun isRetryableFailure(outcome: DecompositionManifestProjectionOutcome): Boolean =
     outcome is DecompositionManifestProjectionOutcome.Failed

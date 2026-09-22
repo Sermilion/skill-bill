@@ -17,45 +17,52 @@ private val NON_PRIVATE_PROPERTY_DEFAULT_PATTERN =
   )
 private val CLASS_HEADER_TERMINATOR = Regex("""\n\s*\n|\}|\b(?:class|object|interface|fun|typealias)\b""")
 
-private val AMBIENT_CLOCK_FORMS: List<Pair<Regex, String>> = listOf(
-  Regex("""\bInstant\.now\s*\(""") to "Instant.now()",
-  Regex("""\bLocalDateTime\.now\s*\(""") to "LocalDateTime.now()",
-  Regex("""\bLocalDate\.now\s*\(""") to "LocalDate.now()",
-  Regex("""\bOffsetDateTime\.now\s*\(""") to "OffsetDateTime.now()",
-  Regex("""\bZonedDateTime\.now\s*\(""") to "ZonedDateTime.now()",
-  Regex("""\bClock\.systemUTC\s*\(""") to "Clock.systemUTC()",
-  Regex("""\bJvmSystemClock\.instant\s*\(""") to "JvmSystemClock.instant()",
-)
+private val AMBIENT_CLOCK_FORMS: List<Pair<Regex, String>> =
+  listOf(
+    Regex("""\bInstant\.now\s*\(""") to "Instant.now()",
+    Regex("""\bLocalDateTime\.now\s*\(""") to "LocalDateTime.now()",
+    Regex("""\bLocalDate\.now\s*\(""") to "LocalDate.now()",
+    Regex("""\bOffsetDateTime\.now\s*\(""") to "OffsetDateTime.now()",
+    Regex("""\bZonedDateTime\.now\s*\(""") to "ZonedDateTime.now()",
+    Regex("""\bClock\.systemUTC\s*\(""") to "Clock.systemUTC()",
+    Regex("""\bJvmSystemClock\.instant\s*\(""") to "JvmSystemClock.instant()",
+  )
 
-private val AMBIENT_ENVIRONMENT_FORMS: List<Pair<Regex, String>> = listOf(
-  Regex("""\bSystem\.getenv\s*\(""") to "System.getenv()",
-  Regex("""\bSystem\.getProperty\s*\(""") to "System.getProperty()",
-  Regex("""\bPath\.of\s*\(\s*""\s*\)""") to "Path.of(\"\")",
-  Regex("""\bPaths\.get\s*\(\s*""\s*\)""") to "Paths.get(\"\")",
-)
+private val AMBIENT_ENVIRONMENT_FORMS: List<Pair<Regex, String>> =
+  listOf(
+    Regex("""\bSystem\.getenv\s*\(""") to "System.getenv()",
+    Regex("""\bSystem\.getProperty\s*\(""") to "System.getProperty()",
+    Regex("""\bPath\.of\s*\(\s*""\s*\)""") to "Path.of(\"\")",
+    Regex("""\bPaths\.get\s*\(\s*""\s*\)""") to "Paths.get(\"\")",
+  )
 
 private fun codeWithoutComments(line: String): String {
   val withoutLineComment = line.substringBefore("//")
   return withoutLineComment.replace(Regex("""/\*.*?\*/"""), "").substringBefore("/*")
 }
 
-private fun sourceWithoutCommentsOrLiterals(source: String): String = buildString(source.length) {
-  var index = 0
-  while (index < source.length) {
-    index = when {
-      source.startsWith("//", index) -> appendLineComment(source, index)
-      source.startsWith("/*", index) -> appendBlockComment(source, index)
-      source.startsWith("\"\"\"", index) -> appendTripleQuotedLiteral(source, index)
-      source[index] == '"' || source[index] == '\'' -> appendQuotedLiteral(source, index)
-      else -> {
-        append(source[index])
-        index + 1
-      }
+private fun sourceWithoutCommentsOrLiterals(source: String): String =
+  buildString(source.length) {
+    var index = 0
+    while (index < source.length) {
+      index =
+        when {
+          source.startsWith("//", index) -> appendLineComment(source, index)
+          source.startsWith("/*", index) -> appendBlockComment(source, index)
+          source.startsWith("\"\"\"", index) -> appendTripleQuotedLiteral(source, index)
+          source[index] == '"' || source[index] == '\'' -> appendQuotedLiteral(source, index)
+          else -> {
+            append(source[index])
+            index + 1
+          }
+        }
     }
   }
-}
 
-private fun StringBuilder.appendLineComment(source: String, start: Int): Int {
+private fun StringBuilder.appendLineComment(
+  source: String,
+  start: Int,
+): Int {
   append("  ")
   var index = start + 2
   while (index < source.length && source[index] != '\n') {
@@ -66,7 +73,10 @@ private fun StringBuilder.appendLineComment(source: String, start: Int): Int {
   return index + 1
 }
 
-private fun StringBuilder.appendBlockComment(source: String, start: Int): Int {
+private fun StringBuilder.appendBlockComment(
+  source: String,
+  start: Int,
+): Int {
   append("  ")
   var index = start + 2
   var depth = 1
@@ -95,7 +105,10 @@ private fun StringBuilder.appendBlockComment(source: String, start: Int): Int {
   return index
 }
 
-private fun StringBuilder.appendTripleQuotedLiteral(source: String, start: Int): Int {
+private fun StringBuilder.appendTripleQuotedLiteral(
+  source: String,
+  start: Int,
+): Int {
   append("   ")
   var index = start + 3
   while (index < source.length && !source.startsWith("\"\"\"", index)) {
@@ -109,7 +122,10 @@ private fun StringBuilder.appendTripleQuotedLiteral(source: String, start: Int):
   return index
 }
 
-private fun StringBuilder.appendQuotedLiteral(source: String, start: Int): Int {
+private fun StringBuilder.appendQuotedLiteral(
+  source: String,
+  start: Int,
+): Int {
   val quote = source[start]
   append(' ')
   var index = start + 1
@@ -128,7 +144,12 @@ private fun StringBuilder.appendQuotedLiteral(source: String, start: Int): Int {
   return index
 }
 
-private fun extractBalanced(source: String, openIndex: Int, open: Char, close: Char): String? {
+private fun extractBalanced(
+  source: String,
+  openIndex: Int,
+  open: Char,
+  close: Char,
+): String? {
   if (source.getOrNull(openIndex) != open) return null
   var depth = 0
   var index = openIndex
@@ -150,9 +171,10 @@ private fun defaultArgumentParameters(constructorBody: String): List<String> {
   if (inner.isBlank()) return emptyList()
   val parameters = splitTopLevelParameters(inner)
   return parameters.mapNotNull { parameter ->
-    val name = parameter.substringBefore(':').trim().substringAfterLast(' ').ifBlank {
-      parameter.substringBefore(':').trim()
-    }
+    val name =
+      parameter.substringBefore(':').trim().substringAfterLast(' ').ifBlank {
+        parameter.substringBefore(':').trim()
+      }
     if ('=' in parameter) name.takeIf { it.isNotBlank() } else null
   }
 }
@@ -168,11 +190,12 @@ private fun splitTopLevelParameters(parameters: String): List<String> {
       '>' -> angleDepth -= 1
       '(' -> parenDepth += 1
       ')' -> parenDepth -= 1
-      ',' -> if (angleDepth == 0 && parenDepth == 0) {
-        parts += current.toString().trim()
-        current.clear()
-        return@forEach
-      }
+      ',' ->
+        if (angleDepth == 0 && parenDepth == 0) {
+          parts += current.toString().trim()
+          current.clear()
+          return@forEach
+        }
     }
     current.append(character)
   }
@@ -200,12 +223,13 @@ private fun ambientSitesInText(
 private fun ArchitectureScanSupport.ambientSitesUnder(
   scanRoot: String,
   forms: List<Pair<Regex, String>>,
-): List<AmbientSite> = kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
-  .flatMap { sourceFile ->
-    val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
-    ambientSitesInText(relativePath, sourceFile.readText(), forms)
-  }
-  .sortedWith(compareBy({ it.relativePath }, { it.lineNumber }, { it.call }))
+): List<AmbientSite> =
+  kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
+    .flatMap { sourceFile ->
+      val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+      ambientSitesInText(relativePath, sourceFile.readText(), forms)
+    }
+    .sortedWith(compareBy({ it.relativePath }, { it.lineNumber }, { it.call }))
 
 fun ArchitectureScanSupport.encodeAmbientSite(site: AmbientSite): String =
   "${site.relativePath}:${site.lineNumber}:${site.call}"
@@ -214,25 +238,29 @@ private fun ArchitectureScanSupport.unlistedAmbientSites(
   sites: List<AmbientSite>,
   baseline: Set<String>,
   guardName: String,
-): List<String> = (sites.map { site -> encodeAmbientSite(site) }.toSet() - baseline)
-  .sorted()
-  .map { site -> "$site is not listed in the $guardName baseline." }
+): List<String> =
+  (sites.map { site -> encodeAmbientSite(site) }.toSet() - baseline)
+    .sorted()
+    .map { site -> "$site is not listed in the $guardName baseline." }
 
 fun ArchitectureScanSupport.ambientClockCallSites(scanRoot: String): List<AmbientSite> =
   ambientSitesUnder(scanRoot, AMBIENT_CLOCK_FORMS)
 
-fun ArchitectureScanSupport.ambientClockViolations(baseline: Set<String>, scanRoot: String): List<String> =
-  unlistedAmbientSites(ambientClockCallSites(scanRoot), baseline, "ambient-clock")
+fun ArchitectureScanSupport.ambientClockViolations(
+  baseline: Set<String>,
+  scanRoot: String,
+): List<String> = unlistedAmbientSites(ambientClockCallSites(scanRoot), baseline, "ambient-clock")
 
 fun ArchitectureScanSupport.ambientClockViolationsInSource(
   relativePath: String,
   source: String,
   baseline: Set<String>,
-): List<String> = unlistedAmbientSites(
-  ambientSitesInText(relativePath, source, AMBIENT_CLOCK_FORMS),
-  baseline,
-  "ambient-clock",
-)
+): List<String> =
+  unlistedAmbientSites(
+    ambientSitesInText(relativePath, source, AMBIENT_CLOCK_FORMS),
+    baseline,
+    "ambient-clock",
+  )
 
 fun ArchitectureScanSupport.ambientEnvironmentCallSites(scanRoot: String): List<AmbientSite> =
   ambientSitesUnder(scanRoot, AMBIENT_ENVIRONMENT_FORMS)
@@ -242,31 +270,34 @@ fun ArchitectureScanSupport.ambientEnvironmentViolationsInSource(
   relativePath: String,
   source: String,
   baseline: Set<String>,
-): List<String> = unlistedAmbientSites(
-  ambientSitesInText(relativePath, source, AMBIENT_ENVIRONMENT_FORMS),
-  baseline,
-  "ambient-environment",
-)
+): List<String> =
+  unlistedAmbientSites(
+    ambientSitesInText(relativePath, source, AMBIENT_ENVIRONMENT_FORMS),
+    baseline,
+    "ambient-environment",
+  )
 
 fun ArchitectureScanSupport.parseStringSetBaseline(text: String): Set<String> =
   text.lineSequence().map { it.trim() }.filter { it.isNotBlank() && !it.startsWith("#") }.toSet()
 
 fun ArchitectureScanSupport.injectConstructorDefaultSites(
   scanRoot: String = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
-): List<ArchitectureScanSupport.InjectConstructorDefaultSite> = kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
-  .flatMap { sourceFile ->
-    val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
-    injectConstructorDefaultSitesInSource(relativePath, sourceFile.readText())
-  }
-  .sortedWith(compareBy({ it.relativePath }, { it.symbol }, { it.parameter }))
+): List<ArchitectureScanSupport.InjectConstructorDefaultSite> =
+  kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
+    .flatMap { sourceFile ->
+      val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+      injectConstructorDefaultSitesInSource(relativePath, sourceFile.readText())
+    }
+    .sortedWith(compareBy({ it.relativePath }, { it.symbol }, { it.parameter }))
 
 fun ArchitectureScanSupport.injectConstructorDefaultViolations(
   baseline: Set<String>,
   scanRoot: String = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
 ): List<String> {
-  val current = injectConstructorDefaultSites(scanRoot)
-    .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
-    .toSet()
+  val current =
+    injectConstructorDefaultSites(scanRoot)
+      .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
+      .toSet()
   return (current - baseline).sorted().map { site ->
     "$site has a default argument on an @Inject constructor or dependency bag."
   }
@@ -282,11 +313,12 @@ fun ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
   INJECT_TYPE_PATTERN.findAll(scannable).forEach { match ->
     val symbol = match.groupValues[1]
     val headerEnd = afterClassTypeParameters(scannable, match.range.last + 1)
-    val defaults = if (scannable.getOrNull(headerEnd) == '(') {
-      extractBalanced(scannable, headerEnd, '(', ')')?.let(::defaultArgumentParameters)
-    } else {
-      classBody(scannable, headerEnd)?.let(::nonPrivatePropertyDefaults)
-    }
+    val defaults =
+      if (scannable.getOrNull(headerEnd) == '(') {
+        extractBalanced(scannable, headerEnd, '(', ')')?.let(::defaultArgumentParameters)
+      } else {
+        classBody(scannable, headerEnd)?.let(::nonPrivatePropertyDefaults)
+      }
     defaults.orEmpty().forEach { parameter ->
       sites += ArchitectureScanSupport.InjectConstructorDefaultSite(relativePath, symbol, parameter)
     }
@@ -294,7 +326,10 @@ fun ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
   return sites
 }
 
-private fun afterClassTypeParameters(source: String, nameEnd: Int): Int {
+private fun afterClassTypeParameters(
+  source: String,
+  nameEnd: Int,
+): Int {
   var index = source.skipWhitespace(nameEnd)
   if (source.getOrNull(index) == '<') {
     val typeParameters = extractBalanced(source, index, '<', '>') ?: return index
@@ -309,7 +344,10 @@ private fun String.skipWhitespace(from: Int): Int {
   return index
 }
 
-private fun classBody(source: String, headerEnd: Int): String? {
+private fun classBody(
+  source: String,
+  headerEnd: Int,
+): String? {
   val braceIndex = source.indexOf('{', headerEnd)
   if (braceIndex < 0) return null
   if (CLASS_HEADER_TERMINATOR.containsMatchIn(source.substring(headerEnd, braceIndex))) return null
@@ -329,22 +367,24 @@ private fun nonPrivatePropertyDefaults(classBody: String): List<String> {
   return names
 }
 
-private val COMPLEXITY_SUPPRESSION_RULES: Set<String> = setOf(
-  "TooManyFunctions",
-  "LargeClass",
-  "LongMethod",
-  "CyclomaticComplexMethod",
-  "ComplexCondition",
-  "NestedBlockDepth",
-  "ReturnCount",
-  "ThrowsCount",
-  "LongParameterList",
-)
+private val COMPLEXITY_SUPPRESSION_RULES: Set<String> =
+  setOf(
+    "TooManyFunctions",
+    "LargeClass",
+    "LongMethod",
+    "CyclomaticComplexMethod",
+    "ComplexCondition",
+    "NestedBlockDepth",
+    "ReturnCount",
+    "ThrowsCount",
+    "LongParameterList",
+  )
 
-private val SUPPRESSION_SCAN_ROOTS: List<String> = listOf(
-  "runtime-kotlin",
-  "runtime-kotlin/build-logic",
-)
+private val SUPPRESSION_SCAN_ROOTS: List<String> =
+  listOf(
+    "runtime-kotlin",
+    "runtime-kotlin/build-logic",
+  )
 
 fun ArchitectureScanSupport.parseSuppressionAllowList(decisionsMarkdown: String): Set<Triple<String, String, String>> {
   val sectionStart = decisionsMarkdown.indexOf("Compiler suppression allow-list")
@@ -365,15 +405,16 @@ fun ArchitectureScanSupport.parseSuppressionAllowList(decisionsMarkdown: String)
 
 fun ArchitectureScanSupport.authoredSuppressions(
   scanRoots: List<String> = SUPPRESSION_SCAN_ROOTS,
-): List<AuthoredSuppressionSite> = scanRoots.flatMap { scanRoot ->
-  kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
-    .filter { path -> !path.toString().replace('\\', '/').contains("/generated/") }
-    .flatMap { sourceFile ->
-      val normalized = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
-      val relativePath = normalized.removePrefix("runtime-kotlin/")
-      authoredSuppressionsFromFile(relativePath, sourceFile.readText())
-    }
-}
+): List<AuthoredSuppressionSite> =
+  scanRoots.flatMap { scanRoot ->
+    kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
+      .filter { path -> !path.toString().replace('\\', '/').contains("/generated/") }
+      .flatMap { sourceFile ->
+        val normalized = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+        val relativePath = normalized.removePrefix("runtime-kotlin/")
+        authoredSuppressionsFromFile(relativePath, sourceFile.readText())
+      }
+  }
 
 fun ArchitectureScanSupport.authoredSuppressionsFromFile(
   relativePath: String,
@@ -388,16 +429,17 @@ fun ArchitectureScanSupport.authoredSuppressionsInSource(
 fun ArchitectureScanSupport.suppressionViolations(
   suppressions: List<AuthoredSuppressionSite>,
   allowList: Set<Triple<String, String, String>>,
-): List<String> = suppressions.mapNotNull { site ->
-  when {
-    site.rule in COMPLEXITY_SUPPRESSION_RULES ->
-      "${site.relativePath}::${site.symbol} uses banned complexity suppression '${site.rule}'; refactor instead."
-    Triple(site.relativePath, site.symbol, site.rule) !in allowList ->
-      "${site.relativePath}::${site.symbol} has @Suppress('${site.rule}') without a dated allow-list row; " +
-        "fix the finding or add path, symbol, rule, and why to runtime-kotlin/agent/decisions.md."
-    else -> null
-  }
-}.sorted()
+): List<String> =
+  suppressions.mapNotNull { site ->
+    when {
+      site.rule in COMPLEXITY_SUPPRESSION_RULES ->
+        "${site.relativePath}::${site.symbol} uses banned complexity suppression '${site.rule}'; refactor instead."
+      Triple(site.relativePath, site.symbol, site.rule) !in allowList ->
+        "${site.relativePath}::${site.symbol} has @Suppress('${site.rule}') without a dated allow-list row; " +
+          "fix the finding or add path, symbol, rule, and why to runtime-kotlin/agent/decisions.md."
+      else -> null
+    }
+  }.sorted()
 
 fun ArchitectureScanSupport.detektComplexityPinViolations(detektYaml: String): List<String> =
   COMPLEXITY_SUPPRESSION_RULES.mapNotNull { rule ->
@@ -443,12 +485,16 @@ private fun concreteTypeNamesFromProvidesParameterList(parameters: String): List
   }
 }
 
-private fun canonicalTypeName(source: String, typeName: String): String = IMPORT_ALIAS_PATTERN.findAll(source)
-  .firstOrNull { match -> match.groupValues[2] == typeName }
-  ?.groupValues
-  ?.get(1)
-  ?.substringAfterLast('.')
-  ?: typeName
+private fun canonicalTypeName(
+  source: String,
+  typeName: String,
+): String =
+  IMPORT_ALIAS_PATTERN.findAll(source)
+    .firstOrNull { match -> match.groupValues[2] == typeName }
+    ?.groupValues
+    ?.get(1)
+    ?.substringAfterLast('.')
+    ?: typeName
 
 private fun componentProviderReturnTypeNames(source: String): Set<String> =
   COMPONENT_PROVIDER_RETURN_TYPE_PATTERN.findAll(source)
@@ -472,7 +518,10 @@ private fun providesBoundConcreteTypeNames(
   return names
 }
 
-private fun importLocalNamesForSimpleType(source: String, simpleName: String): Set<String> {
+private fun importLocalNamesForSimpleType(
+  source: String,
+  simpleName: String,
+): Set<String> {
   val localNames = linkedSetOf(simpleName)
   IMPORT_ALIAS_PATTERN.findAll(source).forEach { match ->
     val imported = match.groupValues[1]
@@ -486,7 +535,10 @@ private fun importLocalNamesForSimpleType(source: String, simpleName: String): S
   return localNames
 }
 
-private fun constructionTokenToBoundClass(source: String, boundClassNames: Set<String>): Map<String, String> {
+private fun constructionTokenToBoundClass(
+  source: String,
+  boundClassNames: Set<String>,
+): Map<String, String> {
   val tokenToBound = linkedMapOf<String, String>()
   boundClassNames.forEach { boundClass ->
     importLocalNamesForSimpleType(source, boundClass).forEach { token ->
@@ -496,13 +548,20 @@ private fun constructionTokenToBoundClass(source: String, boundClassNames: Set<S
   return tokenToBound
 }
 
-private fun isClassDeclarationConstruction(source: String, matchStart: Int): Boolean {
+private fun isClassDeclarationConstruction(
+  source: String,
+  matchStart: Int,
+): Boolean {
   val lineStart = source.lastIndexOf('\n', matchStart - 1) + 1
   val lineEnd = source.indexOf('\n', matchStart).let { index -> if (index < 0) source.length else index }
   return CLASS_DECLARATION_CONSTRUCTION_PATTERN.containsMatchIn(source.substring(lineStart, lineEnd))
 }
 
-private fun isSameNamedFunctionDeclaration(source: String, matchStart: Int, token: String): Boolean {
+private fun isSameNamedFunctionDeclaration(
+  source: String,
+  matchStart: Int,
+  token: String,
+): Boolean {
   val lineStart = source.lastIndexOf('\n', matchStart - 1) + 1
   val lineEnd = source.indexOf('\n', matchStart).let { index -> if (index < 0) source.length else index }
   return Regex("""\bfun\s+${Regex.escape(token)}\s*\(""").containsMatchIn(source.substring(lineStart, lineEnd))
@@ -516,10 +575,11 @@ private fun constructionViolationsForBoundClasses(
   val scannable = sourceWithoutCommentsOrLiterals(source)
   val tokenToBound = constructionTokenToBoundClass(source, boundClassNames)
   if (tokenToBound.isEmpty()) return emptyList()
-  val pattern = Regex(
-    tokenToBound.keys.sortedByDescending(String::length).joinToString(separator = "|") { Regex.escape(it) }
-      .let { """\b($it)\s*\(""" },
-  )
+  val pattern =
+    Regex(
+      tokenToBound.keys.sortedByDescending(String::length).joinToString(separator = "|") { Regex.escape(it) }
+        .let { """\b($it)\s*\(""" },
+    )
   return pattern.findAll(scannable).mapNotNull { match ->
     val token = match.groupValues[1]
     if (isClassDeclarationConstruction(scannable, match.range.first)) return@mapNotNull null
@@ -531,9 +591,10 @@ private fun constructionViolationsForBoundClasses(
 
 fun ArchitectureScanSupport.boundComponentConcreteClassNames(diScanRoot: String): Set<String> {
   val componentFile = runtimeRoot.resolve(PrincipleEnforcementInventory.RUNTIME_COMPONENT_SOURCE)
-  val excludedParameterTypeNames = componentFile.takeIf { Files.exists(it) }
-    ?.let { componentProviderReturnTypeNames(it.readText()) }
-    .orEmpty()
+  val excludedParameterTypeNames =
+    componentFile.takeIf { Files.exists(it) }
+      ?.let { componentProviderReturnTypeNames(it.readText()) }
+      .orEmpty()
   val names = linkedSetOf<String>()
   kotlinFilesUnder(runtimeRoot.resolve(diScanRoot)).forEach { sourceFile ->
     names += providesBoundConcreteTypeNames(sourceFile.readText(), excludedParameterTypeNames)
@@ -557,11 +618,12 @@ fun ArchitectureScanSupport.directComponentConstructionViolations(
       val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
       if (relativePath.startsWith(compositionDiRoot)) return@forEach
       if (relativePath in sanctionedEntrypoints) return@forEach
-      violations += constructionViolationsForBoundClasses(
-        relativePath,
-        sourceFile.readText(),
-        boundClassNames,
-      )
+      violations +=
+        constructionViolationsForBoundClasses(
+          relativePath,
+          sourceFile.readText(),
+          boundClassNames,
+        )
     }
   }
   return violations.sorted()

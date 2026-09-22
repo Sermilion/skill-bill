@@ -20,9 +20,10 @@ class FeatureTaskRuntimeSharedReviewEvidenceProjectionTest {
   @Test
   fun `the delivered projection carries reference data only and no diff bytes`() {
     val diffLine = "+val poisoned = true"
-    val envelope = FeatureTaskRuntimeHandoffProjectionValidator.validate(
-      inputs(evidence = evidence(fileCount = 3)),
-    )
+    val envelope =
+      FeatureTaskRuntimeHandoffProjectionValidator.validate(
+        inputs(evidence = evidence(fileCount = 3)),
+      )
     val projection = envelope.projections.single()
     assertEquals(def.SHARED_REVIEW_EVIDENCE_PROJECTION_NAME, projection.projectionName)
     projection.fields.forEach { field ->
@@ -32,24 +33,26 @@ class FeatureTaskRuntimeSharedReviewEvidenceProjectionTest {
           field.value is FeatureTaskRuntimeHandoffProjectionValue.TextList,
       )
     }
-    val rendered = projection.fields.joinToString("\n") { field ->
-      when (val value = field.value) {
-        is FeatureTaskRuntimeHandoffProjectionValue.Text -> value.text
-        is FeatureTaskRuntimeHandoffProjectionValue.TextList -> value.items.joinToString("\n")
-        is FeatureTaskRuntimeHandoffProjectionValue.CompactReference -> value.value
+    val rendered =
+      projection.fields.joinToString("\n") { field ->
+        when (val value = field.value) {
+          is FeatureTaskRuntimeHandoffProjectionValue.Text -> value.text
+          is FeatureTaskRuntimeHandoffProjectionValue.TextList -> value.items.joinToString("\n")
+          is FeatureTaskRuntimeHandoffProjectionValue.CompactReference -> value.value
+        }
       }
-    }
     assertTrue(diffLine !in rendered, "the projection must never carry diff bytes")
     assertTrue("@@" !in rendered, "the projection must never carry hunk bodies")
   }
 
   @Test
   fun `serialized size is independent of branch diff size at equal file counts`() {
-    fun bytes(hunksPerFile: Int): Int = FeatureTaskRuntimeHandoffProjectionValidator
-      .validate(inputs(evidence = evidence(fileCount = 12, hunksPerFile = hunksPerFile)))
-      .projections
-      .single()
-      .utf8ByteSize
+    fun bytes(hunksPerFile: Int): Int =
+      FeatureTaskRuntimeHandoffProjectionValidator
+        .validate(inputs(evidence = evidence(fileCount = 12, hunksPerFile = hunksPerFile)))
+        .projections
+        .single()
+        .utf8ByteSize
 
     assertEquals(bytes(hunksPerFile = 1), bytes(hunksPerFile = 1))
 
@@ -63,7 +66,10 @@ class FeatureTaskRuntimeSharedReviewEvidenceProjectionTest {
     assertNull(envelope.projections.firstOrNull { it.projectionName == def.SHARED_REVIEW_EVIDENCE_PROJECTION_NAME })
   }
 
-  private fun evidence(fileCount: Int, hunksPerFile: Int = 1) = FeatureTaskRuntimeSharedReviewEvidenceReference(
+  private fun evidence(
+    fileCount: Int,
+    hunksPerFile: Int = 1,
+  ) = FeatureTaskRuntimeSharedReviewEvidenceReference(
     storePath = ".skill-bill/run-evidence/wftr-1/fp",
     checkpointFingerprint = "fp",
     baseRef = "base-sha",
@@ -78,12 +84,13 @@ class FeatureTaskRuntimeSharedReviewEvidenceProjectionTest {
       consumerPhaseId = def.PHASE_REVIEW,
       declarations = listOf(def.sharedReviewEvidenceDeclaration(def.PHASE_REVIEW)),
       resolvedUpstream = FeatureTaskRuntimeResolvedUpstreamOutputs(emptyMap()),
-      runInvariants = FeatureTaskRuntimeRunInvariants(
-        specReference = ".feature-specs/SKILL-164/spec.md",
-        featureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
-        acceptanceCriteria = listOf("AC-001"),
-        mandatesAndOverrides = emptyList(),
-      ),
+      runInvariants =
+        FeatureTaskRuntimeRunInvariants(
+          specReference = ".feature-specs/SKILL-164/spec.md",
+          featureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
+          acceptanceCriteria = listOf("AC-001"),
+          mandatesAndOverrides = emptyList(),
+        ),
       resolvedCheckpoint = FeatureTaskRuntimeRepositoryCheckpoint(fingerprint = "fp"),
       sharedReviewEvidence = evidence,
       workflowId = "wftr-1",

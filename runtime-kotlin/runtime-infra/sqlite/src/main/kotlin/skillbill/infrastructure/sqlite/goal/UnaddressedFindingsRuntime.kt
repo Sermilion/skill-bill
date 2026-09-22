@@ -8,8 +8,11 @@ internal class UnaddressedFindingsRuntime(connection: Connection) {
   private val ledger = UnaddressedFindingsLedgerRuntime(connection)
   private val outcomes = UnaddressedFindingsOutcomeRuntime(connection)
 
-  fun replaceLedgerForPass(workflowId: String, reviewPassNumber: Int, findings: List<UnaddressedFinding>) =
-    ledger.replaceLedgerForPass(workflowId, reviewPassNumber, findings)
+  fun replaceLedgerForPass(
+    workflowId: String,
+    reviewPassNumber: Int,
+    findings: List<UnaddressedFinding>,
+  ) = ledger.replaceLedgerForPass(workflowId, reviewPassNumber, findings)
 
   fun recordOutcomes(outcomes: List<ReviewFindingOutcomeRecord>) = this.outcomes.recordOutcomes(outcomes)
 

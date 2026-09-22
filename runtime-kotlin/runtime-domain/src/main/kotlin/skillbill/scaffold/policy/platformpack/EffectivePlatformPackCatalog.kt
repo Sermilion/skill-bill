@@ -24,17 +24,18 @@ fun buildEffectivePlatformPackCatalog(
     externalBySlug[slug] = pack
   }
   val slugs = (bundledSlugs + bundledBySlug.keys + externalBySlug.keys).toSortedSet()
-  val entries = slugs.map { slug ->
-    val externalPack = externalBySlug[slug]
-    if (externalPack != null) {
-      EffectivePlatformPackEntry(
-        loaded = externalPack,
-        shadowedBundledSlug = slug.takeIf { it in bundledSlugs },
-      )
-    } else {
-      val bundledPack = bundledBySlug.getValue(slug)
-      EffectivePlatformPackEntry(loaded = bundledPack, shadowedBundledSlug = null)
+  val entries =
+    slugs.map { slug ->
+      val externalPack = externalBySlug[slug]
+      if (externalPack != null) {
+        EffectivePlatformPackEntry(
+          loaded = externalPack,
+          shadowedBundledSlug = slug.takeIf { it in bundledSlugs },
+        )
+      } else {
+        val bundledPack = bundledBySlug.getValue(slug)
+        EffectivePlatformPackEntry(loaded = bundledPack, shadowedBundledSlug = null)
+      }
     }
-  }
   return EffectivePlatformPackCatalog(entries)
 }

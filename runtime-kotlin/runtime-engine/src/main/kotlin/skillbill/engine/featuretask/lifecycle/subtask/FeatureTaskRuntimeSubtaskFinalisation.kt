@@ -25,10 +25,11 @@ class FeatureTaskRuntimeSubtaskFinalisation(
     val dirtyOrError = gitOperations.dirtyImplementationPaths(repoRoot)
     if (dirtyOrError is DirtyPathsError) return blocked(dirtyOrError.reason)
     val paths = (dirtyOrError as DirtyPaths).paths
-    val staging = when (val outcome = prepareStaging(paths)) {
-      is FinalisationStagingBlocked -> return outcome.result
-      is FinalisationStagingReady -> outcome
-    }
+    val staging =
+      when (val outcome = prepareStaging(paths)) {
+        is FinalisationStagingBlocked -> return outcome.result
+        is FinalisationStagingReady -> outcome
+      }
     return commitAndPush(request, paths, staging.restoreState)
   }
 
@@ -36,8 +37,10 @@ class FeatureTaskRuntimeSubtaskFinalisation(
     fun readHandoff(envelope: Map<String, Any?>): FeatureTaskRuntimeCommitPushHandoffResult =
       FeatureTaskRuntimeSubtaskFinalisationHandoff.readHandoff(envelope)
 
-    fun withCommitSha(envelope: Map<String, Any?>, commitSha: String): Map<String, Any?> =
-      FeatureTaskRuntimeSubtaskFinalisationHandoff.withCommitSha(envelope, commitSha)
+    fun withCommitSha(
+      envelope: Map<String, Any?>,
+      commitSha: String,
+    ): Map<String, Any?> = FeatureTaskRuntimeSubtaskFinalisationHandoff.withCommitSha(envelope, commitSha)
   }
 }
 
@@ -72,41 +75,45 @@ fun FeatureTaskRuntimeSubtaskFinalisation.commitAndPush(
   restoreState: String,
 ): FeatureTaskRuntimeSubtaskFinalisationResult {
   val branch = request.metadata.branch
-  val decision = decide(
-    branch = branch,
-    identity = request.identity,
-    durableCommitSha = request.durableCommitSha,
-    sequenceNumber = request.sequenceNumber,
-  ).let { decision ->
-    SupersededCheckpointPromoter(gitOperations).run {
-      decision.promote(
-        repoRoot = repoRoot,
-        branch = branch,
-        durableCommitSha = request.durableCommitSha,
-        sequenceNumber = request.sequenceNumber,
-        stageable = stageable,
-      )
-    }
-  }
-  val rewrites = decision is FeatureTaskRuntimeSubtaskCommitAmend
-  val message = FeatureTaskRuntimeCheckpointMessage.finalise(
-    request.handoff.outcomeMessage,
-    request.metadata,
-    request.identity,
-  )
-  val commit = gitOperations.writeSubtaskCommitPreservingHistory(
-    SubtaskCommitPreservationRequest(
-      repoRoot = repoRoot,
-      decision = decision,
+  val decision =
+    decide(
+      branch = branch,
       identity = request.identity,
-      message = message,
-      allowUnchangedIndex = true,
-      record = record,
-    ),
-  )
+      durableCommitSha = request.durableCommitSha,
+      sequenceNumber = request.sequenceNumber,
+    ).let { decision ->
+      SupersededCheckpointPromoter(gitOperations).run {
+        decision.promote(
+          repoRoot = repoRoot,
+          branch = branch,
+          durableCommitSha = request.durableCommitSha,
+          sequenceNumber = request.sequenceNumber,
+          stageable = stageable,
+        )
+      }
+    }
+  val rewrites = decision is FeatureTaskRuntimeSubtaskCommitAmend
+  val message =
+    FeatureTaskRuntimeCheckpointMessage.finalise(
+      request.handoff.outcomeMessage,
+      request.metadata,
+      request.identity,
+    )
+  val commit =
+    gitOperations.writeSubtaskCommitPreservingHistory(
+      SubtaskCommitPreservationRequest(
+        repoRoot = repoRoot,
+        decision = decision,
+        identity = request.identity,
+        message = message,
+        allowUnchangedIndex = true,
+        record = record,
+      ),
+    )
   if (commit !is WorkflowGitOperationResult.Ok) return blocked(restoring(commit.error, stageable, restoreState))
-  val commitSha = commit.value.orEmpty().trim().takeIf(String::isNotBlank)
-    ?: return blocked(restoring("the finalisation commit returned an empty sha", stageable, restoreState))
+  val commitSha =
+    commit.value.orEmpty().trim().takeIf(String::isNotBlank)
+      ?: return blocked(restoring("the finalisation commit returned an empty sha", stageable, restoreState))
   val recordFailure = recordCommit(commitSha, stageable)
   if (recordFailure != null) return FeatureTaskRuntimeSubtaskFinalisationBlocked(recordFailure)
   return finalizeCommittedSubtask(
@@ -139,12 +146,13 @@ private fun FeatureTaskRuntimeSubtaskFinalisation.finalizeCommittedSubtask(
   if (!input.request.deferRemotePublication && !input.request.manifestCommitSha.isNullOrBlank()) {
     gitOperations.pruneSubtaskCheckpointRefs(
       repoRoot = repoRoot,
-      request = FeatureTaskRuntimeCheckpointRefPruneRequest(
-        issueKey = input.request.identity.issueKey,
-        subtaskId = input.request.identity.subtaskId,
-        manifestCommitSha = input.request.manifestCommitSha,
-        featureBranch = input.branch,
-      ),
+      request =
+        FeatureTaskRuntimeCheckpointRefPruneRequest(
+          issueKey = input.request.identity.issueKey,
+          subtaskId = input.request.identity.subtaskId,
+          manifestCommitSha = input.request.manifestCommitSha,
+          featureBranch = input.branch,
+        ),
       record = record,
     )
   }
@@ -155,7 +163,11 @@ private fun FeatureTaskRuntimeSubtaskFinalisation.finalizeCommittedSubtask(
   )
 }
 
-fun FeatureTaskRuntimeSubtaskFinalisation.restoring(error: String, paths: List<String>, snapshot: String): String {
+fun FeatureTaskRuntimeSubtaskFinalisation.restoring(
+  error: String,
+  paths: List<String>,
+  snapshot: String,
+): String {
   val restored = gitOperations.restoreIndexState(repoRoot, paths, snapshot)
   return if (restored is WorkflowGitOperationResult.Ok) {
     "$error; the pre-finalisation index was restored and the working tree is unchanged"
@@ -165,6 +177,7 @@ fun FeatureTaskRuntimeSubtaskFinalisation.restoring(error: String, paths: List<S
   }
 }
 
-fun FeatureTaskRuntimeSubtaskFinalisation.blocked(reason: String) = FeatureTaskRuntimeSubtaskFinalisationBlocked(
-  "needs_human: subtask finalisation could not complete because $reason.",
-)
+fun FeatureTaskRuntimeSubtaskFinalisation.blocked(reason: String) =
+  FeatureTaskRuntimeSubtaskFinalisationBlocked(
+    "needs_human: subtask finalisation could not complete because $reason.",
+  )

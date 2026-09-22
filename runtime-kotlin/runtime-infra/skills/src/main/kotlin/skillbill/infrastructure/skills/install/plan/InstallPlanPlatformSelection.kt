@@ -7,9 +7,10 @@ import skillbill.scaffold.model.PlatformManifest
 internal fun selectedPlatformSlugs(
   skills: List<InstallPlanSkill>,
   platformManifests: List<PlatformManifest>,
-): Set<String> = skills
-  .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK }
-  .mapNotNull { skill ->
-    platformManifests.firstOrNull { manifest -> skill.sourceDir.startsWith(manifest.packRoot) }?.slug
-  }
-  .toSet()
+): Set<String> =
+  skills
+    .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK }
+    .mapNotNull { skill ->
+      platformManifests.firstOrNull { manifest -> skill.sourceDir.startsWith(manifest.packRoot) }?.slug
+    }
+    .toSet()

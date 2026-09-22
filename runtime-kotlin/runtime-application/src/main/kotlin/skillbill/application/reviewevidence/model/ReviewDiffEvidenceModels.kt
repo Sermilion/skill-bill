@@ -3,6 +3,7 @@ package skillbill.application.reviewevidence.model
 import skillbill.application.reviewevidence.parseAttributableReviewDiffEvidence
 import skillbill.application.reviewevidence.parseReviewDiffEvidence
 import skillbill.review.context.model.hunk.ReviewChangedHunk
+
 data class ReviewDiffEvidence(
   val hunks: List<ReviewChangedHunk>,
   val files: List<ReviewChangedFileEvidence>,

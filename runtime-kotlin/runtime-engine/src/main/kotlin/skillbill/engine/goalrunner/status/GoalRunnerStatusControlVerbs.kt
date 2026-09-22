@@ -27,22 +27,28 @@ class GoalRunnerStatusControlVerbs(
   private val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ) {
-  fun pause(issueKey: String, repoRoot: Path): GoalRunnerPauseResult {
-    val loaded = manifestStore.loadByIssueKey(issueKey, repoRoot)
-      ?: return GoalRunnerPauseResult(issueKey = issueKey, status = "not_found")
+  fun pause(
+    issueKey: String,
+    repoRoot: Path,
+  ): GoalRunnerPauseResult {
+    val loaded =
+      manifestStore.loadByIssueKey(issueKey, repoRoot)
+        ?: return GoalRunnerPauseResult(issueKey = issueKey, status = "not_found")
     val repositoryIdentity = goalRepositoryIdentity(repoRoot, repositoryEnclosingRootPort)
     manifestStore.bindRepositoryIdentity(loaded.parentWorkflowId, repositoryIdentity)
-    val control = manifestStore.requestPause(loaded.parentWorkflowId)
-      ?: return GoalRunnerPauseResult(issueKey = issueKey, status = "not_found")
-    val effectiveControl = if (
-      control.requiresPauseBoundary(loaded.manifest) && loaded.manifest.isAtUnlaunchedBoundary()
-    ) {
-      manifestStore.pauseAtBoundary(
-        loaded.copy(controlState = control),
-      ).controlState
-    } else {
-      control
-    }
+    val control =
+      manifestStore.requestPause(loaded.parentWorkflowId)
+        ?: return GoalRunnerPauseResult(issueKey = issueKey, status = "not_found")
+    val effectiveControl =
+      if (
+        control.requiresPauseBoundary(loaded.manifest) && loaded.manifest.isAtUnlaunchedBoundary()
+      ) {
+        manifestStore.pauseAtBoundary(
+          loaded.copy(controlState = control),
+        ).controlState
+      } else {
+        control
+      }
     return GoalRunnerPauseResult(
       issueKey = issueKey,
       parentWorkflowId = loaded.parentWorkflowId,
@@ -53,23 +59,32 @@ class GoalRunnerStatusControlVerbs(
     )
   }
 
-  fun stop(issueKey: String, repoRoot: Path): GoalRunnerStopVerbResult {
-    val loaded = manifestStore.loadByIssueKey(issueKey, repoRoot)
-      ?: return GoalRunnerStopVerbResult(issueKey = issueKey, status = GoalRunnerStopStatus.NOT_FOUND)
+  fun stop(
+    issueKey: String,
+    repoRoot: Path,
+  ): GoalRunnerStopVerbResult {
+    val loaded =
+      manifestStore.loadByIssueKey(issueKey, repoRoot)
+        ?: return GoalRunnerStopVerbResult(issueKey = issueKey, status = GoalRunnerStopStatus.NOT_FOUND)
     manifestStore.bindRepositoryIdentity(
       loaded.parentWorkflowId,
       goalRepositoryIdentity(repoRoot, repositoryEnclosingRootPort),
     )
-    val alreadyStopped = loaded.controlState.paused &&
-      loaded.controlState.pauseReason == GOAL_PAUSE_REASON_OPERATOR_STOP
-    val control = manifestStore.pauseNow(
-      parentWorkflowId = loaded.parentWorkflowId,
-      reason = GOAL_PAUSE_REASON_OPERATOR_STOP,
-      pausedAt = clock.instant().toString(),
-      overwriteExistingReason = true,
-    ) ?: return GoalRunnerStopVerbResult(issueKey = issueKey, status = GoalRunnerStopStatus.NOT_FOUND)
+    val alreadyStopped =
+      loaded.controlState.paused &&
+        loaded.controlState.pauseReason == GOAL_PAUSE_REASON_OPERATOR_STOP
+    val control =
+      manifestStore.pauseNow(
+        parentWorkflowId = loaded.parentWorkflowId,
+        reason = GOAL_PAUSE_REASON_OPERATOR_STOP,
+        pausedAt = clock.instant().toString(),
+        overwriteExistingReason = true,
+      ) ?: return GoalRunnerStopVerbResult(issueKey = issueKey, status = GoalRunnerStopStatus.NOT_FOUND)
 
-    fun outcome(status: GoalRunnerStopStatus, terminationAttempted: Boolean = false) = GoalRunnerStopVerbResult(
+    fun outcome(
+      status: GoalRunnerStopStatus,
+      terminationAttempted: Boolean = false,
+    ) = GoalRunnerStopVerbResult(
       issueKey = issueKey,
       status = status,
       parentWorkflowId = loaded.parentWorkflowId,
@@ -103,9 +118,13 @@ class GoalRunnerStatusControlVerbs(
     }.getOrElse { outcome(GoalRunnerStopStatus.STOPPED, terminationAttempted = true) }
   }
 
-  fun resume(issueKey: String, repoRoot: Path): GoalRunnerResumeResult {
-    val loaded = manifestStore.loadByIssueKey(issueKey, repoRoot)
-      ?: return GoalRunnerResumeResult(issueKey = issueKey, status = "not_found")
+  fun resume(
+    issueKey: String,
+    repoRoot: Path,
+  ): GoalRunnerResumeResult {
+    val loaded =
+      manifestStore.loadByIssueKey(issueKey, repoRoot)
+        ?: return GoalRunnerResumeResult(issueKey = issueKey, status = "not_found")
     manifestStore.bindRepositoryIdentity(
       loaded.parentWorkflowId,
       goalRepositoryIdentity(repoRoot, repositoryEnclosingRootPort),

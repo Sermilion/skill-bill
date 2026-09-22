@@ -27,8 +27,9 @@ object FeatureTaskRuntimeSubtaskCommitResolver {
     head: FeatureTaskRuntimeSubtaskCommitHeadState,
     sequenceNumber: Int,
   ): FeatureTaskRuntimeSubtaskCommitDecision {
-    val headSha = head.sha?.trim()?.takeIf(String::isNotBlank)
-      ?: return FeatureTaskRuntimeSubtaskCommitCreate
+    val headSha =
+      head.sha?.trim()?.takeIf(String::isNotBlank)
+        ?: return FeatureTaskRuntimeSubtaskCommitCreate
     return decideWithKnownHead(identity, durableCommitSha, head, headSha, sequenceNumber)
   }
 
@@ -50,12 +51,13 @@ object FeatureTaskRuntimeSubtaskCommitResolver {
     headSha: String,
     head: FeatureTaskRuntimeSubtaskCommitHeadState,
     sequenceNumber: Int,
-  ): FeatureTaskRuntimeSubtaskCommitDecision = FeatureTaskRuntimeSubtaskCommitAmend(
-    ownedHeadSha = headSha,
-    sequenceNumber = sequenceNumber,
-    recoveredFromTrailer = false,
-    rewritesPublishedHistory = !head.isUnpushed,
-  )
+  ): FeatureTaskRuntimeSubtaskCommitDecision =
+    FeatureTaskRuntimeSubtaskCommitAmend(
+      ownedHeadSha = headSha,
+      sequenceNumber = sequenceNumber,
+      recoveredFromTrailer = false,
+      rewritesPublishedHistory = !head.isUnpushed,
+    )
 
   private fun amendOrCreateFromTrailer(
     identity: FeatureTaskRuntimeSubtaskCommitIdentity,
@@ -63,8 +65,9 @@ object FeatureTaskRuntimeSubtaskCommitResolver {
     headSha: String,
     sequenceNumber: Int,
   ): FeatureTaskRuntimeSubtaskCommitDecision {
-    val message = head.commitMessage?.takeIf(String::isNotBlank)
-      ?: return FeatureTaskRuntimeSubtaskCommitCreate
+    val message =
+      head.commitMessage?.takeIf(String::isNotBlank)
+        ?: return FeatureTaskRuntimeSubtaskCommitCreate
     return if (identity.matches(message)) {
       FeatureTaskRuntimeSubtaskCommitAmend(
         ownedHeadSha = headSha,
@@ -77,13 +80,19 @@ object FeatureTaskRuntimeSubtaskCommitResolver {
     }
   }
 
-  fun trailerFallbackRecord(identity: FeatureTaskRuntimeSubtaskCommitIdentity, headSha: String): String =
+  fun trailerFallbackRecord(
+    identity: FeatureTaskRuntimeSubtaskCommitIdentity,
+    headSha: String,
+  ): String =
     "seam=FeatureTaskRuntimeSubtaskCommitResolver.decide value_used='HEAD trailer $headSha' " +
       "value_expected=durable subtask-commit pointer for '${identity.issueKey}/${identity.subtaskId}' " +
       "cause=durable checkpoint identity was absent or stale, so the amend target was recovered from the " +
       "Skill-Bill-Subtask trailer on HEAD"
 
-  fun publishedHistoryRewriteRecord(identity: FeatureTaskRuntimeSubtaskCommitIdentity, headSha: String): String =
+  fun publishedHistoryRewriteRecord(
+    identity: FeatureTaskRuntimeSubtaskCommitIdentity,
+    headSha: String,
+  ): String =
     "seam=writeSubtaskCommitPreservingHistory value_used='an amend of the published commit $headSha' " +
       "value_expected=an amend of an unpushed commit for '${identity.issueKey}/${identity.subtaskId}' " +
       "cause=durable state proves this subtask owns the published HEAD, so its history is rewritten in " +

@@ -13,8 +13,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-class GoalModeAttributionTest {
 
+class GoalModeAttributionTest {
   @Test
   fun `prose lifecycle full sequence retains mode=prose row but emits runtime-only goal stats`() {
     withConnection { connection ->
@@ -39,15 +39,16 @@ class GoalModeAttributionTest {
         level = "full",
       )
 
-      val storedMode = connection.prepareStatement(
-        "SELECT mode FROM goal_run_sessions WHERE workflow_id = ?",
-      ).use { stmt ->
-        stmt.setString(1, "wf-prose-1")
-        stmt.executeQuery().use { rs ->
-          assertTrue(rs.next(), "prose row should still be present in the store")
-          rs.getString("mode")
+      val storedMode =
+        connection.prepareStatement(
+          "SELECT mode FROM goal_run_sessions WHERE workflow_id = ?",
+        ).use { stmt ->
+          stmt.setString(1, "wf-prose-1")
+          stmt.executeQuery().use { rs ->
+            assertTrue(rs.next(), "prose row should still be present in the store")
+            rs.getString("mode")
+          }
         }
-      }
       assertEquals("prose", storedMode, "Legacy prose row must remain verbatim in storage")
 
       val stats = ReviewStatsRuntime.goalStats(connection)
@@ -79,18 +80,19 @@ class GoalModeAttributionTest {
     withConnection { connection ->
       val store = LifecycleTelemetryStore(connection)
       store.goalStarted(startedRecord("wf-prose-fin-idem", mode = "prose"), level = "full")
-      val finished = GoalFinishedRecord(
-        issueKey = "SKILL-92",
-        workflowId = "wf-prose-fin-idem",
-        status = "completed",
-        startedAt = "2026-06-23T10:00:00Z",
-        finishedAt = "2026-06-23T10:30:00Z",
-        durationMs = 1_800_000,
-        subtasksComplete = 1,
-        subtasksBlocked = 0,
-        subtasksSkipped = 0,
-        mode = "prose",
-      )
+      val finished =
+        GoalFinishedRecord(
+          issueKey = "SKILL-92",
+          workflowId = "wf-prose-fin-idem",
+          status = "completed",
+          startedAt = "2026-06-23T10:00:00Z",
+          finishedAt = "2026-06-23T10:30:00Z",
+          durationMs = 1_800_000,
+          subtasksComplete = 1,
+          subtasksBlocked = 0,
+          subtasksSkipped = 0,
+          mode = "prose",
+        )
 
       store.goalFinished(finished, level = "full")
       store.goalFinished(finished, level = "full")
@@ -140,15 +142,16 @@ class GoalModeAttributionTest {
       val columnNames = tableColumnNames(connection, "goal_run_sessions")
       assertTrue("mode" in columnNames, "mode column should exist after migration")
 
-      val mode = connection.prepareStatement(
-        "SELECT mode FROM goal_run_sessions WHERE workflow_id = ?",
-      ).use { stmt ->
-        stmt.setString(1, "wf-legacy")
-        stmt.executeQuery().use { rs ->
-          rs.next()
-          rs.getString("mode")
+      val mode =
+        connection.prepareStatement(
+          "SELECT mode FROM goal_run_sessions WHERE workflow_id = ?",
+        ).use { stmt ->
+          stmt.setString(1, "wf-legacy")
+          stmt.executeQuery().use { rs ->
+            rs.next()
+            rs.getString("mode")
+          }
         }
-      }
       assertEquals("runtime", mode, "Legacy rows should return 'runtime' via the column DEFAULT")
     }
   }
@@ -190,17 +193,25 @@ class GoalModeAttributionTest {
     }
   }
 
-  private fun startedRecord(workflowId: String, mode: String = "runtime"): GoalStartedRecord = GoalStartedRecord(
-    issueKey = "SKILL-92",
-    featureName = "goal mode attribution",
-    workflowId = workflowId,
-    subtaskTotal = 2,
-    resumed = false,
-    startedAt = "2026-06-23T10:00:00Z",
-    mode = mode,
-  )
+  private fun startedRecord(
+    workflowId: String,
+    mode: String = "runtime",
+  ): GoalStartedRecord =
+    GoalStartedRecord(
+      issueKey = "SKILL-92",
+      featureName = "goal mode attribution",
+      workflowId = workflowId,
+      subtaskTotal = 2,
+      resumed = false,
+      startedAt = "2026-06-23T10:00:00Z",
+      mode = mode,
+    )
 
-  private fun subtask(id: Int, workflowId: String, status: String): GoalSubtaskFinishedRecord =
+  private fun subtask(
+    id: Int,
+    workflowId: String,
+    status: String,
+  ): GoalSubtaskFinishedRecord =
     GoalSubtaskFinishedRecord(
       issueKey = "SKILL-92",
       workflowId = workflowId,
@@ -239,7 +250,10 @@ class GoalModeAttributionTest {
     )
   }
 
-  private fun tableColumnNames(connection: Connection, tableName: String): Set<String> =
+  private fun tableColumnNames(
+    connection: Connection,
+    tableName: String,
+  ): Set<String> =
     connection.createStatement().use { statement ->
       statement.executeQuery("PRAGMA table_info($tableName)").use { resultSet ->
         buildSet {

@@ -25,17 +25,18 @@ class CliRuntimeUpdateTest {
 
   @Test
   fun `update dry-run json includes composed installer args`() {
-    val json = CliRuntime.run(
-      listOf(
-        "update",
-        "--dry-run",
-        "--format",
-        "json",
-        "--release",
-        "v0.2.0",
-        "--clean",
-      ),
-    )
+    val json =
+      CliRuntime.run(
+        listOf(
+          "update",
+          "--dry-run",
+          "--format",
+          "json",
+          "--release",
+          "v0.2.0",
+          "--clean",
+        ),
+      )
     val payload = decodeJsonObject(json.stdout)
 
     assertEquals(0, json.exitCode, json.stdout)
@@ -53,16 +54,17 @@ class CliRuntimeUpdateTest {
   @Test
   fun `update dry-run json escapes shell-quoted command arguments`() {
     val releaseTag = "tag\"\\with quote"
-    val json = CliRuntime.run(
-      listOf(
-        "update",
-        "--dry-run",
-        "--format",
-        "json",
-        "--release",
-        releaseTag,
-      ),
-    )
+    val json =
+      CliRuntime.run(
+        listOf(
+          "update",
+          "--dry-run",
+          "--format",
+          "json",
+          "--release",
+          releaseTag,
+        ),
+      )
     val payload = decodeJsonObject(json.stdout)
 
     assertEquals(0, json.exitCode, json.stdout)
@@ -77,22 +79,23 @@ class CliRuntimeUpdateTest {
     val scriptPath = Files.createTempFile(home, "install", ".sh")
     val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 0, output = "installer ok\n"))
     val fetchPort = CapturingInstallerScriptFetchPort(InstallerScriptFetchResult.Ready(scriptPath))
-    val result = CliRuntime.run(
-      listOf(
-        "--home",
-        home.toString(),
-        "update",
-        "--release",
-        "v0.4.0",
-        "--format",
-        "json",
-      ),
-      CliRuntimeContext(
-        environment = mapOf("HOME" to "/wrong-home", "PATH" to "/test/bin"),
-        installerProcessPort = processPort,
-        installerScriptFetchPort = fetchPort,
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--home",
+          home.toString(),
+          "update",
+          "--release",
+          "v0.4.0",
+          "--format",
+          "json",
+        ),
+        CliRuntimeContext(
+          environment = mapOf("HOME" to "/wrong-home", "PATH" to "/test/bin"),
+          installerProcessPort = processPort,
+          installerScriptFetchPort = fetchPort,
+        ),
+      )
     val payload = decodeJsonObject(result.stdout)
     val request = processPort.requests.single()
 
@@ -113,14 +116,15 @@ class CliRuntimeUpdateTest {
     val scriptPath = Files.createTempFile("install", ".sh")
     val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 7, output = "installer failed\n"))
     val fetchPort = CapturingInstallerScriptFetchPort(InstallerScriptFetchResult.Ready(scriptPath))
-    val result = CliRuntime.run(
-      listOf("update", "--format", "json"),
-      CliRuntimeContext(
-        requester = updateCheckRequester(capturedRequests),
-        installerProcessPort = processPort,
-        installerScriptFetchPort = fetchPort,
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("update", "--format", "json"),
+        CliRuntimeContext(
+          requester = updateCheckRequester(capturedRequests),
+          installerProcessPort = processPort,
+          installerScriptFetchPort = fetchPort,
+        ),
+      )
     val payload = decodeJsonObject(result.stdout)
 
     assertEquals(7, result.exitCode, result.stdout)
@@ -138,17 +142,19 @@ class CliRuntimeUpdateTest {
     )
     val capturedRequests = mutableListOf<Map<String, Any?>>()
     val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 0, output = "should not run\n"))
-    val fetchPort = CapturingInstallerScriptFetchPort(
-      InstallerScriptFetchResult.Failed("fetch must not run when update is skipped"),
-    )
-    val result = CliRuntime.run(
-      listOf("update", "--format", "json"),
-      CliRuntimeContext(
-        requester = updateCheckRequester(capturedRequests, latest = OLDER_RELEASE_TAG),
-        installerProcessPort = processPort,
-        installerScriptFetchPort = fetchPort,
-      ),
-    )
+    val fetchPort =
+      CapturingInstallerScriptFetchPort(
+        InstallerScriptFetchResult.Failed("fetch must not run when update is skipped"),
+      )
+    val result =
+      CliRuntime.run(
+        listOf("update", "--format", "json"),
+        CliRuntimeContext(
+          requester = updateCheckRequester(capturedRequests, latest = OLDER_RELEASE_TAG),
+          installerProcessPort = processPort,
+          installerScriptFetchPort = fetchPort,
+        ),
+      )
     val payload = decodeJsonObject(result.stdout)
     val updateCheck = payload["update_check"] as Map<*, *>
 
@@ -164,16 +170,18 @@ class CliRuntimeUpdateTest {
   @Test
   fun `update does not execute installer when script download fails`() {
     val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 0, output = "should not run\n"))
-    val fetchPort = CapturingInstallerScriptFetchPort(
-      result = InstallerScriptFetchResult.Failed("simulated download failure"),
-    )
-    val result = CliRuntime.run(
-      listOf("update", "--release", "v0.0.0", "--format", "json"),
-      CliRuntimeContext(
-        installerProcessPort = processPort,
-        installerScriptFetchPort = fetchPort,
-      ),
-    )
+    val fetchPort =
+      CapturingInstallerScriptFetchPort(
+        result = InstallerScriptFetchResult.Failed("simulated download failure"),
+      )
+    val result =
+      CliRuntime.run(
+        listOf("update", "--release", "v0.0.0", "--format", "json"),
+        CliRuntimeContext(
+          installerProcessPort = processPort,
+          installerScriptFetchPort = fetchPort,
+        ),
+      )
     val payload = decodeJsonObject(result.stdout)
 
     assertEquals(1, result.exitCode, result.stdout)
@@ -192,14 +200,15 @@ class CliRuntimeUpdateTest {
     val scriptPath = Files.createTempFile("install", ".sh")
     val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 0, output = "installer ok\n"))
     val fetchPort = CapturingInstallerScriptFetchPort(InstallerScriptFetchResult.Ready(scriptPath))
-    val result = CliRuntime.run(
-      listOf("update", "--format", "json"),
-      CliRuntimeContext(
-        requester = updateCheckRequester(capturedRequests, latest = INSTALLED_BASE_TAG),
-        installerProcessPort = processPort,
-        installerScriptFetchPort = fetchPort,
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("update", "--format", "json"),
+        CliRuntimeContext(
+          requester = updateCheckRequester(capturedRequests, latest = INSTALLED_BASE_TAG),
+          installerProcessPort = processPort,
+          installerScriptFetchPort = fetchPort,
+        ),
+      )
     val payload = decodeJsonObject(result.stdout)
 
     assertEquals(0, result.exitCode, result.stdout)
@@ -211,20 +220,22 @@ class CliRuntimeUpdateTest {
 
   @Test
   fun `update-check includes prereleases and returns unknown with exit zero`() {
-    val prerelease = CliRuntime.run(
-      listOf("update-check", "--include-prereleases", "--format", "json"),
-      CliRuntimeContext(requester = updateCheckRequester(mutableListOf(), latest = NEWER_PRERELEASE_TAG)),
-    )
+    val prerelease =
+      CliRuntime.run(
+        listOf("update-check", "--include-prereleases", "--format", "json"),
+        CliRuntimeContext(requester = updateCheckRequester(mutableListOf(), latest = NEWER_PRERELEASE_TAG)),
+      )
     val prereleasePayload = decodeJsonObject(prerelease.stdout)
 
     assertEquals(0, prerelease.exitCode, prerelease.stdout)
     assertEquals("update_available", prereleasePayload["status"])
     assertEquals(NEWER_PRERELEASE_TAG, prereleasePayload["latest_version"])
 
-    val unknown = CliRuntime.run(
-      listOf("update-check"),
-      CliRuntimeContext(requester = RemoteTransportPort { _, _, _, _ -> RemoteTransportResponse(429, "") }),
-    )
+    val unknown =
+      CliRuntime.run(
+        listOf("update-check"),
+        CliRuntimeContext(requester = RemoteTransportPort { _, _, _, _ -> RemoteTransportResponse(429, "") }),
+      )
 
     assertEquals(0, unknown.exitCode, unknown.stdout)
     assertContains(unknown.stdout, "status: unknown")
@@ -240,13 +251,14 @@ class CliRuntimeUpdateTest {
     Files.createDirectories(repo)
     val before = snapshotTree(tempDir)
 
-    val result = CliRuntime.run(
-      listOf("update-check"),
-      CliRuntimeContext(
-        userHome = home,
-        requester = updateCheckRequester(mutableListOf(), latest = "v0.3.0-SNAPSHOT"),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("update-check"),
+        CliRuntimeContext(
+          userHome = home,
+          requester = updateCheckRequester(mutableListOf(), latest = "v0.3.0-SNAPSHOT"),
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals(before, snapshotTree(tempDir))
@@ -255,10 +267,11 @@ class CliRuntimeUpdateTest {
   @Test
   fun `update-check emits text and json update results through configured requester`() {
     val capturedRequests = mutableListOf<Map<String, Any?>>()
-    val context = CliRuntimeContext(
-      requester = updateCheckRequester(capturedRequests),
-      userHome = Files.createTempDirectory("skillbill-update-check-home"),
-    )
+    val context =
+      CliRuntimeContext(
+        requester = updateCheckRequester(capturedRequests),
+        userHome = Files.createTempDirectory("skillbill-update-check-home"),
+      )
 
     val text = CliRuntime.run(listOf("update-check"), context)
 

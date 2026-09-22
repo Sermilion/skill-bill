@@ -10,6 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class AuthoringOperationsTest {
   @Test
   fun `fill fails fast and leaves content_md untouched when neither supplied nor existing carries frontmatter`() {
@@ -21,14 +22,15 @@ class AuthoringOperationsTest {
     Files.writeString(contentFile, unframedContent)
     val before = Files.readAllBytes(contentFile)
 
-    val error = assertFailsWith<SkillBillRuntimeException> {
-      AuthoringOperations.fill(
-        repoRoot = repo,
-        skillName = skillName,
-        body = "Replacement body, also without frontmatter — should never write.",
-        sectionName = null,
-      )
-    }
+    val error =
+      assertFailsWith<SkillBillRuntimeException> {
+        AuthoringOperations.fill(
+          repoRoot = repo,
+          skillName = skillName,
+          body = "Replacement body, also without frontmatter — should never write.",
+          sectionName = null,
+        )
+      }
 
     assertContains(error.message.orEmpty(), "content.md must already carry a YAML frontmatter block")
     val after = Files.readAllBytes(contentFile)
@@ -85,7 +87,8 @@ class AuthoringOperationsTest {
     }
     val skillName = "bill-scaffold-stacked-fm"
     val skillDir = repo.resolve("skills").resolve(skillName)
-    val bodyWithFrontmatter = """
+    val bodyWithFrontmatter =
+      """
       |---
       |name: $skillName
       |description: Pre-supplied frontmatter that would stack with the canonical block.
@@ -94,19 +97,20 @@ class AuthoringOperationsTest {
       |# Body
       |
       |Body with caller-supplied frontmatter to trip the F-C guard.
-    """.trimMargin() + "\n"
+      """.trimMargin() + "\n"
 
-    val error = assertFailsWith<SkillBillRuntimeException> {
-      scaffold(
-        mapOf(
-          "scaffold_payload_version" to "1.0",
-          "kind" to "horizontal",
-          "repo_root" to repo.toString(),
-          "name" to skillName,
-          "content_body" to bodyWithFrontmatter,
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<SkillBillRuntimeException> {
+        scaffold(
+          mapOf(
+            "scaffold_payload_version" to "1.0",
+            "kind" to "horizontal",
+            "repo_root" to repo.toString(),
+            "name" to skillName,
+            "content_body" to bodyWithFrontmatter,
+          ),
+        )
+      }
 
     assertContains(error.message.orEmpty(), "frontmatter")
 
@@ -142,14 +146,15 @@ class AuthoringOperationsTest {
     val contentFile = repo.resolve("skills").resolve(skillName).resolve("content.md")
     val before = Files.readString(contentFile)
 
-    val error = assertFailsWith<SkillBillRuntimeException> {
-      AuthoringOperations.fill(
-        repoRoot = repo,
-        skillName = skillName,
-        body = "## Execution\n\nGenerated wrapper content must not be authored here.",
-        sectionName = null,
-      )
-    }
+    val error =
+      assertFailsWith<SkillBillRuntimeException> {
+        AuthoringOperations.fill(
+          repoRoot = repo,
+          skillName = skillName,
+          body = "## Execution\n\nGenerated wrapper content must not be authored here.",
+          sectionName = null,
+        )
+      }
 
     assertContains(error.message.orEmpty(), "generated wrapper boilerplate heading '## Execution'")
     assertEquals(before, Files.readString(contentFile), "content.md must roll back after wrapper-heading rejection")
@@ -183,14 +188,15 @@ class AuthoringOperationsTest {
     val contentFile = repo.resolve("skills").resolve(skillName).resolve("content.md")
     val before = Files.readString(contentFile)
 
-    val error = assertFailsWith<SkillBillRuntimeException> {
-      AuthoringOperations.editWithBodyFile(
-        repoRoot = repo,
-        skillName = skillName,
-        body = "New generated section body.",
-        sectionName = "Descriptor",
-      )
-    }
+    val error =
+      assertFailsWith<SkillBillRuntimeException> {
+        AuthoringOperations.editWithBodyFile(
+          repoRoot = repo,
+          skillName = skillName,
+          body = "New generated section body.",
+          sectionName = "Descriptor",
+        )
+      }
 
     val message = error.message.orEmpty()
     assertContains(message, "Cannot edit generated wrapper section '## Descriptor'")

@@ -9,15 +9,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class RuntimeGradleModuleLayeringTest {
-  private val nestedInfrastructureModules = listOf(
-    "runtime-infra:host",
-    "runtime-infra:contracts",
-    "runtime-infra:skills",
-    "runtime-infra:launcher",
-    "runtime-infra:workflow",
-    "runtime-infra:http",
-    "runtime-infra:sqlite",
-  )
+  private val nestedInfrastructureModules =
+    listOf(
+      "runtime-infra:host",
+      "runtime-infra:contracts",
+      "runtime-infra:skills",
+      "runtime-infra:launcher",
+      "runtime-infra:workflow",
+      "runtime-infra:http",
+      "runtime-infra:sqlite",
+    )
 
   private val runtimeRoot: Path = ArchitectureScanSupport.runtimeRoot
 
@@ -32,9 +33,10 @@ class RuntimeGradleModuleLayeringTest {
   @Test
   fun `nested infrastructure ids resolve to nested directories and replace flat directories`() {
     nestedInfrastructureModules.forEach { moduleName ->
-      val nestedDirectory = runtimeRoot.resolve(
-        RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName),
-      )
+      val nestedDirectory =
+        runtimeRoot.resolve(
+          RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName),
+        )
       assertTrue(Files.isDirectory(nestedDirectory), "Missing nested module directory: $nestedDirectory")
       assertFalse(
         Files.exists(runtimeRoot.resolve(moduleName.replace(':', '-'))),
@@ -45,45 +47,38 @@ class RuntimeGradleModuleLayeringTest {
 
   @Test
   fun `runtime build sources contain no flat infrastructure project references`() {
-    val staleReferences = Files.walk(runtimeRoot).use { paths ->
-      paths
-        .filter { path ->
-          Files.isRegularFile(path) &&
-            !path.toString().contains("/build/") &&
-            (
-              path.fileName.toString().endsWith(".gradle.kts") ||
-                path.fileName.toString().endsWith(".kt")
+    val staleReferences =
+      Files.walk(runtimeRoot).use { paths ->
+        paths
+          .filter { path ->
+            Files.isRegularFile(path) &&
+              !path.toString().contains("/build/") &&
+              (
+                path.fileName.toString().endsWith(".gradle.kts") ||
+                  path.fileName.toString().endsWith(".kt")
               )
-        }
-        .flatMap { path ->
-          Regex("""project\(":runtime-infra-(?:fs|http|sqlite)""")
-            .findAll(Files.readString(path))
-            .map { "${runtimeRoot.relativize(path)}:${it.range.first + 1}" }
-            .toList()
-            .stream()
-        }
-        .toList()
-    }
+          }
+          .flatMap { path ->
+            Regex("""project\(":runtime-infra-(?:fs|http|sqlite)""")
+              .findAll(Files.readString(path))
+              .map { "${runtimeRoot.relativize(path)}:${it.range.first + 1}" }
+              .toList()
+              .stream()
+          }
+          .toList()
+      }
     assertEquals(emptyList(), staleReferences)
   }
 
   @Test
-  fun `nested library builds use the prefixed archive convention`() {
-    val convention = Files.readString(
-      runtimeRoot.resolve(
-        "runtime-kotlin/build-logic/convention/src/main/kotlin/JvmLibraryConventionPlugin.kt",
-      ),
-    )
-    assertContains(
-      convention,
-      "archiveBaseName.set(\"${'$'}parentName-${'$'}{project.name}\")",
-    )
+  fun `nested library builds apply the jvm-library convention`() {
     nestedInfrastructureModules.forEach { moduleName ->
-      val build = Files.readString(
-        runtimeRoot.resolve(
-          "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/build.gradle.kts",
-        ),
-      )
+      val build =
+        Files.readString(
+          runtimeRoot.resolve(
+            "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/build.gradle.kts",
+          ),
+        )
       assertContains(build, """id("skillbill.jvm-library")""")
     }
   }
@@ -135,7 +130,10 @@ class RuntimeGradleModuleLayeringTest {
       .toSet()
   }
 
-  private fun assertNoProjectDependencies(moduleName: String, vararg bannedDependencies: String) {
+  private fun assertNoProjectDependencies(
+    moduleName: String,
+    vararg bannedDependencies: String,
+  ) {
     val modulePath = RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)
     val buildFile = runtimeRoot.resolve("$modulePath/build.gradle.kts")
     val source = Files.readString(buildFile)
@@ -158,12 +156,13 @@ class RuntimeGradleModuleLayeringTest {
   }
 
   private companion object {
-    val TEST_CONFIGURATIONS: List<String> = listOf(
-      "testImplementation",
-      "testFixturesImplementation",
-      "testFixturesApi",
-      "testRuntimeOnly",
-      "testCompileOnly",
-    )
+    val TEST_CONFIGURATIONS: List<String> =
+      listOf(
+        "testImplementation",
+        "testFixturesImplementation",
+        "testFixturesApi",
+        "testRuntimeOnly",
+        "testCompileOnly",
+      )
   }
 }

@@ -5,8 +5,13 @@ import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.review.model.ReviewFindingCitation
 import java.sql.Connection
+
 internal class UnaddressedFindingsLedgerRuntime(private val connection: Connection) {
-  fun replaceLedgerForPass(workflowId: String, reviewPassNumber: Int, findings: List<UnaddressedFinding>) {
+  fun replaceLedgerForPass(
+    workflowId: String,
+    reviewPassNumber: Int,
+    findings: List<UnaddressedFinding>,
+  ) {
     deletePassesUpTo(workflowId, reviewPassNumber)
     connection.prepareStatement(
       """
@@ -57,27 +62,32 @@ internal class UnaddressedFindingsLedgerRuntime(private val connection: Connecti
 
   fun fetchWorkflowLedger(workflowId: String): List<UnaddressedFinding> = fetchLedgerBy("workflow_id", workflowId)
 
-  fun workflowIdsForIssue(issueKey: String): List<String> = connection.prepareStatement(
-    "SELECT workflow_id FROM feature_task_workflows WHERE issue_key = ? ORDER BY workflow_id",
-  ).use { statement ->
-    statement.bindAll(issueKey)
-    statement.executeQuery().use { rows ->
-      buildList {
-        while (rows.next()) {
-          rows.getString(SharedPayloadKeys.WORKFLOW_ID)?.takeIf(String::isNotBlank)?.let(::add)
+  fun workflowIdsForIssue(issueKey: String): List<String> =
+    connection.prepareStatement(
+      "SELECT workflow_id FROM feature_task_workflows WHERE issue_key = ? ORDER BY workflow_id",
+    ).use { statement ->
+      statement.bindAll(issueKey)
+      statement.executeQuery().use { rows ->
+        buildList {
+          while (rows.next()) {
+            rows.getString(SharedPayloadKeys.WORKFLOW_ID)?.takeIf(String::isNotBlank)?.let(::add)
+          }
         }
       }
     }
-  }
 
-  fun issueExists(issueKey: String): Boolean = connection.prepareStatement(
-    "SELECT 1 FROM feature_task_workflows WHERE issue_key = ? LIMIT 1",
-  ).use { statement ->
-    statement.bindAll(issueKey)
-    statement.executeQuery().use { it.next() }
-  }
+  fun issueExists(issueKey: String): Boolean =
+    connection.prepareStatement(
+      "SELECT 1 FROM feature_task_workflows WHERE issue_key = ? LIMIT 1",
+    ).use { statement ->
+      statement.bindAll(issueKey)
+      statement.executeQuery().use { it.next() }
+    }
 
-  private fun deletePassesUpTo(workflowId: String, reviewPassNumber: Int) {
+  private fun deletePassesUpTo(
+    workflowId: String,
+    reviewPassNumber: Int,
+  ) {
     connection.prepareStatement(
       "DELETE FROM unaddressed_findings WHERE workflow_id = ? AND review_pass_number <= ?",
     ).use { statement ->
@@ -86,25 +96,29 @@ internal class UnaddressedFindingsLedgerRuntime(private val connection: Connecti
     }
   }
 
-  private fun fetchLedgerBy(column: String, value: String): List<UnaddressedFinding> = connection.prepareStatement(
-    """
-    SELECT issue_key, workflow_id, subtask_id, review_pass_number, finding_ordinal,
-           severity, issue_category, location, summary, review_run_id, finding_id,
-           claim_verdict, scope_disposition, citations,
-           severity_adjustment_direction, severity_adjustment_justification,
-           verification_disposition, verification_reason
-    FROM unaddressed_findings
-    WHERE $column = ?
-    ORDER BY subtask_id, review_pass_number, finding_ordinal
-    """.trimIndent(),
-  ).use { statement ->
-    statement.bindAll(value)
-    statement.executeQuery().use { rows ->
-      buildList {
-        while (rows.next()) {
-          add(readUnaddressedFinding(rows))
+  private fun fetchLedgerBy(
+    column: String,
+    value: String,
+  ): List<UnaddressedFinding> =
+    connection.prepareStatement(
+      """
+      SELECT issue_key, workflow_id, subtask_id, review_pass_number, finding_ordinal,
+             severity, issue_category, location, summary, review_run_id, finding_id,
+             claim_verdict, scope_disposition, citations,
+             severity_adjustment_direction, severity_adjustment_justification,
+             verification_disposition, verification_reason
+      FROM unaddressed_findings
+      WHERE $column = ?
+      ORDER BY subtask_id, review_pass_number, finding_ordinal
+      """.trimIndent(),
+    ).use { statement ->
+      statement.bindAll(value)
+      statement.executeQuery().use { rows ->
+        buildList {
+          while (rows.next()) {
+            add(readUnaddressedFinding(rows))
+          }
         }
       }
     }
-  }
 }

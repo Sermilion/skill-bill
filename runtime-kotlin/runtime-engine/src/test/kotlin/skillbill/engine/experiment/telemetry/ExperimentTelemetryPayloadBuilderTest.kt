@@ -17,18 +17,19 @@ class ExperimentTelemetryPayloadBuilderTest {
         emptyMap(),
       ),
     )
-    val payload = requireNotNull(
-      ExperimentTelemetryPayloadBuilder.build(
-        ExperimentTelemetryConsent.ANONYMOUS,
-        "pair",
-        "goal",
-        mapOf(
-          "cost" to 10,
-          "source_path" to "/private/src",
-          "details" to mapOf("query" to "secret query", "count" to 2),
+    val payload =
+      requireNotNull(
+        ExperimentTelemetryPayloadBuilder.build(
+          ExperimentTelemetryConsent.ANONYMOUS,
+          "pair",
+          "goal",
+          mapOf(
+            "cost" to 10,
+            "source_path" to "/private/src",
+            "details" to mapOf("query" to "secret query", "count" to 2),
+          ),
         ),
-      ),
-    )
+      )
 
     assertEquals("goal", payload[ExperimentTelemetryPayloadKeys.COHORT])
     assertTrue(payload[ExperimentTelemetryPayloadKeys.PAIR_ID] != "pair")

@@ -10,7 +10,6 @@ const val FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY: String =
 const val FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_LIMIT: Int = 32
 
 enum class FeatureTaskRuntimeDiagnosticFailureClass(val wireValue: String) {
-
   CONFLICT("conflict"),
   PERMISSION("permission"),
   CORRUPT("corrupt"),
@@ -19,10 +18,11 @@ enum class FeatureTaskRuntimeDiagnosticFailureClass(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(raw: String): FeatureTaskRuntimeDiagnosticFailureClass = entries.firstOrNull { it.wireValue == raw }
-      ?: throw InvalidWorkflowStateSchemaError(
-        "Feature-task-runtime diagnostic failure class '$raw' is not a declared class.",
-      )
+    fun fromWire(raw: String): FeatureTaskRuntimeDiagnosticFailureClass =
+      entries.firstOrNull { it.wireValue == raw }
+        ?: throw InvalidWorkflowStateSchemaError(
+          "Feature-task-runtime diagnostic failure class '$raw' is not a declared class.",
+        )
   }
 }
 
@@ -32,7 +32,6 @@ data class FeatureTaskRuntimeDiagnosticSignal(
   val conflictingKey: String,
   val phaseId: String,
   val attempt: Int,
-
   val repairTurn: Int?,
   val generation: Int,
   val recordedAt: String,
@@ -53,16 +52,18 @@ data class FeatureTaskRuntimeDiagnosticSignal(
     "Diagnostic evidence write '$operation' failed as '${failureClass.wireValue}' for key " +
       "'$conflictingKey' (phase '$phaseId', attempt $attempt, repair turn ${repairTurn ?: "any"}, " +
       "generation $generation). The evidence was not retained; the run continued."
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    "operation" to operation,
-    "failure_class" to failureClass.wireValue,
-    "conflicting_key" to conflictingKey,
-    SharedPayloadKeys.PHASE_ID to phaseId,
-    "attempt" to attempt,
-    "repair_turn" to repairTurn,
-    "generation" to generation,
-    "recorded_at" to recordedAt,
-  )
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      "operation" to operation,
+      "failure_class" to failureClass.wireValue,
+      "conflicting_key" to conflictingKey,
+      SharedPayloadKeys.PHASE_ID to phaseId,
+      "attempt" to attempt,
+      "repair_turn" to repairTurn,
+      "generation" to generation,
+      "recorded_at" to recordedAt,
+    )
 
   companion object {
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDiagnosticSignal {
@@ -83,8 +84,9 @@ data class FeatureTaskRuntimeDiagnosticSignal(
 
 internal fun featureTaskRuntimeDiagnosticSignalsFromWire(raw: Any?): List<FeatureTaskRuntimeDiagnosticSignal> {
   if (raw == null) return emptyList()
-  val entries = raw as? List<*>
-    ?: throw InvalidWorkflowStateSchemaError("Feature-task-runtime diagnostic signals must be an array.")
+  val entries =
+    raw as? List<*>
+      ?: throw InvalidWorkflowStateSchemaError("Feature-task-runtime diagnostic signals must be an array.")
   return entries.map { entry ->
     FeatureTaskRuntimeDiagnosticSignal.fromArtifactMap(
       JsonCodec.anyToStringAnyMap(entry)

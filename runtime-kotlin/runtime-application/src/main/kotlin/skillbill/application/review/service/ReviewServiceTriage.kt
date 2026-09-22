@@ -37,17 +37,18 @@ internal fun triageReview(request: TriageReviewRequest): TriageResult =
   } else {
     request.database.transaction { unitOfWork ->
       val numberedFindings = unitOfWork.reviews.fetchNumberedFindings(request.runId)
-      val applied = applyTriageDecisions(
-        TriageDecisionsRequest(
-          settingsProvider = request.settingsProvider,
-          diagnostics = request.diagnostics,
-          reviewRepository = unitOfWork.reviews,
-          runId = request.runId,
-          numberedFindings = numberedFindings,
-          decisions = request.decisions,
-          routedSkillPlatformSlugs = request.routedSkillPlatformSlugs,
-        ),
-      )
+      val applied =
+        applyTriageDecisions(
+          TriageDecisionsRequest(
+            settingsProvider = request.settingsProvider,
+            diagnostics = request.diagnostics,
+            reviewRepository = unitOfWork.reviews,
+            runId = request.runId,
+            numberedFindings = numberedFindings,
+            decisions = request.decisions,
+            routedSkillPlatformSlugs = request.routedSkillPlatformSlugs,
+          ),
+        )
       TriageResult(
         kind = TriageResultKind.RECORDED,
         dbPath = unitOfWork.dbPath.toString(),
@@ -84,14 +85,14 @@ internal fun applyTriageDecisions(request: TriageDecisionsRequest): AppliedTriag
   }
   return AppliedTriageDecisions(
     recorded =
-    parsedDecisions.map { decision ->
-      TriageDecision(
-        number = decision.number,
-        findingId = decision.findingId,
-        outcomeType = decision.outcomeType,
-        note = decision.note,
-      )
-    },
+      parsedDecisions.map { decision ->
+        TriageDecision(
+          number = decision.number,
+          findingId = decision.findingId,
+          outcomeType = decision.outcomeType,
+          note = decision.note,
+        )
+      },
     telemetry = telemetry,
   )
 }

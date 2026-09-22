@@ -31,18 +31,23 @@ private fun planningState(
   plannedIds: List<Int>,
   missing: List<Int>,
   blockedReason: String?,
-): GoalPlanningStatusState = when {
-  blockedReason != null -> GoalPlanningStatusState.BLOCKED
-  !shared -> GoalPlanningStatusState.NOT_STARTED
-  missing.isEmpty() -> GoalPlanningStatusState.PREPARED
-  plannedIds.isEmpty() -> GoalPlanningStatusState.PREPLANNED
-  else -> GoalPlanningStatusState.PARTIALLY_PLANNED
-}
+): GoalPlanningStatusState =
+  when {
+    blockedReason != null -> GoalPlanningStatusState.BLOCKED
+    !shared -> GoalPlanningStatusState.NOT_STARTED
+    missing.isEmpty() -> GoalPlanningStatusState.PREPARED
+    plannedIds.isEmpty() -> GoalPlanningStatusState.PREPLANNED
+    else -> GoalPlanningStatusState.PARTIALLY_PLANNED
+  }
 
 private fun GoalPlanningStatusState.isPlanningInFlight(): Boolean =
   this == GoalPlanningStatusState.PREPLANNED || this == GoalPlanningStatusState.PARTIALLY_PLANNED
 
-private fun planningReason(state: GoalPlanningStatusState, resumeAt: Int?, blockedReason: String?): String? =
+private fun planningReason(
+  state: GoalPlanningStatusState,
+  resumeAt: Int?,
+  blockedReason: String?,
+): String? =
   when (state) {
     GoalPlanningStatusState.NOT_STARTED -> GoalPlanningStatusReasons.NOT_STARTED
     GoalPlanningStatusState.PREPLANNED -> GoalPlanningStatusReasons.preplannedResume(requireNotNull(resumeAt))

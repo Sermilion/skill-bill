@@ -14,16 +14,18 @@ import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.validation.RepoValidationGateway
 import java.nio.file.Path
+
 @Inject
 class RepoValidationCliCommands(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
   private val repoValidationGateway: RepoValidationGateway,
 ) {
-  val commands = listOf(
-    ValidateAgentConfigsCommand(state, inputs, repoValidationGateway),
-    ValidateReleaseRefCommand(state, inputs, repoValidationGateway),
-  )
+  val commands =
+    listOf(
+      ValidateAgentConfigsCommand(state, inputs, repoValidationGateway),
+      ValidateReleaseRefCommand(state, inputs, repoValidationGateway),
+    )
 }
 
 class ValidateAgentConfigsCommand(
@@ -31,9 +33,9 @@ class ValidateAgentConfigsCommand(
   private val inputs: CliRunInputs,
   private val repoValidationGateway: RepoValidationGateway,
 ) : DocumentedCliCommand(
-  "validate-agent-configs",
-  "Validate Skill Bill governed skills, platform packs, add-ons, docs catalog, and workflow contracts.",
-) {
+    "validate-agent-configs",
+    "Validate Skill Bill governed skills, platform packs, add-ons, docs catalog, and workflow contracts.",
+  ) {
   private val repoRoot by option(
     "--repo-root",
     help = "Repository root to inspect. Defaults to the invocation repository root.",
@@ -48,21 +50,22 @@ class ValidateAgentConfigsCommand(
       return
     }
 
-    val text = if (report.passed) {
-      buildString {
-        appendLine("Agent-config validation passed.")
-        appendLine(
-          "Validated ${report.skillCount} skills, ${report.addonCount} governed add-on files, " +
-            "${report.platformPackCount} platform packs, ${report.nativeAgentCount} native agents, README catalog, " +
-            "skill references, and workflow contracts.",
-        )
+    val text =
+      if (report.passed) {
+        buildString {
+          appendLine("Agent-config validation passed.")
+          appendLine(
+            "Validated ${report.skillCount} skills, ${report.addonCount} governed add-on files, " +
+              "${report.platformPackCount} platform packs, ${report.nativeAgentCount} native agents, README catalog, " +
+              "skill references, and workflow contracts.",
+          )
+        }
+      } else {
+        buildString {
+          appendLine("Agent-config validation failed:")
+          report.issues.forEach { issue -> appendLine("- $issue") }
+        }
       }
-    } else {
-      buildString {
-        appendLine("Agent-config validation failed:")
-        report.issues.forEach { issue -> appendLine("- $issue") }
-      }
-    }
     state.completeText(text, payload, exitCode = if (report.passed) 0 else 1)
   }
 }
@@ -72,9 +75,9 @@ class ValidateReleaseRefCommand(
   private val inputs: CliRunInputs,
   private val repoValidationGateway: RepoValidationGateway,
 ) : DocumentedCliCommand(
-  "validate-release-ref",
-  "Validate a release tag and emit release metadata.",
-) {
+    "validate-release-ref",
+    "Validate a release tag and emit release metadata.",
+  ) {
   private val ref by argument(help = "Tag or refs/tags/... reference to validate.").optional()
   private val githubOutput by option(
     "--github-output",
@@ -91,9 +94,10 @@ class ValidateReleaseRefCommand(
   private val format by formatOption()
 
   override fun run() {
-    val rawRef = ref
-      ?: inputs.environment["GITHUB_REF_NAME"]
-      ?: inputs.environment["GITHUB_REF"]
+    val rawRef =
+      ref
+        ?: inputs.environment["GITHUB_REF_NAME"]
+        ?: inputs.environment["GITHUB_REF"]
     if (rawRef == null) {
       state.completeText(
         "No release ref supplied. Pass a tag or set GITHUB_REF_NAME.\n",
@@ -106,17 +110,18 @@ class ValidateReleaseRefCommand(
       return
     }
 
-    val metadata = try {
-      repoValidationGateway.validateReleaseRef(resolveCliRepositoryRoot(repoRoot, inputs), rawRef, forcePrerelease)
-    } catch (error: IllegalArgumentException) {
-      val payload = mapOf(SharedPayloadKeys.STATUS to "failed", "error" to error.message.orEmpty())
-      if (format == CliFormat.JSON) {
-        state.complete(payload, format, exitCode = 1)
-      } else {
-        state.completeText("${error.message}\n", payload, exitCode = 1)
+    val metadata =
+      try {
+        repoValidationGateway.validateReleaseRef(resolveCliRepositoryRoot(repoRoot, inputs), rawRef, forcePrerelease)
+      } catch (error: IllegalArgumentException) {
+        val payload = mapOf(SharedPayloadKeys.STATUS to "failed", "error" to error.message.orEmpty())
+        if (format == CliFormat.JSON) {
+          state.complete(payload, format, exitCode = 1)
+        } else {
+          state.completeText("${error.message}\n", payload, exitCode = 1)
+        }
+        return
       }
-      return
-    }
 
     githubOutput?.let { outputPath ->
       repoValidationGateway.appendGithubOutput(Path.of(outputPath), metadata)

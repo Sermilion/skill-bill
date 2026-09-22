@@ -8,11 +8,23 @@ interface WorkflowGitRemoteOperations {
     const val ABSENT_REMOTE_BRANCH = "absent"
   }
 
-  fun pushBranch(repoRoot: Path, branch: String): WorkflowGitOperationResult
+  fun pushBranch(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult
 
-  fun pushBranchWithLease(repoRoot: Path, branch: String): WorkflowGitOperationResult
+  fun pushBranchWithLease(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult
 
-  fun refreshRemoteBranch(repoRoot: Path, branch: String): WorkflowGitOperationResult
+  fun refreshRemoteBranch(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult
 
-  fun localBranchHasUnpushedCommits(repoRoot: Path, branch: String): WorkflowGitOperationResult
+  fun localBranchHasUnpushedCommits(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult
 }

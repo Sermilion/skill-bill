@@ -90,45 +90,51 @@ class ReviewStageStatePersistenceTest {
     }
   }
 
-  private fun durableStageFixtures() = DurableStageFixtures(
-    verification = ReviewFindingVerdict(
-      stage = ReviewStage.VERIFICATION,
-      findingRef = "F-001",
-      claimVerdict = ReviewClaimVerdict.CONFIRMED,
-      citations = listOf(ReviewFindingCitation("src/Main.kt", 12)),
-      recordedAt = "2026-08-14T08:00:00Z",
-    ),
-    adjudication = ReviewFindingVerdict(
-      stage = ReviewStage.ADJUDICATION,
-      findingRef = "F-001",
-      claimVerdict = ReviewClaimVerdict.REFUTED,
-      scopeDisposition = ReviewScopeDisposition.IN_SCOPE,
-      citations = listOf(ReviewFindingCitation("src/Main.kt", 12)),
-      severityAdjustment = ReviewSeverityAdjustment(
-        ReviewSeverityAdjustmentDirection.LOWER,
-        "listed non-goal",
-      ),
-      recordedAt = "2026-08-14T08:05:00Z",
-    ),
-    boundary = ReviewStageBoundary(
-      stage = ReviewStage.VERIFICATION,
-      reached = ReviewStageReached.REACHED,
-      recordedAt = "2026-08-14T08:01:00Z",
-    ),
-    spec = ReviewSpecProjectionReference(absenceReason = "spec_context none"),
-    claims = listOf(
-      ParallelReviewMergedFinding(
-        fNumber = "F-001",
-        agentIds = listOf("codex"),
-        severity = ParallelReviewSeverity.MAJOR,
-        confidence = "High",
-        location = "src/Main.kt:12",
-        description = "null is unchecked",
-        repositoryPath = "src/Main.kt",
-        line = 12,
-      ),
-    ),
-  )
+  private fun durableStageFixtures() =
+    DurableStageFixtures(
+      verification =
+        ReviewFindingVerdict(
+          stage = ReviewStage.VERIFICATION,
+          findingRef = "F-001",
+          claimVerdict = ReviewClaimVerdict.CONFIRMED,
+          citations = listOf(ReviewFindingCitation("src/Main.kt", 12)),
+          recordedAt = "2026-08-14T08:00:00Z",
+        ),
+      adjudication =
+        ReviewFindingVerdict(
+          stage = ReviewStage.ADJUDICATION,
+          findingRef = "F-001",
+          claimVerdict = ReviewClaimVerdict.REFUTED,
+          scopeDisposition = ReviewScopeDisposition.IN_SCOPE,
+          citations = listOf(ReviewFindingCitation("src/Main.kt", 12)),
+          severityAdjustment =
+            ReviewSeverityAdjustment(
+              ReviewSeverityAdjustmentDirection.LOWER,
+              "listed non-goal",
+            ),
+          recordedAt = "2026-08-14T08:05:00Z",
+        ),
+      boundary =
+        ReviewStageBoundary(
+          stage = ReviewStage.VERIFICATION,
+          reached = ReviewStageReached.REACHED,
+          recordedAt = "2026-08-14T08:01:00Z",
+        ),
+      spec = ReviewSpecProjectionReference(absenceReason = "spec_context none"),
+      claims =
+        listOf(
+          ParallelReviewMergedFinding(
+            fNumber = "F-001",
+            agentIds = listOf("codex"),
+            severity = ParallelReviewSeverity.MAJOR,
+            confidence = "High",
+            location = "src/Main.kt:12",
+            description = "null is unchecked",
+            repositoryPath = "src/Main.kt",
+            line = 12,
+          ),
+        ),
+    )
 
   private data class DurableStageFixtures(
     val verification: ReviewFindingVerdict,
@@ -158,15 +164,16 @@ class ReviewStageStatePruneTest {
       assertEquals(null, repository.fetchSpecProjectionReference(RUN_ID))
       assertEquals(null, repository.fetchReviewPassClaims(RUN_ID))
       it.createStatement().use { statement ->
-        val remaining = statement.executeQuery(
-          """
-          SELECT
-            (SELECT COUNT(*) FROM review_run_finding_verdicts) +
-            (SELECT COUNT(*) FROM review_run_stage_boundaries) +
-            (SELECT COUNT(*) FROM review_run_spec_projections) +
-            (SELECT COUNT(*) FROM review_run_pass_claims)
-          """.trimIndent(),
-        )
+        val remaining =
+          statement.executeQuery(
+            """
+            SELECT
+              (SELECT COUNT(*) FROM review_run_finding_verdicts) +
+              (SELECT COUNT(*) FROM review_run_stage_boundaries) +
+              (SELECT COUNT(*) FROM review_run_spec_projections) +
+              (SELECT COUNT(*) FROM review_run_pass_claims)
+            """.trimIndent(),
+          )
         remaining.next()
         assertEquals(0, remaining.getInt(1))
       }

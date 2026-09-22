@@ -8,7 +8,10 @@ import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun applyRepoLocalConfigScaffold(plan: InstallPlan, warnings: MutableList<InstallApplyIssue>) {
+internal fun applyRepoLocalConfigScaffold(
+  plan: InstallPlan,
+  warnings: MutableList<InstallApplyIssue>,
+) {
   val repoRoot = plan.request.repoRoot.toPath().toAbsolutePath().normalize()
   scaffoldStep(InstallApplyIssueKind.REPO_LOCAL_CONFIG_SCAFFOLD_FAILED, warnings) {
     writeDefaultConfigIfAbsent(repoRoot)
@@ -44,8 +47,9 @@ private fun writeDefaultConfigIfAbsent(repoRoot: Path): Path {
   return configPath
 }
 
-private fun defaultConfigContent(): String = RepoLocalConfigKey.entries
-  .joinToString(separator = "\n", postfix = "\n") { key -> "${key.key}: ${key.builtinDefault}" }
+private fun defaultConfigContent(): String =
+  RepoLocalConfigKey.entries
+    .joinToString(separator = "\n", postfix = "\n") { key -> "${key.key}: ${key.builtinDefault}" }
 
 private fun appendGitignoreEntryIfAbsent(repoRoot: Path): Path {
   val gitignorePath = repoRoot.resolve(".gitignore")
@@ -60,10 +64,11 @@ private fun appendGitignoreEntryIfAbsent(repoRoot: Path): Path {
   if (hasModernIgnore && hasConfigException) {
     return gitignorePath
   }
-  val linesToAppend = buildList {
-    if (!hasModernIgnore) add(GITIGNORE_RUNTIME_STATE)
-    if (!hasConfigException) add(GITIGNORE_CONFIG_EXCEPTION)
-  }
+  val linesToAppend =
+    buildList {
+      if (!hasModernIgnore) add(GITIGNORE_RUNTIME_STATE)
+      if (!hasConfigException) add(GITIGNORE_CONFIG_EXCEPTION)
+    }
   if (linesToAppend.isEmpty()) {
     return gitignorePath
   }
@@ -71,16 +76,20 @@ private fun appendGitignoreEntryIfAbsent(repoRoot: Path): Path {
   return gitignorePath
 }
 
-private fun appendLines(existing: String, lines: List<String>): String = buildString {
-  append(existing)
-  if (existing.isNotEmpty() && !existing.endsWith("\n")) {
-    append("\n")
+private fun appendLines(
+  existing: String,
+  lines: List<String>,
+): String =
+  buildString {
+    append(existing)
+    if (existing.isNotEmpty() && !existing.endsWith("\n")) {
+      append("\n")
+    }
+    lines.forEach { line ->
+      append(line)
+      append("\n")
+    }
   }
-  lines.forEach { line ->
-    append(line)
-    append("\n")
-  }
-}
 
 private const val GITIGNORE_RUNTIME_STATE = ".skill-bill/**"
 private const val GITIGNORE_CONFIG_EXCEPTION = "!.skill-bill/config.yaml"

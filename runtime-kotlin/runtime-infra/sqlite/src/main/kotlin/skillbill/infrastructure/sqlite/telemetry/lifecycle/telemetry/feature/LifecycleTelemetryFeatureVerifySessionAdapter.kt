@@ -12,12 +12,18 @@ import java.sql.Connection
 internal class LifecycleTelemetryFeatureVerifySessionAdapter(
   private val connection: Connection,
 ) : FeatureVerifyLifecycleTelemetryRepository {
-  override fun featureVerifyStarted(record: FeatureVerifyStartedRecord, level: String) {
+  override fun featureVerifyStarted(
+    record: FeatureVerifyStartedRecord,
+    level: String,
+  ) {
     saveFeatureVerifyStarted(connection, record)
     emitFeatureVerifyStarted(connection, record.sessionId, level)
   }
 
-  override fun featureVerifyFinished(record: FeatureVerifyFinishedRecord, level: String) {
+  override fun featureVerifyFinished(
+    record: FeatureVerifyFinishedRecord,
+    level: String,
+  ) {
     if (saveFeatureVerifyFinished(connection, record) == TerminalSaveOutcome.FIRST_TERMINAL) {
       emitFeatureVerifyFinished(connection, record.sessionId, level)
     }

@@ -35,15 +35,16 @@ import kotlin.test.assertTrue
 class FeatureTaskRuntimePersistenceModelsTest {
   @Test
   fun `launched model and effort round-trip through the phase record artifact map`() {
-    val wire = FeatureTaskRuntimePhaseRecord(
-      phaseId = "implement",
-      status = "running",
-      attemptCount = 1,
-      startedAt = "2026-08-11T12:00:00Z",
-      resolvedAgentId = "cursor",
-      launchedModel = "claude-opus-4-8[effort=high]",
-      launchedEffort = "high",
-    ).toArtifactMap()
+    val wire =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "implement",
+        status = "running",
+        attemptCount = 1,
+        startedAt = "2026-08-11T12:00:00Z",
+        resolvedAgentId = "cursor",
+        launchedModel = "claude-opus-4-8[effort=high]",
+        launchedEffort = "high",
+      ).toArtifactMap()
 
     val decoded = FeatureTaskRuntimePhaseRecord.fromArtifactMap(wire)
 
@@ -53,13 +54,14 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `phase record written before the launched model fields still decodes`() {
-    val preChangeWire = FeatureTaskRuntimePhaseRecord(
-      phaseId = "implement",
-      status = "running",
-      attemptCount = 1,
-      startedAt = "2026-08-11T12:00:00Z",
-      resolvedAgentId = "claude",
-    ).toArtifactMap()
+    val preChangeWire =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "implement",
+        status = "running",
+        attemptCount = 1,
+        startedAt = "2026-08-11T12:00:00Z",
+        resolvedAgentId = "claude",
+      ).toArtifactMap()
 
     assertTrue("launched_model" !in preChangeWire)
     assertTrue("launched_effort" !in preChangeWire)
@@ -70,13 +72,14 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `a present-but-blank launched model or effort fails record construction`() {
-    val base = FeatureTaskRuntimePhaseRecord(
-      phaseId = "implement",
-      status = "running",
-      attemptCount = 1,
-      startedAt = "2026-08-11T12:00:00Z",
-      resolvedAgentId = "claude",
-    )
+    val base =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "implement",
+        status = "running",
+        attemptCount = 1,
+        startedAt = "2026-08-11T12:00:00Z",
+        resolvedAgentId = "claude",
+      )
 
     assertFailsWith<IllegalArgumentException> { base.copy(launchedModel = " ") }
     assertFailsWith<IllegalArgumentException> { base.copy(launchedEffort = " ") }
@@ -84,13 +87,14 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `legacy rejected output is consumed and discarded during phase record migration`() {
-    val current = FeatureTaskRuntimePhaseRecord(
-      phaseId = "implement",
-      status = "blocked",
-      attemptCount = 1,
-      startedAt = "2026-07-28T12:00:00Z",
-      resolvedAgentId = "codex",
-    ).toArtifactMap()
+    val current =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "implement",
+        status = "blocked",
+        attemptCount = 1,
+        startedAt = "2026-07-28T12:00:00Z",
+        resolvedAgentId = "codex",
+      ).toArtifactMap()
 
     val decoded = FeatureTaskRuntimePhaseRecord.fromArtifactMap(current + ("rejected_output" to "private body"))
 
@@ -100,17 +104,19 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `phase execution origin rejects incompatible legacy and unknown explicit values`() {
-    val current = FeatureTaskRuntimePhaseRecord(
-      phaseId = "plan",
-      status = "completed",
-      attemptCount = 1,
-      startedAt = "2026-07-18T12:00:00Z",
-      resolvedAgentId = "planner",
-    ).toArtifactMap()
+    val current =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "plan",
+        status = "completed",
+        attemptCount = 1,
+        startedAt = "2026-07-18T12:00:00Z",
+        resolvedAgentId = "planner",
+      ).toArtifactMap()
     val legacy = current - setOf("contract_version", "record_kind", "first_started_at", "execution_origin")
-    val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      FeatureTaskRuntimePhaseRecord.fromArtifactMap(legacy)
-    }
+    val error =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        FeatureTaskRuntimePhaseRecord.fromArtifactMap(legacy)
+      }
     assertTrue(error.message.orEmpty().contains("restart the active run"))
     assertTrue(error.message.orEmpty().contains("out-of-band migration"))
     assertFailsWith<InvalidWorkflowStateSchemaError> {
@@ -132,61 +138,66 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `phase record round trips typed failure disposition and file manifests`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "review",
-      status = "blocked",
-      attemptCount = 1,
-      startedAt = "2026-07-13T12:00:00Z",
-      resolvedAgentId = "reviewer",
-      blockedReason = "Policy conflict.",
-      failureDisposition = FeatureTaskRuntimeFailureDisposition.NON_RETRYABLE_POLICY_CONFLICT,
-      fileManifestBefore = listOf("src/Existing.kt"),
-      fileManifestAfter = listOf(".feature-specs/SKILL-124/spec.md", "src/Existing.kt"),
-      fileManifestIntroduced = listOf(".feature-specs/SKILL-124/spec.md"),
-    )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "review",
+        status = "blocked",
+        attemptCount = 1,
+        startedAt = "2026-07-13T12:00:00Z",
+        resolvedAgentId = "reviewer",
+        blockedReason = "Policy conflict.",
+        failureDisposition = FeatureTaskRuntimeFailureDisposition.NON_RETRYABLE_POLICY_CONFLICT,
+        fileManifestBefore = listOf("src/Existing.kt"),
+        fileManifestAfter = listOf(".feature-specs/SKILL-124/spec.md", "src/Existing.kt"),
+        fileManifestIntroduced = listOf(".feature-specs/SKILL-124/spec.md"),
+      )
 
     assertEquals(record, FeatureTaskRuntimePhaseRecord.fromArtifactMap(record.toArtifactMap()))
   }
 
   @Test
   fun `per-phase record round trips through its artifact map`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "implement",
-      status = "completed",
-      attemptCount = 2,
-      startedAt = "2026-06-02T10:00:00Z",
-      finishedAt = "2026-06-02T10:05:00Z",
-      durationMillis = 300_000,
-      resolvedAgentId = "agent-implement-1",
-      outputArtifact = """{"contract_version":"0.2"}""",
-    )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "implement",
+        status = "completed",
+        attemptCount = 2,
+        startedAt = "2026-06-02T10:00:00Z",
+        finishedAt = "2026-06-02T10:05:00Z",
+        durationMillis = 300_000,
+        resolvedAgentId = "agent-implement-1",
+        outputArtifact = """{"contract_version":"0.2"}""",
+      )
     val decoded = FeatureTaskRuntimePhaseRecord.fromArtifactMap(record.toArtifactMap())
     assertEquals(record, decoded)
   }
 
   @Test
   fun `per-phase record persists typed structural repair evidence without payload text`() {
-    val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
-      format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-      originalDigest = "a".repeat(64),
-      repairedDigest = "b".repeat(64),
-      operation = FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
-      sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation(
-        sourceLabel = "plan",
-        offset = 17,
-        line = 2,
-        column = 4,
-      ),
-    )
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "plan",
-      status = "completed",
-      attemptCount = 1,
-      startedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "planner",
-      outputArtifact = "{\"phase_id\":\"plan\"}",
-      repairEvidence = evidence,
-    )
+    val evidence =
+      FeatureTaskRuntimePhaseOutputRepairEvidence(
+        format = FeatureTaskRuntimePhaseOutputFormat.JSON,
+        originalDigest = "a".repeat(64),
+        repairedDigest = "b".repeat(64),
+        operation = FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
+        sourceLocation =
+          FeatureTaskRuntimePhaseOutputSourceLocation(
+            sourceLabel = "plan",
+            offset = 17,
+            line = 2,
+            column = 4,
+          ),
+      )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "plan",
+        status = "completed",
+        attemptCount = 1,
+        startedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "planner",
+        outputArtifact = "{\"phase_id\":\"plan\"}",
+        repairEvidence = evidence,
+      )
 
     val artifact = record.toArtifactMap()
     assertEquals(evidence, FeatureTaskRuntimePhaseRecord.fromArtifactMap(artifact).repairEvidence)
@@ -195,15 +206,16 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `resolved-branch round trips through its artifact map when created`() {
-    val resolved = FeatureTaskRuntimeResolvedBranch(
-      branch = "feat/SKILL-65.1-runtime-feature-task-parity",
-      baseBranch = "main",
-      created = true,
-      reviewBaseSha = "a".repeat(40),
-      baselineUntrackedPaths = listOf("owned-new.txt"),
-      baselineOwnedPaths = listOf("tracked-before.kt", "owned-new.txt"),
-      workflowOwnedPaths = listOf("src/Changed.kt"),
-    )
+    val resolved =
+      FeatureTaskRuntimeResolvedBranch(
+        branch = "feat/SKILL-65.1-runtime-feature-task-parity",
+        baseBranch = "main",
+        created = true,
+        reviewBaseSha = "a".repeat(40),
+        baselineUntrackedPaths = listOf("owned-new.txt"),
+        baselineOwnedPaths = listOf("tracked-before.kt", "owned-new.txt"),
+        workflowOwnedPaths = listOf("src/Changed.kt"),
+      )
     val decoded = FeatureTaskRuntimeResolvedBranch.fromArtifactMap(resolved.toArtifactMap())
     assertEquals(resolved, decoded)
     assertTrue(decoded.created)
@@ -244,13 +256,14 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `running per-phase record omits finish and duration and output`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "plan",
-      status = "running",
-      attemptCount = 1,
-      startedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "agent-plan-1",
-    )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "plan",
+        status = "running",
+        attemptCount = 1,
+        startedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "agent-plan-1",
+      )
     val map = record.toArtifactMap()
     assertNull(map["finished_at"])
     assertNull(map["duration_millis"])
@@ -260,15 +273,16 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `blocked per-phase record round trips with blocked reason and distinct first started at`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "review",
-      status = "blocked",
-      attemptCount = 3,
-      startedAt = "2026-06-02T10:10:00Z",
-      firstStartedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "agent-review-1",
-      blockedReason = "exhausted the bounded fix loop",
-    )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "review",
+        status = "blocked",
+        attemptCount = 3,
+        startedAt = "2026-06-02T10:10:00Z",
+        firstStartedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "agent-review-1",
+        blockedReason = "exhausted the bounded fix loop",
+      )
     val decoded = FeatureTaskRuntimePhaseRecord.fromArtifactMap(record.toArtifactMap())
     assertEquals(record, decoded)
     assertEquals("2026-06-02T10:00:00Z", decoded.firstStartedAt)
@@ -277,14 +291,15 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `rejected raw output never enters the artifact map`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "implement",
-      status = "blocked",
-      attemptCount = 1,
-      startedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "agent-implement-1",
-      rejectedOutput = "sentinel-private-body",
-    )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "implement",
+        status = "blocked",
+        attemptCount = 1,
+        startedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "agent-implement-1",
+        rejectedOutput = "sentinel-private-body",
+      )
 
     val artifact = record.toArtifactMap()
 
@@ -295,13 +310,14 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `per-phase record rejects missing legacy first started at`() {
-    val current = FeatureTaskRuntimePhaseRecord(
-      phaseId = "plan",
-      status = "running",
-      attemptCount = 1,
-      startedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "agent-plan-1",
-    ).toArtifactMap()
+    val current =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "plan",
+        status = "running",
+        attemptCount = 1,
+        startedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "agent-plan-1",
+      ).toArtifactMap()
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimePhaseRecord.fromArtifactMap(current - "first_started_at")
     }
@@ -309,13 +325,13 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `per-phase record decode loud-fails on missing required field`() {
-    val malformed = mapOf(
-      "phase_id" to "plan",
-      "status" to "completed",
-
-      "started_at" to "2026-06-02T10:00:00Z",
-      "resolved_agent_id" to "agent-plan-1",
-    )
+    val malformed =
+      mapOf(
+        "phase_id" to "plan",
+        "status" to "completed",
+        "started_at" to "2026-06-02T10:00:00Z",
+        "resolved_agent_id" to "agent-plan-1",
+      )
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimePhaseRecord.fromArtifactMap(malformed)
     }
@@ -323,13 +339,14 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `per-phase record decode loud-fails on wrong-typed attempt count`() {
-    val malformed = mapOf(
-      "phase_id" to "plan",
-      "status" to "completed",
-      "attempt_count" to "not-an-int",
-      "started_at" to "2026-06-02T10:00:00Z",
-      "resolved_agent_id" to "agent-plan-1",
-    )
+    val malformed =
+      mapOf(
+        "phase_id" to "plan",
+        "status" to "completed",
+        "attempt_count" to "not-an-int",
+        "started_at" to "2026-06-02T10:00:00Z",
+        "resolved_agent_id" to "agent-plan-1",
+      )
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimePhaseRecord.fromArtifactMap(malformed)
     }
@@ -338,16 +355,17 @@ class FeatureTaskRuntimePersistenceModelsTest {
   @Test
   fun `ledger entry round trips through its artifact map for every action`() {
     FeatureTaskRuntimePhaseLedgerAction.entries.forEachIndexed { index, action ->
-      val entry = FeatureTaskRuntimePhaseLedgerEntry(
-        action = action,
-        sequenceNumber = index,
-        timestamp = "2026-06-02T10:0$index:00Z",
-        phaseId = "review",
-        attemptCount = 1,
-        resolvedAgentId = "agent-review-1",
-        fixLoopIteration = if (action == FeatureTaskRuntimePhaseLedgerAction.FIX_LOOP_ITERATION) 2 else null,
-        blockedReason = if (action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED) "gate failed" else null,
-      )
+      val entry =
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = action,
+          sequenceNumber = index,
+          timestamp = "2026-06-02T10:0$index:00Z",
+          phaseId = "review",
+          attemptCount = 1,
+          resolvedAgentId = "agent-review-1",
+          fixLoopIteration = if (action == FeatureTaskRuntimePhaseLedgerAction.FIX_LOOP_ITERATION) 2 else null,
+          blockedReason = if (action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED) "gate failed" else null,
+        )
       assertEquals(entry, FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(entry.toArtifactMap()))
     }
   }
@@ -372,15 +390,16 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `per-phase record round trips loop_id and edge_iteration additively`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "implement",
-      status = "running",
-      attemptCount = 2,
-      startedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "agent-implement-1",
-      loopId = "review-fix",
-      edgeIteration = 2,
-    )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "implement",
+        status = "running",
+        attemptCount = 2,
+        startedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "agent-implement-1",
+        loopId = "review-fix",
+        edgeIteration = 2,
+      )
     val map = record.toArtifactMap()
     assertEquals("review-fix", map["loop_id"])
     assertEquals(2, map["edge_iteration"])
@@ -389,46 +408,51 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `removed plan_fix phase id loud-fails on private phase records`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "implement",
-      status = "completed",
-      attemptCount = 1,
-      startedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "agent-implement-1",
-    )
-    val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      FeatureTaskRuntimePhaseRecord.fromArtifactMap(record.toArtifactMap() + ("phase_id" to "plan_fix"))
-    }
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "implement",
+        status = "completed",
+        attemptCount = 1,
+        startedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "agent-implement-1",
+      )
+    val error =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        FeatureTaskRuntimePhaseRecord.fromArtifactMap(record.toArtifactMap() + ("phase_id" to "plan_fix"))
+      }
     assertTrue(error.message.orEmpty().contains("plan_fix"))
   }
 
   @Test
   fun `removed plan_fix phase id loud-fails on phase ledger entries`() {
-    val entry = FeatureTaskRuntimePhaseLedgerEntry(
-      action = FeatureTaskRuntimePhaseLedgerAction.START,
-      sequenceNumber = 1,
-      timestamp = "2026-06-02T10:00:00Z",
-      phaseId = "implement",
-      attemptCount = 1,
-    )
-    val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(entry.toArtifactMap() + ("phase_id" to "plan_fix"))
-    }
+    val entry =
+      FeatureTaskRuntimePhaseLedgerEntry(
+        action = FeatureTaskRuntimePhaseLedgerAction.START,
+        sequenceNumber = 1,
+        timestamp = "2026-06-02T10:00:00Z",
+        phaseId = "implement",
+        attemptCount = 1,
+      )
+    val error =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(entry.toArtifactMap() + ("phase_id" to "plan_fix"))
+      }
     assertTrue(error.message.orEmpty().contains("plan_fix"))
   }
 
   @Test
   fun `review phase record round trips the durably reserved pass number`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "review",
-      status = "running",
-      attemptCount = 2,
-      startedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "agent-review-1",
-      loopId = "review_fix",
-      edgeIteration = 1,
-      reviewPassNumber = 2,
-    )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "review",
+        status = "running",
+        attemptCount = 2,
+        startedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "agent-review-1",
+        loopId = "review_fix",
+        edgeIteration = 1,
+        reviewPassNumber = 2,
+      )
 
     val map = record.toArtifactMap()
 
@@ -450,13 +474,14 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `per-phase record omits optional loop context while retaining required wire identity`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "plan",
-      status = "running",
-      attemptCount = 1,
-      startedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "agent-plan-1",
-    )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "plan",
+        status = "running",
+        attemptCount = 1,
+        startedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "agent-plan-1",
+      )
     val map = record.toArtifactMap()
     assertNull(map["loop_id"])
     assertNull(map["edge_iteration"])
@@ -470,15 +495,16 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `per-phase record decode loud-fails on edge_iteration below one`() {
-    val malformed = FeatureTaskRuntimePhaseRecord(
-      phaseId = "implement",
-      status = "running",
-      attemptCount = 1,
-      startedAt = "2026-06-02T10:00:00Z",
-      resolvedAgentId = "agent-implement-1",
-      loopId = "review-fix",
-      edgeIteration = 1,
-    ).toArtifactMap() + ("edge_iteration" to 0)
+    val malformed =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "implement",
+        status = "running",
+        attemptCount = 1,
+        startedAt = "2026-06-02T10:00:00Z",
+        resolvedAgentId = "agent-implement-1",
+        loopId = "review-fix",
+        edgeIteration = 1,
+      ).toArtifactMap() + ("edge_iteration" to 0)
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimePhaseRecord.fromArtifactMap(malformed)
     }
@@ -486,27 +512,29 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `ledger entry round trips loop_id and edge_iteration additively`() {
-    val entry = FeatureTaskRuntimePhaseLedgerEntry(
-      action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
-      sequenceNumber = 7,
-      timestamp = "2026-06-02T10:07:00Z",
-      phaseId = "implement",
-      attemptCount = 1,
-      loopId = "review-fix",
-      edgeIteration = 3,
-    )
+    val entry =
+      FeatureTaskRuntimePhaseLedgerEntry(
+        action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
+        sequenceNumber = 7,
+        timestamp = "2026-06-02T10:07:00Z",
+        phaseId = "implement",
+        attemptCount = 1,
+        loopId = "review-fix",
+        edgeIteration = 3,
+      )
     val map = entry.toArtifactMap()
     assertEquals("review-fix", map["loop_id"])
     assertEquals(3, map["edge_iteration"])
     assertEquals(entry, FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(map))
 
-    val legacy = mapOf(
-      "action" to "retry",
-      "sequence_number" to 0,
-      "timestamp" to "2026-06-02T10:00:00Z",
-      "phase_id" to "review",
-      "attempt_count" to 1,
-    )
+    val legacy =
+      mapOf(
+        "action" to "retry",
+        "sequence_number" to 0,
+        "timestamp" to "2026-06-02T10:00:00Z",
+        "phase_id" to "review",
+        "attempt_count" to 1,
+      )
     val decoded = FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(legacy)
     assertNull(decoded.loopId)
     assertNull(decoded.edgeIteration)
@@ -521,14 +549,15 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `run-invariants decode loud-fails with typed schema error on unknown feature size`() {
-    val malformed = mapOf(
-      "contract_version" to FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION,
-      "spec_reference" to ".feature-specs/SKILL-65/spec.md",
-      "feature_size" to "HUGE",
-      "acceptance_criteria" to listOf("AC-1"),
-      "mandates_and_overrides" to emptyList<String>(),
-      "code_review_mode" to "auto",
-    )
+    val malformed =
+      mapOf(
+        "contract_version" to FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION,
+        "spec_reference" to ".feature-specs/SKILL-65/spec.md",
+        "feature_size" to "HUGE",
+        "acceptance_criteria" to listOf("AC-1"),
+        "mandates_and_overrides" to emptyList<String>(),
+        "code_review_mode" to "auto",
+      )
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       featureTaskRuntimeRunInvariantsFromArtifactMap(malformed)
@@ -537,18 +566,20 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `run-invariants decode translates constructor invariant failures to typed schema errors`() {
-    val malformed = mapOf(
-      "contract_version" to FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION,
-      "spec_reference" to ".feature-specs/SKILL-135/spec.md",
-      "feature_size" to "MEDIUM",
-      "acceptance_criteria" to List(1_000) { index -> "Criterion ${index + 1}" },
-      "mandates_and_overrides" to emptyList<String>(),
-      "code_review_mode" to "auto",
-    )
+    val malformed =
+      mapOf(
+        "contract_version" to FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION,
+        "spec_reference" to ".feature-specs/SKILL-135/spec.md",
+        "feature_size" to "MEDIUM",
+        "acceptance_criteria" to List(1_000) { index -> "Criterion ${index + 1}" },
+        "mandates_and_overrides" to emptyList<String>(),
+        "code_review_mode" to "auto",
+      )
 
-    val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      featureTaskRuntimeRunInvariantsFromArtifactMap(malformed)
-    }
+    val error =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        featureTaskRuntimeRunInvariantsFromArtifactMap(malformed)
+      }
 
     assertIs<IllegalArgumentException>(error.cause)
     assertTrue(error.message.orEmpty().contains("supports at most 999 criteria"))
@@ -557,22 +588,24 @@ class FeatureTaskRuntimePersistenceModelsTest {
   @Test
   fun `run-invariants persist the selected code-review mode strictly`() {
     CodeReviewExecutionMode.entries.forEach { mode ->
-      val invariants = FeatureTaskRuntimeRunInvariants(
-        specReference = ".feature-specs/SKILL-119/spec.md",
-        acceptanceCriteria = listOf("AC-1"),
-        mandatesAndOverrides = emptyList(),
-        codeReviewMode = mode,
-      )
+      val invariants =
+        FeatureTaskRuntimeRunInvariants(
+          specReference = ".feature-specs/SKILL-119/spec.md",
+          acceptanceCriteria = listOf("AC-1"),
+          mandatesAndOverrides = emptyList(),
+          codeReviewMode = mode,
+        )
       val map = invariants.toArtifactMap()
 
       assertEquals(mode.wireValue, map["code_review_mode"])
       assertEquals(invariants, featureTaskRuntimeRunInvariantsFromArtifactMap(map))
     }
-    val invalid = FeatureTaskRuntimeRunInvariants(
-      specReference = ".feature-specs/SKILL-119/spec.md",
-      acceptanceCriteria = listOf("AC-1"),
-      mandatesAndOverrides = emptyList(),
-    ).toArtifactMap()
+    val invalid =
+      FeatureTaskRuntimeRunInvariants(
+        specReference = ".feature-specs/SKILL-119/spec.md",
+        acceptanceCriteria = listOf("AC-1"),
+        mandatesAndOverrides = emptyList(),
+      ).toArtifactMap()
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       featureTaskRuntimeRunInvariantsFromArtifactMap(invalid + ("code_review_mode" to "DELEGATED"))
     }
@@ -583,27 +616,30 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `run-invariants stamp the durable contract version`() {
-    val map = FeatureTaskRuntimeRunInvariants(
-      specReference = ".feature-specs/SKILL-159/spec.md",
-      acceptanceCriteria = listOf("AC-1"),
-      mandatesAndOverrides = emptyList(),
-    ).toArtifactMap()
+    val map =
+      FeatureTaskRuntimeRunInvariants(
+        specReference = ".feature-specs/SKILL-159/spec.md",
+        acceptanceCriteria = listOf("AC-1"),
+        mandatesAndOverrides = emptyList(),
+      ).toArtifactMap()
 
     assertEquals(FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION, map["contract_version"])
   }
 
   @Test
   fun `pre-SKILL-159 run invariants loud-fail instead of being reinterpreted under the new mode semantics`() {
-    val current = FeatureTaskRuntimeRunInvariants(
-      specReference = ".feature-specs/SKILL-159/spec.md",
-      acceptanceCriteria = listOf("AC-1"),
-      mandatesAndOverrides = emptyList(),
-      codeReviewMode = CodeReviewExecutionMode.DELEGATED,
-    ).toArtifactMap()
+    val current =
+      FeatureTaskRuntimeRunInvariants(
+        specReference = ".feature-specs/SKILL-159/spec.md",
+        acceptanceCriteria = listOf("AC-1"),
+        mandatesAndOverrides = emptyList(),
+        codeReviewMode = CodeReviewExecutionMode.DELEGATED,
+      ).toArtifactMap()
 
-    val unversioned = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      featureTaskRuntimeRunInvariantsFromArtifactMap(current - "contract_version")
-    }
+    val unversioned =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        featureTaskRuntimeRunInvariantsFromArtifactMap(current - "contract_version")
+      }
     assertTrue(unversioned.message.orEmpty().contains("contract_version"))
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
@@ -613,13 +649,14 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `ledger entry decode loud-fails when attempt count is zero`() {
-    val malformed = mapOf(
-      "action" to "start",
-      "sequence_number" to 0,
-      "timestamp" to "2026-06-02T10:00:00Z",
-      "phase_id" to "plan",
-      "attempt_count" to 0,
-    )
+    val malformed =
+      mapOf(
+        "action" to "start",
+        "sequence_number" to 0,
+        "timestamp" to "2026-06-02T10:00:00Z",
+        "phase_id" to "plan",
+        "attempt_count" to 0,
+      )
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(malformed)
     }
@@ -627,13 +664,13 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `ledger entry decode loud-fails on missing timestamp`() {
-    val malformed = mapOf(
-      "action" to "start",
-      "sequence_number" to 0,
-
-      "phase_id" to "plan",
-      "attempt_count" to 1,
-    )
+    val malformed =
+      mapOf(
+        "action" to "start",
+        "sequence_number" to 0,
+        "phase_id" to "plan",
+        "attempt_count" to 1,
+      )
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(malformed)
     }
@@ -643,19 +680,21 @@ class FeatureTaskRuntimePersistenceModelsTest {
   fun `append-only ledger keeps monotonic sequence order and prunes oldest beyond the limit`() {
     var ledger = emptyList<Any>()
     (0 until FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT + 3).forEach { index ->
-      val entry = FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
-        sequenceNumber = index,
-        timestamp = "2026-06-02T10:00:00Z",
-        phaseId = "implement",
-        attemptCount = 1,
-      )
+      val entry =
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
+          sequenceNumber = index,
+          timestamp = "2026-06-02T10:00:00Z",
+          phaseId = "implement",
+          attemptCount = 1,
+        )
       ledger = appendBoundedHistoryBySequence(ledger, entry.toArtifactMap(), FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT)
     }
     assertEquals(FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT, ledger.size)
-    val sequences = ledger.map { entry ->
-      (JsonCodec.anyToStringAnyMap(entry)?.get("sequence_number") as Number).toInt()
-    }
+    val sequences =
+      ledger.map { entry ->
+        (JsonCodec.anyToStringAnyMap(entry)?.get("sequence_number") as Number).toInt()
+      }
     assertEquals(sequences.sorted(), sequences)
     assertEquals(3, sequences.first())
     assertEquals(FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT + 2, sequences.last())
@@ -665,38 +704,41 @@ class FeatureTaskRuntimePersistenceModelsTest {
 class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
   @Test
   fun `goal-continuation artifact retains the immutable review mode and optional parallel lane`() {
-    val artifact = FeatureTaskRuntimeGoalContinuationArtifact(
-      issueKey = "SKILL-119",
-      subtaskId = 2,
-      suppressPr = true,
-      goalBranch = "feat/SKILL-119-subtask-2",
-      parentWorkflowId = "wfl-parent",
-      codeReviewMode = CodeReviewExecutionMode.DELEGATED,
-      validationDepth = ValidationDepth.FULL,
-      agentAddonSelection = AgentAddonSelection(
-        listOf(
-          PersistedAgentAddonSelectionEntry(
-            "helper",
-            "/repo/agent-addons/helper/agent-addon.yaml",
-            "a".repeat(64),
+    val artifact =
+      FeatureTaskRuntimeGoalContinuationArtifact(
+        issueKey = "SKILL-119",
+        subtaskId = 2,
+        suppressPr = true,
+        goalBranch = "feat/SKILL-119-subtask-2",
+        parentWorkflowId = "wfl-parent",
+        codeReviewMode = CodeReviewExecutionMode.DELEGATED,
+        validationDepth = ValidationDepth.FULL,
+        agentAddonSelection =
+          AgentAddonSelection(
+            listOf(
+              PersistedAgentAddonSelectionEntry(
+                "helper",
+                "/repo/agent-addons/helper/agent-addon.yaml",
+                "a".repeat(64),
+              ),
+            ),
           ),
-        ),
-      ),
-    )
+      )
 
     assertEquals(artifact, FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(artifact.toArtifactMap()))
   }
 
   @Test
   fun `goal-continuation artifact round-trips explicit depths and preserves absent validation_depth`() {
-    val full = FeatureTaskRuntimeGoalContinuationArtifact(
-      issueKey = "SKILL-173",
-      subtaskId = 1,
-      suppressPr = true,
-      goalBranch = "feat/SKILL-173",
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-      validationDepth = ValidationDepth.FULL,
-    )
+    val full =
+      FeatureTaskRuntimeGoalContinuationArtifact(
+        issueKey = "SKILL-173",
+        subtaskId = 1,
+        suppressPr = true,
+        goalBranch = "feat/SKILL-173",
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+        validationDepth = ValidationDepth.FULL,
+      )
     assertEquals(full, FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(full.toArtifactMap()))
     assertEquals("full", full.toArtifactMap()["validation_depth"])
 
@@ -707,13 +749,14 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
       ),
     )
 
-    val absentKey = linkedMapOf<String, Any?>(
-      "issue_key" to "SKILL-173",
-      "subtask_id" to 1,
-      "suppress_pr" to true,
-      "goal_branch" to "feat/SKILL-173",
-      "code_review_mode" to "inline",
-    )
+    val absentKey =
+      linkedMapOf<String, Any?>(
+        "issue_key" to "SKILL-173",
+        "subtask_id" to 1,
+        "suppress_pr" to true,
+        "goal_branch" to "feat/SKILL-173",
+        "code_review_mode" to "inline",
+      )
     val absent = FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(absentKey)
     assertNull(absent.validationDepth)
     assertNull(absent.toArtifactMap()["validation_depth"])
@@ -724,13 +767,14 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
 
   @Test
   fun `goal-continuation artifact rejects missing mode unknown fields and blank parallel lane`() {
-    val complete = FeatureTaskRuntimeGoalContinuationArtifact(
-      issueKey = "SKILL-119",
-      subtaskId = 2,
-      suppressPr = true,
-      goalBranch = "feat/SKILL-119-subtask-2",
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    ).toArtifactMap()
+    val complete =
+      FeatureTaskRuntimeGoalContinuationArtifact(
+        issueKey = "SKILL-119",
+        subtaskId = 2,
+        suppressPr = true,
+        goalBranch = "feat/SKILL-119-subtask-2",
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      ).toArtifactMap()
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(complete - "code_review_mode")
@@ -756,13 +800,14 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
 
   @Test
   fun `goal-continuation decode rejects non-positive subtask ids with a typed schema error`() {
-    val malformed = mapOf(
-      "issue_key" to "SKILL-119",
-      "subtask_id" to 0,
-      "suppress_pr" to true,
-      "goal_branch" to "feat/SKILL-119-subtask-2",
-      "code_review_mode" to "inline",
-    )
+    val malformed =
+      mapOf(
+        "issue_key" to "SKILL-119",
+        "subtask_id" to 0,
+        "suppress_pr" to true,
+        "goal_branch" to "feat/SKILL-119-subtask-2",
+        "code_review_mode" to "inline",
+      )
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(malformed)
@@ -771,27 +816,29 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
 
   @Test
   fun `goal-continuation artifact round-trips quality_gate_selection and absent decodes as validate`() {
-    val build = FeatureTaskRuntimeGoalContinuationArtifact(
-      issueKey = "SKILL-204",
-      subtaskId = 1,
-      suppressPr = true,
-      goalBranch = "feat/SKILL-204",
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-      qualityGateSelection = BUILD,
-    )
+    val build =
+      FeatureTaskRuntimeGoalContinuationArtifact(
+        issueKey = "SKILL-204",
+        subtaskId = 1,
+        suppressPr = true,
+        goalBranch = "feat/SKILL-204",
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+        qualityGateSelection = BUILD,
+      )
     assertEquals("build", build.toArtifactMap()["quality_gate_selection"])
     assertEquals(
       build,
       FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(build.toArtifactMap()),
     )
 
-    val absent = FeatureTaskRuntimeGoalContinuationArtifact(
-      issueKey = "SKILL-204",
-      subtaskId = 2,
-      suppressPr = true,
-      goalBranch = "feat/SKILL-204",
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    )
+    val absent =
+      FeatureTaskRuntimeGoalContinuationArtifact(
+        issueKey = "SKILL-204",
+        subtaskId = 2,
+        suppressPr = true,
+        goalBranch = "feat/SKILL-204",
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      )
     assertNull(absent.toArtifactMap()["quality_gate_selection"])
     assertEquals(
       VALIDATE,
@@ -803,16 +850,17 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
 
   @Test
   fun `goal-continuation outcome round trips agent attribution through its artifact map`() {
-    val outcome = FeatureTaskRuntimeGoalContinuationOutcome(
-      issueKey = "SKILL-89",
-      subtaskId = 4,
-      status = "complete",
-      workflowId = "wf-4",
-      commitSha = "abc123",
-      lastResumableStep = "commit_push",
-      finalizingAgentId = "claude",
-      participatingAgentIds = listOf("codex", "claude"),
-    )
+    val outcome =
+      FeatureTaskRuntimeGoalContinuationOutcome(
+        issueKey = "SKILL-89",
+        subtaskId = 4,
+        status = "complete",
+        workflowId = "wf-4",
+        commitSha = "abc123",
+        lastResumableStep = "commit_push",
+        finalizingAgentId = "claude",
+        participatingAgentIds = listOf("codex", "claude"),
+      )
     val map = outcome.toArtifactMap()
     assertEquals("claude", map["finalizing_agent_id"])
     assertEquals(listOf("codex", "claude"), map["participating_agent_ids"])
@@ -821,13 +869,14 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
 
   @Test
   fun `legacy goal-continuation outcome without agent fields decodes to null and empty`() {
-    val legacy = mapOf(
-      "issue_key" to "SKILL-89",
-      "subtask_id" to 2,
-      "status" to "complete",
-      "workflow_id" to "wf-2",
-      "last_resumable_step" to "commit_push",
-    )
+    val legacy =
+      mapOf(
+        "issue_key" to "SKILL-89",
+        "subtask_id" to 2,
+        "status" to "complete",
+        "workflow_id" to "wf-2",
+        "last_resumable_step" to "commit_push",
+      )
     val decoded = FeatureTaskRuntimeGoalContinuationOutcome.fromArtifactMap(legacy)
     assertNull(decoded.finalizingAgentId)
     assertTrue(decoded.participatingAgentIds.isEmpty())
@@ -835,13 +884,14 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
 
   @Test
   fun `goal-continuation outcome omits finalizing agent when null but always emits the participants list`() {
-    val outcome = FeatureTaskRuntimeGoalContinuationOutcome(
-      issueKey = "SKILL-89",
-      subtaskId = 1,
-      status = "complete",
-      workflowId = "wf-1",
-      lastResumableStep = "commit_push",
-    )
+    val outcome =
+      FeatureTaskRuntimeGoalContinuationOutcome(
+        issueKey = "SKILL-89",
+        subtaskId = 1,
+        status = "complete",
+        workflowId = "wf-1",
+        lastResumableStep = "commit_push",
+      )
     val map = outcome.toArtifactMap()
     assertNull(map["finalizing_agent_id"])
     assertEquals(emptyList<String>(), map["participating_agent_ids"])
@@ -849,14 +899,15 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
 
   @Test
   fun `goal-continuation outcome decode loud-fails on a non-string participant element`() {
-    val malformed = mapOf(
-      "issue_key" to "SKILL-89",
-      "subtask_id" to 3,
-      "status" to "complete",
-      "workflow_id" to "wf-3",
-      "last_resumable_step" to "commit_push",
-      "participating_agent_ids" to listOf("codex", 7),
-    )
+    val malformed =
+      mapOf(
+        "issue_key" to "SKILL-89",
+        "subtask_id" to 3,
+        "status" to "complete",
+        "workflow_id" to "wf-3",
+        "last_resumable_step" to "commit_push",
+        "participating_agent_ids" to listOf("codex", 7),
+      )
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimeGoalContinuationOutcome.fromArtifactMap(malformed)
     }
@@ -864,14 +915,15 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
 
   @Test
   fun `goal-continuation outcome decode loud-fails on a non-list participants value`() {
-    val malformed = mapOf(
-      "issue_key" to "SKILL-89",
-      "subtask_id" to 3,
-      "status" to "complete",
-      "workflow_id" to "wf-3",
-      "last_resumable_step" to "commit_push",
-      "participating_agent_ids" to "codex",
-    )
+    val malformed =
+      mapOf(
+        "issue_key" to "SKILL-89",
+        "subtask_id" to 3,
+        "status" to "complete",
+        "workflow_id" to "wf-3",
+        "last_resumable_step" to "commit_push",
+        "participating_agent_ids" to "codex",
+      )
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimeGoalContinuationOutcome.fromArtifactMap(malformed)
     }

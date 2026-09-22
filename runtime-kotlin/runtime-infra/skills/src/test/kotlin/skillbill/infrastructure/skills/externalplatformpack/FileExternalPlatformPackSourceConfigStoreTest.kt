@@ -22,13 +22,17 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   private val store = FileExternalPlatformPackSourceConfigStore()
 
   @Test
-  fun `absent config returns empty`(@TempDir home: Path) {
+  fun `absent config returns empty`(
+    @TempDir home: Path,
+  ) {
     val sources = store.readExternalPlatformPackSources(request(home, configPath(home))).sources
     assertTrue(sources.isEmpty())
   }
 
   @Test
-  fun `valid sources are returned in declared order`(@TempDir home: Path) {
+  fun `valid sources are returned in declared order`(
+    @TempDir home: Path,
+  ) {
     val first = Files.createDirectories(home.resolve("packs/kotlin"))
     val second = Files.createDirectories(home.resolve("packs/ios"))
     writeConfig(
@@ -51,7 +55,9 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   }
 
   @Test
-  fun `register is idempotent and preserves unrelated keys`(@TempDir home: Path) {
+  fun `register is idempotent and preserves unrelated keys`(
+    @TempDir home: Path,
+  ) {
     val packDir = Files.createDirectories(home.resolve("packs/kotlin"))
     writeConfig(
       home,
@@ -62,15 +68,17 @@ class FileExternalPlatformPackSourceConfigStoreTest {
       ),
     )
 
-    val sources = store.registerExternalPlatformPackSource(
-      registrationRequest(home, configPath(home), ExternalPlatformPackSource(packDir.toFileLocation())),
-    ).sources
+    val sources =
+      store.registerExternalPlatformPackSource(
+        registrationRequest(home, configPath(home), ExternalPlatformPackSource(packDir.toFileLocation())),
+      ).sources
 
     assertEquals(1, sources.size)
     val beforeSecondRegister = Files.readString(configPath(home))
-    val second = store.registerExternalPlatformPackSource(
-      registrationRequest(home, configPath(home), ExternalPlatformPackSource(packDir.toFileLocation())),
-    ).sources
+    val second =
+      store.registerExternalPlatformPackSource(
+        registrationRequest(home, configPath(home), ExternalPlatformPackSource(packDir.toFileLocation())),
+      ).sources
     assertEquals(1, second.size)
     val config = Files.readString(configPath(home))
     assertEquals(beforeSecondRegister, config)
@@ -79,7 +87,9 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   }
 
   @Test
-  fun `unregister removes canonical path only`(@TempDir home: Path) {
+  fun `unregister removes canonical path only`(
+    @TempDir home: Path,
+  ) {
     val packDir = Files.createDirectories(home.resolve("packs/kotlin"))
     writeConfig(
       home,
@@ -88,20 +98,23 @@ class FileExternalPlatformPackSourceConfigStoreTest {
       ),
     )
 
-    val sources = store.unregisterExternalPlatformPackSource(
-      ExternalPlatformPackSourceUnregisterRequest(
-        userHome = home,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString()),
-        source = ExternalPlatformPackSource(packDir.toFileLocation()),
-      ),
-    ).sources
+    val sources =
+      store.unregisterExternalPlatformPackSource(
+        ExternalPlatformPackSourceUnregisterRequest(
+          userHome = home,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString()),
+          source = ExternalPlatformPackSource(packDir.toFileLocation()),
+        ),
+      ).sources
 
     assertTrue(sources.isEmpty())
     assertTrue(Files.isDirectory(packDir))
   }
 
   @Test
-  fun `SKILL_BILL_CONFIG_PATH wins over xdg and legacy config`(@TempDir home: Path) {
+  fun `SKILL_BILL_CONFIG_PATH wins over xdg and legacy config`(
+    @TempDir home: Path,
+  ) {
     val packDir = Files.createDirectories(home.resolve("packs/kotlin"))
     val pinned = home.resolve("pinned-config.json")
     val xdg = home.resolve(".config").resolve("skill-bill").resolve("config.json")
@@ -118,12 +131,13 @@ class FileExternalPlatformPackSourceConfigStoreTest {
     val xdgBefore = Files.readString(xdg)
     val legacyBefore = Files.readString(legacy)
 
-    val sources = store.readExternalPlatformPackSources(
-      ExternalPlatformPackSourceConfigRequest(
-        userHome = home,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to pinned.toString()),
-      ),
-    ).sources
+    val sources =
+      store.readExternalPlatformPackSources(
+        ExternalPlatformPackSourceConfigRequest(
+          userHome = home,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to pinned.toString()),
+        ),
+      ).sources
 
     assertEquals(packDir.toAbsolutePath().normalize(), sources.single().path.toPath())
     store.registerExternalPlatformPackSource(
@@ -136,7 +150,9 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   }
 
   @Test
-  fun `tilde path is stored once as a canonical absolute path`(@TempDir home: Path) {
+  fun `tilde path is stored once as a canonical absolute path`(
+    @TempDir home: Path,
+  ) {
     val packDir = Files.createDirectories(home.resolve("packs/kotlin"))
     writeConfig(
       home,
@@ -163,27 +179,31 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   }
 
   @Test
-  fun `unregister removes a deleted pack directory and keeps the other registration`(@TempDir home: Path) {
+  fun `unregister removes a deleted pack directory and keeps the other registration`(
+    @TempDir home: Path,
+  ) {
     val kept = Files.createDirectories(home.resolve("kept"))
     val removed = Files.createDirectories(home.resolve("removed"))
     writeConfig(
       home,
       mapOf(
         "install_id" to "stable-id",
-        ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to listOf(
-          mapOf(ExternalPlatformPackConfigKeys.PATH to kept.toString()),
-          mapOf(ExternalPlatformPackConfigKeys.PATH to removed.toString(), "note" to "author"),
-        ),
+        ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to
+          listOf(
+            mapOf(ExternalPlatformPackConfigKeys.PATH to kept.toString()),
+            mapOf(ExternalPlatformPackConfigKeys.PATH to removed.toString(), "note" to "author"),
+          ),
       ),
     )
     Files.delete(removed)
-    val result = store.unregisterExternalPlatformPackSource(
-      ExternalPlatformPackSourceUnregisterRequest(
-        userHome = home,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString()),
-        source = ExternalPlatformPackSource(removed.toAbsolutePath().normalize().toFileLocation()),
-      ),
-    )
+    val result =
+      store.unregisterExternalPlatformPackSource(
+        ExternalPlatformPackSourceUnregisterRequest(
+          userHome = home,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString()),
+          source = ExternalPlatformPackSource(removed.toAbsolutePath().normalize().toFileLocation()),
+        ),
+      )
     assertEquals(kept.toAbsolutePath().normalize(), result.sources.single().path.toPath())
     val stored = Files.readString(configPath(home))
     assertTrue("\"install_id\":\"stable-id\"" in stored)
@@ -192,7 +212,9 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   }
 
   @Test
-  fun `missing pack directory stays in the source list for catalog resolution`(@TempDir home: Path) {
+  fun `missing pack directory stays in the source list for catalog resolution`(
+    @TempDir home: Path,
+  ) {
     val missing = home.resolve("missing-pack")
     writeConfig(
       home,
@@ -206,7 +228,9 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   }
 
   @Test
-  fun `malformed list loud-fails`(@TempDir home: Path) {
+  fun `malformed list loud-fails`(
+    @TempDir home: Path,
+  ) {
     writeConfig(home, mapOf(ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to "nope"))
     assertFailsWith<ExternalPlatformPackConfigError> {
       store.readExternalPlatformPackSources(request(home, configPath(home)))
@@ -214,7 +238,9 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   }
 
   @Test
-  fun `malformed entries loud-fail before a source is returned`(@TempDir home: Path) {
+  fun `malformed entries loud-fail before a source is returned`(
+    @TempDir home: Path,
+  ) {
     writeConfig(
       home,
       mapOf(
@@ -229,7 +255,10 @@ class FileExternalPlatformPackSourceConfigStoreTest {
 
   private fun configPath(home: Path): Path = home.resolve(".skill-bill").resolve("config.json")
 
-  private fun request(home: Path, configPath: Path): ExternalPlatformPackSourceConfigRequest =
+  private fun request(
+    home: Path,
+    configPath: Path,
+  ): ExternalPlatformPackSourceConfigRequest =
     ExternalPlatformPackSourceConfigRequest(
       userHome = home,
       environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath.toString()),
@@ -239,18 +268,25 @@ class FileExternalPlatformPackSourceConfigStoreTest {
     home: Path,
     configPath: Path,
     source: ExternalPlatformPackSource,
-  ): ExternalPlatformPackSourceRegistrationRequest = ExternalPlatformPackSourceRegistrationRequest(
-    userHome = home,
-    environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath.toString()),
-    source = source,
-  )
+  ): ExternalPlatformPackSourceRegistrationRequest =
+    ExternalPlatformPackSourceRegistrationRequest(
+      userHome = home,
+      environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath.toString()),
+      source = source,
+    )
 
-  private fun writeConfig(home: Path, payload: Map<String, Any?>) {
+  private fun writeConfig(
+    home: Path,
+    payload: Map<String, Any?>,
+  ) {
     Files.createDirectories(home.resolve(".skill-bill"))
     writeConfigAt(configPath(home), payload)
   }
 
-  private fun writeConfigAt(path: Path, payload: Map<String, Any?>) {
+  private fun writeConfigAt(
+    path: Path,
+    payload: Map<String, Any?>,
+  ) {
     path.parent?.let(Files::createDirectories)
     Files.writeString(path, JsonCodec.mapToJsonString(payload) + "\n")
   }

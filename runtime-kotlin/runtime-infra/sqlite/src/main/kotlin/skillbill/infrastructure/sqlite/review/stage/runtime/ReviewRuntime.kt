@@ -16,10 +16,14 @@ import skillbill.review.model.NumberedFinding
 import skillbill.review.model.ReviewSummary
 import skillbill.review.parsing.ReviewParser
 import java.sql.Connection
+
 internal object ReviewRuntime {
   fun parseReview(text: String): ImportedReview = ReviewParser.parseReview(text)
 
-  fun fetchImportedFindings(connection: Connection, reviewRunId: String): List<ImportedFinding> =
+  fun fetchImportedFindings(
+    connection: Connection,
+    reviewRunId: String,
+  ): List<ImportedFinding> =
     connection.prepareStatement(importedFindingsSql).use { statement ->
       statement.bindAll(reviewRunId)
       statement.executeQuery().use { resultSet ->
@@ -31,7 +35,10 @@ internal object ReviewRuntime {
       }
     }
 
-  fun fetchReviewSummary(connection: Connection, reviewRunId: String): ReviewSummary =
+  fun fetchReviewSummary(
+    connection: Connection,
+    reviewRunId: String,
+  ): ReviewSummary =
     connection.prepareStatement(reviewSummarySql).use { statement ->
       statement.bindAll(reviewRunId)
       statement.executeQuery().use { resultSet ->
@@ -40,7 +47,11 @@ internal object ReviewRuntime {
       }
     }
 
-  fun fetchFindingMetadata(connection: Connection, reviewRunId: String, findingId: String): FindingMetadata =
+  fun fetchFindingMetadata(
+    connection: Connection,
+    reviewRunId: String,
+    findingId: String,
+  ): FindingMetadata =
     connection.prepareStatement(findingMetadataSql).use { statement ->
       statement.bindAll(reviewRunId, findingId)
       statement.executeQuery().use { resultSet ->
@@ -53,7 +64,10 @@ internal object ReviewRuntime {
       }
     }
 
-  fun fetchNumberedFindings(connection: Connection, reviewRunId: String): List<NumberedFinding> {
+  fun fetchNumberedFindings(
+    connection: Connection,
+    reviewRunId: String,
+  ): List<NumberedFinding> {
     require(reviewExists(connection, reviewRunId)) { "Unknown review run id '$reviewRunId'." }
     return connection.prepareStatement(numberedFindingsSql).use { statement ->
       statement.bindAll(reviewRunId)
@@ -68,14 +82,22 @@ internal object ReviewRuntime {
     }
   }
 
-  fun reviewExists(connection: Connection, reviewRunId: String): Boolean = connection.prepareStatement(
-    "SELECT 1 FROM review_runs WHERE review_run_id = ? AND raw_text != ''",
-  ).use { statement ->
-    statement.bindAll(reviewRunId)
-    statement.executeQuery().use { resultSet -> resultSet.next() }
-  }
+  fun reviewExists(
+    connection: Connection,
+    reviewRunId: String,
+  ): Boolean =
+    connection.prepareStatement(
+      "SELECT 1 FROM review_runs WHERE review_run_id = ? AND raw_text != ''",
+    ).use { statement ->
+      statement.bindAll(reviewRunId)
+      statement.executeQuery().use { resultSet -> resultSet.next() }
+    }
 
-  fun findingExists(connection: Connection, reviewRunId: String, findingId: String): Boolean =
+  fun findingExists(
+    connection: Connection,
+    reviewRunId: String,
+    findingId: String,
+  ): Boolean =
     connection.prepareStatement("SELECT 1 FROM findings WHERE review_run_id = ? AND finding_id = ?").use { statement ->
       statement.bindAll(reviewRunId, findingId)
       statement.executeQuery().use { resultSet -> resultSet.next() }

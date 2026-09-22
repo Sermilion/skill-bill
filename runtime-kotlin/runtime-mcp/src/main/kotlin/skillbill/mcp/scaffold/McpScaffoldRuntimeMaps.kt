@@ -43,28 +43,29 @@ internal fun scaffoldFailureMap(
   payload: Map<String, Any?>,
   orchestrated: Boolean,
   error: Throwable,
-): Map<String, Any?> = if (orchestrated) {
-  mapOf(
-    "mode" to "orchestrated",
-    "telemetry_payload" to
-      mapOf(
-        "kind" to payload["kind"].orEmpty(),
-        "skill_name" to payload["name"].orEmpty(),
-        "platform" to payload["platform"].orEmpty(),
-        "family" to payload["family"].orEmpty(),
-        "area" to payload["area"].orEmpty(),
-        "result" to "failed",
-        "skill" to "skill-bill-scaffold",
-        "error" to error.message.orEmpty(),
-      ),
-    "error" to error.message.orEmpty(),
-  )
-} else {
-  mapOf(
-    SharedPayloadKeys.STATUS to "error",
-    "session_id" to sessionId,
-    "error" to error.message.orEmpty(),
-  )
-}
+): Map<String, Any?> =
+  if (orchestrated) {
+    mapOf(
+      "mode" to "orchestrated",
+      "telemetry_payload" to
+        mapOf(
+          "kind" to payload["kind"].orEmpty(),
+          "skill_name" to payload["name"].orEmpty(),
+          "platform" to payload["platform"].orEmpty(),
+          "family" to payload["family"].orEmpty(),
+          "area" to payload["area"].orEmpty(),
+          "result" to "failed",
+          "skill" to "skill-bill-scaffold",
+          "error" to error.message.orEmpty(),
+        ),
+      "error" to error.message.orEmpty(),
+    )
+  } else {
+    mapOf(
+      SharedPayloadKeys.STATUS to "error",
+      "session_id" to sessionId,
+      "error" to error.message.orEmpty(),
+    )
+  }
 
 private fun Any?.orEmpty(): String = this as? String ?: ""

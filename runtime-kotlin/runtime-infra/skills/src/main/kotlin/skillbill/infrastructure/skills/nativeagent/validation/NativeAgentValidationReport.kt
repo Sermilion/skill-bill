@@ -78,13 +78,14 @@ private fun parseNativeAgentSourcesForValidation(
   root: Path,
   sourceFiles: List<Path>,
   issues: MutableList<String>,
-): List<NativeAgentSource> = sourceFiles.flatMap { sourcePath ->
-  runCatching { parseNativeAgentSourceFile(sourcePath) }
-    .getOrElse { error ->
-      issues += "${displayPath(root, sourcePath)}: ${error.message.orEmpty()}"
-      emptyList()
-    }
-}
+): List<NativeAgentSource> =
+  sourceFiles.flatMap { sourcePath ->
+    runCatching { parseNativeAgentSourceFile(sourcePath) }
+      .getOrElse { error ->
+        issues += "${displayPath(root, sourcePath)}: ${error.message.orEmpty()}"
+        emptyList()
+      }
+  }
 
 private fun validateNativeAgentSources(
   root: Path,
@@ -104,27 +105,29 @@ private fun validateNativeAgentSources(
       issues += "${nativeAgentSourceDisplay(root, source)}: " +
         "native agent bodies must be provider-agnostic; conditionals belong in the renderer"
     }
-    val composed = runCatching {
-      composeNativeAgentSource(
-        root,
-        source,
-        compositionContext,
-      )
-    }.getOrElse { error ->
-      issues += "${nativeAgentSourceDisplay(root, source)}: ${error.message.orEmpty()}"
-      return@forEach
-    }
+    val composed =
+      runCatching {
+        composeNativeAgentSource(
+          root,
+          source,
+          compositionContext,
+        )
+      }.getOrElse { error ->
+        issues += "${nativeAgentSourceDisplay(root, source)}: ${error.message.orEmpty()}"
+        return@forEach
+      }
     if (composed !== source && containsNativeAgentProviderConditional(composed.body)) {
       issues += "${nativeAgentSourceDisplay(root, source)}: " +
         "composed native agent bodies must be provider-agnostic; conditionals belong in the renderer"
     }
     runCatching {
-      val pack = resolveNativeAgentCompositionTarget(
-        root,
-        source,
-        compositionContext.packLoader,
-        compositionContext.additionalPackRoots,
-      )?.manifest
+      val pack =
+        resolveNativeAgentCompositionTarget(
+          root,
+          source,
+          compositionContext.packLoader,
+          compositionContext.additionalPackRoots,
+        )?.manifest
       if (pack != null) {
         enforceAddonProjectionParity(pack, composed.name, composed.composedAddonSlugs)
       }
@@ -140,7 +143,10 @@ private fun validateNativeAgentSources(
   }
 }
 
-internal fun nativeAgentSourceDisplay(root: Path, source: NativeAgentSource): String {
+internal fun nativeAgentSourceDisplay(
+  root: Path,
+  source: NativeAgentSource,
+): String {
   val sourcePath = requireNotNull(source.path) { "native agent source display requires a path" }
   val base = displayPath(root, sourcePath)
   return if (source.bundleEntryName == null) {
@@ -150,7 +156,10 @@ internal fun nativeAgentSourceDisplay(root: Path, source: NativeAgentSource): St
   }
 }
 
-private fun validateNoCheckedInGeneratedArtifacts(root: Path, issues: MutableList<String>) {
+private fun validateNoCheckedInGeneratedArtifacts(
+  root: Path,
+  issues: MutableList<String>,
+) {
   discoverNativeAgentGeneratedArtifactFiles(root)
     .forEach { artifact ->
       issues += "${displayPath(root, artifact)}: generated native agent artifacts must not be checked in; " +

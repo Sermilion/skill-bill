@@ -8,7 +8,10 @@ import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaff
 import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Path
 
-internal fun canonicalName(payload: Map<String, Any?>, defaultName: String): String {
+internal fun canonicalName(
+  payload: Map<String, Any?>,
+  defaultName: String,
+): String {
   val provided = payload["name"] as? String
   return when {
     provided.isNullOrBlank() -> defaultName
@@ -19,24 +22,30 @@ internal fun canonicalName(payload: Map<String, Any?>, defaultName: String): Str
   }
 }
 
-internal fun optionalAddonLocationPath(payload: Map<String, Any?>, repoRoot: Path): Path? {
+internal fun optionalAddonLocationPath(
+  payload: Map<String, Any?>,
+  repoRoot: Path,
+): Path? {
   if (!payload.containsKey("addon_location_path")) return null
-  val rawPath = payload["addon_location_path"] as? String
-    ?: throw InvalidScaffoldPayloadError(
-      "Scaffold payload field 'addon_location_path' must be a non-empty string when provided.",
-    )
+  val rawPath =
+    payload["addon_location_path"] as? String
+      ?: throw InvalidScaffoldPayloadError(
+        "Scaffold payload field 'addon_location_path' must be a non-empty string when provided.",
+      )
   if (rawPath.isBlank()) {
     throw InvalidScaffoldPayloadError(
       "Scaffold payload field 'addon_location_path' must be a non-empty string when provided.",
     )
   }
-  val expanded = when {
-    rawPath == "~" -> resolveUserHome(null).toString()
-    rawPath.startsWith("~/") -> resolveUserHome(null)
-      .resolve(rawPath.removePrefix("~/"))
-      .toString()
-    else -> rawPath
-  }
+  val expanded =
+    when {
+      rawPath == "~" -> resolveUserHome(null).toString()
+      rawPath.startsWith("~/") ->
+        resolveUserHome(null)
+          .resolve(rawPath.removePrefix("~/"))
+          .toString()
+      else -> rawPath
+    }
   val candidate = Path.of(expanded)
   return if (candidate.isAbsolute) {
     candidate.normalize()
@@ -45,22 +54,30 @@ internal fun optionalAddonLocationPath(payload: Map<String, Any?>, repoRoot: Pat
   }
 }
 
-internal fun displayPath(repoRoot: Path, path: Path): String {
+internal fun displayPath(
+  repoRoot: Path,
+  path: Path,
+): String {
   val normalizedRoot = repoRoot.toAbsolutePath().normalize()
   val normalizedPath = path.toAbsolutePath().normalize()
-  val display = if (normalizedPath.startsWith(normalizedRoot)) {
-    normalizedRoot.relativize(normalizedPath)
-  } else {
-    normalizedPath
-  }
+  val display =
+    if (normalizedPath.startsWith(normalizedRoot)) {
+      normalizedRoot.relativize(normalizedPath)
+    } else {
+      normalizedPath
+    }
   return display.toString().replace('\\', '/')
 }
 
-internal fun defaultPlatformOverrideName(platform: String, family: String): String = if (family == "quality-check") {
-  "bill-$platform-code-check"
-} else {
-  "bill-$platform-$family"
-}
+internal fun defaultPlatformOverrideName(
+  platform: String,
+  family: String,
+): String =
+  if (family == "quality-check") {
+    "bill-$platform-code-check"
+  } else {
+    "bill-$platform-$family"
+  }
 
 internal fun deriveDisplayName(platform: String): String = displayNameFromSlug(platform)
 

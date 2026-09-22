@@ -9,13 +9,16 @@ import kotlin.test.assertTrue
 
 class ExternalBaselineCompositionStructureTest {
   @Test
-  fun `kmp baseline checks read an external kotlin pack when the sibling directory is absent`(@TempDir root: Path) {
-    val kmpBaseline = writeBaseline(
-      root.resolve("repo/platform-packs/kmp"),
-      "kmp",
-      "Keep this section limited to platform-specific finding preconditions.",
-      composeOnKotlin = true,
-    )
+  fun `kmp baseline checks read an external kotlin pack when the sibling directory is absent`(
+    @TempDir root: Path,
+  ) {
+    val kmpBaseline =
+      writeBaseline(
+        root.resolve("repo/platform-packs/kmp"),
+        "kmp",
+        "Keep this section limited to platform-specific finding preconditions.",
+        composeOnKotlin = true,
+      )
     val externalRoot = root.resolve("external/kotlin")
     writeBaseline(
       externalRoot,
@@ -25,16 +28,18 @@ class ExternalBaselineCompositionStructureTest {
     )
 
     val sibling = composedBaselineSections(kmpBaseline, "Finding Discipline")
-    val external = composedBaselineSections(
-      kmpBaseline,
-      "Finding Discipline",
-      mapOf("kotlin" to externalRoot.toAbsolutePath().normalize()),
-    )
+    val external =
+      composedBaselineSections(
+        kmpBaseline,
+        "Finding Discipline",
+        mapOf("kotlin" to externalRoot.toAbsolutePath().normalize()),
+      )
     val withoutExternal = ReviewSkillStructureValidator.violations(kmpBaseline.parent.parent.parent)
-    val withExternal = ReviewSkillStructureValidator.violations(
-      kmpBaseline.parent.parent.parent,
-      mapOf("kotlin" to externalRoot.toAbsolutePath().normalize()),
-    )
+    val withExternal =
+      ReviewSkillStructureValidator.violations(
+        kmpBaseline.parent.parent.parent,
+        mapOf("kotlin" to externalRoot.toAbsolutePath().normalize()),
+      )
 
     assertFalse(sibling.contains("Attributed"))
     assertTrue(external.contains("Attributed merge"))
@@ -45,7 +50,12 @@ class ExternalBaselineCompositionStructureTest {
     assertFalse(withExternal.any { violation -> violation.rule == "evidence-preserving deduplication" })
   }
 
-  private fun writeBaseline(packRoot: Path, slug: String, discipline: String, composeOnKotlin: Boolean): Path {
+  private fun writeBaseline(
+    packRoot: Path,
+    slug: String,
+    discipline: String,
+    composeOnKotlin: Boolean,
+  ): Path {
     val baseline = packRoot.resolve("code-review/bill-$slug-code-review/content.md")
     Files.createDirectories(baseline.parent)
     Files.writeString(baseline, baselineContent(slug, discipline))
@@ -53,7 +63,11 @@ class ExternalBaselineCompositionStructureTest {
     return baseline
   }
 
-  private fun baselineContent(slug: String, discipline: String): String = """
+  private fun baselineContent(
+    slug: String,
+    discipline: String,
+  ): String =
+    """
     ---
     name: bill-$slug-code-review
     description: $slug review
@@ -80,22 +94,26 @@ class ExternalBaselineCompositionStructureTest {
     ## Finding Discipline
 
     $discipline
-  """.trimIndent() + "\n"
+    """.trimIndent() + "\n"
 
-  private fun platformManifest(slug: String, composeOnKotlin: Boolean): String {
-    val composition = if (composeOnKotlin) {
-      """
-      code_review_composition:
-        baseline_layers:
-          - platform: kotlin
-            skill: bill-kotlin-code-review
-            scope: same-review-scope
-            required: true
-            mode: kmp-baseline
-      """.trimIndent() + "\n"
-    } else {
-      ""
-    }
+  private fun platformManifest(
+    slug: String,
+    composeOnKotlin: Boolean,
+  ): String {
+    val composition =
+      if (composeOnKotlin) {
+        """
+        code_review_composition:
+          baseline_layers:
+            - platform: kotlin
+              skill: bill-kotlin-code-review
+              scope: same-review-scope
+              required: true
+              mode: kmp-baseline
+        """.trimIndent() + "\n"
+      } else {
+        ""
+      }
     return """
       platform: $slug
       contract_version: "1.8"
@@ -107,6 +125,6 @@ class ExternalBaselineCompositionStructureTest {
       declared_code_review_areas: []
       declared_files:
         baseline: "code-review/bill-$slug-code-review/content.md"
-    """.trimIndent() + "\n" + composition
+      """.trimIndent() + "\n" + composition
   }
 }

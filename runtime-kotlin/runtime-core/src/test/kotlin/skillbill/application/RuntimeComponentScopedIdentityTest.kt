@@ -10,6 +10,7 @@ import skillbill.model.WorkflowOpsContext
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertSame
+
 class RuntimeComponentScopedIdentityTest {
   @Test
   fun `scoped connection holder returns the same instance across accessor reads`() {

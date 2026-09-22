@@ -8,13 +8,15 @@ import kotlin.test.assertTrue
 class ConventionReapplicationArchitectureTest {
   @Test
   fun `module build files do not re-apply convention-owned Test and toolchain settings`() {
-    val moduleBuildFiles = RuntimeModuleCatalog.declaredGradleModules
-      .map { module -> ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/$module/build.gradle.kts") }
-      .filter { path -> Files.exists(path) }
-    val violations = ArchitectureScanSupport.conventionReapplicationViolations(
-      moduleBuildFiles = moduleBuildFiles,
-      ownedPatterns = PrincipleEnforcementInventory.conventionOwnedTestPatterns,
-    )
+    val moduleBuildFiles =
+      RuntimeModuleCatalog.declaredGradleModules
+        .map { module -> ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/$module/build.gradle.kts") }
+        .filter { path -> Files.exists(path) }
+    val violations =
+      ArchitectureScanSupport.conventionReapplicationViolations(
+        moduleBuildFiles = moduleBuildFiles,
+        ownedPatterns = PrincipleEnforcementInventory.conventionOwnedTestPatterns,
+      )
     assertEquals(
       emptyList(),
       violations,
@@ -33,11 +35,12 @@ class ConventionReapplicationArchitectureTest {
         }
       }
       """.trimIndent()
-    val violations = ArchitectureScanSupport.conventionReapplicationViolationsInText(
-      relativePath = "runtime-kotlin/runtime-example/build.gradle.kts",
-      text = syntheticSnippet,
-      ownedPatterns = PrincipleEnforcementInventory.conventionOwnedTestPatterns,
-    )
+    val violations =
+      ArchitectureScanSupport.conventionReapplicationViolationsInText(
+        relativePath = "runtime-kotlin/runtime-example/build.gradle.kts",
+        text = syntheticSnippet,
+        ownedPatterns = PrincipleEnforcementInventory.conventionOwnedTestPatterns,
+      )
     assertTrue(
       violations.isNotEmpty(),
       "Regression if a module build file can re-apply update-snapshots after the convention hoist.",

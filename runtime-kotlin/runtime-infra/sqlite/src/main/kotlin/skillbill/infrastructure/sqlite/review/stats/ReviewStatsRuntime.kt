@@ -28,7 +28,10 @@ import skillbill.review.model.ReviewSummary
 import java.sql.Connection
 
 internal object ReviewStatsRuntime {
-  fun statsSnapshot(connection: Connection, reviewRunId: String?): ReviewRepositoryStatsSnapshot {
+  fun statsSnapshot(
+    connection: Connection,
+    reviewRunId: String?,
+  ): ReviewRepositoryStatsSnapshot {
     if (reviewRunId != null) {
       require(ReviewRuntime.reviewExists(connection, reviewRunId)) {
         "Unknown review run id '$reviewRunId'."
@@ -39,18 +42,20 @@ internal object ReviewStatsRuntime {
       stats = summarizeFindingRows(queryLatestFindingOutcomes(connection, reviewRunId)),
       health = buildReviewHealthStats(connection, reviewRunId),
       laneEffectiveness = queryReviewLaneEffectiveness(connection, reviewRunId),
-      stageMetrics = reviewRunId?.let { runId ->
-        aggregateReviewStageMetrics(
-          connection,
-          runId,
-          queryLatestFindingOutcomes(connection, runId).size,
-        )
-      },
-      stageMetricsByTier = if (reviewRunId == null) {
-        stageMetricsByResolvedTier(connection)
-      } else {
-        emptyMap()
-      },
+      stageMetrics =
+        reviewRunId?.let { runId ->
+          aggregateReviewStageMetrics(
+            connection,
+            runId,
+            queryLatestFindingOutcomes(connection, runId).size,
+          )
+        },
+      stageMetricsByTier =
+        if (reviewRunId == null) {
+          stageMetricsByResolvedTier(connection)
+        } else {
+          emptyMap()
+        },
     )
   }
 
@@ -60,12 +65,16 @@ internal object ReviewStatsRuntime {
   fun featureTaskRuntimeStats(connection: Connection): FeatureTaskRuntimeWorkflowStats =
     buildFeatureTaskRuntimeStats(loadRows(connection, "feature_task_runtime_sessions"))
 
-  fun goalStats(connection: Connection): GoalWorkflowStats = buildGoalStats(
-    loadGoalRowsExcludingExperimentArms(connection, "goal_run_sessions"),
-    loadGoalRowsExcludingExperimentArms(connection, "goal_subtask_events"),
-  )
+  fun goalStats(connection: Connection): GoalWorkflowStats =
+    buildGoalStats(
+      loadGoalRowsExcludingExperimentArms(connection, "goal_run_sessions"),
+      loadGoalRowsExcludingExperimentArms(connection, "goal_subtask_events"),
+    )
 
-  fun clearReviewFinishedTelemetryState(connection: Connection, reviewRunId: String) {
+  fun clearReviewFinishedTelemetryState(
+    connection: Connection,
+    reviewRunId: String,
+  ) {
     connection.prepareStatement(
       """
       UPDATE review_runs
@@ -82,8 +91,9 @@ internal object ReviewStatsRuntime {
   fun buildReviewFinishedPayload(request: ReviewFinishedPayloadBuildRequest): ReviewFinishedTelemetry =
     reviewFinishedPayload(
       connection = request.connection,
-      reviewSummary = request.reviewSummary
-        ?: ReviewRuntime.fetchReviewSummary(request.connection, request.reviewRunId),
+      reviewSummary =
+        request.reviewSummary
+          ?: ReviewRuntime.fetchReviewSummary(request.connection, request.reviewRunId),
       findingRows = request.findingRows ?: queryLatestFindingOutcomes(request.connection, request.reviewRunId),
       level = request.level,
       routedSkillPlatformSlugs = request.routedSkillPlatformSlugs,

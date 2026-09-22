@@ -11,6 +11,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class FailureWireCodeConformanceTest {
   @Test
   fun `in-scope failure wire codes are total and injective`() {
@@ -29,9 +30,10 @@ class FailureWireCodeConformanceTest {
 
   @Test
   fun `unrecognized phase-output failure wire token is a typed violation not schema invalid`() {
-    val error = assertFailsWith<UnrecognizedFailureWireCodeError> {
-      FeatureTaskRuntimePhaseOutputFailureCode.fromWire("not_a_real_failure_code")
-    }
+    val error =
+      assertFailsWith<UnrecognizedFailureWireCodeError> {
+        FeatureTaskRuntimePhaseOutputFailureCode.fromWire("not_a_real_failure_code")
+      }
     assertEquals("not_a_real_failure_code", error.rejectedToken)
     assertEquals("FeatureTaskRuntimePhaseOutputFailureCode", error.hierarchy)
   }

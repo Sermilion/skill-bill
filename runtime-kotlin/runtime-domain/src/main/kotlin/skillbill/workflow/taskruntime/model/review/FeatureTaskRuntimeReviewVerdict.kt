@@ -1,5 +1,6 @@
 package skillbill.workflow.taskruntime.model.review
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+
 enum class FeatureTaskRuntimeReviewSeverity(val wireValue: String) {
   BLOCKER("blocker"),
   MAJOR("major"),
@@ -36,11 +37,12 @@ data class FeatureTaskRuntimeReviewVerdict(
   val findings: List<FeatureTaskRuntimeReviewFinding>,
 ) {
   val verdict: FeatureTaskRuntimeVerdict
-    get() = if (findings.any { it.severity.requiresRemediation }) {
-      FeatureTaskRuntimeVerdict.CHANGES_REQUESTED
-    } else {
-      FeatureTaskRuntimeVerdict.APPROVED
-    }
+    get() =
+      if (findings.any { it.severity.requiresRemediation }) {
+        FeatureTaskRuntimeVerdict.CHANGES_REQUESTED
+      } else {
+        FeatureTaskRuntimeVerdict.APPROVED
+      }
 
   val remediationFindings: List<FeatureTaskRuntimeReviewFinding>
     get() = findings.filter { it.severity.requiresRemediation }

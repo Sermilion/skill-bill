@@ -29,22 +29,24 @@ class McpWorkflowContinuationRuntimeTest {
   @Test
   fun `mcp workflow continue accepts decomposed parent issue key`() {
     val fixture = mcpDecompositionFixture()
-    val opened = McpWorkflowRuntime.open(
-      McpWorkflowOpenArgs(
-        kind = WorkflowFamilyKind.TASK_RUNTIME,
-        sessionId = "ftr-mcp-decomp",
-        context = fixture.context,
-      ),
-    )
+    val opened =
+      McpWorkflowRuntime.open(
+        McpWorkflowOpenArgs(
+          kind = WorkflowFamilyKind.TASK_RUNTIME,
+          sessionId = "ftr-mcp-decomp",
+          context = fixture.context,
+        ),
+      )
     val workflowId = opened["workflow_id"] as String
 
     McpWorkflowRuntime.update(WorkflowFamilyKind.TASK_RUNTIME, fixture.updateRequest(workflowId), fixture.context)
-    val continued = McpWorkflowRuntime.continueWorkflow(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      "SKILL-51",
-      fixture.context,
-      subtaskId = 1,
-    )
+    val continued =
+      McpWorkflowRuntime.continueWorkflow(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        "SKILL-51",
+        fixture.context,
+        subtaskId = 1,
+      )
 
     assertEquals("ok", continued["status"])
     assertEquals(1, continued["decomposition_subtask_id"])
@@ -63,21 +65,23 @@ class McpWorkflowContinuationRuntimeTest {
   @Test
   fun `mcp workflow continue handler forwards requested decomposed subtask constraint`() {
     val fixture = mcpDecompositionFixture()
-    val opened = McpWorkflowRuntime.open(
-      McpWorkflowOpenArgs(
-        kind = WorkflowFamilyKind.TASK_RUNTIME,
-        sessionId = "ftr-mcp-decomp",
-        context = fixture.context,
-      ),
-    )
+    val opened =
+      McpWorkflowRuntime.open(
+        McpWorkflowOpenArgs(
+          kind = WorkflowFamilyKind.TASK_RUNTIME,
+          sessionId = "ftr-mcp-decomp",
+          context = fixture.context,
+        ),
+      )
     val workflowId = opened["workflow_id"] as String
 
     McpWorkflowRuntime.update(WorkflowFamilyKind.TASK_RUNTIME, fixture.updateRequest(workflowId), fixture.context)
-    val continued = workflowContinue(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      mapOf("issue_key" to "SKILL-51", "subtask_id" to 2),
-      fixture.context,
-    )
+    val continued =
+      workflowContinue(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        mapOf("issue_key" to "SKILL-51", "subtask_id" to 2),
+        fixture.context,
+      )
 
     assertEquals("error", continued["status"])
     assertEquals("blocked", continued["continue_status"])
@@ -93,60 +97,67 @@ private data class McpDecompositionFixture(
   val subtaskSpec: Path,
   val secondSubtaskSpec: Path,
 ) {
-  fun updateRequest(workflowId: String): WorkflowUpdateRequest = WorkflowUpdateRequest(
-    workflowId = workflowId,
-    workflowStatus = WorkflowStatus.RUNNING.wireValue,
-    currentStepId = "plan",
-    stepUpdates = WorkflowStepUpdates.from(
-      listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
-    ),
-    artifactsPatch = WorkflowArtifactPatch.from(
-      mapOf(
-        "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
-        "plan" to mapOf(
-          "mode" to "decompose",
-          "parent_spec_path" to parentSpec.toString(),
-          "recommended_first_subtask_id" to 1,
-          "subtasks" to listOf(
-            mapOf(
-              "id" to 1,
-              "name" to "foundation",
-              "spec_path" to subtaskSpec.toString(),
-              "depends_on" to emptyList<Int>(),
-            ),
-            mapOf(
-              "id" to 2,
-              "name" to "runtime",
-              "spec_path" to secondSubtaskSpec.toString(),
-              "depends_on" to listOf(1),
-            ),
+  fun updateRequest(workflowId: String): WorkflowUpdateRequest =
+    WorkflowUpdateRequest(
+      workflowId = workflowId,
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+      currentStepId = "plan",
+      stepUpdates =
+        WorkflowStepUpdates.from(
+          listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
+        ),
+      artifactsPatch =
+        WorkflowArtifactPatch.from(
+          mapOf(
+            "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
+            "plan" to
+              mapOf(
+                "mode" to "decompose",
+                "parent_spec_path" to parentSpec.toString(),
+                "recommended_first_subtask_id" to 1,
+                "subtasks" to
+                  listOf(
+                    mapOf(
+                      "id" to 1,
+                      "name" to "foundation",
+                      "spec_path" to subtaskSpec.toString(),
+                      "depends_on" to emptyList<Int>(),
+                    ),
+                    mapOf(
+                      "id" to 2,
+                      "name" to "runtime",
+                      "spec_path" to secondSubtaskSpec.toString(),
+                      "depends_on" to listOf(1),
+                    ),
+                  ),
+              ),
           ),
         ),
-      ),
-    ),
-    planningResult = DecompositionPlanningResult.fromWireMap(
-      mapOf(
-        "mode" to "decompose",
-        "parent_spec_path" to parentSpec.toString(),
-        "recommended_first_subtask_id" to 1,
-        "subtasks" to listOf(
+      planningResult =
+        DecompositionPlanningResult.fromWireMap(
           mapOf(
-            "id" to 1,
-            "name" to "foundation",
-            "spec_path" to subtaskSpec.toString(),
-            "depends_on" to emptyList<Int>(),
+            "mode" to "decompose",
+            "parent_spec_path" to parentSpec.toString(),
+            "recommended_first_subtask_id" to 1,
+            "subtasks" to
+              listOf(
+                mapOf(
+                  "id" to 1,
+                  "name" to "foundation",
+                  "spec_path" to subtaskSpec.toString(),
+                  "depends_on" to emptyList<Int>(),
+                ),
+                mapOf(
+                  "id" to 2,
+                  "name" to "runtime",
+                  "spec_path" to secondSubtaskSpec.toString(),
+                  "depends_on" to listOf(1),
+                ),
+              ),
           ),
-          mapOf(
-            "id" to 2,
-            "name" to "runtime",
-            "spec_path" to secondSubtaskSpec.toString(),
-            "depends_on" to listOf(1),
-          ),
+          "test.artifacts_patch.plan",
         ),
-      ),
-      "test.artifacts_patch.plan",
-    ),
-  )
+    )
 }
 
 private fun mcpDecompositionFixture(): McpDecompositionFixture {
@@ -162,15 +173,17 @@ private fun mcpDecompositionFixture(): McpDecompositionFixture {
   Files.writeString(subtaskSpec, "---\nstatus: Pending\n---\n\n# Subtask")
   Files.writeString(secondSubtaskSpec, "---\nstatus: Pending\n---\n\n# Subtask")
   return McpDecompositionFixture(
-    context = McpRuntimeContext(
-      environment = mapOf(
-        "SKILL_BILL_REVIEW_DB" to dbPath.toString(),
-        CONFIG_ENVIRONMENT_KEY to configPath.toString(),
+    context =
+      McpRuntimeContext(
+        environment =
+          mapOf(
+            "SKILL_BILL_REVIEW_DB" to dbPath.toString(),
+            CONFIG_ENVIRONMENT_KEY to configPath.toString(),
+          ),
+        userHome = tempDir,
+        workflowGitOperations = TestWorkflowGitOperations,
+        repositoryRoot = tempDir,
       ),
-      userHome = tempDir,
-      workflowGitOperations = TestWorkflowGitOperations,
-      repositoryRoot = tempDir,
-    ),
     dbPath = dbPath,
     parentSpec = parentSpec,
     subtaskSpec = subtaskSpec,
@@ -179,16 +192,23 @@ private fun mcpDecompositionFixture(): McpDecompositionFixture {
 }
 
 private object TestWorkflowGitOperations : WorkflowGitOperationsTestBase() {
-  override fun checkoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = branch)
+  override fun checkoutBranch(
+    repoRoot: Path,
+    branch: String,
+    baseBranch: String?,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = branch)
 
-  override fun branchExists(repoRoot: Path, branch: String): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = "true")
+  override fun branchExists(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "true")
 
   override fun currentBranch(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-  override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = "test-commit")
+  override fun createCommit(
+    repoRoot: Path,
+    message: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "test-commit")
 
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Ok(value = "test-commit")

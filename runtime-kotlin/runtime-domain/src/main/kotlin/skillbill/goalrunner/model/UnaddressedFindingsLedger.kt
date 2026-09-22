@@ -6,6 +6,7 @@ import skillbill.review.model.ReviewIssueCategory
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewSeverity
+
 val UNADDRESSED_FINDING_SEVERITIES: Set<String> =
   FeatureTaskRuntimeReviewSeverity.entries.mapTo(linkedSetOf()) { it.wireValue }
 val UNADDRESSED_FINDING_CATEGORIES: Set<String> = ReviewIssueCategory.entries.mapTo(linkedSetOf()) { it.wireValue }
@@ -22,7 +23,6 @@ fun normalizedUnaddressedFindingSeverity(severity: String): String =
   severity.takeIf { it in UNADDRESSED_FINDING_SEVERITIES } ?: UNADDRESSED_FINDING_DEFAULT_SEVERITY
 
 enum class ReviewFindingOutcome(val wireValue: String) {
-
   ADDRESSED("addressed"),
 
   CARRIED("carried"),
@@ -31,15 +31,18 @@ enum class ReviewFindingOutcome(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWireValue(wireValue: String): ReviewFindingOutcome = entries.firstOrNull { it.wireValue == wireValue }
-      ?: error("Unsupported review finding outcome '$wireValue'.")
+    fun fromWireValue(wireValue: String): ReviewFindingOutcome =
+      entries.firstOrNull { it.wireValue == wireValue }
+        ?: error("Unsupported review finding outcome '$wireValue'.")
   }
 }
 
 private val identityWhitespace = Regex("\\s+")
 
-fun reviewFindingIdentityKey(location: String, summary: String): String =
-  "${normalizedIdentityPart(location)}|${normalizedIdentityPart(summary)}"
+fun reviewFindingIdentityKey(
+  location: String,
+  summary: String,
+): String = "${normalizedIdentityPart(location)}|${normalizedIdentityPart(summary)}"
 
 private fun normalizedIdentityPart(value: String): String = value.trim().lowercase().replace(identityWhitespace, " ")
 
@@ -53,7 +56,6 @@ data class UnaddressedFinding(
   val issueCategory: String,
   val location: String,
   val summary: String,
-
   val reviewRunId: String? = null,
   val findingId: String? = null,
   val claimVerdict: ReviewClaimVerdict? = null,
@@ -73,7 +75,6 @@ data class ReviewFindingOutcomeRecord(
   val outcome: ReviewFindingOutcome,
   val reviewRunId: String? = null,
   val findingId: String? = null,
-
   val findingKey: String? = null,
 ) {
   val keyState: String = if (reviewRunId != null && findingId != null) "resolved" else "unresolved"
@@ -94,7 +95,8 @@ data class UnaddressedFindingsLedger(
   val issueKey: String,
   val findings: List<UnaddressedFinding>,
 ) {
-  val severityBreakdown: Map<String, Int> = UNADDRESSED_FINDING_SEVERITIES.associateWith { severity ->
-    findings.count { it.severity == severity }
-  }
+  val severityBreakdown: Map<String, Int> =
+    UNADDRESSED_FINDING_SEVERITIES.associateWith { severity ->
+      findings.count { it.severity == severity }
+    }
 }

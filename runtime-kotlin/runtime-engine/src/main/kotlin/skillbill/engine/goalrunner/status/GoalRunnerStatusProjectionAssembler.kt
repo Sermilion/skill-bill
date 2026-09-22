@@ -86,22 +86,27 @@ class GoalRunnerStatusProjectionAssembler(
   val attemptLedgerStore get() = dataSources.attemptLedgerStore
   val database get() = dataSources.database
 
-  fun project(loadedState: GoalRunnerManifestState, request: GoalRunnerStatusRequest): GoalRunnerStatusProjection {
+  fun project(
+    loadedState: GoalRunnerManifestState,
+    request: GoalRunnerStatusRequest,
+  ): GoalRunnerStatusProjection {
     val acceptances = manifestStore.outOfBandAcceptances(loadedState.parentWorkflowId)
     val manifest = reconcileStatusManifest(loadedState, request, acceptances)
-    val currentSubtask = manifest.subtasks.firstOrNull { subtask ->
-      subtask.id == manifest.currentSubtaskIntent.subtaskId
-    }
+    val currentSubtask =
+      manifest.subtasks.firstOrNull { subtask ->
+        subtask.id == manifest.currentSubtaskIntent.subtaskId
+      }
     return GoalRunnerStatusProjector.project(
       manifest = manifest,
       activeAgent = resolveActiveAgent(currentSubtask),
-      extras = statusProjectionRuntimeInputs(
-        loadedState = loadedState,
-        request = request,
-        manifest = manifest,
-        currentSubtask = currentSubtask,
-        acceptances = acceptances,
-      ),
+      extras =
+        statusProjectionRuntimeInputs(
+          loadedState = loadedState,
+          request = request,
+          manifest = manifest,
+          currentSubtask = currentSubtask,
+          acceptances = acceptances,
+        ),
     )
   }
 
@@ -110,8 +115,9 @@ class GoalRunnerStatusProjectionAssembler(
     currentSubtask: DecompositionSubtask?,
     durableRead: GoalRunnerStatusDurableReadTracker,
   ): ExecutionLiveness {
-    val workflowId = currentSubtask?.workflowId?.takeIf(String::isNotBlank)
-      ?: return resolveParentExecutionLiveness(parentWorkflowId, durableRead)
+    val workflowId =
+      currentSubtask?.workflowId?.takeIf(String::isNotBlank)
+        ?: return resolveParentExecutionLiveness(parentWorkflowId, durableRead)
     val childLiveness = resolveChildExecutionLiveness(workflowId, durableRead)
     if (childLiveness == ExecutionLiveness.LIVE || childLiveness == ExecutionLiveness.UNKNOWN) {
       return childLiveness
@@ -130,17 +136,18 @@ internal fun GoalRunnerStatusProjectionAssembler.statusProjectionRuntimeInputs(
   val durableRead = GoalRunnerStatusDurableReadTracker(diagnostics)
   val childWorkflowId = currentSubtask?.workflowId?.takeIf(String::isNotBlank)
   val progress = childWorkflowId?.let { workflowId -> outcomeStore.progress(workflowId) }
-  val ledgerSummary = runCatching {
-    attemptLedgerStore.readAttemptLedgerSummary(loadedState.manifest.issueKey)
-  }.getOrElse { error ->
-    durableRead.recordDegradedRead(
-      seam = "goal-status.attempt_ledger",
-      expected = "ledger_summary",
-      used = "degraded",
-      error = error,
-    )
-    null
-  }
+  val ledgerSummary =
+    runCatching {
+      attemptLedgerStore.readAttemptLedgerSummary(loadedState.manifest.issueKey)
+    }.getOrElse { error ->
+      durableRead.recordDegradedRead(
+        seam = "goal-status.attempt_ledger",
+        expected = "ledger_summary",
+        used = "degraded",
+        error = error,
+      )
+      null
+    }
   return buildStatusProjectionRuntimeInputs(
     GoalStatusProjectionRuntimeAssembly(
       loadedState = loadedState,
@@ -174,48 +181,53 @@ private data class GoalStatusProjectionRuntimeAssembly(
 
 private fun GoalRunnerStatusProjectionAssembler.buildStatusProjectionRuntimeInputs(
   assembly: GoalStatusProjectionRuntimeAssembly,
-): GoalRunnerStatusProjectionRuntimeInputs = GoalRunnerStatusProjectionRuntimeInputs(
-  executionLiveness = resolveExecutionLiveness(
-    parentWorkflowId = assembly.loadedState.parentWorkflowId,
-    currentSubtask = assembly.currentSubtask,
-    durableRead = assembly.durableRead,
-  ),
-  planning = alignedPlanningStatus(
-    assembly.loadedState,
-    assembly.request,
-    assembly.manifest,
-    assembly.currentSubtask,
-  ),
-  currentStepOverride = derivedChildCurrentStep(assembly.childWorkflowId)
-    ?: assembly.progress?.currentStepId,
-  currentWorkflowStatus = assembly.progress?.workflowStatus,
-  latestLivenessSignal = assembly.progress?.latestLivenessSignal,
-  latestObservabilityEvent = assembly.progress?.latestGoalObservabilityEvent?.toObservabilityEvent(),
-  requestedDiffStat = requestedDiffStat(assembly.request),
-  selectedDiffHunks = requestedSelectedDiffHunks(assembly.request),
-  blockedAttemptCount = assembly.ledgerSummary?.blockedAttemptCount ?: 0,
-  supervisorKillCount = assembly.ledgerSummary?.supervisorKillCount ?: 0,
-  phaseAttemptCounts = assembly.ledgerSummary?.phaseAttemptCounts ?: emptyMap(),
-  cumulativeFixIterations = assembly.ledgerSummary?.cumulativeFixIterations ?: emptyMap(),
-  reAttemptCauseCounts = assembly.ledgerSummary?.reAttemptCauseCounts ?: emptyMap(),
-  findingsInScope = assembly.ledgerSummary?.findingsInScope,
-  outOfBandAcceptances = assembly.acceptances.toAcceptedSubtasks(),
-  completedSubtaskValidation = completedSubtaskValidation(
-    assembly.manifest,
-  ),
-  paused = assembly.loadedState.controlState.paused,
-  pauseRequested = assembly.loadedState.controlState.pauseRequested,
-  pauseReason = assembly.loadedState.controlState.pauseReason,
-  pausedAt = assembly.loadedState.controlState.pausedAt,
-  stopAfterSubtaskId = assembly.loadedState.controlState.stopAfterSubtaskId,
-  activeDurationMs = assembly.loadedState.controlState.activeDurationMs,
-  activeDurationAsOf = assembly.loadedState.controlState.activeDurationAsOf,
-  subtaskActiveDurationMs = assembly.loadedState.controlState.subtaskActiveDurationMs,
-  subtaskActiveDurationAsOf = assembly.loadedState.controlState.subtaskActiveDurationAsOf,
-  degradedDurableRead = assembly.durableRead.degraded,
-  latestWorktreeEdit = assembly.latestWorktreeEdit,
-  auditAcRetryCount = assembly.auditAcRetryCount,
-)
+): GoalRunnerStatusProjectionRuntimeInputs =
+  GoalRunnerStatusProjectionRuntimeInputs(
+    executionLiveness =
+      resolveExecutionLiveness(
+        parentWorkflowId = assembly.loadedState.parentWorkflowId,
+        currentSubtask = assembly.currentSubtask,
+        durableRead = assembly.durableRead,
+      ),
+    planning =
+      alignedPlanningStatus(
+        assembly.loadedState,
+        assembly.request,
+        assembly.manifest,
+        assembly.currentSubtask,
+      ),
+    currentStepOverride =
+      derivedChildCurrentStep(assembly.childWorkflowId)
+        ?: assembly.progress?.currentStepId,
+    currentWorkflowStatus = assembly.progress?.workflowStatus,
+    latestLivenessSignal = assembly.progress?.latestLivenessSignal,
+    latestObservabilityEvent = assembly.progress?.latestGoalObservabilityEvent?.toObservabilityEvent(),
+    requestedDiffStat = requestedDiffStat(assembly.request),
+    selectedDiffHunks = requestedSelectedDiffHunks(assembly.request),
+    blockedAttemptCount = assembly.ledgerSummary?.blockedAttemptCount ?: 0,
+    supervisorKillCount = assembly.ledgerSummary?.supervisorKillCount ?: 0,
+    phaseAttemptCounts = assembly.ledgerSummary?.phaseAttemptCounts ?: emptyMap(),
+    cumulativeFixIterations = assembly.ledgerSummary?.cumulativeFixIterations ?: emptyMap(),
+    reAttemptCauseCounts = assembly.ledgerSummary?.reAttemptCauseCounts ?: emptyMap(),
+    findingsInScope = assembly.ledgerSummary?.findingsInScope,
+    outOfBandAcceptances = assembly.acceptances.toAcceptedSubtasks(),
+    completedSubtaskValidation =
+      completedSubtaskValidation(
+        assembly.manifest,
+      ),
+    paused = assembly.loadedState.controlState.paused,
+    pauseRequested = assembly.loadedState.controlState.pauseRequested,
+    pauseReason = assembly.loadedState.controlState.pauseReason,
+    pausedAt = assembly.loadedState.controlState.pausedAt,
+    stopAfterSubtaskId = assembly.loadedState.controlState.stopAfterSubtaskId,
+    activeDurationMs = assembly.loadedState.controlState.activeDurationMs,
+    activeDurationAsOf = assembly.loadedState.controlState.activeDurationAsOf,
+    subtaskActiveDurationMs = assembly.loadedState.controlState.subtaskActiveDurationMs,
+    subtaskActiveDurationAsOf = assembly.loadedState.controlState.subtaskActiveDurationAsOf,
+    degradedDurableRead = assembly.durableRead.degraded,
+    latestWorktreeEdit = assembly.latestWorktreeEdit,
+    auditAcRetryCount = assembly.auditAcRetryCount,
+  )
 
 private fun GoalRunnerStatusProjectionAssembler.latestWorktreeEditSummary(
   childWorkflowId: String?,
@@ -255,32 +267,36 @@ private fun GoalRunnerStatusProjectionAssembler.measuredAuditAcRetryCount(
 
 private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidation(
   manifest: DecompositionManifest,
-): List<GoalRunnerSubtaskValidationEvidence> = manifest.subtasks
-  .filter { it.status.decompositionStatus() == DecompositionStatus.COMPLETE }
-  .map { subtask -> completedSubtaskValidationFor(subtask) }
+): List<GoalRunnerSubtaskValidationEvidence> =
+  manifest.subtasks
+    .filter { it.status.decompositionStatus() == DecompositionStatus.COMPLETE }
+    .map { subtask -> completedSubtaskValidationFor(subtask) }
 
 private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidationFor(
   subtask: DecompositionSubtask,
 ): GoalRunnerSubtaskValidationEvidence {
   val workflowId = subtask.workflowId?.takeIf(String::isNotBlank)
-  val record = workflowId?.let { phaseRecorder.loadPhaseRecords(it) }
-    ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-  val envelope = record?.outputArtifact
-    ?.let(JsonCodec::parseObjectOrNull)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
+  val record =
+    workflowId?.let { phaseRecorder.loadPhaseRecords(it) }
+      ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
+  val envelope =
+    record?.outputArtifact
+      ?.let(JsonCodec::parseObjectOrNull)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
   val passed = envelope?.let(::validationPassedFromEnvelope)
   return GoalRunnerSubtaskValidationEvidence(
     subtaskId = subtask.id,
     validationPassed = passed,
-    integrityProblem = when {
-      passed == null -> "Completed subtask has no boolean validation result."
-      passed != true -> "Completed subtask reported validation_passed=false."
-      record.status != WorkflowStepStatus.COMPLETED ||
-        envelope[SharedPayloadKeys.STATUS] != WorkflowStepStatus.COMPLETED.wireValue ->
-        "Validation phase is not completed."
-      else -> null
-    },
+    integrityProblem =
+      when {
+        passed == null -> "Completed subtask has no boolean validation result."
+        passed != true -> "Completed subtask reported validation_passed=false."
+        record.status != WorkflowStepStatus.COMPLETED ||
+          envelope[SharedPayloadKeys.STATUS] != WorkflowStepStatus.COMPLETED.wireValue ->
+          "Validation phase is not completed."
+        else -> null
+      },
   )
 }
 
@@ -316,12 +332,13 @@ internal fun GoalRunnerStatusProjectionAssembler.reconcileStatusManifest(
   request: GoalRunnerStatusRequest,
   acceptances: Map<Int, GoalRunnerOutOfBandAcceptance>,
 ): DecompositionManifest {
-  val reconciled = reconcileGoalManifest(
-    manifest = state.manifest,
-    authoritativeOutcomes = outcomeStore.authoritativeOutcomes(state.manifest.issueKey),
-    acceptances = acceptances,
-    outcomeStore = outcomeStore,
-  )
+  val reconciled =
+    reconcileGoalManifest(
+      manifest = state.manifest,
+      authoritativeOutcomes = outcomeStore.authoritativeOutcomes(state.manifest.issueKey),
+      acceptances = acceptances,
+      outcomeStore = outcomeStore,
+    )
   request.repoRoot?.let { repoRoot ->
     pruneEligibleCheckpointRefsForManifest(
       manifest = reconciled,
@@ -364,53 +381,57 @@ internal fun GoalRunnerStatusProjectionAssembler.derivedChildCurrentStep(childWo
 internal fun GoalRunnerStatusProjectionAssembler.resolveChildExecutionLiveness(
   workflowId: String,
   durableRead: GoalRunnerStatusDurableReadTracker,
-): ExecutionLiveness = runCatching {
-  if (phaseRecorder.existingWorkflowMode(workflowId) != FeatureTaskWorkflowMode.RUNTIME) {
-    ExecutionLiveness.UNKNOWN
-  } else {
-    val ownership = phaseRecorder.workerOwnership(workflowId)
-    if (ownership == null) {
-      ExecutionLiveness.IDLE
+): ExecutionLiveness =
+  runCatching {
+    if (phaseRecorder.existingWorkflowMode(workflowId) != FeatureTaskWorkflowMode.RUNTIME) {
+      ExecutionLiveness.UNKNOWN
     } else {
-      livenessOfLeaseOwner(ownership)
+      val ownership = phaseRecorder.workerOwnership(workflowId)
+      if (ownership == null) {
+        ExecutionLiveness.IDLE
+      } else {
+        livenessOfLeaseOwner(ownership)
+      }
     }
+  }.getOrElse { error ->
+    durableRead.recordDegradedRead(
+      seam = "goal-status.child_execution_liveness",
+      expected = "live_or_idle",
+      used = ExecutionLiveness.UNKNOWN.wireValue,
+      error = error,
+    )
+    ExecutionLiveness.UNKNOWN
   }
-}.getOrElse { error ->
-  durableRead.recordDegradedRead(
-    seam = "goal-status.child_execution_liveness",
-    expected = "live_or_idle",
-    used = ExecutionLiveness.UNKNOWN.wireValue,
-    error = error,
-  )
-  ExecutionLiveness.UNKNOWN
-}
 
 internal fun GoalRunnerStatusProjectionAssembler.resolveParentExecutionLiveness(
   parentWorkflowId: String,
   durableRead: GoalRunnerStatusDurableReadTracker,
-): ExecutionLiveness = runCatching {
-  val lease = manifestStore.executionLease(parentWorkflowId)
-    ?: return@runCatching ExecutionLiveness.IDLE
-  livenessOfLeaseOwner(lease.asWorkerOwnership(parentWorkflowId))
-}.getOrElse { error ->
-  durableRead.recordDegradedRead(
-    seam = "goal-status.parent_execution_liveness",
-    expected = "live_or_idle",
-    used = ExecutionLiveness.UNKNOWN.wireValue,
-    error = error,
-  )
-  ExecutionLiveness.UNKNOWN
-}
+): ExecutionLiveness =
+  runCatching {
+    val lease =
+      manifestStore.executionLease(parentWorkflowId)
+        ?: return@runCatching ExecutionLiveness.IDLE
+    livenessOfLeaseOwner(lease.asWorkerOwnership(parentWorkflowId))
+  }.getOrElse { error ->
+    durableRead.recordDegradedRead(
+      seam = "goal-status.parent_execution_liveness",
+      expected = "live_or_idle",
+      used = ExecutionLiveness.UNKNOWN.wireValue,
+      error = error,
+    )
+    ExecutionLiveness.UNKNOWN
+  }
 
 internal fun GoalRunnerStatusProjectionAssembler.livenessOfLeaseOwner(
   ownership: FeatureTaskRuntimeWorkerOwnership,
-): ExecutionLiveness = when (workerSupervisor.inspect(ownership)) {
-  FeatureTaskRuntimeProcessInspection.NotRunning -> ExecutionLiveness.IDLE
-  FeatureTaskRuntimeProcessInspection.ExactLive,
-  is FeatureTaskRuntimeProcessInspection.OwnershipMismatch,
-  is FeatureTaskRuntimeProcessInspection.Unsupported,
-  -> ExecutionLiveness.LIVE
-}
+): ExecutionLiveness =
+  when (workerSupervisor.inspect(ownership)) {
+    FeatureTaskRuntimeProcessInspection.NotRunning -> ExecutionLiveness.IDLE
+    FeatureTaskRuntimeProcessInspection.ExactLive,
+    is FeatureTaskRuntimeProcessInspection.OwnershipMismatch,
+    is FeatureTaskRuntimeProcessInspection.Unsupported,
+    -> ExecutionLiveness.LIVE
+  }
 
 internal fun GoalRunnerStatusProjectionAssembler.resolveActiveAgent(currentSubtask: DecompositionSubtask?): String? {
   if (currentSubtask == null) return null

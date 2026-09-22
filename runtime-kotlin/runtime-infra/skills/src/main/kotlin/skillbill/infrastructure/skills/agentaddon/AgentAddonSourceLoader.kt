@@ -15,6 +15,7 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
 import kotlin.io.path.name
+
 private const val AGENT_ADDONS_DIRECTORY = "agent-addons"
 private const val MANIFEST_FILE = "agent-addon.yaml"
 private const val CONTENT_FILE = "content.md"
@@ -26,11 +27,13 @@ fun discoverAgentAddons(
   schemaValidator: AgentAddonSchemaValidator = AgentAddonSchemaValidator(),
 ): List<AgentAddonDeclaration> {
   val repoAddonRoot = repoRoot.toAbsolutePath().normalize().resolve(AGENT_ADDONS_DIRECTORY)
-  val sourceRoots = listOf(AgentAddonSourceRoot(repoAddonRoot, required = false)) +
-    externalSourceRoots.map { root -> AgentAddonSourceRoot(root.toAbsolutePath().normalize(), required = true) }
-  val candidates = sourceRoots.flatMap { sourceRoot ->
-    discoverAgentAddonRoot(sourceRoot, schemaValidator)
-  }
+  val sourceRoots =
+    listOf(AgentAddonSourceRoot(repoAddonRoot, required = false)) +
+      externalSourceRoots.map { root -> AgentAddonSourceRoot(root.toAbsolutePath().normalize(), required = true) }
+  val candidates =
+    sourceRoots.flatMap { sourceRoot ->
+      discoverAgentAddonRoot(sourceRoot, schemaValidator)
+    }
   validateSourceCoherence(candidates)
   return candidates.sortedBy { it.slug }
 }
@@ -46,17 +49,21 @@ fun inspectAgentAddons(
   return AgentAddonCatalogueInspection(entries.sortedBy { it.slug }, invalidEntries.sortedBy { it.slug })
 }
 
-internal fun AgentAddonDeclaration.toCatalogueEntry() = AgentAddonCatalogueEntry(
-  identity = "agent-addon:$slug",
-  slug = slug,
-  description = description,
-  agentIds = agents,
-  consumers = consumers.map { it.id },
-  manifestPath = manifestPath,
-  contentPath = contentPath,
-)
+internal fun AgentAddonDeclaration.toCatalogueEntry() =
+  AgentAddonCatalogueEntry(
+    identity = "agent-addon:$slug",
+    slug = slug,
+    description = description,
+    agentIds = agents,
+    consumers = consumers.map { it.id },
+    manifestPath = manifestPath,
+    contentPath = contentPath,
+  )
 
-fun requireAgentAddon(repoRoot: Path, slug: String): AgentAddonDeclaration =
+fun requireAgentAddon(
+  repoRoot: Path,
+  slug: String,
+): AgentAddonDeclaration =
   discoverAgentAddons(repoRoot).firstOrNull { it.slug == slug }
     ?: throw MissingAgentAddonDeclarationError(slug, repoRoot.resolve(AGENT_ADDONS_DIRECTORY).toString())
 
@@ -66,27 +73,32 @@ private fun discoverAgentAddonRoot(
 ): List<AgentAddonDeclaration> {
   val rootLabel = sourceRoot.path.toString()
   return sourceOperation(rootLabel, "agent add-on root cannot be read") {
-    val rootAttributes = try {
-      Files.readAttributes(sourceRoot.path, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
-    } catch (_: NoSuchFileException) {
-      null
-    }
-      ?: if (sourceRoot.required) {
-        invalid(rootLabel, "agent add-on root must exist")
-      } else {
-        return@sourceOperation emptyList()
+    val rootAttributes =
+      try {
+        Files.readAttributes(sourceRoot.path, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
+      } catch (_: NoSuchFileException) {
+        null
       }
+        ?: if (sourceRoot.required) {
+          invalid(rootLabel, "agent add-on root must exist")
+        } else {
+          return@sourceOperation emptyList()
+        }
     if (!rootAttributes.isDirectory) {
       invalid(rootLabel, "agent add-on root must be a directory")
     }
-    val sourceDirectories = Files.list(sourceRoot.path).use { stream ->
-      stream.filter { !it.name.startsWith(".") }.sorted().toList()
-    }
+    val sourceDirectories =
+      Files.list(sourceRoot.path).use { stream ->
+        stream.filter { !it.name.startsWith(".") }.sorted().toList()
+      }
     sourceDirectories.map { parseSource(it, schemaValidator) }
   }
 }
 
-internal fun parseSource(sourceRoot: Path, validator: AgentAddonSchemaValidator): AgentAddonDeclaration {
+internal fun parseSource(
+  sourceRoot: Path,
+  validator: AgentAddonSchemaValidator,
+): AgentAddonDeclaration {
   val manifest = sourceRoot.resolve(MANIFEST_FILE)
   val content = sourceRoot.resolve(CONTENT_FILE)
   val sourceLabel = manifest.toString()
@@ -112,19 +124,21 @@ internal fun parseSource(sourceRoot: Path, validator: AgentAddonSchemaValidator)
       violations += "description must be non-blank, trimmed, and single-line"
     }
     val agentIds = values.stringList("agent_ids", sourceLabel)
-    val agents = agentIds.map { id ->
-      runCatching { SupportedAgent.parseAgentAddonId(id) }.getOrElse {
-        violations += "unknown agent id '$id'; supported: ${SupportedAgent.supportedIds.joinToString()}"
-        null
-      }
-    }.filterNotNull()
+    val agents =
+      agentIds.map { id ->
+        runCatching { SupportedAgent.parseAgentAddonId(id) }.getOrElse {
+          violations += "unknown agent id '$id'; supported: ${SupportedAgent.supportedIds.joinToString()}"
+          null
+        }
+      }.filterNotNull()
     val consumerIds = values.stringList("consumers", sourceLabel)
-    val consumers = consumerIds.map { id ->
-      runCatching { AgentAddonConsumer.fromId(id) }.getOrElse {
-        violations += it.message ?: "unknown consumer '$id'"
-        null
-      }
-    }.filterNotNull()
+    val consumers =
+      consumerIds.map { id ->
+        runCatching { AgentAddonConsumer.fromId(id) }.getOrElse {
+          violations += it.message ?: "unknown consumer '$id'"
+          null
+        }
+      }.filterNotNull()
     if (violations.isNotEmpty()) invalid(sourceLabel, violations.joinToString("; "))
     AgentAddonDeclaration(
       contractVersion = values.string("contract_version", sourceLabel),
@@ -161,16 +175,20 @@ private data class AgentAddonSourceRoot(
   val required: Boolean,
 )
 
-private fun unexpectedEntries(sourceRoot: Path): List<String> = Files.list(sourceRoot).use { stream ->
-  stream.map { it.name }.filter { it !in allowedEntries }.sorted().toList()
-}
+private fun unexpectedEntries(sourceRoot: Path): List<String> =
+  Files.list(sourceRoot).use { stream ->
+    stream.map { it.name }.filter { it !in allowedEntries }.sorted().toList()
+  }
 
 private fun String.isValidDescription(): Boolean {
   if (isBlank() || this != trim()) return false
   return '\n' !in this && '\r' !in this
 }
 
-private fun requireRegularFile(path: Path, sourceLabel: String) {
+private fun requireRegularFile(
+  path: Path,
+  sourceLabel: String,
+) {
   if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
     invalid(sourceLabel, "${path.name} must be a regular file")
   }

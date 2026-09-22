@@ -8,7 +8,11 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-internal fun createAndFillContentPayload(body: String?, bodyFile: String?, state: CliRunState): Map<String, String> {
+internal fun createAndFillContentPayload(
+  body: String?,
+  bodyFile: String?,
+  state: CliRunState,
+): Map<String, String> {
   val contentBody =
     body ?: bodyFile?.let { path ->
       readCliTextFile(path, state)
@@ -29,38 +33,49 @@ internal fun createAndFillScaffoldPayload(
   return scaffoldPayload + createAndFillContentPayload(body, bodyFile, state)
 }
 
-internal fun newAddonPayload(args: NewAddonPayloadArgs): Map<String, Any> = buildMap {
-  put("scaffold_payload_version", "1.0")
-  put("kind", "add-on")
-  put("platform", args.platform.orEmpty())
-  put("name", args.name.orEmpty())
-  (args.body ?: args.bodyFile?.let { path -> readCliTextFile(path, args.state) })
-    ?.let { addonBody -> put("body", addonBody) }
-  args.addonLocationPath?.takeIf { it.isNotBlank() }?.let { path -> put("addon_location_path", path) }
-  if (args.consumerSkillDirs.isNotEmpty()) {
-    put("consumer_skill_dirs", args.consumerSkillDirs)
+internal fun newAddonPayload(args: NewAddonPayloadArgs): Map<String, Any> =
+  buildMap {
+    put("scaffold_payload_version", "1.0")
+    put("kind", "add-on")
+    put("platform", args.platform.orEmpty())
+    put("name", args.name.orEmpty())
+    (args.body ?: args.bodyFile?.let { path -> readCliTextFile(path, args.state) })
+      ?.let { addonBody -> put("body", addonBody) }
+    args.addonLocationPath?.takeIf { it.isNotBlank() }?.let { path -> put("addon_location_path", path) }
+    if (args.consumerSkillDirs.isNotEmpty()) {
+      put("consumer_skill_dirs", args.consumerSkillDirs)
+    }
   }
-}
 
-internal fun readCliTextFile(path: String, state: CliRunState): String =
-  if (path == "-") state.wholeStdinText() else Path.of(path).toFile().readText()
+internal fun readCliTextFile(
+  path: String,
+  state: CliRunState,
+): String = if (path == "-") state.wholeStdinText() else Path.of(path).toFile().readText()
 
-internal fun readScaffoldPayload(payloadPath: String?, state: CliRunState): Map<String, Any?> {
+internal fun readScaffoldPayload(
+  payloadPath: String?,
+  state: CliRunState,
+): Map<String, Any?> {
   val payloadText = readScaffoldPayloadText(payloadPath, state)
   val payload = parseScaffoldPayloadObject(payloadText).toMutableMap()
   payload["scaffold_payload_version"] = payload["scaffold_payload_version"]?.toString()
   return payload
 }
 
-internal fun readScaffoldPayloadText(payloadPath: String?, state: CliRunState): String = when {
-  payloadPath == null -> throw IllegalArgumentException("--payload is required for this command.")
-  payloadPath == "-" -> state.wholeStdinText()
-  else -> Path.of(payloadPath).toFile().readText()
-}
+internal fun readScaffoldPayloadText(
+  payloadPath: String?,
+  state: CliRunState,
+): String =
+  when {
+    payloadPath == null -> throw IllegalArgumentException("--payload is required for this command.")
+    payloadPath == "-" -> state.wholeStdinText()
+    else -> Path.of(payloadPath).toFile().readText()
+  }
 
 internal fun parseScaffoldPayloadObject(payloadText: String): Map<String, Any?> {
-  val parsed = JsonCodec.parseObjectOrNull(payloadText)
-    ?: throw IllegalArgumentException("Invalid JSON payload: expected an object.")
+  val parsed =
+    JsonCodec.parseObjectOrNull(payloadText)
+      ?: throw IllegalArgumentException("Invalid JSON payload: expected an object.")
   return JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(parsed))
     ?: throw IllegalArgumentException("Invalid JSON payload: expected an object.")
 }

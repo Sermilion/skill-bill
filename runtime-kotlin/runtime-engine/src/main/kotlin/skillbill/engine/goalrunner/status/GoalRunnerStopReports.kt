@@ -17,18 +17,21 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-internal fun stopped(args: StoppedReportArgs): GoalRunnerRunReport.Stopped = GoalRunnerRunReport.Stopped(
-  issueKey = args.issueKey,
-  attemptedSubtasks = args.attempted,
-  stop = GoalRunnerStopReport(
+
+internal fun stopped(args: StoppedReportArgs): GoalRunnerRunReport.Stopped =
+  GoalRunnerRunReport.Stopped(
     issueKey = args.issueKey,
-    subtaskId = args.subtaskId,
-    reason = args.reason,
-    blockedReason = args.blockedReason,
-    workflowId = args.workflowId,
-    lastResumableStep = args.lastResumableStep,
-  ),
-)
+    attemptedSubtasks = args.attempted,
+    stop =
+      GoalRunnerStopReport(
+        issueKey = args.issueKey,
+        subtaskId = args.subtaskId,
+        reason = args.reason,
+        blockedReason = args.blockedReason,
+        workflowId = args.workflowId,
+        lastResumableStep = args.lastResumableStep,
+      ),
+  )
 
 fun completed(
   manifest: DecompositionManifest,
@@ -44,44 +47,48 @@ fun completed(
     pullRequestUrl = pullRequestUrl,
     pullRequestStatus = pullRequestStatus,
     subtasksCompleted = manifest.subtasks.count { it.status.decompositionStatus() == DecompositionStatus.COMPLETE },
-    subtasksPending = manifest.subtasks.count {
-      it.status.decompositionStatus() !in setOf(
-        DecompositionStatus.COMPLETE,
-        DecompositionStatus.SKIPPED,
-        DecompositionStatus.BLOCKED,
-      )
-    },
+    subtasksPending =
+      manifest.subtasks.count {
+        it.status.decompositionStatus() !in
+          setOf(
+            DecompositionStatus.COMPLETE,
+            DecompositionStatus.SKIPPED,
+            DecompositionStatus.BLOCKED,
+          )
+      },
     subtasksBlocked = manifest.subtasks.count { it.status.decompositionStatus() == DecompositionStatus.BLOCKED },
     unaddressedFindingCount = ledger?.findings?.size,
     unaddressedSeverityBreakdown = ledger?.severityBreakdown.orEmpty(),
   )
 }
 
-fun unknownGoal(issueKey: String): GoalRunnerRunReport.Stopped = stopped(
-  StoppedReportArgs(
-    issueKey = issueKey,
-    attempted = emptyList(),
-    subtaskId = 0,
-    reason = GoalRunnerStopReason.BLOCKED,
-    blockedReason = "No decomposed parent workflow was found for $issueKey.",
-    workflowId = null,
-    lastResumableStep = "preplan",
-  ),
-)
+fun unknownGoal(issueKey: String): GoalRunnerRunReport.Stopped =
+  stopped(
+    StoppedReportArgs(
+      issueKey = issueKey,
+      attempted = emptyList(),
+      subtaskId = 0,
+      reason = GoalRunnerStopReason.BLOCKED,
+      blockedReason = "No decomposed parent workflow was found for $issueKey.",
+      workflowId = null,
+      lastResumableStep = "preplan",
+    ),
+  )
 
 fun String.withStopDiagnostics(
   knownWorkflowId: String?,
   progress: GoalRunnerWorkflowProgress?,
   liveness: GoalRunnerLivenessSnapshot?,
 ): String {
-  val details = listOfNotNull(
-    knownWorkflowId?.let { workflowId -> "workflow_id=$workflowId" },
-    progress?.currentStepId?.takeIf(String::isNotBlank)?.let { step -> "current_step=$step" },
-    progress?.latestLivenessSignal?.takeIf(String::isNotBlank)?.let { signal -> "latest_liveness=$signal" },
-    progress?.lastSnapshotUpdatedAt?.takeIf(String::isNotBlank)?.let { at -> "last_snapshot_at=$at" },
-    liveness?.lastFileActivityAt?.takeIf(String::isNotBlank)?.let { at -> "last_file_activity_at=$at" },
-    liveness?.lastOutputAt?.takeIf(String::isNotBlank)?.let { at -> "last_output_at=$at" },
-  ).joinToString(", ")
+  val details =
+    listOfNotNull(
+      knownWorkflowId?.let { workflowId -> "workflow_id=$workflowId" },
+      progress?.currentStepId?.takeIf(String::isNotBlank)?.let { step -> "current_step=$step" },
+      progress?.latestLivenessSignal?.takeIf(String::isNotBlank)?.let { signal -> "latest_liveness=$signal" },
+      progress?.lastSnapshotUpdatedAt?.takeIf(String::isNotBlank)?.let { at -> "last_snapshot_at=$at" },
+      liveness?.lastFileActivityAt?.takeIf(String::isNotBlank)?.let { at -> "last_file_activity_at=$at" },
+      liveness?.lastOutputAt?.takeIf(String::isNotBlank)?.let { at -> "last_output_at=$at" },
+    ).joinToString(", ")
   return if (details.isBlank()) this else "$this [$details]"
 }
 
@@ -94,9 +101,10 @@ fun GoalRunnerReconciledOutcome.Stop.isRecoverableValidationBlock(
   if (lastResumableStep != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) return false
   val workflowId = workflowId
   if (workflowId != null && phaseRecorder != null) {
-    val disposition = phaseRecorder.loadPhaseRecords(workflowId)
-      ?.get(lastResumableStep)
-      ?.failureDisposition
+    val disposition =
+      phaseRecorder.loadPhaseRecords(workflowId)
+        ?.get(lastResumableStep)
+        ?.failureDisposition
     if (disposition == FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION) {
       return false
     }
@@ -109,28 +117,30 @@ fun supervisionEvent(
   knownWorkflowId: String,
   progress: GoalRunnerWorkflowProgress?,
   liveness: GoalRunnerLivenessSnapshot?,
-): GoalRunnerSupervisionEvent = GoalRunnerSupervisionEvent(
-  phase = "goal_runner_supervision",
-  reason = reason.name.lowercase(),
-  continuationMode = when (reason) {
-    GoalRunnerStopReason.TIMEOUT -> GoalRunnerContinuationMode.KILLED_UNRESPONSIVE_CHILD
-    GoalRunnerStopReason.INTERRUPTED -> GoalRunnerContinuationMode.KILLED_BY_PARENT_INTERRUPT
-    GoalRunnerStopReason.NO_TERMINAL_STORE_OUTCOME -> GoalRunnerContinuationMode.CONTINUE_INLINE
-    GoalRunnerStopReason.FAILED,
-    GoalRunnerStopReason.BLOCKED,
-    GoalRunnerStopReason.POLICY_BLOCKED,
-    GoalRunnerStopReason.PULL_REQUEST_FAILED,
-    GoalRunnerStopReason.DEPENDENCIES_BLOCKED,
-    GoalRunnerStopReason.RECONCILED_RESUMABLE,
-    GoalRunnerStopReason.AWAITING_OPERATOR_DECISION,
-    GoalRunnerStopReason.PAUSED,
-    -> GoalRunnerContinuationMode.NONE
-  },
-  processState = liveness?.processState ?: GoalRunnerProcessState.UNKNOWN,
-  workflowId = knownWorkflowId,
-  stepId = progress?.currentStepId ?: liveness?.workflowStep,
-  lastDurableProgress = progress?.latestLivenessSignal ?: liveness?.lastDurableProgressLabel,
-  lastWorkflowSnapshotAt = progress?.lastSnapshotUpdatedAt ?: liveness?.lastWorkflowSnapshotAt,
-  lastFileActivityAt = liveness?.lastFileActivityAt,
-  lastOutputAt = liveness?.lastOutputAt,
-)
+): GoalRunnerSupervisionEvent =
+  GoalRunnerSupervisionEvent(
+    phase = "goal_runner_supervision",
+    reason = reason.name.lowercase(),
+    continuationMode =
+      when (reason) {
+        GoalRunnerStopReason.TIMEOUT -> GoalRunnerContinuationMode.KILLED_UNRESPONSIVE_CHILD
+        GoalRunnerStopReason.INTERRUPTED -> GoalRunnerContinuationMode.KILLED_BY_PARENT_INTERRUPT
+        GoalRunnerStopReason.NO_TERMINAL_STORE_OUTCOME -> GoalRunnerContinuationMode.CONTINUE_INLINE
+        GoalRunnerStopReason.FAILED,
+        GoalRunnerStopReason.BLOCKED,
+        GoalRunnerStopReason.POLICY_BLOCKED,
+        GoalRunnerStopReason.PULL_REQUEST_FAILED,
+        GoalRunnerStopReason.DEPENDENCIES_BLOCKED,
+        GoalRunnerStopReason.RECONCILED_RESUMABLE,
+        GoalRunnerStopReason.AWAITING_OPERATOR_DECISION,
+        GoalRunnerStopReason.PAUSED,
+        -> GoalRunnerContinuationMode.NONE
+      },
+    processState = liveness?.processState ?: GoalRunnerProcessState.UNKNOWN,
+    workflowId = knownWorkflowId,
+    stepId = progress?.currentStepId ?: liveness?.workflowStep,
+    lastDurableProgress = progress?.latestLivenessSignal ?: liveness?.lastDurableProgressLabel,
+    lastWorkflowSnapshotAt = progress?.lastSnapshotUpdatedAt ?: liveness?.lastWorkflowSnapshotAt,
+    lastFileActivityAt = liveness?.lastFileActivityAt,
+    lastOutputAt = liveness?.lastOutputAt,
+  )

@@ -11,7 +11,10 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun rollback(txn: ScaffoldTransaction, adapters: ScaffoldAdapterSeams) {
+internal fun rollback(
+  txn: ScaffoldTransaction,
+  adapters: ScaffoldAdapterSeams,
+) {
   val errors = mutableListOf<String>()
   rollbackRegisteredExternalPlatformPack(txn, errors)
   adapters.rollbackInstallTargets(txn, errors)
@@ -26,7 +29,10 @@ internal fun rollback(txn: ScaffoldTransaction, adapters: ScaffoldAdapterSeams) 
   }
 }
 
-internal fun rollbackSymlinks(txn: ScaffoldTransaction, errors: MutableList<String>) {
+internal fun rollbackSymlinks(
+  txn: ScaffoldTransaction,
+  errors: MutableList<String>,
+) {
   for (link in txn.createdSymlinks.asReversed()) {
     recordRollbackFailure(errors, "symlink $link") {
       if (Files.isSymbolicLink(link) || Files.exists(link)) {
@@ -36,7 +42,10 @@ internal fun rollbackSymlinks(txn: ScaffoldTransaction, errors: MutableList<Stri
   }
 }
 
-internal fun rollbackManifests(txn: ScaffoldTransaction, errors: MutableList<String>) {
+internal fun rollbackManifests(
+  txn: ScaffoldTransaction,
+  errors: MutableList<String>,
+) {
   for (snapshot in txn.manifestSnapshots.asReversed()) {
     recordRollbackFailure(errors, "manifest ${snapshot.manifestPath}") {
       rollbackRestoreBytes(snapshot.manifestPath, snapshot.originalBytes)
@@ -44,7 +53,10 @@ internal fun rollbackManifests(txn: ScaffoldTransaction, errors: MutableList<Str
   }
 }
 
-internal fun rollbackFiles(txn: ScaffoldTransaction, errors: MutableList<String>) {
+internal fun rollbackFiles(
+  txn: ScaffoldTransaction,
+  errors: MutableList<String>,
+) {
   for (path in txn.createdPaths.asReversed()) {
     recordRollbackFailure(errors, "file $path") {
       rollbackDeleteRegularFileOrSymlink(path)
@@ -52,7 +64,10 @@ internal fun rollbackFiles(txn: ScaffoldTransaction, errors: MutableList<String>
   }
 }
 
-internal fun rollbackDirs(txn: ScaffoldTransaction, errors: MutableList<String>) {
+internal fun rollbackDirs(
+  txn: ScaffoldTransaction,
+  errors: MutableList<String>,
+) {
   for (directory in txn.createdDirs.asReversed()) {
     recordRollbackFailure(errors, "dir $directory") {
       rollbackDeleteEmptyDirectory(directory)
@@ -60,7 +75,11 @@ internal fun rollbackDirs(txn: ScaffoldTransaction, errors: MutableList<String>)
   }
 }
 
-private fun recordRollbackFailure(errors: MutableList<String>, label: String, action: () -> Unit) {
+private fun recordRollbackFailure(
+  errors: MutableList<String>,
+  label: String,
+  action: () -> Unit,
+) {
   try {
     action()
   } catch (error: IOException) {
@@ -76,5 +95,7 @@ internal const val ADD_ON_INSTALL_NOTE: String =
 internal const val PLATFORM_PACK_INSTALL_NOTE: String =
   "Auto-installed the generated platform-pack skills into detected local agents."
 
-internal fun platformPackManifestPath(repoRoot: Path, platform: String): Path =
-  repoRoot.resolve("platform-packs").resolve(platform).resolve("platform.yaml")
+internal fun platformPackManifestPath(
+  repoRoot: Path,
+  platform: String,
+): Path = repoRoot.resolve("platform-packs").resolve(platform).resolve("platform.yaml")

@@ -9,7 +9,11 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun createPlatformPack(txn: ScaffoldTransaction, plan: ScaffoldPlan, repoRoot: Path): ScaffoldExecutionResult {
+internal fun createPlatformPack(
+  txn: ScaffoldTransaction,
+  plan: ScaffoldPlan,
+  repoRoot: Path,
+): ScaffoldExecutionResult {
   val manifestPath = plan.manifestPath ?: error("Platform pack plan missing manifest path.")
   val baselineSkillPath = plan.baselineSkillPath ?: error("Platform pack plan missing baseline skill path.")
   stageFile(
@@ -65,7 +69,10 @@ internal fun stageSingleScaffold(
   )
 }
 
-private fun stageScaffoldContent(txn: ScaffoldTransaction, plan: ScaffoldPlan) {
+private fun stageScaffoldContent(
+  txn: ScaffoldTransaction,
+  plan: ScaffoldPlan,
+) {
   when (plan.kind) {
     SKILL_KIND_AGENT_ADDON -> {
       stageFile(txn, plan.skillFile, renderAgentAddonManifest(plan))
@@ -76,18 +83,23 @@ private fun stageScaffoldContent(txn: ScaffoldTransaction, plan: ScaffoldPlan) {
     }
     else -> {
       plan.contentFile?.let { content ->
-        val contentText = if (plan.kind == SKILL_KIND_CODE_REVIEW_AREA || plan.isShelled) {
-          renderDeclaredPackContentSheet(plan)
-        } else {
-          renderContentSheet(plan)
-        }
+        val contentText =
+          if (plan.kind == SKILL_KIND_CODE_REVIEW_AREA || plan.isShelled) {
+            renderDeclaredPackContentSheet(plan)
+          } else {
+            renderContentSheet(plan)
+          }
         stageFile(txn, content, contentText)
       }
     }
   }
 }
 
-internal fun stageFile(txn: ScaffoldTransaction, path: Path, content: String) {
+internal fun stageFile(
+  txn: ScaffoldTransaction,
+  path: Path,
+  content: String,
+) {
   if (Files.exists(path)) {
     throw SkillAlreadyExistsError(
       "Skill target '$path' already exists. Remove it or pick a new name before retrying.",

@@ -2,6 +2,7 @@ package skillbill.engine.featuretask.lifecycle.core
 import skillbill.contracts.JsonCodec
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
+
 object AlwaysValidValidator : FeatureTaskRuntimePhaseOutputTestValidator() {
   override fun validatePhaseOutput(
     phaseOutputText: String,
@@ -9,10 +10,15 @@ object AlwaysValidValidator : FeatureTaskRuntimePhaseOutputTestValidator() {
   ): FeatureTaskRuntimePhaseOutputValidationResult =
     FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged(normalizePhaseOutput(phaseOutputText, sourceLabel))
 
-  override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) = Unit
+  override fun validatePhaseOutputText(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ) = Unit
 
-  override fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Any =
-    phaseOutputMap(phaseOutputText)
+  override fun validateAndReadPhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): Any = phaseOutputMap(phaseOutputText)
 
   override fun normalizePhaseOutput(
     phaseOutputText: String,
@@ -27,8 +33,9 @@ object AlwaysValidValidator : FeatureTaskRuntimePhaseOutputTestValidator() {
     )
   }
 
-  private fun phaseOutputMap(phaseOutputText: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(phaseOutputText)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?: error("fixture phase output is not an object")
+  private fun phaseOutputMap(phaseOutputText: String): Map<String, Any?> =
+    JsonCodec.parseObjectOrNull(phaseOutputText)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?: error("fixture phase output is not an object")
 }

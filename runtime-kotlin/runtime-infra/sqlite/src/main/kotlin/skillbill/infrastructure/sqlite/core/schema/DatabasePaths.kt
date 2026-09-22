@@ -9,7 +9,11 @@ internal object DatabasePaths {
 
   fun defaultDbPath(userHome: Path): Path = userHome.resolve(".skill-bill").resolve("review-metrics.db")
 
-  fun resolveDbPath(cliValue: String?, environment: Map<String, String>, userHome: Path): Path {
+  fun resolveDbPath(
+    cliValue: String?,
+    environment: Map<String, String>,
+    userHome: Path,
+  ): Path {
     val candidate = cliValue ?: environment[DB_ENVIRONMENT_KEY]
     return if (candidate != null) {
       expandUserPath(candidate = candidate, userHome = userHome)
@@ -18,7 +22,10 @@ internal object DatabasePaths {
     }
   }
 
-  private fun expandUserPath(candidate: String, userHome: Path): Path {
+  private fun expandUserPath(
+    candidate: String,
+    userHome: Path,
+  ): Path {
     val expandedCandidate =
       when {
         candidate == "~" -> userHome.toString()

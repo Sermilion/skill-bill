@@ -27,6 +27,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeShare
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDeliveredProjectionRecord
+
 class FeatureTaskRuntimePhaseBriefingRecorder(
   private val database: DatabaseSessionFactory,
   private val workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,
@@ -36,59 +37,66 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
     workflowId: String,
     briefing: FeatureTaskRuntimePhaseLaunchBriefing,
     sharedEvidenceMeasurement: FeatureTaskRuntimeSharedEvidenceMeasurement?,
-  ): Boolean = database.transaction { unitOfWork ->
-    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-      ?: return@transaction false
-    wireArtifactValidator.validateEnvelope(briefing.handoffEnvelope.asWorkflowArtifactEntry(), workflowId)
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
-    val updatedBriefings = LinkedHashMap(phaseBriefingsFrom(artifacts, wireArtifactValidator::validateEnvelopeWire))
-      .apply { put(briefing.phaseId, briefing) }
-    val deliveredHistory = deliveredProjectionHistoryFrom(
-      artifacts,
-      wireArtifactValidator::validateEnvelopeWire,
-      wireArtifactValidator::validatePersistenceWire,
-    )
-    val delivered = nextDeliveredProjectionRecord(workflowId, briefing, deliveredHistory)
-    wireArtifactValidator.validatePersistenceRecord(
-      delivered.asWorkflowArtifactEntry(),
-      "delivered-projection:${briefing.phaseId}",
-    )
-    recordProjectionMeasurements(unitOfWork, workflowId, briefing, delivered, artifacts)
-    recordSharedEvidenceMeasurement(unitOfWork, sharedEvidenceMeasurement)
-    val updatedDelivered = LinkedHashMap(deliveredHistory)
-      .apply {
-        entries.removeIf { (_, value) -> value.consumerPhaseId == briefing.phaseId }
-        put(deliveredProjectionKey(delivered), delivered)
-      }
-    val patch = mapOf(
-      FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY to
-        updatedBriefings.mapValues { (_, value) -> value.asBriefingArtifactEntry() },
-      FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY to
-        updatedDelivered.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
-    )
-    workflowPersistence.persistArtifactsPatch(unitOfWork.workflowStates, record, patch)
-    true
-  }
+  ): Boolean =
+    database.transaction { unitOfWork ->
+      val record =
+        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          ?: return@transaction false
+      wireArtifactValidator.validateEnvelope(briefing.handoffEnvelope.asWorkflowArtifactEntry(), workflowId)
+      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val updatedBriefings =
+        LinkedHashMap(phaseBriefingsFrom(artifacts, wireArtifactValidator::validateEnvelopeWire))
+          .apply { put(briefing.phaseId, briefing) }
+      val deliveredHistory =
+        deliveredProjectionHistoryFrom(
+          artifacts,
+          wireArtifactValidator::validateEnvelopeWire,
+          wireArtifactValidator::validatePersistenceWire,
+        )
+      val delivered = nextDeliveredProjectionRecord(workflowId, briefing, deliveredHistory)
+      wireArtifactValidator.validatePersistenceRecord(
+        delivered.asWorkflowArtifactEntry(),
+        "delivered-projection:${briefing.phaseId}",
+      )
+      recordProjectionMeasurements(unitOfWork, workflowId, briefing, delivered, artifacts)
+      recordSharedEvidenceMeasurement(unitOfWork, sharedEvidenceMeasurement)
+      val updatedDelivered =
+        LinkedHashMap(deliveredHistory)
+          .apply {
+            entries.removeIf { (_, value) -> value.consumerPhaseId == briefing.phaseId }
+            put(deliveredProjectionKey(delivered), delivered)
+          }
+      val patch =
+        mapOf(
+          FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY to
+            updatedBriefings.mapValues { (_, value) -> value.asBriefingArtifactEntry() },
+          FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY to
+            updatedDelivered.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
+        )
+      workflowPersistence.persistArtifactsPatch(unitOfWork.workflowStates, record, patch)
+      true
+    }
 
   fun recordProjectionRejection(
     workflowId: String,
     consumerPhaseId: String,
     error: InvalidFeatureTaskRuntimeHandoffProjectionError,
     repositoryCheckpointFingerprint: String?,
-  ): Boolean = database.transaction { unitOfWork ->
-    recordProjectionRejectionMeasurement(
-      unitOfWork,
-      FeatureTaskRuntimeProjectionRejection(
-        workflowId = workflowId,
-        consumerPhaseId = consumerPhaseId,
-        projectionContractId = error.projectionContractId.ifBlank { "unknown" },
-        producerIteration = FeatureTaskRuntimeProducerIteration(consumerPhaseId, 1),
-        repositoryCheckpointFingerprint = repositoryCheckpointFingerprint,
-        failureClassification = error.failureKind.toMeasurementFailureClassification(),
-        sourceLabel = error.projectionName,
-      ),
-    )
-  }
+  ): Boolean =
+    database.transaction { unitOfWork ->
+      recordProjectionRejectionMeasurement(
+        unitOfWork,
+        FeatureTaskRuntimeProjectionRejection(
+          workflowId = workflowId,
+          consumerPhaseId = consumerPhaseId,
+          projectionContractId = error.projectionContractId.ifBlank { "unknown" },
+          producerIteration = FeatureTaskRuntimeProducerIteration(consumerPhaseId, 1),
+          repositoryCheckpointFingerprint = repositoryCheckpointFingerprint,
+          failureClassification = error.failureKind.toMeasurementFailureClassification(),
+          sourceLabel = error.projectionName,
+        ),
+      )
+    }
 
   fun recordProjectionRejection(rejection: FeatureTaskRuntimeProjectionRejection): Boolean =
     database.transaction { unitOfWork ->
@@ -103,18 +111,22 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
       )
     }
   }
+
   fun loadPhaseBriefings(workflowId: String): Map<String, FeatureTaskRuntimePhaseLaunchBriefing>? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-        ?: return@read null
+      val record =
+        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          ?: return@read null
       phaseBriefingsFrom(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)) { envelope ->
         wireArtifactValidator.validateEnvelope(envelope, workflowId)
       }
     }
+
   fun loadDeliveredProjections(workflowId: String): Map<String, FeatureTaskRuntimeDeliveredProjectionRecord>? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-        ?: return@read null
+      val record =
+        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          ?: return@read null
       deliveredProjectionsFrom(
         FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
         validateEnvelope = { envelope -> wireArtifactValidator.validateEnvelope(envelope, workflowId) },
@@ -130,9 +142,10 @@ fun FeatureTaskRuntimePhaseBriefingRecorder.nextDeliveredProjectionRecord(
   briefing: FeatureTaskRuntimePhaseLaunchBriefing,
   deliveredHistory: Map<String, FeatureTaskRuntimeDeliveredProjectionRecord>,
 ): FeatureTaskRuntimeDeliveredProjectionRecord {
-  val existingDelivered = deliveredHistory.values
-    .filter { it.consumerPhaseId == briefing.phaseId }
-    .maxByOrNull(FeatureTaskRuntimeDeliveredProjectionRecord::iteration)
+  val existingDelivered =
+    deliveredHistory.values
+      .filter { it.consumerPhaseId == briefing.phaseId }
+      .maxByOrNull(FeatureTaskRuntimeDeliveredProjectionRecord::iteration)
   return FeatureTaskRuntimeDeliveredProjectionRecord(
     workflowId = workflowId,
     consumerPhaseId = briefing.phaseId,
@@ -157,18 +170,19 @@ fun FeatureTaskRuntimePhaseBriefingRecorder.recordProjectionMeasurements(
         ?.toByteArray(Charsets.UTF_8)
         ?.size
         ?: 0
-    val measurement = FeatureTaskRuntimeProjectionMeasurement(
-      workflowId = workflowId,
-      consumerPhaseId = briefing.phaseId,
-      projectionContractId = projection.projectionContractId,
-      producerIteration = projection.producerIteration,
-      repositoryCheckpointFingerprint = delivered.repositoryCheckpointFingerprint,
-      projectedUtf8Bytes = projection.utf8ByteSize,
-      projectedCollectionItems = projection.itemCount,
-      estimatedTokens = (projection.utf8ByteSize + 3) / 4,
-      privateEvidenceUtf8Bytes = privateEvidenceUtf8Bytes,
-      deliveredProjectionUtf8Bytes = deliveredProjectionUtf8Bytes,
-    )
+    val measurement =
+      FeatureTaskRuntimeProjectionMeasurement(
+        workflowId = workflowId,
+        consumerPhaseId = briefing.phaseId,
+        projectionContractId = projection.projectionContractId,
+        producerIteration = projection.producerIteration,
+        repositoryCheckpointFingerprint = delivered.repositoryCheckpointFingerprint,
+        projectedUtf8Bytes = projection.utf8ByteSize,
+        projectedCollectionItems = projection.itemCount,
+        estimatedTokens = (projection.utf8ByteSize + 3) / 4,
+        privateEvidenceUtf8Bytes = privateEvidenceUtf8Bytes,
+        deliveredProjectionUtf8Bytes = deliveredProjectionUtf8Bytes,
+      )
     wireArtifactValidator.validateMeasurement(
       measurement.asTelemetryPayload(),
       "projection-delivery:${briefing.phaseId}:${projection.projectionName}",
@@ -187,20 +201,21 @@ fun FeatureTaskRuntimePhaseBriefingRecorder.recordSharedEvidenceMeasurement(
   }
 }
 
-fun deliveredProjectionKey(delivered: FeatureTaskRuntimeDeliveredProjectionRecord): String = listOf(
-  delivered.workflowId,
-  delivered.consumerPhaseId,
-  delivered.iteration.toString(),
-  delivered.sourceProducerIterations
-    .sortedWith(
-      compareBy(
-        FeatureTaskRuntimeProducerIteration::phaseId,
-        FeatureTaskRuntimeProducerIteration::iteration,
-      ),
-    )
-    .joinToString(separator = ",") { "${it.phaseId}#${it.iteration}" },
-  delivered.repositoryCheckpointFingerprint,
-).joinToString(separator = "|")
+fun deliveredProjectionKey(delivered: FeatureTaskRuntimeDeliveredProjectionRecord): String =
+  listOf(
+    delivered.workflowId,
+    delivered.consumerPhaseId,
+    delivered.iteration.toString(),
+    delivered.sourceProducerIterations
+      .sortedWith(
+        compareBy(
+          FeatureTaskRuntimeProducerIteration::phaseId,
+          FeatureTaskRuntimeProducerIteration::iteration,
+        ),
+      )
+      .joinToString(separator = ",") { "${it.phaseId}#${it.iteration}" },
+    delivered.repositoryCheckpointFingerprint,
+  ).joinToString(separator = "|")
 
 internal fun FeatureTaskRuntimePhaseBriefingRecorder.recordProjectionRejectionMeasurement(
   unitOfWork: UnitOfWork,
@@ -209,20 +224,22 @@ internal fun FeatureTaskRuntimePhaseBriefingRecorder.recordProjectionRejectionMe
   if (WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, rejection.workflowId) == null) {
     return false
   }
-  val measurement = FeatureTaskRuntimeProjectionMeasurement(
-    workflowId = rejection.workflowId,
-    consumerPhaseId = rejection.consumerPhaseId,
-    projectionContractId = rejection.projectionContractId.ifBlank { "unknown" },
-    producerIteration = rejection.producerIteration,
-    repositoryCheckpointFingerprint = rejection.repositoryCheckpointFingerprint
-      ?: "not_resolved:${rejection.consumerPhaseId}",
-    projectedUtf8Bytes = 0,
-    projectedCollectionItems = 0,
-    estimatedTokens = 0,
-    privateEvidenceUtf8Bytes = 0,
-    deliveredProjectionUtf8Bytes = 0,
-    failureClassification = rejection.failureClassification,
-  )
+  val measurement =
+    FeatureTaskRuntimeProjectionMeasurement(
+      workflowId = rejection.workflowId,
+      consumerPhaseId = rejection.consumerPhaseId,
+      projectionContractId = rejection.projectionContractId.ifBlank { "unknown" },
+      producerIteration = rejection.producerIteration,
+      repositoryCheckpointFingerprint =
+        rejection.repositoryCheckpointFingerprint
+          ?: "not_resolved:${rejection.consumerPhaseId}",
+      projectedUtf8Bytes = 0,
+      projectedCollectionItems = 0,
+      estimatedTokens = 0,
+      privateEvidenceUtf8Bytes = 0,
+      deliveredProjectionUtf8Bytes = 0,
+      failureClassification = rejection.failureClassification,
+    )
   wireArtifactValidator.validateMeasurement(
     measurement.asTelemetryPayload(),
     "projection-rejection:${rejection.consumerPhaseId}:${rejection.sourceLabel}",

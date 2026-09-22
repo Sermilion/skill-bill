@@ -58,9 +58,10 @@ class StandaloneCodeReviewTargetTest {
 
   @Test
   fun `a commit sha cannot combine with a non-default scope`() {
-    val error = assertFailsWith<UsageError> {
-      resolveStandaloneCodeReviewTarget("abc1234", "pr")
-    }
+    val error =
+      assertFailsWith<UsageError> {
+        resolveStandaloneCodeReviewTarget("abc1234", "pr")
+      }
 
     assertEquals(
       "A commit target cannot be combined with --scope 'pr'; use the default branch scope.",
@@ -70,9 +71,10 @@ class StandaloneCodeReviewTargetTest {
 
   @Test
   fun `conflicting positional and scope tokens fail`() {
-    val error = assertFailsWith<UsageError> {
-      resolveStandaloneCodeReviewTarget("pr", "uncommitted")
-    }
+    val error =
+      assertFailsWith<UsageError> {
+        resolveStandaloneCodeReviewTarget("pr", "uncommitted")
+      }
 
     assertEquals(
       "A positional 'pr' cannot be combined with --scope 'uncommitted'.",

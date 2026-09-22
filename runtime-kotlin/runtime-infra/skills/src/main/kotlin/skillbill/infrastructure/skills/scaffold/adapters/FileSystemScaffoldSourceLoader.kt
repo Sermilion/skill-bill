@@ -13,6 +13,7 @@ import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack as fsLoadPlatformPack
+
 @Inject
 class FileSystemScaffoldSourceLoader : ScaffoldSourceLoaderPort {
   override fun loadPlatformPack(request: ScaffoldPlatformPackLoadRequest): ScaffoldPlatformPackLoadResult =
@@ -27,18 +28,22 @@ class FileSystemScaffoldSourceLoader : ScaffoldSourceLoaderPort {
     pack: PlatformManifest,
   ): List<String> {
     val raw = payload["consumer_skill_dirs"]
-    val requested = if (raw == null) {
-      defaultAddonConsumerSkillDirs(packRoot, pack)
-    } else {
-      requireStringList(raw, "consumer_skill_dirs").map(String::trim)
-    }
+    val requested =
+      if (raw == null) {
+        defaultAddonConsumerSkillDirs(packRoot, pack)
+      } else {
+        requireStringList(raw, "consumer_skill_dirs").map(String::trim)
+      }
     val seen = mutableSetOf<String>()
     return requested.map { dir ->
       validateAddonConsumerSkillDir(pack, dir)
     }.filter { dir -> seen.add(dir) }
   }
 
-  internal fun validateAddonConsumerSkillDir(pack: PlatformManifest, skillRelativeDir: String): String {
+  internal fun validateAddonConsumerSkillDir(
+    pack: PlatformManifest,
+    skillRelativeDir: String,
+  ): String {
     val relative = parseRelativePath(skillRelativeDir)
     if (relative.isAbsolute || skillRelativeDir.startsWith("/") || skillRelativeDir.startsWith("\\")) {
       failConsumerSkillDirsNotRelative()
@@ -59,16 +64,20 @@ class FileSystemScaffoldSourceLoader : ScaffoldSourceLoaderPort {
     return normalizedDir
   }
 
-  private fun parseRelativePath(skillRelativeDir: String): Path = try {
-    Path.of(skillRelativeDir)
-  } catch (error: InvalidPathException) {
-    throw InvalidScaffoldPayloadError(
-      "Scaffold payload field 'consumer_skill_dirs' contains invalid path '$skillRelativeDir': ${error.message}",
-      error,
-    )
-  }
+  private fun parseRelativePath(skillRelativeDir: String): Path =
+    try {
+      Path.of(skillRelativeDir)
+    } catch (error: InvalidPathException) {
+      throw InvalidScaffoldPayloadError(
+        "Scaffold payload field 'consumer_skill_dirs' contains invalid path '$skillRelativeDir': ${error.message}",
+        error,
+      )
+    }
 
-  private fun defaultAddonConsumerSkillDirs(packRoot: Path, pack: PlatformManifest): List<String> {
+  private fun defaultAddonConsumerSkillDirs(
+    packRoot: Path,
+    pack: PlatformManifest,
+  ): List<String> {
     pack.declaredFiles.baseline?.let { contentFile ->
       return listOf(packRoot.relativize(contentFile.toPath().parent).toString().replace('\\', '/'))
     }
@@ -84,19 +93,25 @@ class FileSystemScaffoldSourceLoader : ScaffoldSourceLoaderPort {
   }
 }
 
-private fun failConsumerSkillDirsNotRelative(): Nothing = throw InvalidScaffoldPayloadError(
-  "Scaffold payload field 'consumer_skill_dirs' entries must be relative skill directories.",
-)
+private fun failConsumerSkillDirsNotRelative(): Nothing =
+  throw InvalidScaffoldPayloadError(
+    "Scaffold payload field 'consumer_skill_dirs' entries must be relative skill directories.",
+  )
 
-private fun failConsumerSkillDirsParentSegment(): Nothing = throw InvalidScaffoldPayloadError(
-  "Scaffold payload field 'consumer_skill_dirs' entries must not contain '..' segments.",
-)
+private fun failConsumerSkillDirsParentSegment(): Nothing =
+  throw InvalidScaffoldPayloadError(
+    "Scaffold payload field 'consumer_skill_dirs' entries must not contain '..' segments.",
+  )
 
-private fun failConsumerSkillDirsMissing(skillRelativeDir: String): Nothing = throw InvalidScaffoldPayloadError(
-  "Scaffold payload field 'consumer_skill_dirs' references missing skill directory '$skillRelativeDir'.",
-)
+private fun failConsumerSkillDirsMissing(skillRelativeDir: String): Nothing =
+  throw InvalidScaffoldPayloadError(
+    "Scaffold payload field 'consumer_skill_dirs' references missing skill directory '$skillRelativeDir'.",
+  )
 
-private fun failConsumerSkillDirsNotDeclared(pack: PlatformManifest, skillRelativeDir: String): Nothing =
+private fun failConsumerSkillDirsNotDeclared(
+  pack: PlatformManifest,
+  skillRelativeDir: String,
+): Nothing =
   throw InvalidScaffoldPayloadError(
     "Scaffold payload field 'consumer_skill_dirs' references '$skillRelativeDir', but that directory is not " +
       "declared as a skill in platform pack '${pack.slug}'. Declared skill directories: " +

@@ -34,17 +34,18 @@ internal fun reviewPlatformSlug(
 
 private fun normalizedRoutedSkillPlatformSlugs(
   routedSkillPlatformSlugs: Map<String, String>,
-): List<Pair<String, String>> = routedSkillPlatformSlugs
-  .mapNotNull { (skillName, platformSlug) ->
-    val normalizedSkillName = normalizeTelemetrySlug(skillName)
-    val normalizedPlatformSlug = normalizePlatformSlug(platformSlug)
-    if (normalizedSkillName == "unknown" || normalizedPlatformSlug == "unknown") {
-      null
-    } else {
-      normalizedSkillName to normalizedPlatformSlug
+): List<Pair<String, String>> =
+  routedSkillPlatformSlugs
+    .mapNotNull { (skillName, platformSlug) ->
+      val normalizedSkillName = normalizeTelemetrySlug(skillName)
+      val normalizedPlatformSlug = normalizePlatformSlug(platformSlug)
+      if (normalizedSkillName == "unknown" || normalizedPlatformSlug == "unknown") {
+        null
+      } else {
+        normalizedSkillName to normalizedPlatformSlug
+      }
     }
-  }
-  .sortedWith(compareByDescending<Pair<String, String>> { it.first.length }.thenBy { it.first })
+    .sortedWith(compareByDescending<Pair<String, String>> { it.first.length }.thenBy { it.first })
 
 private fun String?.isDescriptiveStackLabel(normalizedStack: String): Boolean {
   if (normalizedStack == "unknown") return false

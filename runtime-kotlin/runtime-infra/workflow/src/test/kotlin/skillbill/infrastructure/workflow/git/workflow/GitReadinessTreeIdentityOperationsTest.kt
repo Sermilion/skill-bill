@@ -24,41 +24,56 @@ class GitReadinessTreeIdentityOperationsTest {
     git(repoRoot, "add", ".")
     git(repoRoot, "commit", "-m", "initial")
 
-    val before = requireNotNull(
-      (GitReadinessTreeIdentityOperations.computeSourceTreeSha(repoRoot, "wf") as WorkflowGitOperationResult.Ok).value,
-    )
+    val before =
+      requireNotNull(
+        (
+          GitReadinessTreeIdentityOperations.computeSourceTreeSha(
+            repoRoot,
+            "wf",
+          ) as WorkflowGitOperationResult.Ok
+        ).value,
+      )
     Files.writeString(repoRoot.resolve("runtime-kotlin/agent/history.md"), "history two\n")
-    val after = requireNotNull(
-      (GitReadinessTreeIdentityOperations.computeSourceTreeSha(repoRoot, "wf") as WorkflowGitOperationResult.Ok).value,
-    )
+    val after =
+      requireNotNull(
+        (
+          GitReadinessTreeIdentityOperations.computeSourceTreeSha(
+            repoRoot,
+            "wf",
+          ) as WorkflowGitOperationResult.Ok
+        ).value,
+      )
 
     assertEquals(before, after)
   }
 
   @Test
   fun `stale base ref diagnostic carries captured versus current base and head`() {
-    val evidence = FeatureTaskRuntimeReadinessEvidence(
-      sourceTreeSha = "tree-captured",
-      baseRefSha = "base-captured",
-      headSha = "head-captured",
-      selectedChecks = listOf("pack-collect-all"),
-      checkResults = listOf(
-        FeatureTaskRuntimeReadinessCheckResult(
-          "pack-collect-all",
-          "./gradlew check",
-          0,
-          FeatureTaskRuntimeReadinessCheckStatus.PASSED,
-        ),
-      ),
-    )
-    val failure = assertFailsWith<InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError> {
-      evidence.requireReady(
-        "commit_push",
-        expectedSourceTreeSha = "tree-current",
-        expectedBaseRefSha = "base-current",
-        expectedHeadSha = "head-current",
+    val evidence =
+      FeatureTaskRuntimeReadinessEvidence(
+        sourceTreeSha = "tree-captured",
+        baseRefSha = "base-captured",
+        headSha = "head-captured",
+        selectedChecks = listOf("pack-collect-all"),
+        checkResults =
+          listOf(
+            FeatureTaskRuntimeReadinessCheckResult(
+              "pack-collect-all",
+              "./gradlew check",
+              0,
+              FeatureTaskRuntimeReadinessCheckStatus.PASSED,
+            ),
+          ),
       )
-    }
+    val failure =
+      assertFailsWith<InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError> {
+        evidence.requireReady(
+          "commit_push",
+          expectedSourceTreeSha = "tree-current",
+          expectedBaseRefSha = "base-current",
+          expectedHeadSha = "head-current",
+        )
+      }
     assertTrue(failure.message.orEmpty().contains("tree-captured"))
     assertTrue(failure.message.orEmpty().contains("tree-current"))
     assertTrue(failure.message.orEmpty().contains("base-captured"))
@@ -82,8 +97,9 @@ class GitReadinessTreeIdentityOperationsTest {
     git(repoRoot, "commit", "-m", "branch change")
     Files.writeString(repoRoot.resolve("untracked-change.txt"), "untracked\n")
 
-    val result = GitReadinessTreeIdentityOperations.changedPathsAgainstBase(repoRoot, "main")
-      as WorkflowGitOperationResult.Ok
+    val result =
+      GitReadinessTreeIdentityOperations.changedPathsAgainstBase(repoRoot, "main")
+        as WorkflowGitOperationResult.Ok
     val paths = result.value.orEmpty().split('\u0000').filter(String::isNotBlank).toSet()
 
     assertEquals(setOf("committed-branch-change.txt", "untracked-change.txt"), paths)

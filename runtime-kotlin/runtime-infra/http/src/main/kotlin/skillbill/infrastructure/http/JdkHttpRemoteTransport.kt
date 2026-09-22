@@ -34,15 +34,19 @@ class JdkHttpRemoteTransport(
   }
 
   companion object {
-    fun create(connectTimeout: Duration? = null, requestTimeout: Duration? = null): RemoteTransportPort =
+    fun create(
+      connectTimeout: Duration? = null,
+      requestTimeout: Duration? = null,
+    ): RemoteTransportPort =
       if (connectTimeout == null && requestTimeout == null) {
         JdkHttpRequester
       } else {
         JdkHttpRemoteTransport(
-          httpClient = HttpClient
-            .newBuilder()
-            .connectTimeout(connectTimeout ?: DEFAULT_HTTP_CONNECT_TIMEOUT)
-            .build(),
+          httpClient =
+            HttpClient
+              .newBuilder()
+              .connectTimeout(connectTimeout ?: DEFAULT_HTTP_CONNECT_TIMEOUT)
+              .build(),
           requestTimeout = requestTimeout ?: DEFAULT_HTTP_REQUEST_TIMEOUT,
         )
       }
@@ -50,15 +54,17 @@ class JdkHttpRemoteTransport(
 }
 
 object JdkHttpRequester : RemoteTransportPort by JdkHttpRemoteTransport(
-  httpClient = HttpClient
-    .newBuilder()
-    .connectTimeout(DEFAULT_HTTP_CONNECT_TIMEOUT)
-    .build(),
+  httpClient =
+    HttpClient
+      .newBuilder()
+      .connectTimeout(DEFAULT_HTTP_CONNECT_TIMEOUT)
+      .build(),
   requestTimeout = DEFAULT_HTTP_REQUEST_TIMEOUT,
 )
 
-private fun bodyPublisher(bodyJson: String?): HttpRequest.BodyPublisher = if (bodyJson == null) {
-  HttpRequest.BodyPublishers.noBody()
-} else {
-  HttpRequest.BodyPublishers.ofString(bodyJson)
-}
+private fun bodyPublisher(bodyJson: String?): HttpRequest.BodyPublisher =
+  if (bodyJson == null) {
+    HttpRequest.BodyPublishers.noBody()
+  } else {
+    HttpRequest.BodyPublishers.ofString(bodyJson)
+  }

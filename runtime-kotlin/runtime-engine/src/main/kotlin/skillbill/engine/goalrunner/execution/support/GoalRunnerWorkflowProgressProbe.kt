@@ -5,30 +5,34 @@ import skillbill.ports.agentrun.model.AgentRunDeclaredProgressSnapshot
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 
-fun progressProbe(reader: GoalRunnerTickProgressReader, subtaskId: Int): AgentRunProgressProbe =
-  GoalRunnerWorkflowProgressProbe(reader = reader, subtaskId = subtaskId)
+fun progressProbe(
+  reader: GoalRunnerTickProgressReader,
+  subtaskId: Int,
+): AgentRunProgressProbe = GoalRunnerWorkflowProgressProbe(reader = reader, subtaskId = subtaskId)
 
 class GoalRunnerWorkflowProgressProbe(
   private val reader: GoalRunnerTickProgressReader,
   private val subtaskId: Int,
 ) : AgentRunProgressProbe {
-  override fun progressToken(): String? = reader.progressState()
-    ?.let { progress ->
-      listOfNotNull(progress.subtask.progressToken(), progress.childProgress?.progressToken)
-    }
-    ?.joinToString("\n")
-    ?.takeIf(String::isNotBlank)
+  override fun progressToken(): String? =
+    reader.progressState()
+      ?.let { progress ->
+        listOfNotNull(progress.subtask.progressToken(), progress.childProgress?.progressToken)
+      }
+      ?.joinToString("\n")
+      ?.takeIf(String::isNotBlank)
 
-  override fun progressLabel(): String? = reader.progressState()?.let { progress ->
-    progress.childProgress?.let { child ->
-      listOfNotNull(
-        "subtask $subtaskId",
-        "workflow ${child.workflowId}",
-        "step ${child.currentStepId}",
-        child.latestLivenessSignal,
-      ).joinToString(" ")
-    } ?: "subtask $subtaskId manifest updated"
-  }
+  override fun progressLabel(): String? =
+    reader.progressState()?.let { progress ->
+      progress.childProgress?.let { child ->
+        listOfNotNull(
+          "subtask $subtaskId",
+          "workflow ${child.workflowId}",
+          "step ${child.currentStepId}",
+          child.latestLivenessSignal,
+        ).joinToString(" ")
+      } ?: "subtask $subtaskId manifest updated"
+    }
 }
 
 fun declaredProgressProbe(reader: GoalRunnerTickProgressReader): AgentRunDeclaredProgressProbe =
@@ -44,11 +48,12 @@ fun declaredProgressProbe(reader: GoalRunnerTickProgressReader): AgentRunDeclare
       }
   }
 
-fun DecompositionSubtask.progressToken(): String = listOf(
-  status,
-  workflowId.orEmpty(),
-  branch.orEmpty(),
-  commitSha.orEmpty(),
-  blockedReason.orEmpty(),
-  lastResumableStep.orEmpty(),
-).joinToString("|")
+fun DecompositionSubtask.progressToken(): String =
+  listOf(
+    status,
+    workflowId.orEmpty(),
+    branch.orEmpty(),
+    commitSha.orEmpty(),
+    blockedReason.orEmpty(),
+    lastResumableStep.orEmpty(),
+  ).joinToString("|")

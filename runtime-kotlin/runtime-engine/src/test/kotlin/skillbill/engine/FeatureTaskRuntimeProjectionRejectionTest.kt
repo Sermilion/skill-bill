@@ -7,17 +7,20 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeProjectionRejectionTest {
   @Test
   fun `implement prose missing value blocks audit with a malformed-field reason`() {
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(
-        launcher = RuntimeRecordingLauncher { request ->
-          facts(validJsonOutput(phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))))
-        },
-        agentAssignment = phasePerAgentAssignment(),
-      ),
-    )
+    val harness =
+      runnerHarness(
+        RuntimeHarnessConfig(
+          launcher =
+            RuntimeRecordingLauncher { request ->
+              facts(validJsonOutput(phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))))
+            },
+          agentAssignment = phasePerAgentAssignment(),
+        ),
+      )
     harness.seedPhase("preplan", "completed", 1, phaseAgent("preplan"), preplanEnvelope())
     harness.seedPhase("plan", "completed", 1, phaseAgent("plan"), validJsonOutput("plan"))
     val legacyImplementation =
@@ -43,14 +46,16 @@ class FeatureTaskRuntimeProjectionRejectionTest {
 
   @Test
   fun `a legacy handoff-envelope launch-seam block stays durably blocked on resume`() {
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(
-        launcher = RuntimeRecordingLauncher { request ->
-          facts(validJsonOutput(phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))))
-        },
-        agentAssignment = phasePerAgentAssignment(),
-      ),
-    )
+    val harness =
+      runnerHarness(
+        RuntimeHarnessConfig(
+          launcher =
+            RuntimeRecordingLauncher { request ->
+              facts(validJsonOutput(phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))))
+            },
+          agentAssignment = phasePerAgentAssignment(),
+        ),
+      )
     harness.seedPhase("preplan", "completed", 1, phaseAgent("preplan"), preplanEnvelope())
     harness.seedPhase("plan", "completed", 1, phaseAgent("plan"), validJsonOutput("plan"))
     harness.seedPhase("implement", "completed", 1, phaseAgent("implement"), validJsonOutput("implement"))

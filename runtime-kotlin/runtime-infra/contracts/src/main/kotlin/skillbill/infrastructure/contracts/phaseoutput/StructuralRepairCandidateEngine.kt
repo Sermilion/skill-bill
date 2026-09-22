@@ -6,6 +6,7 @@ import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
+
 internal object StructuralRepairCandidateEngine {
   private const val MAX_CANDIDATES = 8
 
@@ -17,42 +18,48 @@ internal object StructuralRepairCandidateEngine {
   ): FeatureTaskRuntimePhaseOutputStructuralRepairDecision? {
     val generation = collectCandidates(text)
     return when {
-      generation.limitExceeded -> StructuralRepairDecisions.reject(
-        FeatureTaskRuntimePhaseOutputFailureCode.REPAIR_LIMIT_EXCEEDED,
-        "Phase output exceeded the bounded structural-repair candidate limit.",
-      )
-      generation.candidates.isNotEmpty() -> evaluateCandidates(
-        generation.candidates,
-        text,
-        sourceLabel,
-        sourceOffset,
-        sourceText,
-      )
-      generation.unsupportedYaml -> StructuralRepairDecisions.reject(
-        FeatureTaskRuntimePhaseOutputFailureCode.UNSUPPORTED_REPAIR,
-        "YAML structural repair is limited to conservative flow structure.",
-      )
+      generation.limitExceeded ->
+        StructuralRepairDecisions.reject(
+          FeatureTaskRuntimePhaseOutputFailureCode.REPAIR_LIMIT_EXCEEDED,
+          "Phase output exceeded the bounded structural-repair candidate limit.",
+        )
+      generation.candidates.isNotEmpty() ->
+        evaluateCandidates(
+          generation.candidates,
+          text,
+          sourceLabel,
+          sourceOffset,
+          sourceText,
+        )
+      generation.unsupportedYaml ->
+        StructuralRepairDecisions.reject(
+          FeatureTaskRuntimePhaseOutputFailureCode.UNSUPPORTED_REPAIR,
+          "YAML structural repair is limited to conservative flow structure.",
+        )
       else -> null
     }
   }
 
   private fun collectCandidates(text: String): CandidateGeneration {
     val formats = StrictPhaseOutputParser.formatsFor(text)
-    val generatedByFormat = formats.associateWith { format ->
-      StructuralRepairSyntax.generateCandidates(text, format, MAX_CANDIDATES)
-    }
-    val candidates = generatedByFormat.flatMap { (format, generated) ->
-      generated.take(MAX_CANDIDATES).map { candidate -> candidate.copy(format = format) }
-    }.distinctBy { it.format to it.text }
+    val generatedByFormat =
+      formats.associateWith { format ->
+        StructuralRepairSyntax.generateCandidates(text, format, MAX_CANDIDATES)
+      }
+    val candidates =
+      generatedByFormat.flatMap { (format, generated) ->
+        generated.take(MAX_CANDIDATES).map { candidate -> candidate.copy(format = format) }
+      }.distinctBy { it.format to it.text }
     val unsupportedYaml =
       formats.singleOrNull() == FeatureTaskRuntimePhaseOutputFormat.YAML &&
         generatedByFormat[FeatureTaskRuntimePhaseOutputFormat.YAML].isNullOrEmpty() &&
         !StructuralRepairSyntax.isConservativeYamlFlow(text)
     return CandidateGeneration(
       candidates = candidates,
-      limitExceeded = formats.any { format ->
-        StructuralRepairSyntax.exceedsCandidateLimit(text, format, MAX_CANDIDATES)
-      } || generatedByFormat.values.any { it.size > MAX_CANDIDATES },
+      limitExceeded =
+        formats.any { format ->
+          StructuralRepairSyntax.exceedsCandidateLimit(text, format, MAX_CANDIDATES)
+        } || generatedByFormat.values.any { it.size > MAX_CANDIDATES },
       unsupportedYaml = unsupportedYaml,
     )
   }
@@ -64,31 +71,35 @@ internal object StructuralRepairCandidateEngine {
     sourceOffset: Int,
     sourceText: String,
   ): FeatureTaskRuntimePhaseOutputStructuralRepairDecision {
-    val considered = candidates.mapNotNull { candidate ->
-      when (val result = StrictPhaseOutputParser.parseStrict(candidate.text, candidate.format)) {
-        is StrictParse.Success -> Triple(candidate, result.node, false)
-        is StrictParse.Failure -> if (result.code == FeatureTaskRuntimePhaseOutputFailureCode.DUPLICATE_KEY) {
-          DuplicateKeyMergeParser.merge(candidate.text, candidate.format)?.let { merged ->
-            Triple(
-              candidate.copy(text = merged.repairedText, changedOffset = merged.firstDuplicateOffset),
-              merged.node,
-              true,
-            )
-          }
-        } else {
-          null
+    val considered =
+      candidates.mapNotNull { candidate ->
+        when (val result = StrictPhaseOutputParser.parseStrict(candidate.text, candidate.format)) {
+          is StrictParse.Success -> Triple(candidate, result.node, false)
+          is StrictParse.Failure ->
+            if (result.code == FeatureTaskRuntimePhaseOutputFailureCode.DUPLICATE_KEY) {
+              DuplicateKeyMergeParser.merge(candidate.text, candidate.format)?.let { merged ->
+                Triple(
+                  candidate.copy(text = merged.repairedText, changedOffset = merged.firstDuplicateOffset),
+                  merged.node,
+                  true,
+                )
+              }
+            } else {
+              null
+            }
         }
       }
-    }
     return when {
-      considered.isEmpty() -> StructuralRepairDecisions.reject(
-        FeatureTaskRuntimePhaseOutputFailureCode.NO_REPAIR_CANDIDATE,
-        "Phase output is malformed and no bounded structural-repair candidate parses strictly.",
-      )
-      considered.size != 1 -> StructuralRepairDecisions.reject(
-        FeatureTaskRuntimePhaseOutputFailureCode.AMBIGUOUS_REPAIR,
-        "Phase output has multiple strictly parseable structural-repair candidates.",
-      )
+      considered.isEmpty() ->
+        StructuralRepairDecisions.reject(
+          FeatureTaskRuntimePhaseOutputFailureCode.NO_REPAIR_CANDIDATE,
+          "Phase output is malformed and no bounded structural-repair candidate parses strictly.",
+        )
+      considered.size != 1 ->
+        StructuralRepairDecisions.reject(
+          FeatureTaskRuntimePhaseOutputFailureCode.AMBIGUOUS_REPAIR,
+          "Phase output has multiple strictly parseable structural-repair candidates.",
+        )
       else -> {
         val (candidate, node, mergedDuplicateKeys) = considered.single()
         acceptCandidate(
@@ -120,23 +131,26 @@ internal object StructuralRepairCandidateEngine {
         "<root> must be an object after structural repair.",
       )
     } else {
-      val operation = when {
-        mergedDuplicateKeys -> FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS
-        candidate.text.length < origin.originalText.length ->
-          FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER
-        else -> FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER
-      }
-      val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
-        format = if (mergedDuplicateKeys) FeatureTaskRuntimePhaseOutputFormat.JSON else candidate.format,
-        originalDigest = StructuralRepairSyntax.sha256Hex(origin.originalText),
-        repairedDigest = StructuralRepairSyntax.sha256Hex(candidate.text),
-        operation = operation,
-        sourceLocation = StructuralRepairSyntax.sourceLocation(
-          origin.sourceLabel,
-          origin.sourceText,
-          origin.sourceOffset + candidate.changedOffset,
-        ),
-      )
+      val operation =
+        when {
+          mergedDuplicateKeys -> FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS
+          candidate.text.length < origin.originalText.length ->
+            FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER
+          else -> FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER
+        }
+      val evidence =
+        FeatureTaskRuntimePhaseOutputRepairEvidence(
+          format = if (mergedDuplicateKeys) FeatureTaskRuntimePhaseOutputFormat.JSON else candidate.format,
+          originalDigest = StructuralRepairSyntax.sha256Hex(origin.originalText),
+          repairedDigest = StructuralRepairSyntax.sha256Hex(candidate.text),
+          operation = operation,
+          sourceLocation =
+            StructuralRepairSyntax.sourceLocation(
+              origin.sourceLabel,
+              origin.sourceText,
+              origin.sourceOffset + candidate.changedOffset,
+            ),
+        )
       StructuralRepairDecisions.accepted(candidate.text, node, evidence)
     }
   }

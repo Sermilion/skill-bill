@@ -15,6 +15,7 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
+
 internal fun loadDecompositionManifest(
   path: Path,
   fileStore: DecompositionManifestStore,
@@ -44,16 +45,18 @@ internal fun validateDecompositionManifestYaml(
 ): ValidatedDecompositionManifestYaml {
   val yamlText = if (recoverPending) fileStore.readText(path) else fileStore.readTextWithoutRecovery(path)
   return when (val result = validator.validateYamlTextResult(yamlText, path.toString())) {
-    is DecompositionManifestValidationResult.AcceptedUnchanged -> ValidatedDecompositionManifestYaml(
-      manifest = result.manifest,
-      yamlText = result.yamlText,
-      repairEvidence = null,
-    )
-    is DecompositionManifestValidationResult.AcceptedAfterRepair -> ValidatedDecompositionManifestYaml(
-      manifest = result.manifest,
-      yamlText = result.yamlText,
-      repairEvidence = result.evidence,
-    )
+    is DecompositionManifestValidationResult.AcceptedUnchanged ->
+      ValidatedDecompositionManifestYaml(
+        manifest = result.manifest,
+        yamlText = result.yamlText,
+        repairEvidence = null,
+      )
+    is DecompositionManifestValidationResult.AcceptedAfterRepair ->
+      ValidatedDecompositionManifestYaml(
+        manifest = result.manifest,
+        yamlText = result.yamlText,
+        repairEvidence = result.evidence,
+      )
     is DecompositionManifestValidationResult.Rejected -> {
       result.requireAccepted(path.toString())
       error("Unreachable rejected decomposition manifest result.")
@@ -61,10 +64,14 @@ internal fun validateDecompositionManifestYaml(
   }
 }
 
-internal fun archivedDecompositionManifest(repoRoot: Path, manifestPath: Path): Boolean {
-  val relative = runCatching { repoRoot.normalize().relativize(manifestPath.normalize()).toString() }
-    .getOrDefault(manifestPath.toString())
-    .replace('\\', '/')
+internal fun archivedDecompositionManifest(
+  repoRoot: Path,
+  manifestPath: Path,
+): Boolean {
+  val relative =
+    runCatching { repoRoot.normalize().relativize(manifestPath.normalize()).toString() }
+      .getOrDefault(manifestPath.toString())
+      .replace('\\', '/')
   return relative.startsWith(".feature-specs/done/")
 }
 
@@ -83,18 +90,20 @@ internal fun findMatchingDecompositionManifests(
 ): List<DecompositionManifestFileCandidate> {
   val normalizedIssueKey = issueKey.trim().uppercase()
   val issueKeyInPath = Regex("(?<![A-Za-z0-9])${Regex.escape(normalizedIssueKey)}(?![A-Za-z0-9])")
-  val manifestFiles = if (recoverPending) {
-    fileStore.findDecompositionManifestFiles(repoRoot)
-  } else {
-    fileStore.findDecompositionManifestFilesWithoutRecovery(repoRoot)
-  }
+  val manifestFiles =
+    if (recoverPending) {
+      fileStore.findDecompositionManifestFiles(repoRoot)
+    } else {
+      fileStore.findDecompositionManifestFilesWithoutRecovery(repoRoot)
+    }
   return manifestFiles
     .asSequence()
     .sortedBy { path -> path.toString() }
     .filterNot { path -> archivedDecompositionManifest(repoRoot, path) }
     .filter { path ->
-      val relativePath = runCatching { repoRoot.relativize(path).toString() }
-        .getOrElse { path.toString() }
+      val relativePath =
+        runCatching { repoRoot.relativize(path).toString() }
+          .getOrElse { path.toString() }
       issueKeyInPath.containsMatchIn(relativePath.uppercase())
     }
     .map { path ->
@@ -113,19 +122,21 @@ internal fun resolveDecompositionManifest(
   validator: DecompositionManifestValidator,
   recoverPending: Boolean = true,
 ): DecompositionManifest? {
-  val candidates = findMatchingDecompositionManifests(
-    repoRoot = repoRoot,
-    issueKey = issueKey,
-    fileStore = fileStore,
-    validator = validator,
-    recoverPending = recoverPending,
-  )
+  val candidates =
+    findMatchingDecompositionManifests(
+      repoRoot = repoRoot,
+      issueKey = issueKey,
+      fileStore = fileStore,
+      validator = validator,
+      recoverPending = recoverPending,
+    )
   val activeCandidates = candidates.filter { candidate -> candidate.manifest.isActiveGoalRuntime() }
   if (activeCandidates.size > 1) {
     throw InvalidDecompositionManifestSchemaError(
       sourceLabel = issueKey,
-      reason = "multiple active decomposition manifests match the requested issue key: " +
-        activeCandidates.joinToString { candidate -> repoRoot.relativize(candidate.path).toString() } + ".",
+      reason =
+        "multiple active decomposition manifests match the requested issue key: " +
+          activeCandidates.joinToString { candidate -> repoRoot.relativize(candidate.path).toString() } + ".",
       failureCode = "duplicate_active",
     )
   }
@@ -133,21 +144,23 @@ internal fun resolveDecompositionManifest(
 }
 
 internal fun DecompositionManifest.withParentStatus(): DecompositionManifest {
-  val parentStatus = when {
-    subtasks.all {
-      it.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
-    } -> DecompositionStatus.COMPLETE.wireValue
-    subtasks.any { it.status.decompositionStatus() == DecompositionStatus.BLOCKED } ->
-      DecompositionStatus.BLOCKED.wireValue
-    subtasks.any {
-      it.status.decompositionStatus() in setOf(
-        DecompositionStatus.IN_PROGRESS,
-        DecompositionStatus.COMPLETE,
-        DecompositionStatus.SKIPPED,
-      ) || it.hasStarted()
-    } -> DecompositionStatus.IN_PROGRESS.wireValue
-    else -> DecompositionStatus.PENDING.wireValue
-  }
+  val parentStatus =
+    when {
+      subtasks.all {
+        it.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
+      } -> DecompositionStatus.COMPLETE.wireValue
+      subtasks.any { it.status.decompositionStatus() == DecompositionStatus.BLOCKED } ->
+        DecompositionStatus.BLOCKED.wireValue
+      subtasks.any {
+        it.status.decompositionStatus() in
+          setOf(
+            DecompositionStatus.IN_PROGRESS,
+            DecompositionStatus.COMPLETE,
+            DecompositionStatus.SKIPPED,
+          ) || it.hasStarted()
+      } -> DecompositionStatus.IN_PROGRESS.wireValue
+      else -> DecompositionStatus.PENDING.wireValue
+    }
   return copy(status = parentStatus)
 }
 
@@ -164,21 +177,23 @@ private fun matchedManifest(
   validator: DecompositionManifestValidator,
   recoverPending: Boolean,
 ): DecompositionManifest {
-  val manifest = try {
-    loadDecompositionManifest(path, fileStore, validator, recoverPending)
-  } catch (error: NoSuchFileException) {
-    throw InvalidDecompositionManifestSchemaError(
-      sourceLabel = path.toString(),
-      reason = "manifest disappeared during read; the decomposition bundle is incomplete.",
-      failureCode = "incomplete_bundle",
-      cause = error,
-    )
-  }
+  val manifest =
+    try {
+      loadDecompositionManifest(path, fileStore, validator, recoverPending)
+    } catch (error: NoSuchFileException) {
+      throw InvalidDecompositionManifestSchemaError(
+        sourceLabel = path.toString(),
+        reason = "manifest disappeared during read; the decomposition bundle is incomplete.",
+        failureCode = "incomplete_bundle",
+        cause = error,
+      )
+    }
   if (manifest.issueKey != normalizedIssueKey) {
     throw InvalidDecompositionManifestSchemaError(
       sourceLabel = path.toString(),
-      reason = "manifest issue_key '${manifest.issueKey}' does not match the requested issue key " +
-        "'$normalizedIssueKey'.",
+      reason =
+        "manifest issue_key '${manifest.issueKey}' does not match the requested issue key " +
+          "'$normalizedIssueKey'.",
       failureCode = "issue_key_mismatch",
     )
   }

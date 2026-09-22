@@ -8,11 +8,12 @@ import java.nio.file.Path
 import kotlin.time.DurationUnit
 
 internal class JunieAgentRunCommandBuilder(
-  override val governedReviewLaunchCapability: GovernedReviewLaunchCapability = GovernedReviewLaunchCapability(
-    governedOnlyTooling = false,
-    mcpIsolation = false,
-    configFormat = McpRegistrationOperations.configFormatFor(InstallAgent.JUNIE),
-  ),
+  override val governedReviewLaunchCapability: GovernedReviewLaunchCapability =
+    GovernedReviewLaunchCapability(
+      governedOnlyTooling = false,
+      mcpIsolation = false,
+      configFormat = McpRegistrationOperations.configFormatFor(InstallAgent.JUNIE),
+    ),
   private val databasePath: Path? = null,
 ) : AgentRunCommandBuilder {
   override val agent: InstallAgent = InstallAgent.JUNIE
@@ -22,22 +23,24 @@ internal class JunieAgentRunCommandBuilder(
     requireProcessLaunch(request, reviewIsolation)
     requireGovernedReviewLaunch(request, agent, governedReviewLaunchCapability)
     return goalContinuationCommand(request, agent, databasePath) ?: AgentRunCommand(
-      command = buildList {
-        require(request.modelOverride == null && request.effortOverride == null) {
-          "junie cannot honor a model/effort directive; remove its execution_matrix entry or --phase-model assignment."
-        }
-        add(InstallAgent.JUNIE.wireValue)
-        add("--project")
-        add(request.repoRoot.toString())
-        add("--output-format")
-        add("text")
-        add("--skip-update-check")
-        request.timeout?.let { timeout ->
-          add("--timeout")
-          add(timeout.toLong(DurationUnit.MILLISECONDS).toString())
-        }
-        add(launchPrompt(request))
-      },
+      command =
+        buildList {
+          require(request.modelOverride == null && request.effortOverride == null) {
+            "junie cannot honor a model/effort directive; " +
+              "remove its execution_matrix entry or --phase-model assignment."
+          }
+          add(InstallAgent.JUNIE.wireValue)
+          add("--project")
+          add(request.repoRoot.toString())
+          add("--output-format")
+          add("text")
+          add("--skip-update-check")
+          request.timeout?.let { timeout ->
+            add("--timeout")
+            add(timeout.toLong(DurationUnit.MILLISECONDS).toString())
+          }
+          add(launchPrompt(request))
+        },
       workingDirectory = request.repoRoot,
       timeout = request.timeout,
       environment = goalContinuationEnvironment(request),
@@ -45,7 +48,7 @@ internal class JunieAgentRunCommandBuilder(
       conversationIsolation = governedReviewConversationIsolation(request),
       idlePolicy = unstreamedLivenessPolicy(request),
       environmentPassthroughKeys =
-      if (request.reviewEvidenceBroker != null) JUNIE_PROVIDER_PASSTHROUGH_KEYS else emptySet(),
+        if (request.reviewEvidenceBroker != null) JUNIE_PROVIDER_PASSTHROUGH_KEYS else emptySet(),
     )
   }
 }

@@ -15,16 +15,20 @@ import kotlin.test.assertTrue
 class McpRegistrationOperationsTest {
   private val runtimeMcpBin = Path.of("/tmp/runtime-mcp")
 
-  private fun decode(path: Path): Map<String, Any?> = JsonCodec.anyToStringAnyMap(
-    JsonCodec.parseObjectOrNull(Files.readString(path))?.let(JsonCodec::jsonElementToValue),
-  ) ?: emptyMap()
+  private fun decode(path: Path): Map<String, Any?> =
+    JsonCodec.anyToStringAnyMap(
+      JsonCodec.parseObjectOrNull(Files.readString(path))?.let(JsonCodec::jsonElementToValue),
+    ) ?: emptyMap()
 
   private fun skillBillServer(path: Path): Map<*, *> {
     val servers = decode(path)["mcpServers"] as Map<*, *>
     return servers["skill-bill"] as Map<*, *>
   }
 
-  private fun markedProfile(home: Path, name: String): Path {
+  private fun markedProfile(
+    home: Path,
+    name: String,
+  ): Path {
     val root = home.resolve(name)
     Files.createDirectories(root)
     Files.createFile(root.resolve(".claude.json"))
@@ -130,11 +134,12 @@ class McpRegistrationOperationsTest {
 
     val baseline = Files.createTempDirectory("mcp-baseline")
     val baselinePath = baseline.resolve(".claude.json")
-    val baselineResult = McpJsonConfig.register(
-      "claude",
-      baselinePath,
-      runtimeMcpBin.toAbsolutePath().normalize().toString(),
-    )
+    val baselineResult =
+      McpJsonConfig.register(
+        "claude",
+        baselinePath,
+        runtimeMcpBin.toAbsolutePath().normalize().toString(),
+      )
     assertEquals(Files.readString(baselinePath), Files.readString(defaultConfig))
     assertEquals(baselineResult.changed, result.changed)
   }
@@ -149,9 +154,10 @@ class McpRegistrationOperationsTest {
 
     val defaultConfig = home.resolve(".claude.json")
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      McpRegistrationOperations.register("claude", runtimeMcpBin, home, environment = emptyMap())
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        McpRegistrationOperations.register("claude", runtimeMcpBin, home, environment = emptyMap())
+      }
     assertContains(error.message.orEmpty(), malformedConfig.toString())
 
     assertEquals("/tmp/runtime-mcp", skillBillServer(defaultConfig)["command"])
@@ -165,12 +171,13 @@ class McpRegistrationOperationsTest {
     val envRoot = Files.createTempDirectory("mcp-config-dir-target")
     Files.createFile(envRoot.resolve(".claude.json"))
 
-    val result = McpRegistrationOperations.register(
-      "claude",
-      runtimeMcpBin,
-      home,
-      environment = mapOf("CLAUDE_CONFIG_DIR" to envRoot.toString()),
-    )
+    val result =
+      McpRegistrationOperations.register(
+        "claude",
+        runtimeMcpBin,
+        home,
+        environment = mapOf("CLAUDE_CONFIG_DIR" to envRoot.toString()),
+      )
 
     val defaultConfig = home.resolve(".claude.json")
     val envConfig = envRoot.resolve(".claude.json")
@@ -188,10 +195,11 @@ class McpRegistrationOperationsTest {
     val home = Files.createTempDirectory("mcp-single-target")
     Files.createDirectories(home.resolve(".codex"))
 
-    val singleTargetAgents = mapOf(
-      "junie" to home.resolve(".junie/mcp/mcp.json"),
-      "cursor" to home.resolve(".cursor/mcp.json"),
-    )
+    val singleTargetAgents =
+      mapOf(
+        "junie" to home.resolve(".junie/mcp/mcp.json"),
+        "cursor" to home.resolve(".cursor/mcp.json"),
+      )
 
     singleTargetAgents.forEach { (agent, expected) ->
       val result = McpRegistrationOperations.register(agent, runtimeMcpBin, home, environment = emptyMap())
@@ -232,17 +240,18 @@ class McpRegistrationOperationsTest {
     val home = Files.createTempDirectory("mcp-cursor-register")
     Files.createDirectories(home.resolve(".cursor"))
     val configPath = home.resolve(".cursor/mcp.json")
-    val existingContent = """
-    {
-      "unrelatedKey": "unrelatedValue",
-      "mcpServers": {
-        "other-server": {
-          "command": "other-command",
-          "args": ["--arg1"]
+    val existingContent =
+      """
+      {
+        "unrelatedKey": "unrelatedValue",
+        "mcpServers": {
+          "other-server": {
+            "command": "other-command",
+            "args": ["--arg1"]
+          }
         }
       }
-    }
-    """.trimIndent()
+      """.trimIndent()
     Files.writeString(configPath, existingContent)
 
     val result = McpRegistrationOperations.register("cursor", runtimeMcpBin, home, environment = emptyMap())
@@ -280,19 +289,20 @@ class McpRegistrationOperationsTest {
     val home = Files.createTempDirectory("mcp-cursor-unregister")
     Files.createDirectories(home.resolve(".cursor"))
     val configPath = home.resolve(".cursor/mcp.json")
-    val content = """
-    {
-      "unrelatedKey": "unrelatedValue",
-      "mcpServers": {
-        "other-server": {
-          "command": "other-command"
-        },
-        "skill-bill": {
-          "command": "runtime-mcp"
+    val content =
+      """
+      {
+        "unrelatedKey": "unrelatedValue",
+        "mcpServers": {
+          "other-server": {
+            "command": "other-command"
+          },
+          "skill-bill": {
+            "command": "runtime-mcp"
+          }
         }
       }
-    }
-    """.trimIndent()
+      """.trimIndent()
     Files.writeString(configPath, content)
 
     val result = McpRegistrationOperations.unregister("cursor", home, environment = emptyMap())
@@ -314,9 +324,10 @@ class McpRegistrationOperationsTest {
     val configPath = home.resolve(".cursor/mcp.json")
     Files.writeString(configPath, "{ not valid json")
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      McpRegistrationOperations.register("cursor", runtimeMcpBin, home, environment = emptyMap())
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        McpRegistrationOperations.register("cursor", runtimeMcpBin, home, environment = emptyMap())
+      }
     assertTrue(error.message?.contains("mcp.json") == true)
     assertTrue(error.message?.contains("JSON") == true || error.message?.contains("json") == true)
   }
@@ -342,7 +353,10 @@ class McpRegistrationOperationsTest {
     assertEquals("/tmp/runtime-mcp", serverEmpty["command"])
   }
 
-  private fun assertContains(haystack: String, needle: String) {
+  private fun assertContains(
+    haystack: String,
+    needle: String,
+  ) {
     assertTrue(needle in haystack, "Expected '$haystack' to contain '$needle'")
   }
 }

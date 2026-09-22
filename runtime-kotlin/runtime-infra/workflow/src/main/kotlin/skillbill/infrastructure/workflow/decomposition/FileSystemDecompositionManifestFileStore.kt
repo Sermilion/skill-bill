@@ -43,14 +43,18 @@ class FileSystemDecompositionManifestFileStore :
     return Files.isRegularFile(path)
   }
 
-  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T {
+  override fun <T> writeBundleAtomically(
+    writes: List<Pair<Path, String>>,
+    verify: () -> T,
+  ): T {
     val distinctWrites = writes.distinctBy { (path, _) -> path.toAbsolutePath().normalize() }
     val parents = distinctWrites.map { (path, _) -> path.toAbsolutePath().normalize().parent }.distinct()
     if (parents.size != 1 || distinctWrites.isEmpty()) {
-      val snapshots = writes.distinctBy { (path, _) -> path }.map { (path, _) ->
-        val existed = isRegularFile(path)
-        DecompositionManifestBundleSnapshot(path, existed, if (existed) readText(path) else null)
-      }
+      val snapshots =
+        writes.distinctBy { (path, _) -> path }.map { (path, _) ->
+          val existed = isRegularFile(path)
+          DecompositionManifestBundleSnapshot(path, existed, if (existed) readText(path) else null)
+        }
       return runCatching {
         writes.forEach { (path, content) -> writeTextAtomically(path, content) }
         verify()
@@ -71,11 +75,12 @@ class FileSystemDecompositionManifestFileStore :
     val parent = requireNotNull(parents.single())
     return withDecompositionManifestBundleLock(parent, bundleJournal.hostPlatform) {
       bundleJournal.recoverPendingUnlocked(parent)
-      val snapshots = distinctWrites.map { (path, _) ->
-        val normalized = path.toAbsolutePath().normalize()
-        val existed = Files.isRegularFile(normalized)
-        DecompositionManifestBundleSnapshot(normalized, existed, if (existed) Files.readString(normalized) else null)
-      }
+      val snapshots =
+        distinctWrites.map { (path, _) ->
+          val normalized = path.toAbsolutePath().normalize()
+          val existed = Files.isRegularFile(normalized)
+          DecompositionManifestBundleSnapshot(normalized, existed, if (existed) Files.readString(normalized) else null)
+        }
       val transaction = bundleJournal.create(parent, distinctWrites)
       runCatching {
         bundleJournal.apply(transaction)
@@ -108,7 +113,10 @@ class FileSystemDecompositionManifestFileStore :
     }
   }
 
-  override fun writeTextAtomically(target: Path, content: String) {
+  override fun writeTextAtomically(
+    target: Path,
+    content: String,
+  ) {
     withDecompositionManifestBundleLock(target.parent, bundleJournal.hostPlatform) {
       bundleJournal.recoverPendingUnlocked(target.parent)
       bundleJournal.writeAtomically(target, content)

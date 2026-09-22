@@ -21,10 +21,11 @@ class CliInstallRootsRuntimeTest {
     Files.writeString(malformed, "{ not valid json")
     val context = installCliContext(home)
 
-    val register = CliRuntime.run(
-      listOf("--home", home.toString(), "install", "register-mcp", "claude", "--runtime-mcp-bin", "/tmp/runtime-mcp"),
-      context,
-    )
+    val register =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "install", "register-mcp", "claude", "--runtime-mcp-bin", "/tmp/runtime-mcp"),
+        context,
+      )
 
     assertEquals(1, register.exitCode)
     assertContains(register.stdout, malformed.toString())
@@ -46,18 +47,20 @@ class CliInstallRootsRuntimeTest {
     val liveStdout = StringBuilder()
     val context = installCliContext(home).copy(liveStdout = { liveStdout.append(it) })
 
-    val register = CliRuntime.run(
-      listOf("--home", home.toString(), "install", "register-mcp", "claude", "--runtime-mcp-bin", "/tmp/runtime-mcp"),
-      context,
-    )
+    val register =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "install", "register-mcp", "claude", "--runtime-mcp-bin", "/tmp/runtime-mcp"),
+        context,
+      )
     assertEquals(0, register.exitCode, register.stdout)
 
     Files.writeString(workConfig, "{ not valid json")
 
-    val unregister = CliRuntime.run(
-      listOf("--home", home.toString(), "install", "unregister-mcp", "claude"),
-      context,
-    )
+    val unregister =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "install", "unregister-mcp", "claude"),
+        context,
+      )
 
     assertEquals(1, unregister.exitCode)
     assertContains(liveStdout.toString(), defaultConfig.toString())
@@ -66,7 +69,7 @@ class CliInstallRootsRuntimeTest {
         decodeJsonObject(
           Files.readString(defaultConfig),
         )["mcpServers"] as? Map<*, *> ?: emptyMap<Any, Any>()
-        ),
+      ),
     )
     assertEquals("{ not valid json", Files.readString(workConfig))
   }
@@ -150,10 +153,11 @@ class CliInstallRootsRuntimeTest {
     val home = Files.createTempDirectory("skillbill cli home with spaces")
     Files.createDirectories(home.resolve(".codex"))
 
-    val result = CliRuntime.run(
-      listOf("--home", home.toString(), "install", "agent-path", "codex"),
-      installCliContext(home),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "install", "agent-path", "codex"),
+        installCliContext(home),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals(home.resolve(".codex/skills").toString(), result.stdout.trim())
@@ -167,10 +171,11 @@ class CliInstallRootsRuntimeTest {
     Files.createDirectories(work)
     Files.createFile(work.resolve(".claude.json"))
 
-    val result = CliRuntime.run(
-      listOf("--home", home.toString(), "install", "claude-roots"),
-      installCliContext(home),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "install", "claude-roots"),
+        installCliContext(home),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val lines = result.stdout.trim().lines().filter(String::isNotBlank)
@@ -185,15 +190,17 @@ class CliInstallRootsRuntimeTest {
     val home = Files.createTempDirectory("skillbill-cli-claude-roots-json")
     Files.createDirectories(home.resolve(".claude"))
 
-    val result = CliRuntime.run(
-      listOf("--home", home.toString(), "install", "claude-roots"),
-      installCliContext(home),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "install", "claude-roots"),
+        installCliContext(home),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
-    val roots = (result.payload?.get("roots") as? List<*>)
-      ?.mapNotNull { entry -> entry as? String }
-      .orEmpty()
+    val roots =
+      (result.payload?.get("roots") as? List<*>)
+        ?.mapNotNull { entry -> entry as? String }
+        .orEmpty()
     assertEquals(listOf(home.resolve(".claude").toString()), roots)
   }
 
@@ -205,10 +212,11 @@ class CliInstallRootsRuntimeTest {
     Files.createDirectories(work)
     Files.createFile(work.resolve(".claude.json"))
 
-    val result = CliRuntime.run(
-      listOf("--home", home.toString(), "install", "agent-path", "claude"),
-      installCliContext(home),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "install", "agent-path", "claude"),
+        installCliContext(home),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals(home.resolve(".claude/skills").toString(), result.stdout.trim())

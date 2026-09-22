@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.phase
+
 data class PhasePromptHeaderInputs(
   val issueKey: String,
   val phaseId: String,

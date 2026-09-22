@@ -20,17 +20,19 @@ import kotlin.test.assertFailsWith
 class ExperimentSelectionServiceTest {
   @Test
   fun `omitted parameter stays ordinary even when machine config enables experiments`() {
-    val service = service(
-      machinePolicy = ExperimentAvailabilityPolicy.ExplicitNames(listOf("fixture-goal")),
-      catalog = validCatalog(),
-    )
+    val service =
+      service(
+        machinePolicy = ExperimentAvailabilityPolicy.ExplicitNames(listOf("fixture-goal")),
+        catalog = validCatalog(),
+      )
 
-    val selection = service.resolveForLaunch(
-      repoRoot = Path.of("."),
-      parameter = null,
-      mode = ExperimentExecutionMode.GOAL_PAIR,
-      savedSelection = null,
-    )
+    val selection =
+      service.resolveForLaunch(
+        repoRoot = Path.of("."),
+        parameter = null,
+        mode = ExperimentExecutionMode.GOAL_PAIR,
+        savedSelection = null,
+      )
 
     assertEquals(emptyList(), selection.normalizedNames)
     assertEquals(emptySet(), selection.treatmentCapabilities)
@@ -38,25 +40,28 @@ class ExperimentSelectionServiceTest {
 
   @Test
   fun `comma separated selection is one normalized pair with all treatment capabilities`() {
-    val service = service(
-      machinePolicy = null,
-      catalog = validCatalog(
-        ExperimentDescriptorRecord(
-          name = "second-fixture",
-          descriptorVersion = "test-1",
-          executionMode = ExperimentExecutionMode.GOAL_PAIR,
-          requiredLauncherCapabilities = emptySet(),
-          treatmentCapability = "second-treatment",
-        ),
-      ),
-    )
+    val service =
+      service(
+        machinePolicy = null,
+        catalog =
+          validCatalog(
+            ExperimentDescriptorRecord(
+              name = "second-fixture",
+              descriptorVersion = "test-1",
+              executionMode = ExperimentExecutionMode.GOAL_PAIR,
+              requiredLauncherCapabilities = emptySet(),
+              treatmentCapability = "second-treatment",
+            ),
+          ),
+      )
 
-    val selection = service.resolveForLaunch(
-      repoRoot = Path.of("."),
-      parameter = "second-fixture,fixture-goal",
-      mode = ExperimentExecutionMode.GOAL_PAIR,
-      savedSelection = null,
-    )
+    val selection =
+      service.resolveForLaunch(
+        repoRoot = Path.of("."),
+        parameter = "second-fixture,fixture-goal",
+        mode = ExperimentExecutionMode.GOAL_PAIR,
+        savedSelection = null,
+      )
 
     assertEquals(listOf("fixture-goal", "second-fixture"), selection.normalizedNames)
     assertEquals(setOf("fixture-treatment", "second-treatment"), selection.treatmentCapabilities)
@@ -64,27 +69,30 @@ class ExperimentSelectionServiceTest {
 
   @Test
   fun `saved selection remains captured when current availability is disabled`() {
-    val service = service(
-      machinePolicy = ExperimentAvailabilityPolicy.Disabled,
-      catalog = validCatalog(),
-    )
+    val service =
+      service(
+        machinePolicy = ExperimentAvailabilityPolicy.Disabled,
+        catalog = validCatalog(),
+      )
 
-    val selection = service.resolveForLaunch(
-      repoRoot = Path.of("."),
-      parameter = null,
-      mode = ExperimentExecutionMode.GOAL_PAIR,
-      savedSelection = listOf("fixture-goal"),
-    )
+    val selection =
+      service.resolveForLaunch(
+        repoRoot = Path.of("."),
+        parameter = null,
+        mode = ExperimentExecutionMode.GOAL_PAIR,
+        savedSelection = listOf("fixture-goal"),
+      )
 
     assertEquals(listOf("fixture-goal"), selection.normalizedNames)
   }
 
   @Test
   fun `empty repository availability disables a requested name before launch`() {
-    val service = service(
-      machinePolicy = ExperimentAvailabilityPolicy.Disabled,
-      catalog = validCatalog(),
-    )
+    val service =
+      service(
+        machinePolicy = ExperimentAvailabilityPolicy.Disabled,
+        catalog = validCatalog(),
+      )
 
     assertFailsWith<ExperimentDescriptorUnavailableError> {
       service.resolveForLaunch(Path.of("."), "fixture-goal", ExperimentExecutionMode.GOAL_PAIR, null)
@@ -107,16 +115,19 @@ class ExperimentSelectionServiceTest {
 
   @Test
   fun `invalid descriptor capability fails before selection is returned`() {
-    val service = ExperimentSelectionService(
-      machineConfig = object : MachineExperimentConfigStore {
-        override fun readExperimentsAvailability() = null
-      },
-      repoLocalConfigPort = object : RepoLocalConfigPort {
-        override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
-          ReadRepoLocalConfigResult(RepoLocalConfig.defaults())
-      },
-      descriptorCatalog = invalidDescriptorCatalog(),
-    )
+    val service =
+      ExperimentSelectionService(
+        machineConfig =
+          object : MachineExperimentConfigStore {
+            override fun readExperimentsAvailability() = null
+          },
+        repoLocalConfigPort =
+          object : RepoLocalConfigPort {
+            override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
+              ReadRepoLocalConfigResult(RepoLocalConfig.defaults())
+          },
+        descriptorCatalog = invalidDescriptorCatalog(),
+      )
 
     assertFailsWith<InvalidExperimentDescriptorSchemaError> {
       service.resolveForLaunch(
@@ -130,23 +141,28 @@ class ExperimentSelectionServiceTest {
 
   @Test
   fun `mode-incompatible descriptor is rejected instead of entering a goal pair`() {
-    val navigationDescriptor = ExperimentDescriptorRecord(
-      name = "fixture-navigation",
-      descriptorVersion = "test-1",
-      executionMode = ExperimentExecutionMode.NAVIGATION,
-      requiredLauncherCapabilities = emptySet(),
-      treatmentCapability = "fixture-treatment",
-    )
-    val service = service(
-      machinePolicy = null,
-      catalog = object : ExperimentDescriptorCatalog {
-        override fun listCompatible(mode: ExperimentExecutionMode): List<ExperimentDescriptorRecord> =
-          listOf(navigationDescriptor)
+    val navigationDescriptor =
+      ExperimentDescriptorRecord(
+        name = "fixture-navigation",
+        descriptorVersion = "test-1",
+        executionMode = ExperimentExecutionMode.NAVIGATION,
+        requiredLauncherCapabilities = emptySet(),
+        treatmentCapability = "fixture-treatment",
+      )
+    val service =
+      service(
+        machinePolicy = null,
+        catalog =
+          object : ExperimentDescriptorCatalog {
+            override fun listCompatible(mode: ExperimentExecutionMode): List<ExperimentDescriptorRecord> =
+              listOf(navigationDescriptor)
 
-        override fun resolve(name: String, mode: ExperimentExecutionMode): ExperimentDescriptorRecord? =
-          navigationDescriptor.takeIf { it.name == name && it.executionMode == mode }
-      },
-    )
+            override fun resolve(
+              name: String,
+              mode: ExperimentExecutionMode,
+            ): ExperimentDescriptorRecord? = navigationDescriptor.takeIf { it.name == name && it.executionMode == mode }
+          },
+      )
 
     assertFailsWith<InvalidExperimentDescriptorSchemaError> {
       service.resolveForLaunch(
@@ -158,51 +174,61 @@ class ExperimentSelectionServiceTest {
     }
   }
 
-  private fun invalidDescriptorCatalog(): ExperimentDescriptorCatalog = object : ExperimentDescriptorCatalog {
-    private val descriptor = ExperimentDescriptorRecord(
-      name = "fixture-goal",
-      descriptorVersion = "test-1",
-      executionMode = ExperimentExecutionMode.GOAL_PAIR,
-      requiredLauncherCapabilities = setOf(""),
-      treatmentCapability = "fixture-treatment",
-    )
+  private fun invalidDescriptorCatalog(): ExperimentDescriptorCatalog =
+    object : ExperimentDescriptorCatalog {
+      private val descriptor =
+        ExperimentDescriptorRecord(
+          name = "fixture-goal",
+          descriptorVersion = "test-1",
+          executionMode = ExperimentExecutionMode.GOAL_PAIR,
+          requiredLauncherCapabilities = setOf(""),
+          treatmentCapability = "fixture-treatment",
+        )
 
-    override fun listCompatible(mode: ExperimentExecutionMode): List<ExperimentDescriptorRecord> = listOf(descriptor)
+      override fun listCompatible(mode: ExperimentExecutionMode): List<ExperimentDescriptorRecord> = listOf(descriptor)
 
-    override fun resolve(name: String, mode: ExperimentExecutionMode): ExperimentDescriptorRecord? =
-      descriptor.takeIf { it.name == name && it.executionMode == mode }
-  }
+      override fun resolve(
+        name: String,
+        mode: ExperimentExecutionMode,
+      ): ExperimentDescriptorRecord? = descriptor.takeIf { it.name == name && it.executionMode == mode }
+    }
 
   private fun service(
     machinePolicy: ExperimentAvailabilityPolicy?,
     catalog: ExperimentDescriptorCatalog,
-  ): ExperimentSelectionService = ExperimentSelectionService(
-    machineConfig = object : MachineExperimentConfigStore {
-      override fun readExperimentsAvailability() = machinePolicy
-    },
-    repoLocalConfigPort = object : RepoLocalConfigPort {
-      override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
-        ReadRepoLocalConfigResult(RepoLocalConfig.defaults())
-    },
-    descriptorCatalog = catalog,
-  )
+  ): ExperimentSelectionService =
+    ExperimentSelectionService(
+      machineConfig =
+        object : MachineExperimentConfigStore {
+          override fun readExperimentsAvailability() = machinePolicy
+        },
+      repoLocalConfigPort =
+        object : RepoLocalConfigPort {
+          override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
+            ReadRepoLocalConfigResult(RepoLocalConfig.defaults())
+        },
+      descriptorCatalog = catalog,
+    )
 
   private fun validCatalog(vararg additional: ExperimentDescriptorRecord): ExperimentDescriptorCatalog {
-    val records = listOf(
-      ExperimentDescriptorRecord(
-        name = "fixture-goal",
-        descriptorVersion = "test-1",
-        executionMode = ExperimentExecutionMode.GOAL_PAIR,
-        requiredLauncherCapabilities = emptySet(),
-        treatmentCapability = "fixture-treatment",
-      ),
-    ) + additional
+    val records =
+      listOf(
+        ExperimentDescriptorRecord(
+          name = "fixture-goal",
+          descriptorVersion = "test-1",
+          executionMode = ExperimentExecutionMode.GOAL_PAIR,
+          requiredLauncherCapabilities = emptySet(),
+          treatmentCapability = "fixture-treatment",
+        ),
+      ) + additional
     return object : ExperimentDescriptorCatalog {
       override fun listCompatible(mode: ExperimentExecutionMode): List<ExperimentDescriptorRecord> =
         records.filter { it.executionMode == mode }
 
-      override fun resolve(name: String, mode: ExperimentExecutionMode): ExperimentDescriptorRecord? =
-        records.firstOrNull { it.name == name && it.executionMode == mode }
+      override fun resolve(
+        name: String,
+        mode: ExperimentExecutionMode,
+      ): ExperimentDescriptorRecord? = records.firstOrNull { it.name == name && it.executionMode == mode }
     }
   }
 }

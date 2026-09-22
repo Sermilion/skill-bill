@@ -23,30 +23,32 @@ fun Map<*, *>.toGoalRunnerProgressEventOrNull(): GoalRunnerProgressEvent? {
   }
 }
 
-fun GoalRunnerProgressEvent.summary(): String = buildString {
-  append("durable_progress step=")
-  append(stepId)
-  append(" attempt=")
-  append(attemptCount)
-  append(" kind=")
-  append(kind)
-  append(" sequence=")
-  append(sequence)
-  append(" at=")
-  append(timestamp)
-  if (message.isNotBlank()) {
-    append(" message=")
-    append(message)
+fun GoalRunnerProgressEvent.summary(): String =
+  buildString {
+    append("durable_progress step=")
+    append(stepId)
+    append(" attempt=")
+    append(attemptCount)
+    append(" kind=")
+    append(kind)
+    append(" sequence=")
+    append(sequence)
+    append(" at=")
+    append(timestamp)
+    if (message.isNotBlank()) {
+      append(" message=")
+      append(message)
+    }
   }
-}
 
-fun GoalObservabilityEvent.toProgressEvent(): GoalObservabilityProgressEvent = GoalObservabilityProgressEvent(
-  issueKey = issueKey,
-  subtaskId = subtaskId,
-  workflowPhase = workflowPhase,
-  workerRole = workerRole,
-  livenessClass = livenessClass,
-  activitySummary = activitySummary,
-  sequenceNumber = sequenceNumber,
-  timestamp = timestamp,
-)
+fun GoalObservabilityEvent.toProgressEvent(): GoalObservabilityProgressEvent =
+  GoalObservabilityProgressEvent(
+    issueKey = issueKey,
+    subtaskId = subtaskId,
+    workflowPhase = workflowPhase,
+    workerRole = workerRole,
+    livenessClass = livenessClass,
+    activitySummary = activitySummary,
+    sequenceNumber = sequenceNumber,
+    timestamp = timestamp,
+  )

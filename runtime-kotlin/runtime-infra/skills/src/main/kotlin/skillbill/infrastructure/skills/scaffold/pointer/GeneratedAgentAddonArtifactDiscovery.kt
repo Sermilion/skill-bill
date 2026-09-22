@@ -24,12 +24,13 @@ internal fun discoverGeneratedAgentAddonPointersUnderSkills(root: Path): List<Pa
 internal fun discoverAgentAddonGeneratedArtifacts(root: Path): List<Path> {
   val addonsRoot = root.resolve("agent-addons")
   if (!addonsRoot.isDirectory()) return emptyList()
-  val generatedNames = setOf(
-    "SKILL.md",
-    "shell-ceremony.md",
-    "telemetry-contract.md",
-    "stack-routing.md",
-  ) + SupportedAgent.entries.map(SupportedAgent::nativeAgentsKind)
+  val generatedNames =
+    setOf(
+      "SKILL.md",
+      "shell-ceremony.md",
+      "telemetry-contract.md",
+      "stack-routing.md",
+    ) + SupportedAgent.entries.map(SupportedAgent::nativeAgentsKind)
   return Files.walk(addonsRoot).use { stream ->
     stream.filter { it.name in generatedNames }.sorted().toList()
   }

@@ -55,11 +55,12 @@ class FeatureTaskRuntimeReviewPassSequenceTest {
 
   @Test
   fun `resolving auto does not mutate the pinned code review mode`() {
-    val state = GoalSubtaskReviewState.initial(
-      reviewBaseSha = "a".repeat(40),
-      baselineUntrackedPaths = emptyList(),
-      codeReviewMode = CodeReviewExecutionMode.AUTO,
-    )
+    val state =
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = "a".repeat(40),
+        baselineUntrackedPaths = emptyList(),
+        codeReviewMode = CodeReviewExecutionMode.AUTO,
+      )
     assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
       FeatureTaskRuntimeReviewPassSequence.resolveForPass(state.codeReviewMode, 2)
     }

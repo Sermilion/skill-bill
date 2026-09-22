@@ -22,6 +22,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
 class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
   @Test
   fun `installSkill refuses to link an internal skill directly`() {
@@ -29,13 +30,14 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
     val agentRoot = fixture.home.resolve("agents")
     Files.createDirectories(agentRoot)
 
-    val error = assertFailsWith<InvalidInternalSkillClassificationError> {
-      installSkill(
-        skillPath = fixture.childDir,
-        agentTargets = listOf(AgentTarget("test-agent", agentRoot.toFileLocation())),
-        context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidInternalSkillClassificationError> {
+        installSkill(
+          skillPath = fixture.childDir,
+          agentTargets = listOf(AgentTarget("test-agent", agentRoot.toFileLocation())),
+          context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
+        )
+      }
     assertTrue(error.message.orEmpty().contains("internal-for: ${fixture.parentName}"))
     assertFalse(
       Files.exists(agentRoot.resolve(fixture.childName), LinkOption.NOFOLLOW_LINKS),
@@ -49,11 +51,12 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
     val agentRoot = fixture.home.resolve("agents")
     Files.createDirectories(agentRoot)
 
-    val links = installSkill(
-      skillPath = fixture.parentDir,
-      agentTargets = listOf(AgentTarget("test-agent", agentRoot.toFileLocation())),
-      context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
-    ).linkPaths
+    val links =
+      installSkill(
+        skillPath = fixture.parentDir,
+        agentTargets = listOf(AgentTarget("test-agent", agentRoot.toFileLocation())),
+        context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
+      ).linkPaths
     val parentLink = links.single()
     assertTrue(Files.isSymbolicLink(parentLink))
 
@@ -121,14 +124,16 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
   fun `repo validation raises no internal-skill issue for a healthy classification`() {
     val fixture = setupParentWithInternalChild()
 
-    val report = RepoValidationRuntime.validateRepo(
-      fixture.repoRoot,
-      testNativeAgentCompositionContext(fixture.repoRoot),
-    )
+    val report =
+      RepoValidationRuntime.validateRepo(
+        fixture.repoRoot,
+        testNativeAgentCompositionContext(fixture.repoRoot),
+      )
 
-    val internalIssues = report.issues.filter { issue ->
-      issue.contains("internal-for") || issue.contains("internal skill") || issue.contains("not a discovered skill")
-    }
+    val internalIssues =
+      report.issues.filter { issue ->
+        issue.contains("internal-for") || issue.contains("internal skill") || issue.contains("not a discovered skill")
+      }
     assertTrue(
       internalIssues.isEmpty(),
       "healthy internal classification must raise no internal-skill issue, got: $internalIssues",
@@ -146,10 +151,11 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
       body = "Read the file `${fixture.childName}.md` and execute it.",
     )
 
-    val report = RepoValidationRuntime.validateRepo(
-      fixture.repoRoot,
-      testNativeAgentCompositionContext(fixture.repoRoot),
-    )
+    val report =
+      RepoValidationRuntime.validateRepo(
+        fixture.repoRoot,
+        testNativeAgentCompositionContext(fixture.repoRoot),
+      )
 
     assertTrue(
       report.issues.any { it.contains("bill-outsider") && it.contains("not co-located") },
@@ -169,10 +175,11 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
       body = "Read the file `bill-listed.md` and execute it.",
     )
 
-    val report = RepoValidationRuntime.validateRepo(
-      fixture.repoRoot,
-      testNativeAgentCompositionContext(fixture.repoRoot),
-    )
+    val report =
+      RepoValidationRuntime.validateRepo(
+        fixture.repoRoot,
+        testNativeAgentCompositionContext(fixture.repoRoot),
+      )
 
     assertTrue(
       report.issues.any { it.contains("bill-referrer") && it.contains("renders no sidecar") },
@@ -182,14 +189,16 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
 
   @Test
   fun `repo validation accepts the parent referencing its own child sidecar`() {
-    val fixture = setupParentWithInternalChild(
-      parentBody = "Read the file `bill-feature-helper.md` located in this skill's installed directory.",
-    )
+    val fixture =
+      setupParentWithInternalChild(
+        parentBody = "Read the file `bill-feature-helper.md` located in this skill's installed directory.",
+      )
 
-    val report = RepoValidationRuntime.validateRepo(
-      fixture.repoRoot,
-      testNativeAgentCompositionContext(fixture.repoRoot),
-    )
+    val report =
+      RepoValidationRuntime.validateRepo(
+        fixture.repoRoot,
+        testNativeAgentCompositionContext(fixture.repoRoot),
+      )
 
     val referenceIssues = report.issues.filter { it.contains("references sidecar") }
     assertTrue(
@@ -202,14 +211,15 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
   fun `selected pack child stages as a sidecar inside the parent staged directory`() {
     val fixture = setupParentWithInternalPackChild()
 
-    val rendered = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val rendered =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
 
     val sidecar = rendered.stagingDir.resolve("${fixture.packChildName}.md")
     assertTrue(Files.isRegularFile(sidecar.toPath(), LinkOption.NOFOLLOW_LINKS), "missing pack sidecar at $sidecar")
@@ -238,14 +248,15 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
       "unselected pack sidecar must not be written",
     )
 
-    val selected = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val selected =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
     assertNotEquals(
       unselected.contentHash,
       selected.contentHash,
@@ -257,27 +268,29 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
   fun `editing the pack child content invalidates the parent content hash`() {
     val fixture = setupParentWithInternalPackChild()
 
-    val first = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val first =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
 
     Files.writeString(
       fixture.packChildContentFile,
       Files.readString(fixture.packChildContentFile) + "\n\n## Additional reviewed section.\n",
     )
-    val afterEdit = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val afterEdit =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
     assertNotEquals(
       first.contentHash,
       afterEdit.contentHash,
@@ -289,25 +302,27 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
   fun `cache reuse re-renders an externally deleted pack sidecar`() {
     val fixture = setupParentWithInternalPackChild()
 
-    val first = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val first =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
     val sidecar = first.stagingDir.resolve("${fixture.packChildName}.md")
     Files.delete(sidecar.toPath())
 
-    val second = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val second =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
     assertEquals(first.contentHash, second.contentHash)
     assertTrue(
       Files.isRegularFile(second.stagingDir.resolve("${fixture.packChildName}.md").toPath(), LinkOption.NOFOLLOW_LINKS),
@@ -318,24 +333,26 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
   @Test
   fun `cache reuse re-renders an externally deleted child support pointer`() {
     val fixture = setupParentWithInternalPackChild()
-    val first = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val first =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
     Files.delete(first.stagingDir.resolve("specialist-contract.md").toPath())
 
-    val second = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val second =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
 
     assertEquals(first.contentHash, second.contentHash)
     assertTrue(Files.isRegularFile(second.stagingDir.resolve("specialist-contract.md").toPath()))

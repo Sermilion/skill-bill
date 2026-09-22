@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeAttemptBudgetsTest {
   @Test
   fun `default output-gate retries cap at one and process-failure stays at three`() {
@@ -23,20 +24,22 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
 
   @Test
   fun `a phase that keeps dying before its output gate blocks on its own budget, not a repair loop`() {
-    val below = FeatureTaskRuntimeAttemptBudgets.processFailureBlockReason(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-      processFailureCount = FeatureTaskRuntimeAttemptBudgets.MAX_PROCESS_FAILURE_ATTEMPTS - 1,
-      lastFailureReason = "agent exited with non-zero status 1",
-    )
-    assertEquals(null, below)
-
-    val blocked = requireNotNull(
+    val below =
       FeatureTaskRuntimeAttemptBudgets.processFailureBlockReason(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-        processFailureCount = FeatureTaskRuntimeAttemptBudgets.MAX_PROCESS_FAILURE_ATTEMPTS,
+        processFailureCount = FeatureTaskRuntimeAttemptBudgets.MAX_PROCESS_FAILURE_ATTEMPTS - 1,
         lastFailureReason = "agent exited with non-zero status 1",
-      ),
-    )
+      )
+    assertEquals(null, below)
+
+    val blocked =
+      requireNotNull(
+        FeatureTaskRuntimeAttemptBudgets.processFailureBlockReason(
+          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+          processFailureCount = FeatureTaskRuntimeAttemptBudgets.MAX_PROCESS_FAILURE_ATTEMPTS,
+          lastFailureReason = "agent exited with non-zero status 1",
+        ),
+      )
     assertContains(blocked, "failed to execute")
     assertContains(blocked, "No repair attempt was consumed.")
     assertContains(blocked, "agent exited with non-zero status 1")
@@ -81,15 +84,17 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
       FeatureTaskRuntimeAttemptBudgets.findingCoverageBlockReason(phase, setOf("F-003"), firstOmission),
     )
 
-    val stalled = requireNotNull(
-      FeatureTaskRuntimeAttemptBudgets.findingCoverageBlockReason(phase, firstOmission, firstOmission),
-    )
+    val stalled =
+      requireNotNull(
+        FeatureTaskRuntimeAttemptBudgets.findingCoverageBlockReason(phase, firstOmission, firstOmission),
+      )
     assertContains(stalled, "F-001, F-003")
     assertContains(stalled, "attempted_unresolved")
 
-    val substituted = requireNotNull(
-      FeatureTaskRuntimeAttemptBudgets.findingCoverageBlockReason(phase, setOf("F-002"), setOf("F-001")),
-    )
+    val substituted =
+      requireNotNull(
+        FeatureTaskRuntimeAttemptBudgets.findingCoverageBlockReason(phase, setOf("F-002"), setOf("F-001")),
+      )
     assertContains(substituted, "no progress on coverage")
   }
 
@@ -117,14 +122,15 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
       ),
     )
 
-    val repeated = requireNotNull(
-      FeatureTaskRuntimeAttemptBudgets.unresolvedFindingBlockReason(
-        phase,
-        unresolved = setOf("F-001", "F-003"),
-        priorUnresolved = setOf("F-001"),
-        detail = detail,
-      ),
-    )
+    val repeated =
+      requireNotNull(
+        FeatureTaskRuntimeAttemptBudgets.unresolvedFindingBlockReason(
+          phase,
+          unresolved = setOf("F-001", "F-003"),
+          priorUnresolved = setOf("F-001"),
+          detail = detail,
+        ),
+      )
     assertContains(repeated, "F-001")
     assertTrue(!repeated.contains("F-003"), "only the repeated finding exhausted its retry: $repeated")
     assertContains(repeated, detail)

@@ -6,10 +6,15 @@ import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 
 object FeatureTaskRuntimeReviewPassSequence {
-  fun modeForPass(pinnedMode: CodeReviewExecutionMode, passNumber: Int): CodeReviewExecutionMode =
-    resolveForPass(pinnedMode, passNumber).resolvedTier
+  fun modeForPass(
+    pinnedMode: CodeReviewExecutionMode,
+    passNumber: Int,
+  ): CodeReviewExecutionMode = resolveForPass(pinnedMode, passNumber).resolvedTier
 
-  fun resolveForPass(pinnedMode: CodeReviewExecutionMode, passNumber: Int): ReviewPassResolution {
+  fun resolveForPass(
+    pinnedMode: CodeReviewExecutionMode,
+    passNumber: Int,
+  ): ReviewPassResolution {
     if (passNumber < 1) {
       throw InvalidGoalSubtaskReviewStateSchemaError(
         sourceLabel = GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,

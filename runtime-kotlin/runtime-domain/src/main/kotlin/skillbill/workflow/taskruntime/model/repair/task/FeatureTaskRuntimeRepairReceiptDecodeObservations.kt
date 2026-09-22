@@ -35,7 +35,10 @@ internal fun forwardOptionalReceiptReason(
   return forwarded
 }
 
-internal fun repairReceiptReasonTruncationRecord(fieldPath: String, maxUtf8Bytes: Int): String =
+internal fun repairReceiptReasonTruncationRecord(
+  fieldPath: String,
+  maxUtf8Bytes: Int,
+): String =
   "seam=FeatureTaskRuntimeRepairReceiptEntry.fromArtifactMap " +
     "value_used='$fieldPath truncated to $maxUtf8Bytes UTF-8 bytes' " +
     "value_expected='$fieldPath within $maxUtf8Bytes UTF-8 bytes' " +

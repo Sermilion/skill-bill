@@ -7,7 +7,11 @@ internal const val EMPTY_DIGEST: String =
 internal const val OPEN_MARKER_PREFIX: String = "<<<CORRECTIVE_REPAIR_RESPONSE"
 internal const val CLOSE_MARKER_PREFIX: String = "<<<END_CORRECTIVE_REPAIR_RESPONSE"
 
-internal fun renderExactUntrustedSection(body: String, utf8ByteCount: Int, digestSha256: String): String {
+internal fun renderExactUntrustedSection(
+  body: String,
+  utf8ByteCount: Int,
+  digestSha256: String,
+): String {
   val marker = uniqueCloseMarker(body)
   val open = "$OPEN_MARKER_PREFIX utf8_bytes=$utf8ByteCount digest=$digestSha256 marker=$marker>>>"
   val close = "$CLOSE_MARKER_PREFIX marker=$marker>>>"

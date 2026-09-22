@@ -22,5 +22,9 @@ interface GoalRunnerWorkflowOutcomeMutationStore {
     supervisionEvent: GoalRunnerSupervisionEvent? = null,
   ): String?
 
-  fun reopenBlockedPhaseForOperatorResume(workflowId: String, preferredPhaseId: String, reason: String): Boolean
+  fun reopenBlockedPhaseForOperatorResume(
+    workflowId: String,
+    preferredPhaseId: String,
+    reason: String,
+  ): Boolean
 }

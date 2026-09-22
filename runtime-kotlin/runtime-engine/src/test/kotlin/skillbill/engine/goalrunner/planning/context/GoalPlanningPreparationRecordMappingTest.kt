@@ -10,23 +10,25 @@ import kotlin.test.assertEquals
 class GoalPlanningPreparationRecordMappingTest {
   @Test
   fun `legacy pair round-trips through its quarantined 0_1 envelope map`() {
-    val record = GoalPlanningPreparationRecord(
-      parentGoalWorkflowId = "goal-1",
-      normalizedIssueKey = "SKILL-128",
-      repositoryIdentity = "repo-root-realpath-v1:/repository",
-      subtaskId = 2,
-      governedSubSpecPath = ".feature-specs/SKILL-128/spec_subtask_2.md",
-      preparationStatus = GoalPlanningPreparationState.PREPARED,
-      provenance = GoalPlanningPreparationProvenance(
-        parentSpecHash = "parent-hash",
-        subSpecHash = "sub-hash",
-        decompositionManifestHash = "manifest-hash",
-        phaseOutputContractId = "phase-output-contract-id-fixture",
-        phaseOutputContractVersion = "phase-output-contract-version-fixture",
-      ),
-      preplanPayload = """{"phase_id":"preplan"}""",
-      planPayload = """{"phase_id":"plan"}""",
-    )
+    val record =
+      GoalPlanningPreparationRecord(
+        parentGoalWorkflowId = "goal-1",
+        normalizedIssueKey = "SKILL-128",
+        repositoryIdentity = "repo-root-realpath-v1:/repository",
+        subtaskId = 2,
+        governedSubSpecPath = ".feature-specs/SKILL-128/spec_subtask_2.md",
+        preparationStatus = GoalPlanningPreparationState.PREPARED,
+        provenance =
+          GoalPlanningPreparationProvenance(
+            parentSpecHash = "parent-hash",
+            subSpecHash = "sub-hash",
+            decompositionManifestHash = "manifest-hash",
+            phaseOutputContractId = "phase-output-contract-id-fixture",
+            phaseOutputContractVersion = "phase-output-contract-version-fixture",
+          ),
+        preplanPayload = """{"phase_id":"preplan"}""",
+        planPayload = """{"phase_id":"plan"}""",
+      )
 
     val envelope = record.toEnvelopeMap()
     val roundTripped = envelope.toGoalPlanningPreparationRecord()

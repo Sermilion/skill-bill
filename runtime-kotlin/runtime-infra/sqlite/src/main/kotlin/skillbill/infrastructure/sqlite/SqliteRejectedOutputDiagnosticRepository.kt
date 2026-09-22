@@ -17,6 +17,7 @@ import java.sql.ResultSet
 import java.sql.SQLException
 import java.time.Instant
 import java.time.format.DateTimeParseException
+
 internal class SqliteRejectedOutputDiagnosticRepository(
   private val connection: Connection,
 ) : RejectedOutputDiagnosticRepository {
@@ -78,31 +79,34 @@ internal class SqliteRejectedOutputDiagnosticRepository(
     }
   }
 
-  override fun read(identity: String): RejectedOutputDiagnosticRecord = persistence("read") {
-    find(identity) ?: throw RejectedOutputDiagnosticError.Absent(identity)
-  }
-
-  override fun markExpired(before: Instant): Int = persistence("mark-expired") {
-    connection.prepareStatement(
-      """
-      UPDATE rejected_output_diagnostics
-      SET lifecycle = 'expired', payload = NULL
-      WHERE lifecycle = 'stored' AND recorded_at < ?
-      """.trimIndent(),
-    ).use { statement ->
-      statement.bindAll(before.toString())
-      statement.executeUpdate()
+  override fun read(identity: String): RejectedOutputDiagnosticRecord =
+    persistence("read") {
+      find(identity) ?: throw RejectedOutputDiagnosticError.Absent(identity)
     }
-  }
 
-  override fun delete(selector: RejectedOutputDiagnosticSelector): Int = persistence("delete") {
-    connection.prepareStatement(
-      "DELETE FROM rejected_output_diagnostics WHERE ${selector.whereClause()}",
-    ).use { statement ->
-      selector.bindAll(statement)
-      statement.executeUpdate()
+  override fun markExpired(before: Instant): Int =
+    persistence("mark-expired") {
+      connection.prepareStatement(
+        """
+        UPDATE rejected_output_diagnostics
+        SET lifecycle = 'expired', payload = NULL
+        WHERE lifecycle = 'stored' AND recorded_at < ?
+        """.trimIndent(),
+      ).use { statement ->
+        statement.bindAll(before.toString())
+        statement.executeUpdate()
+      }
     }
-  }
+
+  override fun delete(selector: RejectedOutputDiagnosticSelector): Int =
+    persistence("delete") {
+      connection.prepareStatement(
+        "DELETE FROM rejected_output_diagnostics WHERE ${selector.whereClause()}",
+      ).use { statement ->
+        selector.bindAll(statement)
+        statement.executeUpdate()
+      }
+    }
 
   override fun retainProducerOutput(evidence: ProducerOutputEvidence) {
     persistence("retain-producer-output") {
@@ -129,17 +133,18 @@ internal class SqliteRejectedOutputDiagnosticRepository(
         )
         it.executeUpdate()
       }
-      val retained = connection.queryProducerEvidence(
-        ProducerEvidenceLookup(
-          workflowId = evidence.workflowId,
-          phaseId = evidence.phaseId,
-          attempt = evidence.attempt,
-          agentId = evidence.agentId,
-          generation = evidence.generation,
-          exactGeneration = true,
-          repairTurn = evidence.repairTurn,
-        ),
-      ) ?: throw RejectedOutputDiagnosticError.Persistence("retain-producer-output-readback")
+      val retained =
+        connection.queryProducerEvidence(
+          ProducerEvidenceLookup(
+            workflowId = evidence.workflowId,
+            phaseId = evidence.phaseId,
+            attempt = evidence.attempt,
+            agentId = evidence.agentId,
+            generation = evidence.generation,
+            exactGeneration = true,
+            repairTurn = evidence.repairTurn,
+          ),
+        ) ?: throw RejectedOutputDiagnosticError.Persistence("retain-producer-output-readback")
       if (retained.sha256 != evidence.sha256 || retained.byteSize != evidence.byteSize ||
         !payloadsEqual(retained.payload, evidence.payload)
       ) {
@@ -154,91 +159,102 @@ internal class SqliteRejectedOutputDiagnosticRepository(
     attempt: Int,
     agentId: String,
     generation: Int,
-  ): ProducerOutputEvidence? = persistence("read-producer-output") {
-    connection.queryProducerEvidence(
-      ProducerEvidenceLookup(
-        workflowId = workflowId,
-        phaseId = phaseId,
-        attempt = attempt,
-        agentId = agentId,
-        generation = generation,
-        exactGeneration = false,
-
-        repairTurn = null,
-      ),
-    )
-  }
-
-  override fun deleteProducerOutputsBefore(before: Instant): Int = persistence("delete-producer-outputs") {
-    connection.prepareStatement("DELETE FROM producer_output_evidence WHERE recorded_at < ?").use {
-      it.bindAll(before.toString())
-      it.executeUpdate()
+  ): ProducerOutputEvidence? =
+    persistence("read-producer-output") {
+      connection.queryProducerEvidence(
+        ProducerEvidenceLookup(
+          workflowId = workflowId,
+          phaseId = phaseId,
+          attempt = attempt,
+          agentId = agentId,
+          generation = generation,
+          exactGeneration = false,
+          repairTurn = null,
+        ),
+      )
     }
-  }
 
-  private fun find(identity: String): RejectedOutputDiagnosticRecord? = connection.prepareStatement(
-    "${selectColumns()} WHERE identity = ?",
-  ).use { statement ->
-    statement.bindAll(identity)
-    statement.executeQuery().use { rows -> if (rows.next()) rows.toRecord() else null }
-  }
+  override fun deleteProducerOutputsBefore(before: Instant): Int =
+    persistence("delete-producer-outputs") {
+      connection.prepareStatement("DELETE FROM producer_output_evidence WHERE recorded_at < ?").use {
+        it.bindAll(before.toString())
+        it.executeUpdate()
+      }
+    }
 
-  private fun selectColumns(): String = """
+  private fun find(identity: String): RejectedOutputDiagnosticRecord? =
+    connection.prepareStatement(
+      "${selectColumns()} WHERE identity = ?",
+    ).use { statement ->
+      statement.bindAll(identity)
+      statement.executeQuery().use { rows -> if (rows.next()) rows.toRecord() else null }
+    }
+
+  private fun selectColumns(): String =
+    """
     SELECT identity, workflow_id, phase_id, attempt, repair_turn, rule, rejection_path, reason, agent_id, model,
            recorded_at, byte_size, sha256, lifecycle, payload
     FROM rejected_output_diagnostics
-  """.trimIndent()
+    """.trimIndent()
 }
 
-private fun RejectedOutputDiagnosticSelector.whereClause(): String = buildList {
-  add("workflow_id = ?")
-  if (phaseId != null) add("phase_id = ?")
-  if (attempt != null) add("attempt = ?")
-  if (repairTurn != null) add("repair_turn = ?")
-}.joinToString(" AND ")
+private fun RejectedOutputDiagnosticSelector.whereClause(): String =
+  buildList {
+    add("workflow_id = ?")
+    if (phaseId != null) add("phase_id = ?")
+    if (attempt != null) add("attempt = ?")
+    if (repairTurn != null) add("repair_turn = ?")
+  }.joinToString(" AND ")
 
 private fun RejectedOutputDiagnosticSelector.bindAll(statement: PreparedStatement) {
-  val values = buildList<Any?> {
-    add(workflowId)
-    phaseId?.let(::add)
-    attempt?.let(::add)
-    repairTurn?.let(::add)
-  }
+  val values =
+    buildList<Any?> {
+      add(workflowId)
+      phaseId?.let(::add)
+      attempt?.let(::add)
+      repairTurn?.let(::add)
+    }
   statement.bindAll(values)
 }
 
-private inline fun <T> persistence(operation: String, block: () -> T): T = try {
-  block()
-} catch (error: RejectedOutputDiagnosticError) {
-  throw error
-} catch (error: SQLException) {
-  throw RejectedOutputDiagnosticError.Persistence(operation, error)
-}
+private inline fun <T> persistence(
+  operation: String,
+  block: () -> T,
+): T =
+  try {
+    block()
+  } catch (error: RejectedOutputDiagnosticError) {
+    throw error
+  } catch (error: SQLException) {
+    throw RejectedOutputDiagnosticError.Persistence(operation, error)
+  }
 
 private fun ResultSet.toRecord(): RejectedOutputDiagnosticRecord {
-  val identity = try {
-    getString("identity")
-  } catch (error: SQLException) {
-    corruptRecord("<unreadable>", error)
-  }
+  val identity =
+    try {
+      getString("identity")
+    } catch (error: SQLException) {
+      corruptRecord("<unreadable>", error)
+    }
   return try {
     RejectedOutputDiagnosticRecord(
-      metadata = RejectedOutputDiagnostic(
-        identity = identity,
-        workflowId = getString(SharedPayloadKeys.WORKFLOW_ID),
-        phaseId = getString(SharedPayloadKeys.PHASE_ID),
-        attempt = getInt("attempt"),
-        rule = getString("rule"),
-        path = getString("rejection_path"),
-        reason = getString("reason"),
-        agentId = getString("agent_id"),
-        model = getString("model"),
-        recordedAt = Instant.parse(getString("recorded_at")),
-        byteSize = getLong("byte_size"),
-        sha256 = getString("sha256"),
-        lifecycle = RejectedOutputLifecycle.valueOf(getString("lifecycle").uppercase()),
-        repairTurn = getInt("repair_turn"),
-      ),
+      metadata =
+        RejectedOutputDiagnostic(
+          identity = identity,
+          workflowId = getString(SharedPayloadKeys.WORKFLOW_ID),
+          phaseId = getString(SharedPayloadKeys.PHASE_ID),
+          attempt = getInt("attempt"),
+          rule = getString("rule"),
+          path = getString("rejection_path"),
+          reason = getString("reason"),
+          agentId = getString("agent_id"),
+          model = getString("model"),
+          recordedAt = Instant.parse(getString("recorded_at")),
+          byteSize = getLong("byte_size"),
+          sha256 = getString("sha256"),
+          lifecycle = RejectedOutputLifecycle.valueOf(getString("lifecycle").uppercase()),
+          repairTurn = getInt("repair_turn"),
+        ),
       payload = getBytes("payload"),
     )
   } catch (error: SQLException) {
@@ -250,21 +266,26 @@ private fun ResultSet.toRecord(): RejectedOutputDiagnosticRecord {
   }
 }
 
-private fun corruptRecord(identity: String, error: Throwable): Nothing =
-  throw RejectedOutputDiagnosticError.Corrupt(identity, error)
+private fun corruptRecord(
+  identity: String,
+  error: Throwable,
+): Nothing = throw RejectedOutputDiagnosticError.Corrupt(identity, error)
 
 private fun RejectedOutputDiagnosticRecord.sameImmutableEvidence(other: RejectedOutputDiagnosticRecord): Boolean =
   metadata.copy(recordedAt = other.metadata.recordedAt) == other.metadata &&
     (
       (payload == null && other.payload == null) || (
-        payload != null && other.payload != null && payload.contentEquals(
-          other.payload,
-        )
-        )
+        payload != null && other.payload != null &&
+          payload.contentEquals(
+            other.payload,
+          )
       )
+    )
 
-private fun payloadsEqual(left: ByteArray?, right: ByteArray?): Boolean =
-  (left == null && right == null) || (left != null && right != null && left.contentEquals(right))
+private fun payloadsEqual(
+  left: ByteArray?,
+  right: ByteArray?,
+): Boolean = (left == null && right == null) || (left != null && right != null && left.contentEquals(right))
 
 private data class ProducerEvidenceLookup(
   internal val workflowId: String,
@@ -273,7 +294,6 @@ private data class ProducerEvidenceLookup(
   internal val agentId: String,
   internal val generation: Int,
   internal val exactGeneration: Boolean,
-
   internal val repairTurn: Int?,
 )
 
@@ -288,14 +308,15 @@ private fun Connection.queryProducerEvidence(lookup: ProducerEvidenceLookup): Pr
     ORDER BY generation DESC, repair_turn DESC LIMIT 1
     """.trimIndent(),
   ).use {
-    val values = buildList<Any?> {
-      add(lookup.workflowId)
-      add(lookup.phaseId)
-      add(lookup.attempt)
-      add(lookup.agentId)
-      add(lookup.generation)
-      lookup.repairTurn?.let(::add)
-    }
+    val values =
+      buildList<Any?> {
+        add(lookup.workflowId)
+        add(lookup.phaseId)
+        add(lookup.attempt)
+        add(lookup.agentId)
+        add(lookup.generation)
+        lookup.repairTurn?.let(::add)
+      }
     it.bindAll(values)
     it.executeQuery().use { row -> if (row.next()) row.toProducerEvidence() else null }
   }

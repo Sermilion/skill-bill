@@ -1,15 +1,17 @@
 package skillbill.engine.featuretask.phase.prompt.directives
+
 private const val BUILD_PHASE_FORBIDDEN_EXTRAS: String =
   "Do not run `skill-bill validate`, `npx agnix`, `scripts/validate_agent_configs`, `bill-code-check`, " +
     "`./gradlew check`, `check " + "--" + "continue`, or the pack collect_all_full_gate_command. Those are not " +
     "this phase. "
 
 fun runtimeOwnedBuildPhaseTask(packBuildCommand: String?): String {
-  val gateLine = if (packBuildCommand.isNullOrBlank()) {
-    "Run only the pack-declared validation_gate build_command and read that command's output."
-  } else {
-    "Run only this pack-declared build command and read that command's output: `$packBuildCommand`."
-  }
+  val gateLine =
+    if (packBuildCommand.isNullOrBlank()) {
+      "Run only the pack-declared validation_gate build_command and read that command's output."
+    } else {
+      "Run only this pack-declared build command and read that command's output: `$packBuildCommand`."
+    }
   return "You are the only build agent for this step — do not spawn delegated subagents. The runtime may " +
     "give you up to three repair turns against the remaining findings; each turn is another session of " +
     "this same agent. $gateLine $BUILD_PHASE_FORBIDDEN_EXTRAS" +
@@ -24,11 +26,12 @@ fun runtimeOwnedBuildPhaseTask(packBuildCommand: String?): String {
 }
 
 fun buildGateTriagePhaseTask(packBuildCommand: String?): String {
-  val gateLine = if (packBuildCommand.isNullOrBlank()) {
-    "The dominant pack declares validation_gate.build_command for build proof."
-  } else {
-    "The pack build command is `$packBuildCommand` — do not run it during triage."
-  }
+  val gateLine =
+    if (packBuildCommand.isNullOrBlank()) {
+      "The dominant pack declares validation_gate.build_command for build proof."
+    } else {
+      "The pack build command is `$packBuildCommand` — do not run it during triage."
+    }
   return "You are triaging an unparseable build gate failure blob before the first repair turn — do not spawn " +
     "delegated subagents. Read the gate stdout blob and repository files as needed; prefer read-only " +
     "inspection. $gateLine $BUILD_PHASE_FORBIDDEN_EXTRAS" +

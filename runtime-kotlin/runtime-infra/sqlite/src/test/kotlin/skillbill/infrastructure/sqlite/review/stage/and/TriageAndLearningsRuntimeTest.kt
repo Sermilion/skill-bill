@@ -37,10 +37,10 @@ class TriageAndLearningsRuntimeTest {
       TriageDecisionParser.parseTriageDecisions(
         rawDecisions = listOf("fix=[1] reject=[2]"),
         numberedFindings =
-        listOf(
-          NumberedFinding(1, "F-001", "Major", "High", "README.md:12", "one"),
-          NumberedFinding(2, "F-002", "Minor", "Medium", "install.sh:88", "two"),
-        ),
+          listOf(
+            NumberedFinding(1, "F-001", "Major", "High", "README.md:12", "one"),
+            NumberedFinding(2, "F-002", "Minor", "Medium", "install.sh:88", "two"),
+          ),
       )
 
     assertEquals(2, decisions.size)
@@ -111,14 +111,15 @@ class LearningPromotionTest {
       val review = importSampleReview(connection)
       rejectFinding(connection, review.reviewRunId, "F-002", "Keep the current prompt wording.")
 
-      val failure = assertFailsWith<IllegalArgumentException> {
-        LearningsRuntime.validateLearningSource(
-          sourceReviewRunId = review.reviewRunId,
-          sourceFindingId = "F-does-not-exist",
-          sourceFindingExists = ReviewRuntime.findingExists(connection, review.reviewRunId, "F-does-not-exist"),
-          latestRejectedOutcome = null,
-        )
-      }
+      val failure =
+        assertFailsWith<IllegalArgumentException> {
+          LearningsRuntime.validateLearningSource(
+            sourceReviewRunId = review.reviewRunId,
+            sourceFindingId = "F-does-not-exist",
+            sourceFindingExists = ReviewRuntime.findingExists(connection, review.reviewRunId, "F-does-not-exist"),
+            latestRejectedOutcome = null,
+          )
+        }
       assertTrue("F-does-not-exist" in failure.message.orEmpty(), "The failure must name the unresolvable finding.")
       assertEquals(
         0,
@@ -166,17 +167,18 @@ private fun rejectFinding(
   reviewRunId: String,
   findingId: String,
   note: String,
-): ReviewFinishedTelemetry? = TriageRuntime.recordFeedbackWithoutTransaction(
-  connection = connection,
-  request =
-  FeedbackRequest(
-    reviewRunId = reviewRunId,
-    findingIds = listOf(findingId),
-    eventType = "fix_rejected",
-    note = note,
-  ),
-  telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
-)
+): ReviewFinishedTelemetry? =
+  TriageRuntime.recordFeedbackWithoutTransaction(
+    connection = connection,
+    request =
+      FeedbackRequest(
+        reviewRunId = reviewRunId,
+        findingIds = listOf(findingId),
+        eventType = "fix_rejected",
+        note = note,
+      ),
+    telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
+  )
 
 internal fun addLearning(
   connection: Connection,
@@ -184,25 +186,26 @@ internal fun addLearning(
   scope: LearningScope,
   scopeKey: String,
   title: String,
-): Int = SQLiteLearningStore.addLearning(
-  connection = connection,
-  request =
-  CreateLearningRequest(
-    scope = scope,
-    scopeKey = scopeKey,
-    title = title,
-    ruleText = "Rule text for $title.",
-    rationale = "",
-    sourceReviewRunId = reviewRunId,
-    sourceFindingId = "F-002",
-  ),
-  sourceValidation =
-  LearningSourceValidation(
-    reviewRunId = reviewRunId,
-    findingId = "F-002",
-    rejectedOutcome = RejectedLearningSourceOutcome("fix_rejected", "Keep the current prompt wording."),
-  ),
-)
+): Int =
+  SQLiteLearningStore.addLearning(
+    connection = connection,
+    request =
+      CreateLearningRequest(
+        scope = scope,
+        scopeKey = scopeKey,
+        title = title,
+        ruleText = "Rule text for $title.",
+        rationale = "",
+        sourceReviewRunId = reviewRunId,
+        sourceFindingId = "F-002",
+      ),
+    sourceValidation =
+      LearningSourceValidation(
+        reviewRunId = reviewRunId,
+        findingId = "F-002",
+        rejectedOutcome = RejectedLearningSourceOutcome("fix_rejected", "Keep the current prompt wording."),
+      ),
+  )
 
 private fun saveCachedLearnings(
   connection: Connection,

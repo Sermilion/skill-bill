@@ -70,17 +70,18 @@ class UninstallMutationFailurePolicyTest {
     assertTrue(diagnostics.errors.any { it.contains("codex") })
   }
 
-  private fun uninstallPlan(): UninstallPlan = UninstallPlan(
-    home = HOME,
-    stateRoot = STATE_ROOT,
-    skillNames = emptyList(),
-    legacyNames = emptyList(),
-    agentTargets = emptyList(),
-    nativeSourceRoots = emptyList(),
-    mcpAgents = listOf("claude", "codex"),
-    launchers = emptyList(),
-    desktop = DesktopRemoval(launcher = null, files = emptyList(), directories = emptyList()),
-  )
+  private fun uninstallPlan(): UninstallPlan =
+    UninstallPlan(
+      home = HOME,
+      stateRoot = STATE_ROOT,
+      skillNames = emptyList(),
+      legacyNames = emptyList(),
+      agentTargets = emptyList(),
+      nativeSourceRoots = emptyList(),
+      mcpAgents = listOf("claude", "codex"),
+      launchers = emptyList(),
+      desktop = DesktopRemoval(launcher = null, files = emptyList(), directories = emptyList()),
+    )
 
   private companion object {
     val HOME: Path = Path.of("/tmp/skillbill-uninstall-policy")
@@ -93,9 +94,15 @@ class UninstallMutationFailurePolicyTest {
 private class RecordingDiagnostics : RuntimeDiagnostics {
   val errors = mutableListOf<String>()
 
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) {
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) {
     errors += message
   }
 }

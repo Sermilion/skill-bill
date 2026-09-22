@@ -20,8 +20,9 @@ internal fun externalPlatformPackFailurePayload(
   error: Throwable,
   slug: String? = null,
   sourceKind: PlatformPackSourceKind? = null,
-): Map<String, Any?> = externalPlatformPackTelemetryPayload(error, slug, sourceKind) +
-  mapOf(SharedPayloadKeys.STATUS to "failed")
+): Map<String, Any?> =
+  externalPlatformPackTelemetryPayload(error, slug, sourceKind) +
+    mapOf(SharedPayloadKeys.STATUS to "failed")
 
 @Inject
 class ConfigRegisterExternalPlatformPackCommand(
@@ -29,11 +30,11 @@ class ConfigRegisterExternalPlatformPackCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "register-external-platform-pack",
-  "Register an existing conforming platform pack root in external_platform_pack_sources. " +
-    "Config path precedence: SKILL_BILL_CONFIG_PATH, then ~/.config/skill-bill/config.json, " +
-    "then ~/.skill-bill/config.json.",
-) {
+    "register-external-platform-pack",
+    "Register an existing conforming platform pack root in external_platform_pack_sources. " +
+      "Config path precedence: SKILL_BILL_CONFIG_PATH, then ~/.config/skill-bill/config.json, " +
+      "then ~/.skill-bill/config.json.",
+  ) {
   private val packPath by option("--path", help = "Pack root directory containing platform.yaml.").required()
   private val dryRun by option("--dry-run", help = "Report the planned config change without writing.").flag()
   private val repoRoot by option(
@@ -44,21 +45,22 @@ class ConfigRegisterExternalPlatformPackCommand(
   override fun run() {
     val resolvedPath = service.canonicalPackRoot(inputs.userHome, packPath)
     val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, inputs)
-    val slug = try {
-      service.prepareExternalRegistration(
-        resolvedRepoRoot,
-        inputs.userHome,
-        resolvedPath,
-        inputs.environment,
-      )
-    } catch (error: ShellContentContractException) {
-      state.completeText(
-        "${error.message}\n",
-        externalPlatformPackFailurePayload(error, sourceKind = PlatformPackSourceKind.EXTERNAL),
-        exitCode = 1,
-      )
-      return
-    }
+    val slug =
+      try {
+        service.prepareExternalRegistration(
+          resolvedRepoRoot,
+          inputs.userHome,
+          resolvedPath,
+          inputs.environment,
+        )
+      } catch (error: ShellContentContractException) {
+        state.completeText(
+          "${error.message}\n",
+          externalPlatformPackFailurePayload(error, sourceKind = PlatformPackSourceKind.EXTERNAL),
+          exitCode = 1,
+        )
+        return
+      }
     if (dryRun) {
       state.completeText(
         "Would register ${resolvedPath.toAbsolutePath().normalize()} for platform pack '$slug'.\n",
@@ -66,20 +68,21 @@ class ConfigRegisterExternalPlatformPackCommand(
       )
       return
     }
-    val sources = try {
-      service.registerSource(
-        inputs.userHome,
-        ExternalPlatformPackSource(resolvedPath.toFileLocation()),
-        inputs.environment,
-      )
-    } catch (error: ShellContentContractException) {
-      state.completeText(
-        "${error.message}\n",
-        externalPlatformPackFailurePayload(error, slug, PlatformPackSourceKind.EXTERNAL),
-        exitCode = 1,
-      )
-      return
-    }
+    val sources =
+      try {
+        service.registerSource(
+          inputs.userHome,
+          ExternalPlatformPackSource(resolvedPath.toFileLocation()),
+          inputs.environment,
+        )
+      } catch (error: ShellContentContractException) {
+        state.completeText(
+          "${error.message}\n",
+          externalPlatformPackFailurePayload(error, slug, PlatformPackSourceKind.EXTERNAL),
+          exitCode = 1,
+        )
+        return
+      }
     state.completeText(
       "Registered ${sources.size} external platform pack source(s).\n",
       mapOf(SharedPayloadKeys.STATUS to "ok", "slug" to slug, "count" to sources.size),

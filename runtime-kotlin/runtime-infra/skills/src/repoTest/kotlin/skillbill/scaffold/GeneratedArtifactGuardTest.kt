@@ -217,7 +217,10 @@ class GeneratedArtifactGuardTest {
     error("Repository root with a .gitignore and a skills/ directory not found.")
   }
 
-  private fun writeGovernedSkillOutput(repoRoot: Path, relativeDir: String) {
+  private fun writeGovernedSkillOutput(
+    repoRoot: Path,
+    relativeDir: String,
+  ) {
     val skillDir = repoRoot.resolve(relativeDir)
     val skillName = skillDir.fileName.toString()
     Files.createDirectories(skillDir)
@@ -235,7 +238,12 @@ class GeneratedArtifactGuardTest {
     Files.writeString(skillDir.resolve("SKILL.md"), "generated wrapper\n")
   }
 
-  private fun writePointerFixture(repoRoot: Path, pack: String, skillRelativeDir: String, pointerName: String) {
+  private fun writePointerFixture(
+    repoRoot: Path,
+    pack: String,
+    skillRelativeDir: String,
+    pointerName: String,
+  ) {
     val packRoot = repoRoot.resolve("platform-packs/$pack")
     val pointerFile = packRoot.resolve(skillRelativeDir).resolve(pointerName)
     Files.createDirectories(pointerFile.parent)
@@ -265,10 +273,14 @@ class GeneratedArtifactGuardTest {
     )
   }
 
-  private fun runGit(repoRoot: Path, vararg args: String) {
-    val process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args)
-      .redirectErrorStream(true)
-      .start()
+  private fun runGit(
+    repoRoot: Path,
+    vararg args: String,
+  ) {
+    val process =
+      ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args)
+        .redirectErrorStream(true)
+        .start()
     val output = process.inputStream.bufferedReader().use { reader -> reader.readText() }
     assertEquals(0, process.waitFor(), output)
   }

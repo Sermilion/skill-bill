@@ -41,6 +41,7 @@ import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.repair.task.upsertRepairReceipt
+
 internal data class RepairReceiptSettlementArgs(
   val request: FeatureTaskRuntimeRunRequest,
   val state: FeatureTaskRuntimeRunState,
@@ -77,21 +78,22 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
     diagnostics: RuntimeDiagnostics,
     receipt: FeatureTaskRuntimeRepairReceipt,
-  ): String? = runCatching {
-    goalContinuationRecorder.updateReviewState(
-      request.workflowId,
-    ) { state ->
-      state.upsertRepairReceipt(receipt)
-    }
-  }.fold(
-    onSuccess = { recorded ->
-      if (recorded != null) null else "the review persistence.state could not be updated with the repair receipt."
-    },
-    onFailure = { error ->
-      recordRepairReceiptWriteFailure(request, diagnostics, error)
-      "the review persistence.state could not be updated with the repair receipt."
-    },
-  )
+  ): String? =
+    runCatching {
+      goalContinuationRecorder.updateReviewState(
+        request.workflowId,
+      ) { state ->
+        state.upsertRepairReceipt(receipt)
+      }
+    }.fold(
+      onSuccess = { recorded ->
+        if (recorded != null) null else "the review persistence.state could not be updated with the repair receipt."
+      },
+      onFailure = { error ->
+        recordRepairReceiptWriteFailure(request, diagnostics, error)
+        "the review persistence.state could not be updated with the repair receipt."
+      },
+    )
 
   internal fun recordRepairReceiptWriteFailure(
     request: FeatureTaskRuntimeRunRequest,
@@ -118,17 +120,18 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     val iteration = args.iteration
     val observability = args.observability
     val fileManifest = args.fileManifest
-    val settlement = implementFixRepairReceiptSettlement(
-      RepairReceiptSettlementArgs(
-        request,
-        state,
-        recorder,
-        goalContinuationRecorder,
-        diagnostics,
-        run,
-        outputMap,
-      ),
-    )
+    val settlement =
+      implementFixRepairReceiptSettlement(
+        RepairReceiptSettlementArgs(
+          request,
+          state,
+          recorder,
+          goalContinuationRecorder,
+          diagnostics,
+          run,
+          outputMap,
+        ),
+      )
     settlement.rejectionDetail?.let { detail -> return reject("repair-receipt", detail) }
     val writeFailure = settlement.writeFailureReason ?: return null
     return AttemptResult.settled(
@@ -157,23 +160,26 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     val diagnostics = args.diagnostics
     val run = args.run
     val outputMap = args.outputMap
-    val produced = FeatureTaskRuntimeRunLoopCheckpointRemediation.completedImplementFixProducedOutputs(
-      run,
-      outputMap,
-    ) ?: return RepairReceiptSettlement.None
-    val reviewState = FeatureTaskRuntimeRunLoopPlanningBranch.goalReviewStateOrNull(
-      request,
-      goalContinuationRecorder,
-    )
-      ?: return repairReceiptShapeSettlement(produced)
+    val produced =
+      FeatureTaskRuntimeRunLoopCheckpointRemediation.completedImplementFixProducedOutputs(
+        run,
+        outputMap,
+      ) ?: return RepairReceiptSettlement.None
+    val reviewState =
+      FeatureTaskRuntimeRunLoopPlanningBranch.goalReviewStateOrNull(
+        request,
+        goalContinuationRecorder,
+      )
+        ?: return repairReceiptShapeSettlement(produced)
     val anchor = repairReceiptAnchor(request, diagnostics, reviewState) ?: return repairReceiptShapeSettlement(produced)
     return when (
-      val parsed = featureTaskRuntimeParseRepairReceipt(
-        produced,
-        anchor.baseSha,
-        anchor.roundNumber,
-        recordTruncation = { record -> RuntimeDiagnosticsBestEffortWarning.record(diagnostics, record) },
-      )
+      val parsed =
+        featureTaskRuntimeParseRepairReceipt(
+          produced,
+          anchor.baseSha,
+          anchor.roundNumber,
+          recordTruncation = { record -> RuntimeDiagnosticsBestEffortWarning.record(diagnostics, record) },
+        )
     ) {
       FeatureTaskRuntimeRepairReceiptMissing -> RepairReceiptSettlement.None
       is FeatureTaskRuntimeRepairReceiptRejected -> RepairReceiptSettlement.rejected(parsed.rejectionDetail)
@@ -316,23 +322,27 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     args: CommitCheckpointArgs,
     error: String,
     indexSnapshot: String,
-  ): Boolean = with(FeatureTaskRuntimeRunLoopCheckpoint) {
-    FeatureTaskRuntimeRunLoopCheckpoint.blockCheckpoint(
-      context,
-      args.precedingPhaseId,
-      args.branch,
-      FeatureTaskRuntimeRunLoopCheckpoint.withIndexRestoreOutcome(
-        context.request,
-        context.phaseGates,
-        error,
-        args.ownedPaths,
-        indexSnapshot,
-      ),
-      args.blockedReason,
-    )
-  }
+  ): Boolean =
+    with(FeatureTaskRuntimeRunLoopCheckpoint) {
+      FeatureTaskRuntimeRunLoopCheckpoint.blockCheckpoint(
+        context,
+        args.precedingPhaseId,
+        args.branch,
+        FeatureTaskRuntimeRunLoopCheckpoint.withIndexRestoreOutcome(
+          context.request,
+          context.phaseGates,
+          error,
+          args.ownedPaths,
+          indexSnapshot,
+        ),
+        args.blockedReason,
+      )
+    }
 
-  internal fun commitCheckpoint(context: FeatureTaskRuntimeRunLoopContext, args: CommitCheckpointArgs): Boolean {
+  internal fun commitCheckpoint(
+    context: FeatureTaskRuntimeRunLoopContext,
+    args: CommitCheckpointArgs,
+  ): Boolean {
     with(context) {
       val snapshot = phaseGates.gitOperations.captureIndexState(request.repoRoot, args.ownedPaths)
       if (snapshot !is WorkflowGitOperationResult.Ok) {
@@ -346,16 +356,18 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
           )
         }
       }
-      val parentSha = phaseGates.gitOperations.headCommitSha(request.repoRoot)
-        .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank)
+      val parentSha =
+        phaseGates.gitOperations.headCommitSha(request.repoRoot)
+          .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank)
       val attempt = FeatureTaskRuntimeRunLoopRepairReceipt.stageAndWriteCheckpoint(context, args)
-      val commitSha = attempt.commitSha
-        ?: return FeatureTaskRuntimeRunLoopRepairReceipt.blockCheckpointAfterIndexMutation(
-          context,
-          args,
-          attempt.error,
-          snapshot.value.orEmpty(),
-        )
+      val commitSha =
+        attempt.commitSha
+          ?: return FeatureTaskRuntimeRunLoopRepairReceipt.blockCheckpointAfterIndexMutation(
+            context,
+            args,
+            attempt.error,
+            snapshot.value.orEmpty(),
+          )
       return with(FeatureTaskRuntimeRunLoopCheckpoint) {
         FeatureTaskRuntimeRunLoopCheckpoint.recordCheckpointIdentity(
           context,
@@ -383,21 +395,23 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
         return CheckpointCommitAttempt(commitSha = null, error = staged.error)
       }
       val subtaskIdentity = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitIdentity(request)
-      val message = FeatureTaskRuntimeRunLoopCheckpoint.checkpointCommitMessage(
-        request,
-        state,
-        diagnostics,
-        CheckpointCommitMessageArgs(
-          branch = args.branch,
-          phaseId = args.precedingPhaseId,
-          loopId = args.loopId,
-          identity = subtaskIdentity,
-          intent = args.intent,
-        ),
-      )
-      val commit = with(FeatureTaskRuntimeRunLoopCheckpoint) {
-        FeatureTaskRuntimeRunLoopCheckpoint.writeSubtaskCommit(context, args.branch, message, subtaskIdentity)
-      }
+      val message =
+        FeatureTaskRuntimeRunLoopCheckpoint.checkpointCommitMessage(
+          request,
+          state,
+          diagnostics,
+          CheckpointCommitMessageArgs(
+            branch = args.branch,
+            phaseId = args.precedingPhaseId,
+            loopId = args.loopId,
+            identity = subtaskIdentity,
+            intent = args.intent,
+          ),
+        )
+      val commit =
+        with(FeatureTaskRuntimeRunLoopCheckpoint) {
+          FeatureTaskRuntimeRunLoopCheckpoint.writeSubtaskCommit(context, args.branch, message, subtaskIdentity)
+        }
       if (commit !is WorkflowGitOperationResult.Ok) {
         return CheckpointCommitAttempt(commitSha = null, error = commit.error)
       }

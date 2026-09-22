@@ -17,26 +17,30 @@ internal fun decodeReviewAccountingSummary(payload: Map<String, Any?>): ReviewAc
     parent = decodeAccountingNode(requiredMap(payload, ReviewAccountingPayloadKeys.PARENT)),
     lanes = requiredList(payload, ReviewAccountingPayloadKeys.LANES).map { decodeAccountingNode(it) },
     aggregateCounters = decodeCounters(requiredMap(payload, ReviewAccountingPayloadKeys.AGGREGATE_COUNTERS)),
-    commitRouting = optionalMap(payload, ReviewAccountingPayloadKeys.COMMIT_ROUTING_ACCOUNTING)
-      ?.let(::decodeCommitRoutingAccounting),
-    parentAnalysis = optionalMap(payload, ReviewAccountingPayloadKeys.PARENT_ANALYSIS_CONSUMPTION)
-      ?.let(::decodeParentAnalysisConsumption),
+    commitRouting =
+      optionalMap(payload, ReviewAccountingPayloadKeys.COMMIT_ROUTING_ACCOUNTING)
+        ?.let(::decodeCommitRoutingAccounting),
+    parentAnalysis =
+      optionalMap(payload, ReviewAccountingPayloadKeys.PARENT_ANALYSIS_CONSUMPTION)
+        ?.let(::decodeParentAnalysisConsumption),
     integration = optionalMap(payload, ReviewAccountingPayloadKeys.INTEGRATION)?.let(::decodeIntegrationAccounting),
     contractVersion = requiredString(payload, ReviewAccountingPayloadKeys.CONTRACT_VERSION),
   )
 
 private fun decodeAccountingNode(node: Map<String, Any?>): ReviewAccountingNode {
-  val counters = ReviewAccountingCounters(
-    launchBytes = requiredLong(node, ReviewAccountingPayloadKeys.LAUNCH_BYTES),
-    evidenceBytes = requiredLong(node, ReviewAccountingPayloadKeys.EVIDENCE_BYTES),
-    resultBytes = requiredLong(node, ReviewAccountingPayloadKeys.RESULT_BYTES),
-    expansions = requiredInt(node, ReviewAccountingPayloadKeys.EXPANSIONS),
-    toolCalls = requiredInt(node, ReviewAccountingPayloadKeys.TOOL_CALLS),
-    modelTurns = requiredInt(node, ReviewAccountingPayloadKeys.MODEL_TURNS),
-  )
-  val terminalOutcome = requireNotNull(
-    ReviewAccountingTerminalOutcome.fromWire(requiredString(node, ReviewAccountingPayloadKeys.TERMINAL_OUTCOME)),
-  ) { "Unknown accounting terminal outcome." }
+  val counters =
+    ReviewAccountingCounters(
+      launchBytes = requiredLong(node, ReviewAccountingPayloadKeys.LAUNCH_BYTES),
+      evidenceBytes = requiredLong(node, ReviewAccountingPayloadKeys.EVIDENCE_BYTES),
+      resultBytes = requiredLong(node, ReviewAccountingPayloadKeys.RESULT_BYTES),
+      expansions = requiredInt(node, ReviewAccountingPayloadKeys.EXPANSIONS),
+      toolCalls = requiredInt(node, ReviewAccountingPayloadKeys.TOOL_CALLS),
+      modelTurns = requiredInt(node, ReviewAccountingPayloadKeys.MODEL_TURNS),
+    )
+  val terminalOutcome =
+    requireNotNull(
+      ReviewAccountingTerminalOutcome.fromWire(requiredString(node, ReviewAccountingPayloadKeys.TERMINAL_OUTCOME)),
+    ) { "Unknown accounting terminal outcome." }
   return ReviewAccountingNode(
     lane = requiredString(node, ReviewAccountingPayloadKeys.LANE),
     assignmentDigest = requiredString(node, ReviewAccountingPayloadKeys.ASSIGNMENT_DIGEST),
@@ -44,23 +48,25 @@ private fun decodeAccountingNode(node: Map<String, Any?>): ReviewAccountingNode 
     inclusiveCounters = decodeCounters(requiredMap(node, ReviewAccountingPayloadKeys.INCLUSIVE_COUNTERS)),
     terminalOutcome = terminalOutcome,
     bundleCompositionDigest = optionalString(node, ReviewAccountingPayloadKeys.BUNDLE_COMPOSITION_DIGEST),
-    segmentAccounting = optionalList(node, ReviewAccountingPayloadKeys.SEGMENT_ACCOUNTING)
-      ?.map(::decodeLaneSegmentAccounting)
-      ?: emptyList(),
+    segmentAccounting =
+      optionalList(node, ReviewAccountingPayloadKeys.SEGMENT_ACCOUNTING)
+        ?.map(::decodeLaneSegmentAccounting)
+        ?: emptyList(),
     unreviewedSegmentIds = optionalStringList(node, ReviewAccountingPayloadKeys.UNREVIEWED_SEGMENT_IDS),
     children = emptyList(),
     evidenceDelivery = null,
   )
 }
 
-private fun decodeCounters(map: Map<String, Any?>): ReviewAccountingCounters = ReviewAccountingCounters(
-  launchBytes = requiredLong(map, ReviewAccountingPayloadKeys.LAUNCH_BYTES),
-  evidenceBytes = requiredLong(map, ReviewAccountingPayloadKeys.EVIDENCE_BYTES),
-  resultBytes = requiredLong(map, ReviewAccountingPayloadKeys.RESULT_BYTES),
-  expansions = requiredInt(map, ReviewAccountingPayloadKeys.EXPANSIONS),
-  toolCalls = requiredInt(map, ReviewAccountingPayloadKeys.TOOL_CALLS),
-  modelTurns = requiredInt(map, ReviewAccountingPayloadKeys.MODEL_TURNS),
-)
+private fun decodeCounters(map: Map<String, Any?>): ReviewAccountingCounters =
+  ReviewAccountingCounters(
+    launchBytes = requiredLong(map, ReviewAccountingPayloadKeys.LAUNCH_BYTES),
+    evidenceBytes = requiredLong(map, ReviewAccountingPayloadKeys.EVIDENCE_BYTES),
+    resultBytes = requiredLong(map, ReviewAccountingPayloadKeys.RESULT_BYTES),
+    expansions = requiredInt(map, ReviewAccountingPayloadKeys.EXPANSIONS),
+    toolCalls = requiredInt(map, ReviewAccountingPayloadKeys.TOOL_CALLS),
+    modelTurns = requiredInt(map, ReviewAccountingPayloadKeys.MODEL_TURNS),
+  )
 
 private fun decodeCommitRoutingAccounting(map: Map<String, Any?>): ReviewCommitRoutingAccounting =
   ReviewCommitRoutingAccounting(
@@ -101,28 +107,46 @@ private fun decodeLaneSegmentAccounting(map: Map<String, Any?>): ReviewLaneSegme
     compositionDigest = requiredString(map, ReviewAccountingPayloadKeys.COMPOSITION_DIGEST),
   )
 
-private fun requiredMap(payload: Map<String, Any?>, key: String): Map<String, Any?> =
+private fun requiredMap(
+  payload: Map<String, Any?>,
+  key: String,
+): Map<String, Any?> =
   JsonCodec.anyToStringAnyMap(payload[key])
     ?: error("Review accounting field '$key' must be an object.")
 
-private fun optionalMap(payload: Map<String, Any?>, key: String): Map<String, Any?>? =
-  JsonCodec.anyToStringAnyMap(payload[key])
+private fun optionalMap(
+  payload: Map<String, Any?>,
+  key: String,
+): Map<String, Any?>? = JsonCodec.anyToStringAnyMap(payload[key])
 
-private fun requiredList(payload: Map<String, Any?>, key: String): List<Map<String, Any?>> =
+private fun requiredList(
+  payload: Map<String, Any?>,
+  key: String,
+): List<Map<String, Any?>> =
   JsonCodec.anyToStringAnyMapList(payload[key])
     ?: error("Review accounting field '$key' must be a list of objects.")
 
-private fun optionalList(payload: Map<String, Any?>, key: String): List<Map<String, Any?>>? =
-  JsonCodec.anyToStringAnyMapList(payload[key])
+private fun optionalList(
+  payload: Map<String, Any?>,
+  key: String,
+): List<Map<String, Any?>>? = JsonCodec.anyToStringAnyMapList(payload[key])
 
-private fun requiredString(payload: Map<String, Any?>, key: String): String =
+private fun requiredString(
+  payload: Map<String, Any?>,
+  key: String,
+): String =
   (payload[key] as? String)?.takeIf(String::isNotBlank)
     ?: error("Review accounting field '$key' must be a non-blank string.")
 
-private fun optionalString(payload: Map<String, Any?>, key: String): String? =
-  (payload[key] as? String)?.takeIf(String::isNotBlank)
+private fun optionalString(
+  payload: Map<String, Any?>,
+  key: String,
+): String? = (payload[key] as? String)?.takeIf(String::isNotBlank)
 
-private fun optionalStringList(payload: Map<String, Any?>, key: String): List<String> {
+private fun optionalStringList(
+  payload: Map<String, Any?>,
+  key: String,
+): List<String> {
   val raw = payload[key] as? List<*> ?: return emptyList()
   return raw.map { item ->
     (item as? String)?.takeIf(String::isNotBlank)
@@ -130,10 +154,15 @@ private fun optionalStringList(payload: Map<String, Any?>, key: String): List<St
   }
 }
 
-private fun requiredLong(payload: Map<String, Any?>, key: String): Long =
-  (payload[key] as? Number)?.toLong() ?: error("Review accounting field '$key' must be a number.")
+private fun requiredLong(
+  payload: Map<String, Any?>,
+  key: String,
+): Long = (payload[key] as? Number)?.toLong() ?: error("Review accounting field '$key' must be a number.")
 
-private fun requiredInt(payload: Map<String, Any?>, key: String): Int {
+private fun requiredInt(
+  payload: Map<String, Any?>,
+  key: String,
+): Int {
   val value = requiredLong(payload, key)
   require(value in 0..Int.MAX_VALUE.toLong()) { "Review accounting field '$key' must fit in Int." }
   return value.toInt()

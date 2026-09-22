@@ -29,9 +29,10 @@ class SkillBillVersionTest {
   fun `version resource value is returned without a substitution`() {
     DurableDecodeSubstitutionObservations.drain()
 
-    val value = resourceVersion {
-      ByteArrayInputStream("version=1.2.3".toByteArray())
-    }
+    val value =
+      resourceVersion {
+        ByteArrayInputStream("version=1.2.3".toByteArray())
+      }
 
     assertEquals("1.2.3", value)
     assertEquals(emptyList(), DurableDecodeSubstitutionObservations.drain())

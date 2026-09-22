@@ -23,21 +23,23 @@ import java.time.format.DateTimeParseException
 internal fun goalCurrentSubtask(
   projection: GoalRunnerStatusProjection?,
   context: IdeStatusProjectionContext,
-): IdeStatusCurrentSubtask? = projection?.currentSubtaskId?.takeIf { it > 0 }?.let { subtaskId ->
-  IdeStatusCurrentSubtask(
-    id = subtaskId.toString(),
-    startedAt = projection.currentChildWorkflowId?.takeIf(String::isNotBlank)?.let { workflowId ->
-      context.unitOfWork.workList.list(limit = null)
-        .firstOrNull { it.workflowId == workflowId }
-        ?.startedAt
-        ?: parseInstantOrNull(
-          context.unitOfWork.workflowStates.getFeatureTaskWorkflow(workflowId)?.startedAt,
-        )
-    },
-    activeDurationMs = projection.recordedSubtaskActiveDurationMs(),
-    activeDurationAsOf = projection.liveSubtaskActiveDurationAnchor(),
-  )
-}
+): IdeStatusCurrentSubtask? =
+  projection?.currentSubtaskId?.takeIf { it > 0 }?.let { subtaskId ->
+    IdeStatusCurrentSubtask(
+      id = subtaskId.toString(),
+      startedAt =
+        projection.currentChildWorkflowId?.takeIf(String::isNotBlank)?.let { workflowId ->
+          context.unitOfWork.workList.list(limit = null)
+            .firstOrNull { it.workflowId == workflowId }
+            ?.startedAt
+            ?: parseInstantOrNull(
+              context.unitOfWork.workflowStates.getFeatureTaskWorkflow(workflowId)?.startedAt,
+            )
+        },
+      activeDurationMs = projection.recordedSubtaskActiveDurationMs(),
+      activeDurationAsOf = projection.liveSubtaskActiveDurationAnchor(),
+    )
+  }
 
 internal fun goalStep(
   planningStep: IdeStatusPlanning?,
@@ -65,27 +67,33 @@ internal fun FeatureTaskRuntimePhaseStatus.toIdeStatusCurrentModel(): IdeStatusC
   }
 }
 
-internal fun GoalPlanningStatusSnapshot.toIdeStatusPlanning(): IdeStatusPlanning = IdeStatusPlanning(
-  state = state,
-  sharedPreplanPrepared = sharedPreplanPrepared,
-  plannedSubtaskCount = plannedSubtaskCount,
-  totalSubtaskCount = totalSubtaskCount,
-  currentPlanningSubtaskId = currentPlanningSubtaskId?.toString(),
-  planningWaveSubtaskIds = planningWaveSubtaskIds.map(Int::toString),
-  reason = reason,
-)
+internal fun GoalPlanningStatusSnapshot.toIdeStatusPlanning(): IdeStatusPlanning =
+  IdeStatusPlanning(
+    state = state,
+    sharedPreplanPrepared = sharedPreplanPrepared,
+    plannedSubtaskCount = plannedSubtaskCount,
+    totalSubtaskCount = totalSubtaskCount,
+    currentPlanningSubtaskId = currentPlanningSubtaskId?.toString(),
+    planningWaveSubtaskIds = planningWaveSubtaskIds.map(Int::toString),
+    reason = reason,
+  )
 
-internal fun IdeStatusLifecycleState.isSettled(): Boolean = this == IdeStatusLifecycleState.BLOCKED ||
-  this == IdeStatusLifecycleState.FAILED ||
-  this == IdeStatusLifecycleState.TERMINAL
+internal fun IdeStatusLifecycleState.isSettled(): Boolean =
+  this == IdeStatusLifecycleState.BLOCKED ||
+    this == IdeStatusLifecycleState.FAILED ||
+    this == IdeStatusLifecycleState.TERMINAL
 
-internal fun goalPlanningSummary(issueKey: String, planning: IdeStatusPlanning): String {
+internal fun goalPlanningSummary(
+  issueKey: String,
+  planning: IdeStatusPlanning,
+): String {
   val concurrent = planning.planningWaveSubtaskIds.size
-  val wave = when (concurrent) {
-    0 -> ""
-    1 -> " 1 subtask is being planned now."
-    else -> " $concurrent subtasks are being planned now."
-  }
+  val wave =
+    when (concurrent) {
+      0 -> ""
+      1 -> " 1 subtask is being planned now."
+      else -> " $concurrent subtasks are being planned now."
+    }
   return "Goal $issueKey is planning subtasks " +
     "(${planning.plannedSubtaskCount}/${planning.totalSubtaskCount} planned).$wave"
 }
@@ -96,21 +104,22 @@ internal fun goalSummary(
   stepLabel: String,
   blockedCount: Int,
   operatorDecisionPause: FeatureTaskRuntimeOperatorDecisionPause? = null,
-): String = when (lifecycle) {
-  IdeStatusLifecycleState.BLOCKED -> {
-    operatorDecisionPause?.reason?.takeIf(String::isNotBlank)?.let { reason ->
-      "Goal $issueKey is blocked: $reason"
-    } ?: run {
-      val subtasks = if (blockedCount == 1) "subtask" else "subtasks"
-      "Goal $issueKey is blocked" + if (blockedCount > 0) " ($blockedCount $subtasks)." else "."
+): String =
+  when (lifecycle) {
+    IdeStatusLifecycleState.BLOCKED -> {
+      operatorDecisionPause?.reason?.takeIf(String::isNotBlank)?.let { reason ->
+        "Goal $issueKey is blocked: $reason"
+      } ?: run {
+        val subtasks = if (blockedCount == 1) "subtask" else "subtasks"
+        "Goal $issueKey is blocked" + if (blockedCount > 0) " ($blockedCount $subtasks)." else "."
+      }
     }
+    IdeStatusLifecycleState.PAUSED -> "Goal $issueKey is paused."
+    IdeStatusLifecycleState.FAILED -> "Goal $issueKey failed."
+    IdeStatusLifecycleState.TERMINAL -> "Goal $issueKey is complete."
+    IdeStatusLifecycleState.ACTIVE -> "Goal $issueKey is active on $stepLabel."
+    IdeStatusLifecycleState.IDLE -> "Goal $issueKey is idle."
   }
-  IdeStatusLifecycleState.PAUSED -> "Goal $issueKey is paused."
-  IdeStatusLifecycleState.FAILED -> "Goal $issueKey failed."
-  IdeStatusLifecycleState.TERMINAL -> "Goal $issueKey is complete."
-  IdeStatusLifecycleState.ACTIVE -> "Goal $issueKey is active on $stepLabel."
-  IdeStatusLifecycleState.IDLE -> "Goal $issueKey is idle."
-}
 
 internal fun familySummary(
   family: IdeStatusWorkflowFamily,
@@ -142,9 +151,10 @@ internal fun parseInstantOrNull(value: String?): Instant? {
 
 internal val SQLITE_TIMESTAMP_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-internal fun WorkItemKind.toIdeFamily(): IdeStatusWorkflowFamily? = when (this) {
-  WorkItemKind.FEATURE_TASK_PROSE -> null
-  WorkItemKind.FEATURE_TASK_RUNTIME -> IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME
-  WorkItemKind.FEATURE_VERIFY -> IdeStatusWorkflowFamily.FEATURE_VERIFY
-  WorkItemKind.FEATURE_GOAL -> IdeStatusWorkflowFamily.FEATURE_GOAL
-}
+internal fun WorkItemKind.toIdeFamily(): IdeStatusWorkflowFamily? =
+  when (this) {
+    WorkItemKind.FEATURE_TASK_PROSE -> null
+    WorkItemKind.FEATURE_TASK_RUNTIME -> IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME
+    WorkItemKind.FEATURE_VERIFY -> IdeStatusWorkflowFamily.FEATURE_VERIFY
+    WorkItemKind.FEATURE_GOAL -> IdeStatusWorkflowFamily.FEATURE_GOAL
+  }

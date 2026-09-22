@@ -3,7 +3,11 @@ import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import java.sql.Connection
 
-internal fun lifecycleAlreadyFinished(connection: Connection, tableName: String, sessionId: String): Boolean =
+internal fun lifecycleAlreadyFinished(
+  connection: Connection,
+  tableName: String,
+  sessionId: String,
+): Boolean =
   connection.prepareStatement("SELECT finished_at FROM $tableName WHERE session_id = ?").use { statement ->
     statement.bindAll(sessionId)
     statement.executeQuery().use { resultSet ->
@@ -11,7 +15,11 @@ internal fun lifecycleAlreadyFinished(connection: Connection, tableName: String,
     }
   }
 
-internal fun incrementDuplicateTerminalFinishedEvents(connection: Connection, tableName: String, sessionId: String) {
+internal fun incrementDuplicateTerminalFinishedEvents(
+  connection: Connection,
+  tableName: String,
+  sessionId: String,
+) {
   connection.prepareStatement(
     """
     UPDATE $tableName
@@ -29,22 +37,27 @@ internal fun staleFinishedAlreadyEmitted(
   tableName: String,
   terminalColumn: String,
   sessionId: String,
-): Boolean = connection.prepareStatement(
-  """
+): Boolean =
+  connection.prepareStatement(
+    """
     SELECT $terminalColumn, finished_event_emitted_at
     FROM $tableName
     WHERE session_id = ?
-  """.trimIndent(),
-).use { statement ->
-  statement.bindAll(sessionId)
-  statement.executeQuery().use { resultSet ->
-    resultSet.next() &&
-      resultSet.getString(terminalColumn) == "stale" &&
-      !resultSet.getString("finished_event_emitted_at").isNullOrBlank()
+    """.trimIndent(),
+  ).use { statement ->
+    statement.bindAll(sessionId)
+    statement.executeQuery().use { resultSet ->
+      resultSet.next() &&
+        resultSet.getString(terminalColumn) == "stale" &&
+        !resultSet.getString("finished_event_emitted_at").isNullOrBlank()
+    }
   }
-}
 
-internal fun terminalEventAlreadyEmitted(connection: Connection, tableName: String, sessionId: String): Boolean =
+internal fun terminalEventAlreadyEmitted(
+  connection: Connection,
+  tableName: String,
+  sessionId: String,
+): Boolean =
   connection.prepareStatement(
     """
     SELECT finished_event_emitted_at

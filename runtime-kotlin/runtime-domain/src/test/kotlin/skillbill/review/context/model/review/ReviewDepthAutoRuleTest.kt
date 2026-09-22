@@ -32,9 +32,10 @@ class ReviewDepthAutoRuleTest {
 
   @Test
   fun `no auto rule reaches the experimental delegated tier`() {
-    val resolutions = listOf(null, 1, 2, 7).map { pass ->
-      ReviewExecutionModePolicy.resolveWithRule(CodeReviewExecutionMode.AUTO, reviewPassNumber = pass)
-    }
+    val resolutions =
+      listOf(null, 1, 2, 7).map { pass ->
+        ReviewExecutionModePolicy.resolveWithRule(CodeReviewExecutionMode.AUTO, reviewPassNumber = pass)
+      }
 
     assertEquals(
       emptyList(),

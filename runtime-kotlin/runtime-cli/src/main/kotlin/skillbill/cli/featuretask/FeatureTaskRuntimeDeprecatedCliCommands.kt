@@ -12,6 +12,7 @@ import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
+
 private const val FEATURE_TASK_RUNTIME_DEPRECATION_NOTE: String =
   "feature-task-runtime is a deprecated alias for feature-task. Use feature-task; behavior is unchanged.\n"
 
@@ -23,9 +24,9 @@ class FeatureTaskRuntimeDeprecatedRunCommand(
   featureTaskRuntimeDeprecatedStatusCommand: FeatureTaskRuntimeDeprecatedStatusCommand,
   featureTaskRuntimeDeprecatedResumeCommand: FeatureTaskRuntimeDeprecatedResumeCommand,
 ) : FeatureTaskRuntimePhaseAgentCommand(
-  "feature-task-runtime",
-  "Deprecated alias for feature-task. Use feature-task; behavior is unchanged.",
-) {
+    "feature-task-runtime",
+    "Deprecated alias for feature-task. Use feature-task; behavior is unchanged.",
+  ) {
   override val hiddenFromHelp: Boolean = true
 
   private val issueKey by argument(help = "Issue key the run implements.").optional()
@@ -72,9 +73,9 @@ class FeatureTaskRuntimeDeprecatedExplicitRunCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,
   private val workflowService: WorkflowService,
 ) : FeatureTaskRuntimePhaseAgentCommand(
-  "run",
-  "Run the feature-task phase loop (explicit form of the parent command's default run).",
-) {
+    "run",
+    "Run the feature-task phase loop (explicit form of the parent command's default run).",
+  ) {
   private val issueKey by argument(help = "Issue key the run implements.")
   private val specPath by argument(help = "Path to the governed spec the run implements.").optional()
 
@@ -107,9 +108,10 @@ class FeatureTaskRuntimeDeprecatedStatusCommand(
   private val workflowId by argument(help = "Runtime workflow id whose phase status to show.")
 
   override fun run() {
-    val projection = statusService.status(
-      FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
-    )
+    val projection =
+      statusService.status(
+        FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
+      )
     val payload = projection.toRuntimeStatusCliMap(workflowId)
     state.completeText(runtimeStatusText(payload), payload, exitCode = payload.runtimeStatusExitCode())
   }
@@ -120,9 +122,9 @@ class FeatureTaskRuntimeDeprecatedResumeCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,
   private val lookupService: FeatureTaskContinuationLookupService,
 ) : FeatureTaskRuntimePhaseAgentCommand(
-  "resume",
-  "Resume a feature-task run against an existing workflow id.",
-) {
+    "resume",
+    "Resume a feature-task run against an existing workflow id.",
+  ) {
   private val workflowId by argument(help = "Existing runtime workflow id to resume.")
   private val issueKey by argument(help = "Issue key the resumed run implements.")
   private val specPath by argument(help = "Path to the governed spec the run implements.")

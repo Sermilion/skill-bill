@@ -37,16 +37,20 @@ object ReviewClaimVerdictAdmission {
     return when (worker.claimVerdict?.trim()?.lowercase()) {
       "confirmed" -> recorded(claim, recordedAt, ReviewClaimVerdict.CONFIRMED, worker.citations)
       "unresolved" -> recorded(claim, recordedAt, ReviewClaimVerdict.UNRESOLVED, worker.citations)
-      "refuted" -> if (worker.citations.isEmpty()) {
-        unresolved(claim, recordedAt, UNCITED_REFUTATION)
-      } else {
-        recorded(claim, recordedAt, ReviewClaimVerdict.REFUTED, worker.citations)
-      }
+      "refuted" ->
+        if (worker.citations.isEmpty()) {
+          unresolved(claim, recordedAt, UNCITED_REFUTATION)
+        } else {
+          recorded(claim, recordedAt, ReviewClaimVerdict.REFUTED, worker.citations)
+        }
       else -> unresolved(claim, recordedAt, UNSETTLED)
     }
   }
 
-  private fun claimAltered(claim: ParallelReviewMergedFinding, worker: ReviewClaimWorkerResult): Boolean =
+  private fun claimAltered(
+    claim: ParallelReviewMergedFinding,
+    worker: ReviewClaimWorkerResult,
+  ): Boolean =
     (worker.findingRef != null && worker.findingRef != claim.fNumber) ||
       (worker.severity != null && worker.severity != claim.severity.displayName) ||
       (worker.location != null && worker.location != claim.location) ||
@@ -56,30 +60,34 @@ object ReviewClaimVerdictAdmission {
     claim: ParallelReviewMergedFinding,
     recordedAt: String,
     reason: String,
-  ): ReviewClaimAdmissionResult = ReviewClaimAdmissionResult(
-    claim = claim,
-    verdict = ReviewFindingVerdict(
-      stage = ReviewStage.VERIFICATION,
-      findingRef = claim.fNumber,
-      claimVerdict = ReviewClaimVerdict.UNRESOLVED,
-      recordedAt = recordedAt,
-      rejectionReason = reason,
-    ),
-  )
+  ): ReviewClaimAdmissionResult =
+    ReviewClaimAdmissionResult(
+      claim = claim,
+      verdict =
+        ReviewFindingVerdict(
+          stage = ReviewStage.VERIFICATION,
+          findingRef = claim.fNumber,
+          claimVerdict = ReviewClaimVerdict.UNRESOLVED,
+          recordedAt = recordedAt,
+          rejectionReason = reason,
+        ),
+    )
 
   private fun recorded(
     claim: ParallelReviewMergedFinding,
     recordedAt: String,
     claimVerdict: ReviewClaimVerdict,
     citations: List<ReviewFindingCitation>,
-  ): ReviewClaimAdmissionResult = ReviewClaimAdmissionResult(
-    claim = claim,
-    verdict = ReviewFindingVerdict(
-      stage = ReviewStage.VERIFICATION,
-      findingRef = claim.fNumber,
-      claimVerdict = claimVerdict,
-      citations = citations,
-      recordedAt = recordedAt,
-    ),
-  )
+  ): ReviewClaimAdmissionResult =
+    ReviewClaimAdmissionResult(
+      claim = claim,
+      verdict =
+        ReviewFindingVerdict(
+          stage = ReviewStage.VERIFICATION,
+          findingRef = claim.fNumber,
+          claimVerdict = claimVerdict,
+          citations = citations,
+          recordedAt = recordedAt,
+        ),
+    )
 }

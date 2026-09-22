@@ -3,6 +3,7 @@ import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFields
 import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.execution.sha256
+
 data class ReviewHunkEvidenceLocator(
   val storePath: String,
   val hunkHeader: String,
@@ -19,8 +20,12 @@ data class ReviewHunkEvidenceLocator(
   companion object {
     const val PAYLOAD_FILE: String = "diff.patch"
 
-    fun header(oldStart: Int, oldCount: Int, newStart: Int, newCount: Int): String =
-      "@@ -$oldStart,$oldCount +$newStart,$newCount @@"
+    fun header(
+      oldStart: Int,
+      oldCount: Int,
+      newStart: Int,
+      newCount: Int,
+    ): String = "@@ -$oldStart,$oldCount +$newStart,$newCount @@"
 
     fun inProcess(
       contentDigest: String,
@@ -28,10 +33,11 @@ data class ReviewHunkEvidenceLocator(
       oldCount: Int,
       newStart: Int,
       newCount: Int,
-    ): ReviewHunkEvidenceLocator = ReviewHunkEvidenceLocator(
-      storePath = ".skill-bill/run-evidence/in-process/$contentDigest",
-      hunkHeader = header(oldStart, oldCount, newStart, newCount),
-    )
+    ): ReviewHunkEvidenceLocator =
+      ReviewHunkEvidenceLocator(
+        storePath = ".skill-bill/run-evidence/in-process/$contentDigest",
+        hunkHeader = header(oldStart, oldCount, newStart, newCount),
+      )
 
     fun atStore(
       storePath: String,
@@ -39,10 +45,11 @@ data class ReviewHunkEvidenceLocator(
       oldCount: Int,
       newStart: Int,
       newCount: Int,
-    ): ReviewHunkEvidenceLocator = ReviewHunkEvidenceLocator(
-      storePath = storePath,
-      hunkHeader = header(oldStart, oldCount, newStart, newCount),
-    )
+    ): ReviewHunkEvidenceLocator =
+      ReviewHunkEvidenceLocator(
+        storePath = storePath,
+        hunkHeader = header(oldStart, oldCount, newStart, newCount),
+      )
   }
 }
 
@@ -74,25 +81,31 @@ data class ReviewChangedHunk(
 
   val contentDigest: String = indexedContentDigest ?: sha256(content.replace("\r\n", "\n"))
 
-  val evidenceLocator: ReviewHunkEvidenceLocator = indexedEvidenceLocator
-    ?: ReviewHunkEvidenceLocator.inProcess(contentDigest, oldStart, oldCount, newStart, newCount)
+  val evidenceLocator: ReviewHunkEvidenceLocator =
+    indexedEvidenceLocator
+      ?: ReviewHunkEvidenceLocator.inProcess(contentDigest, oldStart, oldCount, newStart, newCount)
 
   val hunkId: String = indexedHunkId ?: sha256(canonicalIdentity(this, content))
 
-  val contentBytes: Long = indexedContentBytes
-    ?: content.replace("\r\n", "\n").toByteArray(Charsets.UTF_8).size.toLong()
+  val contentBytes: Long =
+    indexedContentBytes
+      ?: content.replace("\r\n", "\n").toByteArray(Charsets.UTF_8).size.toLong()
 
-  internal fun packetCanonical(): String = canonicalFields(
-    hunkId,
-    oldStart,
-    oldCount,
-    newStart,
-    newCount,
-    contentDigest,
-    evidenceLocator.canonical,
-  )
+  internal fun packetCanonical(): String =
+    canonicalFields(
+      hunkId,
+      oldStart,
+      oldCount,
+      newStart,
+      newCount,
+      contentDigest,
+      evidenceLocator.canonical,
+    )
 
-  fun asIndex(locator: ReviewHunkEvidenceLocator, body: String): ReviewChangedHunk {
+  fun asIndex(
+    locator: ReviewHunkEvidenceLocator,
+    body: String,
+  ): ReviewChangedHunk {
     val normalized = body.replace("\r\n", "\n")
     return copy(
       content = "",
@@ -106,16 +119,23 @@ data class ReviewChangedHunk(
   companion object {
     fun digestOfBody(body: String): String = sha256(body.replace("\r\n", "\n"))
 
-    fun idFor(hunk: ReviewChangedHunk, body: String = hunk.content): String = sha256(canonicalIdentity(hunk, body))
+    fun idFor(
+      hunk: ReviewChangedHunk,
+      body: String = hunk.content,
+    ): String = sha256(canonicalIdentity(hunk, body))
 
-    private fun canonicalIdentity(hunk: ReviewChangedHunk, body: String): String = canonicalFields(
-      hunk.path,
-      hunk.oldStart,
-      hunk.oldCount,
-      hunk.newStart,
-      hunk.newCount,
-      body.replace("\r\n", "\n"),
-      hunk.commitScope.orEmpty(),
-    )
+    private fun canonicalIdentity(
+      hunk: ReviewChangedHunk,
+      body: String,
+    ): String =
+      canonicalFields(
+        hunk.path,
+        hunk.oldStart,
+        hunk.oldCount,
+        hunk.newStart,
+        hunk.newCount,
+        body.replace("\r\n", "\n"),
+        hunk.commitScope.orEmpty(),
+      )
   }
 }

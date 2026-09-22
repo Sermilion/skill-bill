@@ -18,15 +18,17 @@ import skillbill.scaffold.policy.platformpack.renderPlatformPackManifest as poli
 
 @Inject
 class FileSystemScaffoldManifestPersistence : ScaffoldManifestPersistencePort {
-  override fun read(manifestPath: Path): ScaffoldManifestReadResult = ScaffoldManifestReadResult(
-    manifestPath = manifestPath,
-    content = Files.readString(manifestPath),
-  )
+  override fun read(manifestPath: Path): ScaffoldManifestReadResult =
+    ScaffoldManifestReadResult(
+      manifestPath = manifestPath,
+      content = Files.readString(manifestPath),
+    )
 
-  override fun snapshot(manifestPath: Path): ScaffoldManifestSnapshot = ScaffoldManifestSnapshot(
-    manifestPath = manifestPath,
-    originalBytes = Files.readAllBytes(manifestPath),
-  )
+  override fun snapshot(manifestPath: Path): ScaffoldManifestSnapshot =
+    ScaffoldManifestSnapshot(
+      manifestPath = manifestPath,
+      originalBytes = Files.readAllBytes(manifestPath),
+    )
 
   override fun restore(snapshot: ScaffoldManifestSnapshot) {
     rollbackRestoreBytes(snapshot.manifestPath, snapshot.originalBytes)
@@ -72,10 +74,11 @@ class FileSystemScaffoldManifestPersistence : ScaffoldManifestPersistencePort {
   override fun renderGovernedAddonRegistrationPreview(
     currentText: String,
     request: ScaffoldManifestRegisterGovernedAddonRequest,
-  ): String = renderGovernedAddonManifestRegistration(
-    text = currentText,
-    platform = request.platform,
-    skillRelativeDirs = request.skillRelativeDirs,
-    addonSlug = request.addonSlug,
-  )
+  ): String =
+    renderGovernedAddonManifestRegistration(
+      text = currentText,
+      platform = request.platform,
+      skillRelativeDirs = request.skillRelativeDirs,
+      addonSlug = request.addonSlug,
+    )
 }

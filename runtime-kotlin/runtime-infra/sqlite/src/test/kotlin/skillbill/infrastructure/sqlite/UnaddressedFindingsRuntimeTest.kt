@@ -123,12 +123,13 @@ class UnaddressedFindingsRuntimeTest {
     val dbPath = Files.createTempDirectory("unaddressed-findings-key").resolve("runtime.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val repository = SQLiteUnaddressedFindingsRepository(connection)
-      val keyed = finding(1, "blocker", "src/First.kt:7").copy(
-        reviewRunId = "rvw-1",
-        findingId = "F-001",
-        claimVerdict = REFUTED,
-        citations = listOf(ReviewFindingCitation("src/First.kt", 7)),
-      )
+      val keyed =
+        finding(1, "blocker", "src/First.kt:7").copy(
+          reviewRunId = "rvw-1",
+          findingId = "F-001",
+          claimVerdict = REFUTED,
+          citations = listOf(ReviewFindingCitation("src/First.kt", 7)),
+        )
       val unkeyed = finding(2, "minor", "src/Second.kt:9")
 
       repository.replaceLedgerForPass("workflow-1", 1, listOf(keyed, unkeyed))
@@ -145,10 +146,11 @@ class UnaddressedFindingsRuntimeTest {
     val dbPath = Files.createTempDirectory("unaddressed-findings-outcomes").resolve("runtime.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val repository = SQLiteUnaddressedFindingsRepository(connection)
-      val outcomes = listOf(
-        ReviewFindingOutcomeRecord("workflow-1", 1, 1, ReviewFindingOutcome.ADDRESSED, "rvw-1", "F-001"),
-        ReviewFindingOutcomeRecord("workflow-1", 1, 2, ReviewFindingOutcome.CARRIED),
-      )
+      val outcomes =
+        listOf(
+          ReviewFindingOutcomeRecord("workflow-1", 1, 1, ReviewFindingOutcome.ADDRESSED, "rvw-1", "F-001"),
+          ReviewFindingOutcomeRecord("workflow-1", 1, 2, ReviewFindingOutcome.CARRIED),
+        )
       repository.replaceLedgerForPass("workflow-1", 1, listOf(finding(1, "blocker", "src/First.kt:7")))
       repository.recordOutcomes(outcomes)
 
@@ -254,18 +256,19 @@ class UnaddressedFindingsRuntimeTest {
         ),
       )
 
-      val routed = connection.createStatement().use { statement ->
-        statement.executeQuery(
-          """
-          SELECT o.finding_ordinal, r.routed_skill
-          FROM review_finding_outcomes o
-          JOIN review_runs r ON r.review_run_id = o.review_run_id
-          ORDER BY o.finding_ordinal
-          """.trimIndent(),
-        ).use { rows ->
-          buildList { while (rows.next()) add(rows.getInt(1) to rows.getString(2)) }
+      val routed =
+        connection.createStatement().use { statement ->
+          statement.executeQuery(
+            """
+            SELECT o.finding_ordinal, r.routed_skill
+            FROM review_finding_outcomes o
+            JOIN review_runs r ON r.review_run_id = o.review_run_id
+            ORDER BY o.finding_ordinal
+            """.trimIndent(),
+          ).use { rows ->
+            buildList { while (rows.next()) add(rows.getInt(1) to rows.getString(2)) }
+          }
         }
-      }
 
       assertEquals(
         listOf(1 to "bill-kotlin-code-review"),
@@ -275,7 +278,11 @@ class UnaddressedFindingsRuntimeTest {
     }
   }
 
-  private fun finding(ordinal: Int, severity: String, location: String) = UnaddressedFinding(
+  private fun finding(
+    ordinal: Int,
+    severity: String,
+    location: String,
+  ) = UnaddressedFinding(
     issueKey = "SKILL-135",
     subtaskId = 3,
     workflowId = "workflow-1",

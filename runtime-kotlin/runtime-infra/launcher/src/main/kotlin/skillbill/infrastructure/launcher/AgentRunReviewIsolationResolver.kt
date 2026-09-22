@@ -11,16 +11,18 @@ import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 
 @Inject
 class AgentRunReviewIsolationResolver : ReviewLaunchIsolationResolver {
-  private val strategies: Map<InstallAgent, ReviewLaunchIsolationStrategy> = listOf(
-    ClaudeAgentRunCommandBuilder(),
-    CodexAgentRunCommandBuilder(),
-    CursorAgentRunCommandBuilder(),
-    JunieAgentRunCommandBuilder(),
-  ).associate { builder -> builder.agent to builder.reviewIsolation }
+  private val strategies: Map<InstallAgent, ReviewLaunchIsolationStrategy> =
+    listOf(
+      ClaudeAgentRunCommandBuilder(),
+      CodexAgentRunCommandBuilder(),
+      CursorAgentRunCommandBuilder(),
+      JunieAgentRunCommandBuilder(),
+    ).associate { builder -> builder.agent to builder.reviewIsolation }
 
   override fun isolationFor(agentId: String): ReviewLaunchIsolationStrategy {
-    val agent = InstallAgent.supportedIds.firstOrNull { it == agentId }
-      ?.let { id -> strategies.keys.firstOrNull { it.id == id } }
+    val agent =
+      InstallAgent.supportedIds.firstOrNull { it == agentId }
+        ?.let { id -> strategies.keys.firstOrNull { it.id == id } }
     return agent?.let(strategies::get) ?: ReviewLaunchIsolationStrategy.UNSUPPORTED
   }
 }

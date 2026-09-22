@@ -1,5 +1,6 @@
 package skillbill.architecture
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+
 private val wireVocabularyEnumPattern = Regex("""enum\s+class\s+([A-Za-z0-9_]+)([^\{]*)\{""")
 private val wireVocabularyObjectPattern = Regex("""object\s+([A-Za-z0-9_]*(?:Keys|PayloadKeys))\s*\{""")
 private val wireVocabularyEnumEntryPattern = Regex("""(?m)^\s*[A-Z][A-Z0-9_]*\s*\(\s*"([^"]+)"""")
@@ -33,13 +34,14 @@ private data class WireVocabularyScanContext(
 )
 
 internal object WireVocabularyArchitectureSupport {
-  fun scanRuntimeMainSources(): WireVocabularyScanResult = scanSourceFiles(
-    RuntimeModuleCatalog.declaredGradleModules
-      .flatMap { moduleName -> mainSourceRoots(moduleName) }
-      .flatMap(::sourceFilesIn),
-    includePayloadKeyAccesses = true,
-    enforceGovernedSeams = true,
-  )
+  fun scanRuntimeMainSources(): WireVocabularyScanResult =
+    scanSourceFiles(
+      RuntimeModuleCatalog.declaredGradleModules
+        .flatMap { moduleName -> mainSourceRoots(moduleName) }
+        .flatMap(::sourceFilesIn),
+      includePayloadKeyAccesses = true,
+      enforceGovernedSeams = true,
+    )
 
   fun scanSourceFiles(
     files: List<SourceFile>,
@@ -47,46 +49,50 @@ internal object WireVocabularyArchitectureSupport {
     enforceGovernedSeams: Boolean = false,
     schemaPropertyKeysByPath: Map<String, Set<String>>? = null,
   ): WireVocabularyScanResult {
-    val declarations = files.flatMap(::declarationsIn).sortedWith(
-      compareBy<WireVocabularyDeclaration> { it.category }
-        .thenBy { it.value }
-        .thenBy { it.owner }
-        .thenBy { it.relativePath }
-        .thenBy { it.line },
-    )
-    val tokenValues = declarations.filter { it.category == "token" || it.category == "alias" }
-      .map { it.value }.toSet()
-    val keyValues = (
-      declarations.filter { it.category == "key" }.map { it.value } +
-        setOf(
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ISSUE_KEY,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUBTASK_ID,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.PARENT_WORKFLOW_ID,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.CODE_REVIEW_MODE,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.VALIDATION_DEPTH,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.QUALITY_GATE_SELECTION,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.PARALLEL_REVIEW_AGENT,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUBTASK_NAME,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.AGENT_ADDON_SELECTION,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
-          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
-        )
+    val declarations =
+      files.flatMap(::declarationsIn).sortedWith(
+        compareBy<WireVocabularyDeclaration> { it.category }
+          .thenBy { it.value }
+          .thenBy { it.owner }
+          .thenBy { it.relativePath }
+          .thenBy { it.line },
+      )
+    val tokenValues =
+      declarations.filter { it.category == "token" || it.category == "alias" }
+        .map { it.value }.toSet()
+    val keyValues =
+      (
+        declarations.filter { it.category == "key" }.map { it.value } +
+          setOf(
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ISSUE_KEY,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUBTASK_ID,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.PARENT_WORKFLOW_ID,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.CODE_REVIEW_MODE,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.VALIDATION_DEPTH,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.QUALITY_GATE_SELECTION,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.PARALLEL_REVIEW_AGENT,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUBTASK_NAME,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.AGENT_ADDON_SELECTION,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
+          )
       ).toSet()
     val governedKeys = governedSchemaPropertyKeys(enforceGovernedSeams, schemaPropertyKeysByPath)
-    val violations = findViolations(
-      files,
-      declarations,
-      WireVocabularyScanContext(
-        tokenValues,
-        keyValues,
-        includePayloadKeyAccesses,
-        enforceGovernedSeams,
-        governedKeys,
-      ),
-    )
+    val violations =
+      findViolations(
+        files,
+        declarations,
+        WireVocabularyScanContext(
+          tokenValues,
+          keyValues,
+          includePayloadKeyAccesses,
+          enforceGovernedSeams,
+          governedKeys,
+        ),
+      )
     return WireVocabularyScanResult(
       declarations = declarations,
       violations = violations,
@@ -98,59 +104,62 @@ internal object WireVocabularyArchitectureSupport {
   private fun governedSchemaPropertyKeys(
     enforceGovernedSeams: Boolean,
     schemaPropertyKeysByPath: Map<String, Set<String>>?,
-  ): Map<String, Set<String>> = if (enforceGovernedSeams) {
-    WireVocabularyGovernedSeamInventory.seams.associate { seam ->
-      seam.schemaRepoRelativePath to (
-        schemaPropertyKeysByPath?.get(seam.schemaRepoRelativePath)
-          ?: WireVocabularyGovernedSeamInventory.closedSchemaPropertyKeys(seam.schemaRepoRelativePath)
+  ): Map<String, Set<String>> =
+    if (enforceGovernedSeams) {
+      WireVocabularyGovernedSeamInventory.seams.associate { seam ->
+        seam.schemaRepoRelativePath to (
+          schemaPropertyKeysByPath?.get(seam.schemaRepoRelativePath)
+            ?: WireVocabularyGovernedSeamInventory.closedSchemaPropertyKeys(seam.schemaRepoRelativePath)
         )
+      }
+    } else {
+      emptyMap()
     }
-  } else {
-    emptyMap()
-  }
 
   private fun findViolations(
     files: List<SourceFile>,
     declarations: List<WireVocabularyDeclaration>,
     context: WireVocabularyScanContext,
-  ): List<String> = buildList {
-    addAll(duplicateDeclarations(declarations))
-    if (context.enforceGovernedSeams) {
-      addAll(governedSeamViolations(files, context.governedKeys, context.keyValues))
-    }
-    files.forEach { file ->
-      addAll(localVocabularyRestatements(file, context.tokenValues, declarations))
-      if (context.includePayloadKeyAccesses) {
-        addAll(
-          filePayloadKeyViolations(
-            file,
-            context.keyValues,
-            declarations,
-            context.enforceGovernedSeams,
-            context.governedKeys,
-          ),
-        )
+  ): List<String> =
+    buildList {
+      addAll(duplicateDeclarations(declarations))
+      if (context.enforceGovernedSeams) {
+        addAll(governedSeamViolations(files, context.governedKeys, context.keyValues))
       }
-    }
-  }.distinct().sorted()
+      files.forEach { file ->
+        addAll(localVocabularyRestatements(file, context.tokenValues, declarations))
+        if (context.includePayloadKeyAccesses) {
+          addAll(
+            filePayloadKeyViolations(
+              file,
+              context.keyValues,
+              declarations,
+              context.enforceGovernedSeams,
+              context.governedKeys,
+            ),
+          )
+        }
+      }
+    }.distinct().sorted()
 
   private fun governedSeamViolations(
     files: List<SourceFile>,
     governedKeys: Map<String, Set<String>>,
     keyValues: Set<String>,
-  ): List<String> = WireVocabularyGovernedSeamInventory.seams
-    .filter { seam ->
-      seam.governedRelativePathMarkers.any { marker ->
-        files.any { file -> marker in file.relativePath }
+  ): List<String> =
+    WireVocabularyGovernedSeamInventory.seams
+      .filter { seam ->
+        seam.governedRelativePathMarkers.any { marker ->
+          files.any { file -> marker in file.relativePath }
+        }
       }
-    }
-    .flatMap { seam ->
-      WireVocabularyGovernedSeamInventory.schemaFieldsMissingKotlinOwner(
-        governedKeys.getValue(seam.schemaRepoRelativePath),
-        seam.schemaRepoRelativePath,
-        keyValues,
-      )
-    }
+      .flatMap { seam ->
+        WireVocabularyGovernedSeamInventory.schemaFieldsMissingKotlinOwner(
+          governedKeys.getValue(seam.schemaRepoRelativePath),
+          seam.schemaRepoRelativePath,
+          keyValues,
+        )
+      }
 
   private fun filePayloadKeyViolations(
     file: SourceFile,
@@ -167,15 +176,20 @@ internal object WireVocabularyArchitectureSupport {
       }
   }
 
-  fun vocabularyDelta(before: WireVocabularyScanResult, after: WireVocabularyScanResult): Int =
-    before.remainingViolationCount - after.remainingViolationCount
+  fun vocabularyDelta(
+    before: WireVocabularyScanResult,
+    after: WireVocabularyScanResult,
+  ): Int = before.remainingViolationCount - after.remainingViolationCount
 
   private fun declarationsIn(file: SourceFile): List<WireVocabularyDeclaration> {
     val source = withoutComments(file.source)
     return enumDeclarations(file, source) + objectDeclarations(file, source)
   }
 
-  private fun enumDeclarations(file: SourceFile, source: String): List<WireVocabularyDeclaration> {
+  private fun enumDeclarations(
+    file: SourceFile,
+    source: String,
+  ): List<WireVocabularyDeclaration> {
     val declarations = mutableListOf<WireVocabularyDeclaration>()
     wireVocabularyEnumPattern.findAll(source).forEach { match ->
       val openBrace = source.indexOf('{', match.range.first)
@@ -228,13 +242,17 @@ internal object WireVocabularyArchitectureSupport {
     owner: String,
     value: String,
     offset: Int,
-  ): WireVocabularyDeclaration? = if (tokens.any { it.category == "token" && it.value == value && it.owner == owner }) {
-    null
-  } else {
-    declaration("alias", value, owner, file, offset)
-  }
+  ): WireVocabularyDeclaration? =
+    if (tokens.any { it.category == "token" && it.value == value && it.owner == owner }) {
+      null
+    } else {
+      declaration("alias", value, owner, file, offset)
+    }
 
-  private fun objectDeclarations(file: SourceFile, source: String): List<WireVocabularyDeclaration> {
+  private fun objectDeclarations(
+    file: SourceFile,
+    source: String,
+  ): List<WireVocabularyDeclaration> {
     val declarations = mutableListOf<WireVocabularyDeclaration>()
     wireVocabularyObjectPattern.findAll(source).forEach { match ->
       val openBrace = source.indexOf('{', match.range.first)
@@ -242,13 +260,14 @@ internal object WireVocabularyArchitectureSupport {
       if (openBrace < 0 || closeBrace < 0) return@forEach
       val owner = file.packageName + "." + match.groupValues[1]
       wireVocabularyConstPattern.findAll(source.substring(openBrace + 1, closeBrace)).forEach { key ->
-        declarations += declaration(
-          "key",
-          key.groupValues[2].replace("\\\$", "\$"),
-          owner,
-          file,
-          openBrace + 1 + key.range.first,
-        )
+        declarations +=
+          declaration(
+            "key",
+            key.groupValues[2].replace("\\\$", "\$"),
+            owner,
+            file,
+            openBrace + 1 + key.range.first,
+          )
       }
     }
     return declarations
@@ -277,11 +296,12 @@ internal object WireVocabularyArchitectureSupport {
     val source = withoutComments(file.source)
     collectionLiteralBodies(source).forEach { (name, start, body) ->
       collectionValues(name, body).filter { it in tokenValues }.forEach { value ->
-        val owners = declarations
-          .filter { it.value == value && it.category in setOf("token", "alias") }
-          .map { it.owner }
-          .distinct()
-          .filter { owner -> sharesDecodingContext(file, source, owner) }
+        val owners =
+          declarations
+            .filter { it.value == value && it.category in setOf("token", "alias") }
+            .map { it.owner }
+            .distinct()
+            .filter { owner -> sharesDecodingContext(file, source, owner) }
         if (owners.isNotEmpty()) {
           violations += file.relativePath + ":" + lineOf(source, start) + " " + name +
             " restates '" + value + "'; owner(s): " + owners.joinToString()
@@ -291,7 +311,11 @@ internal object WireVocabularyArchitectureSupport {
     return violations
   }
 
-  private fun sharesDecodingContext(file: SourceFile, source: String, owner: String): Boolean =
+  private fun sharesDecodingContext(
+    file: SourceFile,
+    source: String,
+    owner: String,
+  ): Boolean =
     owner.substringBeforeLast('.') == file.packageName ||
       Regex("\\b" + Regex.escape(owner.substringAfterLast('.')) + "\\b").containsMatchIn(source)
 
@@ -303,16 +327,18 @@ internal object WireVocabularyArchitectureSupport {
     val violations = mutableListOf<String>()
     val source = withoutComments(file.source)
     keyValues.forEach { value ->
-      val accessPatterns = listOf(
-        Regex("""\[\s*""" + "\"" + Regex.escape(value) + "\"" + """\s*]"""),
-        Regex("""\b(?:get|put|getString|setString)\s*\(\s*""" + "\"" + Regex.escape(value) + "\""),
-        Regex("""@(?:SerialName|JsonProperty)\s*\(\s*""" + "\"" + Regex.escape(value) + "\""),
-        Regex("""(?:^|[({,])\s*""" + "\"" + Regex.escape(value) + "\"" + """\s+to\b"""),
-      )
+      val accessPatterns =
+        listOf(
+          Regex("""\[\s*""" + "\"" + Regex.escape(value) + "\"" + """\s*]"""),
+          Regex("""\b(?:get|put|getString|setString)\s*\(\s*""" + "\"" + Regex.escape(value) + "\""),
+          Regex("""@(?:SerialName|JsonProperty)\s*\(\s*""" + "\"" + Regex.escape(value) + "\""),
+          Regex("""(?:^|[({,])\s*""" + "\"" + Regex.escape(value) + "\"" + """\s+to\b"""),
+        )
       accessPatterns.flatMap { it.findAll(source).toList() }.forEach { access ->
-        val owners = declarations.filter { it.category == "key" && it.value == value }
-          .map { it.owner }
-          .distinct()
+        val owners =
+          declarations.filter { it.category == "key" && it.value == value }
+            .map { it.owner }
+            .distinct()
         if (owners.none { owner -> isInsideOwnedKeyObject(source, access.range.first, owner) }) {
           violations += file.relativePath + ":" + lineOf(source, access.range.first) +
             " accesses key '" + value + "'; owner(s): " + owners.joinToString()
@@ -322,7 +348,11 @@ internal object WireVocabularyArchitectureSupport {
     return violations
   }
 
-  private fun isInsideOwnedKeyObject(source: String, offset: Int, owner: String): Boolean {
+  private fun isInsideOwnedKeyObject(
+    source: String,
+    offset: Int,
+    owner: String,
+  ): Boolean {
     val objectName = owner.substringAfterLast('.')
     return Regex("""object\s+""" + Regex.escape(objectName) + """\s*\{""").findAll(source).any { match ->
       val openBrace = source.indexOf('{', match.range.first)
@@ -347,11 +377,15 @@ internal object WireVocabularyArchitectureSupport {
   private fun bodyStringLiterals(body: String): List<String> =
     Regex(""""([^"]+)"""").findAll(body).map { it.groupValues[1] }.toList()
 
-  private fun collectionValues(name: String, body: String): List<String> = if (name == "setOf") {
-    bodyStringLiterals(body)
-  } else {
-    Regex("""(?:^|,)\s*"([^"]+)"\s+to""").findAll(body).map { it.groupValues[1] }.toList()
-  }
+  private fun collectionValues(
+    name: String,
+    body: String,
+  ): List<String> =
+    if (name == "setOf") {
+      bodyStringLiterals(body)
+    } else {
+      Regex("""(?:^|,)\s*"([^"]+)"\s+to""").findAll(body).map { it.groupValues[1] }.toList()
+    }
 
   private fun declaration(
     category: String,
@@ -359,23 +393,31 @@ internal object WireVocabularyArchitectureSupport {
     owner: String,
     file: SourceFile,
     offset: Int,
-  ): WireVocabularyDeclaration = WireVocabularyDeclaration(
-    category = category,
-    value = value,
-    owner = owner,
-    relativePath = file.relativePath,
-    line = lineOf(file.source, offset),
-  )
+  ): WireVocabularyDeclaration =
+    WireVocabularyDeclaration(
+      category = category,
+      value = value,
+      owner = owner,
+      relativePath = file.relativePath,
+      line = lineOf(file.source, offset),
+    )
 
   private fun location(declaration: WireVocabularyDeclaration): String =
     declaration.relativePath + ":" + declaration.line
 
-  private fun lineOf(source: String, offset: Int): Int =
-    source.take(offset.coerceAtMost(source.length)).count { it == '\n' } + 1
+  private fun lineOf(
+    source: String,
+    offset: Int,
+  ): Int = source.take(offset.coerceAtMost(source.length)).count { it == '\n' } + 1
 
   private fun withoutComments(source: String): String = CommentStripper(source).strip()
 
-  private fun matchingDelimiter(source: String, openIndex: Int, open: Char, close: Char): Int {
+  private fun matchingDelimiter(
+    source: String,
+    openIndex: Int,
+    open: Char,
+    close: Char,
+  ): Int {
     if (openIndex < 0) return -1
     var depth = 0
     var inString = false
@@ -415,14 +457,15 @@ private class CommentStripper(private val source: String) {
 
   fun strip(): String {
     while (index < source.length) {
-      index += when (mode) {
-        Mode.LINE_COMMENT -> consumeLineComment()
-        Mode.BLOCK_COMMENT -> consumeBlockComment()
-        Mode.TRIPLE_STRING -> consumeTripleString()
-        Mode.STRING -> consumeQuoted('"')
-        Mode.CHARACTER -> consumeQuoted('\'')
-        Mode.CODE -> consumeCode()
-      }
+      index +=
+        when (mode) {
+          Mode.LINE_COMMENT -> consumeLineComment()
+          Mode.BLOCK_COMMENT -> consumeBlockComment()
+          Mode.TRIPLE_STRING -> consumeTripleString()
+          Mode.STRING -> consumeQuoted('"')
+          Mode.CHARACTER -> consumeQuoted('\'')
+          Mode.CODE -> consumeCode()
+        }
     }
     return output.toString()
   }
@@ -483,7 +526,11 @@ private class CommentStripper(private val source: String) {
     }
   }
 
-  private fun enter(next: Mode, emit: String, width: Int): Int {
+  private fun enter(
+    next: Mode,
+    emit: String,
+    width: Int,
+  ): Int {
     output.append(emit)
     mode = next
     return width

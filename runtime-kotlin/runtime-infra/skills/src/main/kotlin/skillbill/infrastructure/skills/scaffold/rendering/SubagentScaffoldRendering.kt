@@ -8,7 +8,10 @@ import skillbill.infrastructure.skills.nativeagent.composition.renderNativeAgent
 
 private const val DEFAULT_CODEX_MAX_THREADS = 6
 
-internal fun renderNativeAgentSourceStub(name: String, parentSkill: String): String {
+internal fun renderNativeAgentSourceStub(
+  name: String,
+  parentSkill: String,
+): String {
   return renderNativeAgentSource(
     NativeAgentSource(
       name = name,
@@ -23,32 +26,39 @@ internal fun renderNativeAgentBundleStubs(
   descriptions: Map<String, String> = emptyMap(),
   bodyNames: Set<String> = emptySet(),
   parentSkill: String = "",
-): String = renderNativeAgentBundle(
-  names.map { name ->
-    NativeAgentSource(
-      name = name,
-      description = descriptions[name]
-        ?: "TODO: one-line description for the $name specialist subagent. Fill in before shipping.",
-      body = if (name in bodyNames) nativeAgentStubBody(name, parentSkill) else "",
-      composition = if (name in bodyNames) {
-        null
-      } else {
-        NativeAgentCompositionDirective(NativeAgentCompositionKind.GovernedContent)
-      },
-    )
-  },
-)
+): String =
+  renderNativeAgentBundle(
+    names.map { name ->
+      NativeAgentSource(
+        name = name,
+        description =
+          descriptions[name]
+            ?: "TODO: one-line description for the $name specialist subagent. Fill in before shipping.",
+        body = if (name in bodyNames) nativeAgentStubBody(name, parentSkill) else "",
+        composition =
+          if (name in bodyNames) {
+            null
+          } else {
+            NativeAgentCompositionDirective(NativeAgentCompositionKind.GovernedContent)
+          },
+      )
+    },
+  )
 
-internal fun renderSubagentSpawnRuntimeNotes(orchestratorName: String, specialists: List<String>): String {
+internal fun renderSubagentSpawnRuntimeNotes(
+  orchestratorName: String,
+  specialists: List<String>,
+): String {
   if (specialists.isEmpty()) {
     return ""
   }
-  val paragraphs = mutableListOf(
-    "### Subagent Spawn Runtime Notes",
-    subagentResolutionParagraph(orchestratorName, specialists),
-    claudeSpawnParagraph(orchestratorName, specialists),
-    codexSpawnParagraph(),
-  )
+  val paragraphs =
+    mutableListOf(
+      "### Subagent Spawn Runtime Notes",
+      subagentResolutionParagraph(orchestratorName, specialists),
+      claudeSpawnParagraph(orchestratorName, specialists),
+      codexSpawnParagraph(),
+    )
 
   if (specialists.size > DEFAULT_CODEX_MAX_THREADS) {
     paragraphs +=
@@ -61,7 +71,10 @@ internal fun renderSubagentSpawnRuntimeNotes(orchestratorName: String, specialis
   return paragraphs.joinToString("\n\n")
 }
 
-private fun subagentResolutionParagraph(orchestratorName: String, specialists: List<String>): String {
+private fun subagentResolutionParagraph(
+  orchestratorName: String,
+  specialists: List<String>,
+): String {
   val exampleSpecialist = specialists.first()
   return "Specialist spawn instructions in this orchestrator are runtime-neutral. Each phrase such as " +
     "\"spawn the `$exampleSpecialist` subagent\" maps to the native subagent surface of the host runtime " +
@@ -72,7 +85,10 @@ private fun subagentResolutionParagraph(orchestratorName: String, specialists: L
     "subagent actually runs and no `RESULT:` is ever returned."
 }
 
-private fun claudeSpawnParagraph(orchestratorName: String, specialists: List<String>): String {
+private fun claudeSpawnParagraph(
+  orchestratorName: String,
+  specialists: List<String>,
+): String {
   val exampleSpecialist = specialists.first()
   return "**On Claude (Claude Code, Anthropic SDK agents).** The orchestrator MUST invoke the built-in `Agent` " +
     "tool with `subagent_type` set to the matching specialist name (for example, `subagent_type: " +
@@ -96,7 +112,10 @@ private fun codexSpawnParagraph(): String =
     "subagent's `RESULT:` block — do not proceed to the next phase until the subagent has visibly finished " +
     "and its `RESULT:` JSON is available in the conversation."
 
-private fun cursorSpawnParagraph(orchestratorName: String, specialists: List<String>): String {
+private fun cursorSpawnParagraph(
+  orchestratorName: String,
+  specialists: List<String>,
+): String {
   val exampleSpecialist = specialists.first()
   return "**On Cursor.** The orchestrator MUST launch each selected specialist by naming its installed Cursor " +
     "subagent — the matching file under `~/.cursor/agents/` or project `.cursor/agents/` (project scope wins " +
@@ -126,16 +145,20 @@ private fun junieSpawnParagraph(): String =
     "the parent context, and do not claim delegated coverage. Use `mode:inline` here, or re-run the " +
     "delegated review on a runtime with a spawn paragraph above."
 
-private fun nativeAgentStubBody(name: String, parentSkill: String): String = buildString {
-  appendLine("# ${titleCaseSpecialist(name)} Specialist")
-  appendLine()
-  appendLine("TODO: replace this placeholder with the specialist briefing.")
-  appendLine()
-  appendLine(
-    "Specialist contract pointer: see specialist-contract.md for the F-XXX Risk Register format used by " +
-      "this orchestrator's review specialists (parent skill: $parentSkill).",
-  )
-}.trimEnd()
+private fun nativeAgentStubBody(
+  name: String,
+  parentSkill: String,
+): String =
+  buildString {
+    appendLine("# ${titleCaseSpecialist(name)} Specialist")
+    appendLine()
+    appendLine("TODO: replace this placeholder with the specialist briefing.")
+    appendLine()
+    appendLine(
+      "Specialist contract pointer: see specialist-contract.md for the F-XXX Risk Register format used by " +
+        "this orchestrator's review specialists (parent skill: $parentSkill).",
+    )
+  }.trimEnd()
 
 private fun titleCaseSpecialist(name: String): String =
   name.split("-").filter { it.isNotBlank() }.joinToString(" ") { part ->

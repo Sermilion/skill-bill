@@ -48,12 +48,13 @@ class LoopRecordedOutcomeStatsTest {
 
       TriageRuntime.recordFeedbackWithoutTransaction(
         connection = connection,
-        request = FeedbackRequest(
-          reviewRunId = review.reviewRunId,
-          findingIds = listOf("F-001"),
-          eventType = "false_positive",
-          note = "Operator overrode the loop.",
-        ),
+        request =
+          FeedbackRequest(
+            reviewRunId = review.reviewRunId,
+            findingIds = listOf("F-001"),
+            eventType = "false_positive",
+            note = "Operator overrode the loop.",
+          ),
         telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "off"),
       )
 
@@ -122,7 +123,12 @@ class LoopRecordedOutcomeStatsTest {
     }
   }
 
-  private fun recordLoopOutcome(connection: Connection, reviewRunId: String, findingId: String, outcome: String) {
+  private fun recordLoopOutcome(
+    connection: Connection,
+    reviewRunId: String,
+    findingId: String,
+    outcome: String,
+  ) {
     connection.prepareStatement(
       """
       INSERT INTO review_finding_outcomes

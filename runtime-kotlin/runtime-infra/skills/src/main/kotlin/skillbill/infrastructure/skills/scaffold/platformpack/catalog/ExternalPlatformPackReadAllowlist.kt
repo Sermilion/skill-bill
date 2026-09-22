@@ -20,17 +20,24 @@ internal fun assertExternalPackContentPresent(manifest: PlatformManifest) {
   }
 }
 
-internal fun assertExternalPlatformPackDeclaredReads(manifest: PlatformManifest, sharedSupportRoot: Path) {
+internal fun assertExternalPlatformPackDeclaredReads(
+  manifest: PlatformManifest,
+  sharedSupportRoot: Path,
+) {
   val packRoot = manifest.packRoot.toPath().toAbsolutePath().normalize()
-  val files = buildList {
-    add(packRoot.resolve("platform.yaml"))
-    manifest.declaredFiles.baseline?.let { location -> add(location.toPath()) }
-    manifest.declaredFiles.areas.values.forEach { location -> add(location.toPath()) }
-  }
+  val files =
+    buildList {
+      add(packRoot.resolve("platform.yaml"))
+      manifest.declaredFiles.baseline?.let { location -> add(location.toPath()) }
+      manifest.declaredFiles.areas.values.forEach { location -> add(location.toPath()) }
+    }
   files.forEach { file -> assertAllowedExternalPackRead(file, packRoot, sharedSupportRoot) }
 }
 
-internal fun assertExternalPlatformPackTreeReads(packRoot: Path, sharedSupportRoot: Path) {
+internal fun assertExternalPlatformPackTreeReads(
+  packRoot: Path,
+  sharedSupportRoot: Path,
+) {
   if (!Files.exists(packRoot)) {
     return
   }
@@ -47,7 +54,11 @@ internal fun assertExternalPlatformPackTreeReads(packRoot: Path, sharedSupportRo
   }
 }
 
-internal fun assertAllowedExternalPackRead(file: Path, packRoot: Path, sharedSupportRoot: Path) {
+internal fun assertAllowedExternalPackRead(
+  file: Path,
+  packRoot: Path,
+  sharedSupportRoot: Path,
+) {
   val normalized = file.toAbsolutePath().normalize()
   val normalizedPack = packRoot.toAbsolutePath().normalize()
   val normalizedShared = sharedSupportRoot.toAbsolutePath().normalize()
@@ -62,11 +73,12 @@ internal fun assertAllowedExternalPackRead(file: Path, packRoot: Path, sharedSup
   }
 }
 
-private fun realExternalPackPath(path: Path): Path = try {
-  path.toRealPath()
-} catch (error: IOException) {
-  throw ExternalPlatformPackConfigError(
-    "External platform pack '${path.fileName}' references missing content.",
-    error,
-  )
-}
+private fun realExternalPackPath(path: Path): Path =
+  try {
+    path.toRealPath()
+  } catch (error: IOException) {
+    throw ExternalPlatformPackConfigError(
+      "External platform pack '${path.fileName}' references missing content.",
+      error,
+    )
+  }

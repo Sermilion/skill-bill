@@ -16,6 +16,7 @@ import java.io.IOException
 import java.security.MessageDigest
 import java.time.Clock
 import java.time.Instant
+
 class RejectedOutputDiagnosticService(
   private val repository: RejectedOutputDiagnosticRepository,
   private val permissions: RejectedOutputDiagnosticPermissions,
@@ -34,22 +35,23 @@ class RejectedOutputDiagnosticService(
     }
     cleanup()
     val oversized = request.truncated || request.observedByteSize > config.maximumPayloadBytes
-    val metadata = RejectedOutputDiagnostic(
-      identity = identity,
-      workflowId = request.workflowId,
-      phaseId = request.phaseId,
-      attempt = request.attempt,
-      rule = request.rule,
-      path = request.path,
-      reason = request.reason,
-      agentId = request.agentId,
-      model = request.model,
-      recordedAt = clock.instant(),
-      byteSize = request.observedByteSize,
-      sha256 = request.observedSha256,
-      lifecycle = if (oversized) RejectedOutputLifecycle.OVERSIZED else RejectedOutputLifecycle.STORED,
-      repairTurn = request.repairTurn,
-    )
+    val metadata =
+      RejectedOutputDiagnostic(
+        identity = identity,
+        workflowId = request.workflowId,
+        phaseId = request.phaseId,
+        attempt = request.attempt,
+        rule = request.rule,
+        path = request.path,
+        reason = request.reason,
+        agentId = request.agentId,
+        model = request.model,
+        recordedAt = clock.instant(),
+        byteSize = request.observedByteSize,
+        sha256 = request.observedSha256,
+        lifecycle = if (oversized) RejectedOutputLifecycle.OVERSIZED else RejectedOutputLifecycle.STORED,
+        repairTurn = request.repairTurn,
+      )
     metadataValidator.validate(metadata)
     applyRestrictivePermissions()
     return repository.insert(
@@ -102,26 +104,32 @@ class RejectedOutputDiagnosticService(
     }
   }
 
-  private fun existing(identity: String): RejectedOutputDiagnosticRecord? = try {
-    repository.read(identity)
-  } catch (_: RejectedOutputDiagnosticError.Absent) {
-    null
-  }
+  private fun existing(identity: String): RejectedOutputDiagnosticRecord? =
+    try {
+      repository.read(identity)
+    } catch (_: RejectedOutputDiagnosticError.Absent) {
+      null
+    }
 
   private fun validate(selector: RejectedOutputDiagnosticSelector): RejectedOutputDiagnosticSelector {
-    val issue = when {
-      selector.workflowId.isBlank() -> "workflowId must be non-blank"
-      selector.phaseId?.isBlank() == true -> "phaseId must be non-blank when present"
-      selector.attempt?.let { it <= 0 } == true -> "attempt must be positive when present"
-      else -> null
-    }
+    val issue =
+      when {
+        selector.workflowId.isBlank() -> "workflowId must be non-blank"
+        selector.phaseId?.isBlank() == true -> "phaseId must be non-blank when present"
+        selector.attempt?.let { it <= 0 } == true -> "attempt must be positive when present"
+        else -> null
+      }
     if (issue != null) throw RejectedOutputDiagnosticError.InvalidRequest(issue)
     return selector
   }
 
   companion object {
-
-    fun stableIdentity(workflowId: String, phaseId: String, attempt: Int, repairTurn: Int = 0): String {
+    fun stableIdentity(
+      workflowId: String,
+      phaseId: String,
+      attempt: Int,
+      repairTurn: Int = 0,
+    ): String {
       val base = "$workflowId\u0000$phaseId\u0000$attempt"
       val preimage = if (repairTurn == 0) base else "$base\u0000$repairTurn"
       return "rod_${sha256(preimage.encodeToByteArray())}"
@@ -143,15 +151,16 @@ private fun verifiedPayload(record: RejectedOutputDiagnosticRecord): ByteArray {
 }
 
 private fun requestValidationIssue(request: RejectedOutputDiagnosticRequest): String? {
-  val required = mapOf(
-    "workflowId" to request.workflowId,
-    "phaseId" to request.phaseId,
-    "rule" to request.rule,
-    "path" to request.path,
-    "reason" to request.reason,
-    "agentId" to request.agentId,
-    "model" to request.model,
-  )
+  val required =
+    mapOf(
+      "workflowId" to request.workflowId,
+      "phaseId" to request.phaseId,
+      "rule" to request.rule,
+      "path" to request.path,
+      "reason" to request.reason,
+      "agentId" to request.agentId,
+      "model" to request.model,
+    )
   val blankField = required.entries.firstOrNull { it.value.isBlank() }?.key
   return when {
     blankField != null -> "$blankField must be non-blank"
@@ -165,7 +174,7 @@ private fun requestValidationIssue(request: RejectedOutputDiagnosticRequest): St
       (
         request.observedByteSize != request.rawResponse.size.toLong() ||
           request.observedSha256 != RejectedOutputDiagnosticService.sha256(request.rawResponse)
-        )
+      )
     -> "complete response evidence does not match its bytes"
     else -> null
   }

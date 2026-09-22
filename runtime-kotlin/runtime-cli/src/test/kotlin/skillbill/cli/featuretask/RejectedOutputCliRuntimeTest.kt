@@ -17,17 +17,18 @@ class RejectedOutputCliRuntimeTest {
   fun `rejected-output-cleanup completes through CliRunState without usage help`() {
     val home = Files.createTempDirectory("skillbill-rejected-cleanup")
     val db = home.resolve("metrics.db")
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        db.toString(),
-        "feature-task",
-        "rejected-output-cleanup",
-        "--workflow",
-        "wf-missing",
-      ),
-      CliRuntimeContext(userHome = home, environment = emptyMap()),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          db.toString(),
+          "feature-task",
+          "rejected-output-cleanup",
+          "--workflow",
+          "wf-missing",
+        ),
+        CliRuntimeContext(userHome = home, environment = emptyMap()),
+      )
     assertEquals(0, result.exitCode)
     assertEquals("deleted=0\n", result.stdout)
     assertFalse(result.stdout.contains("Usage"))
@@ -61,22 +62,23 @@ class RejectedOutputCliRuntimeTest {
       )
     }
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        db.toString(),
-        "feature-task",
-        "rejected-output",
-        "--workflow",
-        "wf-raw",
-        "--phase",
-        "implement",
-        "--attempt",
-        "1",
-        "--raw-output",
-      ),
-      CliRuntimeContext(userHome = home, environment = emptyMap()),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          db.toString(),
+          "feature-task",
+          "rejected-output",
+          "--workflow",
+          "wf-raw",
+          "--phase",
+          "implement",
+          "--attempt",
+          "1",
+          "--raw-output",
+        ),
+        CliRuntimeContext(userHome = home, environment = emptyMap()),
+      )
 
     assertEquals(0, result.exitCode)
     assertContentEquals(raw, requireNotNull(result.rawStdout))

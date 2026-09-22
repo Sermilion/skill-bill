@@ -19,12 +19,13 @@ fun normalizeRoutedSkill(rawValue: String?): String {
 fun normalizeStackLabel(rawValue: String?): NormalizedStackLabel {
   val value = rawValue?.trim().orEmpty()
   if (value.isEmpty()) return NormalizedStackLabel(stack = "unknown")
-  val slugSource = value
-    .substringBefore("(")
-    .substringBefore("->")
-    .substringBefore("→")
-    .substringBefore(" fallback")
-    .trim()
+  val slugSource =
+    value
+      .substringBefore("(")
+      .substringBefore("->")
+      .substringBefore("→")
+      .substringBefore(" fallback")
+      .trim()
   val slug = knownStackSlug(slugSource) ?: "unknown"
   val detail = value.takeIf { it.isNotBlank() && normalizeTelemetrySlug(it) != slug }
   return NormalizedStackLabel(stack = slug, detail = detail)
@@ -32,11 +33,12 @@ fun normalizeStackLabel(rawValue: String?): NormalizedStackLabel {
 
 fun normalizePlatformSlug(rawValue: String?): String = normalizeStackLabel(rawValue).stack
 
-fun normalizeTelemetrySlug(value: String): String = value
-  .trim()
-  .lowercase()
-  .replace(Regex("[^a-z0-9]+"), "-")
-  .trim('-')
+fun normalizeTelemetrySlug(value: String): String =
+  value
+    .trim()
+    .lowercase()
+    .replace(Regex("[^a-z0-9]+"), "-")
+    .trim('-')
 
 fun normalizeScopeType(rawValue: String?): String {
   val normalized =
@@ -77,15 +79,16 @@ private fun isKmpSlug(tokens: Set<String>): Boolean = "kmp" in tokens || isKotli
 private fun isKotlinMultiplatformSlug(tokens: Set<String>): Boolean =
   "kotlin" in tokens && ("multiplatform" in tokens || ("multi" in tokens && "platform" in tokens))
 
-private val knownPlatformSlugs = listOf(
-  "kmp",
-  "kotlin",
-  "ios",
-  "python",
-  "php",
-  "go",
-  "android",
-  "java",
-  "ruby",
-  "docs",
-)
+private val knownPlatformSlugs =
+  listOf(
+    "kmp",
+    "kotlin",
+    "ios",
+    "python",
+    "php",
+    "go",
+    "android",
+    "java",
+    "ruby",
+    "docs",
+  )

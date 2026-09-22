@@ -32,12 +32,12 @@ import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewFindi
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.time.Clock
+
 internal data class PhaseAttemptContext(
   val run: PhaseRun,
   val state: FeatureTaskRuntimeRunState,
   val iteration: Int,
   val observability: FeatureTaskRuntimeRunObservability,
-
   val outputGateFailuresBefore: Int? = null,
 )
 
@@ -500,28 +500,31 @@ internal fun phaseBlockArgs(
   reason: String,
   observability: FeatureTaskRuntimeRunObservability,
   payload: BlockAndPersistPayload = BlockAndPersistPayload(),
-): BlockAndPersistInPhaseArgs = BlockAndPersistInPhaseArgs(
-  run = run,
-  attemptCount = attemptCount,
-  reason = reason,
-  observability = observability,
-  failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
-  payload = payload,
-)
+): BlockAndPersistInPhaseArgs =
+  BlockAndPersistInPhaseArgs(
+    run = run,
+    attemptCount = attemptCount,
+    reason = reason,
+    observability = observability,
+    failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
+    payload = payload,
+  )
 
 internal fun recordRejectionAttemptArgs(
   context: PhaseAttemptContext,
   priorCorrection: PriorAttemptCorrection? = null,
-): RecordRejectionAttemptArgs = RecordRejectionAttemptArgs(
-  context = context,
-  priorCorrection = priorCorrection,
-)
+): RecordRejectionAttemptArgs =
+  RecordRejectionAttemptArgs(
+    context = context,
+    priorCorrection = priorCorrection,
+  )
 
 internal fun phaseAttemptAccumulatorContext(
   run: PhaseRun,
   state: FeatureTaskRuntimeRunState,
   iteration: Int,
   observability: FeatureTaskRuntimeRunObservability,
-): PhaseAttemptAccumulatorContext = PhaseAttemptAccumulatorContext(
-  attempt = PhaseAttemptContext(run, state, iteration, observability),
-)
+): PhaseAttemptAccumulatorContext =
+  PhaseAttemptAccumulatorContext(
+    attempt = PhaseAttemptContext(run, state, iteration, observability),
+  )

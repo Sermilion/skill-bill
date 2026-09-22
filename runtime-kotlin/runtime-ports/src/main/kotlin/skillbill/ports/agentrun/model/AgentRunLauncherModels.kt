@@ -20,6 +20,7 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSe
 import java.nio.file.Path
 import java.security.MessageDigest
 import kotlin.time.Duration
+
 data class SkillRunRequest(
   val issueKey: String,
   val repoRoot: Path,
@@ -32,11 +33,8 @@ data class SkillRunRequest(
   val progressEmitter: AgentRunProgressEmitter = AgentRunProgressEmitter.NONE,
   val outputSink: AgentRunOutputSink = AgentRunOutputSink.NONE,
   val promptOverride: String? = null,
-
   val streamProviderOutput: Boolean = false,
-
   val streamOutputForLiveness: Boolean = false,
-
   val readOnlyPhase: Boolean = false,
   val treatmentCapabilitiesEnabled: Set<String> = emptySet(),
   val treatmentCapabilitiesDenied: Set<String> = emptySet(),
@@ -159,7 +157,6 @@ data class AgentRunProgressEmission(
   val operationKind: String,
   val expectedLong: Boolean = true,
   val outcome: GoalProgressOutcome = GoalProgressOutcome.NONE,
-
   val authoritative: Boolean = false,
 )
 
@@ -169,7 +166,10 @@ enum class AgentRunOutputStream {
 }
 
 fun interface AgentRunOutputSink {
-  fun write(stream: AgentRunOutputStream, text: String)
+  fun write(
+    stream: AgentRunOutputStream,
+    text: String,
+  )
 
   companion object {
     val NONE: AgentRunOutputSink = AgentRunOutputSink { _, _ -> }
@@ -218,21 +218,17 @@ data class AgentRunLaunchFacts(
   val spawnFailed: Boolean,
   val stdoutBytes: ByteArray = stdout.encodeToByteArray(),
   val liveness: AgentRunLivenessSnapshot? = null,
-
   val processStarted: Boolean = !spawnFailed,
-
   val mcpStartupObserved: Boolean = false,
   val childSessionPath: String? = null,
   val childSessionId: String? = null,
-
   val assistantEventCount: Int? = null,
-
   val rawOutputPreview: String? = null,
-
   val stdoutTruncated: Boolean = false,
   val stdoutByteSize: Long = stdoutBytes.size.toLong(),
-  val stdoutSha256: String = MessageDigest.getInstance("SHA-256")
-    .digest(stdoutBytes).joinToString("") { "%02x".format(it) },
+  val stdoutSha256: String =
+    MessageDigest.getInstance("SHA-256")
+      .digest(stdoutBytes).joinToString("") { "%02x".format(it) },
 ) : AgentRunLaunchOutcome {
   init {
     require(!timedOut || exitStatus == null) { "timedOut launch facts must not report an exitStatus." }
@@ -242,15 +238,16 @@ data class AgentRunLaunchFacts(
   }
 }
 
-fun AgentRunLaunchFacts.reviewProcessOutcome(): ReviewProcessOutcome = when {
-  timedOut -> ReviewProcessOutcome.TIMED_OUT
-  interrupted -> ReviewProcessOutcome.INTERRUPTED
-  spawnFailed -> ReviewProcessOutcome.UNAVAILABLE
-  stdoutTruncated -> ReviewProcessOutcome.INVALID_OUTPUT
-  exitStatus == null -> ReviewProcessOutcome.NON_ZERO_EXIT
-  exitStatus != 0 -> ReviewProcessOutcome.NON_ZERO_EXIT
-  else -> ReviewProcessOutcome.ZERO_EXIT
-}
+fun AgentRunLaunchFacts.reviewProcessOutcome(): ReviewProcessOutcome =
+  when {
+    timedOut -> ReviewProcessOutcome.TIMED_OUT
+    interrupted -> ReviewProcessOutcome.INTERRUPTED
+    spawnFailed -> ReviewProcessOutcome.UNAVAILABLE
+    stdoutTruncated -> ReviewProcessOutcome.INVALID_OUTPUT
+    exitStatus == null -> ReviewProcessOutcome.NON_ZERO_EXIT
+    exitStatus != 0 -> ReviewProcessOutcome.NON_ZERO_EXIT
+    else -> ReviewProcessOutcome.ZERO_EXIT
+  }
 
 data class UnsupportedAgentRunLaunch(
   override val agent: InstallAgent,

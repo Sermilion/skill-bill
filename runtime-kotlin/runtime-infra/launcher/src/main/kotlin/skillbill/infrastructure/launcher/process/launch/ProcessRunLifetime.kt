@@ -29,9 +29,10 @@ internal class ProcessRunLifetime(
   fun release(waitResult: Result<ProcessWait>?): ProcessRunReleaseSnapshot {
     if (released) return requireNotNull(releaseSnapshot)
     released = true
-    val cleanupState = CleanupState(
-      interrupted = waitResult?.exceptionOrNull() is InterruptedException || Thread.currentThread().isInterrupted,
-    )
+    val cleanupState =
+      CleanupState(
+        interrupted = waitResult?.exceptionOrNull() is InterruptedException || Thread.currentThread().isInterrupted,
+      )
     terminateIfNeeded(waitResult?.getOrNull(), cleanupState)
     closeStream(process.outputStream, "stdin_stream_close")
     val stdoutIncomplete = joinDrain(stdout, "stdout_drain_join", cleanupState)
@@ -39,13 +40,15 @@ internal class ProcessRunLifetime(
     closeStream(process.inputStream, "stdout_stream_close")
     closeStream(process.errorStream, "stderr_stream_close")
     recordProcessCleanup()
-    val snapshot = ProcessRunReleaseSnapshot(
-      interrupted = cleanupState.interrupted,
-      outputCaptureIncomplete = stdoutIncomplete || stderrIncomplete ||
-        stdout.workerFailure != null || stderr.workerFailure != null,
-      stdoutCapture = stdout.capture(),
-      stderrCapture = stderr.capture(),
-    )
+    val snapshot =
+      ProcessRunReleaseSnapshot(
+        interrupted = cleanupState.interrupted,
+        outputCaptureIncomplete =
+          stdoutIncomplete || stderrIncomplete ||
+            stdout.workerFailure != null || stderr.workerFailure != null,
+        stdoutCapture = stdout.capture(),
+        stderrCapture = stderr.capture(),
+      )
     releaseSnapshot = snapshot
     if (cleanupState.interrupted) {
       Thread.currentThread().interrupt()
@@ -55,7 +58,10 @@ internal class ProcessRunLifetime(
 
   private data class CleanupState(var interrupted: Boolean)
 
-  private fun terminateIfNeeded(wait: ProcessWait?, state: CleanupState) {
+  private fun terminateIfNeeded(
+    wait: ProcessWait?,
+    state: CleanupState,
+  ) {
     if (wait?.finished == true) return
     runCatching {
       process.destroyForcibly()
@@ -72,12 +78,19 @@ internal class ProcessRunLifetime(
     }
   }
 
-  private fun closeStream(stream: Closeable, seam: String) {
+  private fun closeStream(
+    stream: Closeable,
+    seam: String,
+  ) {
     runCatching { stream.close() }
       .onFailure { failure -> degradation.recordCleanupFailure(seam, failure) }
   }
 
-  private fun joinDrain(drain: CappedUtf8Drain, seam: String, state: CleanupState): Boolean =
+  private fun joinDrain(
+    drain: CappedUtf8Drain,
+    seam: String,
+    state: CleanupState,
+  ): Boolean =
     runCatching { drain.joinAndFreeze() }
       .onFailure { failure ->
         degradation.recordCleanupFailure(seam, failure)
@@ -99,9 +112,13 @@ internal class ProcessRunLifetime(
   fun cachedRelease(): ProcessRunReleaseSnapshot =
     requireNotNull(releaseSnapshot) { "process lifetime was not released" }
 
-  fun terminalOutcome(snapshot: ProcessRunReleaseSnapshot, wait: ProcessWait?): GoalProgressOutcome = when {
-    snapshot.interrupted -> GoalProgressOutcome.CANCELLED
-    wait?.finished == true -> GoalProgressOutcome.SUCCEEDED
-    else -> GoalProgressOutcome.TIMED_OUT
-  }
+  fun terminalOutcome(
+    snapshot: ProcessRunReleaseSnapshot,
+    wait: ProcessWait?,
+  ): GoalProgressOutcome =
+    when {
+      snapshot.interrupted -> GoalProgressOutcome.CANCELLED
+      wait?.finished == true -> GoalProgressOutcome.SUCCEEDED
+      else -> GoalProgressOutcome.TIMED_OUT
+    }
 }

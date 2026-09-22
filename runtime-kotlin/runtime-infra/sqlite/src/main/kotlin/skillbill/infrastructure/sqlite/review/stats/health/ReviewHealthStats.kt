@@ -18,7 +18,10 @@ internal data class ReviewHealthPayload(
   internal val deliveryAttempts: Int? = null,
 )
 
-internal fun buildReviewHealthStats(connection: Connection, reviewRunId: String?): ReviewHealthStats {
+internal fun buildReviewHealthStats(
+  connection: Connection,
+  reviewRunId: String?,
+): ReviewHealthStats {
   val parsedPayloads = loadStandaloneReviewPayloads(connection) + loadEmbeddedReviewPayloads(connection)
   val scopedPayloads =
     if (reviewRunId == null) {
@@ -27,9 +30,10 @@ internal fun buildReviewHealthStats(connection: Connection, reviewRunId: String?
       parsedPayloads.filter { it.payload.stringHealthValue("review_run_id") == reviewRunId }
     }
   val malformedRecords = scopedPayloads.count { it.payload.isEmpty() }
-  val includedPayloads = parsedPayloads
-    .filter { it.payload.isNotEmpty() }
-    .filter { reviewRunId == null || it.payload.stringHealthValue("review_run_id") == reviewRunId }
+  val includedPayloads =
+    parsedPayloads
+      .filter { it.payload.isNotEmpty() }
+      .filter { reviewRunId == null || it.payload.stringHealthValue("review_run_id") == reviewRunId }
   val findingCounts = includedPayloads.map { it.payload.healthInt("total_findings") }
   val acceptedFindings = includedPayloads.sumOf { it.payload.healthInt("accepted_findings") }
   val rejectedFindings = includedPayloads.sumOf { it.payload.healthInt("rejected_findings") }
@@ -74,8 +78,9 @@ private fun reviewDeliveryGrain(
     queuedDeliveryRows = scopedPayloads.count { it.deliveryAttempts != null },
     deliveryAttempts = scopedPayloads.sumOf { it.deliveryAttempts ?: 0 },
     logicalEvents = identities.filterNotNull().distinct().size,
-    rowsWithUnknownDeliveryIdentity = scopedPayloads.count { it.deliveryAttempts != null } -
-      identities.count { it != null },
+    rowsWithUnknownDeliveryIdentity =
+      scopedPayloads.count { it.deliveryAttempts != null } -
+        identities.count { it != null },
     logicalReviews = reviewRunIds.filterNotNull().distinct().size,
     recordsWithUnknownReview = reviewRunIds.count { it == null },
   )

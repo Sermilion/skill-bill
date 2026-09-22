@@ -10,9 +10,10 @@ import kotlin.test.assertNotNull
 class NativeAgentLinkInventorySchemaContractVersionTest {
   @Test
   fun `inventory schema version and id match runtime constants`() {
-    val stream = javaClass.classLoader.getResourceAsStream(
-      NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE.removePrefix("/"),
-    )
+    val stream =
+      javaClass.classLoader.getResourceAsStream(
+        NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE.removePrefix("/"),
+      )
     assertNotNull(stream)
     val schema = stream.use { YAMLMapper().readTree(it) }
     assertEquals(

@@ -15,7 +15,10 @@ private val goalObservabilityLog: Logger =
   Logger.getLogger("skillbill.contracts.workflow.GoalObservabilityEventSchemaValidator")
 
 object GoalObservabilityEventSchemaValidator {
-  fun validate(event: Map<String, Any?>, sourceLabel: String) {
+  fun validate(
+    event: Map<String, Any?>,
+    sourceLabel: String,
+  ) {
     val instance: JsonNode = ClasspathContractSchemaLoader.valueToTree(event)
     val errors = ClasspathContractSchemaLoader.validate(goalObservabilityEventSchema(), instance)
     if (errors.isEmpty()) return
@@ -23,25 +26,34 @@ object GoalObservabilityEventSchemaValidator {
     val sortedErrors = errors.sortedWith(violationOrdering)
     throw InvalidGoalObservabilityEventSchemaError(
       sourceLabel = sourceLabel,
-      fieldPath = goalObservabilityDottedFieldPath(
-        sortedErrors.first().instanceLocation?.toString().orEmpty(),
-      ),
+      fieldPath =
+        goalObservabilityDottedFieldPath(
+          sortedErrors.first().instanceLocation?.toString().orEmpty(),
+        ),
       reason = formatValidationReason(sortedErrors, instance),
     )
   }
 
-  private fun buildSchemaDriftLog(sourceLabel: String, errors: Set<ValidationMessage>, instance: JsonNode): String {
-    val parts = errors.sortedWith(violationOrdering).take(2).map { error ->
-      val location = error.instanceLocation?.toString().orEmpty()
-      val fieldPath = goalObservabilityDottedFieldPath(location).ifBlank { "<root>" }
-      val offendingValue = extractGoalObservabilityOffendingValue(instance, location)
-      if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
-    }
+  private fun buildSchemaDriftLog(
+    sourceLabel: String,
+    errors: Set<ValidationMessage>,
+    instance: JsonNode,
+  ): String {
+    val parts =
+      errors.sortedWith(violationOrdering).take(2).map { error ->
+        val location = error.instanceLocation?.toString().orEmpty()
+        val fieldPath = goalObservabilityDottedFieldPath(location).ifBlank { "<root>" }
+        val offendingValue = extractGoalObservabilityOffendingValue(instance, location)
+        if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
+      }
     return "Goal observability event failed schema validation: source='$sourceLabel' " +
       "violations=${parts.joinToString(", ")} totalViolations=${errors.size}"
   }
 
-  private fun formatValidationReason(sorted: List<ValidationMessage>, instance: JsonNode): String =
+  private fun formatValidationReason(
+    sorted: List<ValidationMessage>,
+    instance: JsonNode,
+  ): String =
     sorted.joinToString(" | ") { error ->
       val instanceLocation = error.instanceLocation?.toString().orEmpty()
       val fieldPath = goalObservabilityDottedFieldPath(instanceLocation).ifBlank { "<root>" }
@@ -57,11 +69,12 @@ object GoalObservabilityEventSchemaValidator {
       }
     }
 
-  private val violationOrdering: Comparator<ValidationMessage> = compareBy(
-    { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
-    { it.instanceLocation?.toString().orEmpty() },
-    { it.message.orEmpty() },
-  )
+  private val violationOrdering: Comparator<ValidationMessage> =
+    compareBy(
+      { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
+      { it.instanceLocation?.toString().orEmpty() },
+      { it.message.orEmpty() },
+    )
 }
 
 internal const val GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE: String =
@@ -70,56 +83,62 @@ internal const val GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val GOAL_OBSERVABILITY_EVENT_SCHEMA_REPO_RELATIVE_PATH: String =
   GoalObservabilityEventSchemaPaths.REPO_RELATIVE_PATH
 
-private fun goalObservabilityEventSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  CompiledSchemaRequest(
-    cacheKey = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-    classLoader = GoalObservabilityEventSchemaValidator::class.java.classLoader,
-    classpathResource = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidGoalObservabilityEventSchemaError(
-        sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-        fieldPath = "",
-        reason = "Canonical goal-observability event schema is missing. Expected classpath resource " +
-          "'$GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidGoalObservabilityEventSchemaError(
-        sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-        fieldPath = "",
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = { error ->
-      logSchemaLoadFailure(
-        goalObservabilityLog,
-        "goal-observability event",
-        GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-        GOAL_OBSERVABILITY_EVENT_SCHEMA_REPO_RELATIVE_PATH,
-        error,
-      )
-    },
-    expectedSchemaId = GoalObservabilityEventSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidGoalObservabilityEventSchemaError(
-        sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
-        fieldPath = "<schema>",
-        reason = reason,
-      )
-    },
-  ),
-)
+private fun goalObservabilityEventSchema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    CompiledSchemaRequest(
+      cacheKey = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+      classLoader = GoalObservabilityEventSchemaValidator::class.java.classLoader,
+      classpathResource = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+      missingResource = {
+        InvalidGoalObservabilityEventSchemaError(
+          sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+          fieldPath = "",
+          reason =
+            "Canonical goal-observability event schema is missing. Expected classpath resource " +
+              "'$GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE'.",
+        )
+      },
+      processingFailure = { cause ->
+        InvalidGoalObservabilityEventSchemaError(
+          sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+          fieldPath = "",
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+          cause = cause,
+        )
+      },
+      loadFailureLogger = { error ->
+        logSchemaLoadFailure(
+          goalObservabilityLog,
+          "goal-observability event",
+          GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+          GOAL_OBSERVABILITY_EVENT_SCHEMA_REPO_RELATIVE_PATH,
+          error,
+        )
+      },
+      expectedSchemaId = GoalObservabilityEventSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
+      identityFailure = { reason ->
+        InvalidGoalObservabilityEventSchemaError(
+          sourceLabel = GOAL_OBSERVABILITY_EVENT_SCHEMA_CLASSPATH_RESOURCE,
+          fieldPath = "<schema>",
+          reason = reason,
+        )
+      },
+    ),
+  )
 
-internal fun goalObservabilityDottedFieldPath(instanceLocation: String): String = when {
-  instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
-  instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
-  instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
-  else -> instanceLocation.trimStart('/').replace('/', '.')
-}
+internal fun goalObservabilityDottedFieldPath(instanceLocation: String): String =
+  when {
+    instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
+    instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
+    instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
+    else -> instanceLocation.trimStart('/').replace('/', '.')
+  }
 
-internal fun extractGoalObservabilityOffendingValue(instance: JsonNode, instanceLocation: String): String {
+internal fun extractGoalObservabilityOffendingValue(
+  instance: JsonNode,
+  instanceLocation: String,
+): String {
   val dotted = goalObservabilityDottedFieldPath(instanceLocation)
   if (dotted.isBlank()) return ""
   var node: JsonNode = instance

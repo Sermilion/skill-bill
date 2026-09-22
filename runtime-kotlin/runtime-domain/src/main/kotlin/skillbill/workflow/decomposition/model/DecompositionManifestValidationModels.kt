@@ -3,6 +3,7 @@ import skillbill.contracts.workflow.featuretask.DECOMPOSITION_MANIFEST_VALIDATIO
 import skillbill.error.core.FailureWireCode
 import skillbill.error.core.failureWireByValue
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
+
 const val DECOMPOSITION_MANIFEST_VALIDATION_VERSION: String =
   DECOMPOSITION_MANIFEST_VALIDATION_CONTRACT_VERSION
 
@@ -34,10 +35,11 @@ enum class DecompositionManifestValidationFailureCode(
   companion object {
     private const val HIERARCHY = "DecompositionManifestValidationFailureCode"
 
-    fun fromWire(value: String?): DecompositionManifestValidationFailureCode = when {
-      value.isNullOrBlank() -> SCHEMA_INVALID
-      else -> entries.failureWireByValue(value, HIERARCHY)
-    }
+    fun fromWire(value: String?): DecompositionManifestValidationFailureCode =
+      when {
+        value.isNullOrBlank() -> SCHEMA_INVALID
+        else -> entries.failureWireByValue(value, HIERARCHY)
+      }
   }
 }
 
@@ -109,12 +111,13 @@ sealed interface DecompositionManifestValidationResult {
   ) : DecompositionManifestValidationResult
 }
 
-fun DecompositionManifestValidationResult.requireAccepted(sourceLabel: String): DecompositionManifest = when (this) {
-  is DecompositionManifestValidationResult.AcceptedUnchanged -> manifest
-  is DecompositionManifestValidationResult.AcceptedAfterRepair -> manifest
-  is DecompositionManifestValidationResult.Rejected -> throw InvalidDecompositionManifestSchemaError(
-    sourceLabel = sourceLabel,
-    reason = reason,
-    failureCode = code.wireValue,
-  )
-}
+fun DecompositionManifestValidationResult.requireAccepted(sourceLabel: String): DecompositionManifest =
+  when (this) {
+    is DecompositionManifestValidationResult.AcceptedUnchanged -> manifest
+    is DecompositionManifestValidationResult.AcceptedAfterRepair -> manifest
+    is DecompositionManifestValidationResult.Rejected -> throw InvalidDecompositionManifestSchemaError(
+      sourceLabel = sourceLabel,
+      reason = reason,
+      failureCode = code.wireValue,
+    )
+  }

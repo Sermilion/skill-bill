@@ -21,7 +21,10 @@ internal class GoalParentProjectionWriter(
   private val engine: WorkflowEngine,
   private val validator: DecompositionManifestValidator,
 ) {
-  fun artifacts(manifest: DecompositionManifest, existingArtifactsJson: String? = null): Map<String, Any?> =
+  fun artifacts(
+    manifest: DecompositionManifest,
+    existingArtifactsJson: String? = null,
+  ): Map<String, Any?> =
     LinkedHashMap(
       existingArtifactsJson
         ?.takeIf(String::isNotBlank)
@@ -36,21 +39,26 @@ internal class GoalParentProjectionWriter(
       )
     }
 
-  fun rewrite(unitOfWork: GoalRunnerPersistenceSession, existing: WorkflowStateSnapshot) {
-    val manifest = existing.decompositionRuntime(validator)
-      ?: error("Goal parent workflow '${existing.workflowId}' has no decomposition manifest.")
-    val updated = engine.updateRecord(
-      WorkflowFamily.TASK_RUNTIME.definition,
-      existing,
-      WorkflowUpdateInput(
-        workflowStatus = existing.workflowStatus,
-        currentStepId = existing.currentStepId,
-        stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(artifacts(manifest, existing.artifactsJson)),
-        sessionId = existing.sessionId,
-        replaceArtifacts = true,
-      ),
-    )
+  fun rewrite(
+    unitOfWork: GoalRunnerPersistenceSession,
+    existing: WorkflowStateSnapshot,
+  ) {
+    val manifest =
+      existing.decompositionRuntime(validator)
+        ?: error("Goal parent workflow '${existing.workflowId}' has no decomposition manifest.")
+    val updated =
+      engine.updateRecord(
+        WorkflowFamily.TASK_RUNTIME.definition,
+        existing,
+        WorkflowUpdateInput(
+          workflowStatus = existing.workflowStatus,
+          currentStepId = existing.currentStepId,
+          stepUpdates = null,
+          artifactsPatch = WorkflowArtifactPatch.from(artifacts(manifest, existing.artifactsJson)),
+          sessionId = existing.sessionId,
+          replaceArtifacts = true,
+        ),
+      )
     WorkflowFamily.TASK_RUNTIME.saveRecord(
       unitOfWork.workflowStates,
       updated.toRecord().copy(issueKey = normalizeRequiredIssueKey(manifest.issueKey)),

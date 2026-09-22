@@ -10,6 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class DatabasePathsTest {
   @Test
   fun `cli path overrides environment and default path`() {
@@ -110,9 +111,10 @@ class DatabasePathsTest {
     }
   }
 
-  private fun tableNames(connection: Connection): Set<String> = connection.createStatement().use { statement ->
-    statement.executeQuery("SELECT name FROM sqlite_master WHERE type = 'table'").use { rows ->
-      buildSet { while (rows.next()) add(rows.getString("name")) }
+  private fun tableNames(connection: Connection): Set<String> =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("SELECT name FROM sqlite_master WHERE type = 'table'").use { rows ->
+        buildSet { while (rows.next()) add(rows.getString("name")) }
+      }
     }
-  }
 }

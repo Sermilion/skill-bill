@@ -7,6 +7,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class ReviewPacketConsumerContractParityTest {
   @Test fun `launch specialist and consumer contracts are the same authoritative bytes`() {
     assertEquals(
@@ -17,14 +18,16 @@ class ReviewPacketConsumerContractParityTest {
 
   @Test fun `governed markdown contract and runtime enum list the same forbidden rediscovery items`() {
     val markdown = Files.readString(contractPath())
-    val section = markdown
-      .substringAfter(ReviewPacketConsumerContract.SECTION_HEADING, "")
-      .substringBefore("\n## ")
+    val section =
+      markdown
+        .substringAfter(ReviewPacketConsumerContract.SECTION_HEADING, "")
+        .substringBefore("\n## ")
     assertTrue(section.isNotBlank(), "Missing '${ReviewPacketConsumerContract.SECTION_HEADING}' section.")
-    val documented = Regex("^- `([a-z_]+)`", RegexOption.MULTILINE)
-      .findAll(section)
-      .map { it.groupValues[1] }
-      .toList()
+    val documented =
+      Regex("^- `([a-z_]+)`", RegexOption.MULTILINE)
+        .findAll(section)
+        .map { it.groupValues[1] }
+        .toList()
     assertEquals(ReviewPacketConsumerContract.FORBIDDEN_REDISCOVERY, documented)
   }
 
@@ -78,14 +81,20 @@ class ReviewPacketConsumerContractParityTest {
     }
   }
 
-  private fun authoritativeBlock(markdown: String, name: String): String {
+  private fun authoritativeBlock(
+    markdown: String,
+    name: String,
+  ): String {
     val opening = "```$name\n"
     val body = markdown.substringAfter(opening, "")
     assertTrue(body.isNotEmpty(), "Missing authoritative '$name' block.")
     return body.substringBefore("\n```")
   }
 
-  private fun sourceSection(markdown: String, heading: String): String {
+  private fun sourceSection(
+    markdown: String,
+    heading: String,
+  ): String {
     val body = markdown.replace("\r\n", "\n").substringAfter("$heading\n", "")
     assertTrue(body.isNotEmpty(), "Missing authoritative '$heading' section.")
     return "$heading\n${body.substringBefore("\n## ").trim()}"

@@ -13,9 +13,10 @@ class SnapshotAssertionsTest {
       val fixturePath = "snapshots/missing.txt"
       val expectedFixture = resourceRoot.resolve(fixturePath).toAbsolutePath().normalize().toString()
 
-      val error = assertFailsWith<AssertionError> {
-        SnapshotAssertions.assertMatchesSnapshot(fixturePath, "actual\n", resourceRoot)
-      }
+      val error =
+        assertFailsWith<AssertionError> {
+          SnapshotAssertions.assertMatchesSnapshot(fixturePath, "actual\n", resourceRoot)
+        }
 
       assertTrue(error.message.orEmpty().contains(expectedFixture), error.message)
       assertTrue(error.message.orEmpty().contains("-Pupdate-snapshots"), error.message)
@@ -31,9 +32,10 @@ class SnapshotAssertionsTest {
       Files.createDirectories(fixture.parent)
       Files.writeString(fixture, "expected\n")
 
-      val error = assertFailsWith<AssertionError> {
-        SnapshotAssertions.assertMatchesSnapshot(fixturePath, "actual\n", resourceRoot)
-      }
+      val error =
+        assertFailsWith<AssertionError> {
+          SnapshotAssertions.assertMatchesSnapshot(fixturePath, "actual\n", resourceRoot)
+        }
 
       assertTrue(error.message.orEmpty().contains(fixture.toString()), error.message)
       assertTrue(error.message.orEmpty().contains("-Pupdate-snapshots"), error.message)
@@ -58,9 +60,10 @@ class SnapshotAssertionsTest {
   fun `escaped fixture path is rejected`() {
     val resourceRoot = Files.createTempDirectory("skillbill-snapshots-")
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      SnapshotAssertions.assertMatchesSnapshot("../escaped.txt", "actual\n", resourceRoot)
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        SnapshotAssertions.assertMatchesSnapshot("../escaped.txt", "actual\n", resourceRoot)
+      }
 
     assertTrue(error.message.orEmpty().contains("src/test/resources"), error.message)
   }

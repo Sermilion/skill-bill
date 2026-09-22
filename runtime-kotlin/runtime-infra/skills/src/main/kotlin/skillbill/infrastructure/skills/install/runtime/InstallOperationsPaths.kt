@@ -12,7 +12,12 @@ import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Path
 
 internal object InstallOperationsPaths {
-  fun agentPath(agent: String, home: Path?, environment: Map<String, String>, hostPlatform: HostPlatformPort): Path {
+  fun agentPath(
+    agent: String,
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort,
+  ): Path {
     val supported = SupportedAgent.fromWire(agent)
     require(supported in SUPPORTED_AGENTS) {
       "Unknown agent '$agent'. Supported agents: ${SUPPORTED_AGENTS.joinToString { it.wireValue }}."
@@ -21,27 +26,45 @@ internal object InstallOperationsPaths {
     return agentPaths(resolvedHome, installConfigRoots(resolvedHome, environment)).getValue(supported)
   }
 
-  fun claudeRoots(home: Path?, environment: Map<String, String>, hostPlatform: HostPlatformPort): List<Path> {
+  fun claudeRoots(
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort,
+  ): List<Path> {
     val resolvedHome = resolveInstallHome(home, hostPlatform)
     return claudeConfigRoots(resolvedHome, environment)
   }
 
-  fun codexRoots(home: Path?, environment: Map<String, String>, hostPlatform: HostPlatformPort): List<Path> {
+  fun codexRoots(
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort,
+  ): List<Path> {
     val resolvedHome = resolveInstallHome(home, hostPlatform)
     return codexConfigRoots(resolvedHome, environment)
   }
 
-  fun claudeAgentsPath(home: Path?, environment: Map<String, String>, hostPlatform: HostPlatformPort): Path {
+  fun claudeAgentsPath(
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort,
+  ): Path {
     val resolvedHome = resolveInstallHome(home, hostPlatform)
     return claudeConfigRoot(resolvedHome, environment).resolve("agents")
   }
 
-  fun junieAgentsPath(home: Path?, hostPlatform: HostPlatformPort): Path {
+  fun junieAgentsPath(
+    home: Path?,
+    hostPlatform: HostPlatformPort,
+  ): Path {
     val resolvedHome = resolveInstallHome(home, hostPlatform)
     return resolvedHome.resolve(requireNotNull(SupportedAgent.JUNIE.simpleHomeDirectory)).resolve("agents")
   }
 
-  fun cursorAgentsPath(home: Path?, hostPlatform: HostPlatformPort): Path {
+  fun cursorAgentsPath(
+    home: Path?,
+    hostPlatform: HostPlatformPort,
+  ): Path {
     val resolvedHome = resolveInstallHome(home, hostPlatform)
     return resolvedHome.resolve(requireNotNull(SupportedAgent.CURSOR.simpleHomeDirectory)).resolve("agents")
   }

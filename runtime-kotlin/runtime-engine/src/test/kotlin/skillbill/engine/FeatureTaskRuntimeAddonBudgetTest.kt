@@ -33,17 +33,20 @@ class FeatureTaskRuntimeAddonBudgetTest {
       }
   }
 
-  private fun selection(content: String) = HydratedAgentAddonSelection(
-    entries = listOf(
-      HydratedAgentAddonSelectionEntry(
-        persisted = PersistedAgentAddonSelectionEntry(
-          slug = "acme-addon",
-          sourceIdentity = "local:acme",
-          contentSha256 = "0".repeat(64),
+  private fun selection(content: String) =
+    HydratedAgentAddonSelection(
+      entries =
+        listOf(
+          HydratedAgentAddonSelectionEntry(
+            persisted =
+              PersistedAgentAddonSelectionEntry(
+                slug = "acme-addon",
+                sourceIdentity = "local:acme",
+                contentSha256 = "0".repeat(64),
+              ),
+            description = "acme add-on",
+            content = content,
+          ),
         ),
-        description = "acme add-on",
-        content = content,
-      ),
-    ),
-  )
+    )
 }

@@ -28,9 +28,9 @@ class FeatureTaskLookupCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "lookup",
-  "Read-only, repository-scoped lookup of DB-authoritative feature-task continuation state.",
-) {
+    "lookup",
+    "Read-only, repository-scoped lookup of DB-authoritative feature-task continuation state.",
+  ) {
   private val issueKey by argument(help = "Issue key to find.")
   private val repoRoot by option(
     "--repo-root",
@@ -47,53 +47,58 @@ class FeatureTaskLookupCommand(
   }
 }
 
-private fun FeatureTaskContinuationLookupResult.toCliPayload(): Map<String, Any?> = when (this) {
-  FeatureTaskContinuationLookupResult.NoMatch -> mapOf("result" to "no_match")
-  is FeatureTaskContinuationLookupResult.Resumable -> mapOf("result" to "resumable", "candidate" to candidate.toMap())
-  is FeatureTaskContinuationLookupResult.AlreadyRunning ->
-    mapOf("result" to "already_running", "candidate" to candidate.toMap())
-  is FeatureTaskContinuationLookupResult.Ambiguous ->
-    mapOf("result" to "ambiguous", "candidates" to candidates.map { it.toMap() })
-  is FeatureTaskContinuationLookupResult.TerminalOnly ->
-    mapOf("result" to "terminal_only", "candidates" to candidates.map { it.toMap() })
-  is FeatureTaskContinuationLookupResult.GoalContinuation ->
-    mapOf("result" to "goal_continuation", "goal" to candidate.toMap())
-  is FeatureTaskContinuationLookupResult.NeedsIdentityRepair -> mapOf(
-    "result" to "needs_identity_repair",
-    SharedPayloadKeys.WORKFLOW_ID to workflowId,
+private fun FeatureTaskContinuationLookupResult.toCliPayload(): Map<String, Any?> =
+  when (this) {
+    FeatureTaskContinuationLookupResult.NoMatch -> mapOf("result" to "no_match")
+    is FeatureTaskContinuationLookupResult.Resumable -> mapOf("result" to "resumable", "candidate" to candidate.toMap())
+    is FeatureTaskContinuationLookupResult.AlreadyRunning ->
+      mapOf("result" to "already_running", "candidate" to candidate.toMap())
+    is FeatureTaskContinuationLookupResult.Ambiguous ->
+      mapOf("result" to "ambiguous", "candidates" to candidates.map { it.toMap() })
+    is FeatureTaskContinuationLookupResult.TerminalOnly ->
+      mapOf("result" to "terminal_only", "candidates" to candidates.map { it.toMap() })
+    is FeatureTaskContinuationLookupResult.GoalContinuation ->
+      mapOf("result" to "goal_continuation", "goal" to candidate.toMap())
+    is FeatureTaskContinuationLookupResult.NeedsIdentityRepair ->
+      mapOf(
+        "result" to "needs_identity_repair",
+        SharedPayloadKeys.WORKFLOW_ID to workflowId,
+        SharedPayloadKeys.SUMMARY to summary,
+      )
+  }
+
+private fun GoalContinuationCandidate.toMap(): Map<String, Any?> =
+  mapOf(
+    "parent_workflow_id" to parentWorkflowId,
+    SharedPayloadKeys.ISSUE_KEY to issueKey,
+    SharedPayloadKeys.STATUS to status,
+    "current_subtask_id" to currentSubtaskId,
+    "current_action" to currentAction,
+    "complete_count" to completeCount,
+    "pending_count" to pendingCount,
+    "blocked_count" to blockedCount,
+    "updated_at" to updatedAt,
     SharedPayloadKeys.SUMMARY to summary,
   )
-}
 
-private fun GoalContinuationCandidate.toMap(): Map<String, Any?> = mapOf(
-  "parent_workflow_id" to parentWorkflowId,
-  SharedPayloadKeys.ISSUE_KEY to issueKey,
-  SharedPayloadKeys.STATUS to status,
-  "current_subtask_id" to currentSubtaskId,
-  "current_action" to currentAction,
-  "complete_count" to completeCount,
-  "pending_count" to pendingCount,
-  "blocked_count" to blockedCount,
-  "updated_at" to updatedAt,
-  SharedPayloadKeys.SUMMARY to summary,
-)
-
-private fun FeatureTaskContinuationCandidate.toMap(): Map<String, Any?> = mapOf(
-  SharedPayloadKeys.WORKFLOW_ID to workflowId,
-  "mode" to mode.wireValue,
-  SharedPayloadKeys.STATUS to status,
-  "current_step" to currentStep,
-  "governed_spec_path" to governedSpecPath,
-  "updated_at" to updatedAt,
-  "liveness" to liveness?.let {
-    mapOf(
-      "classification" to it.classification,
-      "last_evidence_at" to it.lastEvidenceAt,
-      "evidence" to it.evidence,
-    )
-  },
-  SharedPayloadKeys.SUMMARY to summary,
-)
+private fun FeatureTaskContinuationCandidate.toMap(): Map<String, Any?> =
+  mapOf(
+    SharedPayloadKeys.WORKFLOW_ID to workflowId,
+    "mode" to mode.wireValue,
+    SharedPayloadKeys.STATUS to status,
+    "current_step" to currentStep,
+    "governed_spec_path" to governedSpecPath,
+    "updated_at" to updatedAt,
+    "liveness" to
+      liveness?.let {
+        mapOf(
+          "classification" to it.classification,
+          "last_evidence_at" to it.lastEvidenceAt,
+          "evidence" to it.evidence,
+        )
+      },
+    SharedPayloadKeys.SUMMARY to summary,
+  )
 
 @Inject
 class FeatureTaskRuntimeStatusCommand(
@@ -103,9 +108,10 @@ class FeatureTaskRuntimeStatusCommand(
   private val workflowId by argument(help = "Runtime workflow id whose phase status to show.")
 
   override fun run() {
-    val projection = statusService.status(
-      FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
-    )
+    val projection =
+      statusService.status(
+        FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
+      )
     val payload = projection.toRuntimeStatusCliMap(workflowId)
     state.completeText(runtimeStatusText(payload), payload, exitCode = payload.runtimeStatusExitCode())
   }
@@ -116,9 +122,9 @@ class FeatureTaskRuntimeResumeCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,
   private val lookupService: FeatureTaskContinuationLookupService,
 ) : FeatureTaskRuntimePhaseAgentCommand(
-  "resume",
-  "Resume a feature-task run against an existing workflow id.",
-) {
+    "resume",
+    "Resume a feature-task run against an existing workflow id.",
+  ) {
   private val workflowId by argument(help = "Existing runtime workflow id to resume.")
   private val issueKey by argument(help = "Issue key the resumed run implements.")
   private val specPath by argument(help = "Path to the governed spec the run implements.")
@@ -151,9 +157,9 @@ class FeatureTaskRuntimeAbandonCommand(
   private val workflowService: WorkflowService,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
-  "abandon",
-  "Explicitly terminalize a nonterminal feature-task workflow while preserving its durable history.",
-) {
+    "abandon",
+    "Explicitly terminalize a nonterminal feature-task workflow while preserving its durable history.",
+  ) {
   private val workflowId by argument(help = "Exact feature-task workflow id to abandon.")
   private val reason by option("--reason", help = "Required operator reason recorded with the workflow.").required()
   private val format by formatOption()
@@ -169,9 +175,9 @@ class FeatureTaskRuntimeRetryBlockedCommand(
   private val workflowService: WorkflowService,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
-  "retry-blocked",
-  "Reopen one blocked runtime phase after an operator-applied fix.",
-) {
+    "retry-blocked",
+    "Reopen one blocked runtime phase after an operator-applied fix.",
+  ) {
   private val workflowId by argument(help = "Exact runtime workflow id whose blocked phase should be retried.")
   private val phaseId by option("--phase", help = "Blocked runtime phase to reopen.").required()
   private val reason by option("--reason", help = "Required operator reason recorded with the retry.").required()
@@ -189,9 +195,9 @@ class FeatureTaskRuntimeRepairIdentityCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "repair-identity",
-  "Explicitly supply missing immutable execution identity for a legacy runtime workflow.",
-) {
+    "repair-identity",
+    "Explicitly supply missing immutable execution identity for a legacy runtime workflow.",
+  ) {
   private val workflowId by argument(help = "Exact runtime workflow id whose identity is missing.")
   private val issueKey by argument(help = "Issue key persisted by the workflow.")
   private val specPath by argument(help = "Governed spec path for the workflow.")
@@ -204,15 +210,16 @@ class FeatureTaskRuntimeRepairIdentityCommand(
 
   override fun run() {
     val root = resolveCliRepositoryRoot(repoRoot, inputs)
-    val result = workflowService.repairFeatureTaskRuntimeIdentity(
-      RepairFeatureTaskRuntimeIdentityArgs(
-        workflowId = workflowId,
-        issueKey = issueKey,
-        repositoryIdentity = repositoryIdentity(root),
-        governedSpecPath = governedSpecPath(root, Path.of(specPath)),
-        reason = reason,
-      ),
-    )
+    val result =
+      workflowService.repairFeatureTaskRuntimeIdentity(
+        RepairFeatureTaskRuntimeIdentityArgs(
+          workflowId = workflowId,
+          issueKey = issueKey,
+          repositoryIdentity = repositoryIdentity(root),
+          governedSpecPath = governedSpecPath(root, Path.of(specPath)),
+          reason = reason,
+        ),
+      )
     state.complete(result.toPayload(), format, exitCode = if (result is WorkflowUpdateResult.Error) 1 else 0)
   }
 }

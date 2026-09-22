@@ -3,29 +3,31 @@ import skillbill.contracts.JsonCodec
 import skillbill.goalrunner.model.GoalRunnerControlState
 
 internal fun decodeControlState(raw: String): GoalRunnerControlState {
-  val state = JsonCodec.parseObjectOrNull(raw)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?: goalRunnerControlSchemaError("durable record must be an object.")
-  val allowedKeys = setOf(
-    "stop_after_subtask_id",
-    "pause_requested",
-    "pause_consumed",
-    "paused",
-    "pause_reason",
-    "paused_at",
-    "stop_after_consumed",
-    "repository_identity",
-    "execution_lease",
-    "active_duration_ms",
-    "active_duration_as_of",
-    "current_subtask_id",
-    "subtask_active_duration_ms",
-    "subtask_active_duration_as_of",
-    "validation_quality_retries_by_subtask",
-    "pending_re_attempt_cause_by_subtask",
-    "pending_causing_loop_entry_by_subtask",
-  )
+  val state =
+    JsonCodec.parseObjectOrNull(raw)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?: goalRunnerControlSchemaError("durable record must be an object.")
+  val allowedKeys =
+    setOf(
+      "stop_after_subtask_id",
+      "pause_requested",
+      "pause_consumed",
+      "paused",
+      "pause_reason",
+      "paused_at",
+      "stop_after_consumed",
+      "repository_identity",
+      "execution_lease",
+      "active_duration_ms",
+      "active_duration_as_of",
+      "current_subtask_id",
+      "subtask_active_duration_ms",
+      "subtask_active_duration_as_of",
+      "validation_quality_retries_by_subtask",
+      "pending_re_attempt_cause_by_subtask",
+      "pending_causing_loop_entry_by_subtask",
+    )
   state.keys.forEach { key ->
     if (key !in allowedKeys) {
       goalRunnerControlSchemaError("has unsupported field '$key'.")

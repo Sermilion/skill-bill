@@ -11,6 +11,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.time.Clock
+
 @Inject
 class GoalChildPlanningHydratorPortAdapter(
   phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
@@ -31,9 +32,10 @@ class GoalChildPlanningHydratorPortAdapter(
     setup: GoalRunnerChildWorkflowSetup,
   ) = hydrator.requireMatchingImport(unitOfWork, existing, setup)
 
-  private fun GoalChildPlanningHydration.toPortResult() = GoalChildPlanningHydrationResult(
-    currentStepId = currentStepId,
-    stepUpdates = stepUpdates,
-    artifacts = artifacts,
-  )
+  private fun GoalChildPlanningHydration.toPortResult() =
+    GoalChildPlanningHydrationResult(
+      currentStepId = currentStepId,
+      stepUpdates = stepUpdates,
+      artifacts = artifacts,
+    )
 }

@@ -35,12 +35,13 @@ internal fun compactContinueView(request: CompactContinueViewRequest): WorkflowC
   val requiredKeys = request.resume.requiredArtifacts
   val availableKeys = request.resume.availableArtifacts
   val currentStepArtifactKeys = request.declaredProjection?.artifacts?.keys?.toList() ?: requiredKeys
-  val currentStepArtifacts = request.declaredProjection?.artifacts?.map { (key, value) ->
-    losslessProjectionArtifact(key, value)
-  } ?: currentStepArtifactKeys.map { key ->
-    val resolved = resolvedArtifactValue(request.definition, request.snapshot, key)
-    artifactSummary(key, resolved.value, resolved.present)
-  }
+  val currentStepArtifacts =
+    request.declaredProjection?.artifacts?.map { (key, value) ->
+      losslessProjectionArtifact(key, value)
+    } ?: currentStepArtifactKeys.map { key ->
+      val resolved = resolvedArtifactValue(request.definition, request.snapshot, key)
+      artifactSummary(key, resolved.value, resolved.present)
+    }
   val omittedKeys = availableKeys.filterNot(currentStepArtifactKeys::contains)
   return WorkflowCompactContinueView(
     workflowId = request.snapshot.workflowId,
@@ -61,11 +62,14 @@ internal fun compactContinueView(request: CompactContinueViewRequest): WorkflowC
     continuationBrief = request.texts.continuationBrief,
     continuationEntryPrompt = request.texts.continuationEntryPrompt,
     readOnlyFullStateGuidance =
-    "Use workflow show for read-only full-state inspection, including the complete durable artifacts map.",
+      "Use workflow show for read-only full-state inspection, including the complete durable artifacts map.",
   )
 }
 
-internal fun losslessProjectionArtifact(key: String, value: Any?): WorkflowContinuationArtifactSummary {
+internal fun losslessProjectionArtifact(
+  key: String,
+  value: Any?,
+): WorkflowContinuationArtifactSummary {
   val sizeBytes = jsonString(value).toByteArray(Charsets.UTF_8).size
   return WorkflowContinuationArtifactSummary(
     key = key,
@@ -80,7 +84,11 @@ internal fun losslessProjectionArtifact(key: String, value: Any?): WorkflowConti
   )
 }
 
-internal fun artifactSummary(key: String, value: Any?, present: Boolean): WorkflowContinuationArtifactSummary {
+internal fun artifactSummary(
+  key: String,
+  value: Any?,
+  present: Boolean,
+): WorkflowContinuationArtifactSummary {
   if (!present) {
     return WorkflowContinuationArtifactSummary(
       key = key,

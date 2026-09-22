@@ -43,31 +43,35 @@ class InstallPlanSchemaValidatesExistingFixturesTest {
   fun `all platforms selected plan validates against the canonical schema`() {
     val fixture = setupFixture()
     seedPlatformPack(fixture.repoRoot, "python", areaNames = listOf("security"))
-    val plan = planInstallForTest(
-      fixture.request(platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL)),
+      )
     InstallPlanSchemaValidator.validate(buildInstallPlanWireMap(plan))
   }
 
   @Test
   fun `manual selected agent plan validates against the canonical schema`() {
     val fixture = setupFixture()
-    val explicitTargets = InstallAgent.entries.map { agent ->
-      InstallAgentTarget(
-        agent = agent,
-        path = fixture.home.resolve("manual-targets/${agent.id}").toFileLocation(),
-        source = InstallAgentTargetSource.MANUAL,
-      )
-    }
-    val plan = planInstallForTest(
-      fixture.request(
-        agentSelection = InstallAgentSelection(
-          mode = InstallAgentSelectionMode.MANUAL,
-          manualAgents = InstallAgent.entries.toSet(),
+    val explicitTargets =
+      InstallAgent.entries.map { agent ->
+        InstallAgentTarget(
+          agent = agent,
+          path = fixture.home.resolve("manual-targets/${agent.id}").toFileLocation(),
+          source = InstallAgentTargetSource.MANUAL,
+        )
+      }
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agentSelection =
+            InstallAgentSelection(
+              mode = InstallAgentSelectionMode.MANUAL,
+              manualAgents = InstallAgent.entries.toSet(),
+            ),
+          targetPaths = fixture.targetPaths(agentTargets = explicitTargets),
         ),
-        targetPaths = fixture.targetPaths(agentTargets = explicitTargets),
-      ),
-    )
+      )
     InstallPlanSchemaValidator.validate(buildInstallPlanWireMap(plan))
   }
 
@@ -78,9 +82,10 @@ class InstallPlanSchemaValidatesExistingFixturesTest {
     Files.createDirectories(fixture.home.resolve(".codex"))
     Files.createDirectories(fixture.home.resolve(".junie"))
     Files.createDirectories(fixture.home.resolve(".cursor"))
-    val plan = planInstallForTest(
-      fixture.request(agentSelection = InstallAgentSelection(mode = InstallAgentSelectionMode.DETECTED)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(agentSelection = InstallAgentSelection(mode = InstallAgentSelectionMode.DETECTED)),
+      )
     InstallPlanSchemaValidator.validate(buildInstallPlanWireMap(plan))
   }
 
@@ -112,50 +117,62 @@ class InstallPlanSchemaValidatesExistingFixturesTest {
     return InstallPlanWireFixture(repoRoot = repoRoot, home = home)
   }
 
-  private fun seedBaseSkill(repoRoot: Path, skillName: String) {
+  private fun seedBaseSkill(
+    repoRoot: Path,
+    skillName: String,
+  ) {
     val skillDir = repoRoot.resolve("skills").resolve(skillName)
     Files.createDirectories(skillDir)
     Files.writeString(skillDir.resolve("content.md"), content(skillName))
   }
 
-  private fun seedPlatformPack(repoRoot: Path, slug: String, areaNames: List<String>) {
+  private fun seedPlatformPack(
+    repoRoot: Path,
+    slug: String,
+    areaNames: List<String>,
+  ) {
     seedConformingPlatformPack(repoRoot, slug, areaNames)
   }
 
-  private fun content(name: String, internalFor: String? = null): String = buildString {
-    appendLine("---")
-    appendLine("name: $name")
-    appendLine("description: Test skill.")
-    internalFor?.let { parent -> appendLine("internal-for: $parent") }
-    appendLine("---")
-    appendLine()
-    appendLine("# $name")
-    appendLine()
-    appendLine("Test body.")
-  }
+  private fun content(
+    name: String,
+    internalFor: String? = null,
+  ): String =
+    buildString {
+      appendLine("---")
+      appendLine("name: $name")
+      appendLine("description: Test skill.")
+      internalFor?.let { parent -> appendLine("internal-for: $parent") }
+      appendLine("---")
+      appendLine()
+      appendLine("# $name")
+      appendLine()
+      appendLine("Test body.")
+    }
 
-  private fun windowsSymlinkPreflightCases(): List<WindowsSymlinkPreflight> = listOf(
-    WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-      decision = WindowsSymlinkDecision.NOT_REQUIRED,
-      message = "",
-    ),
-    WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.AVAILABLE,
-      decision = WindowsSymlinkDecision.PROCEED_WITH_SYMLINKS,
-      message = "Windows symlink support is available.",
-    ),
-    WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.REQUIRES_ELEVATION_OR_DEVELOPER_MODE,
-      decision = WindowsSymlinkDecision.PROCEED_WITH_SYMLINKS,
-      message = "Windows symlink support was not confirmed.",
-    ),
-    WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.DECISION_REQUIRED,
-      decision = WindowsSymlinkDecision.REQUIRE_USER_ACTION,
-      message = "Windows requires elevation or Developer Mode before symlink install.",
-    ),
-  )
+  private fun windowsSymlinkPreflightCases(): List<WindowsSymlinkPreflight> =
+    listOf(
+      WindowsSymlinkPreflight(
+        state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+        decision = WindowsSymlinkDecision.NOT_REQUIRED,
+        message = "",
+      ),
+      WindowsSymlinkPreflight(
+        state = WindowsSymlinkPreflightState.AVAILABLE,
+        decision = WindowsSymlinkDecision.PROCEED_WITH_SYMLINKS,
+        message = "Windows symlink support is available.",
+      ),
+      WindowsSymlinkPreflight(
+        state = WindowsSymlinkPreflightState.REQUIRES_ELEVATION_OR_DEVELOPER_MODE,
+        decision = WindowsSymlinkDecision.PROCEED_WITH_SYMLINKS,
+        message = "Windows symlink support was not confirmed.",
+      ),
+      WindowsSymlinkPreflight(
+        state = WindowsSymlinkPreflightState.DECISION_REQUIRED,
+        decision = WindowsSymlinkDecision.REQUIRE_USER_ACTION,
+        message = "Windows requires elevation or Developer Mode before symlink install.",
+      ),
+    )
 
   private data class InstallPlanWireFixture(
     val repoRoot: Path,
@@ -172,28 +189,31 @@ class InstallPlanSchemaValidatesExistingFixturesTest {
       )
 
     fun request(
-      agentSelection: InstallAgentSelection = InstallAgentSelection(
-        mode = InstallAgentSelectionMode.MANUAL,
-        manualAgents = setOf(InstallAgent.CODEX),
-      ),
+      agentSelection: InstallAgentSelection =
+        InstallAgentSelection(
+          mode = InstallAgentSelectionMode.MANUAL,
+          manualAgents = setOf(InstallAgent.CODEX),
+        ),
       platformPackSelection: PlatformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.NONE),
       telemetryLevel: InstallTelemetryLevel = InstallTelemetryLevel.ANONYMOUS,
       targetPaths: InstallationTargetPaths = targetPaths(),
-      windowsSymlinkPreflight: WindowsSymlinkPreflight = WindowsSymlinkPreflight(
-        state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-        decision = WindowsSymlinkDecision.NOT_REQUIRED,
-      ),
-    ): InstallPlanRequest = InstallPlanRequest(
-      repoRoot = repoRoot.toFileLocation(),
-      home = home.toFileLocation(),
-      agentSelection = agentSelection,
-      platformPackSelection = platformPackSelection,
-      telemetryLevel = telemetryLevel,
-      mcpRegistrationChoice = McpRegistrationChoice(register = true, runtimeMcpBin = runtimeMcpBin.toFileLocation()),
-      runtimeDistributionInputs = RuntimeDistributionInputs(runtimeInstallRoot = runtimeInstallRoot.toFileLocation()),
-      targetPaths = targetPaths,
-      windowsSymlinkPreflight = windowsSymlinkPreflight,
-      environment = installTestEnvironment(home),
-    )
+      windowsSymlinkPreflight: WindowsSymlinkPreflight =
+        WindowsSymlinkPreflight(
+          state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+          decision = WindowsSymlinkDecision.NOT_REQUIRED,
+        ),
+    ): InstallPlanRequest =
+      InstallPlanRequest(
+        repoRoot = repoRoot.toFileLocation(),
+        home = home.toFileLocation(),
+        agentSelection = agentSelection,
+        platformPackSelection = platformPackSelection,
+        telemetryLevel = telemetryLevel,
+        mcpRegistrationChoice = McpRegistrationChoice(register = true, runtimeMcpBin = runtimeMcpBin.toFileLocation()),
+        runtimeDistributionInputs = RuntimeDistributionInputs(runtimeInstallRoot = runtimeInstallRoot.toFileLocation()),
+        targetPaths = targetPaths,
+        windowsSymlinkPreflight = windowsSymlinkPreflight,
+        environment = installTestEnvironment(home),
+      )
   }
 }

@@ -14,14 +14,21 @@ internal data class ReviewTelemetryState(
   internal val level: String,
 )
 
-internal fun resolveTelemetryState(enabled: Boolean?, level: String?): ReviewTelemetryState {
+internal fun resolveTelemetryState(
+  enabled: Boolean?,
+  level: String?,
+): ReviewTelemetryState {
   return ReviewTelemetryState(
     enabled = enabled ?: false,
     level = level ?: "off",
   )
 }
 
-internal fun reviewAlreadyEmittedForSession(connection: Connection, sessionId: String, reviewRunId: String): Boolean {
+internal fun reviewAlreadyEmittedForSession(
+  connection: Connection,
+  sessionId: String,
+  reviewRunId: String,
+): Boolean {
   if (sessionId.isEmpty()) {
     return false
   }
@@ -83,22 +90,23 @@ internal fun finalizeReviewFinishedTelemetry(
   reviewSummary: ReviewSummary,
   payload: ReviewFinishedTelemetry,
   telemetryEnabled: Boolean,
-): ReviewFinishedTelemetry? = when {
-  reviewSummary.orchestratedRun -> payload
-  !reviewSummary.reviewFinishedEventEmittedAt.isNullOrEmpty() -> {
-    if (telemetryEnabled) {
-      updatePendingReviewFinishedEvent(connection, reviewSummary.reviewSessionId.orEmpty(), payload)
+): ReviewFinishedTelemetry? =
+  when {
+    reviewSummary.orchestratedRun -> payload
+    !reviewSummary.reviewFinishedEventEmittedAt.isNullOrEmpty() -> {
+      if (telemetryEnabled) {
+        updatePendingReviewFinishedEvent(connection, reviewSummary.reviewSessionId.orEmpty(), payload)
+      }
+      payload
     }
-    payload
-  }
-  else -> {
-    enqueueTelemetryEvent(connection, "skillbill_review_finished", payload, telemetryEnabled)
-    if (telemetryEnabled) {
-      markReviewFinishedEventEmitted(connection, reviewRunId)
+    else -> {
+      enqueueTelemetryEvent(connection, "skillbill_review_finished", payload, telemetryEnabled)
+      if (telemetryEnabled) {
+        markReviewFinishedEventEmitted(connection, reviewRunId)
+      }
+      payload
     }
-    payload
   }
-}
 
 internal fun enqueueTelemetryEvent(
   connection: Connection,
@@ -136,7 +144,10 @@ internal fun updatePendingReviewFinishedEvent(
   }
 }
 
-internal fun markReviewFinishedEventEmitted(connection: Connection, reviewRunId: String) {
+internal fun markReviewFinishedEventEmitted(
+  connection: Connection,
+  reviewRunId: String,
+) {
   connection.prepareStatement(
     """
     UPDATE review_runs

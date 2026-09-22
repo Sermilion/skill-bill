@@ -22,8 +22,10 @@ internal interface RuntimeGoalRunnerLaunchProvides {
   fun goalRunnerSubtaskLauncher(adapter: AgentRunGoalRunnerSubtaskLauncher): GoalRunnerSubtaskLauncher = adapter
 
   @Provides @JvmSynthetic
-  fun agentRunLauncher(callbacks: OptionalCallbacks, adapter: FileSystemAgentRunLauncher): AgentRunLauncher =
-    callbacks.agentRunLauncher ?: adapter
+  fun agentRunLauncher(
+    callbacks: OptionalCallbacks,
+    adapter: FileSystemAgentRunLauncher,
+  ): AgentRunLauncher = callbacks.agentRunLauncher ?: adapter
 
   @Provides @JvmSynthetic
   fun executableLookup(callbacks: OptionalCallbacks): ExecutableLookup =

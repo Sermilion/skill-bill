@@ -33,47 +33,56 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   private val patcher: FeatureTaskRuntimeGoalContinuationArtifactPatcher,
   private val runtimeOwnedPersistence: RuntimeOwnedPersistenceBoundary,
 ) {
-  fun reserveGoalReviewPass(workflowId: String): GoalSubtaskReviewPassReservation = database.transaction { unitOfWork ->
-    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-      ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
-    val state = reviewStateFromArtifacts(artifacts)
-      ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
-    if (state.reviewCapReached || state.reviewSkippedByUser) {
-      return@transaction GoalSubtaskReviewPassCarryForward(state)
+  fun reserveGoalReviewPass(workflowId: String): GoalSubtaskReviewPassReservation =
+    database.transaction { unitOfWork ->
+      val record =
+        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
+      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val state =
+        reviewStateFromArtifacts(artifacts)
+          ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
+      if (state.reviewCapReached || state.reviewSkippedByUser) {
+        return@transaction GoalSubtaskReviewPassCarryForward(state)
+      }
+      if (state.reservedPassNumber != null) {
+        return@transaction GoalSubtaskReviewPassInFlight(state)
+      }
+      val reserved = state.reserveNextPass()
+      if (reserved == state) {
+        return@transaction GoalSubtaskReviewPassCarryForward(state)
+      }
+      patcher.save(
+        record,
+        unitOfWork.workflowStates,
+        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toPersistenceWire()),
+      )
+      GoalSubtaskReviewPassReserved(reserved)
     }
-    if (state.reservedPassNumber != null) {
-      return@transaction GoalSubtaskReviewPassInFlight(state)
-    }
-    val reserved = state.reserveNextPass()
-    if (reserved == state) {
-      return@transaction GoalSubtaskReviewPassCarryForward(state)
-    }
-    patcher.save(
-      record,
-      unitOfWork.workflowStates,
-      mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toPersistenceWire()),
-    )
-    GoalSubtaskReviewPassReserved(reserved)
-  }
 
-  fun persistGoalReviewInput(workflowId: String, input: GoalSubtaskReviewInput): GoalSubtaskReviewState? =
+  fun persistGoalReviewInput(
+    workflowId: String,
+    input: GoalSubtaskReviewInput,
+  ): GoalSubtaskReviewState? =
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
       val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
-      val state = reviewStateFromArtifacts(artifacts)
-        ?: return@transaction null
+      val state =
+        reviewStateFromArtifacts(artifacts)
+          ?: return@transaction null
       check(input.reviewBaseSha == state.reviewBaseSha || input.reviewBaseSha == state.remediationBaseSha) {
         "Goal-subtask review input does not match the durable review baseline or its recorded remediation base."
       }
-      val updated = state.copy(
-        reviewInputArtifact = GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY,
-        reviewedDeltaDigest = if (input.reviewBaseSha == state.reviewBaseSha) {
-          input.deltaDigest
-        } else {
-          state.reviewedDeltaDigest
-        },
-      )
+      val updated =
+        state.copy(
+          reviewInputArtifact = GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY,
+          reviewedDeltaDigest =
+            if (input.reviewBaseSha == state.reviewBaseSha) {
+              input.deltaDigest
+            } else {
+              state.reviewedDeltaDigest
+            },
+        )
       patcher.save(
         record,
         unitOfWork.workflowStates,
@@ -88,20 +97,22 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   fun updateReviewState(
     workflowId: String,
     transform: (GoalSubtaskReviewState) -> GoalSubtaskReviewState,
-  ): GoalSubtaskReviewState? = database.transaction { unitOfWork ->
-    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
-    val state = reviewStateFromArtifacts(
-      FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
-    ) ?: return@transaction null
-    val updated = transform(state)
-    if (updated == state) return@transaction state
-    patcher.save(
-      record,
-      unitOfWork.workflowStates,
-      mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire()),
-    )
-    updated
-  }
+  ): GoalSubtaskReviewState? =
+    database.transaction { unitOfWork ->
+      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
+      val state =
+        reviewStateFromArtifacts(
+          FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+        ) ?: return@transaction null
+      val updated = transform(state)
+      if (updated == state) return@transaction state
+      patcher.save(
+        record,
+        unitOfWork.workflowStates,
+        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire()),
+      )
+      updated
+    }
 
   internal fun completeGoalReviewPass(request: GoalReviewPassCompletionRequest): GoalSubtaskReviewState? =
     runtimeOwnedPersistence.requiredWrite(
@@ -109,13 +120,14 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       expected = "runtime-owned review completion persistence",
     ) { unitOfWork ->
       val loaded = loadGoalReviewPassWrite(unitOfWork, request) ?: return@requiredWrite null
-      val completed = loaded.state.completeReservedPass(
-        request.verdict,
-        request.unresolvedFindingCount,
-        request.findings,
-        loaded.dispositions,
-        GoalSubtaskReviewRevision(commitFocusedAccounting = request.commitFocusedAccounting),
-      )
+      val completed =
+        loaded.state.completeReservedPass(
+          request.verdict,
+          request.unresolvedFindingCount,
+          request.findings,
+          loaded.dispositions,
+          GoalSubtaskReviewRevision(commitFocusedAccounting = request.commitFocusedAccounting),
+        )
       if (completed == loaded.state) {
         return@requiredWrite completed
       }
@@ -123,14 +135,16 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       completed
     }
 
-  fun lastGoalReviewResult(workflowId: String): String? = database.read { unitOfWork ->
-    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
-    val state = reviewStateFromArtifacts(artifacts)
-      ?: return@read null
-    val passNumber = state.passResults.lastOrNull()?.passNumber ?: return@read null
-    rawReviewResultsFromArtifacts(artifacts, state)[passNumber.toString()]
-  }
+  fun lastGoalReviewResult(workflowId: String): String? =
+    database.read { unitOfWork ->
+      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val state =
+        reviewStateFromArtifacts(artifacts)
+          ?: return@read null
+      val passNumber = state.passResults.lastOrNull()?.passNumber ?: return@read null
+      rawReviewResultsFromArtifacts(artifacts, state)[passNumber.toString()]
+    }
 
   private data class GoalReviewPassWrite(
     val record: WorkflowStateSnapshot,
@@ -145,28 +159,33 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
     unitOfWork: UnitOfWork,
     request: GoalReviewPassCompletionRequest,
   ): GoalReviewPassWrite? {
-    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
-      ?: return null
+    val record =
+      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+        ?: return null
     val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     val state = reviewStateFromArtifacts(artifacts) ?: return null
     require(request.rawReviewResult.isNotBlank()) { "Goal-subtask review pass result must be non-blank." }
-    val continuation = continuationFromArtifacts(artifacts)
-      ?: error("Goal-subtask review continuation is missing during reserved-pass recovery.")
+    val continuation =
+      continuationFromArtifacts(artifacts)
+        ?: error("Goal-subtask review continuation is missing during reserved-pass recovery.")
     val reservedPass = state.reservedPassNumber ?: 1
-    val recordedVerdicts = GoalSubtaskReviewSummaryReducer.recordedVerdicts(
-      unitOfWork.reviews::fetchFindingVerdicts,
-      request.normalizedOutput,
-    )
-    val ledgerFindings = GoalSubtaskReviewSummaryReducer.unaddressedFindings(
-      output = request.normalizedOutput,
-      scope = UnaddressedFindingLedgerScope(
-        issueKey = continuation.issueKey,
-        subtaskId = continuation.subtaskId,
-        workflowId = request.workflowId,
-        reviewPassNumber = reservedPass,
-      ),
-      recordedVerdicts = recordedVerdicts,
-    )
+    val recordedVerdicts =
+      GoalSubtaskReviewSummaryReducer.recordedVerdicts(
+        unitOfWork.reviews::fetchFindingVerdicts,
+        request.normalizedOutput,
+      )
+    val ledgerFindings =
+      GoalSubtaskReviewSummaryReducer.unaddressedFindings(
+        output = request.normalizedOutput,
+        scope =
+          UnaddressedFindingLedgerScope(
+            issueKey = continuation.issueKey,
+            subtaskId = continuation.subtaskId,
+            workflowId = request.workflowId,
+            reviewPassNumber = reservedPass,
+          ),
+        recordedVerdicts = recordedVerdicts,
+      )
     val supersededFindings = unitOfWork.unaddressedFindings.fetchWorkflowLedger(request.workflowId)
     val dispositions = request.blockerDispositions
     return GoalReviewPassWrite(

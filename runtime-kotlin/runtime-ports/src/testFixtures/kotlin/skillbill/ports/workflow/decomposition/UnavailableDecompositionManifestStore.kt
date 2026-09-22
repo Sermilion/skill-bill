@@ -19,15 +19,20 @@ object UnavailableDecompositionManifestStore : DecompositionManifestStore {
 
   override fun listDirectChildDirectories(directory: Path): List<Path> = unavailableDecompositionManifestStore()
 
-  override fun writeTextAtomically(target: Path, content: String): Unit = unavailableDecompositionManifestStore()
+  override fun writeTextAtomically(
+    target: Path,
+    content: String,
+  ): Unit = unavailableDecompositionManifestStore()
 
   override fun deleteIfExists(target: Path): Unit = unavailableDecompositionManifestStore()
 
   override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     unavailableDecompositionManifestStore()
 
-  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T =
-    unavailableDecompositionManifestStore()
+  override fun <T> writeBundleAtomically(
+    writes: List<Pair<Path, String>>,
+    verify: () -> T,
+  ): T = unavailableDecompositionManifestStore()
 }
 
 private fun unavailableDecompositionManifestStore(): Nothing {

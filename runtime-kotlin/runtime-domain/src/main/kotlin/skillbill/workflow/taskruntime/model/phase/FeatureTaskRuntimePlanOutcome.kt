@@ -48,6 +48,7 @@ internal fun featureTaskRuntimeIsDecompositionPackage(phaseOutput: Map<String, A
   val packageMap = producedOutputs.stringAnyMap("decomposition_package") ?: return false
   return packageMap[DecompositionPlanningPayloadKeys.MODE]?.toString() == DECOMPOSE_MODE
 }
+
 internal fun featureTaskRuntimeDecomposePlanOutcomeOrNull(
   phaseOutput: Map<String, Any?>,
   specSource: SpecSource,
@@ -58,12 +59,13 @@ internal fun featureTaskRuntimeDecomposePlanOutcomeOrNull(
   val summary = phaseOutput[SharedPayloadKeys.SUMMARY]?.toString().orEmpty()
   return FeatureTaskRuntimeDecomposePlanOutcome(
     reason = packageMap.firstString("reason", "decomposition_reason").ifBlank { summary },
-    featureName = packageMap.firstString(
-      DecompositionManifestPayloadKeys.FEATURE_NAME,
-      DecompositionPlanningPayloadKeys.NAME,
-    ).ifBlank {
-      "feature"
-    },
+    featureName =
+      packageMap.firstString(
+        DecompositionManifestPayloadKeys.FEATURE_NAME,
+        DecompositionPlanningPayloadKeys.NAME,
+      ).ifBlank {
+        "feature"
+      },
     parentSpecOverview = packageMap.firstString("parent_spec_overview", "overview").ifBlank { summary },
     validationStrategy = packageMap.firstString("validation_strategy").ifBlank { "bill-code-check" },
     baseBranch = packageMap.firstString(DecompositionPlanningPayloadKeys.BASE_BRANCH).ifBlank { "main" },

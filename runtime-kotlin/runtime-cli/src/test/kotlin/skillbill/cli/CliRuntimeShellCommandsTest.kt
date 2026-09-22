@@ -15,13 +15,16 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class CliRuntimeShellCommandsTest {
   @Test
   fun `help does not consume stdin`() {
     val original = System.`in`
-    System.setIn(object : InputStream() {
-      override fun read(): Int = error("help must not read stdin")
-    })
+    System.setIn(
+      object : InputStream() {
+        override fun read(): Int = error("help must not read stdin")
+      },
+    )
 
     try {
       val result = CliRuntime.run(listOf("--help"))
@@ -34,9 +37,11 @@ class CliRuntimeShellCommandsTest {
   @Test
   fun `an unrelated dash argument does not consume stdin`() {
     val original = System.`in`
-    System.setIn(object : InputStream() {
-      override fun read(): Int = error("unrelated commands must not read stdin")
-    })
+    System.setIn(
+      object : InputStream() {
+        override fun read(): Int = error("unrelated commands must not read stdin")
+      },
+    )
 
     try {
       val result = CliRuntime.run(listOf("version", "-"))
@@ -67,10 +72,10 @@ class CliRuntimeShellCommandsTest {
     val context =
       CliRuntimeContext(
         environment =
-        mapOf(
-          CONFIG_ENVIRONMENT_KEY to configPath.toString(),
-          INSTALL_ID_ENVIRONMENT_KEY to "doctor-install-id",
-        ),
+          mapOf(
+            CONFIG_ENVIRONMENT_KEY to configPath.toString(),
+            INSTALL_ID_ENVIRONMENT_KEY to "doctor-install-id",
+          ),
       )
 
     val versionResult = CliRuntime.run(listOf("version", "--format", "json"), context)
@@ -180,10 +185,11 @@ class CliRuntimeShellCommandsTest {
     Files.createDirectories(tempDir.resolve(".junie"))
     Files.createDirectories(tempDir.resolve(".cursor"))
 
-    val result = CliRuntime.run(
-      listOf("install", "detect-agents"),
-      CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir)),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("install", "detect-agents"),
+        CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir)),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals(
@@ -311,8 +317,9 @@ class CliRuntimeShellCommandsTest {
         "json",
       )
     val workflowId = opened["workflow_id"] as String
-    val checkpoint = GitWorkflowGitOperations()
-      .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value
+    val checkpoint =
+      GitWorkflowGitOperations()
+        .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value
     val steps = opened.steps()
     assertEquals("completed", steps.single { it["step_id"] == "gather_diff" }["status"])
 

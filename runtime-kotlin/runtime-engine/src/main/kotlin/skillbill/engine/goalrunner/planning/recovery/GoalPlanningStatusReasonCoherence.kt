@@ -18,6 +18,7 @@ import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.text.sha256HexUtf8
 import java.nio.file.Path
+
 fun interface GoalPlanningStatusReasonCoherence {
   fun align(request: GoalPlanningStatusAlignRequest): GoalPlanningStatusSnapshot
 
@@ -35,12 +36,14 @@ class LaunchAlignedGoalPlanningStatusReasonCoherence(
 ) : GoalPlanningStatusReasonCoherence {
   override fun align(request: GoalPlanningStatusAlignRequest): GoalPlanningStatusSnapshot {
     if (!request.snapshot.sharedPreplanPrepared) return request.snapshot
-    val recoverability = statusRecoverabilityOrRefuse {
-      classifyForStatus(request)
-    }
-    val remedySubtaskId = request.snapshot.currentPlanningSubtaskId
-      ?.takeIf { it > 0 }
-      ?: goalPlanningRemedySubtaskId(request.manifest.subtasks)
+    val recoverability =
+      statusRecoverabilityOrRefuse {
+        classifyForStatus(request)
+      }
+    val remedySubtaskId =
+      request.snapshot.currentPlanningSubtaskId
+        ?.takeIf { it > 0 }
+        ?: goalPlanningRemedySubtaskId(request.manifest.subtasks)
     return alignPlanningStatusWithLaunchRecoverability(
       snapshot = request.snapshot,
       recoverability = recoverability,
@@ -51,32 +54,36 @@ class LaunchAlignedGoalPlanningStatusReasonCoherence(
 
   private fun classifyForStatus(request: GoalPlanningStatusAlignRequest): GoalPlanningProvenanceRecoverability {
     val canonicalRepository = repositoryEnclosingRootPort.canonicalPath(request.repoRoot)
-    val identity = GoalPlanningIdentity(
-      request.parentWorkflowId,
-      request.issueKey.trim().uppercase(),
-      "repo-root-realpath-v1:$canonicalRepository",
-    )
-    val existing = checkpoint.findSharedPreplan(identity)
-      ?: return GoalPlanningProvenanceRecoverability.Reuse(
-        GoalPlanningContractProvenance(
-          parentSpecHash = "",
-          decompositionManifestHash = "",
-          planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
-        ),
+    val identity =
+      GoalPlanningIdentity(
+        request.parentWorkflowId,
+        request.issueKey.trim().uppercase(),
+        "repo-root-realpath-v1:$canonicalRepository",
       )
+    val existing =
+      checkpoint.findSharedPreplan(identity)
+        ?: return GoalPlanningProvenanceRecoverability.Reuse(
+          GoalPlanningContractProvenance(
+            parentSpecHash = "",
+            decompositionManifestHash = "",
+            planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+          ),
+        )
     val parentSpecPath = lexicalPath(canonicalRepository, request.manifest.parentSpecPath)
     val currentParentSpec = manifestFileStore.readText(parentSpecPath)
-    val current = GoalPlanningContractProvenance(
-      parentSpecHash = sha256HexUtf8(currentParentSpec),
-      decompositionManifestHash = goalPlanningImmutableDecompositionHash(request.manifest),
-      planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
-    )
+    val current =
+      GoalPlanningContractProvenance(
+        parentSpecHash = sha256HexUtf8(currentParentSpec),
+        decompositionManifestHash = goalPlanningImmutableDecompositionHash(request.manifest),
+        planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+      )
     val packetParentSpec = planningPacketParentSpec(existing)
-    val savedParentSpec = if (existing.provenance.parentSpecHash == current.parentSpecHash) {
-      currentParentSpec
-    } else {
-      packetParentSpec
-    }
+    val savedParentSpec =
+      if (existing.provenance.parentSpecHash == current.parentSpecHash) {
+        currentParentSpec
+      } else {
+        packetParentSpec
+      }
     return classifyGoalPlanningProvenanceRecoverability(
       existing = existing,
       current = current,
@@ -86,18 +93,22 @@ class LaunchAlignedGoalPlanningStatusReasonCoherence(
   }
 
   private fun planningPacketParentSpec(existing: SharedGoalPreplanCheckpoint): String? {
-    val packet = JsonCodec.parseObjectOrNull(existing.preplanPayload)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get("_goal_planning_shared_context")
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?: return null
+    val packet =
+      JsonCodec.parseObjectOrNull(existing.preplanPayload)
+        ?.let(JsonCodec::jsonElementToValue)
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?.get("_goal_planning_shared_context")
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?: return null
     return packet[GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC] as? String
   }
 
-  private fun lexicalPath(canonicalRepository: Path, governingPath: String): Path {
+  private fun lexicalPath(
+    canonicalRepository: Path,
+    governingPath: String,
+  ): Path {
     val path = Path.of(governingPath)
     return (if (path.isAbsolute) path else canonicalRepository.resolve(path)).toAbsolutePath().normalize()
   }

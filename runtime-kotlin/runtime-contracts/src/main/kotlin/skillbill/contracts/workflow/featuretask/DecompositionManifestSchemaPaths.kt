@@ -5,7 +5,6 @@ const val DECOMPOSITION_MANIFEST_CONTRACT_VERSION: String = "0.5"
 const val DECOMPOSITION_MANIFEST_VALIDATION_CONTRACT_VERSION: String = "0.1"
 
 object DecompositionManifestSchemaPaths {
-
   const val REPO_RELATIVE_PATH: String =
     "orchestration/contracts/decomposition-manifest-schema.yaml"
 

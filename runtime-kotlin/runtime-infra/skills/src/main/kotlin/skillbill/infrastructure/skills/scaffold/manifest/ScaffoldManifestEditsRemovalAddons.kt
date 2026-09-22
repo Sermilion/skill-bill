@@ -1,7 +1,11 @@
 
 package skillbill.infrastructure.skills.scaffold.manifest
 
-internal fun removeNamedPointerEntries(text: String, blockName: String, pointerName: String): String {
+internal fun removeNamedPointerEntries(
+  text: String,
+  blockName: String,
+  pointerName: String,
+): String {
   val lines = text.split('\n').toMutableList()
   var changed = false
   var block = topLevelBlockLineRange(lines, blockName) ?: return text
@@ -23,7 +27,10 @@ internal fun removeNamedPointerEntries(text: String, blockName: String, pointerN
   return if (changed) lines.joinToString("\n") else text
 }
 
-internal fun removeAddonUsageEntries(text: String, pointerName: String): String {
+internal fun removeAddonUsageEntries(
+  text: String,
+  pointerName: String,
+): String {
   val lines = text.split('\n').toMutableList()
   var changed = removeAddonUsageEntrypointItems(lines, pointerName)
   changed = removeAddonUsageCompanionPointers(lines, pointerName) || changed
@@ -34,13 +41,17 @@ internal fun removeAddonUsageEntries(text: String, pointerName: String): String 
   return if (changed) lines.joinToString("\n") else text
 }
 
-internal fun removeAddonUsageEntrypointItems(lines: MutableList<String>, pointerName: String): Boolean {
+internal fun removeAddonUsageEntrypointItems(
+  lines: MutableList<String>,
+  pointerName: String,
+): Boolean {
   var changed = false
   var block = topLevelBlockLineRange(lines, "addon_usage") ?: return false
   var idx = block.first + 1
   while (idx <= block.last && idx < lines.size) {
-    val removesItem = isAddonUsageItemStart(lines[idx]) &&
-      listItemContainsEntrypoint(lines, idx, block.last + 1, pointerName)
+    val removesItem =
+      isAddonUsageItemStart(lines[idx]) &&
+        listItemContainsEntrypoint(lines, idx, block.last + 1, pointerName)
     if (removesItem) {
       val end = listItemEnd(lines, idx, maxExclusive = block.last + 1)
       repeat(end - idx) { lines.removeAt(idx) }
@@ -53,7 +64,10 @@ internal fun removeAddonUsageEntrypointItems(lines: MutableList<String>, pointer
   return changed
 }
 
-internal fun removeAddonUsageCompanionPointers(lines: MutableList<String>, pointerName: String): Boolean {
+internal fun removeAddonUsageCompanionPointers(
+  lines: MutableList<String>,
+  pointerName: String,
+): Boolean {
   var changed = false
   var block = topLevelBlockLineRange(lines, "addon_usage") ?: return false
   var idx = block.first + 1
@@ -87,9 +101,10 @@ internal fun collapseEmptyCompanionPointerBlocks(lines: MutableList<String>) {
   while (idx < lines.size) {
     if (leadingSpaces(lines[idx]) == COMPANION_POINTER_HEADER_INDENT && lines[idx].trim() == "companion_pointers:") {
       val next = idx + 1
-      val hasCompanions = next < lines.size &&
-        leadingSpaces(lines[next]) == COMPANION_POINTER_ITEM_INDENT &&
-        lines[next].trimStart().startsWith("- ")
+      val hasCompanions =
+        next < lines.size &&
+          leadingSpaces(lines[next]) == COMPANION_POINTER_ITEM_INDENT &&
+          lines[next].trimStart().startsWith("- ")
       if (!hasCompanions) {
         lines.removeAt(idx)
         continue
@@ -99,12 +114,18 @@ internal fun collapseEmptyCompanionPointerBlocks(lines: MutableList<String>) {
   }
 }
 
-internal fun collapseEmptyNestedMappings(lines: MutableList<String>, blockName: String) {
+internal fun collapseEmptyNestedMappings(
+  lines: MutableList<String>,
+  blockName: String,
+) {
   removeEmptyNestedMappingBlocks(lines, blockName)
   collapseTopLevelMappingIfEmpty(lines, blockName)
 }
 
-internal fun removeEmptyNestedMappingBlocks(lines: MutableList<String>, blockName: String) {
+internal fun removeEmptyNestedMappingBlocks(
+  lines: MutableList<String>,
+  blockName: String,
+) {
   var block = topLevelBlockLineRange(lines, blockName) ?: return
   var idx = block.first + 1
   while (idx <= block.last && idx < lines.size) {
@@ -118,11 +139,15 @@ internal fun removeEmptyNestedMappingBlocks(lines: MutableList<String>, blockNam
   }
 }
 
-internal fun collapseTopLevelMappingIfEmpty(lines: MutableList<String>, blockName: String) {
+internal fun collapseTopLevelMappingIfEmpty(
+  lines: MutableList<String>,
+  blockName: String,
+) {
   val block = topLevelBlockLineRange(lines, blockName) ?: return
-  val hasNestedMappings = lines.subList(block.first + 1, (block.last + 1).coerceAtMost(lines.size)).any { line ->
-    line.isNotBlank() && leadingSpaces(line) == NESTED_MAPPING_INDENT
-  }
+  val hasNestedMappings =
+    lines.subList(block.first + 1, (block.last + 1).coerceAtMost(lines.size)).any { line ->
+      line.isNotBlank() && leadingSpaces(line) == NESTED_MAPPING_INDENT
+    }
   if (!hasNestedMappings) {
     lines[block.first] = "$blockName: {}"
   }

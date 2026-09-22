@@ -4,6 +4,7 @@ import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
+
 internal object NativeAgentLinkInventoryLimits {
   const val MAX_BYTES = 1024 * 1024L
   const val DIGEST_HEX_LENGTH = 64
@@ -14,22 +15,30 @@ internal object NativeAgentLinkInventoryLimits {
 }
 
 internal object NativeAgentLinkInventoryPaths {
-  fun canonicalManagedCacheRoots(home: Path, managedRoots: List<Path>): List<Path> {
+  fun canonicalManagedCacheRoots(
+    home: Path,
+    managedRoots: List<Path>,
+  ): List<Path> {
     val normalizedHome = home.toAbsolutePath().normalize()
-    val installedGenerations = generationChildren(
-      normalizedHome.resolve(".skill-bill/installed-skills"),
-      prefix = "native-agents-",
-    )
+    val installedGenerations =
+      generationChildren(
+        normalizedHome.resolve(".skill-bill/installed-skills"),
+        prefix = "native-agents-",
+      )
     val legacyGenerations = generationChildren(normalizedHome.resolve(".skill-bill/native-agents"))
     return (managedRoots.map { it.toAbsolutePath().normalize() } + installedGenerations + legacyGenerations).distinct()
   }
 
-  fun inventoryPath(home: Path): Path = home.resolve(".skill-bill/native-agent-link-inventory.json")
-    .toAbsolutePath().normalize()
+  fun inventoryPath(home: Path): Path =
+    home.resolve(".skill-bill/native-agent-link-inventory.json")
+      .toAbsolutePath().normalize()
 
   fun provider(id: String): NativeAgentProvider = NativeAgentProvider.forSupportedAgent(SupportedAgent.fromWire(id))
 
-  private fun generationChildren(parent: Path, prefix: String = ""): List<Path> {
+  private fun generationChildren(
+    parent: Path,
+    prefix: String = "",
+  ): List<Path> {
     if (!Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS)) return emptyList()
     return Files.list(parent).use { children ->
       children.filter { child ->

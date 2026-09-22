@@ -20,6 +20,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import javax.xml.parsers.DocumentBuilderFactory
+
 @Inject
 class FileSystemValidationGateRunner(
   private val clock: Clock,
@@ -33,17 +34,18 @@ class FileSystemValidationGateRunner(
       val baselineEnvironment = LinkedHashMap(JdkHostPlatformPort.resolveEnvironment())
       val gateJvm = gateJvmResolver.resolve(baselineEnvironment)
       applyResolvedGateJvm(baselineEnvironment, gateJvm)
-      val processResult = BoundedExternalProcessRunner.run(
-        BoundedExternalProcessRequest(
-          argv = request.argv,
-          workingDirectory = request.repoRoot,
-          environment = baselineEnvironment,
-          clearEnvironment = true,
-          redirectOutputFile = outputFile,
-          deadlineSeconds = GATE_TIMEOUT_MINUTES * 60L,
-          outputCapBytes = null,
-        ),
-      )
+      val processResult =
+        BoundedExternalProcessRunner.run(
+          BoundedExternalProcessRequest(
+            argv = request.argv,
+            workingDirectory = request.repoRoot,
+            environment = baselineEnvironment,
+            clearEnvironment = true,
+            redirectOutputFile = outputFile,
+            deadlineSeconds = GATE_TIMEOUT_MINUTES * 60L,
+            outputCapBytes = null,
+          ),
+        )
       if (processResult.timedOut) {
         throw ValidationGateProcessException(
           "Validation gate command timed out after ${GATE_TIMEOUT_MINUTES}m: ${request.argv.joinToString(" ")}",
@@ -82,20 +84,25 @@ class FileSystemValidationGateRunner(
     internal const val UNPARSEABLE_GATE_MODULE = "<validation-gate>"
     internal const val UNPARSEABLE_GATE_RULE_ID = "unparseable_gate_failure"
     internal val GRADLE_EXECUTED_PATTERN = Regex("""(\d+)\s+executed""", RegexOption.IGNORE_CASE)
-    internal val DOCUMENT_BUILDER = DocumentBuilderFactory.newInstance().apply {
-      isNamespaceAware = false
-      isValidating = false
-      setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-    }.newDocumentBuilder()
+    internal val DOCUMENT_BUILDER =
+      DocumentBuilderFactory.newInstance().apply {
+        isNamespaceAware = false
+        isValidating = false
+        setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+      }.newDocumentBuilder()
 
     internal fun findingIdentity(finding: ValidationGateFinding): String =
       "${finding.module}|${finding.ruleOrTestId}|${finding.message}|${finding.location}"
 
-    internal fun producedByThisRun(path: Path, artifactFloor: Instant): Boolean =
-      runCatching { !Files.getLastModifiedTime(path).toInstant().isBefore(artifactFloor) }.getOrDefault(true)
+    internal fun producedByThisRun(
+      path: Path,
+      artifactFloor: Instant,
+    ): Boolean = runCatching { !Files.getLastModifiedTime(path).toInstant().isBefore(artifactFloor) }.getOrDefault(true)
 
-    internal fun expandGlob(repoRoot: Path, glob: String): List<Path> =
-      fileSystemValidationGateExpandGlob(repoRoot, glob)
+    internal fun expandGlob(
+      repoRoot: Path,
+      glob: String,
+    ): List<Path> = fileSystemValidationGateExpandGlob(repoRoot, glob)
   }
 }
 
@@ -104,18 +111,22 @@ internal class ValidationGateProcessException(message: String, cause: Throwable?
   cause,
 )
 
-internal fun applyResolvedGateJvm(environment: MutableMap<String, String>, disposition: GateJvmDisposition) {
+internal fun applyResolvedGateJvm(
+  environment: MutableMap<String, String>,
+  disposition: GateJvmDisposition,
+) {
   if (disposition is GateJvmDisposition.Unresolved) {
     throw GateJvmUnresolvedException(disposition.rejectedCandidate, disposition.requiredMajor)
   }
   disposition.applyTo(environment)
 }
 
-private val JVM_STARTUP_FAILURE_MARKERS = listOf(
-  "Error occurred during initialization of VM",
-  "Could not create the Java Virtual Machine",
-  "may be missing from runtime image",
-)
+private val JVM_STARTUP_FAILURE_MARKERS =
+  listOf(
+    "Error occurred during initialization of VM",
+    "Could not create the Java Virtual Machine",
+    "may be missing from runtime image",
+  )
 
 internal fun rejectGateJvmStartupFailure(
   disposition: GateJvmDisposition,
@@ -128,10 +139,11 @@ internal fun rejectGateJvmStartupFailure(
   throw GateJvmStartupFailureException(resolvedGateJvmLabel(disposition), gateStdoutExcerpt(stdout))
 }
 
-private fun resolvedGateJvmLabel(disposition: GateJvmDisposition): String = when (disposition) {
-  is GateJvmDisposition.Export -> disposition.javaHome
-  GateJvmDisposition.LeaveUnset -> PATH_RESOLVED_GATE_JVM
-  is GateJvmDisposition.Unresolved -> disposition.rejectedCandidate
-}
+private fun resolvedGateJvmLabel(disposition: GateJvmDisposition): String =
+  when (disposition) {
+    is GateJvmDisposition.Export -> disposition.javaHome
+    GateJvmDisposition.LeaveUnset -> PATH_RESOLVED_GATE_JVM
+    is GateJvmDisposition.Unresolved -> disposition.rejectedCandidate
+  }
 
 private const val PATH_RESOLVED_GATE_JVM = "<java resolved from PATH>"

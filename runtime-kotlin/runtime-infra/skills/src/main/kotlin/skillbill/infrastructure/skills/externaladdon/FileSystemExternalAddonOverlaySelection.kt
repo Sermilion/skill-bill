@@ -26,19 +26,20 @@ internal fun validateAndPlan(
   validateFragmentFields(rewritten, slug)
   val fragmentPointers = wrapParserErrors(slug) { parsePointers(rewritten, slug) }
   fragmentPointers.forEach { pointer -> requireFlatAddonTarget(slug, pointer.target) }
-  val fragmentAddonUsage = wrapParserErrors(slug) {
-    parseAddonUsage(
-      rewritten,
-      AddonUsageManifestContext(
-        slug = slug,
-        packRoot = installed.packRoot.toPath(),
-        pointers = fragmentPointers,
-        declaredSkillDirs = installed.declaredSkillRelativeDirs(),
-        declaredAreas = installed.declaredCodeReviewAreas.toSet(),
-        strictReviewRouting = installed.laneConditions.isNotEmpty(),
-      ),
-    )
-  }
+  val fragmentAddonUsage =
+    wrapParserErrors(slug) {
+      parseAddonUsage(
+        rewritten,
+        AddonUsageManifestContext(
+          slug = slug,
+          packRoot = installed.packRoot.toPath(),
+          pointers = fragmentPointers,
+          declaredSkillDirs = installed.declaredSkillRelativeDirs(),
+          declaredAreas = installed.declaredCodeReviewAreas.toSet(),
+          strictReviewRouting = installed.laneConditions.isNotEmpty(),
+        ),
+      )
+    }
 
   val filesToCopy = linkedMapOf<String, Path>()
   fragmentPointers.forEach { pointer ->
@@ -111,7 +112,10 @@ internal fun collectAddonsToAppend(
   return result
 }
 
-internal fun readSourceManifest(sourcePath: Path, slug: String): Map<String, Any?> {
+internal fun readSourceManifest(
+  sourcePath: Path,
+  slug: String,
+): Map<String, Any?> {
   val manifestPath = sourcePath.resolve(SOURCE_MANIFEST_FILE)
   if (!Files.isRegularFile(manifestPath)) {
     throw missingSourceManifestError(slug, manifestPath)
@@ -120,53 +124,69 @@ internal fun readSourceManifest(sourcePath: Path, slug: String): Map<String, Any
   return typedSourceManifestMap(slug, rawMap)
 }
 
-private fun missingSourceManifestError(slug: String, manifestPath: Path): ExternalAddonOverlayError =
+private fun missingSourceManifestError(
+  slug: String,
+  manifestPath: Path,
+): ExternalAddonOverlayError =
   ExternalAddonOverlayError(
     "External addon source for platform '$slug': expected '$manifestPath' but it is missing.",
   )
 
-private fun loadSourceManifestYamlMap(slug: String, manifestPath: Path): Map<*, *> {
-  val raw = try {
-    Yaml().load<Any?>(Files.readString(manifestPath))
-  } catch (error: YAMLException) {
-    throw ExternalAddonOverlayError(
-      "External addon source for platform '$slug': manifest '$manifestPath' is not valid YAML: ${error.message}",
-      error,
-    )
-  }
+private fun loadSourceManifestYamlMap(
+  slug: String,
+  manifestPath: Path,
+): Map<*, *> {
+  val raw =
+    try {
+      Yaml().load<Any?>(Files.readString(manifestPath))
+    } catch (error: YAMLException) {
+      throw ExternalAddonOverlayError(
+        "External addon source for platform '$slug': manifest '$manifestPath' is not valid YAML: ${error.message}",
+        error,
+      )
+    }
   return raw as? Map<*, *>
     ?: throw ExternalAddonOverlayError(
       "External addon source for platform '$slug': manifest '$manifestPath' must be a YAML mapping.",
     )
 }
 
-private fun typedSourceManifestMap(slug: String, rawMap: Map<*, *>): Map<String, Any?> {
+private fun typedSourceManifestMap(
+  slug: String,
+  rawMap: Map<*, *>,
+): Map<String, Any?> {
   val typed = linkedMapOf<String, Any?>()
   rawMap.forEach { (k, v) ->
-    val key = k as? String
-      ?: throw ExternalAddonOverlayError(
-        "External addon source for platform '$slug': manifest keys must be strings.",
-      )
+    val key =
+      k as? String
+        ?: throw ExternalAddonOverlayError(
+          "External addon source for platform '$slug': manifest keys must be strings.",
+        )
     typed[key] = v
   }
   return typed
 }
 
-internal fun rewriteFragmentTargets(fragment: Map<String, Any?>, slug: String): Map<String, Any?> {
+internal fun rewriteFragmentTargets(
+  fragment: Map<String, Any?>,
+  slug: String,
+): Map<String, Any?> {
   val pointers = (fragment["pointers"] as? Map<*, *>) ?: return fragment
   val rewritten = linkedMapOf<String, Any?>()
   fragment.forEach { (k, v) -> rewritten[k] = v }
   val rewrittenPointers = linkedMapOf<String, Any?>()
   val canonicalPrefix = "platform-packs/$slug/$ADDONS_DIR/"
   pointers.forEach { (dirKey, entriesRaw) ->
-    val dir = dirKey as? String
-      ?: throw ExternalAddonOverlayError(
-        "External addon source for platform '$slug': pointers keys must be strings.",
-      )
-    val entries = (entriesRaw as? List<*>)
-      ?: throw ExternalAddonOverlayError(
-        "External addon source for platform '$slug': pointers[$dir] must be a list.",
-      )
+    val dir =
+      dirKey as? String
+        ?: throw ExternalAddonOverlayError(
+          "External addon source for platform '$slug': pointers keys must be strings.",
+        )
+    val entries =
+      (entriesRaw as? List<*>)
+        ?: throw ExternalAddonOverlayError(
+          "External addon source for platform '$slug': pointers[$dir] must be a list.",
+        )
     val rewrittenEntries = entries.map { entry -> rewritePointerEntry(slug, dir, entry, canonicalPrefix) }
     rewrittenPointers[dir] = rewrittenEntries
   }
@@ -180,16 +200,18 @@ internal fun rewritePointerEntry(
   entry: Any?,
   canonicalPrefix: String,
 ): MutableMap<String, Any?> {
-  val rawMap = entry as? Map<*, *>
-    ?: throw ExternalAddonOverlayError(
-      "External addon source for platform '$slug': pointers[$dir] entries must be mappings.",
-    )
+  val rawMap =
+    entry as? Map<*, *>
+      ?: throw ExternalAddonOverlayError(
+        "External addon source for platform '$slug': pointers[$dir] entries must be mappings.",
+      )
   val map = linkedMapOf<String, Any?>()
   rawMap.forEach { (k, v) -> map[k as String] = v }
-  val target = map["target"] as? String
-    ?: throw ExternalAddonOverlayError(
-      "External addon source for platform '$slug': pointers[$dir] entry is missing string field 'target'.",
-    )
+  val target =
+    map["target"] as? String
+      ?: throw ExternalAddonOverlayError(
+        "External addon source for platform '$slug': pointers[$dir] entry is missing string field 'target'.",
+      )
   if (!target.startsWith(canonicalPrefix)) {
     val filename = Path.of(target).fileName.toString()
     map["target"] = canonicalPrefix + filename

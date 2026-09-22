@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime.model.handoff.task
 import skillbill.workflow.taskruntime.model.phase.FEATURE_TASK_RUNTIME_CHANGED_PATH_MAX_COUNT
 import skillbill.workflow.taskruntime.model.phase.FEATURE_TASK_RUNTIME_PROJECTION_LIST_MAX_COUNT
+
 data class FeatureTaskRuntimeHandoffProjectionBudget(
   val maxUtf8Bytes: Int,
   val maxCollectionItems: Int,
@@ -15,7 +16,6 @@ data class FeatureTaskRuntimeHandoffProjectionBudget(
   }
 
   companion object {
-
     val PHASE_RECEIPT: FeatureTaskRuntimeHandoffProjectionBudget =
       FeatureTaskRuntimeHandoffProjectionBudget(maxUtf8Bytes = 65_536, maxCollectionItems = 64)
 
@@ -28,9 +28,10 @@ data class FeatureTaskRuntimeHandoffProjectionBudget(
     val PLANNING_PROJECTION: FeatureTaskRuntimeHandoffProjectionBudget =
       FeatureTaskRuntimeHandoffProjectionBudget(
         maxUtf8Bytes = 196_608,
-        maxCollectionItems = FEATURE_TASK_RUNTIME_CHANGED_PATH_MAX_COUNT +
-          (IMPLEMENTATION_RECEIPT_ORDINARY_LIST_FIELDS * FEATURE_TASK_RUNTIME_PROJECTION_LIST_MAX_COUNT) +
-          IMPLEMENTATION_RECEIPT_SCALAR_FIELDS,
+        maxCollectionItems =
+          FEATURE_TASK_RUNTIME_CHANGED_PATH_MAX_COUNT +
+            (IMPLEMENTATION_RECEIPT_ORDINARY_LIST_FIELDS * FEATURE_TASK_RUNTIME_PROJECTION_LIST_MAX_COUNT) +
+            IMPLEMENTATION_RECEIPT_SCALAR_FIELDS,
       )
 
     private const val IMPLEMENTATION_RECEIPT_ORDINARY_LIST_FIELDS: Int = 6

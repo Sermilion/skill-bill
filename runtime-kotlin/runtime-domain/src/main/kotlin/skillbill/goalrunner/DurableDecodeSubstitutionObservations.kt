@@ -8,6 +8,11 @@ typealias DurableDecodeSubstitutionRecord =
 typealias DurableDecodeSubstitutionObservations =
   ModelDurableDecodeSubstitutionObservations
 
-internal fun recordDurableDecodeSubstitution(seam: String, valueUsed: String, expectedValue: String, reason: String) {
+internal fun recordDurableDecodeSubstitution(
+  seam: String,
+  valueUsed: String,
+  expectedValue: String,
+  reason: String,
+) {
   ModelDurableDecodeSubstitutionObservations.record(seam, valueUsed, expectedValue, reason)
 }

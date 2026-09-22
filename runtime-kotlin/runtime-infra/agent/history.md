@@ -57,14 +57,14 @@ Acceptance criteria: 6/6 implemented
 ## [2026-09-15] SKILL-247 subtask 4 — Consolidate governed resource copying in runtime-infra-fs
 Areas: runtime-infra-fs Gradle resource wiring
 - `runtime-infra-fs/build.gradle.kts` now declares each governed copy once via `GovernedResourceCopy` and `registerGovernedCopy`, with main/test `processResources` dependencies driven from the same registration list (main-only: rejected-output diagnostic and producer-output evidence schemas).
-- Golden manifest at `src/test/resources/governed-resource-manifest-main.json` locks packaged resource paths and SHA-256 hashes from the pre-refactor tree; `GovernedResourceCopyParityTest` guards regressions.
+- Golden manifest at `src/test/resources/governed-resource-manifest-main.json` locks packaged resource paths and SHA-256 hashes from the pre-refactor tree; `GovernedResourceCopyParityTest` guards regressions. (SKILL-368 deleted both; governed-copy behavior is now covered by build-logic tests against a synthetic project, and the main/test `processResources` split is gone because the generated root only ever joined the main source set.)
 - Net line count for `build.gradle.kts`: 914 → 410 (−504).
 Feature flag: N/A
 Acceptance criteria: 6/6 implemented
 
 ## [2026-09-14] SKILL-244 subtask 1 — Gate JVM resolved through the shared Java guard
 Areas: runtime-infra-fs/jvm, runtime-infra-fs/validation, runtime-infra-fs/launcher/process
-- `skill-bill-java-guard.sh` now ships as a runtime-infra-fs classpath resource (`copyJavaGuard` in `build.gradle.kts`, one authored copy under `build-logic/convention`), so the resolution rule exists at gate time and not only during install/uninstall.
+- `skill-bill-java-guard.sh` now ships as a runtime-infra-fs classpath resource, so the resolution rule exists at gate time and not only during install/uninstall. (SKILL-368 moved the single authored copy into this module's `src/main/resources/skillbill/infrastructure/host/jvm/` and deleted the `copyJavaGuard` governed entry.)
 - New `skillbill/infrastructure/fs/jvm` package (`GateJvmResolver`, `GateJvmEnvironmentKeys`, `GateJvmResolutionErrors`) evaluates that guard: `SKILL_BILL_JAVA_HOME`, then an inherited `JAVA_HOME` accepted by `skill_bill_java_home_ok`, then a qualifying PATH `java`, then the guard's scan. reusable
 - Both gate launch surfaces resolve through it: `FileSystemValidationGateRunner.applyResolvedGateJvm` before `builder.start()`, and `JvmAgentRunProcessLaunchEnvironment.configureLaunchEnvironment` (now three-arg) for the agent-run build gate that inherits the parent environment.
 - The runtime's own jlink image is pruned from the gate PATH and an image-rooted `JAVA_HOME` is dropped before the guard decides, so the runtime keeps `JAVA_HOME="$APP_HOME"` for itself without leaking it into children.

@@ -9,7 +9,10 @@ internal fun median(values: List<Int>): Double = percentile(values, MEDIAN_PERCE
 
 internal fun p90(values: List<Int>): Double = percentile(values, P90_PERCENTILE)
 
-private fun percentile(values: List<Int>, percentile: Double): Double {
+private fun percentile(
+  values: List<Int>,
+  percentile: Double,
+): Double {
   if (values.isEmpty()) {
     return 0.0
   }

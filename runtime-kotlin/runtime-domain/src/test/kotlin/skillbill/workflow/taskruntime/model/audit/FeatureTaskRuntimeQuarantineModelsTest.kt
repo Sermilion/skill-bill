@@ -11,13 +11,15 @@ class FeatureTaskRuntimeQuarantineModelsTest {
   @Test
   fun `an unsupported field loud-fails rather than being dropped on decode`() {
     val valid = featureTaskRuntimeQuarantineRecordToWire(listOf(identityEntry()))
-    val envelopeError = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      featureTaskRuntimeQuarantineEntriesFromWire(valid + ("unexpected" to true))
-    }
+    val envelopeError =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        featureTaskRuntimeQuarantineEntriesFromWire(valid + ("unexpected" to true))
+      }
     val leaked = listOf(identityEntry().toArtifactMap() + ("leaked_body" to "secret"))
-    val entryError = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      featureTaskRuntimeQuarantineEntriesFromWire(valid + ("entries" to leaked))
-    }
+    val entryError =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        featureTaskRuntimeQuarantineEntriesFromWire(valid + ("entries" to leaked))
+      }
     listOf(envelopeError, entryError).forEach { error ->
       assertFalse(
         error.message.orEmpty().contains("secret"),
@@ -31,9 +33,10 @@ class FeatureTaskRuntimeQuarantineModelsTest {
   @Test
   fun `an unsupported contract version loud-fails so the store is not rewritten`() {
     val valid = featureTaskRuntimeQuarantineRecordToWire(listOf(identityEntry()))
-    val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      featureTaskRuntimeQuarantineEntriesFromWire(valid + ("contract_version" to "0.2"))
-    }
+    val error =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        featureTaskRuntimeQuarantineEntriesFromWire(valid + ("contract_version" to "0.2"))
+      }
     assertContains(error.message.orEmpty(), "unsupported contract version")
     assertContains(error.message.orEmpty(), FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE)
   }
@@ -47,16 +50,17 @@ class FeatureTaskRuntimeQuarantineModelsTest {
     }
   }
 
-  private fun identityEntry() = FeatureTaskRuntimeQuarantineEntry(
-    producingPhaseId = "plan",
-    consumingPhaseId = "implement",
-    producingIteration = 1,
-    rejectionClass = QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION,
-    rejectionDetail = "plan#produced_outputs: projection_kind is missing",
-    regenerationAttempt = 1,
-    quarantinedAtIteration = 1,
-    diagnosticIdentity = "rod_prechange",
-    rejectedRecordByteSize = 11,
-    rejectedRecordSha256 = "a".repeat(64),
-  )
+  private fun identityEntry() =
+    FeatureTaskRuntimeQuarantineEntry(
+      producingPhaseId = "plan",
+      consumingPhaseId = "implement",
+      producingIteration = 1,
+      rejectionClass = QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION,
+      rejectionDetail = "plan#produced_outputs: projection_kind is missing",
+      regenerationAttempt = 1,
+      quarantinedAtIteration = 1,
+      diagnosticIdentity = "rod_prechange",
+      rejectedRecordByteSize = 11,
+      rejectedRecordSha256 = "a".repeat(64),
+    )
 }

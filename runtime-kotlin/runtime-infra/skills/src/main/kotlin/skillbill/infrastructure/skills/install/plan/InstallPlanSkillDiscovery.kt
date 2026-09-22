@@ -20,15 +20,17 @@ import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
+
 internal fun discoverPlatformManifests(
   request: InstallPlanRequest,
   enforceContractVersion: Boolean = true,
   catalogLoader: PlatformPackCatalogLoader? = null,
 ): List<PlatformManifest> {
-  val loader = catalogLoader ?: return discoverPlatformPackManifests(
-    request.repoRoot.toPath().resolve("platform-packs"),
-    enforceContractVersion,
-  )
+  val loader =
+    catalogLoader ?: return discoverPlatformPackManifests(
+      request.repoRoot.toPath().resolve("platform-packs"),
+      enforceContractVersion,
+    )
   return loader.loadEffectiveManifests(
     PlatformPackDiscoveryContext(
       repoRoot = request.repoRoot.toPath(),
@@ -44,30 +46,33 @@ internal fun discoverBaseSkills(skillsRoot: Path): List<InstallPlanSkill> {
   if (!Files.isDirectory(skillsRoot)) {
     throw FileNotFoundException("Base skills root '$skillsRoot' does not exist or is not a directory.")
   }
-  val candidateSkillDirs = Files.list(skillsRoot).use { stream ->
-    stream
-      .filter { skillDir -> Files.isDirectory(skillDir, LinkOption.NOFOLLOW_LINKS) }
-      .filter { skillDir -> skillDir.fileName.toString().startsWith("bill-") }
-      .toList()
-      .sortedBy { skillDir -> skillDir.fileName.toString() }
-  }
-  val missingContent = candidateSkillDirs
-    .filterNot { skillDir -> Files.isRegularFile(skillDir.resolve("content.md"), LinkOption.NOFOLLOW_LINKS) }
+  val candidateSkillDirs =
+    Files.list(skillsRoot).use { stream ->
+      stream
+        .filter { skillDir -> Files.isDirectory(skillDir, LinkOption.NOFOLLOW_LINKS) }
+        .filter { skillDir -> skillDir.fileName.toString().startsWith("bill-") }
+        .toList()
+        .sortedBy { skillDir -> skillDir.fileName.toString() }
+    }
+  val missingContent =
+    candidateSkillDirs
+      .filterNot { skillDir -> Files.isRegularFile(skillDir.resolve("content.md"), LinkOption.NOFOLLOW_LINKS) }
   require(missingContent.isEmpty()) {
     "Base skills root '$skillsRoot' contains bill-* skill directories without content.md: " +
       missingContent.joinToString(", ") { skillDir -> skillDir.fileName.toString() }
   }
-  val baseSkills = candidateSkillDirs
-    .map { skillDir ->
+  val baseSkills =
+    candidateSkillDirs
+      .map { skillDir ->
 
-      suppliedSkillContentIdentity(skillDir)
-      InstallPlanSkill(
-        name = skillDir.fileName.toString(),
-        sourceDir = skillDir.toAbsolutePath().normalize().toFileLocation(),
-        kind = InstallPlanSkillKind.BASE,
-        internalFor = parseInternalForFrontmatter(skillDir.resolve("content.md")),
-      )
-    }
+        suppliedSkillContentIdentity(skillDir)
+        InstallPlanSkill(
+          name = skillDir.fileName.toString(),
+          sourceDir = skillDir.toAbsolutePath().normalize().toFileLocation(),
+          kind = InstallPlanSkillKind.BASE,
+          internalFor = parseInternalForFrontmatter(skillDir.resolve("content.md")),
+        )
+      }
   require(baseSkills.isNotEmpty()) {
     "Base skills root '$skillsRoot' does not contain any bill-* skills with content.md."
   }
@@ -115,7 +120,10 @@ internal fun platformSkills(
     }
 }
 
-private fun platformSkillDir(manifest: PlatformManifest, contentFile: Path): Path {
+private fun platformSkillDir(
+  manifest: PlatformManifest,
+  contentFile: Path,
+): Path {
   val resolvedPackRoot = manifest.packRoot.toPath().toAbsolutePath().normalize()
   val resolvedContentFile = contentFile.toAbsolutePath().normalize()
   require(resolvedContentFile.startsWith(resolvedPackRoot)) {

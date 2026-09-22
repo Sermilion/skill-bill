@@ -25,10 +25,11 @@ class GitWorkflowGitOperationsRecoveryTest {
     git(repoRoot, "commit", "-m", "initial")
     Files.writeString(repoRoot.resolve("tracked.txt"), "unstaged\n")
 
-    val result = GitWorkflowGitOperations().captureGoalSubtaskReviewBaseline(
-      repoRoot,
-      git(repoRoot, "branch", "--show-current"),
-    )
+    val result =
+      GitWorkflowGitOperations().captureGoalSubtaskReviewBaseline(
+        repoRoot,
+        git(repoRoot, "branch", "--show-current"),
+      )
 
     assertTrue(result.status == WorkflowGitOperationStatus.OK, result.error)
     assertEquals(git(repoRoot, "rev-parse", "HEAD"), requireNotNull(result.baseline).reviewBaseSha)
@@ -46,9 +47,10 @@ class GitWorkflowGitOperationsRecoveryTest {
     Files.writeString(repoRoot.resolve("tracked.txt"), "pre-existing edit\n")
     val branch = git(repoRoot, "branch", "--show-current")
 
-    val baseline = requireNotNull(
-      GitWorkflowGitOperations().captureGoalSubtaskReviewBaseline(repoRoot, branch).baseline,
-    )
+    val baseline =
+      requireNotNull(
+        GitWorkflowGitOperations().captureGoalSubtaskReviewBaseline(repoRoot, branch).baseline,
+      )
     val input = GitWorkflowGitOperations().buildGoalSubtaskReviewInput(repoRoot, baseline, branch)
 
     assertTrue(input.status == WorkflowGitOperationStatus.OK, input.error)
@@ -75,11 +77,12 @@ class GitWorkflowGitOperationsRecoveryTest {
     git(repoRoot, "add", "current-subtask.txt")
     git(repoRoot, "commit", "-m", "current subtask")
 
-    val input = GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
-      repoRoot,
-      baseline,
-      branch,
-    )
+    val input =
+      GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
+        repoRoot,
+        baseline,
+        branch,
+      )
 
     assertTrue(input.status == WorkflowGitOperationStatus.OK, input.error)
     val reviewText = requireNotNull(input.input).reviewText
@@ -98,11 +101,12 @@ class GitWorkflowGitOperationsRecoveryTest {
     git(repoRoot, "add", ".")
     git(repoRoot, "commit", "-m", "initial")
 
-    val result = GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
-      repoRoot,
-      GoalSubtaskReviewBaseline("f".repeat(40), emptyList()),
-      "main",
-    )
+    val result =
+      GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
+        repoRoot,
+        GoalSubtaskReviewBaseline("f".repeat(40), emptyList()),
+        "main",
+      )
 
     assertTrue(result.status != WorkflowGitOperationStatus.OK, result.error)
     assertContains(result.error, "Persisted review base")
@@ -132,25 +136,28 @@ class GitWorkflowGitOperationsRecoveryTest {
     Files.writeString(repoRoot.resolve("tracked.txt"), "new reviewed change\n")
     git(repoRoot, "commit", "-am", "new reviewed change")
 
-    val unsafe = GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
-      repoRoot,
-      GoalSubtaskReviewBaseline(oldBaseline, emptyList()),
-      "feat/demo",
-    )
-    val recovered = GitWorkflowGitOperations().recoverGoalSubtaskReviewBaseline(
-      repoRoot,
-      GoalSubtaskReviewBaselineRecoveryRequest(
-        unreachableSha = oldBaseline,
-        failureReason = GoalSubtaskReviewInputFailureReason.BASE_NOT_ANCESTOR,
-        baselineUntrackedPaths = emptyList(),
-      ),
-      "feat/demo",
-    )
-    val input = GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
-      repoRoot,
-      requireNotNull(recovered.baseline),
-      "feat/demo",
-    )
+    val unsafe =
+      GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
+        repoRoot,
+        GoalSubtaskReviewBaseline(oldBaseline, emptyList()),
+        "feat/demo",
+      )
+    val recovered =
+      GitWorkflowGitOperations().recoverGoalSubtaskReviewBaseline(
+        repoRoot,
+        GoalSubtaskReviewBaselineRecoveryRequest(
+          unreachableSha = oldBaseline,
+          failureReason = GoalSubtaskReviewInputFailureReason.BASE_NOT_ANCESTOR,
+          baselineUntrackedPaths = emptyList(),
+        ),
+        "feat/demo",
+      )
+    val input =
+      GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
+        repoRoot,
+        requireNotNull(recovered.baseline),
+        "feat/demo",
+      )
 
     assertTrue(unsafe.status != WorkflowGitOperationStatus.OK, unsafe.error)
     assertEquals(GoalSubtaskReviewInputFailureReason.BASE_NOT_ANCESTOR, unsafe.failureReason)
@@ -208,20 +215,22 @@ class GitWorkflowGitOperationsRecoveryTest {
     git(repoRoot, "commit", "-am", "sibling-b")
     val head = git(repoRoot, "rev-parse", "HEAD")
 
-    val unsafe = GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
-      repoRoot,
-      GoalSubtaskReviewBaseline(orphanedBase, emptyList()),
-      "feat/skill-15",
-    )
-    val recovered = GitWorkflowGitOperations().recoverGoalSubtaskReviewBaseline(
-      repoRoot,
-      GoalSubtaskReviewBaselineRecoveryRequest(
-        unreachableSha = orphanedBase,
-        failureReason = GoalSubtaskReviewInputFailureReason.BASE_NOT_ANCESTOR,
-        baselineUntrackedPaths = emptyList(),
-      ),
-      "feat/skill-15",
-    )
+    val unsafe =
+      GitWorkflowGitOperations().buildGoalSubtaskReviewInput(
+        repoRoot,
+        GoalSubtaskReviewBaseline(orphanedBase, emptyList()),
+        "feat/skill-15",
+      )
+    val recovered =
+      GitWorkflowGitOperations().recoverGoalSubtaskReviewBaseline(
+        repoRoot,
+        GoalSubtaskReviewBaselineRecoveryRequest(
+          unreachableSha = orphanedBase,
+          failureReason = GoalSubtaskReviewInputFailureReason.BASE_NOT_ANCESTOR,
+          baselineUntrackedPaths = emptyList(),
+        ),
+        "feat/skill-15",
+      )
 
     assertTrue(unsafe.status != WorkflowGitOperationStatus.OK, unsafe.error)
     assertEquals(GoalSubtaskReviewInputFailureReason.BASE_NOT_ANCESTOR, unsafe.failureReason)
@@ -256,15 +265,16 @@ class GitWorkflowGitOperationsRecoveryTest {
     git(repoRoot, "checkout", "feat/orphan-goal")
     git(repoRoot, "branch", "-D", "unrelated-root")
 
-    val recovered = GitWorkflowGitOperations().recoverGoalSubtaskReviewBaseline(
-      repoRoot,
-      GoalSubtaskReviewBaselineRecoveryRequest(
-        unreachableSha = unreachable,
-        failureReason = GoalSubtaskReviewInputFailureReason.BASE_NOT_ANCESTOR,
-        baselineUntrackedPaths = emptyList(),
-      ),
-      "feat/orphan-goal",
-    )
+    val recovered =
+      GitWorkflowGitOperations().recoverGoalSubtaskReviewBaseline(
+        repoRoot,
+        GoalSubtaskReviewBaselineRecoveryRequest(
+          unreachableSha = unreachable,
+          failureReason = GoalSubtaskReviewInputFailureReason.BASE_NOT_ANCESTOR,
+          baselineUntrackedPaths = emptyList(),
+        ),
+        "feat/orphan-goal",
+      )
 
     assertTrue(recovered.status != WorkflowGitOperationStatus.OK, recovered.error)
     assertContains(recovered.error, unreachable)
@@ -290,15 +300,16 @@ class GitWorkflowGitOperationsRecoveryTest {
     git(repoRoot, "commit", "-am", "feature")
     val missingSha = "deadbeef" + "0".repeat(32)
 
-    val recovered = GitWorkflowGitOperations().recoverGoalSubtaskReviewBaseline(
-      repoRoot,
-      GoalSubtaskReviewBaselineRecoveryRequest(
-        unreachableSha = missingSha,
-        failureReason = GoalSubtaskReviewInputFailureReason.BASE_MISSING,
-        baselineUntrackedPaths = emptyList(),
-      ),
-      "feat/missing-base",
-    )
+    val recovered =
+      GitWorkflowGitOperations().recoverGoalSubtaskReviewBaseline(
+        repoRoot,
+        GoalSubtaskReviewBaselineRecoveryRequest(
+          unreachableSha = missingSha,
+          failureReason = GoalSubtaskReviewInputFailureReason.BASE_MISSING,
+          baselineUntrackedPaths = emptyList(),
+        ),
+        "feat/missing-base",
+      )
 
     assertTrue(recovered.status == WorkflowGitOperationStatus.OK, recovered.error)
     assertEquals(branchBase, requireNotNull(recovered.baseline).reviewBaseSha)

@@ -21,30 +21,34 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 class AgentRunServiceRuntimeComponentTest {
   @Test
   fun `runtime component exposes agent run service with filesystem launcher binding`() {
     val tempDir = Files.createTempDirectory("skillbill-agent-run-component")
-    val service = RuntimeComponent::class.create(
-      RuntimeContext(
-        environment = EnvironmentContext(environment = emptyMap(), userHome = tempDir),
-        transport = TransportContext(),
-        workflowOps = WorkflowOpsContext(),
-        callbacks = OptionalCallbacks(executableLookup = ExecutableLookup { false }),
-      ),
-    ).agentRunService
-
-    val result = service.launch(
-      AgentRunStartRequest(
-        invokedAgentId = "junie",
-        skillRunRequest = SkillRunRequest(
-          issueKey = "SKILL-56",
-          repoRoot = tempDir,
-          subtaskId = 2,
-          promptOverride = "Phase: validate",
+    val service =
+      RuntimeComponent::class.create(
+        RuntimeContext(
+          environment = EnvironmentContext(environment = emptyMap(), userHome = tempDir),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(executableLookup = ExecutableLookup { false }),
         ),
-      ),
-    )
+      ).agentRunService
+
+    val result =
+      service.launch(
+        AgentRunStartRequest(
+          invokedAgentId = "junie",
+          skillRunRequest =
+            SkillRunRequest(
+              issueKey = "SKILL-56",
+              repoRoot = tempDir,
+              subtaskId = 2,
+              promptOverride = "Phase: validate",
+            ),
+        ),
+      )
 
     assertEquals(InstallAgent.JUNIE, result.resolution.effectiveAgent)
     val facts = assertIs<AgentRunLaunchFacts>(result.launchOutcome)
@@ -70,35 +74,41 @@ class AgentRunServiceRuntimeComponentTest {
     val fixturePathLookup = PathExecutableLookup { binDir.toAbsolutePath().normalize().toString() }
     assertTrue(fixturePathLookup.onPath("junie"))
     val lookupRequests = mutableListOf<String>()
-    val service = RuntimeComponent::class.create(
-      RuntimeContext(
-        environment = EnvironmentContext(environment = emptyMap(), userHome = tempDir),
-        transport = TransportContext(),
-        workflowOps = WorkflowOpsContext(),
-        callbacks = OptionalCallbacks(
-          executableLookup = ExecutableLookup { executable ->
-            lookupRequests += executable
-            false
-          },
+    val service =
+      RuntimeComponent::class.create(
+        RuntimeContext(
+          environment = EnvironmentContext(environment = emptyMap(), userHome = tempDir),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks =
+            OptionalCallbacks(
+              executableLookup =
+                ExecutableLookup { executable ->
+                  lookupRequests += executable
+                  false
+                },
+            ),
         ),
-      ),
-    ).agentRunService
+      ).agentRunService
 
-    val result = service.launch(
-      AgentRunStartRequest(
-        invokedAgentId = "junie",
-        skillRunRequest = SkillRunRequest(
-          issueKey = "SKILL-350",
-          repoRoot = tempDir,
-          subtaskId = 1,
-          promptOverride = "Phase: implement",
-          spawnAuthorization = object : AgentRunSpawnAuthorization {
-            override fun <T> withAuthorization(spawn: () -> T): T =
-              error("The executable lookup refusal must prevent process authorization.")
-          },
+    val result =
+      service.launch(
+        AgentRunStartRequest(
+          invokedAgentId = "junie",
+          skillRunRequest =
+            SkillRunRequest(
+              issueKey = "SKILL-350",
+              repoRoot = tempDir,
+              subtaskId = 1,
+              promptOverride = "Phase: implement",
+              spawnAuthorization =
+                object : AgentRunSpawnAuthorization {
+                  override fun <T> withAuthorization(spawn: () -> T): T =
+                    error("The executable lookup refusal must prevent process authorization.")
+                },
+            ),
         ),
-      ),
-    )
+      )
 
     val facts = assertIs<AgentRunLaunchFacts>(result.launchOutcome)
     assertTrue(facts.spawnFailed)

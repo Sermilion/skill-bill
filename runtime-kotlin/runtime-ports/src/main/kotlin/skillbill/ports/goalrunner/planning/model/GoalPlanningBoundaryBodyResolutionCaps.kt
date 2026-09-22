@@ -9,10 +9,11 @@ data class GoalPlanningBoundaryBodyResolutionCaps(
 ) {
   companion object {
     val PLANNING: GoalPlanningBoundaryBodyResolutionCaps = GoalPlanningBoundaryBodyResolutionCaps()
-    val VERIFICATION: GoalPlanningBoundaryBodyResolutionCaps = GoalPlanningBoundaryBodyResolutionCaps(
-      maxSelectedBodies = GoalVerificationBoundaryCaps.maxSelectedBodies,
-      maxBodyBytes = GoalVerificationBoundaryCaps.maxBodyBytes,
-      maxTotalBodyBytes = GoalVerificationBoundaryCaps.maxTotalBodyBytes,
-    )
+    val VERIFICATION: GoalPlanningBoundaryBodyResolutionCaps =
+      GoalPlanningBoundaryBodyResolutionCaps(
+        maxSelectedBodies = GoalVerificationBoundaryCaps.maxSelectedBodies,
+        maxBodyBytes = GoalVerificationBoundaryCaps.maxBodyBytes,
+        maxTotalBodyBytes = GoalVerificationBoundaryCaps.maxTotalBodyBytes,
+      )
   }
 }

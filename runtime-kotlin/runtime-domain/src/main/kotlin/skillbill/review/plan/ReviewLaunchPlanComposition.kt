@@ -7,10 +7,12 @@ import skillbill.error.shellcontent.ReviewCompositionCycleError
 import skillbill.review.plan.model.ReviewLaunchLane
 import skillbill.review.plan.model.ReviewLaunchPlan
 import skillbill.scaffold.model.PlatformManifest
+
 internal object ReviewLaunchPlanCompositionFailures {
-  fun compositionCycle(cycle: String): Nothing = throw ReviewCompositionCycleError(
-    "Review composition contains a cycle: $cycle.",
-  )
+  fun compositionCycle(cycle: String): Nothing =
+    throw ReviewCompositionCycleError(
+      "Review composition contains a cycle: $cycle.",
+    )
 
   fun missingLayer(message: String): Nothing = throw MissingCompositionLayerError(message)
 
@@ -19,10 +21,14 @@ internal object ReviewLaunchPlanCompositionFailures {
   fun ambiguousOwnership(message: String): Nothing = throw AmbiguousLaneOwnershipError(message)
 }
 
-internal fun composeReviewLaunchAreas(routedSlug: String, manifests: Collection<PlatformManifest>): Set<String> {
+internal fun composeReviewLaunchAreas(
+  routedSlug: String,
+  manifests: Collection<PlatformManifest>,
+): Set<String> {
   val bySlug = manifests.associateBy { it.slug }
   val areas = linkedSetOf<String>()
   val visited = mutableSetOf<String>()
+
   fun visit(pack: PlatformManifest) {
     if (!visited.add(pack.slug)) return
     areas += pack.declaredCodeReviewAreas
@@ -49,6 +55,7 @@ internal fun collectReviewLaunchAreaCandidates(
   selectedAreas: Set<String>,
 ): List<ReviewLaunchAreaCandidate> {
   val candidates = mutableListOf<ReviewLaunchAreaCandidate>()
+
   fun visit(
     pack: PlatformManifest,
     depth: Int,
@@ -94,25 +101,26 @@ internal fun collectReviewLaunchAreaCandidates(
 internal fun resolveReviewLaunchAreaWinners(
   selectedAreas: Set<String>,
   candidates: List<ReviewLaunchAreaCandidate>,
-): List<ReviewLaunchAreaCandidate> = selectedAreas.sorted().mapNotNull { area ->
-  val areaCandidates = candidates.filter { it.area == area }
-  val nearestDepth = areaCandidates.minOfOrNull { it.depth } ?: return@mapNotNull null
-  val nearest = areaCandidates.filter { it.depth == nearestDepth }
-  val owners = nearest.groupBy { it.pack.slug }
-  if (owners.size > 1) {
-    ReviewLaunchPlanCompositionFailures.ambiguousOwnership(
-      "Review area '$area' has ambiguous ownership at composition depth $nearestDepth: " +
-        owners.keys.sorted().joinToString() + ".",
+): List<ReviewLaunchAreaCandidate> =
+  selectedAreas.sorted().mapNotNull { area ->
+    val areaCandidates = candidates.filter { it.area == area }
+    val nearestDepth = areaCandidates.minOfOrNull { it.depth } ?: return@mapNotNull null
+    val nearest = areaCandidates.filter { it.depth == nearestDepth }
+    val owners = nearest.groupBy { it.pack.slug }
+    if (owners.size > 1) {
+      ReviewLaunchPlanCompositionFailures.ambiguousOwnership(
+        "Review area '$area' has ambiguous ownership at composition depth $nearestDepth: " +
+          owners.keys.sorted().joinToString() + ".",
+      )
+    }
+    val ownerSlug = owners.keys.single()
+    val winner = owners.values.single().first()
+    val ownerCandidates = areaCandidates.filter { it.pack.slug == ownerSlug }
+    winner.copy(
+      chains = ownerCandidates.flatMap { it.chains }.distinct(),
+      requiredByComposition = ownerCandidates.any { it.requiredByComposition },
     )
-  }
-  val ownerSlug = owners.keys.single()
-  val winner = owners.values.single().first()
-  val ownerCandidates = areaCandidates.filter { it.pack.slug == ownerSlug }
-  winner.copy(
-    chains = ownerCandidates.flatMap { it.chains }.distinct(),
-    requiredByComposition = ownerCandidates.any { it.requiredByComposition },
-  )
-}.sortedWith(compareBy<ReviewLaunchAreaCandidate>({ it.depth }, { it.pack.slug }, { it.area }))
+  }.sortedWith(compareBy<ReviewLaunchAreaCandidate>({ it.depth }, { it.pack.slug }, { it.area }))
 
 internal fun reviewLaunchLanesFromWinners(winners: List<ReviewLaunchAreaCandidate>): List<ReviewLaunchLane> =
   winners.mapIndexed { index, winner ->
@@ -141,10 +149,11 @@ internal fun flattenReviewLaunchPlan(
 ): ReviewLaunchPlan {
   if (selectedAreas.isEmpty()) return ReviewLaunchPlan(routedSlug, emptyList())
   val bySlug = manifests.associateBy { it.slug }
-  val root = bySlug[routedSlug]
-    ?: ReviewLaunchPlanCompositionFailures.missingLayer(
-      "Routed platform pack '$routedSlug' is missing from review composition.",
-    )
+  val root =
+    bySlug[routedSlug]
+      ?: ReviewLaunchPlanCompositionFailures.missingLayer(
+        "Routed platform pack '$routedSlug' is missing from review composition.",
+      )
   val candidates = collectReviewLaunchAreaCandidates(root, bySlug, selectedAreas)
   val winners = resolveReviewLaunchAreaWinners(selectedAreas, candidates)
   return ReviewLaunchPlan(

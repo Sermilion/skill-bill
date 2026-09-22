@@ -28,14 +28,15 @@ class GoalRunnerChildRepairOperations(
   private val engine = WorkflowEngine(workflowSnapshotValidator)
   private val workflowPersistence = FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator)
   private val wedgeDiagnosis = GoalRunnerChildRepairWedgeDiagnosis(gitOperations, clock)
-  private val wedgeApplyLoop = GoalRunnerChildRepairWedgeApplyLoop(
-    engine,
-    workflowPersistence,
-    gitOperations,
-    wedgeDiagnosis,
-    decompositionManifestValidator,
-    clock,
-  )
+  private val wedgeApplyLoop =
+    GoalRunnerChildRepairWedgeApplyLoop(
+      engine,
+      workflowPersistence,
+      gitOperations,
+      wedgeDiagnosis,
+      decompositionManifestValidator,
+      clock,
+    )
 
   override fun diagnose(
     workflowStates: WorkflowStateRepository,

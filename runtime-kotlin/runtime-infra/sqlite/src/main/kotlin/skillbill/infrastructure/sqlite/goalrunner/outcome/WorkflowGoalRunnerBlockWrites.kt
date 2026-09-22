@@ -68,30 +68,33 @@ internal class WorkflowGoalRunnerBlockWrites(
       }
     val stepId = blockedStepId(write.record, steps, write.lastResumableStep, definitionStepIds)
     val attemptCount = steps.firstOrNull { it.stepId == stepId }?.attemptCount ?: 1
-    val updated = engine.updateRecord(
-      write.family.definition,
-      write.record,
-      WorkflowUpdateInput(
-        workflowStatus = WorkflowStatus.BLOCKED,
-        currentStepId = stepId,
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf(
-              SharedPayloadKeys.STEP_ID to stepId,
-              SharedPayloadKeys.STATUS to "blocked",
-              "attempt_count" to attemptCount,
+    val updated =
+      engine.updateRecord(
+        write.family.definition,
+        write.record,
+        WorkflowUpdateInput(
+          workflowStatus = WorkflowStatus.BLOCKED,
+          currentStepId = stepId,
+          stepUpdates =
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf(
+                  SharedPayloadKeys.STEP_ID to stepId,
+                  SharedPayloadKeys.STATUS to "blocked",
+                  "attempt_count" to attemptCount,
+                ),
+              ),
             ),
-          ),
+          artifactsPatch =
+            WorkflowArtifactPatch.from(
+              buildMap {
+                put("blocked_reason", write.blockedReason)
+                write.supervisionEvent?.let { event -> put("supervision_event", event.toPersistenceWire()) }
+              },
+            ),
+          sessionId = write.record.sessionId.orEmpty(),
         ),
-        artifactsPatch = WorkflowArtifactPatch.from(
-          buildMap {
-            put("blocked_reason", write.blockedReason)
-            write.supervisionEvent?.let { event -> put("supervision_event", event.toPersistenceWire()) }
-          },
-        ),
-        sessionId = write.record.sessionId.orEmpty(),
-      ),
-    )
+      )
     write.family.save(write.workflowStates, updated)
     return stepId
   }
@@ -109,11 +112,12 @@ internal class WorkflowGoalRunnerBlockWrites(
     }
     val artifacts = decodeArtifacts(existing.artifactsJson)
     val phaseRecords = decodePhaseRecords(artifacts)
-    val blockedRecord = operatorReopenablePhaseRecord(
-      phaseRecords,
-      preferredPhaseId,
-      existing.workflowStatus,
-    ) ?: return true
+    val blockedRecord =
+      operatorReopenablePhaseRecord(
+        phaseRecords,
+        preferredPhaseId,
+        existing.workflowStatus,
+      ) ?: return true
     family.save(
       unitOfWork.workflowStates,
       engine.updateRecord(
@@ -144,46 +148,51 @@ internal class WorkflowGoalRunnerBlockWrites(
     ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
     reason: String,
   ): WorkflowUpdateInput {
-    val reopened = LinkedHashMap(phaseRecords).apply {
-      this[blockedRecord.phaseId] = blockedRecord.asPendingForOperatorResume()
-    }
-    val retryEntry = FeatureTaskRuntimePhaseLedgerEntry(
-      action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
-      sequenceNumber = (ledger.maxOfOrNull { it.sequenceNumber } ?: -1) + 1,
-      timestamp = clock.instant().atOffset(ZoneOffset.UTC).toString(),
-      phaseId = blockedRecord.phaseId,
-      attemptCount = blockedRecord.attemptCount,
-      resolvedAgentId = blockedRecord.resolvedAgentId,
-    )
+    val reopened =
+      LinkedHashMap(phaseRecords).apply {
+        this[blockedRecord.phaseId] = blockedRecord.asPendingForOperatorResume()
+      }
+    val retryEntry =
+      FeatureTaskRuntimePhaseLedgerEntry(
+        action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
+        sequenceNumber = (ledger.maxOfOrNull { it.sequenceNumber } ?: -1) + 1,
+        timestamp = clock.instant().atOffset(ZoneOffset.UTC).toString(),
+        phaseId = blockedRecord.phaseId,
+        attemptCount = blockedRecord.attemptCount,
+        resolvedAgentId = blockedRecord.resolvedAgentId,
+      )
     return WorkflowUpdateInput(
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = blockedRecord.phaseId,
-      stepUpdates = WorkflowStepUpdates.from(
-        listOf(
-          mapOf(
-            SharedPayloadKeys.STEP_ID to blockedRecord.phaseId,
-            SharedPayloadKeys.STATUS to "pending",
-            "attempt_count" to 0,
-          ),
-        ),
-      ),
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf(
-          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-            reopened.mapValues { (_, record) -> record.encodeWorkflowArtifact() },
-          FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
-            (ledger.map { it.encodeWorkflowArtifact() } + retryEntry.encodeWorkflowArtifact()).takeLast(
-              FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+      stepUpdates =
+        WorkflowStepUpdates.from(
+          listOf(
+            mapOf(
+              SharedPayloadKeys.STEP_ID to blockedRecord.phaseId,
+              SharedPayloadKeys.STATUS to "pending",
+              "attempt_count" to 0,
             ),
-          FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
-            SharedPayloadKeys.PHASE_ID to blockedRecord.phaseId,
-            "reason" to reason,
-            "retried_at" to clock.instant().atOffset(ZoneOffset.UTC).toString(),
-            "previous_blocked_reason" to blockedRecord.blockedReason,
-            "previous_blocked_record" to blockedRecord.encodeWorkflowArtifact(),
           ),
         ),
-      ),
+      artifactsPatch =
+        WorkflowArtifactPatch.from(
+          mapOf(
+            FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+              reopened.mapValues { (_, record) -> record.encodeWorkflowArtifact() },
+            FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
+              (ledger.map { it.encodeWorkflowArtifact() } + retryEntry.encodeWorkflowArtifact()).takeLast(
+                FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+              ),
+            FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to
+              mapOf(
+                SharedPayloadKeys.PHASE_ID to blockedRecord.phaseId,
+                "reason" to reason,
+                "retried_at" to clock.instant().atOffset(ZoneOffset.UTC).toString(),
+                "previous_blocked_reason" to blockedRecord.blockedReason,
+                "previous_blocked_record" to blockedRecord.encodeWorkflowArtifact(),
+              ),
+          ),
+        ),
       sessionId = "",
     )
   }

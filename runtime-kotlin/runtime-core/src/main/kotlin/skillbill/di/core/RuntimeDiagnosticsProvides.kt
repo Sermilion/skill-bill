@@ -23,8 +23,10 @@ internal interface RuntimeDiagnosticsProvides {
   fun runtimeDiagnostics(adapter: JdkRuntimeDiagnostics): RuntimeDiagnostics = adapter
 
   @Provides @JvmSynthetic
-  fun runtimeTimingPort(callbacks: OptionalCallbacks, adapter: JdkRuntimeTimingPort): RuntimeTimingPort =
-    callbacks.runtimeTimingPort ?: adapter
+  fun runtimeTimingPort(
+    callbacks: OptionalCallbacks,
+    adapter: JdkRuntimeTimingPort,
+  ): RuntimeTimingPort = callbacks.runtimeTimingPort ?: adapter
 
   @Provides @JvmSynthetic
   fun shutdownHookPort(adapter: JdkShutdownHookPort): ShutdownHookPort = adapter

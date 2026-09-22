@@ -7,7 +7,6 @@ import kotlin.test.assertTrue
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeProjectionCanonicalizationTransform as Transform
 
 class FeatureTaskRuntimeProjectionCanonicalizationTest {
-
   @Test
   fun `task id is lowercased, separator runs become one hyphen, and invalid chars are stripped`() {
     assertEquals("t1", FeatureTaskRuntimeProjectionCanonicalizer.canonicalizeTaskId("T1"))
@@ -25,13 +24,15 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `declared task id and its depends_on reference canonicalize to the same value (task 3)`() {
-    val produced = mapOf(
-      "projection_kind" to "executable_plan",
-      "tasks" to listOf(
-        taskMap(taskId = "T1"),
-        taskMap(taskId = "Task_2", dependsOn = listOf("T1")),
-      ),
-    )
+    val produced =
+      mapOf(
+        "projection_kind" to "executable_plan",
+        "tasks" to
+          listOf(
+            taskMap(taskId = "T1"),
+            taskMap(taskId = "Task_2", dependsOn = listOf("T1")),
+          ),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -43,10 +44,11 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `list order and cardinality are preserved in every id position (task 3)`() {
-    val produced = mapOf(
-      "tasks" to listOf(taskMap("C"), taskMap("A"), taskMap("B", dependsOn = listOf("C", "A"))),
-      "completed_task_ids" to listOf("C", "A", "B"),
-    )
+    val produced =
+      mapOf(
+        "tasks" to listOf(taskMap("C"), taskMap("A"), taskMap("B", dependsOn = listOf("C", "A"))),
+        "completed_task_ids" to listOf("C", "A", "B"),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -58,10 +60,11 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `compact summary collapses tab runs and strips backticks, trimming boundary whitespace`() {
-    val produced = mapOf(
-      "tasks" to listOf(taskMap("t1", description = "call\t\t`fn()`\tnow ")),
-      "deviations" to listOf(mapOf("ref" to "AC-001", "note" to " see `x`\tand\ty ")),
-    )
+    val produced =
+      mapOf(
+        "tasks" to listOf(taskMap("t1", description = "call\t\t`fn()`\tnow ")),
+        "deviations" to listOf(mapOf("ref" to "AC-001", "note" to " see `x`\tand\ty ")),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -83,11 +86,12 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `nonBlank scalar and array string fields are trimmed without touching interior content`() {
-    val produced = mapOf(
-      "affected_boundaries" to listOf("  runtime-domain  ", "runtime-application"),
-      "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "  at target  "),
-      "repository_checkpoint" to mapOf("fingerprint" to "  abc  ", "base_ref" to " main "),
-    )
+    val produced =
+      mapOf(
+        "affected_boundaries" to listOf("  runtime-domain  ", "runtime-application"),
+        "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "  at target  "),
+        "repository_checkpoint" to mapOf("fingerprint" to "  abc  ", "base_ref" to " main "),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -100,11 +104,12 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `non-string and unexpected shapes pass through untouched, never coerced or dropped`() {
-    val produced = mapOf(
-      "tasks" to "not-a-list",
-      "completed_task_ids" to listOf("T1", 42, null),
-      "rollout" to listOf("array-not-object"),
-    )
+    val produced =
+      mapOf(
+        "tasks" to "not-a-list",
+        "completed_task_ids" to listOf("T1", 42, null),
+        "rollout" to listOf("array-not-object"),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -131,8 +136,9 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
   fun `a compact-summary canonicalization records the field path and transform kinds but never the text`() {
     val produced = mapOf("tasks" to listOf(taskMap("t1", description = "call\t`fn`\tnow ")))
 
-    val record = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced).diagnostics
-      .single { it.fieldPath == "tasks[0].description" }
+    val record =
+      FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced).diagnostics
+        .single { it.fieldPath == "tasks[0].description" }
 
     assertEquals(
       listOf(Transform.TABS_TO_SPACE, Transform.BACKTICKS_STRIPPED, Transform.TRIMMED),
@@ -144,10 +150,11 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `an already-canonical projection produces no diagnostics`() {
-    val produced = mapOf(
-      "tasks" to listOf(taskMap("task-1", dependsOn = emptyList(), description = "add contract")),
-      "affected_boundaries" to listOf("runtime-domain"),
-    )
+    val produced =
+      mapOf(
+        "tasks" to listOf(taskMap("task-1", dependsOn = emptyList(), description = "add contract")),
+        "affected_boundaries" to listOf("runtime-domain"),
+      )
 
     assertTrue(FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced).diagnostics.isEmpty())
   }
@@ -161,8 +168,9 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
     assertTrue(records.size <= MAX_CANONICALIZATION_RECORDS, "record count must be capped")
     val longId = "T".repeat(MAX_RECORDED_ID_LENGTH + 40)
-    val longRecord = FeatureTaskRuntimeProjectionCanonicalizer
-      .canonicalize(mapOf("tasks" to listOf(taskMap(longId)))).diagnostics.single()
+    val longRecord =
+      FeatureTaskRuntimeProjectionCanonicalizer
+        .canonicalize(mapOf("tasks" to listOf(taskMap(longId)))).diagnostics.single()
     assertTrue(
       (longRecord.originalId?.length ?: 0) <= MAX_RECORDED_ID_LENGTH,
       "a recorded id value must be length-bounded",
@@ -187,9 +195,10 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `a blank evidence string is left for the schema gate rather than promoted to a reconciled claim`() {
-    val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
-      mapOf("reconciliation_evidence" to "   "),
-    )
+    val result =
+      FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
+        mapOf("reconciliation_evidence" to "   "),
+      )
 
     assertEquals("   ", result.canonical["reconciliation_evidence"])
     assertTrue(result.diagnostics.none { it.fieldPath == "reconciliation_evidence" })
@@ -197,12 +206,14 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `a non-scalar reconciliation_evidence is never promoted`() {
-    val alreadyShaped = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
-      mapOf("reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "at target")),
-    )
-    val wrongContainer = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
-      mapOf("reconciliation_evidence" to listOf("at target")),
-    )
+    val alreadyShaped =
+      FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
+        mapOf("reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "at target")),
+      )
+    val wrongContainer =
+      FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
+        mapOf("reconciliation_evidence" to listOf("at target")),
+      )
 
     assertTrue(
       alreadyShaped.diagnostics.none {
@@ -214,12 +225,14 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `a lone misnamed prose key is adopted as evidence instead of being discarded`() {
-    val produced = mapOf(
-      "reconciliation_evidence" to mapOf(
-        "reconciled" to true,
-        "notes" to "  Resumed implement phase; tasks 1-7 confirmed at target and treated as no-ops.  ",
-      ),
-    )
+    val produced =
+      mapOf(
+        "reconciliation_evidence" to
+          mapOf(
+            "reconciled" to true,
+            "notes" to "  Resumed implement phase; tasks 1-7 confirmed at target and treated as no-ops.  ",
+          ),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -237,13 +250,15 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `two unknown keys are an ambiguity no rename resolves, so both are discarded`() {
-    val produced = mapOf(
-      "reconciliation_evidence" to mapOf(
-        "reconciled" to true,
-        "method" to "git status and read-only greps",
-        "observations" to "tree converged",
-      ),
-    )
+    val produced =
+      mapOf(
+        "reconciliation_evidence" to
+          mapOf(
+            "reconciled" to true,
+            "method" to "git status and read-only greps",
+            "observations" to "tree converged",
+          ),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -253,13 +268,15 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `a stated evidence is never replaced by a misnamed sibling`() {
-    val produced = mapOf(
-      "reconciliation_evidence" to mapOf(
-        "reconciled" to true,
-        "evidence" to "the stated evidence",
-        "notes" to "a sibling that must not win",
-      ),
-    )
+    val produced =
+      mapOf(
+        "reconciliation_evidence" to
+          mapOf(
+            "reconciled" to true,
+            "evidence" to "the stated evidence",
+            "notes" to "a sibling that must not win",
+          ),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -270,12 +287,14 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `a non-string or blank misnamed value is discarded rather than adopted`() {
-    val nonString = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
-      mapOf("reconciliation_evidence" to mapOf("reconciled" to true, "observations" to listOf("a", "b"))),
-    )
-    val blank = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
-      mapOf("reconciliation_evidence" to mapOf("reconciled" to true, "notes" to "   ")),
-    )
+    val nonString =
+      FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
+        mapOf("reconciliation_evidence" to mapOf("reconciled" to true, "observations" to listOf("a", "b"))),
+      )
+    val blank =
+      FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(
+        mapOf("reconciliation_evidence" to mapOf("reconciled" to true, "notes" to "   ")),
+      )
 
     assertEquals(mapOf("reconciled" to true), nonString.canonical["reconciliation_evidence"] as Map<*, *>)
     assertEquals(mapOf("reconciled" to true), blank.canonical["reconciliation_evidence"] as Map<*, *>)
@@ -286,9 +305,10 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `adoption never reaches an object whose missing required field is an identifier`() {
-    val produced = mapOf(
-      "deviations" to listOf(mapOf("note" to "what deviated", "reason" to "a sentence, not a ref")),
-    )
+    val produced =
+      mapOf(
+        "deviations" to listOf(mapOf("note" to "what deviated", "reason" to "a sentence, not a ref")),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -299,13 +319,15 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `an unknown key on a nested closed object is discarded and recorded without its value`() {
-    val produced = mapOf(
-      "reconciliation_evidence" to mapOf(
-        "reconciled" to true,
-        "evidence" to "tree at target",
-        "confidence" to "a private body fragment",
-      ),
-    )
+    val produced =
+      mapOf(
+        "reconciliation_evidence" to
+          mapOf(
+            "reconciled" to true,
+            "evidence" to "tree at target",
+            "confidence" to "a private body fragment",
+          ),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -319,35 +341,39 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `the discard reaches every nested closed object and leaves governed fields intact`() {
-    val produced = mapOf(
-      "tasks" to listOf(
-        mapOf(
-          "task_id" to "task-1",
-          "description" to "d",
-          "criterion_refs" to listOf("AC-001"),
-          "test_obligations" to listOf("t"),
-          "estimate" to "2d",
-        ),
-      ),
-      "task_commitments" to listOf(
-        mapOf(
-          "task_id" to "task-1",
-          "criterion_refs" to listOf("AC-001"),
-          "test_obligations" to listOf("t"),
-          "owner" to "me",
-        ),
-      ),
-      "tests_executed" to listOf(mapOf("name" to "FooTest", "outcome" to "passed", "duration_ms" to 12)),
-      "deviations" to listOf(mapOf("ref" to "AC-001", "note" to "n", "severity" to "minor")),
-      "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "n", "owner" to "me"),
-      "repository_checkpoint" to mapOf("fingerprint" to "abc", "dirty" to true),
-    )
+    val produced =
+      mapOf(
+        "tasks" to
+          listOf(
+            mapOf(
+              "task_id" to "task-1",
+              "description" to "d",
+              "criterion_refs" to listOf("AC-001"),
+              "test_obligations" to listOf("t"),
+              "estimate" to "2d",
+            ),
+          ),
+        "task_commitments" to
+          listOf(
+            mapOf(
+              "task_id" to "task-1",
+              "criterion_refs" to listOf("AC-001"),
+              "test_obligations" to listOf("t"),
+              "owner" to "me",
+            ),
+          ),
+        "tests_executed" to listOf(mapOf("name" to "FooTest", "outcome" to "passed", "duration_ms" to 12)),
+        "deviations" to listOf(mapOf("ref" to "AC-001", "note" to "n", "severity" to "minor")),
+        "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "n", "owner" to "me"),
+        "repository_checkpoint" to mapOf("fingerprint" to "abc", "dirty" to true),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
-    val discarded = result.diagnostics
-      .filter { it.transforms == listOf(Transform.UNKNOWN_KEY_DISCARDED) }
-      .map { it.fieldPath }
+    val discarded =
+      result.diagnostics
+        .filter { it.transforms == listOf(Transform.UNKNOWN_KEY_DISCARDED) }
+        .map { it.fieldPath }
     assertEquals(
       listOf(
         "tasks[0].estimate",
@@ -367,10 +393,11 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `the discard never synthesizes a missing field nor coerces a type`() {
-    val produced = mapOf(
-      "reconciliation_evidence" to mapOf("reconciled" to true, "extra" to 1),
-      "repository_checkpoint" to mapOf("fingerprint" to 42, "base_ref" to "main", "extra" to 1),
-    )
+    val produced =
+      mapOf(
+        "reconciliation_evidence" to mapOf("reconciled" to true, "extra" to 1),
+        "repository_checkpoint" to mapOf("fingerprint" to 42, "base_ref" to "main", "extra" to 1),
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -384,12 +411,13 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `a retired projection kind prunes nothing after reject-all quarantine`() {
-    val produced = mapOf(
-      "projection_kind" to "implementation_receipt",
-      "contract_version" to "0.1",
-      "reconciled_state" to mapOf("reconciled" to true),
-      "narration" to "how the work went",
-    )
+    val produced =
+      mapOf(
+        "projection_kind" to "implementation_receipt",
+        "contract_version" to "0.1",
+        "reconciled_state" to mapOf("reconciled" to true),
+        "narration" to "how the work went",
+      )
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
 
@@ -423,12 +451,14 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
   fun `a discarded key name is length-bounded in the record`() {
     val longKey = "k".repeat(MAX_RECORDED_ID_LENGTH + 40)
 
-    val produced = mapOf(
-      "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "stated", longKey to "v"),
-    )
+    val produced =
+      mapOf(
+        "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "stated", longKey to "v"),
+      )
 
-    val record = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced).diagnostics
-      .single { it.transforms == listOf(Transform.UNKNOWN_KEY_DISCARDED) }
+    val record =
+      FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced).diagnostics
+        .single { it.transforms == listOf(Transform.UNKNOWN_KEY_DISCARDED) }
 
     assertTrue(
       record.fieldPath.length <= "reconciliation_evidence.".length + MAX_RECORDED_ID_LENGTH,
@@ -436,7 +466,11 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
     )
   }
 
-  private fun taskMap(taskId: String, dependsOn: List<String>? = null, description: String = "d"): Map<String, Any?> =
+  private fun taskMap(
+    taskId: String,
+    dependsOn: List<String>? = null,
+    description: String = "d",
+  ): Map<String, Any?> =
     buildMap {
       put("task_id", taskId)
       if (dependsOn != null) put("depends_on", dependsOn)

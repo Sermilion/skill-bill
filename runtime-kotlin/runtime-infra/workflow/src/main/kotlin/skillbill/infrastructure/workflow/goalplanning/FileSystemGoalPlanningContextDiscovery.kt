@@ -13,6 +13,7 @@ import java.nio.file.Path
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneOffset
+
 @Inject
 class FileSystemGoalPlanningContextDiscovery(
   private val clock: Clock,
@@ -29,9 +30,10 @@ class FileSystemGoalPlanningContextDiscovery(
     loudFailOnCapExceeded: Boolean,
   ): GoalVerificationBoundaryDiscovery {
     val canonicalRoot = GoalPlanningRepositoryScope.canonicalRoot(repoRoot)
-    val normalizedPaths = findingPaths.mapNotNull(GoalPlanningRepositoryScope::normalizeFindingPath)
-      .distinct()
-      .filterNot(GoalPlanningDiscoveryExclusions::isExcluded)
+    val normalizedPaths =
+      findingPaths.mapNotNull(GoalPlanningRepositoryScope::normalizeFindingPath)
+        .distinct()
+        .filterNot(GoalPlanningDiscoveryExclusions::isExcluded)
     if (normalizedPaths.isEmpty()) {
       return GoalVerificationBoundaryDiscovery(
         boundaryCatalog = emptyList(),
@@ -47,10 +49,11 @@ class FileSystemGoalPlanningContextDiscovery(
         boundaryContextUnavailable = true,
       )
     }
-    val walk = AgentDirectoryWalk(
-      directories = agentDirectories,
-      incomplete = false,
-    )
+    val walk =
+      AgentDirectoryWalk(
+        directories = agentDirectories,
+        incomplete = false,
+      )
     val catalog = discoverCatalog(canonicalRoot, walk, VerificationDiscoveryCaps, loudFailOnCapExceeded)
     return GoalVerificationBoundaryDiscovery(
       boundaryCatalog = catalog.headings,
@@ -59,16 +62,21 @@ class FileSystemGoalPlanningContextDiscovery(
     )
   }
 
-  private fun buildContext(canonicalRoot: Path, walk: AgentDirectoryWalk, caps: DiscoveryCaps): GoalPlanningContext {
+  private fun buildContext(
+    canonicalRoot: Path,
+    walk: AgentDirectoryWalk,
+    caps: DiscoveryCaps,
+  ): GoalPlanningContext {
     val catalog = discoverCatalog(canonicalRoot, walk, caps)
     return GoalPlanningContext(
       boundaryCatalog = catalog.headings,
       boundaryCatalogTruncated = catalog.truncated,
-      validationGuidance = if (caps.includeValidationGuidance) {
-        readValidationGuidance(canonicalRoot)
-      } else {
-        ""
-      },
+      validationGuidance =
+        if (caps.includeValidationGuidance) {
+          readValidationGuidance(canonicalRoot)
+        } else {
+          ""
+        },
     )
   }
 
@@ -83,10 +91,11 @@ class FileSystemGoalPlanningContextDiscovery(
     var truncated = walk.incomplete || eligible.size < candidates.size
     val perFile = mutableListOf<List<GoalPlanningBoundaryHeading>>()
     for (candidate in eligible) {
-      val read = goalPlanningReadFileOrNull(
-        candidate.canonical,
-        GoalPlanningContext.MAX_BOUNDARY_FILE_BYTES,
-      )
+      val read =
+        goalPlanningReadFileOrNull(
+          candidate.canonical,
+          GoalPlanningContext.MAX_BOUNDARY_FILE_BYTES,
+        )
       if (read == null) {
         truncated = true
       } else {
@@ -95,9 +104,10 @@ class FileSystemGoalPlanningContextDiscovery(
         if (caps.historyRecencyDays != null && candidate.kind == GoalPlanningContext.KIND_HISTORY) {
           val cutoff = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC).minusDays(caps.historyRecencyDays.toLong())
           val beforeRecencyFilter = entries.size
-          entries = entries.filter { entry ->
-            BoundaryMemoryHeadingParser.entryDate(entry.heading)?.let { entryDate -> entryDate >= cutoff } == true
-          }
+          entries =
+            entries.filter { entry ->
+              BoundaryMemoryHeadingParser.entryDate(entry.heading)?.let { entryDate -> entryDate >= cutoff } == true
+            }
           if (entries.size < beforeRecencyFilter) truncated = true
         }
         if (entries.size > caps.maxHeadingsPerFile) truncated = true
@@ -127,7 +137,10 @@ class FileSystemGoalPlanningContextDiscovery(
     )
   }
 
-  private fun candidateFiles(repoRoot: Path, agentDirectories: List<Path>): List<Candidate> =
+  private fun candidateFiles(
+    repoRoot: Path,
+    agentDirectories: List<Path>,
+  ): List<Candidate> =
     agentDirectories.flatMap { agentDir ->
       GoalPlanningRepositoryScope.BOUNDARY_MEMORY_FILES.mapNotNull { fileName ->
         GoalPlanningRepositoryScope.included(repoRoot, agentDir.resolve(fileName))
@@ -135,7 +148,10 @@ class FileSystemGoalPlanningContextDiscovery(
       }
     }
 
-  private fun fairQuotas(sizes: List<Int>, maxCatalogHeadings: Int): List<Int> {
+  private fun fairQuotas(
+    sizes: List<Int>,
+    maxCatalogHeadings: Int,
+  ): List<Int> {
     val quotas = MutableList(sizes.size) { 0 }
     var remaining = maxCatalogHeadings
     var progressed = true
@@ -154,10 +170,11 @@ class FileSystemGoalPlanningContextDiscovery(
 
   private fun readValidationGuidance(repoRoot: Path): String {
     val canonical = GoalPlanningRepositoryScope.includedRegularFile(repoRoot, "AGENTS.md") ?: return ""
-    val read = goalPlanningReadFileOrNull(
-      canonical,
-      GoalPlanningContext.MAX_VALIDATION_GUIDANCE_BYTES.toLong(),
-    ) ?: return ""
+    val read =
+      goalPlanningReadFileOrNull(
+        canonical,
+        GoalPlanningContext.MAX_VALIDATION_GUIDANCE_BYTES.toLong(),
+      ) ?: return ""
     return read.text.replace("\r\n", "\n").replace('\r', '\n')
   }
 
@@ -177,18 +194,20 @@ class FileSystemGoalPlanningContextDiscovery(
   )
 
   private companion object {
-    val PlanningDiscoveryCaps = DiscoveryCaps(
-      maxDiscoveryFileCount = GoalPlanningContext.MAX_DISCOVERY_FILE_COUNT,
-      maxHeadingsPerFile = GoalPlanningContext.MAX_HEADINGS_PER_FILE,
-      maxCatalogHeadings = GoalPlanningContext.MAX_CATALOG_HEADINGS,
-      includeValidationGuidance = true,
-    )
-    val VerificationDiscoveryCaps = DiscoveryCaps(
-      maxDiscoveryFileCount = GoalVerificationBoundaryCaps.maxDiscoveryFileCount,
-      maxHeadingsPerFile = GoalVerificationBoundaryCaps.maxHeadingsPerFile,
-      maxCatalogHeadings = GoalVerificationBoundaryCaps.maxCatalogHeadings,
-      includeValidationGuidance = false,
-      historyRecencyDays = GoalVerificationBoundaryCaps.historyRecencyDays,
-    )
+    val PlanningDiscoveryCaps =
+      DiscoveryCaps(
+        maxDiscoveryFileCount = GoalPlanningContext.MAX_DISCOVERY_FILE_COUNT,
+        maxHeadingsPerFile = GoalPlanningContext.MAX_HEADINGS_PER_FILE,
+        maxCatalogHeadings = GoalPlanningContext.MAX_CATALOG_HEADINGS,
+        includeValidationGuidance = true,
+      )
+    val VerificationDiscoveryCaps =
+      DiscoveryCaps(
+        maxDiscoveryFileCount = GoalVerificationBoundaryCaps.maxDiscoveryFileCount,
+        maxHeadingsPerFile = GoalVerificationBoundaryCaps.maxHeadingsPerFile,
+        maxCatalogHeadings = GoalVerificationBoundaryCaps.maxCatalogHeadings,
+        includeValidationGuidance = false,
+        historyRecencyDays = GoalVerificationBoundaryCaps.historyRecencyDays,
+      )
   }
 }

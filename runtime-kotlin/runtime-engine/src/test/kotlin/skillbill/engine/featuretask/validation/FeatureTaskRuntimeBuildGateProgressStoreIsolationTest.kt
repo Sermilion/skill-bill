@@ -12,33 +12,38 @@ import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+
 class FeatureTaskRuntimeBuildGateProgressStoreIsolationTest {
   @Test
   fun `build gate progress store persists to build artifact without overwriting validation progress`() {
     val repository = InMemoryRuntimeWorkflowRepository()
     val database = RuntimeFakeDatabaseSessionFactory(repository)
-    val recorder = featureTaskRuntimePhaseRecorder(
-      database,
-      testWorkflowSnapshotValidator,
-      AcceptingFeatureTaskRuntimeWireArtifactValidator,
-      AcceptingFeatureTaskRuntimeWireArtifactValidator,
-      testHarnessClock,
-      NoopRuntimeDiagnostics,
-    )
+    val recorder =
+      featureTaskRuntimePhaseRecorder(
+        database,
+        testWorkflowSnapshotValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        testHarnessClock,
+        NoopRuntimeDiagnostics,
+      )
     val workflowId = "wf-build-gate-isolation"
     recorder.ensureWorkflowOpen(workflowId, "session-1")
 
-    val validationProgress = FeatureTaskRuntimeValidationGateProgress(
-      gateRunCount = 2,
-      gateRuns = listOf(
-        gateRunRecord(outcome = "failed"),
-        gateRunRecord(outcome = "failed"),
-      ),
-    )
-    val buildProgress = FeatureTaskRuntimeValidationGateProgress(
-      gateRunCount = 1,
-      gateRuns = listOf(gateRunRecord(outcome = "passed")),
-    )
+    val validationProgress =
+      FeatureTaskRuntimeValidationGateProgress(
+        gateRunCount = 2,
+        gateRuns =
+          listOf(
+            gateRunRecord(outcome = "failed"),
+            gateRunRecord(outcome = "failed"),
+          ),
+      )
+    val buildProgress =
+      FeatureTaskRuntimeValidationGateProgress(
+        gateRunCount = 1,
+        gateRuns = listOf(gateRunRecord(outcome = "passed")),
+      )
 
     FeatureTaskRuntimeValidationGateProgressStore(recorder).persist(workflowId, validationProgress)
     FeatureTaskRuntimeBuildGateProgressStore(recorder).persist(workflowId, buildProgress)

@@ -15,10 +15,11 @@ class FeatureTaskRuntimeCheckpointIdentitySchemaValidatorTest {
 
   @Test
   fun `accepts a record whose only checkpoint omits the optional loop and parent fields`() {
-    val forwardEdge = entry().toMutableMap().apply {
-      remove("loop_id")
-      remove("parent_sha")
-    }
+    val forwardEdge =
+      entry().toMutableMap().apply {
+        remove("loop_id")
+        remove("parent_sha")
+      }
 
     FeatureTaskRuntimeCheckpointIdentitySchemaValidator.validate(
       mapOf("contract_version" to "0.2", "checkpoints" to listOf(forwardEdge)),
@@ -36,15 +37,16 @@ class FeatureTaskRuntimeCheckpointIdentitySchemaValidatorTest {
 
   @Test
   fun `rejects an unknown field rather than reinterpreting the record`() {
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError> {
-      FeatureTaskRuntimeCheckpointIdentitySchemaValidator.validate(
-        mapOf(
-          "contract_version" to "0.2",
-          "checkpoints" to listOf(entry() + ("raw_diff" to "@@ -1 +1 @@")),
-        ),
-        SOURCE,
-      )
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError> {
+        FeatureTaskRuntimeCheckpointIdentitySchemaValidator.validate(
+          mapOf(
+            "contract_version" to "0.2",
+            "checkpoints" to listOf(entry() + ("raw_diff" to "@@ -1 +1 @@")),
+          ),
+          SOURCE,
+        )
+      }
 
     assertContains(error.message.orEmpty(), "raw_diff")
   }
@@ -66,10 +68,11 @@ class FeatureTaskRuntimeCheckpointIdentitySchemaValidatorTest {
     FeatureTaskRuntimeCheckpointIdentitySchemaValidator.validate(
       mapOf(
         "contract_version" to "0.2",
-        "checkpoints" to listOf(
-          entry(sequenceNumber = 0, commitSha = amendedSha),
-          entry(sequenceNumber = 1, commitSha = amendedSha),
-        ),
+        "checkpoints" to
+          listOf(
+            entry(sequenceNumber = 0, commitSha = amendedSha),
+            entry(sequenceNumber = 1, commitSha = amendedSha),
+          ),
       ),
       SOURCE,
     )
@@ -118,11 +121,12 @@ class FeatureTaskRuntimeCheckpointIdentitySchemaValidatorTest {
     FeatureTaskRuntimeCheckpointIdentitySchemaValidator.validate(
       mapOf(
         "contract_version" to "0.2",
-        "checkpoints" to listOf(
-          entry() +
-            ("issue_key" to "0AC-11") +
-            ("checkpoint_ref" to "refs/skill-bill/checkpoints/0AC-11/2/0"),
-        ),
+        "checkpoints" to
+          listOf(
+            entry() +
+              ("issue_key" to "0AC-11") +
+              ("checkpoint_ref" to "refs/skill-bill/checkpoints/0AC-11/2/0"),
+          ),
       ),
       SOURCE,
     )
@@ -141,21 +145,25 @@ class FeatureTaskRuntimeCheckpointIdentitySchemaValidatorTest {
     }
   }
 
-  private fun entry(sequenceNumber: Int = 0, commitSha: String = "a".repeat(40)): Map<String, Any?> = mapOf(
-    "sequence_number" to sequenceNumber,
-    "issue_key" to "SKILL-150",
-    "subtask_id" to "2",
-    "checkpoint_ref" to "refs/skill-bill/checkpoints/SKILL-150/2/$sequenceNumber",
-    "branch" to "feat/SKILL-150-scoped-checkpoint",
-    "phase_id" to "audit",
-    "loop_id" to "audit_gap",
-    "generation" to 1,
-    "parent_sha" to "b".repeat(40),
-    "owned_path_digest" to "c".repeat(64),
-    "owned_path_count" to 3,
-    "commit_sha" to commitSha,
-    "recorded_at" to "2026-08-04T00:00:00Z",
-  )
+  private fun entry(
+    sequenceNumber: Int = 0,
+    commitSha: String = "a".repeat(40),
+  ): Map<String, Any?> =
+    mapOf(
+      "sequence_number" to sequenceNumber,
+      "issue_key" to "SKILL-150",
+      "subtask_id" to "2",
+      "checkpoint_ref" to "refs/skill-bill/checkpoints/SKILL-150/2/$sequenceNumber",
+      "branch" to "feat/SKILL-150-scoped-checkpoint",
+      "phase_id" to "audit",
+      "loop_id" to "audit_gap",
+      "generation" to 1,
+      "parent_sha" to "b".repeat(40),
+      "owned_path_digest" to "c".repeat(64),
+      "owned_path_count" to 3,
+      "commit_sha" to commitSha,
+      "recorded_at" to "2026-08-04T00:00:00Z",
+    )
 
   private companion object {
     const val SOURCE = "checkpoint-identity-test"

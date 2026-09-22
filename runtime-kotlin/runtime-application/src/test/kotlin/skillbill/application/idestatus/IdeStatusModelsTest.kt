@@ -20,17 +20,18 @@ import kotlin.test.assertTrue
 class IdeStatusModelsTest {
   @Test
   fun `toStatusWireMap emits planning with snake_case keys matching the schema`() {
-    val wire = snapshot(
-      IdeStatusPlanning(
-        state = GoalPlanningStatusState.PARTIALLY_PLANNED,
-        sharedPreplanPrepared = true,
-        plannedSubtaskCount = 2,
-        totalSubtaskCount = 5,
-        currentPlanningSubtaskId = "3",
-        planningWaveSubtaskIds = listOf("3", "4", "5"),
-        reason = "Planning subtask 3.",
-      ),
-    ).toStatusWireMap()
+    val wire =
+      snapshot(
+        IdeStatusPlanning(
+          state = GoalPlanningStatusState.PARTIALLY_PLANNED,
+          sharedPreplanPrepared = true,
+          plannedSubtaskCount = 2,
+          totalSubtaskCount = 5,
+          currentPlanningSubtaskId = "3",
+          planningWaveSubtaskIds = listOf("3", "4", "5"),
+          reason = "Planning subtask 3.",
+        ),
+      ).toStatusWireMap()
 
     val planning = wire["planning"] as Map<*, *>
     assertEquals(
@@ -56,14 +57,15 @@ class IdeStatusModelsTest {
 
   @Test
   fun `toStatusWireMap omits optional planning sub-keys when they are null`() {
-    val wire = snapshot(
-      IdeStatusPlanning(
-        state = GoalPlanningStatusState.NOT_STARTED,
-        sharedPreplanPrepared = false,
-        plannedSubtaskCount = 0,
-        totalSubtaskCount = 0,
-      ),
-    ).toStatusWireMap()
+    val wire =
+      snapshot(
+        IdeStatusPlanning(
+          state = GoalPlanningStatusState.NOT_STARTED,
+          sharedPreplanPrepared = false,
+          plannedSubtaskCount = 0,
+          totalSubtaskCount = 0,
+        ),
+      ).toStatusWireMap()
 
     val planning = wire["planning"] as Map<*, *>
     assertEquals(
@@ -92,25 +94,29 @@ class IdeStatusModelsTest {
 
   @Test
   fun `toStatusWireMap emits current_phase_execution with snake_case keys and omits total when unset`() {
-    val withTotal = snapshot(planning = null)
-      .copy(
-        currentPhaseExecution = IdeStatusCurrentPhaseExecution(
-          phaseId = "plan",
-          kind = IdeStatusCurrentPhaseExecutionKind.BOUNDED_EDGE,
-          count = 1,
-          total = 2,
-        ),
-      )
-      .toStatusWireMap()
-    val withoutTotal = snapshot(planning = null)
-      .copy(
-        currentPhaseExecution = IdeStatusCurrentPhaseExecution(
-          phaseId = "audit",
-          kind = IdeStatusCurrentPhaseExecutionKind.SEMANTIC_LOOP,
-          count = 2,
-        ),
-      )
-      .toStatusWireMap()
+    val withTotal =
+      snapshot(planning = null)
+        .copy(
+          currentPhaseExecution =
+            IdeStatusCurrentPhaseExecution(
+              phaseId = "plan",
+              kind = IdeStatusCurrentPhaseExecutionKind.BOUNDED_EDGE,
+              count = 1,
+              total = 2,
+            ),
+        )
+        .toStatusWireMap()
+    val withoutTotal =
+      snapshot(planning = null)
+        .copy(
+          currentPhaseExecution =
+            IdeStatusCurrentPhaseExecution(
+              phaseId = "audit",
+              kind = IdeStatusCurrentPhaseExecutionKind.SEMANTIC_LOOP,
+              count = 2,
+            ),
+        )
+        .toStatusWireMap()
 
     assertEquals(
       mapOf(
@@ -192,10 +198,11 @@ class IdeStatusModelsTest {
 
   @Test
   fun `toStatusWireMap emits the pause signals ahead of updated_at when set`() {
-    val wire = snapshot(planning = null).copy(
-      pauseRequested = true,
-      pausedAt = Instant.parse("2026-08-06T09:30:00Z"),
-    ).toStatusWireMap()
+    val wire =
+      snapshot(planning = null).copy(
+        pauseRequested = true,
+        pausedAt = Instant.parse("2026-08-06T09:30:00Z"),
+      ).toStatusWireMap()
 
     assertEquals(true, wire["pause_requested"])
     assertEquals("2026-08-06T09:30:00Z", wire["paused_at"])
@@ -206,12 +213,14 @@ class IdeStatusModelsTest {
 
   @Test
   fun `toStatusWireMap emits current_model as a nested object and omits effort when unset`() {
-    val withEffort = snapshot(planning = null)
-      .copy(currentModel = IdeStatusCurrentModel(model = "claude-opus-4-8", effort = "high"))
-      .toStatusWireMap()
-    val withoutEffort = snapshot(planning = null)
-      .copy(currentModel = IdeStatusCurrentModel(model = "claude-opus-4-8[effort=high]"))
-      .toStatusWireMap()
+    val withEffort =
+      snapshot(planning = null)
+        .copy(currentModel = IdeStatusCurrentModel(model = "claude-opus-4-8", effort = "high"))
+        .toStatusWireMap()
+    val withoutEffort =
+      snapshot(planning = null)
+        .copy(currentModel = IdeStatusCurrentModel(model = "claude-opus-4-8[effort=high]"))
+        .toStatusWireMap()
 
     assertEquals(
       linkedMapOf("model" to "claude-opus-4-8", "effort" to "high"),
@@ -228,16 +237,17 @@ class IdeStatusModelsTest {
     assertFalse(wire.containsKey("current_model"))
   }
 
-  private fun snapshot(planning: IdeStatusPlanning?): IdeStatusSnapshot = IdeStatusSnapshot(
-    repositoryIdentity = "repo-root-realpath-v1:/repo",
-    issueKey = "SKILL-165",
-    workflowId = "goal-1",
-    workflowFamily = IdeStatusWorkflowFamily.FEATURE_GOAL,
-    lifecycleState = IdeStatusLifecycleState.ACTIVE,
-    currentStep = IdeStatusStep(id = "planning", label = "Planning"),
-    planning = planning,
-    updatedAt = Instant.parse("2026-08-06T10:00:00Z"),
-    freshness = IdeStatusFreshness.FRESH,
-    summary = "Goal SKILL-165 is planning subtasks (2/5 planned).",
-  )
+  private fun snapshot(planning: IdeStatusPlanning?): IdeStatusSnapshot =
+    IdeStatusSnapshot(
+      repositoryIdentity = "repo-root-realpath-v1:/repo",
+      issueKey = "SKILL-165",
+      workflowId = "goal-1",
+      workflowFamily = IdeStatusWorkflowFamily.FEATURE_GOAL,
+      lifecycleState = IdeStatusLifecycleState.ACTIVE,
+      currentStep = IdeStatusStep(id = "planning", label = "Planning"),
+      planning = planning,
+      updatedAt = Instant.parse("2026-08-06T10:00:00Z"),
+      freshness = IdeStatusFreshness.FRESH,
+      summary = "Goal SKILL-165 is planning subtasks (2/5 planned).",
+    )
 }

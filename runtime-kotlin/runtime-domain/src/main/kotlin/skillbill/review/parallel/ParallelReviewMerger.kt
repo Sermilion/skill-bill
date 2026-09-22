@@ -15,7 +15,6 @@ import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
 
 object ParallelReviewMerger {
-
   fun merge(
     lane1: ParallelReviewLaneResult,
     lane2: ParallelReviewLaneResult,
@@ -23,33 +22,35 @@ object ParallelReviewMerger {
   ): ParallelReviewMergeResult {
     val candidates = mergeCandidates(lane1, lane2, integration)
 
-    val sorted = candidates.sortedWith(
-      compareBy<MergedCandidate> { it.severity.ordinal }
-        .thenBy { if (it.isCoalesced) 0 else 1 }
-        .thenBy { it.firstAppearance },
-    )
-
-    val mergedFindings = sorted.mapIndexed { index, candidate ->
-      ParallelReviewMergedFinding(
-        fNumber = "F-%03d".format(index + 1),
-        agentIds = candidate.agentIds,
-        severity = candidate.severity,
-        confidence = candidate.confidence,
-        location = candidate.location,
-        description = candidate.description,
-        specialistSkillNames = candidate.specialistSkillNames,
-        originLayerChains = candidate.originLayerChains,
-        repositoryPath = candidate.repositoryPath,
-        line = candidate.line,
-        commitShas = candidate.commitShas,
-        claimVerdict = candidate.claimVerdict,
-        scopeDisposition = candidate.scopeDisposition,
-        citations = candidate.citations,
-        severityAdjustment = candidate.severityAdjustment,
-        sourceVerdicts = candidate.sourceVerdicts,
-        sourceFindingRefs = candidate.sourceFindingRefs,
+    val sorted =
+      candidates.sortedWith(
+        compareBy<MergedCandidate> { it.severity.ordinal }
+          .thenBy { if (it.isCoalesced) 0 else 1 }
+          .thenBy { it.firstAppearance },
       )
-    }
+
+    val mergedFindings =
+      sorted.mapIndexed { index, candidate ->
+        ParallelReviewMergedFinding(
+          fNumber = "F-%03d".format(index + 1),
+          agentIds = candidate.agentIds,
+          severity = candidate.severity,
+          confidence = candidate.confidence,
+          location = candidate.location,
+          description = candidate.description,
+          specialistSkillNames = candidate.specialistSkillNames,
+          originLayerChains = candidate.originLayerChains,
+          repositoryPath = candidate.repositoryPath,
+          line = candidate.line,
+          commitShas = candidate.commitShas,
+          claimVerdict = candidate.claimVerdict,
+          scopeDisposition = candidate.scopeDisposition,
+          citations = candidate.citations,
+          severityAdjustment = candidate.severityAdjustment,
+          sourceVerdicts = candidate.sourceVerdicts,
+          sourceFindingRefs = candidate.sourceFindingRefs,
+        )
+      }
 
     return ParallelReviewMergeResult(
       findings = mergedFindings,
@@ -63,16 +64,18 @@ object ParallelReviewMerger {
   ): ParallelReviewMergeResult {
     if (verdicts.isEmpty()) return result
     val byRef = verdicts.groupBy(ReviewFindingVerdict::findingRef)
-    val findings = result.findings.map { finding ->
-      val overlay = ReviewFindingActionability.recordedFields(byRef[finding.fNumber].orEmpty())
-        ?: return@map finding
-      finding.copy(
-        claimVerdict = overlay.claimVerdict,
-        scopeDisposition = overlay.scopeDisposition,
-        citations = overlay.citations,
-        severityAdjustment = overlay.severityAdjustment,
-      )
-    }
+    val findings =
+      result.findings.map { finding ->
+        val overlay =
+          ReviewFindingActionability.recordedFields(byRef[finding.fNumber].orEmpty())
+            ?: return@map finding
+        finding.copy(
+          claimVerdict = overlay.claimVerdict,
+          scopeDisposition = overlay.scopeDisposition,
+          citations = overlay.citations,
+          severityAdjustment = overlay.severityAdjustment,
+        )
+      }
     return ParallelReviewMergeResult(findings, formattedOutput(findings))
   }
 
@@ -80,9 +83,10 @@ object ParallelReviewMerger {
     if (findings.none(ParallelReviewMergedFinding::hasRecordedVerdict)) {
       return findings.joinToString("\n", transform = ::formatFinding)
     }
-    val grouped = findings.groupBy { finding ->
-      ReviewFindingActionability.registerOutcome(finding.claimVerdict, finding.scopeDisposition)
-    }
+    val grouped =
+      findings.groupBy { finding ->
+        ReviewFindingActionability.registerOutcome(finding.claimVerdict, finding.scopeDisposition)
+      }
     return buildString {
       var first = true
       ReviewFindingRegisterOutcome.entries.forEach { outcome ->
@@ -113,10 +117,11 @@ object ParallelReviewMerger {
     allEntries.forEach { entry ->
       val entryFilePath = entry.finding.repositoryPath ?: filePathOf(entry.finding.location)
       val entryTokens = tokens(entry.finding.description)
-      val cluster = clusters.firstOrNull { head ->
-        head.representativeFilePath == entryFilePath &&
-          jaccard(head.representativeTokens, entryTokens) > FUZZY_DEDUP_THRESHOLD
-      }
+      val cluster =
+        clusters.firstOrNull { head ->
+          head.representativeFilePath == entryFilePath &&
+            jaccard(head.representativeTokens, entryTokens) > FUZZY_DEDUP_THRESHOLD
+        }
       if (cluster != null) {
         cluster.entries += entry
       } else {
@@ -129,72 +134,82 @@ object ParallelReviewMerger {
 
   private fun formatFinding(finding: ParallelReviewMergedFinding): String {
     val agentLabel = finding.agentIds.joinToString(", ")
-    val provenance = buildList {
-      if (finding.specialistSkillNames.isNotEmpty()) {
-        add("specialists=${finding.specialistSkillNames.joinToString(",")}")
+    val provenance =
+      buildList {
+        if (finding.specialistSkillNames.isNotEmpty()) {
+          add("specialists=${finding.specialistSkillNames.joinToString(",")}")
+        }
+        if (finding.originLayerChains.isNotEmpty()) {
+          add("origins=${finding.originLayerChains.joinToString(",") { it.joinToString("->") }}")
+        }
+      }.joinToString("; ").let { if (it.isBlank()) "" else " | $it" }
+    val structuredLocation =
+      if (finding.repositoryPath != null && finding.line != null) {
+        "path=${structuredString(finding.repositoryPath)} | line=${finding.line}"
+      } else {
+        finding.location
       }
-      if (finding.originLayerChains.isNotEmpty()) {
-        add("origins=${finding.originLayerChains.joinToString(",") { it.joinToString("->") }}")
+    val commitAttribution =
+      if (finding.commitShas.isNotEmpty()) {
+        "commits=${finding.commitShas.joinToString(",")} | "
+      } else {
+        ""
       }
-    }.joinToString("; ").let { if (it.isBlank()) "" else " | $it" }
-    val structuredLocation = if (finding.repositoryPath != null && finding.line != null) {
-      "path=${structuredString(finding.repositoryPath)} | line=${finding.line}"
-    } else {
-      finding.location
-    }
-    val commitAttribution = if (finding.commitShas.isNotEmpty()) {
-      "commits=${finding.commitShas.joinToString(",")} | "
-    } else {
-      ""
-    }
-    val claimLine = "- [${finding.fNumber}] [$agentLabel] ${finding.severity.displayName} | ${finding.confidence} | " +
-      "$commitAttribution$structuredLocation | ${finding.description}$provenance"
-    val structuredFields = buildList {
-      finding.claimVerdict?.let { add("claim_verdict=${it.wireValue}") }
-      finding.scopeDisposition?.let { add("scope_disposition=${it.wireValue}") }
-      if (finding.citations.isNotEmpty()) {
-        add("citations=${finding.citations.joinToString(",") { "${it.path}:${it.line}" }}")
+    val claimLine =
+      "- [${finding.fNumber}] [$agentLabel] ${finding.severity.displayName} | ${finding.confidence} | " +
+        "$commitAttribution$structuredLocation | ${finding.description}$provenance"
+    val structuredFields =
+      buildList {
+        finding.claimVerdict?.let { add("claim_verdict=${it.wireValue}") }
+        finding.scopeDisposition?.let { add("scope_disposition=${it.wireValue}") }
+        if (finding.citations.isNotEmpty()) {
+          add("citations=${finding.citations.joinToString(",") { "${it.path}:${it.line}" }}")
+        }
+        finding.severityAdjustment?.let { adjustment ->
+          add("severity_adjustment=${adjustment.direction.wireValue}: ${adjustment.justification}")
+        }
       }
-      finding.severityAdjustment?.let { adjustment ->
-        add("severity_adjustment=${adjustment.direction.wireValue}: ${adjustment.justification}")
-      }
-    }
     return if (structuredFields.isEmpty()) claimLine else "$claimLine | ${structuredFields.joinToString(" | ")}"
   }
 
-  private fun ParallelReviewRawFinding.lacksVerdictOverlay(): Boolean = claimVerdict == null &&
-    scopeDisposition == null &&
-    severityAdjustment == null &&
-    citations.isEmpty()
+  private fun ParallelReviewRawFinding.lacksVerdictOverlay(): Boolean =
+    claimVerdict == null &&
+      scopeDisposition == null &&
+      severityAdjustment == null &&
+      citations.isEmpty()
 
   private fun toCandidate(head: ClusterHead): MergedCandidate {
     val entries = head.entries
     val coalesced = entries.map { it.agentId }.distinct().size > 1
 
-    val primary = entries.minWith(
-      compareBy({ it.finding.severity.ordinal }, { it.appearanceOrder }),
-    )
+    val primary =
+      entries.minWith(
+        compareBy({ it.finding.severity.ordinal }, { it.appearanceOrder }),
+      )
     val firstEntry = entries.minByOrNull { it.appearanceOrder }!!
-    val sourceVerdicts = entries.mapNotNull { entry ->
-      val finding = entry.finding
-      if (finding.lacksVerdictOverlay()) {
-        null
-      } else {
-        ReviewLaneFindingVerdict(
-          laneId = entry.agentId,
-          claimVerdict = finding.claimVerdict,
-          scopeDisposition = finding.scopeDisposition,
-          citations = finding.citations,
-          severityAdjustment = finding.severityAdjustment,
-        )
+    val sourceVerdicts =
+      entries.mapNotNull { entry ->
+        val finding = entry.finding
+        if (finding.lacksVerdictOverlay()) {
+          null
+        } else {
+          ReviewLaneFindingVerdict(
+            laneId = entry.agentId,
+            claimVerdict = finding.claimVerdict,
+            scopeDisposition = finding.scopeDisposition,
+            citations = finding.citations,
+            severityAdjustment = finding.severityAdjustment,
+          )
+        }
       }
-    }
-    val claimVerdict = sourceVerdicts.map { it.claimVerdict }.reduceOrNull(
-      ReviewFindingActionability::conservativeClaimVerdict,
-    )
-    val scopeDisposition = sourceVerdicts.map { it.scopeDisposition }.reduceOrNull(
-      ReviewFindingActionability::conservativeScopeDisposition,
-    )
+    val claimVerdict =
+      sourceVerdicts.map { it.claimVerdict }.reduceOrNull(
+        ReviewFindingActionability::conservativeClaimVerdict,
+      )
+    val scopeDisposition =
+      sourceVerdicts.map { it.scopeDisposition }.reduceOrNull(
+        ReviewFindingActionability::conservativeScopeDisposition,
+      )
     return MergedCandidate(
       agentIds = entries.map { it.agentId }.distinct(),
       severity = primary.finding.severity,
@@ -226,7 +241,10 @@ object ParallelReviewMerger {
   private fun tokens(description: String): Set<String> =
     description.lowercase().split(TOKEN_DELIMITER).filter { it.isNotEmpty() }.toSet()
 
-  private fun jaccard(a: Set<String>, b: Set<String>): Double {
+  private fun jaccard(
+    a: Set<String>,
+    b: Set<String>,
+  ): Double {
     val union = a union b
     if (union.isEmpty()) return 1.0
     return (a intersect b).size.toDouble() / union.size.toDouble()

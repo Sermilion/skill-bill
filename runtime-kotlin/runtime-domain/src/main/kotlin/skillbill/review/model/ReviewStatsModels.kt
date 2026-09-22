@@ -160,7 +160,6 @@ data class FeatureTaskRuntimeWorkflowStats(
   val averageCompletedPhaseCount: Double,
   val estimatedTokenRunsWithValue: Int,
   val averageEstimatedTotalTokens: Double,
-
   val observedRuns: Int,
   val reconcilerClosedRuns: Int,
 )
@@ -237,7 +236,6 @@ data class GoalWorkflowStats(
   val mostRecentRun: GoalRunSummary?,
   val topBlockedSubtasks: List<GoalBlockedSubtaskSummary>,
   val byMode: Map<String, GoalModeStats> = emptyMap(),
-
   val logicalGoals: Int,
   val invocationsWithUnknownGoal: Int,
   val goalIdentityAvailability: String,

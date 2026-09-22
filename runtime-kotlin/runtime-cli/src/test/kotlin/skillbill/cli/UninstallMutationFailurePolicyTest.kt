@@ -40,6 +40,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class UninstallMutationFailurePolicyTest {
   @Test
   fun `uninstall reports a failed mutation as a non-zero exit with a failed status`() {
@@ -61,27 +62,30 @@ class UninstallMutationFailurePolicyTest {
   private fun runUninstall(mcpRegistrationPort: InstallMcpRegistrationPort): CliExecutionResult {
     val state = CliRunState(stdinText = null)
     val diagnostics = RecordingRuntimeDiagnostics()
-    val uninstallService = SkillBillUninstallService(
-      installAgentService = InstallAgentService(StubInstallAgentTargetPort),
-      installNativeAgentLinkPort = StubInstallNativeAgentLinkPort,
-      installMcpRegistrationPort = mcpRegistrationPort,
-      uninstallFileSystem = AbsentUninstallPathsPort,
-      hostPlatform = StubUninstallHostPlatformPort,
-      diagnostics = diagnostics,
-    )
-    val command = UninstallCommand(
-      state = state,
-      inputs = CliRunInputs(
-        databasePath = null,
-        environment = emptyMap(),
-        userHome = HOME,
-        repositoryRoot = HOME,
-        repositoryEnclosingRootPort = CanonicalRepositoryRoot,
-        liveStdout = {},
-        liveStderr = {},
-      ),
-      uninstallService = uninstallService,
-    )
+    val uninstallService =
+      SkillBillUninstallService(
+        installAgentService = InstallAgentService(StubInstallAgentTargetPort),
+        installNativeAgentLinkPort = StubInstallNativeAgentLinkPort,
+        installMcpRegistrationPort = mcpRegistrationPort,
+        uninstallFileSystem = AbsentUninstallPathsPort,
+        hostPlatform = StubUninstallHostPlatformPort,
+        diagnostics = diagnostics,
+      )
+    val command =
+      UninstallCommand(
+        state = state,
+        inputs =
+          CliRunInputs(
+            databasePath = null,
+            environment = emptyMap(),
+            userHome = HOME,
+            repositoryRoot = HOME,
+            repositoryEnclosingRootPort = CanonicalRepositoryRoot,
+            liveStdout = {},
+            liveStderr = {},
+          ),
+        uninstallService = uninstallService,
+      )
     CommandLineParser.parseAndRun(command, listOf("--yes")) { parsed -> parsed.run() }
     return assertNotNull(state.result)
   }
@@ -147,9 +151,13 @@ private object StubInstallNativeAgentLinkPort : InstallNativeAgentLinkPort {
 
 private object StubUninstallHostPlatformPort : HostPlatformPort {
   override fun resolveUserHome(): Path = Path.of(System.getProperty("user.home"))
+
   override fun resolveEnvironment(): Map<String, String> = System.getenv()
+
   override fun resolveJavaHome(): Path = Path.of(System.getProperty("java.home"))
+
   override fun resolveWorkingDirectory(): Path = Path.of(System.getProperty("user.dir"))
+
   override fun resolveTemporaryDirectory(): Path = Path.of(System.getProperty("java.io.tmpdir"))
 
   override val osName: String = "Linux"

@@ -16,31 +16,34 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 class AgentLauncherPreflightTest {
-  private fun request(): SkillRunRequest = SkillRunRequest(
-    issueKey = "SKILL-162",
-    repoRoot = Path.of("/tmp/skillbill-launcher-preflight"),
-    subtaskId = 1,
-    timeout = 10.seconds,
-    goalContinuation = null,
-    promptOverride = "Test prompt",
-  )
+  private fun request(): SkillRunRequest =
+    SkillRunRequest(
+      issueKey = "SKILL-162",
+      repoRoot = Path.of("/tmp/skillbill-launcher-preflight"),
+      subtaskId = 1,
+      timeout = 10.seconds,
+      goalContinuation = null,
+      promptOverride = "Test prompt",
+    )
 
-  private fun cursorAdapter(lookup: ExecutableLookup) = ProcessAgentRunAdapter(
-    agent = InstallAgent.CURSOR,
-    commandBuilder = CursorAgentRunCommandBuilder(),
-    processRunner = RecordingAgentRunProcessRunner(),
-    executableLookup = lookup,
-  )
+  private fun cursorAdapter(lookup: ExecutableLookup) =
+    ProcessAgentRunAdapter(
+      agent = InstallAgent.CURSOR,
+      commandBuilder = CursorAgentRunCommandBuilder(),
+      processRunner = RecordingAgentRunProcessRunner(),
+      executableLookup = lookup,
+    )
 
   @Test
   fun `an agent whose headless CLI is absent never reaches the process runner`() {
     val runner = RecordingAgentRunProcessRunner()
-    val adapter = ProcessAgentRunAdapter(
-      agent = InstallAgent.CURSOR,
-      commandBuilder = CursorAgentRunCommandBuilder(),
-      processRunner = runner,
-      executableLookup = executablesAvailable(),
-    )
+    val adapter =
+      ProcessAgentRunAdapter(
+        agent = InstallAgent.CURSOR,
+        commandBuilder = CursorAgentRunCommandBuilder(),
+        processRunner = runner,
+        executableLookup = executablesAvailable(),
+      )
 
     val facts = adapter.launch(request())
 
@@ -62,12 +65,13 @@ class AgentLauncherPreflightTest {
   @Test
   fun `a declared legacy executable is substituted when the preferred name is absent`() {
     val runner = RecordingAgentRunProcessRunner()
-    val adapter = ProcessAgentRunAdapter(
-      agent = InstallAgent.CURSOR,
-      commandBuilder = CursorAgentRunCommandBuilder(),
-      processRunner = runner,
-      executableLookup = executablesAvailable("cursor-agent"),
-    )
+    val adapter =
+      ProcessAgentRunAdapter(
+        agent = InstallAgent.CURSOR,
+        commandBuilder = CursorAgentRunCommandBuilder(),
+        processRunner = runner,
+        executableLookup = executablesAvailable("cursor-agent"),
+      )
 
     val facts = adapter.launch(request())
 
@@ -79,12 +83,13 @@ class AgentLauncherPreflightTest {
   @Test
   fun `the preferred executable wins when both names resolve`() {
     val runner = RecordingAgentRunProcessRunner()
-    val adapter = ProcessAgentRunAdapter(
-      agent = InstallAgent.CURSOR,
-      commandBuilder = CursorAgentRunCommandBuilder(),
-      processRunner = runner,
-      executableLookup = executablesAvailable("agent", "cursor-agent"),
-    )
+    val adapter =
+      ProcessAgentRunAdapter(
+        agent = InstallAgent.CURSOR,
+        commandBuilder = CursorAgentRunCommandBuilder(),
+        processRunner = runner,
+        executableLookup = executablesAvailable("agent", "cursor-agent"),
+      )
 
     adapter.launch(request())
 

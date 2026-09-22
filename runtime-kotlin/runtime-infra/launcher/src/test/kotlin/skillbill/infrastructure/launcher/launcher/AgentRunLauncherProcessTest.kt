@@ -18,6 +18,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
+
 class AgentRunLauncherProcessTest {
   @Test
   fun `a phase-briefing prompt override drives the per-agent CLI for stdin-delivered agents`() {
@@ -47,10 +48,11 @@ class AgentRunLauncherProcessTest {
 
   @Test
   fun `unknown agent id fails before launch`() {
-    val launcher = FileSystemAgentRunLauncher(
-      JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()),
-      ALL_EXECUTABLES_AVAILABLE,
-    )
+    val launcher =
+      FileSystemAgentRunLauncher(
+        JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()),
+        ALL_EXECUTABLES_AVAILABLE,
+      )
 
     assertFailsWith<IllegalArgumentException> {
       launcher.launch(
@@ -64,36 +66,42 @@ class AgentRunLauncherProcessTest {
 
   @Test
   fun `timeout and spawn-failure paths stay launch-level facts`() {
-    val timeoutRunner = RecordingAgentRunProcessRunner(
-      result = AgentRunProcessResult(
-        exitStatus = null,
-        stdout = "partial",
-        stderr = "slow",
-        timedOut = true,
-        interrupted = false,
-        spawnFailed = false,
-      ),
-    )
-    val timeout = requireNotNull(
-      headlessAgentRunAdapters(timeoutRunner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX],
-    ).launch(skillRunRequest())
+    val timeoutRunner =
+      RecordingAgentRunProcessRunner(
+        result =
+          AgentRunProcessResult(
+            exitStatus = null,
+            stdout = "partial",
+            stderr = "slow",
+            timedOut = true,
+            interrupted = false,
+            spawnFailed = false,
+          ),
+      )
+    val timeout =
+      requireNotNull(
+        headlessAgentRunAdapters(timeoutRunner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX],
+      ).launch(skillRunRequest())
     assertTrue(timeout.timedOut)
     assertFalse(timeout.spawnFailed)
     assertEquals(null, timeout.exitStatus)
 
-    val spawnRunner = RecordingAgentRunProcessRunner(
-      result = AgentRunProcessResult(
-        exitStatus = null,
-        stdout = "",
-        stderr = "missing executable",
-        timedOut = false,
-        interrupted = false,
-        spawnFailed = true,
-      ),
-    )
-    val spawnFailure = requireNotNull(
-      headlessAgentRunAdapters(spawnRunner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX],
-    ).launch(skillRunRequest())
+    val spawnRunner =
+      RecordingAgentRunProcessRunner(
+        result =
+          AgentRunProcessResult(
+            exitStatus = null,
+            stdout = "",
+            stderr = "missing executable",
+            timedOut = false,
+            interrupted = false,
+            spawnFailed = true,
+          ),
+      )
+    val spawnFailure =
+      requireNotNull(
+        headlessAgentRunAdapters(spawnRunner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX],
+      ).launch(skillRunRequest())
     assertFalse(spawnFailure.timedOut)
     assertTrue(spawnFailure.spawnFailed)
     assertEquals("missing executable", spawnFailure.stderr)
@@ -102,20 +110,23 @@ class AgentRunLauncherProcessTest {
   @Test
   fun `plain launch facts retain decoded body bytes`() {
     val rawBytes = byteArrayOf(0, 13, 10, -1, 42)
-    val runner = RecordingAgentRunProcessRunner(
-      result = AgentRunProcessResult(
-        exitStatus = 0,
-        stdout = "\u0000\r\n�*",
-        stdoutBytes = rawBytes,
-        stderr = "",
-        timedOut = false,
-        interrupted = false,
-        spawnFailed = false,
-      ),
-    )
+    val runner =
+      RecordingAgentRunProcessRunner(
+        result =
+          AgentRunProcessResult(
+            exitStatus = 0,
+            stdout = "\u0000\r\n�*",
+            stdoutBytes = rawBytes,
+            stderr = "",
+            timedOut = false,
+            interrupted = false,
+            spawnFailed = false,
+          ),
+      )
 
-    val facts = requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX])
-      .launch(skillRunRequest())
+    val facts =
+      requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX])
+        .launch(skillRunRequest())
 
     assertContentEquals(rawBytes, facts.stdoutBytes)
   }
@@ -123,19 +134,22 @@ class AgentRunLauncherProcessTest {
   @Test
   fun `structured provider launch facts expose the decoded response body bytes not envelope bytes`() {
     val envelope = """{"type":"result","result":"{\"status\":\"blocked\"}","usage":{}}"""
-    val runner = RecordingAgentRunProcessRunner(
-      result = AgentRunProcessResult(
-        exitStatus = 0,
-        stdout = envelope,
-        stderr = "",
-        timedOut = false,
-        interrupted = false,
-        spawnFailed = false,
-      ),
-    )
+    val runner =
+      RecordingAgentRunProcessRunner(
+        result =
+          AgentRunProcessResult(
+            exitStatus = 0,
+            stdout = envelope,
+            stderr = "",
+            timedOut = false,
+            interrupted = false,
+            spawnFailed = false,
+          ),
+      )
 
-    val facts = requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CLAUDE])
-      .launch(skillRunRequest())
+    val facts =
+      requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CLAUDE])
+        .launch(skillRunRequest())
 
     assertEquals("""{"status":"blocked"}""", facts.stdout)
     assertContentEquals(facts.stdout.encodeToByteArray(), facts.stdoutBytes)
@@ -163,15 +177,16 @@ class AgentRunLauncherProcessTest {
   @Test
   fun `jvm process runner tees live output while preserving captured output`() {
     val events = mutableListOf<Pair<AgentRunOutputStream, String>>()
-    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
-      testAgentRunProcessRequest(
-        listOf("sh", "-c", "printf stdout-line; printf stderr-line >&2"),
-        Path.of(".").toAbsolutePath().normalize(),
-      ) {
-        timeout = 3.seconds
-        outputSink = { stream, text -> synchronized(events) { events += stream to text } }
-      },
-    )
+    val result =
+      JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
+        testAgentRunProcessRequest(
+          listOf("sh", "-c", "printf stdout-line; printf stderr-line >&2"),
+          Path.of(".").toAbsolutePath().normalize(),
+        ) {
+          timeout = 3.seconds
+          outputSink = { stream, text -> synchronized(events) { events += stream to text } }
+        },
+      )
 
     assertEquals(0, result.exitStatus)
     assertEquals("stdout-line", result.stdout)
@@ -186,14 +201,15 @@ class AgentRunLauncherProcessTest {
 
   @Test
   fun `jvm process runner closes child stdin for non-interactive runs`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
-      testAgentRunProcessRequest(
-        listOf("sh", "-c", "if read line; then printf got; else printf eof; fi"),
-        Path.of(".").toAbsolutePath().normalize(),
-      ) {
-        timeout = 3.seconds
-      },
-    )
+    val result =
+      JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
+        testAgentRunProcessRequest(
+          listOf("sh", "-c", "if read line; then printf got; else printf eof; fi"),
+          Path.of(".").toAbsolutePath().normalize(),
+        ) {
+          timeout = 3.seconds
+        },
+      )
 
     assertEquals(0, result.exitStatus)
     assertEquals("eof", result.stdout)
@@ -201,15 +217,16 @@ class AgentRunLauncherProcessTest {
 
   @Test
   fun `jvm process runner writes configured stdin text before closing child stdin`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
-      testAgentRunProcessRequest(
-        listOf("sh", "-c", "cat"),
-        Path.of(".").toAbsolutePath().normalize(),
-      ) {
-        timeout = 3.seconds
-        stdinText = "prompt over stdin"
-      },
-    )
+    val result =
+      JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
+        testAgentRunProcessRequest(
+          listOf("sh", "-c", "cat"),
+          Path.of(".").toAbsolutePath().normalize(),
+        ) {
+          timeout = 3.seconds
+          stdinText = "prompt over stdin"
+        },
+      )
 
     assertEquals(0, result.exitStatus)
     assertEquals("prompt over stdin", result.stdout)

@@ -23,12 +23,13 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
   @Test
   fun `apply configures full telemetry as a structured success outcome`() {
     val fixture = setupApplyFixture()
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        telemetryLevel = InstallTelemetryLevel.FULL,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          telemetryLevel = InstallTelemetryLevel.FULL,
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -49,12 +50,13 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
       configPath,
       """{"install_id":"existing","telemetry":{"level":"anonymous","proxy_url":"","batch_size":"bad"}}""",
     )
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        telemetryLevel = InstallTelemetryLevel.FULL,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          telemetryLevel = InstallTelemetryLevel.FULL,
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -79,12 +81,13 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
       |
       """.trimMargin(),
     )
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        telemetryLevel = InstallTelemetryLevel.OFF,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          telemetryLevel = InstallTelemetryLevel.OFF,
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -104,12 +107,13 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
   fun `apply skips telemetry off when there is no existing telemetry state`() {
     val fixture = setupApplyFixture()
     val configPath = fixture.home.resolve(".config/skill-bill/config.json")
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        telemetryLevel = InstallTelemetryLevel.OFF,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          telemetryLevel = InstallTelemetryLevel.OFF,
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -127,12 +131,13 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
     val seeded = """{"install_id":"existing","telemetry":{"level":"anonymous","proxy_url":"","batch_size":10}}"""
     Files.writeString(configPath, seeded)
     val mutator = RecordingTelemetryLevelMutator(clearedEvents = 3)
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        telemetryLevel = InstallTelemetryLevel.OFF,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          telemetryLevel = InstallTelemetryLevel.OFF,
+        ),
+      )
 
     val result = applyInstallForTest(plan, mutator)
 
@@ -149,12 +154,13 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
     Files.createDirectories(configPath.parent)
     Files.writeString(configPath, "{\n  \"telemetry\": \n")
     val sourceBefore = snapshotSource(fixture.repoRoot)
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        telemetryLevel = InstallTelemetryLevel.FULL,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          telemetryLevel = InstallTelemetryLevel.FULL,
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -180,15 +186,16 @@ private class RecordingTelemetryLevelMutator(
   override fun setLevel(level: String): TelemetryLevelMutationResult {
     levels += level
     return TelemetryLevelMutationResult(
-      settings = TelemetrySettings(
-        configPath = Path.of("/fake/config.json").toFileLocation(),
-        level = level,
-        enabled = level != "off",
-        installId = "existing",
-        proxyUrl = "",
-        customProxyUrl = null,
-        batchSize = 10,
-      ),
+      settings =
+        TelemetrySettings(
+          configPath = Path.of("/fake/config.json").toFileLocation(),
+          level = level,
+          enabled = level != "off",
+          installId = "existing",
+          proxyUrl = "",
+          customProxyUrl = null,
+          batchSize = 10,
+        ),
       clearedEvents = clearedEvents,
     )
   }

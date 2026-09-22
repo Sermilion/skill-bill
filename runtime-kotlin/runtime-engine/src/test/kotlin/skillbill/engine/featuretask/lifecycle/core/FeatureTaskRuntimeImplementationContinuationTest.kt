@@ -13,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeImplementationContinuationTest {
   @Test
   fun `no prior attempt yields no continuation`() {
@@ -21,14 +22,16 @@ class FeatureTaskRuntimeImplementationContinuationTest {
 
   @Test
   fun `prior value segments accumulate and the next segment number advances`() {
-    val history = listOf(
-      attempt(sequenceNumber = 1, value = "segment one"),
-      attempt(sequenceNumber = 2, value = "segment two"),
-    )
+    val history =
+      listOf(
+        attempt(sequenceNumber = 1, value = "segment one"),
+        attempt(sequenceNumber = 2, value = "segment two"),
+      )
 
-    val continuation = assertNotNull(
-      featureTaskRuntimeImplementationContinuationFrom("implement", history, obligations()),
-    )
+    val continuation =
+      assertNotNull(
+        featureTaskRuntimeImplementationContinuationFrom("implement", history, obligations()),
+      )
 
     assertEquals(3, continuation.segmentNumber)
     assertEquals(listOf("segment one", "segment two"), continuation.priorValueSegments)
@@ -40,27 +43,30 @@ class FeatureTaskRuntimeImplementationContinuationTest {
     val history = listOf(attempt(sequenceNumber = 1, value = "segment one"))
 
     val inProcessRetry = featureTaskRuntimeImplementationContinuationFrom("implement", history, obligations())
-    val freshProcessResume = featureTaskRuntimeImplementationContinuationFrom(
-      "implement",
-      history.map {
-        requireNotNull(decodeImplementationAttemptFromArtifact(it.asWorkflowArtifactEntry().toWorkflowArtifactMap()))
-      },
-      obligations(),
-    )
+    val freshProcessResume =
+      featureTaskRuntimeImplementationContinuationFrom(
+        "implement",
+        history.map {
+          requireNotNull(decodeImplementationAttemptFromArtifact(it.asWorkflowArtifactEntry().toWorkflowArtifactMap()))
+        },
+        obligations(),
+      )
 
     assertEquals(inProcessRetry, freshProcessResume)
   }
 
   @Test
   fun `attempts under a different loop id are not mixed into the projection`() {
-    val history = listOf(
-      attempt(sequenceNumber = 1, value = "segment one"),
-      attempt(sequenceNumber = 2, value = "segment two").copy(loopId = "audit_gap"),
-    )
+    val history =
+      listOf(
+        attempt(sequenceNumber = 1, value = "segment one"),
+        attempt(sequenceNumber = 2, value = "segment two").copy(loopId = "audit_gap"),
+      )
 
-    val continuation = assertNotNull(
-      featureTaskRuntimeImplementationContinuationFrom("implement", history, obligations()),
-    )
+    val continuation =
+      assertNotNull(
+        featureTaskRuntimeImplementationContinuationFrom("implement", history, obligations()),
+      )
 
     assertEquals(listOf("segment one"), continuation.priorValueSegments)
     assertEquals(2, continuation.segmentNumber)
@@ -68,18 +74,19 @@ class FeatureTaskRuntimeImplementationContinuationTest {
 
   @Test
   fun `the continuation directive names every prior value segment`() {
-    val continuation = assertNotNull(
-      featureTaskRuntimeImplementationContinuationFrom(
-        "implement",
-        listOf(
-          attempt(sequenceNumber = 1, value = "segment one prose").copy(
-            prompt = "keep going on task-2",
-            failureDisposition = null,
+    val continuation =
+      assertNotNull(
+        featureTaskRuntimeImplementationContinuationFrom(
+          "implement",
+          listOf(
+            attempt(sequenceNumber = 1, value = "segment one prose").copy(
+              prompt = "keep going on task-2",
+              failureDisposition = null,
+            ),
           ),
+          obligations(),
         ),
-        obligations(),
-      ),
-    )
+      )
 
     val directive = implementationContinuationDirective("implement", continuation)
 
@@ -91,18 +98,19 @@ class FeatureTaskRuntimeImplementationContinuationTest {
 
   @Test
   fun `simplify continuation preserves completed receipt segments without replay instructions`() {
-    val continuation = assertNotNull(
-      featureTaskRuntimeImplementationContinuationFrom(
-        "simplify",
-        listOf(
-          attempt(sequenceNumber = 1, value = "simplification receipt segment").copy(
-            phaseId = "simplify",
-            prompt = "continue only the remaining owned path",
+    val continuation =
+      assertNotNull(
+        featureTaskRuntimeImplementationContinuationFrom(
+          "simplify",
+          listOf(
+            attempt(sequenceNumber = 1, value = "simplification receipt segment").copy(
+              phaseId = "simplify",
+              prompt = "continue only the remaining owned path",
+            ),
           ),
+          obligations(),
         ),
-        obligations(),
-      ),
-    )
+      )
 
     val directive = implementationContinuationDirective("simplify", continuation)
 
@@ -114,23 +122,28 @@ class FeatureTaskRuntimeImplementationContinuationTest {
 
   @Test
   fun `the continuation directive is empty for a different phase or no continuation`() {
-    val continuation = featureTaskRuntimeImplementationContinuationFrom(
-      "implement",
-      listOf(attempt(sequenceNumber = 1, value = "segment one")),
-      obligations(),
-    )
+    val continuation =
+      featureTaskRuntimeImplementationContinuationFrom(
+        "implement",
+        listOf(attempt(sequenceNumber = 1, value = "segment one")),
+        obligations(),
+      )
 
     assertEquals("", implementationContinuationDirective("audit", continuation))
     assertEquals("", implementationContinuationDirective("implement", null))
   }
 
-  private fun obligations(): FeatureTaskRuntimeImplementationObligations = FeatureTaskRuntimeImplementationObligations(
-    plannedTaskIds = listOf("task-1", "task-2", "task-3"),
-    carriedRepairItemIds = emptyList(),
-    loopId = null,
-  )
+  private fun obligations(): FeatureTaskRuntimeImplementationObligations =
+    FeatureTaskRuntimeImplementationObligations(
+      plannedTaskIds = listOf("task-1", "task-2", "task-3"),
+      carriedRepairItemIds = emptyList(),
+      loopId = null,
+    )
 
-  private fun attempt(sequenceNumber: Int, value: String): FeatureTaskRuntimeImplementationAttempt =
+  private fun attempt(
+    sequenceNumber: Int,
+    value: String,
+  ): FeatureTaskRuntimeImplementationAttempt =
     FeatureTaskRuntimeImplementationAttempt(
       sequenceNumber = sequenceNumber,
       phaseId = "implement",

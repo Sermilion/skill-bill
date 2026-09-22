@@ -1,6 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
   `kotlin-dsl`
   alias(libs.plugins.spotless)
@@ -9,25 +6,18 @@ plugins {
 
 group = "dev.skillbill.runtime.buildlogic"
 
-java {
-  sourceCompatibility = JavaVersion.VERSION_21
-  targetCompatibility = JavaVersion.VERSION_21
-}
-
-tasks.withType<KotlinCompile>().configureEach {
-  compilerOptions {
-    jvmTarget.set(JvmTarget.JVM_21)
-  }
+kotlin {
+  jvmToolchain(21)
 }
 
 dependencies {
-  compileOnly(libs.kotlin.gradle.plugin)
-  compileOnly(libs.spotless.gradle.plugin)
-  compileOnly(libs.detekt.gradle.plugin)
-
+  implementation(libs.kotlin.gradle.plugin)
+  implementation(libs.spotless.gradle.plugin)
+  implementation(libs.detekt.gradle.plugin)
   implementation(libs.beryx.runtime.gradle.plugin)
 
   testImplementation(libs.junit.jupiter)
+  testImplementation(gradleTestKit())
 
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -45,14 +35,7 @@ tasks.withType<Test>().configureEach { notCompatibleWithConfigurationCache(ccOpt
 spotless {
   kotlin {
     target("src/**/*.kt")
-    ktlint().editorConfigOverride(
-      mapOf(
-        "indent_size" to 2,
-        "ij_kotlin_allow_trailing_comma" to true,
-        "ij_kotlin_allow_trailing_comma_on_call_site" to true,
-        "max_line_length" to 120,
-      ),
-    )
+    ktlint()
     trimTrailingWhitespace()
     endWithNewline()
   }
@@ -72,10 +55,6 @@ detekt {
   basePath = rootDir.absolutePath
 }
 
-tasks.named("check") {
-  dependsOn("spotlessCheck")
-}
-
 tasks {
   validatePlugins {
     enableStricterValidation = true
@@ -87,23 +66,27 @@ gradlePlugin {
   plugins {
     register("version") {
       id = "skillbill.version"
-      implementationClass = "SkillBillVersionConventionPlugin"
+      implementationClass = "dev.skillbill.runtime.buildlogic.SkillBillVersionConventionPlugin"
     }
     register("jvmLibrary") {
       id = "skillbill.jvm-library"
-      implementationClass = "JvmLibraryConventionPlugin"
+      implementationClass = "dev.skillbill.runtime.buildlogic.JvmLibraryConventionPlugin"
+    }
+    register("repoTest") {
+      id = "skillbill.repo-test"
+      implementationClass = "dev.skillbill.runtime.buildlogic.RepoTestConventionPlugin"
     }
     register("quality") {
       id = "skillbill.quality"
-      implementationClass = "QualityConventionPlugin"
+      implementationClass = "dev.skillbill.runtime.buildlogic.QualityConventionPlugin"
     }
     register("runtimeImage") {
       id = "skillbill.runtime-image"
-      implementationClass = "RuntimeImageConventionPlugin"
+      implementationClass = "dev.skillbill.runtime.buildlogic.RuntimeImageConventionPlugin"
     }
     register("governedResources") {
       id = "skillbill.governed-resources"
-      implementationClass = "GovernedResourcesConventionPlugin"
+      implementationClass = "dev.skillbill.runtime.buildlogic.GovernedResourcesConventionPlugin"
     }
   }
 }

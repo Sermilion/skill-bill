@@ -32,26 +32,30 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class FeatureSpecPreparationWriterTest {
-  private val writer = FeatureSpecPreparationWriter(
-    decompositionManifestValidator = testDecompositionManifestValidator,
-    fileStore = TestDecompositionManifestStore,
-    decompositionManifestWriter = testDecompositionManifestWriter,
-  )
+  private val writer =
+    FeatureSpecPreparationWriter(
+      decompositionManifestValidator = testDecompositionManifestValidator,
+      fileStore = TestDecompositionManifestStore,
+      decompositionManifestWriter = testDecompositionManifestWriter,
+    )
 
   @Test
   fun `single_spec metadata writes parent distinct subtask and authoritative manifest`() {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-single")
-    val result = writer.write(
-      repoRoot = repoRoot,
-      request = FeatureSpecWriteRequest(
-        decision = singleSpecDecision(),
-        featureName = "Feature Spec Horizontal Skill",
-        parentSpecOverview = "Prepare one executable implementation unit.",
-        validationStrategy = "bill-code-check",
-        subtasks = listOf(singleSubtask()),
-      ),
-    )
+    val result =
+      writer.write(
+        repoRoot = repoRoot,
+        request =
+          FeatureSpecWriteRequest(
+            decision = singleSpecDecision(),
+            featureName = "Feature Spec Horizontal Skill",
+            parentSpecOverview = "Prepare one executable implementation unit.",
+            validationStrategy = "bill-code-check",
+            subtasks = listOf(singleSubtask()),
+          ),
+      )
 
     val parentSpec = repoRoot.resolve(result.parentSpecPath)
     val manifest = parentSpec.parent.resolve("decomposition-manifest.yaml")
@@ -69,17 +73,19 @@ class FeatureSpecPreparationWriterTest {
   @Test
   fun `preparation loud fails when no executable subtask is provided`() {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-single-subtasks")
-    val error = assertFailsWith<InvalidFeatureSpecPreparationRequestError> {
-      writer.write(
-        repoRoot = repoRoot,
-        request = FeatureSpecWriteRequest(
-          decision = singleSpecDecision(),
-          featureName = "feature-spec-horizontal-skill",
-          parentSpecOverview = "Every prepared feature needs an executable unit.",
-          validationStrategy = "bill-code-check",
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidFeatureSpecPreparationRequestError> {
+        writer.write(
+          repoRoot = repoRoot,
+          request =
+            FeatureSpecWriteRequest(
+              decision = singleSpecDecision(),
+              featureName = "feature-spec-horizontal-skill",
+              parentSpecOverview = "Every prepared feature needs an executable unit.",
+              validationStrategy = "bill-code-check",
+            ),
+        )
+      }
 
     assertEquals("subtasks", error.fieldPath)
   }
@@ -87,39 +93,42 @@ class FeatureSpecPreparationWriterTest {
   @Test
   fun `decomposed writes parent and ordered subtask specs then writes manifest`() {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-decomposed")
-    val result = writer.write(
-      repoRoot = repoRoot,
-      request = FeatureSpecWriteRequest(
-        decision = decomposedDecision(),
-        featureName = "feature-spec-horizontal-skill",
-        parentSpecOverview = "Prepare decomposition artifacts.",
-        validationStrategy = "bill-code-check",
-        subtasks = listOf(
-          FeatureSpecSubtaskPreparation(
-            id = 1,
-            name = "foundation",
-            scope = "Build shared runtime write request/result contracts.",
-            acceptanceCriteria = listOf("Contracts are reusable by implement and goal."),
-            nonGoals = listOf("Do not wire skills yet."),
-            dependencyNotes = "Runs first and has no dependencies.",
+    val result =
+      writer.write(
+        repoRoot = repoRoot,
+        request =
+          FeatureSpecWriteRequest(
+            decision = decomposedDecision(),
+            featureName = "feature-spec-horizontal-skill",
+            parentSpecOverview = "Prepare decomposition artifacts.",
             validationStrategy = "bill-code-check",
-            nextPath = "Run bill-feature-task on spec_subtask_1_foundation.md.",
-            dependsOn = emptyList(),
+            subtasks =
+              listOf(
+                FeatureSpecSubtaskPreparation(
+                  id = 1,
+                  name = "foundation",
+                  scope = "Build shared runtime write request/result contracts.",
+                  acceptanceCriteria = listOf("Contracts are reusable by implement and goal."),
+                  nonGoals = listOf("Do not wire skills yet."),
+                  dependencyNotes = "Runs first and has no dependencies.",
+                  validationStrategy = "bill-code-check",
+                  nextPath = "Run bill-feature-task on spec_subtask_1_foundation.md.",
+                  dependsOn = emptyList(),
+                ),
+                FeatureSpecSubtaskPreparation(
+                  id = 2,
+                  name = "runtime-writer",
+                  scope = "Write parent/subtask specs and decomposition manifest.",
+                  acceptanceCriteria = listOf("Manifest validates and can be consumed by goal."),
+                  nonGoals = listOf("Do not add feature-spec skill wiring yet."),
+                  dependencyNotes = "Depends on the shared preparation contracts from subtask 1.",
+                  validationStrategy = "bill-code-check",
+                  nextPath = "Run bill-feature-task on spec_subtask_2_runtime-writer.md.",
+                  dependsOn = listOf(1),
+                ),
+              ),
           ),
-          FeatureSpecSubtaskPreparation(
-            id = 2,
-            name = "runtime-writer",
-            scope = "Write parent/subtask specs and decomposition manifest.",
-            acceptanceCriteria = listOf("Manifest validates and can be consumed by goal."),
-            nonGoals = listOf("Do not add feature-spec skill wiring yet."),
-            dependencyNotes = "Depends on the shared preparation contracts from subtask 1.",
-            validationStrategy = "bill-code-check",
-            nextPath = "Run bill-feature-task on spec_subtask_2_runtime-writer.md.",
-            dependsOn = listOf(1),
-          ),
-        ),
-      ),
-    )
+      )
 
     val parentSpec = repoRoot.resolve(result.parentSpecPath)
     val manifest = repoRoot.resolve(result.decompositionManifestPath)
@@ -145,16 +154,18 @@ class FeatureSpecPreparationWriterTest {
   @Test
   fun `decomposed metadata accepts exactly one ordered subtask`() {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-decomposed-invalid")
-    val result = writer.write(
-      repoRoot = repoRoot,
-      request = FeatureSpecWriteRequest(
-        decision = decomposedDecision(),
-        featureName = "feature-spec-horizontal-skill",
-        parentSpecOverview = "Invalid decomposition request.",
-        validationStrategy = "bill-code-check",
-        subtasks = listOf(singleSubtask()),
-      ),
-    )
+    val result =
+      writer.write(
+        repoRoot = repoRoot,
+        request =
+          FeatureSpecWriteRequest(
+            decision = decomposedDecision(),
+            featureName = "feature-spec-horizontal-skill",
+            parentSpecOverview = "Invalid decomposition request.",
+            validationStrategy = "bill-code-check",
+            subtasks = listOf(singleSubtask()),
+          ),
+      )
     assertEquals(1, result.subtaskSpecPaths.size)
     assertEquals(1, loadTestManifest(repoRoot.resolve(result.decompositionManifestPath)).subtasks.size)
   }
@@ -162,7 +173,23 @@ class FeatureSpecPreparationWriterTest {
   @Test
   fun `linear preparation stamps source and requires every subtask identity`() {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-linear")
-    val missingIdentity = assertFailsWith<InvalidFeatureSpecPreparationRequestError> {
+    val missingIdentity =
+      assertFailsWith<InvalidFeatureSpecPreparationRequestError> {
+        writer.write(
+          repoRoot,
+          FeatureSpecWriteRequest(
+            decision = singleSpecDecision(),
+            featureName = "linear-feature",
+            parentSpecOverview = "Linear-backed preparation.",
+            validationStrategy = "bill-code-check",
+            subtasks = listOf(singleSubtask()),
+            specSource = SpecSource.LINEAR,
+          ),
+        )
+      }
+    assertEquals("subtasks[0].linear_issue_id", missingIdentity.fieldPath)
+
+    val result =
       writer.write(
         repoRoot,
         FeatureSpecWriteRequest(
@@ -170,24 +197,10 @@ class FeatureSpecPreparationWriterTest {
           featureName = "linear-feature",
           parentSpecOverview = "Linear-backed preparation.",
           validationStrategy = "bill-code-check",
-          subtasks = listOf(singleSubtask()),
+          subtasks = listOf(singleSubtask().copy(linearIssueId = "linear-subtask-1")),
           specSource = SpecSource.LINEAR,
         ),
       )
-    }
-    assertEquals("subtasks[0].linear_issue_id", missingIdentity.fieldPath)
-
-    val result = writer.write(
-      repoRoot,
-      FeatureSpecWriteRequest(
-        decision = singleSpecDecision(),
-        featureName = "linear-feature",
-        parentSpecOverview = "Linear-backed preparation.",
-        validationStrategy = "bill-code-check",
-        subtasks = listOf(singleSubtask().copy(linearIssueId = "linear-subtask-1")),
-        specSource = SpecSource.LINEAR,
-      ),
-    )
     val manifest = loadTestManifest(repoRoot.resolve(result.decompositionManifestPath))
     assertEquals(SpecSource.LINEAR, manifest.specSource)
     assertEquals("linear-subtask-1", manifest.subtasks.single().linearIssueId)
@@ -217,19 +230,26 @@ class FeatureSpecPreparationWriterTest {
   fun `manifest validation failure occurs before the first bundle write`() {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-manifest-prevalidate")
     val store = PreparationCountingManifestFileStore()
-    val rejectingValidator = object : DecompositionManifestValidator {
-      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit =
-        throw InvalidDecompositionManifestSchemaError(sourceLabel, "typed manifest rejection", "schema_invalid")
+    val rejectingValidator =
+      object : DecompositionManifestValidator {
+        override fun validate(
+          manifest: DecompositionManifestWireMap,
+          sourceLabel: String,
+        ): Unit =
+          throw InvalidDecompositionManifestSchemaError(sourceLabel, "typed manifest rejection", "schema_invalid")
 
-      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest =
-        throw InvalidDecompositionManifestSchemaError(sourceLabel, "typed YAML rejection", "schema_invalid")
+        override fun validateYamlText(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifest =
+          throw InvalidDecompositionManifestSchemaError(sourceLabel, "typed YAML rejection", "schema_invalid")
 
-      override fun validateYamlTextResult(
-        yamlText: String,
-        sourceLabel: String,
-      ): DecompositionManifestValidationResult =
-        DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
-    }
+        override fun validateYamlTextResult(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifestValidationResult =
+          DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
+      }
 
     assertFailsWith<InvalidDecompositionManifestSchemaError> {
       FeatureSpecPreparationWriter(rejectingValidator, store, testDecompositionManifestWriter).write(
@@ -250,30 +270,37 @@ class FeatureSpecPreparationWriterTest {
   @Test
   fun `read back validation restores the complete bundle after a manifest failure`() {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-readback-rollback")
-    val readbackRejectingValidator = object : DecompositionManifestValidator {
-      private var yamlValidationCount = 0
+    val readbackRejectingValidator =
+      object : DecompositionManifestValidator {
+        private var yamlValidationCount = 0
 
-      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
+        override fun validate(
+          manifest: DecompositionManifestWireMap,
+          sourceLabel: String,
+        ): Unit = Unit
 
-      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest {
-        yamlValidationCount += 1
-        if (yamlValidationCount == 2) {
-          throw InvalidDecompositionManifestSchemaError(sourceLabel, "read-back rejection", "schema_invalid")
+        override fun validateYamlText(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifest {
+          yamlValidationCount += 1
+          if (yamlValidationCount == 2) {
+            throw InvalidDecompositionManifestSchemaError(sourceLabel, "read-back rejection", "schema_invalid")
+          }
+          return decodeManifest(
+            DecompositionManifestWireMap.from(
+              requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
+            ),
+            sourceLabel,
+          )
         }
-        return decodeManifest(
-          DecompositionManifestWireMap.from(
-            requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
-          ),
-          sourceLabel,
-        )
-      }
 
-      override fun validateYamlTextResult(
-        yamlText: String,
-        sourceLabel: String,
-      ): DecompositionManifestValidationResult =
-        DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
-    }
+        override fun validateYamlTextResult(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifestValidationResult =
+          DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
+      }
 
     assertFailsWith<InvalidDecompositionManifestSchemaError> {
       FeatureSpecPreparationWriter(
@@ -299,40 +326,49 @@ class FeatureSpecPreparationWriterTest {
   @Test
   fun `read back validation restores an overwritten bundle byte for byte`() {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-readback-overwrite")
-    val request = FeatureSpecWriteRequest(
-      decision = decomposedDecision(),
-      featureName = "readback-overwrite",
-      parentSpecOverview = "Restore the prior prepared bundle after read-back failure.",
-      validationStrategy = "bill-code-check",
-      subtasks = listOf(singleSubtask()),
-    )
+    val request =
+      FeatureSpecWriteRequest(
+        decision = decomposedDecision(),
+        featureName = "readback-overwrite",
+        parentSpecOverview = "Restore the prior prepared bundle after read-back failure.",
+        validationStrategy = "bill-code-check",
+        subtasks = listOf(singleSubtask()),
+      )
     val initial = writer.write(repoRoot, request)
-    val originalFiles = (listOf(initial.parentSpecPath, initial.decompositionManifestPath) + initial.subtaskSpecPaths)
-      .associateWith { relativePath -> Files.readString(repoRoot.resolve(relativePath)) }
-    val readbackRejectingValidator = object : DecompositionManifestValidator {
-      private var yamlValidationCount = 0
+    val originalFiles =
+      (listOf(initial.parentSpecPath, initial.decompositionManifestPath) + initial.subtaskSpecPaths)
+        .associateWith { relativePath -> Files.readString(repoRoot.resolve(relativePath)) }
+    val readbackRejectingValidator =
+      object : DecompositionManifestValidator {
+        private var yamlValidationCount = 0
 
-      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
+        override fun validate(
+          manifest: DecompositionManifestWireMap,
+          sourceLabel: String,
+        ): Unit = Unit
 
-      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest {
-        yamlValidationCount += 1
-        if (yamlValidationCount == 4) {
-          throw InvalidDecompositionManifestSchemaError(sourceLabel, "read-back rejection", "schema_invalid")
+        override fun validateYamlText(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifest {
+          yamlValidationCount += 1
+          if (yamlValidationCount == 4) {
+            throw InvalidDecompositionManifestSchemaError(sourceLabel, "read-back rejection", "schema_invalid")
+          }
+          return decodeManifest(
+            DecompositionManifestWireMap.from(
+              requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
+            ),
+            sourceLabel,
+          )
         }
-        return decodeManifest(
-          DecompositionManifestWireMap.from(
-            requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
-          ),
-          sourceLabel,
-        )
-      }
 
-      override fun validateYamlTextResult(
-        yamlText: String,
-        sourceLabel: String,
-      ): DecompositionManifestValidationResult =
-        DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
-    }
+        override fun validateYamlTextResult(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifestValidationResult =
+          DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
+      }
 
     assertFailsWith<InvalidDecompositionManifestSchemaError> {
       FeatureSpecPreparationWriter(
@@ -352,119 +388,143 @@ class FeatureSpecPreparationWriterTest {
 
   @Test
   fun `preparation result retains manifest repair evidence`() {
-    val evidence = DecompositionManifestRepairEvidence(
-      format = DecompositionManifestValidationFormat.YAML,
-      originalDigest = "a".repeat(64),
-      repairedDigest = "b".repeat(64),
-      operation = DecompositionManifestRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
-      sourceLocation = DecompositionManifestValidationSourceLocation(
-        sourceLabel = "manifest.yaml",
-        offset = 10,
-        line = 1,
-        column = 11,
-      ),
-    )
-    val repairingValidator = object : DecompositionManifestValidator {
-      private var yamlValidationCount = 0
-
-      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
-      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest = decodeManifest(
-        DecompositionManifestWireMap.from(
-          requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
-        ),
-        sourceLabel,
+    val evidence =
+      DecompositionManifestRepairEvidence(
+        format = DecompositionManifestValidationFormat.YAML,
+        originalDigest = "a".repeat(64),
+        repairedDigest = "b".repeat(64),
+        operation = DecompositionManifestRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
+        sourceLocation =
+          DecompositionManifestValidationSourceLocation(
+            sourceLabel = "manifest.yaml",
+            offset = 10,
+            line = 1,
+            column = 11,
+          ),
       )
+    val repairingValidator =
+      object : DecompositionManifestValidator {
+        private var yamlValidationCount = 0
 
-      override fun validateYamlTextResult(
-        yamlText: String,
-        sourceLabel: String,
-      ): DecompositionManifestValidationResult {
-        yamlValidationCount += 1
-        val manifest = validateYamlText(yamlText, sourceLabel)
-        return if (yamlValidationCount == 1) {
-          DecompositionManifestValidationResult.AcceptedAfterRepair(manifest, yamlText, evidence)
-        } else {
-          DecompositionManifestValidationResult.AcceptedUnchanged(manifest, yamlText)
+        override fun validate(
+          manifest: DecompositionManifestWireMap,
+          sourceLabel: String,
+        ): Unit = Unit
+
+        override fun validateYamlText(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifest =
+          decodeManifest(
+            DecompositionManifestWireMap.from(
+              requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
+            ),
+            sourceLabel,
+          )
+
+        override fun validateYamlTextResult(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifestValidationResult {
+          yamlValidationCount += 1
+          val manifest = validateYamlText(yamlText, sourceLabel)
+          return if (yamlValidationCount == 1) {
+            DecompositionManifestValidationResult.AcceptedAfterRepair(manifest, yamlText, evidence)
+          } else {
+            DecompositionManifestValidationResult.AcceptedUnchanged(manifest, yamlText)
+          }
         }
       }
-    }
 
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-evidence")
-    val result = FeatureSpecPreparationWriter(
-      repairingValidator,
-      TestDecompositionManifestStore,
-      testDecompositionManifestWriter,
-    ).write(
-      repoRoot,
-      FeatureSpecWriteRequest(
-        decision = decomposedDecision(),
-        featureName = "repair-evidence",
-        parentSpecOverview = "Retain structured manifest repair evidence.",
-        validationStrategy = "bill-code-check",
-        subtasks = listOf(singleSubtask()),
-      ),
-    )
+    val result =
+      FeatureSpecPreparationWriter(
+        repairingValidator,
+        TestDecompositionManifestStore,
+        testDecompositionManifestWriter,
+      ).write(
+        repoRoot,
+        FeatureSpecWriteRequest(
+          decision = decomposedDecision(),
+          featureName = "repair-evidence",
+          parentSpecOverview = "Retain structured manifest repair evidence.",
+          validationStrategy = "bill-code-check",
+          subtasks = listOf(singleSubtask()),
+        ),
+      )
 
     assertEquals(listOf(evidence), result.repairEvidence)
   }
 
   @Test
   fun `preparation result retains read back repair evidence`() {
-    val evidence = DecompositionManifestRepairEvidence(
-      format = DecompositionManifestValidationFormat.YAML,
-      originalDigest = "c".repeat(64),
-      repairedDigest = "d".repeat(64),
-      operation = DecompositionManifestRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
-      sourceLocation = DecompositionManifestValidationSourceLocation(
-        sourceLabel = "manifest.yaml",
-        offset = 12,
-        line = 1,
-        column = 13,
-      ),
-    )
-    val repairingValidator = object : DecompositionManifestValidator {
-      private var yamlValidationCount = 0
-      var repairedYaml: String? = null
-
-      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
-      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest = decodeManifest(
-        DecompositionManifestWireMap.from(
-          requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
-        ),
-        sourceLabel,
+    val evidence =
+      DecompositionManifestRepairEvidence(
+        format = DecompositionManifestValidationFormat.YAML,
+        originalDigest = "c".repeat(64),
+        repairedDigest = "d".repeat(64),
+        operation = DecompositionManifestRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
+        sourceLocation =
+          DecompositionManifestValidationSourceLocation(
+            sourceLabel = "manifest.yaml",
+            offset = 12,
+            line = 1,
+            column = 13,
+          ),
       )
+    val repairingValidator =
+      object : DecompositionManifestValidator {
+        private var yamlValidationCount = 0
+        var repairedYaml: String? = null
 
-      override fun validateYamlTextResult(
-        yamlText: String,
-        sourceLabel: String,
-      ): DecompositionManifestValidationResult {
-        yamlValidationCount += 1
-        val manifest = validateYamlText(yamlText, sourceLabel)
-        return if (yamlValidationCount == 2) {
-          val repaired = "$yamlText# repaired read-back\n"
-          repairedYaml = repaired
-          DecompositionManifestValidationResult.AcceptedAfterRepair(manifest, repaired, evidence)
-        } else {
-          DecompositionManifestValidationResult.AcceptedUnchanged(manifest, yamlText)
+        override fun validate(
+          manifest: DecompositionManifestWireMap,
+          sourceLabel: String,
+        ): Unit = Unit
+
+        override fun validateYamlText(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifest =
+          decodeManifest(
+            DecompositionManifestWireMap.from(
+              requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
+            ),
+            sourceLabel,
+          )
+
+        override fun validateYamlTextResult(
+          yamlText: String,
+          sourceLabel: String,
+        ): DecompositionManifestValidationResult {
+          yamlValidationCount += 1
+          val manifest = validateYamlText(yamlText, sourceLabel)
+          return if (yamlValidationCount == 2) {
+            val repaired = "$yamlText# repaired read-back\n"
+            repairedYaml = repaired
+            DecompositionManifestValidationResult.AcceptedAfterRepair(manifest, repaired, evidence)
+          } else {
+            DecompositionManifestValidationResult.AcceptedUnchanged(manifest, yamlText)
+          }
         }
       }
-    }
 
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-readback-evidence")
-    val result = FeatureSpecPreparationWriter(
-      repairingValidator,
-      TestDecompositionManifestStore,
-      testDecompositionManifestWriter,
-    ).write(
-      repoRoot,
-      FeatureSpecWriteRequest(
-        decision = decomposedDecision(),
-        featureName = "readback-evidence",
-        parentSpecOverview = "Retain read-back repair evidence.",
-        validationStrategy = "bill-code-check",
-        subtasks = listOf(singleSubtask()),
-      ),
-    )
+    val result =
+      FeatureSpecPreparationWriter(
+        repairingValidator,
+        TestDecompositionManifestStore,
+        testDecompositionManifestWriter,
+      ).write(
+        repoRoot,
+        FeatureSpecWriteRequest(
+          decision = decomposedDecision(),
+          featureName = "readback-evidence",
+          parentSpecOverview = "Retain read-back repair evidence.",
+          validationStrategy = "bill-code-check",
+          subtasks = listOf(singleSubtask()),
+        ),
+      )
 
     assertEquals(listOf(evidence), result.repairEvidence)
     val manifestPath = repoRoot.resolve(result.decompositionManifestPath)
@@ -475,22 +535,25 @@ class FeatureSpecPreparationWriterTest {
   @Test
   fun `rewriting prepared artifacts keeps runtime status only in the manifest`() {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-status")
-    val request = FeatureSpecWriteRequest(
-      decision = singleSpecDecision(),
-      featureName = "preserved-status",
-      parentSpecOverview = "Preserve runtime authority.",
-      validationStrategy = "bill-code-check",
-      subtasks = listOf(singleSubtask()),
-    )
+    val request =
+      FeatureSpecWriteRequest(
+        decision = singleSpecDecision(),
+        featureName = "preserved-status",
+        parentSpecOverview = "Preserve runtime authority.",
+        validationStrategy = "bill-code-check",
+        subtasks = listOf(singleSubtask()),
+      )
     val first = writer.write(repoRoot, request)
     val manifestPath = repoRoot.resolve(first.decompositionManifestPath)
-    val blocked = loadTestManifest(manifestPath).copy(
-      status = "blocked",
-      currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "blocked"),
-      subtasks = loadTestManifest(manifestPath).subtasks.map { subtask ->
-        subtask.copy(status = "blocked", blockedReason = "operator action required")
-      },
-    )
+    val blocked =
+      loadTestManifest(manifestPath).copy(
+        status = "blocked",
+        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "blocked"),
+        subtasks =
+          loadTestManifest(manifestPath).subtasks.map { subtask ->
+            subtask.copy(status = "blocked", blockedReason = "operator action required")
+          },
+      )
     TestDecompositionManifestStore.writeTextAtomically(
       manifestPath,
       encodeDecompositionManifestYaml(
@@ -507,47 +570,54 @@ class FeatureSpecPreparationWriterTest {
     assertEquals("blocked", loadTestManifest(manifestPath).status)
   }
 
-  private fun loadTestManifest(path: Path) = loadDecompositionManifest(
-    path,
-    TestDecompositionManifestStore,
-    testDecompositionManifestValidator,
-  )
+  private fun loadTestManifest(path: Path) =
+    loadDecompositionManifest(
+      path,
+      TestDecompositionManifestStore,
+      testDecompositionManifestValidator,
+    )
 
-  private fun singleSubtask() = FeatureSpecSubtaskPreparation(
-    id = 1,
-    name = "implementation",
-    scope = "Implement the complete prepared feature.",
-    acceptanceCriteria = listOf("The prepared contract is satisfied."),
-    nonGoals = emptyList(),
-    dependencyNotes = "No dependencies.",
-    validationStrategy = "bill-code-check",
-    nextPath = "Run bill-feature-task on spec_subtask_1_implementation.md.",
-  )
+  private fun singleSubtask() =
+    FeatureSpecSubtaskPreparation(
+      id = 1,
+      name = "implementation",
+      scope = "Implement the complete prepared feature.",
+      acceptanceCriteria = listOf("The prepared contract is satisfied."),
+      nonGoals = emptyList(),
+      dependencyNotes = "No dependencies.",
+      validationStrategy = "bill-code-check",
+      nextPath = "Run bill-feature-task on spec_subtask_1_implementation.md.",
+    )
 
-  private fun singleSpecDecision(): FeatureSpecPreparationDecision = FeatureSpecPreparationDecision(
-    issueKey = "SKILL-59",
-    intendedOutcome = "single_spec",
-    acceptanceCriteria = listOf("Write parent spec."),
-    constraints = listOf("Represent one implementation unit as exactly one manifest subtask."),
-    nonGoals = listOf("Do not fabricate additional subtasks."),
-    mode = FeatureSpecPreparationMode.SINGLE_SPEC,
-  )
+  private fun singleSpecDecision(): FeatureSpecPreparationDecision =
+    FeatureSpecPreparationDecision(
+      issueKey = "SKILL-59",
+      intendedOutcome = "single_spec",
+      acceptanceCriteria = listOf("Write parent spec."),
+      constraints = listOf("Represent one implementation unit as exactly one manifest subtask."),
+      nonGoals = listOf("Do not fabricate additional subtasks."),
+      mode = FeatureSpecPreparationMode.SINGLE_SPEC,
+    )
 
-  private fun decomposedDecision(): FeatureSpecPreparationDecision = FeatureSpecPreparationDecision(
-    issueKey = "SKILL-59",
-    intendedOutcome = "decomposed",
-    acceptanceCriteria = listOf("Write parent spec and decomposition artifacts."),
-    constraints = listOf("Reuse manifest writer."),
-    nonGoals = listOf("No skill wiring in this subtask."),
-    mode = FeatureSpecPreparationMode.DECOMPOSED,
-  )
+  private fun decomposedDecision(): FeatureSpecPreparationDecision =
+    FeatureSpecPreparationDecision(
+      issueKey = "SKILL-59",
+      intendedOutcome = "decomposed",
+      acceptanceCriteria = listOf("Write parent spec and decomposition artifacts."),
+      constraints = listOf("Reuse manifest writer."),
+      nonGoals = listOf("No skill wiring in this subtask."),
+      mode = FeatureSpecPreparationMode.DECOMPOSED,
+    )
 }
 
 private class PreparationCountingManifestFileStore :
   DecompositionManifestStore by TestDecompositionManifestStore {
   var writeCount: Int = 0
 
-  override fun writeTextAtomically(target: Path, content: String) {
+  override fun writeTextAtomically(
+    target: Path,
+    content: String,
+  ) {
     writeCount += 1
     TestDecompositionManifestStore.writeTextAtomically(target, content)
   }
@@ -558,9 +628,10 @@ private fun encodeDecompositionManifestYaml(
   validator: DecompositionManifestValidator,
   fileStore: DecompositionManifestStore,
   sourceLabel: String = "<in-memory>",
-): String = skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml(
-  manifest,
-  validator,
-  fileStore,
-  sourceLabel,
-).yamlText
+): String =
+  skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml(
+    manifest,
+    validator,
+    fileStore,
+    sourceLabel,
+  ).yamlText

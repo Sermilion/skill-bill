@@ -9,13 +9,14 @@ internal fun discoverCursorAgentMarkdown(
   platformPacksRoot: Path,
   skillsRoot: Path? = null,
   selectedPlatforms: List<String>? = null,
-): List<Path> = discoverNativeAgentFilesByDir(
-  platformPacksRoot = platformPacksRoot,
-  skillsRoot = skillsRoot,
-  selectedPlatforms = selectedPlatforms,
-  directoryName = NativeAgentProvider.Cursor.directoryName,
-  extension = NativeAgentProvider.Cursor.extension,
-)
+): List<Path> =
+  discoverNativeAgentFilesByDir(
+    platformPacksRoot = platformPacksRoot,
+    skillsRoot = skillsRoot,
+    selectedPlatforms = selectedPlatforms,
+    directoryName = NativeAgentProvider.Cursor.directoryName,
+    extension = NativeAgentProvider.Cursor.extension,
+  )
 
 internal fun uninstallCursorAgentMarkdown(
   platformPacksRoot: Path,

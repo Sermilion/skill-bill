@@ -11,6 +11,7 @@ import skillbill.review.context.model.hunk.ReviewEvidenceTarget
 import skillbill.review.context.model.hunk.ReviewRevision
 import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.context.model.packet.ReviewExpansionRecord
+
 data class ReviewAssignment(
   val reviewId: String,
   val packetDigest: String,
@@ -20,7 +21,6 @@ data class ReviewAssignment(
   val assignedPaths: List<String>,
   val assignedHunks: List<String>,
   val assignedBundle: ReviewLaneBundle = ReviewLaneBundle.EMPTY,
-
   val laneRouting: List<ReviewCommitLaneDecision> = emptyList(),
   val criteriaReferences: List<String> = emptyList(),
   val matchedRules: List<ReviewRuleReference> = emptyList(),
@@ -81,28 +81,30 @@ data class ReviewAssignment(
   }
 
   val expansionsDigest: String
-    get() = sha256(
-      expansions.sortedWith(compareBy({ it.sequence }, { it.expansionId })).joinToString("\n") { it.canonical },
-    )
+    get() =
+      sha256(
+        expansions.sortedWith(compareBy({ it.sequence }, { it.expansionId })).joinToString("\n") { it.canonical },
+      )
   val digest: String
-    get() = sha256(
-      listOf(
-        reviewId,
-        packetDigest,
-        reviewRevision.canonical,
-        lane,
-        laneDecision.canonical,
-        baseRevision,
-        headRevision,
-        canonicalFieldList(assignedPaths.sorted()),
-        canonicalFieldList(assignedHunks.sorted()),
-        assignedBundle.canonical,
-        canonicalFieldList(laneRouting.sortedBy { it.orderIndex }.map { it.canonical }),
-        canonicalFieldList(criteriaReferences.sorted()),
-        canonicalFieldList(matchedRules.map { it.canonical }.sorted()),
-        canonicalFieldList(evidenceTargets.map { it.canonical }.sorted()),
-        dependencyAllowlist.canonical,
-        baselineUntrackedPolicy.canonical,
-      ).let { canonicalFieldList(it) }.replace("\r\n", "\n"),
-    )
+    get() =
+      sha256(
+        listOf(
+          reviewId,
+          packetDigest,
+          reviewRevision.canonical,
+          lane,
+          laneDecision.canonical,
+          baseRevision,
+          headRevision,
+          canonicalFieldList(assignedPaths.sorted()),
+          canonicalFieldList(assignedHunks.sorted()),
+          assignedBundle.canonical,
+          canonicalFieldList(laneRouting.sortedBy { it.orderIndex }.map { it.canonical }),
+          canonicalFieldList(criteriaReferences.sorted()),
+          canonicalFieldList(matchedRules.map { it.canonical }.sorted()),
+          canonicalFieldList(evidenceTargets.map { it.canonical }.sorted()),
+          dependencyAllowlist.canonical,
+          baselineUntrackedPolicy.canonical,
+        ).let { canonicalFieldList(it) }.replace("\r\n", "\n"),
+      )
 }

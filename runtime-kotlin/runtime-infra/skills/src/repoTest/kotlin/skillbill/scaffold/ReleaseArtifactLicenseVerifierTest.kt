@@ -115,7 +115,10 @@ class ReleaseArtifactLicenseVerifierTest {
     assertFailure(artifact, "names decoy.zip")
   }
 
-  private fun assertFailure(artifact: Path, expectedMessage: String) {
+  private fun assertFailure(
+    artifact: Path,
+    expectedMessage: String,
+  ) {
     val result = runVerifier(artifact)
     assertTrue(result.exitCode != 0, result.output)
     assertTrue(result.output.contains(expectedMessage), result.output)
@@ -125,7 +128,10 @@ class ReleaseArtifactLicenseVerifierTest {
     return runVerifier(artifacts.toList())
   }
 
-  private fun runVerifier(artifacts: List<Path>, environment: Map<String, String> = emptyMap()): ProcessResult {
+  private fun runVerifier(
+    artifacts: List<Path>,
+    environment: Map<String, String> = emptyMap(),
+  ): ProcessResult {
     val processBuilder =
       ProcessBuilder(
         listOf("bash", repoRoot.resolve("scripts/verify_release_artifact_licenses").toString()) +
@@ -139,7 +145,10 @@ class ReleaseArtifactLicenseVerifierTest {
     return ProcessResult(process.waitFor(), output)
   }
 
-  private fun writeZip(artifact: Path, entries: List<Pair<String, ByteArray>>) {
+  private fun writeZip(
+    artifact: Path,
+    entries: List<Pair<String, ByteArray>>,
+  ) {
     ZipOutputStream(Files.newOutputStream(artifact)).use { output ->
       entries.forEach { (name, content) ->
         output.putNextEntry(ZipEntry(name))
@@ -149,17 +158,22 @@ class ReleaseArtifactLicenseVerifierTest {
     }
   }
 
-  private fun writeTar(artifact: Path, licenseBytes: ByteArray?, duplicateLicense: Boolean = false) {
+  private fun writeTar(
+    artifact: Path,
+    licenseBytes: ByteArray?,
+    duplicateLicense: Boolean = false,
+  ) {
     val source = Files.createTempDirectory("skillbill-artifact-tar-source")
     Files.writeString(source.resolve("README.md"), "Skill Bill skills archive fixture\n")
     if (licenseBytes != null) {
       Files.write(source.resolve("LICENSE"), licenseBytes)
     }
-    val entries = if (licenseBytes == null) {
-      listOf("README.md")
-    } else {
-      listOf("LICENSE", "README.md") + if (duplicateLicense) listOf("LICENSE") else emptyList()
-    }
+    val entries =
+      if (licenseBytes == null) {
+        listOf("README.md")
+      } else {
+        listOf("LICENSE", "README.md") + if (duplicateLicense) listOf("LICENSE") else emptyList()
+      }
     val process =
       ProcessBuilder(
         listOf("tar", "-czf", artifact.toString(), "-C", source.toString()) + entries,
@@ -174,8 +188,9 @@ class ReleaseArtifactLicenseVerifierTest {
     Files.writeString(artifact.resolveSibling("${artifact.name}.sha256"), "${sha256(artifact)}  ${artifact.name}\n")
   }
 
-  private fun sha256(artifact: Path): String = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(artifact))
-    .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+  private fun sha256(artifact: Path): String =
+    MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(artifact))
+      .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
 
   private data class ProcessResult(val exitCode: Int, val output: String)
 }

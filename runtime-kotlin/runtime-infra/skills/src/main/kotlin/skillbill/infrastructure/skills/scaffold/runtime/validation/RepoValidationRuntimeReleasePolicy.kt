@@ -14,10 +14,11 @@ internal object RepoValidationRuntimeReleasePolicy {
 
   fun parseReleaseRef(rawValue: String): ReleaseRefMetadata {
     val candidate = rawValue.trim().removePrefix("refs/tags/")
-    val match = semverTagPattern.matchEntire(candidate)
-      ?: throw IllegalArgumentException(
-        "Release tag must match canonical vMAJOR.MINOR.PATCH with optional SemVer prerelease/build metadata.",
-      )
+    val match =
+      semverTagPattern.matchEntire(candidate)
+        ?: throw IllegalArgumentException(
+          "Release tag must match canonical vMAJOR.MINOR.PATCH with optional SemVer prerelease/build metadata.",
+        )
     return ReleaseRefMetadata(
       tag = candidate,
       version = candidate.removePrefix("v"),
@@ -30,7 +31,11 @@ internal object RepoValidationRuntimeReleasePolicy {
     )
   }
 
-  fun validateReleaseRef(repoRoot: Path, rawValue: String, forcePrerelease: Boolean = false): ReleaseRefMetadata {
+  fun validateReleaseRef(
+    repoRoot: Path,
+    rawValue: String,
+    forcePrerelease: Boolean = false,
+  ): ReleaseRefMetadata {
     val parsed = parseReleaseRef(rawValue)
     if (forcePrerelease && !parsed.prerelease) {
       throw ReleaseLicensePolicyError(

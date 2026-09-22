@@ -18,12 +18,13 @@ internal object FileSystemValidationGateGradleStdoutParsers {
   private const val PROJECT_HEALTH_COORDINATE_GROUP = 2
   private const val PROJECT_HEALTH_ACTUAL_CONFIG_GROUP = 3
   private const val GRADLE_ROOT_MODULE = "<root>"
-  private val GRADLE_SPECIFIC_RULE_IDS = setOf(
-    "incorrectConfiguration",
-    "projectHealth",
-    "forbidden_project_dependency",
-    "architectureCheck",
-  )
+  private val GRADLE_SPECIFIC_RULE_IDS =
+    setOf(
+      "incorrectConfiguration",
+      "projectHealth",
+      "forbidden_project_dependency",
+      "architectureCheck",
+    )
   private val COMPILER_E_LINE = Regex("""^e:\s+(.*)$""")
   private val COMPILER_LOCATION = Regex("""^(?:file://)?(.+):(\d+):(\d+)\s+(.*)$""")
   private val QUALITY_TOOL_LINE =
@@ -42,7 +43,10 @@ internal object FileSystemValidationGateGradleStdoutParsers {
   private val GRADLE_BANNED_PROJECT_DEPENDENCIES =
     Regex("""^(\S+)\s+has banned project dependencies:\s*(.+)$""")
 
-  fun parseGradleQualityToolStdout(repoRoot: Path, stdout: String): List<ValidationGateFinding> {
+  fun parseGradleQualityToolStdout(
+    repoRoot: Path,
+    stdout: String,
+  ): List<ValidationGateFinding> {
     val repo = repoRoot.toAbsolutePath().normalize()
     return stdout.lineSequence().mapNotNull { line ->
       val match = QUALITY_TOOL_LINE.matchEntire(line.trim()) ?: return@mapNotNull null
@@ -62,45 +66,48 @@ internal object FileSystemValidationGateGradleStdoutParsers {
     }.toList()
   }
 
-  fun parseGradleExecutedTaskIdentities(stdout: String): List<String> = buildList {
-    stdout.lineSequence().forEach { rawLine ->
-      val line = rawLine.trim()
-      val taskPath = GRADLE_TASK_FAILED_LINE.matchEntire(line)?.groupValues?.get(1)
-        ?: GRADLE_TASK_LINE.matchEntire(line)?.groupValues?.get(1)
-        ?: return@forEach
-      val (module, task) = FileSystemValidationGateGradlePaths.parseGradleTaskPath(taskPath)
-      if (task.isBlank()) return@forEach
-      add("${module.ifBlank { GRADLE_ROOT_MODULE }}|$task")
-    }
-  }.distinct()
+  fun parseGradleExecutedTaskIdentities(stdout: String): List<String> =
+    buildList {
+      stdout.lineSequence().forEach { rawLine ->
+        val line = rawLine.trim()
+        val taskPath =
+          GRADLE_TASK_FAILED_LINE.matchEntire(line)?.groupValues?.get(1)
+            ?: GRADLE_TASK_LINE.matchEntire(line)?.groupValues?.get(1)
+            ?: return@forEach
+        val (module, task) = FileSystemValidationGateGradlePaths.parseGradleTaskPath(taskPath)
+        if (task.isBlank()) return@forEach
+        add("${module.ifBlank { GRADLE_ROOT_MODULE }}|$task")
+      }
+    }.distinct()
 
-  fun coveredGradleTaskKeys(findings: List<ValidationGateFinding>): Set<String> = buildSet {
-    findings.forEach { finding ->
-      when (finding.ruleOrTestId) {
-        "kotlin_compiler" -> add("${finding.module}|compileKotlin")
-        "incorrectConfiguration", "projectHealth" -> add("${finding.module}|projectHealth")
-        "forbidden_project_dependency", "architectureCheck" -> add("${finding.module}|architectureCheck")
-      }
-      val location = finding.location.orEmpty()
-      if (location.contains("/reports/detekt/")) {
-        add("${finding.module}|detekt")
-      }
-      if (looksLikeJUnitFindingWithoutLocation(finding)) {
-        add("${finding.module}|test")
-      }
-      if (
-        finding.location?.contains(".kt:") == true &&
-        finding.ruleOrTestId.firstOrNull()?.isUpperCase() == true
-      ) {
-        add("${finding.module}|spotlessCheck")
-        add("${finding.module}|spotlessKotlinCheck")
-      }
-      if (finding.ruleOrTestId == "spotless") {
-        add("${finding.module}|spotlessCheck")
-        add("${finding.module}|spotlessKotlinCheck")
+  fun coveredGradleTaskKeys(findings: List<ValidationGateFinding>): Set<String> =
+    buildSet {
+      findings.forEach { finding ->
+        when (finding.ruleOrTestId) {
+          "kotlin_compiler" -> add("${finding.module}|compileKotlin")
+          "incorrectConfiguration", "projectHealth" -> add("${finding.module}|projectHealth")
+          "forbidden_project_dependency", "architectureCheck" -> add("${finding.module}|architectureCheck")
+        }
+        val location = finding.location.orEmpty()
+        if (location.contains("/reports/detekt/")) {
+          add("${finding.module}|detekt")
+        }
+        if (looksLikeJUnitFindingWithoutLocation(finding)) {
+          add("${finding.module}|test")
+        }
+        if (
+          finding.location?.contains(".kt:") == true &&
+          finding.ruleOrTestId.firstOrNull()?.isUpperCase() == true
+        ) {
+          add("${finding.module}|spotlessCheck")
+          add("${finding.module}|spotlessKotlinCheck")
+        }
+        if (finding.ruleOrTestId == "spotless") {
+          add("${finding.module}|spotlessCheck")
+          add("${finding.module}|spotlessKotlinCheck")
+        }
       }
     }
-  }
 
   fun parseGradleProjectHealthStdout(stdout: String): List<ValidationGateFinding> {
     var currentModule: String? = null
@@ -135,9 +142,10 @@ internal object FileSystemValidationGateGradleStdoutParsers {
             module = module,
             ruleOrTestId = "incorrectConfiguration",
             message = "$requiredConfiguration($dependencyCoordinate) (was $actualConfiguration)",
-            location = FileSystemValidationGateGradlePaths.filePathFromAdviceBlock(line)?.let { path ->
-              FileSystemValidationGateGradlePaths.repoRelativeAdvicePath(path)
-            },
+            location =
+              FileSystemValidationGateGradlePaths.filePathFromAdviceBlock(line)?.let { path ->
+                FileSystemValidationGateGradlePaths.repoRelativeAdvicePath(path)
+              },
           ),
         )
       }
@@ -168,26 +176,31 @@ internal object FileSystemValidationGateGradleStdoutParsers {
         ) {
           return@forEach
         }
-        val module = currentModule
-          ?: GRADLE_BANNED_PROJECT_DEPENDENCIES.matchEntire(line)?.groupValues?.get(1)
-          ?: line.substringAfter("from :", "").substringBefore(' ').removePrefix(":")
-            .ifBlank { null }
-          ?: return@forEach
+        val module =
+          currentModule
+            ?: GRADLE_BANNED_PROJECT_DEPENDENCIES.matchEntire(line)?.groupValues?.get(1)
+            ?: line.substringAfter("from :", "").substringBefore(' ').removePrefix(":")
+              .ifBlank { null }
+            ?: return@forEach
         add(
           ValidationGateFinding(
             module = module,
             ruleOrTestId = "forbidden_project_dependency",
             message = line,
-            location = FileSystemValidationGateGradlePaths.filePathFromAdviceBlock(line)?.let { path ->
-              FileSystemValidationGateGradlePaths.repoRelativeAdvicePath(path)
-            },
+            location =
+              FileSystemValidationGateGradlePaths.filePathFromAdviceBlock(line)?.let { path ->
+                FileSystemValidationGateGradlePaths.repoRelativeAdvicePath(path)
+              },
           ),
         )
       }
     }
   }
 
-  fun parseGradleTaskFailureHeaders(stdout: String, coveredTaskKeys: Set<String>): List<ValidationGateFinding> =
+  fun parseGradleTaskFailureHeaders(
+    stdout: String,
+    coveredTaskKeys: Set<String>,
+  ): List<ValidationGateFinding> =
     buildList {
       stdout.lineSequence().forEach { rawLine ->
         val line = rawLine.trim()
@@ -206,18 +219,22 @@ internal object FileSystemValidationGateGradleStdoutParsers {
       }
     }
 
-  fun parseGradleKotlinCompilerStdout(repoRoot: Path, stdout: String): List<ValidationGateFinding> {
+  fun parseGradleKotlinCompilerStdout(
+    repoRoot: Path,
+    stdout: String,
+  ): List<ValidationGateFinding> {
     val repo = repoRoot.toAbsolutePath().normalize()
     val canonicalRepo = FileSystemValidationGateGradlePaths.canonicalizeExisting(repo)
-    val repoPrefixes = listOf(
-      canonicalRepo.toUri().toString().removeSuffix("/"),
-      repo.toUri().toString().removeSuffix("/"),
-      "file://$canonicalRepo",
-      "file://$repo",
-      canonicalRepo.toString(),
-      repo.toString(),
-      "file://",
-    ).distinct()
+    val repoPrefixes =
+      listOf(
+        canonicalRepo.toUri().toString().removeSuffix("/"),
+        repo.toUri().toString().removeSuffix("/"),
+        "file://$canonicalRepo",
+        "file://$repo",
+        canonicalRepo.toString(),
+        repo.toString(),
+        "file://",
+      ).distinct()
     return stdout.lineSequence().mapNotNull { line ->
       val eMatch = COMPILER_E_LINE.matchEntire(line.trim()) ?: return@mapNotNull null
       val rest = eMatch.groupValues[1].trim()
@@ -225,18 +242,20 @@ internal object FileSystemValidationGateGradleStdoutParsers {
       val rawPath = locationMatch.groupValues[COMPILER_LOCATION_PATH_GROUP].removePrefix("file://")
       val lineNo = locationMatch.groupValues[COMPILER_LOCATION_LINE_GROUP]
       val column = locationMatch.groupValues[COMPILER_LOCATION_COLUMN_GROUP]
-      var message = locationMatch.groupValues[COMPILER_LOCATION_MESSAGE_GROUP].trim()
-        .replace(GRADLE_TASK_PREFIX, "")
+      var message =
+        locationMatch.groupValues[COMPILER_LOCATION_MESSAGE_GROUP].trim()
+          .replace(GRADLE_TASK_PREFIX, "")
       for (prefix in repoPrefixes) {
         message = message.replace(prefix, "")
       }
       message = message.trim()
-      val relative = FileSystemValidationGateGradlePaths.repoRelativeCompilerPath(
-        repo,
-        canonicalRepo,
-        Path.of(rawPath),
-        rawPath,
-      )
+      val relative =
+        FileSystemValidationGateGradlePaths.repoRelativeCompilerPath(
+          repo,
+          canonicalRepo,
+          Path.of(rawPath),
+          rawPath,
+        )
       val module = relative.substringBefore('/').ifBlank { "<compiler>" }
       ValidationGateFinding(
         module = module,

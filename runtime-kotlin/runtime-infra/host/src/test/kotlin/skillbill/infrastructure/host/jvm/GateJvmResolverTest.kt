@@ -16,14 +16,16 @@ class GateJvmResolverTest {
     try {
       val leaked = writeJdkShapedHome(Files.createDirectories(imageRoot.resolve("jdk")))
       val explicit = writeJdkShapedHome(outsideImage)
-      val environment = mutableMapOf(
-        GateJvmEnvironmentKeys.JAVA_HOME to leaked.toString(),
-        GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to explicit.toString(),
-        GateJvmEnvironmentKeys.PATH to listOf(
-          leaked.resolve("bin").toString(),
-          explicit.resolve("bin").toString(),
-        ).joinToString(File.pathSeparator),
-      )
+      val environment =
+        mutableMapOf(
+          GateJvmEnvironmentKeys.JAVA_HOME to leaked.toString(),
+          GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to explicit.toString(),
+          GateJvmEnvironmentKeys.PATH to
+            listOf(
+              leaked.resolve("bin").toString(),
+              explicit.resolve("bin").toString(),
+            ).joinToString(File.pathSeparator),
+        )
 
       dropRuntimeImageJava(environment, imageRoot.toRealPath())
 
@@ -39,11 +41,12 @@ class GateJvmResolverTest {
   @Test
   fun `a runtime already running on a full JDK keeps the operator's own selection out of the drop list`() {
     val runningHome = Path.of(System.getProperty("java.home"))
-    val environment = mutableMapOf(
-      GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to runningHome.toString(),
-      GateJvmEnvironmentKeys.JAVA_HOME to runningHome.toString(),
-      GateJvmEnvironmentKeys.PATH to runningHome.resolve("bin").toString(),
-    )
+    val environment =
+      mutableMapOf(
+        GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to runningHome.toString(),
+        GateJvmEnvironmentKeys.JAVA_HOME to runningHome.toString(),
+        GateJvmEnvironmentKeys.PATH to runningHome.resolve("bin").toString(),
+      )
 
     val dropped = dropRuntimeImageJava(environment, runtimeImageRoot(JdkHostPlatformPort))
 
@@ -80,10 +83,11 @@ class GateJvmResolverTest {
     val candidate = Files.createTempDirectory("gate-jvm-late-install")
     try {
       val resolver = testGateJvmResolver()
-      val environment = mutableMapOf(
-        GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to candidate.toString(),
-        GateJvmEnvironmentKeys.PATH to hostPath(),
-      )
+      val environment =
+        mutableMapOf(
+          GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to candidate.toString(),
+          GateJvmEnvironmentKeys.PATH to hostPath(),
+        )
       val beforeInstall = resolver.resolve(environment)
       writeJdkShapedHome(candidate)
 
@@ -96,10 +100,11 @@ class GateJvmResolverTest {
 
   @Test
   fun `an unresolved gate JVM clears JAVA_HOME at the launch surface instead of failing the launch`() {
-    val environment = mutableMapOf(
-      GateJvmEnvironmentKeys.JAVA_HOME to "/opt/skill-bill/runtime",
-      GateJvmEnvironmentKeys.PATH to hostPath(),
-    )
+    val environment =
+      mutableMapOf(
+        GateJvmEnvironmentKeys.JAVA_HOME to "/opt/skill-bill/runtime",
+        GateJvmEnvironmentKeys.PATH to hostPath(),
+      )
 
     GateJvmDisposition.Unresolved(rejectedCandidate = "/opt/skill-bill/runtime", requiredMajor = "21")
       .applyTo(environment)
@@ -108,9 +113,13 @@ class GateJvmResolverTest {
     assertEquals(hostPath(), environment[GateJvmEnvironmentKeys.PATH])
   }
 
-  private fun guardInput(skillBillJavaHome: Path, javaHome: Path): MutableMap<String, String> = mutableMapOf(
-    GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to skillBillJavaHome.toString(),
-    GateJvmEnvironmentKeys.JAVA_HOME to javaHome.toString(),
-    GateJvmEnvironmentKeys.PATH to hostPath(),
-  )
+  private fun guardInput(
+    skillBillJavaHome: Path,
+    javaHome: Path,
+  ): MutableMap<String, String> =
+    mutableMapOf(
+      GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to skillBillJavaHome.toString(),
+      GateJvmEnvironmentKeys.JAVA_HOME to javaHome.toString(),
+      GateJvmEnvironmentKeys.PATH to hostPath(),
+    )
 }

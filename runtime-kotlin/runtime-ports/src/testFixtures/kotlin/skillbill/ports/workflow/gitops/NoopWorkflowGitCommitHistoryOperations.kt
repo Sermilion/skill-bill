@@ -4,7 +4,10 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
 internal object NoopWorkflowGitCommitHistoryOperations : WorkflowGitCommitHistoryOperations {
-  override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult {
+  override fun createCommit(
+    repoRoot: Path,
+    message: String,
+  ): WorkflowGitOperationResult {
     return WorkflowGitOperationResult.Ok(
       value = "recorded:${message.hashCode().toUInt().toString(HASH_RADIX_HEX)}",
     )
@@ -14,11 +17,17 @@ internal object NoopWorkflowGitCommitHistoryOperations : WorkflowGitCommitHistor
     return WorkflowGitOperationResult.Ok(value = "")
   }
 
-  override fun resetSoftToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult {
+  override fun resetSoftToCommit(
+    repoRoot: Path,
+    commitSha: String,
+  ): WorkflowGitOperationResult {
     return WorkflowGitOperationResult.Ok(value = commitSha.trim())
   }
 
-  override fun resetHardToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult {
+  override fun resetHardToCommit(
+    repoRoot: Path,
+    commitSha: String,
+  ): WorkflowGitOperationResult {
     return WorkflowGitOperationResult.Ok(value = commitSha.trim())
   }
 

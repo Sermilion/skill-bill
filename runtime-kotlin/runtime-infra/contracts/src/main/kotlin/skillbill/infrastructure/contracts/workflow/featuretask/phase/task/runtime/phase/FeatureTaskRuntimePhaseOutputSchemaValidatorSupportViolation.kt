@@ -2,14 +2,18 @@ package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runti
 import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.ValidationMessage
 
-internal fun featureTaskRuntimePhaseOutputDottedFieldPath(instanceLocation: String): String = when {
-  instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
-  instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
-  instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
-  else -> instanceLocation.trimStart('/').replace('/', '.')
-}
+internal fun featureTaskRuntimePhaseOutputDottedFieldPath(instanceLocation: String): String =
+  when {
+    instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
+    instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
+    instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
+    else -> instanceLocation.trimStart('/').replace('/', '.')
+  }
 
-internal fun extractFeatureTaskRuntimePhaseOutputOffendingValue(instance: JsonNode, instanceLocation: String): String {
+internal fun extractFeatureTaskRuntimePhaseOutputOffendingValue(
+  instance: JsonNode,
+  instanceLocation: String,
+): String {
   val dotted = featureTaskRuntimePhaseOutputDottedFieldPath(instanceLocation)
   if (dotted.isBlank()) return ""
   var node: JsonNode = instance
@@ -39,26 +43,35 @@ internal fun extractFeatureTaskRuntimePhaseOutputOffendingValue(instance: JsonNo
   }
 }
 
-internal fun buildSchemaDriftLog(sourceLabel: String, errors: Set<ValidationMessage>): String {
-  val parts = errors.sortedWith(featureTaskRuntimePhaseOutputViolationOrdering).take(2).map { error ->
-    val location = error.instanceLocation?.toString().orEmpty()
-    val fieldPath = featureTaskRuntimePhaseOutputDottedFieldPath(location).ifBlank { "<root>" }
-    val constraint = error.message.orEmpty().trim()
-    if (constraint.isNotEmpty()) "$fieldPath: $constraint" else fieldPath
-  }
+internal fun buildSchemaDriftLog(
+  sourceLabel: String,
+  errors: Set<ValidationMessage>,
+): String {
+  val parts =
+    errors.sortedWith(featureTaskRuntimePhaseOutputViolationOrdering).take(2).map { error ->
+      val location = error.instanceLocation?.toString().orEmpty()
+      val fieldPath = featureTaskRuntimePhaseOutputDottedFieldPath(location).ifBlank { "<root>" }
+      val constraint = error.message.orEmpty().trim()
+      if (constraint.isNotEmpty()) "$fieldPath: $constraint" else fieldPath
+    }
   return "Feature-task-runtime phase output failed schema validation: source='$sourceLabel' " +
     "violations=${parts.joinToString(", ")} totalViolations=${errors.size}"
 }
 
 internal data class PhaseOutputViolationReasons(val valueBearing: String, val payloadFree: String)
 
-internal fun formatViolationReasons(sorted: List<ValidationMessage>, instance: JsonNode): PhaseOutputViolationReasons {
-  val violations = sorted.map { error ->
-    val location = error.instanceLocation?.toString().orEmpty()
-    val fieldPath = featureTaskRuntimePhaseOutputDottedFieldPath(location).ifBlank { "<root>" }
-    val head = "$fieldPath: ${error.message}"
-    head to extractFeatureTaskRuntimePhaseOutputOffendingValue(instance, location)
-  }
+internal fun formatViolationReasons(
+  sorted: List<ValidationMessage>,
+  instance: JsonNode,
+): PhaseOutputViolationReasons {
+  val violations =
+    sorted.map { error ->
+      val location = error.instanceLocation?.toString().orEmpty()
+      val fieldPath = featureTaskRuntimePhaseOutputDottedFieldPath(location).ifBlank { "<root>" }
+      val head = "$fieldPath: ${error.message}"
+      head to extractFeatureTaskRuntimePhaseOutputOffendingValue(instance, location)
+    }
+
   fun render(includeOffendingValues: Boolean): String =
     violations.joinToString(separator = " | ") { (head, offendingValue) ->
       if (includeOffendingValues && offendingValue.isNotBlank()) {
@@ -70,8 +83,9 @@ internal fun formatViolationReasons(sorted: List<ValidationMessage>, instance: J
   return PhaseOutputViolationReasons(valueBearing = render(true), payloadFree = render(false))
 }
 
-internal val featureTaskRuntimePhaseOutputViolationOrdering: Comparator<ValidationMessage> = compareBy(
-  { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
-  { it.instanceLocation?.toString().orEmpty() },
-  { it.message.orEmpty() },
-)
+internal val featureTaskRuntimePhaseOutputViolationOrdering: Comparator<ValidationMessage> =
+  compareBy(
+    { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
+    { it.instanceLocation?.toString().orEmpty() },
+    { it.message.orEmpty() },
+  )

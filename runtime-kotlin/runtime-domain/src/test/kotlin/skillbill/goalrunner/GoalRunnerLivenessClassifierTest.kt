@@ -9,20 +9,22 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GoalRunnerLivenessClassifierTest {
-  private val base = GoalRunnerLivenessInputs(
-    processAlive = true,
-    operationActive = false,
-    operationExpectedLong = false,
-    durableAdvanceWithinInterval = false,
-    operationDeadlineOverrun = false,
-    wallClockCapExceeded = false,
-  )
+  private val base =
+    GoalRunnerLivenessInputs(
+      processAlive = true,
+      operationActive = false,
+      operationExpectedLong = false,
+      durableAdvanceWithinInterval = false,
+      operationDeadlineOverrun = false,
+      wallClockCapExceeded = false,
+    )
 
   @Test
   fun `live declared long operation classifies working and disarms idle timeout`() {
-    val decision = GoalRunnerLivenessClassifier.classify(
-      base.copy(operationActive = true, operationExpectedLong = true),
-    )
+    val decision =
+      GoalRunnerLivenessClassifier.classify(
+        base.copy(operationActive = true, operationExpectedLong = true),
+      )
     assertEquals(GoalRunnerLivenessState.WORKING, decision.state)
     assertFalse(decision.armIdleTimeout)
     assertTrue(decision.disarmIdleTimeout)
@@ -30,18 +32,20 @@ class GoalRunnerLivenessClassifierTest {
 
   @Test
   fun `active non-long operation becomes idle after its declared event goes stale`() {
-    val decision = GoalRunnerLivenessClassifier.classify(
-      base.copy(operationActive = true, operationExpectedLong = false),
-    )
+    val decision =
+      GoalRunnerLivenessClassifier.classify(
+        base.copy(operationActive = true, operationExpectedLong = false),
+      )
     assertEquals(GoalRunnerLivenessState.IDLE, decision.state)
     assertTrue(decision.armIdleTimeout)
   }
 
   @Test
   fun `durable advance classifies progressing and disarms idle timeout`() {
-    val decision = GoalRunnerLivenessClassifier.classify(
-      base.copy(durableAdvanceWithinInterval = true),
-    )
+    val decision =
+      GoalRunnerLivenessClassifier.classify(
+        base.copy(durableAdvanceWithinInterval = true),
+      )
     assertEquals(GoalRunnerLivenessState.PROGRESSING, decision.state)
     assertFalse(decision.armIdleTimeout)
   }
@@ -66,18 +70,20 @@ class GoalRunnerLivenessClassifierTest {
 
   @Test
   fun `dead process classifies unresponsive deterministically`() {
-    val decision = GoalRunnerLivenessClassifier.classify(
-      base.copy(processAlive = false, operationActive = true),
-    )
+    val decision =
+      GoalRunnerLivenessClassifier.classify(
+        base.copy(processAlive = false, operationActive = true),
+      )
     assertEquals(GoalRunnerLivenessState.UNRESPONSIVE, decision.state)
     assertFalse(decision.armIdleTimeout)
   }
 
   @Test
   fun `operation deadline overrun classifies unresponsive even when process alive`() {
-    val decision = GoalRunnerLivenessClassifier.classify(
-      base.copy(operationActive = true, operationDeadlineOverrun = true),
-    )
+    val decision =
+      GoalRunnerLivenessClassifier.classify(
+        base.copy(operationActive = true, operationDeadlineOverrun = true),
+      )
     assertEquals(GoalRunnerLivenessState.UNRESPONSIVE, decision.state)
   }
 

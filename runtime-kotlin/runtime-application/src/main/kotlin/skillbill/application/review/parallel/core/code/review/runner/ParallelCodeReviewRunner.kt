@@ -31,17 +31,18 @@ class ParallelCodeReviewRunner(
     resultAssembly.recordLaneDispositions(initial, outcomes)
     val integration = resultAssembly.runIntegrationPass(initial, outcomes)
     val coverage = resultAssembly.coverageReport(initial, outcomes, integration)
-    val result = resultAssembly.parallelResult(
-      ParallelResultArgs(
-        agent1Id = initial.agent1Id,
-        outcomes = outcomes,
-        integration = integration,
-        coverage = coverage,
-        packet = initial.compiledLaunchRequests.firstOrNull()?.packet,
-        budget = initial.budget,
-        stageResume = resultAssembly.stageResumeReport(initial.request.reviewRunId),
-      ),
-    )
+    val result =
+      resultAssembly.parallelResult(
+        ParallelResultArgs(
+          agent1Id = initial.agent1Id,
+          outcomes = outcomes,
+          integration = integration,
+          coverage = coverage,
+          packet = initial.compiledLaunchRequests.firstOrNull()?.packet,
+          budget = initial.budget,
+          stageResume = resultAssembly.stageResumeReport(initial.request.reviewRunId),
+        ),
+      )
     resultAssembly.persistReviewPassClaims(
       initial.request.reviewRunId,
       result.mergeResult.findings,
@@ -55,25 +56,28 @@ class ParallelCodeReviewRunner(
     resultAssembly.recordMergedFindingLanes(initial.request.reviewRunId)
     val verificationOutcome = verificationStages.runClaimVerification(initial, result)
     val adjudicationOutcome = verificationStages.runSpecAdjudication(initial, result)
-    val recordedVerdicts = verificationStages.recordedFindingVerdicts(
-      initial.request.reviewRunId,
-      verificationOutcome.verdicts + adjudicationOutcome.verdicts,
-    )
+    val recordedVerdicts =
+      verificationStages.recordedFindingVerdicts(
+        initial.request.reviewRunId,
+        verificationOutcome.verdicts + adjudicationOutcome.verdicts,
+      )
     resultAssembly.emitReviewStageDegradations(
       initial.request.reviewRunId,
       outcomes,
       verificationOutcome.nonSuccess,
     )
     val prose = result.output
-    val assembled = ParallelReviewMerger.withRecordedVerdicts(result.mergeResult, recordedVerdicts)
-      .copy(formattedOutput = prose)
+    val assembled =
+      ParallelReviewMerger.withRecordedVerdicts(result.mergeResult, recordedVerdicts)
+        .copy(formattedOutput = prose)
     persistAccounting(result)
     return result.copy(
       mergeResult = assembled,
       stageResume = resultAssembly.stageResumeReport(initial.request.reviewRunId),
-      citationDiagnostics = result.citationDiagnostics +
-        verificationOutcome.citationDiagnostics +
-        adjudicationOutcome.citationDiagnostics,
+      citationDiagnostics =
+        result.citationDiagnostics +
+          verificationOutcome.citationDiagnostics +
+          adjudicationOutcome.citationDiagnostics,
     )
   }
 
@@ -110,15 +114,17 @@ class ParallelCodeReviewRunner(
   }
 
   private fun verifyNativeWorkers(initial: ParallelCodeReviewInitialRun) {
-    val nativeNames = initial.compiledLaunchRequests
-      .filter { it.workerKind == ReviewWorkerKind.PROVIDER_NATIVE }
-      .mapNotNull { it.logicalWorkerName }
-    val logicalNames = buildList {
-      addAll(nativeNames)
-      if (initial.resolvedMode == ResolvedReviewExecutionMode.INLINE) {
-        add(PARALLEL_REVIEW_INLINE_NATIVE_WORKER)
-      }
-    }.distinct()
+    val nativeNames =
+      initial.compiledLaunchRequests
+        .filter { it.workerKind == ReviewWorkerKind.PROVIDER_NATIVE }
+        .mapNotNull { it.logicalWorkerName }
+    val logicalNames =
+      buildList {
+        addAll(nativeNames)
+        if (initial.resolvedMode == ResolvedReviewExecutionMode.INLINE) {
+          add(PARALLEL_REVIEW_INLINE_NATIVE_WORKER)
+        }
+      }.distinct()
     if (logicalNames.isEmpty()) return
     nativeAgentPreflight.verify(
       ReviewNativeAgentPreflightRequest(

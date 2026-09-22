@@ -6,9 +6,10 @@ import java.nio.file.Path
 
 internal fun installNativeAgentCompositionContext(
   additionalPackRoots: List<Path> = emptyList(),
-): NativeAgentCompositionContext = NativeAgentCompositionContext(
-  reviewContextBudgetBytes = RepoLocalConfig.defaults().reviewContextBudget.maxLaneLaunchBytes,
-  renderGovernedBody = ::renderAuthoredContentBody,
-  packLoader = InstallNativeAgentPlatformPackLoader,
-  additionalPackRoots = additionalPackRoots,
-)
+): NativeAgentCompositionContext =
+  NativeAgentCompositionContext(
+    reviewContextBudgetBytes = RepoLocalConfig.defaults().reviewContextBudget.maxLaneLaunchBytes,
+    renderGovernedBody = ::renderAuthoredContentBody,
+    packLoader = InstallNativeAgentPlatformPackLoader,
+    additionalPackRoots = additionalPackRoots,
+  )

@@ -7,6 +7,7 @@ import skillbill.review.context.model.hunk.ReviewDependencyAllowlist
 import skillbill.review.context.model.hunk.ReviewRevision
 import skillbill.review.context.model.packet.ReviewContextPacket
 import java.nio.file.Path
+
 data class ReviewPreparationRequest(
   val reviewId: String,
   val reviewRevision: ReviewRevision,

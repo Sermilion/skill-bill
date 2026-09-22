@@ -73,22 +73,24 @@ class UpdateCommand(
   private val format by formatOption()
 
   override fun run() {
-    val request = UpdateRunRequest(
-      releaseTag = release,
-      clean = clean,
-      dryRun = dryRun,
-      userHome = inputs.userHome,
-      environment = inputs.environment,
-    )
+    val request =
+      UpdateRunRequest(
+        releaseTag = release,
+        clean = clean,
+        dryRun = dryRun,
+        userHome = inputs.userHome,
+        environment = inputs.environment,
+      )
     val result = updateService.run(request)
     val wireStatus = result.status.toWireStatus()
-    val mergedPayload = buildMap {
-      putAll(result.plan.toPayload(wireStatus))
-      put("exit_code", result.exitCode)
-      put("installer_output", result.installerOutput)
-      result.updateCheck?.let { put("update_check", it.toPayload()) }
-      result.reason?.let { put("reason", it) }
-    }
+    val mergedPayload =
+      buildMap {
+        putAll(result.plan.toPayload(wireStatus))
+        put("exit_code", result.exitCode)
+        put("installer_output", result.installerOutput)
+        result.updateCheck?.let { put("update_check", it.toPayload()) }
+        result.reason?.let { put("reason", it) }
+      }
     if (format.wireName == "json") {
       state.complete(mergedPayload, format, exitCode = result.exitCode)
     } else {
@@ -97,36 +99,41 @@ class UpdateCommand(
   }
 }
 
-private fun UpdateRunStatus.toWireStatus(): String = when (this) {
-  UpdateRunStatus.COMPLETED -> "completed"
-  UpdateRunStatus.FAILED -> "failed"
-  UpdateRunStatus.DRY_RUN -> "dry_run"
-  UpdateRunStatus.SKIPPED -> "skipped"
-  UpdateRunStatus.CHECK_FAILED -> "check_failed"
-  UpdateRunStatus.DOWNLOAD_FAILED -> "failed"
-}
-
-private fun UpdateRunPlan.toPayload(status: String): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.STATUS to status,
-  "command" to command,
-  "installer_args" to installerArgs,
-)
-
-private fun UpdateRunResult.toText(payload: Map<String, Any?>): String = when {
-  status == UpdateRunStatus.DRY_RUN -> buildString {
-    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-    appendLine("command: ${plan.command}")
-    appendLine("installer_args: ${plan.installerArgs}")
+private fun UpdateRunStatus.toWireStatus(): String =
+  when (this) {
+    UpdateRunStatus.COMPLETED -> "completed"
+    UpdateRunStatus.FAILED -> "failed"
+    UpdateRunStatus.DRY_RUN -> "dry_run"
+    UpdateRunStatus.SKIPPED -> "skipped"
+    UpdateRunStatus.CHECK_FAILED -> "check_failed"
+    UpdateRunStatus.DOWNLOAD_FAILED -> "failed"
   }
-  updateCheck != null -> buildString {
-    val check = requireNotNull(updateCheck)
-    append(check.toText())
-    appendLine("update_status: ${payload[SharedPayloadKeys.STATUS]}")
-    appendLine("reason: ${reason.orEmpty()}")
+
+private fun UpdateRunPlan.toPayload(status: String): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.STATUS to status,
+    "command" to command,
+    "installer_args" to installerArgs,
+  )
+
+private fun UpdateRunResult.toText(payload: Map<String, Any?>): String =
+  when {
+    status == UpdateRunStatus.DRY_RUN ->
+      buildString {
+        appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
+        appendLine("command: ${plan.command}")
+        appendLine("installer_args: ${plan.installerArgs}")
+      }
+    updateCheck != null ->
+      buildString {
+        val check = requireNotNull(updateCheck)
+        append(check.toText())
+        appendLine("update_status: ${payload[SharedPayloadKeys.STATUS]}")
+        appendLine("reason: ${reason.orEmpty()}")
+      }
+    installerOutput != null -> installerOutput.orEmpty()
+    else -> "status: ${payload[SharedPayloadKeys.STATUS]}\n"
   }
-  installerOutput != null -> installerOutput.orEmpty()
-  else -> "status: ${payload[SharedPayloadKeys.STATUS]}\n"
-}
 
 @Inject
 class DoctorCliCommand(
@@ -163,56 +170,60 @@ private fun retiredSubjectResult(
   content: String,
 ): CliExecutionResult {
   val replacementSkillName = skillName.ifBlank { "<skill-name>" }
-  val replacement = when (subject) {
-    "skill" -> "skill-bill show $replacementSkillName --repo-root $repoRoot --content $content"
-    else -> "skill-bill doctor"
-  }
-  val message = when (subject) {
-    "skill" -> "doctor skill was retired in SKILL-32; use `$replacement` instead."
-    else -> "doctor subject '$subject' is unsupported; use `$replacement` instead."
-  }
+  val replacement =
+    when (subject) {
+      "skill" -> "skill-bill show $replacementSkillName --repo-root $repoRoot --content $content"
+      else -> "skill-bill doctor"
+    }
+  val message =
+    when (subject) {
+      "skill" -> "doctor skill was retired in SKILL-32; use `$replacement` instead."
+      else -> "doctor subject '$subject' is unsupported; use `$replacement` instead."
+    }
   return CliExecutionResult(exitCode = 1, stdout = message)
 }
 
-private fun UpdateCheckResult.toText(): String = buildString {
-  when (status) {
-    UpdateCheckStatus.UP_TO_DATE -> {
-      appendLine("status: up_to_date")
-      appendLine("installed_version: $installedVersion")
-      appendLine("latest_version: $latestVersion")
-    }
-    UpdateCheckStatus.UPDATE_AVAILABLE -> {
-      appendLine("status: update_available")
-      appendLine("installed_version: $installedVersion")
-      appendLine("latest_version: $latestVersion")
-      appendLine("release_url: $releaseUrl")
-      appendLine("recommended_install_command: $recommendedInstallCommand")
-      releaseNotes?.let {
-        appendLine()
-        appendLine("what's new:")
-        appendLine(it)
+private fun UpdateCheckResult.toText(): String =
+  buildString {
+    when (status) {
+      UpdateCheckStatus.UP_TO_DATE -> {
+        appendLine("status: up_to_date")
+        appendLine("installed_version: $installedVersion")
+        appendLine("latest_version: $latestVersion")
+      }
+      UpdateCheckStatus.UPDATE_AVAILABLE -> {
+        appendLine("status: update_available")
+        appendLine("installed_version: $installedVersion")
+        appendLine("latest_version: $latestVersion")
+        appendLine("release_url: $releaseUrl")
+        appendLine("recommended_install_command: $recommendedInstallCommand")
+        releaseNotes?.let {
+          appendLine()
+          appendLine("what's new:")
+          appendLine(it)
+        }
+      }
+      UpdateCheckStatus.AHEAD_OF_RELEASE -> {
+        appendLine("status: ahead_of_release")
+        appendLine("installed_version: $installedVersion")
+        appendLine("latest_version: $latestVersion")
+        appendLine("release_url: $releaseUrl")
+      }
+      UpdateCheckStatus.UNKNOWN -> {
+        appendLine("status: unknown")
+        appendLine("reason: ${reason.orEmpty()}")
+        installedVersion?.let { appendLine("installed_version: $it") }
       }
     }
-    UpdateCheckStatus.AHEAD_OF_RELEASE -> {
-      appendLine("status: ahead_of_release")
-      appendLine("installed_version: $installedVersion")
-      appendLine("latest_version: $latestVersion")
-      appendLine("release_url: $releaseUrl")
-    }
-    UpdateCheckStatus.UNKNOWN -> {
-      appendLine("status: unknown")
-      appendLine("reason: ${reason.orEmpty()}")
-      installedVersion?.let { appendLine("installed_version: $it") }
-    }
   }
-}
 
-private fun UpdateCheckResult.toPayload(): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.STATUS to status.wireName,
-  "installed_version" to installedVersion,
-  "latest_version" to latestVersion,
-  "release_url" to releaseUrl,
-  "recommended_install_command" to recommendedInstallCommand,
-  "reason" to reason,
-  "release_notes" to releaseNotes,
-)
+private fun UpdateCheckResult.toPayload(): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.STATUS to status.wireName,
+    "installed_version" to installedVersion,
+    "latest_version" to latestVersion,
+    "release_url" to releaseUrl,
+    "recommended_install_command" to recommendedInstallCommand,
+    "reason" to reason,
+    "release_notes" to releaseNotes,
+  )

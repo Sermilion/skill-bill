@@ -92,10 +92,11 @@ class GoalChildRecoveryTest {
     )
   }
 
-  private fun progress(status: String) = GoalRunnerWorkflowProgress(
-    workflowId = "child-1",
-    workflowStatus = status,
-    currentStepId = "implement",
-    progressToken = "token",
-  )
+  private fun progress(status: String) =
+    GoalRunnerWorkflowProgress(
+      workflowId = "child-1",
+      workflowStatus = status,
+      currentStepId = "implement",
+      progressToken = "token",
+    )
 }

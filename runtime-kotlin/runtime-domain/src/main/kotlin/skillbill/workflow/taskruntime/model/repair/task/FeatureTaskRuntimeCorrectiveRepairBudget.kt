@@ -21,7 +21,10 @@ data class FeatureTaskRuntimeCorrectiveRepairBudget(
     }
   }
 
-  fun requireCollectionWithinLimit(itemCount: Int, label: String = "corrective-repair projection") {
+  fun requireCollectionWithinLimit(
+    itemCount: Int,
+    label: String = "corrective-repair projection",
+  ) {
     require(itemCount >= 0) {
       "FeatureTaskRuntimeCorrectiveRepairBudget collection count for $label must be non-negative, was $itemCount."
     }
@@ -32,7 +35,6 @@ data class FeatureTaskRuntimeCorrectiveRepairBudget(
   }
 
   companion object {
-
     val DEFAULT: FeatureTaskRuntimeCorrectiveRepairBudget =
       FeatureTaskRuntimeCorrectiveRepairBudget(
         maxResponseUtf8Bytes = MAX_RESPONSE_UTF8_BYTES,

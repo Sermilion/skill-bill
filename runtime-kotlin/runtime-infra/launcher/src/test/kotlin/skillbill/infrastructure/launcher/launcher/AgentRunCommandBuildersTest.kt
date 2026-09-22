@@ -22,12 +22,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class AgentRunCommandBuildersTest {
   @Test
   fun `a compaction directive reaches the claude launch environment`() {
-    val command = ClaudeAgentRunCommandBuilder().build(
-      request(compaction = PhaseCompactionDirective(windowTokens = 400_000, triggerPct = 70)),
-    )
+    val command =
+      ClaudeAgentRunCommandBuilder().build(
+        request(compaction = PhaseCompactionDirective(windowTokens = 400_000, triggerPct = 70)),
+      )
 
     assertEquals("400000", command.environment["CLAUDE_CODE_AUTO_COMPACT_WINDOW"])
     assertEquals("70", command.environment["CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"])
@@ -43,17 +45,19 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `structured output decoders ignore provider usage dimensions`() {
-    val claude = AgentRunOutputDecoder.CLAUDE_JSON.decode(
-      """{"result":"done","usage":{"input_tokens":100,"cache_read_input_tokens":40,""" +
-        """"output_tokens":20,"total_tokens":120}}""",
-    )
+    val claude =
+      AgentRunOutputDecoder.CLAUDE_JSON.decode(
+        """{"result":"done","usage":{"input_tokens":100,"cache_read_input_tokens":40,""" +
+          """"output_tokens":20,"total_tokens":120}}""",
+      )
     assertEquals("done", claude.text)
-    val codex = AgentRunOutputDecoder.CODEX_JSONL.decode(
-      """
-      {"item":{"text":"finding"}}
-      {"usage":{"input_tokens":90,"cached_input_tokens":30,"output_tokens":10,"reasoning_tokens":5,"total_tokens":100}}
-      """.trimIndent(),
-    )
+    val codex =
+      AgentRunOutputDecoder.CODEX_JSONL.decode(
+        """
+        {"item":{"text":"finding"}}
+        {"usage":{"input_tokens":90,"cached_input_tokens":30,"output_tokens":10,"reasoning_tokens":5,"total_tokens":100}}
+        """.trimIndent(),
+      )
     assertEquals("finding", codex.text)
     assertEquals("", AgentRunOutputDecoder.CLAUDE_JSON.decode("""{"usage":{"total_tokens":7}}""").text)
     assertEquals("", AgentRunOutputDecoder.CODEX_JSONL.decode("""{"usage":{"total_tokens":7}}""").text)
@@ -61,14 +65,16 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `streamed claude output decodes identically to the buffered form`() {
-    val buffered = """{"type":"result","subtype":"success","result":"PLAN-OK","usage":""" +
-      """{"input_tokens":2,"cache_read_input_tokens":17931,"output_tokens":6,"total_tokens":120}}"""
-    val streamed = listOf(
-      """{"type":"system","subtype":"init","session_id":"s-1","cwd":"/repo"}""",
-      """{"type":"assistant","message":{"model":"claude-opus-4-8"},"session_id":"s-1"}""",
-      """{"type":"rate_limit_event","rate_limit_info":{"status":"allowed"},"session_id":"s-1"}""",
-      buffered,
-    ).joinToString("\n")
+    val buffered =
+      """{"type":"result","subtype":"success","result":"PLAN-OK","usage":""" +
+        """{"input_tokens":2,"cache_read_input_tokens":17931,"output_tokens":6,"total_tokens":120}}"""
+    val streamed =
+      listOf(
+        """{"type":"system","subtype":"init","session_id":"s-1","cwd":"/repo"}""",
+        """{"type":"assistant","message":{"model":"claude-opus-4-8"},"session_id":"s-1"}""",
+        """{"type":"rate_limit_event","rate_limit_info":{"status":"allowed"},"session_id":"s-1"}""",
+        buffered,
+      ).joinToString("\n")
 
     val fromBuffered = AgentRunOutputDecoder.CLAUDE_JSON.decode(buffered)
     val fromStream = AgentRunOutputDecoder.CLAUDE_STREAM_JSON.decode(streamed)
@@ -84,11 +90,12 @@ class AgentRunCommandBuildersTest {
     assertEquals("", undecodable.text, "a stream cut before its terminal event carries no answer")
     assertEquals(noResultEvent, undecodable.rawOutputPreview)
 
-    val laterResultWins = listOf(
-      """{"type":"result","subtype":"success","result":"stale"}""",
-      """{"type":"assistant","message":{"content":"result"}}""",
-      """{"type":"result","subtype":"success","result":"fresh"}""",
-    ).joinToString("\n")
+    val laterResultWins =
+      listOf(
+        """{"type":"result","subtype":"success","result":"stale"}""",
+        """{"type":"assistant","message":{"content":"result"}}""",
+        """{"type":"result","subtype":"success","result":"fresh"}""",
+      ).joinToString("\n")
     assertEquals("fresh", AgentRunOutputDecoder.CLAUDE_STREAM_JSON.decode(laterResultWins).text)
 
     val partialLine = """{"type":"result","subtype":"success","result":"kept"}""" + "\n{\"type\":\"resu"
@@ -190,12 +197,13 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `claude directive naming an anthropic model falls back to the parent model on a non-anthropic endpoint`() {
-    val builder = ClaudeAgentRunCommandBuilder(
-      mapOf(
-        "ANTHROPIC_BASE_URL" to "https://api.deepseek.com/anthropic",
-        "ANTHROPIC_MODEL" to "deepseek-v4-flash",
-      ),
-    )
+    val builder =
+      ClaudeAgentRunCommandBuilder(
+        mapOf(
+          "ANTHROPIC_BASE_URL" to "https://api.deepseek.com/anthropic",
+          "ANTHROPIC_MODEL" to "deepseek-v4-flash",
+        ),
+      )
 
     val command = builder.build(request(model = "claude-opus-5", effort = "high")).command
 
@@ -206,9 +214,10 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `claude directive naming a served deepseek model passes through unchanged`() {
-    val builder = ClaudeAgentRunCommandBuilder(
-      mapOf("ANTHROPIC_BASE_URL" to "https://api.deepseek.com/anthropic"),
-    )
+    val builder =
+      ClaudeAgentRunCommandBuilder(
+        mapOf("ANTHROPIC_BASE_URL" to "https://api.deepseek.com/anthropic"),
+      )
 
     val command = builder.build(request(model = "deepseek-v4-flash")).command
 
@@ -219,9 +228,10 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `claude directive passes through on the official anthropic endpoint`() {
-    val builder = ClaudeAgentRunCommandBuilder(
-      mapOf("ANTHROPIC_BASE_URL" to "https://api.anthropic.com"),
-    )
+    val builder =
+      ClaudeAgentRunCommandBuilder(
+        mapOf("ANTHROPIC_BASE_URL" to "https://api.anthropic.com"),
+      )
 
     val command = builder.build(request(model = "claude-opus-5")).command
 
@@ -232,9 +242,10 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `claude directive without a parent model keeps the directive on a non-anthropic endpoint`() {
-    val builder = ClaudeAgentRunCommandBuilder(
-      mapOf("ANTHROPIC_BASE_URL" to "https://api.deepseek.com/anthropic"),
-    )
+    val builder =
+      ClaudeAgentRunCommandBuilder(
+        mapOf("ANTHROPIC_BASE_URL" to "https://api.deepseek.com/anthropic"),
+      )
 
     val command = builder.build(request(model = "claude-opus-5")).command
 
@@ -245,12 +256,13 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `claude without a model directive stays flag free so the child inherits the parent model`() {
-    val builder = ClaudeAgentRunCommandBuilder(
-      mapOf(
-        "ANTHROPIC_BASE_URL" to "https://api.deepseek.com/anthropic",
-        "ANTHROPIC_MODEL" to "deepseek-v4-flash",
-      ),
-    )
+    val builder =
+      ClaudeAgentRunCommandBuilder(
+        mapOf(
+          "ANTHROPIC_BASE_URL" to "https://api.deepseek.com/anthropic",
+          "ANTHROPIC_MODEL" to "deepseek-v4-flash",
+        ),
+      )
 
     val command = builder.build(request()).command
 
@@ -312,9 +324,10 @@ class AgentRunCommandBuildersTest {
   @Test
   fun `all feature task codex phases remain writable`() {
     FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.forEach { phase ->
-      val command = CodexAgentRunCommandBuilder().build(
-        request().copy(promptOverride = "Phase: $phase"),
-      ).command
+      val command =
+        CodexAgentRunCommandBuilder().build(
+          request().copy(promptOverride = "Phase: $phase"),
+        ).command
 
       assertTrue(command.contains("--dangerously-bypass-approvals-and-sandbox"))
       assertFalse(command.contains("read-only"))
@@ -323,11 +336,12 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `directive capable agents have builders that render their directives`() {
-    val builders = listOf(
-      ClaudeAgentRunCommandBuilder(),
-      CodexAgentRunCommandBuilder(),
-      CursorAgentRunCommandBuilder(),
-    )
+    val builders =
+      listOf(
+        ClaudeAgentRunCommandBuilder(),
+        CodexAgentRunCommandBuilder(),
+        CursorAgentRunCommandBuilder(),
+      )
 
     assertEquals(MODEL_DIRECTIVE_CAPABLE_AGENTS, builders.map { it.agent }.toSet())
     builders.forEach { builder ->
@@ -353,20 +367,22 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `junie accepts a directive free request`() {
-    val command = JunieAgentRunCommandBuilder().build(
-      request(),
-    ).command
+    val command =
+      JunieAgentRunCommandBuilder().build(
+        request(),
+      ).command
 
     assertEquals(InstallAgent.JUNIE.id, command.first())
   }
 
   @Test
   fun `a governed claude launch is a fresh isolated process naming its worker`() {
-    val isolated = request().copy(
-      reviewEvidenceBroker = NoOpReviewEvidenceBroker,
-      reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
-      nativeReviewWorkerName = "bill-kotlin-code-review-architecture",
-    )
+    val isolated =
+      request().copy(
+        reviewEvidenceBroker = NoOpReviewEvidenceBroker,
+        reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
+        nativeReviewWorkerName = "bill-kotlin-code-review-architecture",
+      )
     val builder = ClaudeAgentRunCommandBuilder()
     val command = builder.build(isolated)
 
@@ -384,11 +400,12 @@ class AgentRunCommandBuildersTest {
   @Test
   fun `a provider missing a governed launch capability fails with a typed error and no command`() {
     val governed = governedReviewRequest()
-    val capable = GovernedReviewLaunchCapability(
-      governedOnlyTooling = true,
-      mcpIsolation = true,
-      configFormat = McpConfigFormat.TOML,
-    )
+    val capable =
+      GovernedReviewLaunchCapability(
+        governedOnlyTooling = true,
+        mcpIsolation = true,
+        configFormat = McpConfigFormat.TOML,
+      )
     listOf(
       capable.copy(governedOnlyTooling = false) to "governed-only tooling",
       capable.copy(mcpIsolation = false) to "MCP isolation",
@@ -415,10 +432,11 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `governed claude review names only governed operations and no raw filesystem tool`() {
-    val isolated = request().copy(
-      reviewEvidenceBroker = NoOpReviewEvidenceBroker,
-      reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
-    )
+    val isolated =
+      request().copy(
+        reviewEvidenceBroker = NoOpReviewEvidenceBroker,
+        reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
+      )
     val governedOperations = GovernedReviewEvidenceContracts.OPERATIONS
 
     listOf(false to emptyList<String>(), true to listOf("Agent", "Task")).forEach { (fanOut, delegation) ->
@@ -439,11 +457,12 @@ class AgentRunCommandBuildersTest {
 
   @Test
   fun `claude builder forwards provider passthrough keys when review evidence broker is present`() {
-    val isolated = request().copy(
-      reviewEvidenceBroker = NoOpReviewEvidenceBroker,
-      reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
-      nativeReviewWorkerName = "bill-kotlin-code-review-architecture",
-    )
+    val isolated =
+      request().copy(
+        reviewEvidenceBroker = NoOpReviewEvidenceBroker,
+        reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
+        nativeReviewWorkerName = "bill-kotlin-code-review-architecture",
+      )
     val command = ClaudeAgentRunCommandBuilder().build(isolated)
     assertTrue(
       command.environmentPassthroughKeys.contains("ANTHROPIC_API_KEY"),

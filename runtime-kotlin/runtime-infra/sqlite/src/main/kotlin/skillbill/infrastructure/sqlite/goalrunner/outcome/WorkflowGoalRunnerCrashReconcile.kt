@@ -12,13 +12,14 @@ internal fun crashReconcileExpiredWorkerToResumable(
   val now = clock.instant()
   if (!request.ownership.expiresAtInstant.isBefore(now)) return null
   if (!request.workerSupervisor.inspect(request.ownership).isConfirmedDead()) return null
-  val reconciled = request.workflowStates.reconcileFeatureTaskRuntimeCrashedWorker(
-    workflowId = request.workflowId,
-    ownerToken = request.ownership.ownerToken,
-    generation = request.ownership.generation,
-    interruptionReason = "lease_expired: worker lease expired and process confirmed dead",
-    nowInstant = now.toString(),
-  )
+  val reconciled =
+    request.workflowStates.reconcileFeatureTaskRuntimeCrashedWorker(
+      workflowId = request.workflowId,
+      ownerToken = request.ownership.ownerToken,
+      generation = request.ownership.generation,
+      interruptionReason = "lease_expired: worker lease expired and process confirmed dead",
+      nowInstant = now.toString(),
+    )
   if (!reconciled) return null
   return GoalRunnerStoredOutcome(
     status = GoalRunnerTerminalStatus.RECONCILABLE,

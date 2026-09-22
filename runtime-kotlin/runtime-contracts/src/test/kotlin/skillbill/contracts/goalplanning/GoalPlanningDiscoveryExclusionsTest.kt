@@ -12,6 +12,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class GoalPlanningDiscoveryExclusionsTest {
   @Test
   fun `shipped contract is staged on the classpath and denies platform pack agent memory`() {
@@ -56,27 +57,30 @@ class GoalPlanningDiscoveryExclusionsTest {
 
   @Test
   fun `an unknown key is rejected rather than silently ignored`() {
-    val unknown = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
-      GoalPlanningDiscoveryExclusions.parse(
-        contract(extra = "excluded_paths:\n  - \"secrets/\"\n"),
-      )
-    }
+    val unknown =
+      assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+        GoalPlanningDiscoveryExclusions.parse(
+          contract(extra = "excluded_paths:\n  - \"secrets/\"\n"),
+        )
+      }
     assertContains(unknown.message.orEmpty(), "unknown keys: excluded_paths")
   }
 
   @Test
   fun `a contract without excluded directory names loud fails`() {
-    val missing = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
-      GoalPlanningDiscoveryExclusions.parse(
-        "contract_version: \"${GoalPlanningDiscoveryExclusions.CONTRACT_VERSION}\"\n" +
-          "excluded_roots:\n  - \"platform-packs/\"\n",
-      )
-    }
+    val missing =
+      assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+        GoalPlanningDiscoveryExclusions.parse(
+          "contract_version: \"${GoalPlanningDiscoveryExclusions.CONTRACT_VERSION}\"\n" +
+            "excluded_roots:\n  - \"platform-packs/\"\n",
+        )
+      }
     assertContains(missing.message.orEmpty(), "no excluded_directory_names")
 
-    val nested = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
-      GoalPlanningDiscoveryExclusions.parse(contract(directoryNames = listOf("a/b")))
-    }
+    val nested =
+      assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+        GoalPlanningDiscoveryExclusions.parse(contract(directoryNames = listOf("a/b")))
+      }
     assertContains(nested.message.orEmpty(), "bare directory name")
   }
 
@@ -89,43 +93,48 @@ class GoalPlanningDiscoveryExclusionsTest {
 
   @Test
   fun `duplicate excluded roots are rejected`() {
-    val failure = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
-      GoalPlanningDiscoveryExclusions.parse(
-        contract(roots = listOf("platform-packs/", "platform-packs/")),
-      )
-    }
+    val failure =
+      assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+        GoalPlanningDiscoveryExclusions.parse(
+          contract(roots = listOf("platform-packs/", "platform-packs/")),
+        )
+      }
     assertContains(failure.message.orEmpty(), "duplicate")
   }
 
   @Test
   fun `duplicate excluded directory names are rejected`() {
-    val failure = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
-      GoalPlanningDiscoveryExclusions.parse(
-        contract(directoryNames = listOf("build", "build")),
-      )
-    }
+    val failure =
+      assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+        GoalPlanningDiscoveryExclusions.parse(
+          contract(directoryNames = listOf("build", "build")),
+        )
+      }
     assertContains(failure.message.orEmpty(), "duplicate")
   }
 
   @Test
   fun `malformed contracts loud fail instead of degrading to allow all`() {
-    val emptyRoots = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
-      GoalPlanningDiscoveryExclusions.parse(contract(roots = emptyList()))
-    }
+    val emptyRoots =
+      assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+        GoalPlanningDiscoveryExclusions.parse(contract(roots = emptyList()))
+      }
     assertContains(emptyRoots.message.orEmpty(), "no excluded_roots")
 
-    val wrongVersion = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
-      GoalPlanningDiscoveryExclusions.parse(contract(version = "9.9"))
-    }
+    val wrongVersion =
+      assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+        GoalPlanningDiscoveryExclusions.parse(contract(version = "9.9"))
+      }
     assertContains(wrongVersion.message.orEmpty(), "unsupported")
 
     assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
       GoalPlanningDiscoveryExclusions.parse("- not-a-mapping\n")
     }
 
-    val absoluteRoot = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
-      GoalPlanningDiscoveryExclusions.parse(contract(roots = listOf("/etc/")))
-    }
+    val absoluteRoot =
+      assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+        GoalPlanningDiscoveryExclusions.parse(contract(roots = listOf("/etc/")))
+      }
     assertContains(absoluteRoot.message.orEmpty(), "normalized repo-relative prefix")
 
     assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
@@ -182,16 +191,17 @@ class GoalPlanningDiscoveryExclusionsTest {
     roots: List<String> = listOf("platform-packs/"),
     directoryNames: List<String> = listOf("build"),
     extra: String = "",
-  ): String = buildString {
-    append("contract_version: \"$version\"\n")
-    append("excluded_roots:")
-    if (roots.isEmpty()) append(" []\n") else roots.forEach { root -> append("\n  - \"$root\"") }
-    if (roots.isNotEmpty()) append("\n")
-    append("excluded_directory_names:")
-    if (directoryNames.isEmpty()) append(" []\n") else directoryNames.forEach { name -> append("\n  - \"$name\"") }
-    if (directoryNames.isNotEmpty()) append("\n")
-    append(extra)
-  }
+  ): String =
+    buildString {
+      append("contract_version: \"$version\"\n")
+      append("excluded_roots:")
+      if (roots.isEmpty()) append(" []\n") else roots.forEach { root -> append("\n  - \"$root\"") }
+      if (roots.isNotEmpty()) append("\n")
+      append("excluded_directory_names:")
+      if (directoryNames.isEmpty()) append(" []\n") else directoryNames.forEach { name -> append("\n  - \"$name\"") }
+      if (directoryNames.isNotEmpty()) append("\n")
+      append(extra)
+    }
 
   private fun repoRoot(): Path? {
     var candidate: Path? = Path.of("").toAbsolutePath()

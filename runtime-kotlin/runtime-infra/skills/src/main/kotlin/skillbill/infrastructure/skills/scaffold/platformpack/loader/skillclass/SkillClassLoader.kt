@@ -19,7 +19,10 @@ internal fun findRepoRootForSkillClasses(start: Path): Path? {
   return null
 }
 
-internal fun resolveSkillClassForSkill(skillName: String, startPath: Path): SkillClassManifest? {
+internal fun resolveSkillClassForSkill(
+  skillName: String,
+  startPath: Path,
+): SkillClassManifest? {
   val repoRoot = findRepoRootForSkillClasses(startPath) ?: return null
   return resolveSkillClass(skillName, discoverSkillClasses(repoRoot))
 }
@@ -40,7 +43,10 @@ internal fun discoverSkillClasses(repoRoot: Path): List<SkillClassManifest> {
   return yamlFiles.map(::loadSkillClassManifest)
 }
 
-internal fun resolveSkillClass(skillName: String, classes: List<SkillClassManifest>): SkillClassManifest? {
+internal fun resolveSkillClass(
+  skillName: String,
+  classes: List<SkillClassManifest>,
+): SkillClassManifest? {
   val matches = classes.filter { manifest -> manifest.matchesSkillName(skillName) }
   return when {
     matches.isEmpty() -> null

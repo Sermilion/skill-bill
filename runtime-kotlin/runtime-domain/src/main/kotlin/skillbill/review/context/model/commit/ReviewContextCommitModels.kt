@@ -6,6 +6,7 @@ import skillbill.review.context.model.hunk.REVIEW_MIN_COMMIT_COUNT
 import skillbill.review.context.model.hunk.REVIEW_MIN_ORDER_INDEX
 import skillbill.review.context.model.hunk.REVIEW_SYNTHETIC_UNIT_ORDER_INDEX
 import skillbill.review.context.model.hunk.ReviewChangedHunk
+
 const val REVIEW_SYNTHETIC_COMMIT_PREFIX: String = "synthetic:"
 
 enum class ReviewCommitSource {
@@ -58,25 +59,30 @@ data class ReviewCommitUnit(
   }
 
   val canonicalHunks: List<ReviewChangedHunk>
-    get() = hunks.sortedWith(
-      compareBy(ReviewChangedHunk::path, ReviewChangedHunk::newStart, ReviewChangedHunk::oldStart),
-    )
+    get() =
+      hunks.sortedWith(
+        compareBy(ReviewChangedHunk::path, ReviewChangedHunk::newStart, ReviewChangedHunk::oldStart),
+      )
 
   val hunkIds: List<String> get() = canonicalHunks.map { it.hunkId }
 
   val commitUnitId: String by lazy(LazyThreadSafetyMode.PUBLICATION) { sha256(canonicalValue()) }
 
-  internal fun canonicalValue(): String = canonicalFields(
-    commitSha,
-    parentSha,
-    subject.replace("\r\n", "\n"),
-    orderIndex,
-    source.name,
-    canonicalFieldList(canonicalHunks.map { it.packetCanonical() }),
-  )
+  internal fun canonicalValue(): String =
+    canonicalFields(
+      commitSha,
+      parentSha,
+      subject.replace("\r\n", "\n"),
+      orderIndex,
+      source.name,
+      canonicalFieldList(canonicalHunks.map { it.packetCanonical() }),
+    )
 
   companion object {
-    fun commitScopeKey(commitSha: String, orderIndex: Int): String = "$commitSha@$orderIndex"
+    fun commitScopeKey(
+      commitSha: String,
+      orderIndex: Int,
+    ): String = "$commitSha@$orderIndex"
 
     fun ofCommit(
       commitSha: String,
@@ -96,7 +102,10 @@ data class ReviewCommitUnit(
       )
     }
 
-    fun synthetic(source: ReviewCommitSource, hunks: List<ReviewChangedHunk>): ReviewCommitUnit {
+    fun synthetic(
+      source: ReviewCommitSource,
+      hunks: List<ReviewChangedHunk>,
+    ): ReviewCommitUnit {
       require(source.isSynthetic) { "A synthetic review unit cannot declare the COMMIT_RANGE source." }
       return ReviewCommitUnit(
         commitSha = REVIEW_SYNTHETIC_COMMIT_PREFIX + source.name.lowercase(),
@@ -131,12 +140,13 @@ data class ReviewCommitCoverageFact(
     }
   }
 
-  val canonical: String get() = canonicalFields(
-    baseRevision,
-    headRevision,
-    commitCount,
-    chainVerified,
-    pathCoverageVerified,
-    degradedReason.orEmpty(),
-  )
+  val canonical: String get() =
+    canonicalFields(
+      baseRevision,
+      headRevision,
+      commitCount,
+      chainVerified,
+      pathCoverageVerified,
+      degradedReason.orEmpty(),
+    )
 }

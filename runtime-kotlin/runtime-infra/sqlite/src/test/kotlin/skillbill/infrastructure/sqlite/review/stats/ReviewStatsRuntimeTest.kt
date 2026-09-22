@@ -108,38 +108,40 @@ class ReviewStatsRuntimeTest {
             "accepted_findings" to 3,
             "rejected_findings" to 1,
             "unresolved_findings" to 0,
-            "accepted_finding_details" to listOf(
-              mapOf(
-                "finding_id" to "F-001",
-                "issue_category" to "behavior_correctness",
-                "severity" to "Blocker",
-                "confidence" to "High",
-                "outcome_type" to "fix_applied",
+            "accepted_finding_details" to
+              listOf(
+                mapOf(
+                  "finding_id" to "F-001",
+                  "issue_category" to "behavior_correctness",
+                  "severity" to "Blocker",
+                  "confidence" to "High",
+                  "outcome_type" to "fix_applied",
+                ),
+                mapOf(
+                  "finding_id" to "F-002",
+                  "issue_category" to "behavior_correctness",
+                  "severity" to "Major",
+                  "confidence" to "High",
+                  "outcome_type" to "fix_applied",
+                ),
+                mapOf(
+                  "finding_id" to "F-003",
+                  "issue_category" to "testing",
+                  "severity" to "Major",
+                  "confidence" to "Medium",
+                  "outcome_type" to "finding_accepted",
+                ),
               ),
-              mapOf(
-                "finding_id" to "F-002",
-                "issue_category" to "behavior_correctness",
-                "severity" to "Major",
-                "confidence" to "High",
-                "outcome_type" to "fix_applied",
+            "rejected_finding_details" to
+              listOf(
+                mapOf(
+                  "finding_id" to "F-004",
+                  "issue_category" to "behavior_correctness",
+                  "severity" to "Major",
+                  "confidence" to "Low",
+                  "outcome_type" to "false_positive",
+                ),
               ),
-              mapOf(
-                "finding_id" to "F-003",
-                "issue_category" to "testing",
-                "severity" to "Major",
-                "confidence" to "Medium",
-                "outcome_type" to "finding_accepted",
-              ),
-            ),
-            "rejected_finding_details" to listOf(
-              mapOf(
-                "finding_id" to "F-004",
-                "issue_category" to "behavior_correctness",
-                "severity" to "Major",
-                "confidence" to "Low",
-                "outcome_type" to "false_positive",
-              ),
-            ),
           ),
         ),
       )
@@ -173,24 +175,26 @@ class ReviewStatsRuntimeTest {
             "accepted_findings" to 1,
             "rejected_findings" to 1,
             "unresolved_findings" to 0,
-            "accepted_finding_details" to listOf(
-              mapOf(
-                "finding_id" to "F-001",
-                "issue_category" to "behavior_correctness",
-                "severity" to "Major",
-                "confidence" to "Medium",
-                "outcome_type" to "fix_applied",
+            "accepted_finding_details" to
+              listOf(
+                mapOf(
+                  "finding_id" to "F-001",
+                  "issue_category" to "behavior_correctness",
+                  "severity" to "Major",
+                  "confidence" to "Medium",
+                  "outcome_type" to "fix_applied",
+                ),
               ),
-            ),
-            "rejected_finding_details" to listOf(
-              mapOf(
-                "finding_id" to "F-002",
-                "issue_category" to "testing_quality_gate",
-                "severity" to "Minor",
-                "confidence" to "Low",
-                "outcome_type" to "false_positive",
+            "rejected_finding_details" to
+              listOf(
+                mapOf(
+                  "finding_id" to "F-002",
+                  "issue_category" to "testing_quality_gate",
+                  "severity" to "Minor",
+                  "confidence" to "Low",
+                  "outcome_type" to "false_positive",
+                ),
               ),
-            ),
           ),
         ),
       )
@@ -333,9 +337,10 @@ class ReviewStatsRuntimeTest {
         listOf("skillbill_feature_task_runtime_started", "skillbill_feature_task_runtime_finished"),
         pending.map { it.eventName },
       )
-      val finishedPayload = JsonCodec.parseObjectOrNull(
-        pending.single { it.eventName == "skillbill_feature_task_runtime_finished" }.payloadJson,
-      )
+      val finishedPayload =
+        JsonCodec.parseObjectOrNull(
+          pending.single { it.eventName == "skillbill_feature_task_runtime_finished" }.payloadJson,
+        )
       assertFeatureTaskRuntimeFinishedPayload(finishedPayload)
 
       val stats = ReviewStatsRuntime.featureTaskRuntimeStats(connection)
@@ -364,15 +369,16 @@ class ReviewStatsRuntimeTest {
     )
   }
 
-  private fun featureTaskRuntimeFinishedRecord(): FeatureTaskRuntimeFinishedRecord = FeatureTaskRuntimeFinishedRecord(
-    sessionId = "ftr-1",
-    completionStatus = "completed",
-    completedPhaseIds = listOf("preplan", "plan", "implement"),
-    phaseOutcomes = mapOf("preplan" to "completed", "plan" to "completed", "implement" to "completed"),
-    lastIncompletePhase = "completed",
-    blockedReason = "",
-    resolvedBranch = "feat/SKILL-65.1",
-  )
+  private fun featureTaskRuntimeFinishedRecord(): FeatureTaskRuntimeFinishedRecord =
+    FeatureTaskRuntimeFinishedRecord(
+      sessionId = "ftr-1",
+      completionStatus = "completed",
+      completedPhaseIds = listOf("preplan", "plan", "implement"),
+      phaseOutcomes = mapOf("preplan" to "completed", "plan" to "completed", "implement" to "completed"),
+      lastIncompletePhase = "completed",
+      blockedReason = "",
+      resolvedBranch = "feat/SKILL-65.1",
+    )
 
   private fun assertFeatureTaskRuntimeFinishedPayload(finishedPayload: Map<String, Any?>?) {
     assertEquals("completed", finishedPayload?.get("completion_status")?.let { it.toString().trim('"') })
@@ -463,10 +469,11 @@ class ReviewStatsRuntimeTest {
       assertEquals(1, stats.completionStatusCounts["decomposed_at_planning"])
       assertEquals(1, stats.phaseOutcomeCounts["blocked"])
 
-      val payloads = telemetryPayloads(
-        TelemetryOutboxStore(connection).listPending(limit = null),
-        "skillbill_feature_task_runtime_finished",
-      )
+      val payloads =
+        telemetryPayloads(
+          TelemetryOutboxStore(connection).listPending(limit = null),
+          "skillbill_feature_task_runtime_finished",
+        )
       val blockedPayload = payloads.single { it["session_id"] == "ftr-blocked" }
       assertEquals("plan", blockedPayload["last_incomplete_phase"])
       assertEquals("schema: gate failed", blockedPayload["blocked_reason"])
@@ -495,17 +502,20 @@ private fun recordFindingOutcome(
   TriageRuntime.recordFeedbackWithoutTransaction(
     connection = connection,
     request =
-    FeedbackRequest(
-      reviewRunId = reviewRunId,
-      findingIds = listOf(findingId),
-      eventType = eventType,
-      note = note,
-    ),
+      FeedbackRequest(
+        reviewRunId = reviewRunId,
+        findingIds = listOf(findingId),
+        eventType = eventType,
+        note = note,
+      ),
     telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
   )
 }
 
-private fun telemetryPayloads(records: List<TelemetryOutboxRecord>, eventName: String): List<Map<String, Any?>> =
+private fun telemetryPayloads(
+  records: List<TelemetryOutboxRecord>,
+  eventName: String,
+): List<Map<String, Any?>> =
   records.filter { it.eventName == eventName }.map { record ->
     JsonCodec.parseObjectOrNull(record.payloadJson)
       ?.let(JsonCodec::jsonElementToValue)
@@ -536,37 +546,41 @@ private fun assertSerializedReviewFinishedPayloads(
   assertEquals("Intentional wording", fullRejectedFinding["note"])
 }
 
-private fun cacheSkillLearning(connection: Connection, reviewRunId: String, reviewSessionId: String) {
+private fun cacheSkillLearning(
+  connection: Connection,
+  reviewRunId: String,
+  reviewSessionId: String,
+) {
   val learningId =
     SQLiteLearningStore.addLearning(
       connection = connection,
       request =
-      CreateLearningRequest(
-        scope = LearningScope.SKILL,
-        scopeKey = "bill-kotlin-code-review",
-        title = "Match wording",
-        ruleText = "Keep wording aligned with routed skill output.",
-        rationale = "",
-        sourceReviewRunId = reviewRunId,
-        sourceFindingId = "F-002",
-      ),
+        CreateLearningRequest(
+          scope = LearningScope.SKILL,
+          scopeKey = "bill-kotlin-code-review",
+          title = "Match wording",
+          ruleText = "Keep wording aligned with routed skill output.",
+          rationale = "",
+          sourceReviewRunId = reviewRunId,
+          sourceFindingId = "F-002",
+        ),
       sourceValidation =
-      LearningSourceValidation(
-        reviewRunId = reviewRunId,
-        findingId = "F-002",
-        rejectedOutcome = RejectedLearningSourceOutcome("fix_rejected", "Intentional wording"),
-      ),
+        LearningSourceValidation(
+          reviewRunId = reviewRunId,
+          findingId = "F-002",
+          rejectedOutcome = RejectedLearningSourceOutcome("fix_rejected", "Intentional wording"),
+        ),
     )
   val learningDto = learningEntryDto(SQLiteLearningStore.getLearning(connection, learningId))
   SQLiteLearningStore.saveSessionLearnings(
     connection = connection,
     reviewSessionId = reviewSessionId,
     learningsJson =
-    JsonCodec.mapToJsonString(
-      learningAppliedSessionWire(null, listOf(learningDto)).toPayload().toMutableMap().apply {
-        put("scope_counts", mapOf("global" to 0, "repo" to 0, "skill" to 1))
-      },
-    ),
+      JsonCodec.mapToJsonString(
+        learningAppliedSessionWire(null, listOf(learningDto)).toPayload().toMutableMap().apply {
+          put("scope_counts", mapOf("global" to 0, "repo" to 0, "skill" to 1))
+        },
+      ),
   )
 }
 
@@ -583,7 +597,10 @@ private const val ZERO_FINDING_REVIEW: String =
   No findings.
   """
 
-private fun seedMixedReviewHealth(connection: Connection, reviewRunId: String) {
+private fun seedMixedReviewHealth(
+  connection: Connection,
+  reviewRunId: String,
+) {
   ReviewStatsRuntime.updateReviewFinishedTelemetryState(connection, reviewRunId, enabled = true, level = "full")
   insertFeatureImplementSessionWithChildSteps(
     connection,
@@ -597,28 +614,30 @@ private fun seedMixedReviewHealth(connection: Connection, reviewRunId: String) {
   insertMalformedFeatureImplementChildSteps(connection, "fis-malformed-review-child")
 }
 
-private fun embeddedReviewChildStep(): Map<String, Any?> = mapOf(
-  "skill" to "bill-kotlin-code-review",
-  "review_run_id" to "rvw-embedded",
-  "review_session_id" to "rvs-embedded",
-  "platform_slug" to "kotlin",
-  "scope_type" to "branch_diff",
-  "total_findings" to 2,
-  "accepted_findings" to 1,
-  "rejected_findings" to 0,
-  "unresolved_findings" to 1,
-  "accepted_finding_details" to listOf(
-    mapOf(
-      "finding_id" to "F-EMBEDDED-1",
-      "issue_category" to "testing",
-      "severity" to "Major",
-      "confidence" to "high",
-      "outcome_type" to "finding_accepted",
-    ),
-  ),
-  "rejected_finding_details" to emptyList<Map<String, Any?>>(),
-  "latest_outcome_counts" to mapOf("finding_accepted" to 1),
-)
+private fun embeddedReviewChildStep(): Map<String, Any?> =
+  mapOf(
+    "skill" to "bill-kotlin-code-review",
+    "review_run_id" to "rvw-embedded",
+    "review_session_id" to "rvs-embedded",
+    "platform_slug" to "kotlin",
+    "scope_type" to "branch_diff",
+    "total_findings" to 2,
+    "accepted_findings" to 1,
+    "rejected_findings" to 0,
+    "unresolved_findings" to 1,
+    "accepted_finding_details" to
+      listOf(
+        mapOf(
+          "finding_id" to "F-EMBEDDED-1",
+          "issue_category" to "testing",
+          "severity" to "Major",
+          "confidence" to "high",
+          "outcome_type" to "finding_accepted",
+        ),
+      ),
+    "rejected_finding_details" to emptyList<Map<String, Any?>>(),
+    "latest_outcome_counts" to mapOf("finding_accepted" to 1),
+  )
 
 private data class FeatureImplementSessionFixture(
   val sessionId: String,
@@ -654,7 +673,10 @@ private fun insertFeatureImplementSessionWithChildSteps(
   }
 }
 
-private fun insertMalformedFeatureImplementChildSteps(connection: Connection, sessionId: String) {
+private fun insertMalformedFeatureImplementChildSteps(
+  connection: Connection,
+  sessionId: String,
+) {
   connection.createStatement().use { statement ->
     statement.executeUpdate(
       """
@@ -721,31 +743,33 @@ private fun insertFeatureVerifySession(connection: Connection) {
             "accepted_findings" to 2,
             "rejected_findings" to 1,
             "unresolved_findings" to 0,
-            "accepted_finding_details" to listOf(
-              mapOf(
-                "finding_id" to "F-001",
-                "issue_category" to "behavior_correctness",
-                "severity" to "Blocker",
-                "confidence" to "High",
-                "outcome_type" to "fix_applied",
+            "accepted_finding_details" to
+              listOf(
+                mapOf(
+                  "finding_id" to "F-001",
+                  "issue_category" to "behavior_correctness",
+                  "severity" to "Blocker",
+                  "confidence" to "High",
+                  "outcome_type" to "fix_applied",
+                ),
+                mapOf(
+                  "finding_id" to "F-002",
+                  "issue_category" to "behavior_correctness",
+                  "severity" to "Major",
+                  "confidence" to "High",
+                  "outcome_type" to "fix_applied",
+                ),
               ),
-              mapOf(
-                "finding_id" to "F-002",
-                "issue_category" to "behavior_correctness",
-                "severity" to "Major",
-                "confidence" to "High",
-                "outcome_type" to "fix_applied",
+            "rejected_finding_details" to
+              listOf(
+                mapOf(
+                  "finding_id" to "F-003",
+                  "issue_category" to "testing",
+                  "severity" to "Major",
+                  "confidence" to "Medium",
+                  "outcome_type" to "false_positive",
+                ),
               ),
-            ),
-            "rejected_finding_details" to listOf(
-              mapOf(
-                "finding_id" to "F-003",
-                "issue_category" to "testing",
-                "severity" to "Major",
-                "confidence" to "Medium",
-                "outcome_type" to "false_positive",
-              ),
-            ),
           ),
         ),
       )

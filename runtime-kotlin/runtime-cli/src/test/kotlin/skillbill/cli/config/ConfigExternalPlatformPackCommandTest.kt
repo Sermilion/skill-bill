@@ -23,14 +23,15 @@ class ConfigExternalPlatformPackCommandTest {
     writePack(repo.resolve("platform-packs/kotlin"), "BUNDLED_BASELINE_MARKER", "bundled-gate-collect")
     writePack(external, "EXTERNAL_BASELINE_MARKER", "external-gate-collect")
     val before = writeConfig(config, external)
-    val result = CliRuntime.run(
-      listOf("config", "resolve-external-platform-packs", "--repo-root", repo.toString()),
-      CliRuntimeContext(
-        userHome = home,
-        repositoryRoot = repo,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("config", "resolve-external-platform-packs", "--repo-root", repo.toString()),
+        CliRuntimeContext(
+          userHome = home,
+          repositoryRoot = repo,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
+        ),
+      )
     assertEquals(0, result.exitCode, result.stdout)
     assertTrue(result.stdout.contains("kotlin\texternal\tkotlin\t"))
     assertEquals(before, Files.readString(config))
@@ -46,32 +47,35 @@ class ConfigExternalPlatformPackCommandTest {
     writePack(author, "EXTERNAL_BASELINE_MARKER", "external-gate-collect")
     Files.writeString(author.resolve("keep.txt"), "author-bytes")
     val before = writeConfig(config)
-    val context = CliRuntimeContext(
-      userHome = home,
-      repositoryRoot = repo,
-      environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
-    )
-    val dryRun = CliRuntime.run(
-      listOf(
-        "config",
-        "register-external-platform-pack",
-        "--path",
-        author.toString(),
-        "--repo-root",
-        repo.toString(),
-        "--dry-run",
-      ),
-      context,
-    )
+    val context =
+      CliRuntimeContext(
+        userHome = home,
+        repositoryRoot = repo,
+        environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
+      )
+    val dryRun =
+      CliRuntime.run(
+        listOf(
+          "config",
+          "register-external-platform-pack",
+          "--path",
+          author.toString(),
+          "--repo-root",
+          repo.toString(),
+          "--dry-run",
+        ),
+        context,
+      )
     assertEquals(0, dryRun.exitCode, dryRun.stdout)
     assertTrue(dryRun.stdout.contains("Would register"))
     assertEquals(before, Files.readString(config))
     assertEquals("author-bytes", Files.readString(author.resolve("keep.txt")))
 
-    val unregistered = CliRuntime.run(
-      listOf("config", "unregister-external-platform-pack", "--path", author.toString()),
-      context,
-    )
+    val unregistered =
+      CliRuntime.run(
+        listOf("config", "unregister-external-platform-pack", "--path", author.toString()),
+        context,
+      )
     assertEquals(0, unregistered.exitCode, unregistered.stdout)
     assertEquals("author-bytes", Files.readString(author.resolve("keep.txt")))
     assertTrue(Files.isDirectory(author))
@@ -90,14 +94,15 @@ class ConfigExternalPlatformPackCommandTest {
     val guidance = "Open the private README before retrying."
     Files.writeString(secret.resolve("README.md"), guidance)
 
-    val result = CliRuntime.run(
-      listOf("config", "resolve-external-platform-packs", "--repo-root", repo.toString()),
-      CliRuntimeContext(
-        userHome = home,
-        repositoryRoot = repo,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("config", "resolve-external-platform-packs", "--repo-root", repo.toString()),
+        CliRuntimeContext(
+          userHome = home,
+          repositoryRoot = repo,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
+        ),
+      )
 
     assertEquals(1, result.exitCode)
     val payload = requireNotNull(result.payload)
@@ -111,21 +116,30 @@ class ConfigExternalPlatformPackCommandTest {
     assertFalse(guidance in serialized)
   }
 
-  private fun writeConfig(config: Path, vararg packs: Path): String {
-    val text = JsonCodec.mapToJsonString(
-      mapOf(
-        "install_id" to "stable-id",
-        "external_addon_sources" to emptyList<Any>(),
-        ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to packs.map { pack ->
-          mapOf("path" to pack.toAbsolutePath().normalize().toString())
-        },
-      ),
-    ) + "\n"
+  private fun writeConfig(
+    config: Path,
+    vararg packs: Path,
+  ): String {
+    val text =
+      JsonCodec.mapToJsonString(
+        mapOf(
+          "install_id" to "stable-id",
+          "external_addon_sources" to emptyList<Any>(),
+          ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to
+            packs.map { pack ->
+              mapOf("path" to pack.toAbsolutePath().normalize().toString())
+            },
+        ),
+      ) + "\n"
     Files.writeString(config, text)
     return text
   }
 
-  private fun writePack(packRoot: Path, marker: String, gate: String) {
+  private fun writePack(
+    packRoot: Path,
+    marker: String,
+    gate: String,
+  ) {
     val baseline = packRoot.resolve("code-review/bill-kotlin-code-review/content.md")
     Files.createDirectories(baseline.parent)
     Files.writeString(baseline, reviewBody(marker))
@@ -158,7 +172,8 @@ class ConfigExternalPlatformPackCommandTest {
     )
   }
 
-  private fun reviewBody(marker: String): String = """
+  private fun reviewBody(marker: String): String =
+    """
     ---
     name: bill-kotlin-code-review
     description: $marker
@@ -182,5 +197,5 @@ class ConfigExternalPlatformPackCommandTest {
     ## Finding Discipline
 
     Keep this section limited to platform-specific finding preconditions.
-  """.trimIndent() + "\n"
+    """.trimIndent() + "\n"
 }

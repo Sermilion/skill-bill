@@ -45,9 +45,10 @@ fun validateRemoteStatsCapabilities(
   capabilities: TelemetryProxyCapabilities,
 ) {
   require(capabilities.supportsStats) {
-    val capabilitiesUrl = capabilities.capabilitiesUrl.ifBlank {
-      settings.proxyUrl.trimEnd('/') + "/capabilities"
-    }
+    val capabilitiesUrl =
+      capabilities.capabilitiesUrl.ifBlank {
+        settings.proxyUrl.trimEnd('/') + "/capabilities"
+      }
     "Configured telemetry proxy does not support remote stats yet. Capabilities URL: $capabilitiesUrl"
   }
   val supportedWorkflows = capabilities.supportedWorkflows
@@ -57,20 +58,31 @@ fun validateRemoteStatsCapabilities(
   }
 }
 
-private fun resolvedEndDate(dateTo: String, today: LocalDate): LocalDate = if (dateTo.isBlank()) {
-  today
-} else {
-  parseIsoDate(dateTo, "date_to")
-}
+private fun resolvedEndDate(
+  dateTo: String,
+  today: LocalDate,
+): LocalDate =
+  if (dateTo.isBlank()) {
+    today
+  } else {
+    parseIsoDate(dateTo, "date_to")
+  }
 
-private fun resolvedStartDate(since: String, dateFrom: String, endDate: LocalDate): LocalDate =
+private fun resolvedStartDate(
+  since: String,
+  dateFrom: String,
+  endDate: LocalDate,
+): LocalDate =
   if (dateFrom.isNotBlank()) {
     parseIsoDate(dateFrom, "date_from")
   } else {
     endDate.minusDays((parseSinceDays(since.ifBlank { "30d" }) - 1).toLong())
   }
 
-private fun parseIsoDate(rawValue: String, fieldName: String): LocalDate =
+private fun parseIsoDate(
+  rawValue: String,
+  fieldName: String,
+): LocalDate =
   runCatching { LocalDate.parse(rawValue) }.getOrElse {
     throw IllegalArgumentException("$fieldName must use YYYY-MM-DD format.")
   }

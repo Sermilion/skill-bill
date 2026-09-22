@@ -22,14 +22,15 @@ interface GoalPlanningBoundaryBodyResolver {
   ): GoalPlanningResolvedBoundaryBodies
 
   companion object {
-    val NONE: GoalPlanningBoundaryBodyResolver = object : GoalPlanningBoundaryBodyResolver {
-      override fun resolve(
-        repoRoot: Path,
-        headingIds: List<String>,
-        catalogHeadingIds: Set<String>,
-        caps: GoalPlanningBoundaryBodyResolutionCaps,
-        loudFailOnCapExceeded: Boolean,
-      ) = GoalPlanningResolvedBoundaryBodies(unresolvedHeadingIds = headingIds)
-    }
+    val NONE: GoalPlanningBoundaryBodyResolver =
+      object : GoalPlanningBoundaryBodyResolver {
+        override fun resolve(
+          repoRoot: Path,
+          headingIds: List<String>,
+          catalogHeadingIds: Set<String>,
+          caps: GoalPlanningBoundaryBodyResolutionCaps,
+          loudFailOnCapExceeded: Boolean,
+        ) = GoalPlanningResolvedBoundaryBodies(unresolvedHeadingIds = headingIds)
+      }
   }
 }

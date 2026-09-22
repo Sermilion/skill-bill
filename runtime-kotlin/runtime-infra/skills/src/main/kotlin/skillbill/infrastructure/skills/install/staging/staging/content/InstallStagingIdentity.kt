@@ -23,14 +23,18 @@ internal fun installedSkillSlug(sourceSkillDir: Path): String {
   if (raw.isEmpty()) {
     return ""
   }
-  val collapsed = raw.lowercase()
-    .replace(Regex("[^a-z0-9-]+"), "-")
-    .trim('-')
+  val collapsed =
+    raw.lowercase()
+      .replace(Regex("[^a-z0-9-]+"), "-")
+      .trim('-')
 
   return collapsed.take(INSTALL_SLUG_MAX_CHARS).trim('-')
 }
 
-internal fun agentAddonPointersForSkill(repoRoot: Path, skillName: String): List<AgentAddonPointer> =
+internal fun agentAddonPointersForSkill(
+  repoRoot: Path,
+  skillName: String,
+): List<AgentAddonPointer> =
   if (skillName == AgentAddonConsumer.BILL_FEATURE.id) {
     AgentAddonDeliveryResolver().resolve(repoRoot.toAbsolutePath().normalize(), AgentAddonConsumer.BILL_FEATURE)
   } else {
@@ -50,7 +54,10 @@ internal fun validateAgentAddonPointerNamespace(
   }
 }
 
-internal fun authoredStagingNames(sourceSkillDir: Path, authored: Collection<Path>): List<String> =
+internal fun authoredStagingNames(
+  sourceSkillDir: Path,
+  authored: Collection<Path>,
+): List<String> =
   authored.map { path ->
     sourceSkillDir.toAbsolutePath().normalize()
       .relativize(path.toAbsolutePath().normalize())

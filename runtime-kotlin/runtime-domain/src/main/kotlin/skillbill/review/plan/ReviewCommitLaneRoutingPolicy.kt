@@ -7,23 +7,31 @@ import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.commit.ReviewCommitUnit
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 import skillbill.review.plan.model.ReviewRoutedLane
+
 object ReviewCommitLaneRoutingPolicy {
   const val REQUIRED_BASELINE_SIGNAL: String = "required-baseline"
 
   private const val MAX_LISTED = 6
   private const val SHORT_COMMIT_SHA_CHARS = 12
 
-  fun route(units: List<ReviewCommitUnit>, lanes: List<ReviewRoutedLane>): ReviewCommitLaneRoutingMatrix {
+  fun route(
+    units: List<ReviewCommitUnit>,
+    lanes: List<ReviewRoutedLane>,
+  ): ReviewCommitLaneRoutingMatrix {
     require(units.isNotEmpty()) { "Commit/lane routing requires at least one review unit." }
     require(lanes.isNotEmpty()) { "Commit/lane routing requires at least one planned lane." }
     val ordered = units.sortedBy { it.orderIndex }
-    val decisions = ordered.flatMap { unit ->
-      lanes.map { lane -> decide(unit, lane) }
-    }
+    val decisions =
+      ordered.flatMap { unit ->
+        lanes.map { lane -> decide(unit, lane) }
+      }
     return ReviewCommitLaneRoutingMatrix(ordered.map { it.commitSha }, lanes.map { it.laneKey }, decisions)
   }
 
-  private fun decide(unit: ReviewCommitUnit, lane: ReviewRoutedLane): ReviewCommitLaneDecision {
+  private fun decide(
+    unit: ReviewCommitUnit,
+    lane: ReviewRoutedLane,
+  ): ReviewCommitLaneDecision {
     val descriptor = lane.descriptor
     if (descriptor.required) {
       return ReviewCommitLaneDecision(
@@ -31,19 +39,22 @@ object ReviewCommitLaneRoutingPolicy {
         orderIndex = unit.orderIndex,
         lane = lane.laneKey,
         disposition = ReviewCommitLaneDisposition.FOCUSED,
-        reason = bounded(
-          "required baseline lane '${descriptor.skillName}' covers every commit; baseline coverage is never " +
-            "dropped by sparse routing",
-        ),
+        reason =
+          bounded(
+            "required baseline lane '${descriptor.skillName}' covers every commit; baseline coverage is never " +
+              "dropped by sparse routing",
+          ),
         signals = listOf(REQUIRED_BASELINE_SIGNAL),
       )
     }
-    val matchedPaths = descriptor.pathSignals.filter { signal ->
-      unit.hunks.any { ReviewPathMatcher.matches(it.path, signal) }
-    }
-    val matchedContent = descriptor.contentSignals.filter { signal ->
-      unit.hunks.any { ReviewContentMatcher.contains(it.content, signal) }
-    }
+    val matchedPaths =
+      descriptor.pathSignals.filter { signal ->
+        unit.hunks.any { ReviewPathMatcher.matches(it.path, signal) }
+      }
+    val matchedContent =
+      descriptor.contentSignals.filter { signal ->
+        unit.hunks.any { ReviewContentMatcher.contains(it.content, signal) }
+      }
     val matched = matchedPaths.map { "path:$it" } + matchedContent.map { "content:$it" }
     return if (matched.isNotEmpty()) {
       ReviewCommitLaneDecision(
@@ -51,10 +62,11 @@ object ReviewCommitLaneRoutingPolicy {
         orderIndex = unit.orderIndex,
         lane = lane.laneKey,
         disposition = ReviewCommitLaneDisposition.FOCUSED,
-        reason = bounded(
-          "commit ${short(unit.commitSha)} changed evidence matching ${descriptor.area} signals " +
-            "${list(matched)}",
-        ),
+        reason =
+          bounded(
+            "commit ${short(unit.commitSha)} changed evidence matching ${descriptor.area} signals " +
+              "${list(matched)}",
+          ),
         signals = matched.distinct(),
       )
     } else {
@@ -63,11 +75,12 @@ object ReviewCommitLaneRoutingPolicy {
         orderIndex = unit.orderIndex,
         lane = lane.laneKey,
         disposition = ReviewCommitLaneDisposition.SKIPPED,
-        reason = bounded(
-          "commit ${short(unit.commitSha)} changed ${list(unit.hunks.map(ReviewChangedHunk::path).distinct())}; " +
-            "no ${descriptor.area} path signal ${list(descriptor.pathSignals)} or content signal " +
-            "${list(descriptor.contentSignals)} matched those hunks",
-        ),
+        reason =
+          bounded(
+            "commit ${short(unit.commitSha)} changed ${list(unit.hunks.map(ReviewChangedHunk::path).distinct())}; " +
+              "no ${descriptor.area} path signal ${list(descriptor.pathSignals)} or content signal " +
+              "${list(descriptor.contentSignals)} matched those hunks",
+          ),
         signals = emptyList(),
       )
     }
@@ -82,9 +95,10 @@ object ReviewCommitLaneRoutingPolicy {
     return shown.joinToString(", ", prefix = "[", postfix = "$suffix]")
   }
 
-  private fun bounded(reason: String) = if (reason.length <= REVIEW_ROUTING_REASON_MAX_CHARS) {
-    reason
-  } else {
-    reason.take(REVIEW_ROUTING_REASON_MAX_CHARS - 1) + "…"
-  }
+  private fun bounded(reason: String) =
+    if (reason.length <= REVIEW_ROUTING_REASON_MAX_CHARS) {
+      reason
+    } else {
+      reason.take(REVIEW_ROUTING_REASON_MAX_CHARS - 1) + "…"
+    }
 }

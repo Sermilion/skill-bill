@@ -44,14 +44,15 @@ internal fun evidenceBoundaryRefusedRecord(
   if (accounting.refusedOperationCount <= 0) {
     return null
   }
-  val categorySuffix = accounting.refusedCategories
-    .groupingBy { it }
-    .eachCount()
-    .entries
-    .sortedBy { it.key }
-    .joinToString(",", prefix = " [", postfix = "]") { "${it.key}=${it.value}" }
-    .takeIf { accounting.refusedCategories.isNotEmpty() }
-    .orEmpty()
+  val categorySuffix =
+    accounting.refusedCategories
+      .groupingBy { it }
+      .eachCount()
+      .entries
+      .sortedBy { it.key }
+      .joinToString(",", prefix = " [", postfix = "]") { "${it.key}=${it.value}" }
+      .takeIf { accounting.refusedCategories.isNotEmpty() }
+      .orEmpty()
   return ReviewStageDegradationMeasurement(
     reviewRunId = reviewRunId,
     seam = ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM,

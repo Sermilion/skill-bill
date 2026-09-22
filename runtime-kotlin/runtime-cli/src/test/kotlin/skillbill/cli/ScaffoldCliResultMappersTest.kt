@@ -34,20 +34,21 @@ class ScaffoldCliResultMappersTest {
     renderCommand = "skill-bill render bill-kotlin-code-review",
     completionStatus = ScaffoldCompletionStatus.COMPLETE,
     sectionCount = 2,
-    sections = listOf(
-      ScaffoldSectionStatus(
-        heading = "Overview",
-        status = ScaffoldSectionCompletionStatus.FILLED,
-        lineCount = 3,
-        preview = "Intro text",
+    sections =
+      listOf(
+        ScaffoldSectionStatus(
+          heading = "Overview",
+          status = ScaffoldSectionCompletionStatus.FILLED,
+          lineCount = 3,
+          preview = "Intro text",
+        ),
+        ScaffoldSectionStatus(
+          heading = "Guidance",
+          status = ScaffoldSectionCompletionStatus.TODO,
+          lineCount = 0,
+          preview = "",
+        ),
       ),
-      ScaffoldSectionStatus(
-        heading = "Guidance",
-        status = ScaffoldSectionCompletionStatus.TODO,
-        lineCount = 0,
-        preview = "",
-      ),
-    ),
     recommendedCommands = listOf("skill-bill fill bill-kotlin-code-review"),
     reviewComposition = reviewComposition,
     contentPreview = contentPreview,
@@ -57,19 +58,20 @@ class ScaffoldCliResultMappersTest {
 
   private val sectionKeys = listOf("heading", "status", "line_count", "preview")
 
-  private val statusBaseKeys = listOf(
-    "skill_name",
-    "package",
-    "platform",
-    "family",
-    "area",
-    "content_file",
-    "render_command",
-    "completion_status",
-    "section_count",
-    "sections",
-    "recommended_commands",
-  )
+  private val statusBaseKeys =
+    listOf(
+      "skill_name",
+      "package",
+      "platform",
+      "family",
+      "area",
+      "content_file",
+      "render_command",
+      "completion_status",
+      "section_count",
+      "sections",
+      "recommended_commands",
+    )
 
   @Test
   fun `show emits status keys in producer order without optional tail keys`() {
@@ -87,27 +89,31 @@ class ScaffoldCliResultMappersTest {
 
   @Test
   fun `show appends optional tail keys in producer order when present`() {
-    val composition = ScaffoldReviewComposition(
-      source = "platform.yaml",
-      summary = "Run 1 baseline layer(s) before pack-local specialists.",
-      baselineLayers = listOf(
-        ScaffoldBaselineLayer(
-          platform = "kotlin",
-          skill = "bill-kotlin-code-review",
-          scope = "same-review-scope",
-          required = true,
-          mode = "kmp-baseline",
-        ),
-      ),
-    )
-    val map = ScaffoldShowResult(
-      status = sampleStatus(
-        reviewComposition = composition,
-        contentPreview = "preview body",
-        content = "full body",
-        issues = listOf("missing section"),
-      ),
-    ).toCliMap()
+    val composition =
+      ScaffoldReviewComposition(
+        source = "platform.yaml",
+        summary = "Run 1 baseline layer(s) before pack-local specialists.",
+        baselineLayers =
+          listOf(
+            ScaffoldBaselineLayer(
+              platform = "kotlin",
+              skill = "bill-kotlin-code-review",
+              scope = "same-review-scope",
+              required = true,
+              mode = "kmp-baseline",
+            ),
+          ),
+      )
+    val map =
+      ScaffoldShowResult(
+        status =
+          sampleStatus(
+            reviewComposition = composition,
+            contentPreview = "preview body",
+            content = "full body",
+            issues = listOf("missing section"),
+          ),
+      ).toCliMap()
 
     assertEquals(
       statusBaseKeys + listOf("review_composition", "content_preview", "content", "issues"),
@@ -127,11 +133,12 @@ class ScaffoldCliResultMappersTest {
 
   @Test
   fun `list emits top-level keys and per-skill status keys in producer order`() {
-    val map = ScaffoldListResult(
-      repoRoot = "/repo",
-      skillCount = 1,
-      skills = listOf(sampleStatus()),
-    ).toCliMap()
+    val map =
+      ScaffoldListResult(
+        repoRoot = "/repo",
+        skillCount = 1,
+        skills = listOf(sampleStatus()),
+      ).toCliMap()
 
     assertEquals(listOf("repo_root", "skill_count", "skills"), map.keys.toList())
     assertEquals("/repo", map["repo_root"])
@@ -142,12 +149,13 @@ class ScaffoldCliResultMappersTest {
 
   @Test
   fun `validate repo mode emits only repo_root mode status issues`() {
-    val map = ScaffoldValidateResult(
-      repoRoot = "/repo",
-      mode = ScaffoldValidationMode.REPOSITORY,
-      status = ScaffoldValidationStatus.PASS,
-      issues = emptyList(),
-    ).toCliMap()
+    val map =
+      ScaffoldValidateResult(
+        repoRoot = "/repo",
+        mode = ScaffoldValidationMode.REPOSITORY,
+        status = ScaffoldValidationStatus.PASS,
+        issues = emptyList(),
+      ).toCliMap()
 
     assertEquals(listOf("repo_root", "mode", "status", "issues"), map.keys.toList())
     assertEquals("repo", map["mode"])
@@ -156,14 +164,15 @@ class ScaffoldCliResultMappersTest {
 
   @Test
   fun `validate selected mode inserts skill_names and suggested_commands around repo keys`() {
-    val map = ScaffoldValidateResult(
-      repoRoot = "/repo",
-      mode = ScaffoldValidationMode.SELECTED,
-      status = ScaffoldValidationStatus.FAIL,
-      issues = listOf("missing frontmatter"),
-      skillNames = listOf("bill-kotlin-code-review"),
-      suggestedCommands = listOf("skill-bill fill bill-kotlin-code-review"),
-    ).toCliMap()
+    val map =
+      ScaffoldValidateResult(
+        repoRoot = "/repo",
+        mode = ScaffoldValidationMode.SELECTED,
+        status = ScaffoldValidationStatus.FAIL,
+        issues = listOf("missing frontmatter"),
+        skillNames = listOf("bill-kotlin-code-review"),
+        suggestedCommands = listOf("skill-bill fill bill-kotlin-code-review"),
+      ).toCliMap()
 
     assertEquals(
       listOf("repo_root", "mode", "skill_names", "status", "issues", "suggested_commands"),
@@ -193,14 +202,16 @@ class ScaffoldCliResultMappersTest {
 
   @Test
   fun `explain appends nested skill block in producer order when present`() {
-    val map = sampleExplain(
-      skill = ScaffoldExplainSkill(
-        skillName = "bill-kotlin-code-review",
-        contentFile = "skills/bill-kotlin-code-review/content.md",
-        renderCommand = "skill-bill render bill-kotlin-code-review",
-        recommendedCommands = listOf("skill-bill fill bill-kotlin-code-review"),
-      ),
-    ).toCliMap()
+    val map =
+      sampleExplain(
+        skill =
+          ScaffoldExplainSkill(
+            skillName = "bill-kotlin-code-review",
+            contentFile = "skills/bill-kotlin-code-review/content.md",
+            renderCommand = "skill-bill render bill-kotlin-code-review",
+            recommendedCommands = listOf("skill-bill fill bill-kotlin-code-review"),
+          ),
+      ).toCliMap()
 
     assertEquals(
       listOf(
@@ -222,13 +233,14 @@ class ScaffoldCliResultMappersTest {
     assertEquals("bill-kotlin-code-review", skill["skill_name"])
   }
 
-  private fun sampleExplain(skill: ScaffoldExplainSkill?) = ScaffoldExplainResult(
-    explanation = "Authoring boundary explanation.",
-    editableSurface = listOf("content.md"),
-    generatedSurface = listOf("SKILL.md"),
-    governedSidecars = listOf("agent/history.md"),
-    normalWorkflow = listOf("fill"),
-    notes = listOf("note"),
-    skill = skill,
-  )
+  private fun sampleExplain(skill: ScaffoldExplainSkill?) =
+    ScaffoldExplainResult(
+      explanation = "Authoring boundary explanation.",
+      editableSurface = listOf("content.md"),
+      generatedSurface = listOf("SKILL.md"),
+      governedSidecars = listOf("agent/history.md"),
+      normalWorkflow = listOf("fill"),
+      notes = listOf("note"),
+      skill = skill,
+    )
 }

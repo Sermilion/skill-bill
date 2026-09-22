@@ -35,51 +35,60 @@ import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidat
 import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import java.nio.file.Path
+
 internal val validationGateTestRepoRoot: Path = Path.of(".").toAbsolutePath().normalize()
 
-internal val validationGateTestDeclaration: ValidationGateDeclaration = ValidationGateDeclaration(
-  fullGateCommand = listOf("echo", "cache"),
-  cacheBypassingFullGateCommand = listOf("echo", "full"),
-  collectAllFullGateCommand = listOf("echo", "collect-all"),
-  cacheBypassingCollectAllFullGateCommand = listOf("echo", "collect-all-full"),
-  findings = ValidationGateFindingsLocator(
-    format = ValidationGateFindingsFormat.JUNIT_XML,
-    artifactGlobs = listOf("**/*.xml"),
-    compilerDiagnostics = ValidationGateCompilerDiagnosticsLocator(
-      GRADLE_KOTLIN_COMPILER_STDOUT,
-    ),
-    executedWork = ValidationGateExecutedWorkSignal(ValidationGateExecutedWorkFormat.GRADLE_ACTIONABLE_SUMMARY),
-  ),
-)
-
-internal fun outOfContractResolver(): ValidationGateResolver = ValidationGateResolver {
-  throw ContractVersionMismatchError(
-    "Platform pack 'fallback': declares contract_version '0.1' but the shell expects '1.8'.",
+internal val validationGateTestDeclaration: ValidationGateDeclaration =
+  ValidationGateDeclaration(
+    fullGateCommand = listOf("echo", "cache"),
+    cacheBypassingFullGateCommand = listOf("echo", "full"),
+    collectAllFullGateCommand = listOf("echo", "collect-all"),
+    cacheBypassingCollectAllFullGateCommand = listOf("echo", "collect-all-full"),
+    findings =
+      ValidationGateFindingsLocator(
+        format = ValidationGateFindingsFormat.JUNIT_XML,
+        artifactGlobs = listOf("**/*.xml"),
+        compilerDiagnostics =
+          ValidationGateCompilerDiagnosticsLocator(
+            GRADLE_KOTLIN_COMPILER_STDOUT,
+          ),
+        executedWork = ValidationGateExecutedWorkSignal(ValidationGateExecutedWorkFormat.GRADLE_ACTIONABLE_SUMMARY),
+      ),
   )
-}
 
-internal fun neverRunsGate(): ValidationGateRunner = object : ValidationGateRunner {
-  override fun run(request: ValidationGateRunRequest): ValidationGateRunResult =
-    error("validation gate must not launch when platform packs are out of contract")
-}
+internal fun outOfContractResolver(): ValidationGateResolver =
+  ValidationGateResolver {
+    throw ContractVersionMismatchError(
+      "Platform pack 'fallback': declares contract_version '0.1' but the shell expects '1.8'.",
+    )
+  }
 
-internal fun outOfContractCycle(): ValidationGateCycleRequest = ValidationGateCycleRequest(
-  repoRoot = validationGateTestRepoRoot,
-  request = minimalRequest(),
-  validationDepth = ValidationDepth.DEFAULT,
-  changedPaths = listOf("runtime-kotlin/foo.kt"),
-  repositoryCheckpoint = "checkpoint",
-  agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
-    error("repair must not launch when platform packs are out of contract")
-  },
-)
+internal fun neverRunsGate(): ValidationGateRunner =
+  object : ValidationGateRunner {
+    override fun run(request: ValidationGateRunRequest): ValidationGateRunResult =
+      error("validation gate must not launch when platform packs are out of contract")
+  }
 
-internal fun findingRow(finding: ValidationGateFinding): Map<String, String?> = linkedMapOf(
-  "module" to finding.module,
-  "rule_or_test_id" to finding.ruleOrTestId,
-  "message" to finding.message,
-  "location" to finding.location,
-)
+internal fun outOfContractCycle(): ValidationGateCycleRequest =
+  ValidationGateCycleRequest(
+    repoRoot = validationGateTestRepoRoot,
+    request = minimalRequest(),
+    validationDepth = ValidationDepth.DEFAULT,
+    changedPaths = listOf("runtime-kotlin/foo.kt"),
+    repositoryCheckpoint = "checkpoint",
+    agentRepairLauncher =
+      ValidationGateAgentRepairLauncher { _, _, _ ->
+        error("repair must not launch when platform packs are out of contract")
+      },
+  )
+
+internal fun findingRow(finding: ValidationGateFinding): Map<String, String?> =
+  linkedMapOf(
+    "module" to finding.module,
+    "rule_or_test_id" to finding.ruleOrTestId,
+    "message" to finding.message,
+    "location" to finding.location,
+  )
 
 internal class RecordingProgressStore(
   private val recorded: MutableList<FeatureTaskRuntimeValidationGateProgress>,
@@ -87,7 +96,10 @@ internal class RecordingProgressStore(
 ) : ValidationGateProgressStore {
   private var loaded: FeatureTaskRuntimeValidationGateProgress? = initial
 
-  override fun persist(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) {
+  override fun persist(
+    workflowId: String,
+    progress: FeatureTaskRuntimeValidationGateProgress,
+  ) {
     recorded += progress
     loaded = progress
   }
@@ -95,63 +107,70 @@ internal class RecordingProgressStore(
   override fun load(workflowId: String): FeatureTaskRuntimeValidationGateProgress? = loaded
 }
 
-internal fun repoLocalConfig(gradleWrapper: String? = null): RepoLocalConfigPort = object : RepoLocalConfigPort {
-  override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) = ReadRepoLocalConfigResult(
-    RepoLocalConfig.defaults().copy(
-      validationGate = ValidationGateRepoConfig(gradleWrapper = gradleWrapper),
-    ),
-  )
-}
+internal fun repoLocalConfig(gradleWrapper: String? = null): RepoLocalConfigPort =
+  object : RepoLocalConfigPort {
+    override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
+      ReadRepoLocalConfigResult(
+        RepoLocalConfig.defaults().copy(
+          validationGate = ValidationGateRepoConfig(gradleWrapper = gradleWrapper),
+        ),
+      )
+  }
 
 internal fun declaredResolver(
   declaration: ValidationGateDeclaration = validationGateTestDeclaration,
 ): ValidationGateResolver =
   ValidationGateResolver { listOf(kotlinPackWithoutGate().copy(validationGate = declaration)) }
 
-internal fun minimalRequest(): FeatureTaskRuntimeRunRequest = FeatureTaskRuntimeRunRequest(
-  issueKey = "SKILL-180",
-  workflowId = "wf-skill-180",
-  sessionId = "session",
-  runInvariants = FeatureTaskRuntimeRunInvariants(
-    specReference = "spec.md",
-    featureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
-    acceptanceCriteria = listOf("AC-001"),
-    mandatesAndOverrides = emptyList(),
-  ),
-  invokedAgentId = "claude",
-  repoRoot = validationGateTestRepoRoot,
-)
+internal fun minimalRequest(): FeatureTaskRuntimeRunRequest =
+  FeatureTaskRuntimeRunRequest(
+    issueKey = "SKILL-180",
+    workflowId = "wf-skill-180",
+    sessionId = "session",
+    runInvariants =
+      FeatureTaskRuntimeRunInvariants(
+        specReference = "spec.md",
+        featureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
+        acceptanceCriteria = listOf("AC-001"),
+        mandatesAndOverrides = emptyList(),
+      ),
+    invokedAgentId = "claude",
+    repoRoot = validationGateTestRepoRoot,
+  )
 
-internal fun passed(forced: Boolean = false): ValidationGateRunResult = ValidationGateRunResult(
-  exitCode = 0,
-  durationMs = 1,
-  outcome = ValidationGateRunOutcome.PASSED,
-  cacheMode = if (forced) ValidationGateCacheMode.FORCED_FULL else ValidationGateCacheMode.CACHE_ELIGIBLE,
-  executedWorkUnits = 1,
-  executedCheckIdentities = emptyList(),
-  findings = emptyList(),
-)
+internal fun passed(forced: Boolean = false): ValidationGateRunResult =
+  ValidationGateRunResult(
+    exitCode = 0,
+    durationMs = 1,
+    outcome = ValidationGateRunOutcome.PASSED,
+    cacheMode = if (forced) ValidationGateCacheMode.FORCED_FULL else ValidationGateCacheMode.CACHE_ELIGIBLE,
+    executedWorkUnits = 1,
+    executedCheckIdentities = emptyList(),
+    findings = emptyList(),
+  )
 
-internal fun failedEmptyFindings(stdout: String = ""): ValidationGateRunResult = ValidationGateRunResult(
-  exitCode = 1,
-  durationMs = 1,
-  outcome = ValidationGateRunOutcome.FAILED,
-  cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-  executedWorkUnits = 1,
-  executedCheckIdentities = emptyList(),
-  findings = emptyList(),
-  stdout = stdout,
-)
+internal fun failedEmptyFindings(stdout: String = ""): ValidationGateRunResult =
+  ValidationGateRunResult(
+    exitCode = 1,
+    durationMs = 1,
+    outcome = ValidationGateRunOutcome.FAILED,
+    cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
+    executedWorkUnits = 1,
+    executedCheckIdentities = emptyList(),
+    findings = emptyList(),
+    stdout = stdout,
+  )
 
-internal fun failedWith(vararg findings: ValidationGateFinding): ValidationGateRunResult = ValidationGateRunResult(
-  exitCode = 1,
-  durationMs = 1,
-  outcome = ValidationGateRunOutcome.FAILED,
-  cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-  executedWorkUnits = 1,
-  executedCheckIdentities = emptyList(),
-  findings = findings.toList(),
-)
+internal fun failedWith(vararg findings: ValidationGateFinding): ValidationGateRunResult =
+  ValidationGateRunResult(
+    exitCode = 1,
+    durationMs = 1,
+    outcome = ValidationGateRunOutcome.FAILED,
+    cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
+    executedWorkUnits = 1,
+    executedCheckIdentities = emptyList(),
+    findings = findings.toList(),
+  )
 
 internal fun completedRepair(): ValidationGateAgentRepairResult {
   val payload = JsonCodec.mapToJsonString(mapOf("produced_outputs" to emptyMap<String, Any?>()))
@@ -163,39 +182,47 @@ internal fun completedRepair(): ValidationGateAgentRepairResult {
 internal fun blockedRepair(reason: String = "child process failed"): ValidationGateAgentRepairResult =
   ValidationGateAgentRepairResult.Blocked(reason)
 
-internal fun kotlinPackWithoutGate(): PlatformManifest = PlatformManifest(
-  slug = "kotlin",
-  packRoot = validationGateTestRepoRoot.resolve("platform-packs/kotlin").toFileLocation(),
-  contractVersion = "1.8",
-  routingSignals = RoutingSignals(
-    strong = listOf("runtime-kotlin"),
-    tieBreakers = emptyList(),
-    path = listOf("runtime-kotlin"),
-  ),
-  declaredCodeReviewAreas = emptyList(),
-  declaredFiles = DeclaredFiles(null, emptyMap()),
-  areaMetadata = emptyMap(),
-  validationGate = null,
-)
+internal fun kotlinPackWithoutGate(): PlatformManifest =
+  PlatformManifest(
+    slug = "kotlin",
+    packRoot = validationGateTestRepoRoot.resolve("platform-packs/kotlin").toFileLocation(),
+    contractVersion = "1.8",
+    routingSignals =
+      RoutingSignals(
+        strong = listOf("runtime-kotlin"),
+        tieBreakers = emptyList(),
+        path = listOf("runtime-kotlin"),
+      ),
+    declaredCodeReviewAreas = emptyList(),
+    declaredFiles = DeclaredFiles(null, emptyMap()),
+    areaMetadata = emptyMap(),
+    validationGate = null,
+  )
 
-internal fun reviewFallbackPackWithoutGate(): PlatformManifest = PlatformManifest(
-  slug = "generic",
-  packRoot = validationGateTestRepoRoot.resolve("platform-packs/generic").toFileLocation(),
-  contractVersion = "1.8",
-  routingSignals = RoutingSignals(
-    strong = emptyList(),
-    tieBreakers = emptyList(),
-    path = emptyList(),
-  ),
-  declaredCodeReviewAreas = emptyList(),
-  declaredFiles = DeclaredFiles(
-    baseline = validationGateTestRepoRoot.resolve("code-review/bill-generic-code-review/content.md").toFileLocation(),
-    areas = emptyMap(),
-  ),
-  areaMetadata = emptyMap(),
-  fallbackCapabilities = setOf("code-review"),
-  validationGate = null,
-)
+internal fun reviewFallbackPackWithoutGate(): PlatformManifest =
+  PlatformManifest(
+    slug = "generic",
+    packRoot = validationGateTestRepoRoot.resolve("platform-packs/generic").toFileLocation(),
+    contractVersion = "1.8",
+    routingSignals =
+      RoutingSignals(
+        strong = emptyList(),
+        tieBreakers = emptyList(),
+        path = emptyList(),
+      ),
+    declaredCodeReviewAreas = emptyList(),
+    declaredFiles =
+      DeclaredFiles(
+        baseline =
+          validationGateTestRepoRoot.resolve(
+            "code-review/bill-generic-code-review/content.md",
+          ).toFileLocation(),
+        areas = emptyMap(),
+      ),
+    areaMetadata = emptyMap(),
+    fallbackCapabilities = setOf("code-review"),
+    validationGate = null,
+  )
 
 internal class ScriptedGateRunner(
   private val results: List<ValidationGateRunResult>,

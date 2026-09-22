@@ -16,27 +16,28 @@ class RuntimeAdapterDependencyAllowlistTest {
       "RuntimeAdapterDependencyAllowlistTest must classify every declared Gradle module.",
     )
 
-    val drift = RuntimeModuleCatalog.declaredGradleModules.mapNotNull { moduleName ->
-      val expected = RuntimeModuleCatalog.mainProjectDependenciesByModule.getValue(moduleName)
-      val actual = mainProjectDependencies(moduleName)
-      val missing = expected - actual
-      val extra = actual - expected
-      if (missing.isEmpty() && extra.isEmpty()) {
-        null
-      } else {
-        buildString {
-          append(moduleName)
-          if (missing.isNotEmpty()) {
-            append("\n  Missing: ")
-            append(missing.sorted().joinToString())
-          }
-          if (extra.isNotEmpty()) {
-            append("\n  Extra: ")
-            append(extra.sorted().joinToString())
+    val drift =
+      RuntimeModuleCatalog.declaredGradleModules.mapNotNull { moduleName ->
+        val expected = RuntimeModuleCatalog.mainProjectDependenciesByModule.getValue(moduleName)
+        val actual = mainProjectDependencies(moduleName)
+        val missing = expected - actual
+        val extra = actual - expected
+        if (missing.isEmpty() && extra.isEmpty()) {
+          null
+        } else {
+          buildString {
+            append(moduleName)
+            if (missing.isNotEmpty()) {
+              append("\n  Missing: ")
+              append(missing.sorted().joinToString())
+            }
+            if (extra.isNotEmpty()) {
+              append("\n  Extra: ")
+              append(extra.sorted().joinToString())
+            }
           }
         }
       }
-    }
 
     assertEquals(
       emptyList(),
@@ -53,27 +54,28 @@ class RuntimeAdapterDependencyAllowlistTest {
       "RuntimeAdapterDependencyAllowlistTest must classify every declared Gradle module.",
     )
 
-    val drift = RuntimeModuleCatalog.declaredGradleModules.mapNotNull { moduleName ->
-      val expected = RuntimeModuleCatalog.testFixturesProjectDependenciesByModule.getValue(moduleName)
-      val actual = testFixturesProjectDependencies(moduleName)
-      val missing = expected - actual
-      val extra = actual - expected
-      if (missing.isEmpty() && extra.isEmpty()) {
-        null
-      } else {
-        buildString {
-          append(moduleName)
-          if (missing.isNotEmpty()) {
-            append("\n  Missing: ")
-            append(missing.sorted().joinToString())
-          }
-          if (extra.isNotEmpty()) {
-            append("\n  Extra: ")
-            append(extra.sorted().joinToString())
+    val drift =
+      RuntimeModuleCatalog.declaredGradleModules.mapNotNull { moduleName ->
+        val expected = RuntimeModuleCatalog.testFixturesProjectDependenciesByModule.getValue(moduleName)
+        val actual = testFixturesProjectDependencies(moduleName)
+        val missing = expected - actual
+        val extra = actual - expected
+        if (missing.isEmpty() && extra.isEmpty()) {
+          null
+        } else {
+          buildString {
+            append(moduleName)
+            if (missing.isNotEmpty()) {
+              append("\n  Missing: ")
+              append(missing.sorted().joinToString())
+            }
+            if (extra.isNotEmpty()) {
+              append("\n  Extra: ")
+              append(extra.sorted().joinToString())
+            }
           }
         }
       }
-    }
 
     assertEquals(
       emptyList(),
@@ -84,15 +86,16 @@ class RuntimeAdapterDependencyAllowlistTest {
 
   @Test
   fun `runtime-application declares no production dependency on infrastructure adapters (SKILL-140 AC-005)`() {
-    val forbidden = setOf(
-      "runtime-infra:host",
-      "runtime-infra:contracts",
-      "runtime-infra:skills",
-      "runtime-infra:launcher",
-      "runtime-infra:workflow",
-      "runtime-infra:http",
-      "runtime-infra:sqlite",
-    )
+    val forbidden =
+      setOf(
+        "runtime-infra:host",
+        "runtime-infra:contracts",
+        "runtime-infra:skills",
+        "runtime-infra:launcher",
+        "runtime-infra:workflow",
+        "runtime-infra:http",
+        "runtime-infra:sqlite",
+      )
     val violations = forbidden.filter { moduleName -> moduleName in mainProjectDependencies("runtime-application") }
     assertEquals(
       emptyList(),
@@ -102,9 +105,10 @@ class RuntimeAdapterDependencyAllowlistTest {
   }
 
   private fun testFixturesProjectDependencies(moduleName: String): Set<String> {
-    val buildFile = runtimeRoot.resolve(
-      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/build.gradle.kts",
-    )
+    val buildFile =
+      runtimeRoot.resolve(
+        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/build.gradle.kts",
+      )
     val source = Files.readString(buildFile)
     val testFixturesConfigurations = listOf("testFixturesImplementation", "testFixturesApi")
     val projectDependencies = mutableSetOf<String>()
@@ -119,9 +123,10 @@ class RuntimeAdapterDependencyAllowlistTest {
   }
 
   private fun mainProjectDependencies(moduleName: String): Set<String> {
-    val buildFile = runtimeRoot.resolve(
-      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/build.gradle.kts",
-    )
+    val buildFile =
+      runtimeRoot.resolve(
+        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/build.gradle.kts",
+      )
     val source = Files.readString(buildFile)
     val testConfigurations =
       listOf(

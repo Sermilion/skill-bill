@@ -152,28 +152,33 @@ internal fun parallelCodeReviewEffectiveCompletionState(
   outcomes: ParallelReviewLaneRunResult,
 ): ReviewLaneCompletionState {
   val governed = parallelCodeReviewGovernedLaunchFor(launch)
-  val runCompletion = if (outcomes.lane1.success) {
-    governed.completionState
-  } else {
-    governed.completionState.asFailedLaneRun(
-      governed.assembledBundle.entries.map { "${it.commitSha}@${it.hunk.path}" },
-    )
-  }
-  val assignedUnits = governed.assembledBundle.entries
-    .map { "${it.commitSha}@${it.hunk.path}" }
-    .toSet()
-  val deniedUnits = listOf(outcomes.lane1)
-    .flatMap { outcome ->
-      val fromAccounting = (outcome.specialistAccounting + listOfNotNull(outcome.accounting))
-        .filter { it.budgetDimension == LANE_EVIDENCE_BYTES_DIMENSION }
-        .flatMap { it.unreviewedUnits }
-      val fromOutcome = outcome.takeIf { it.budgetDimension == LANE_EVIDENCE_BYTES_DIMENSION }
-        ?.unreviewedUnits
-        .orEmpty()
-      fromAccounting + fromOutcome
+  val runCompletion =
+    if (outcomes.lane1.success) {
+      governed.completionState
+    } else {
+      governed.completionState.asFailedLaneRun(
+        governed.assembledBundle.entries.map { "${it.commitSha}@${it.hunk.path}" },
+      )
     }
-    .filter { it in assignedUnits }
-    .distinct()
+  val assignedUnits =
+    governed.assembledBundle.entries
+      .map { "${it.commitSha}@${it.hunk.path}" }
+      .toSet()
+  val deniedUnits =
+    listOf(outcomes.lane1)
+      .flatMap { outcome ->
+        val fromAccounting =
+          (outcome.specialistAccounting + listOfNotNull(outcome.accounting))
+            .filter { it.budgetDimension == LANE_EVIDENCE_BYTES_DIMENSION }
+            .flatMap { it.unreviewedUnits }
+        val fromOutcome =
+          outcome.takeIf { it.budgetDimension == LANE_EVIDENCE_BYTES_DIMENSION }
+            ?.unreviewedUnits
+            .orEmpty()
+        fromAccounting + fromOutcome
+      }
+      .filter { it in assignedUnits }
+      .distinct()
   return if (deniedUnits.isEmpty()) {
     runCompletion
   } else {
@@ -184,11 +189,12 @@ internal fun parallelCodeReviewEffectiveCompletionState(
 internal fun parallelCodeReviewBrokerEvidenceCompletionState(
   completion: ReviewLaneCompletionState,
   accounting: ReviewLaneAccounting,
-): ReviewLaneCompletionState = if (accounting.budgetDimension == LANE_EVIDENCE_BYTES_DIMENSION) {
-  completion.withBrokerEvidenceRefusal(accounting.unreviewedUnits)
-} else {
-  completion
-}
+): ReviewLaneCompletionState =
+  if (accounting.budgetDimension == LANE_EVIDENCE_BYTES_DIMENSION) {
+    completion.withBrokerEvidenceRefusal(accounting.unreviewedUnits)
+  } else {
+    completion
+  }
 
 internal fun parallelCodeReviewAggregateBundleCompletion(
   states: List<ReviewLaneCompletionState>,

@@ -44,10 +44,11 @@ class GoalPauseCommand(
   private val repoRoot by option("--repo-root", help = "Repository root that owns the goal.")
 
   override fun run() {
-    val result = goalRunnerStatusService.pause(
-      issueKey,
-      resolveCliRepositoryRoot(repoRoot, inputs),
-    )
+    val result =
+      goalRunnerStatusService.pause(
+        issueKey,
+        resolveCliRepositoryRoot(repoRoot, inputs),
+      )
     val payload = result.toGoalPauseCliMap()
     state.completeText(goalPauseText(payload), payload, exitCode = payload.goalPauseExitCode())
   }
@@ -63,10 +64,11 @@ class GoalStopCommand(
   private val repoRoot by option("--repo-root", help = "Repository root that owns the goal.")
 
   override fun run() {
-    val result = goalRunnerStatusService.stop(
-      issueKey,
-      resolveCliRepositoryRoot(repoRoot, inputs),
-    )
+    val result =
+      goalRunnerStatusService.stop(
+        issueKey,
+        resolveCliRepositoryRoot(repoRoot, inputs),
+      )
     val payload = result.toGoalStopCliMap()
     state.completeText(goalStopText(payload), payload, exitCode = payload.goalStopExitCode())
   }
@@ -82,10 +84,11 @@ class GoalResumeCommand(
   private val repoRoot by option("--repo-root", help = "Repository root that owns the goal.")
 
   override fun run() {
-    val result = goalRunnerStatusService.resume(
-      issueKey,
-      resolveCliRepositoryRoot(repoRoot, inputs),
-    )
+    val result =
+      goalRunnerStatusService.resume(
+        issueKey,
+        resolveCliRepositoryRoot(repoRoot, inputs),
+      )
     val payload = result.toGoalResumeCliMap()
     state.completeText(goalResumeText(payload), payload, exitCode = payload.goalPauseExitCode())
   }
@@ -144,16 +147,17 @@ class GoalResetCommand(
       )
     }
     emitHardResetAcceptanceWarning()
-    val result = goalRunnerStatusService.reset(
-      GoalRunnerResetRequest(
-        issueKey = issueKey,
-        hard = hard,
-        preservePlanning = preservePlanning,
-        subtaskId = subtaskId,
-        deleteChildWorkflow = deleteChildWorkflow,
-        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
-      ),
-    )
+    val result =
+      goalRunnerStatusService.reset(
+        GoalRunnerResetRequest(
+          issueKey = issueKey,
+          hard = hard,
+          preservePlanning = preservePlanning,
+          subtaskId = subtaskId,
+          deleteChildWorkflow = deleteChildWorkflow,
+          repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
+        ),
+      )
     val payload = result.toGoalResetCliMap(issueKey, hard)
     state.completeText(goalResetText(payload), payload, exitCode = payload.goalResetExitCode())
   }
@@ -173,10 +177,10 @@ class GoalReplanCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "replan",
-  "Discard one subtask plan while preserving sibling plans, shared preplan, and runtime state; " +
-    "pass --include-shared-preplan to also discard the shared preplan and cascade non-terminal sibling plans.",
-) {
+    "replan",
+    "Discard one subtask plan while preserving sibling plans, shared preplan, and runtime state; " +
+      "pass --include-shared-preplan to also discard the shared preplan and cascade non-terminal sibling plans.",
+  ) {
   private val issueKey by argument(help = "Parent issue key for the decomposed goal.")
   private val subtaskId by option(
     "--subtask",
@@ -184,8 +188,9 @@ class GoalReplanCommand(
   ).int().required()
   private val includeSharedPreplan by option(
     "--include-shared-preplan",
-    help = "Also discard the goal-wide shared preplan and cascade sibling plans that are not " +
-      "complete with a commit_sha (planning rows only; runtime state and terminal plan rows stay).",
+    help =
+      "Also discard the goal-wide shared preplan and cascade sibling plans that are not " +
+        "complete with a commit_sha (planning rows only; runtime state and terminal plan rows stay).",
   ).flag(default = false)
   private val repoRoot by option("--repo-root", help = "Repository root for the goal.")
 
@@ -193,14 +198,15 @@ class GoalReplanCommand(
     if (subtaskId <= 0) {
       throw UsageError("--subtask must be a positive integer.")
     }
-    val result = goalRunnerStatusService.replan(
-      GoalRunnerReplanRequest(
-        issueKey = issueKey,
-        subtaskId = subtaskId,
-        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
-        includeSharedPreplan = includeSharedPreplan,
-      ),
-    )
+    val result =
+      goalRunnerStatusService.replan(
+        GoalRunnerReplanRequest(
+          issueKey = issueKey,
+          subtaskId = subtaskId,
+          repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
+          includeSharedPreplan = includeSharedPreplan,
+        ),
+      )
     val payload = result.toGoalReplanCliMap(issueKey)
     state.completeText(goalReplanText(payload), payload, exitCode = payload.goalResetExitCode())
   }
@@ -212,10 +218,10 @@ class GoalAcceptCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "accept",
-  "Restore an acceptance discarded by hard reset (--restore-after-hard-reset only). " +
-    "Ordinary out-of-band accept is disabled; repair or resume blocked children instead.",
-) {
+    "accept",
+    "Restore an acceptance discarded by hard reset (--restore-after-hard-reset only). " +
+      "Ordinary out-of-band accept is disabled; repair or resume blocked children instead.",
+  ) {
   private val issueKey by argument(help = "Parent issue key for the decomposed goal.")
   private val subtaskId by option("--subtask", help = "Subtask id whose work already landed.")
     .int()
@@ -229,16 +235,17 @@ class GoalAcceptCommand(
   ).flag(default = false)
 
   override fun run() {
-    val result = goalRunnerStatusService.accept(
-      GoalRunnerAcceptRequest(
-        issueKey = issueKey,
-        subtaskId = subtaskId,
-        commitSha = commit,
-        reason = reason,
-        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
-        restoreAfterHardReset = restoreAfterHardReset,
-      ),
-    )
+    val result =
+      goalRunnerStatusService.accept(
+        GoalRunnerAcceptRequest(
+          issueKey = issueKey,
+          subtaskId = subtaskId,
+          commitSha = commit,
+          reason = reason,
+          repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
+          restoreAfterHardReset = restoreAfterHardReset,
+        ),
+      )
     val payload = result.toGoalAcceptCliMap()
     state.completeText(goalAcceptText(payload), payload, exitCode = payload.goalResetExitCode())
   }
@@ -250,17 +257,17 @@ class GoalRepairCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "repair",
-  "Inspect or clear known goal resume wedges without discarding completed work. " +
-    "Default is inspect-only; pass --apply to act. " +
-    "Clears: stale_execution_lease on the parent goal runner; stale_child_worker_lease on a " +
-    "child workflow; stale_runner_interrupted_pause residue on parent controls; missing " +
-    "validation_depth on the continuation artifact; unreachable stored review_base_sha; " +
-    "unreachable stored remediation_base_sha; stale blocked goal_continuation_outcome; " +
-    "completed upstream phase records missing settled output for a blocked consumer. " +
-    "Does not touch: completed commit shas, review pass history, audit repair state, " +
-    "planning checkpoints, or anything goal reset/replan/accept own.",
-) {
+    "repair",
+    "Inspect or clear known goal resume wedges without discarding completed work. " +
+      "Default is inspect-only; pass --apply to act. " +
+      "Clears: stale_execution_lease on the parent goal runner; stale_child_worker_lease on a " +
+      "child workflow; stale_runner_interrupted_pause residue on parent controls; missing " +
+      "validation_depth on the continuation artifact; unreachable stored review_base_sha; " +
+      "unreachable stored remediation_base_sha; stale blocked goal_continuation_outcome; " +
+      "completed upstream phase records missing settled output for a blocked consumer. " +
+      "Does not touch: completed commit shas, review pass history, audit repair state, " +
+      "planning checkpoints, or anything goal reset/replan/accept own.",
+  ) {
   private val issueKey by argument(help = "Parent issue key for the decomposed goal.")
   private val subtaskId by option(
     "--subtask",
@@ -276,14 +283,15 @@ class GoalRepairCommand(
     if (subtaskId != null && requireNotNull(subtaskId) <= 0) {
       throw UsageError("--subtask must be a positive integer.")
     }
-    val result = goalRunnerStatusService.repair(
-      GoalRunnerRepairRequest(
-        issueKey = issueKey,
-        apply = apply,
-        subtaskId = subtaskId,
-        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
-      ),
-    )
+    val result =
+      goalRunnerStatusService.repair(
+        GoalRunnerRepairRequest(
+          issueKey = issueKey,
+          apply = apply,
+          subtaskId = subtaskId,
+          repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
+        ),
+      )
     val payload = result.toGoalRepairCliMap()
     state.completeText(goalRepairText(payload), payload, exitCode = payload.goalRepairExitCode())
   }
@@ -295,10 +303,10 @@ class GoalOperatorDecisionCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "operator-decision",
-  "Record retry_fix, accept_and_advance, or abandon_subtask for a paused goal subtask " +
-    "without hand-editing durable state or decomposition-manifest.yaml. Resume the goal to consume it.",
-) {
+    "operator-decision",
+    "Record retry_fix, accept_and_advance, or abandon_subtask for a paused goal subtask " +
+      "without hand-editing durable state or decomposition-manifest.yaml. Resume the goal to consume it.",
+  ) {
   private val issueKey by argument(help = "Parent issue key for the decomposed goal.")
   private val subtaskId by option("--subtask", help = "Paused subtask id to decide.")
     .int()
@@ -313,19 +321,21 @@ class GoalOperatorDecisionCommand(
     if (subtaskId <= 0) {
       throw UsageError("--subtask must be a positive integer.")
     }
-    val parsed = GoalSubtaskOperatorDecision.entries.firstOrNull { it.wireValue == decision }
-      ?: throw UsageError(
-        "Unknown --decision '$decision'. Allowed: " +
-          GoalSubtaskOperatorDecision.entries.joinToString { it.wireValue } + ".",
+    val parsed =
+      GoalSubtaskOperatorDecision.entries.firstOrNull { it.wireValue == decision }
+        ?: throw UsageError(
+          "Unknown --decision '$decision'. Allowed: " +
+            GoalSubtaskOperatorDecision.entries.joinToString { it.wireValue } + ".",
+        )
+    val result =
+      goalOperatorDecisionService.record(
+        GoalRunnerOperatorDecisionRequest(
+          issueKey = issueKey,
+          subtaskId = subtaskId,
+          decision = parsed,
+          repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
+        ),
       )
-    val result = goalOperatorDecisionService.record(
-      GoalRunnerOperatorDecisionRequest(
-        issueKey = issueKey,
-        subtaskId = subtaskId,
-        decision = parsed,
-        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
-      ),
-    )
     val payload = result.toGoalOperatorDecisionCliMap()
     state.completeText(goalOperatorDecisionText(payload), payload, exitCode = payload.goalOperatorDecisionExitCode())
   }

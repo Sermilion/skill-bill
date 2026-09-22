@@ -17,6 +17,7 @@ import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+
 class PlatformPackFallbackTest {
   @TempDir
   lateinit var tempDir: Path
@@ -92,20 +93,25 @@ class PlatformPackFallbackTest {
     }
   }
 
-  private fun pack(slug: String, review: Boolean) = PlatformManifest(
+  private fun pack(
+    slug: String,
+    review: Boolean,
+  ) = PlatformManifest(
     slug = slug,
     packRoot = tempDir.resolve(slug).toFileLocation(),
     contractVersion = "1.3",
     routingSignals = RoutingSignals(listOf("fallback-only"), emptyList()),
     declaredCodeReviewAreas = emptyList(),
-    declaredFiles = DeclaredFiles(
-      baseline = if (review) {
-        tempDir.resolve(slug).resolve("code-review/bill-$slug-code-review/content.md").toFileLocation()
-      } else {
-        null
-      },
-      areas = emptyMap(),
-    ),
+    declaredFiles =
+      DeclaredFiles(
+        baseline =
+          if (review) {
+            tempDir.resolve(slug).resolve("code-review/bill-$slug-code-review/content.md").toFileLocation()
+          } else {
+            null
+          },
+        areas = emptyMap(),
+      ),
     areaMetadata = emptyMap(),
     fallbackCapabilities = setOf("code-review"),
   )

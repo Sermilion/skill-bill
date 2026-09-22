@@ -12,19 +12,21 @@ fun hasIncompleteFeatureTaskIdentity(
   issueKey: String?,
   repositoryIdentity: String?,
   governedSpecPath: String?,
-): Boolean = kind in FEATURE_TASK_FAMILY_KINDS &&
-  hasIdentityCoordinates &&
-  listOf(issueKey, repositoryIdentity, governedSpecPath).any { it == null }
+): Boolean =
+  kind in FEATURE_TASK_FAMILY_KINDS &&
+    hasIdentityCoordinates &&
+    listOf(issueKey, repositoryIdentity, governedSpecPath).any { it == null }
 
 fun buildFeatureTaskExecutionIdentity(args: BuildFeatureTaskExecutionIdentityArgs): FeatureTaskExecutionIdentity? {
   val kind = args.kind
   val hasIdentityCoordinates = args.hasIdentityCoordinates
   if (kind !in FEATURE_TASK_FAMILY_KINDS || !hasIdentityCoordinates) return null
   val requiredRepositoryIdentity = requireNotNull(args.repositoryIdentity)
-  val normalizedIssueKey = FeatureTaskExecutionIdentityPolicy.validateLookupRequest(
-    requireNotNull(args.issueKey),
-    requiredRepositoryIdentity,
-  )
+  val normalizedIssueKey =
+    FeatureTaskExecutionIdentityPolicy.validateLookupRequest(
+      requireNotNull(args.issueKey),
+      requiredRepositoryIdentity,
+    )
   return FeatureTaskExecutionIdentity(
     workflowId = args.workflowId,
     normalizedIssueKey = normalizedIssueKey,

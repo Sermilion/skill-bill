@@ -210,7 +210,10 @@ class CliAuthoringParityTest {
   }
 }
 
-private fun runJson(arguments: List<String>, context: CliRuntimeContext): Map<String, Any?> {
+private fun runJson(
+  arguments: List<String>,
+  context: CliRuntimeContext,
+): Map<String, Any?> {
   val result = CliRuntime.run(arguments, context)
   assertEquals(0, result.exitCode, result.stdout)
   return decodeJsonObject(result.stdout)
@@ -229,7 +232,10 @@ private fun outerRepoRoot(): Path {
   error("Could not locate skill-bill repository root from ${Path.of("").toAbsolutePath().normalize()}")
 }
 
-private fun authoringFixtureRepo(repoRoot: Path, skillName: String): Path {
+private fun authoringFixtureRepo(
+  repoRoot: Path,
+  skillName: String,
+): Path {
   val skillDir = repoRoot.resolve("skills").resolve(skillName)
   Files.createDirectories(skillDir)
   Files.writeString(
@@ -248,7 +254,11 @@ private fun authoringFixtureRepo(repoRoot: Path, skillName: String): Path {
   return repoRoot
 }
 
-private fun assertWrapperCommandRegenerates(command: String, tempDir: Path, context: CliRuntimeContext) {
+private fun assertWrapperCommandRegenerates(
+  command: String,
+  tempDir: Path,
+  context: CliRuntimeContext,
+) {
   val skillName = "bill-$command-fixture"
   val repoRoot = authoringFixtureRepo(tempDir.resolve("$command-repo"), skillName)
   val payload =
@@ -305,7 +315,10 @@ private fun assertRenderSkillNameOption(
   assertContains(duplicateInput.stdout, "either as an argument or with --skill-name, not both")
 }
 
-private fun assertEditBodyFileUpdatesContent(tempDir: Path, context: CliRuntimeContext) {
+private fun assertEditBodyFileUpdatesContent(
+  tempDir: Path,
+  context: CliRuntimeContext,
+) {
   val repoRoot = authoringFixtureRepo(tempDir.resolve("edit-repo"), "bill-edit-fixture")
   val bodyFile = tempDir.resolve("edit-body.md")
   Files.writeString(bodyFile, "Edited body from a file.")
@@ -329,7 +342,10 @@ private fun assertEditBodyFileUpdatesContent(tempDir: Path, context: CliRuntimeC
   assertEquals(true, payload["validator_ran"])
 }
 
-private fun assertFillBodyUpdatesContent(tempDir: Path, context: CliRuntimeContext) {
+private fun assertFillBodyUpdatesContent(
+  tempDir: Path,
+  context: CliRuntimeContext,
+) {
   val repoRoot = authoringFixtureRepo(tempDir.resolve("fill-repo"), "bill-fill-fixture")
   val payload =
     runJson(
@@ -350,7 +366,10 @@ private fun assertFillBodyUpdatesContent(tempDir: Path, context: CliRuntimeConte
   assertEquals(true, payload["validator_ran"])
 }
 
-private fun assertEditSectionUpdatesAuthoredContent(tempDir: Path, context: CliRuntimeContext) {
+private fun assertEditSectionUpdatesAuthoredContent(
+  tempDir: Path,
+  context: CliRuntimeContext,
+) {
   val repoRoot = sectionFixtureRepo(tempDir.resolve("edit-section-repo"), "bill-edit-section-fixture")
   val bodyFile = tempDir.resolve("edit-section-body.md")
   Files.writeString(bodyFile, "Focused replacement body.")
@@ -380,7 +399,10 @@ private fun assertEditSectionUpdatesAuthoredContent(tempDir: Path, context: CliR
   assertContains(content, "Initial focus.")
 }
 
-private fun assertEditSectionRejectsGeneratedWrapperSection(tempDir: Path, context: CliRuntimeContext) {
+private fun assertEditSectionRejectsGeneratedWrapperSection(
+  tempDir: Path,
+  context: CliRuntimeContext,
+) {
   val repoRoot = sectionFixtureRepo(tempDir.resolve("edit-generated-section-repo"), "bill-edit-generated-fixture")
   val bodyFile = tempDir.resolve("edit-generated-section-body.md")
   Files.writeString(bodyFile, "Generated wrapper body.")
@@ -414,7 +436,10 @@ private fun assertEditSectionRejectsGeneratedWrapperSection(tempDir: Path, conte
   assertEquals(before, Files.readString(contentFile))
 }
 
-private fun sectionFixtureRepo(repoRoot: Path, skillName: String): Path {
+private fun sectionFixtureRepo(
+  repoRoot: Path,
+  skillName: String,
+): Path {
   val skillDir = repoRoot.resolve("skills").resolve(skillName)
   Files.createDirectories(skillDir)
   Files.writeString(

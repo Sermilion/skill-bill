@@ -73,42 +73,46 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
   private val diagnostics: RuntimeDiagnostics,
 ) {
   fun capturePostValidateFragment(request: ReadinessPostValidateCaptureRequest) {
-    val identity = request.gitOperations.resolveReadinessTreeIdentity(
-      request.repoRoot,
-      request.baseBranch,
-      request.workflowId,
-    )
+    val identity =
+      request.gitOperations.resolveReadinessTreeIdentity(
+        request.repoRoot,
+        request.baseBranch,
+        request.workflowId,
+      )
     if (identity == null) {
       recordDegradation("readiness-post-validate-identity", "Could not resolve readiness tree identity after validate.")
       return
     }
-    val selection = runCatching {
-      checkSelection.select(request.repoRoot, request.changedPaths)
-    }.getOrElse { error ->
-      recordDegradation("readiness-post-validate-selection", error.message.orEmpty())
-      return
-    }
+    val selection =
+      runCatching {
+        checkSelection.select(request.repoRoot, request.changedPaths)
+      }.getOrElse { error ->
+        recordDegradation("readiness-post-validate-selection", error.message.orEmpty())
+        return
+      }
     if (selection is ReadinessCheckSelectionResult.Failed) {
       recordDegradation("readiness-post-validate-selection", selection.reason)
       return
     }
     val selected = (selection as ReadinessCheckSelectionResult.Selected).checks
     val packOnly = selected.filter { it.checkId == READINESS_PACK_COLLECT_ALL_CHECK_ID }
-    val results = packOnly.map { check ->
-      FeatureTaskRuntimeReadinessCheckResult(
-        checkId = check.checkId,
-        command = check.command,
-        exitCode = 0,
-        status = FeatureTaskRuntimeReadinessCheckStatus.PASSED,
+    val results =
+      packOnly.map { check ->
+        FeatureTaskRuntimeReadinessCheckResult(
+          checkId = check.checkId,
+          command = check.command,
+          exitCode = 0,
+          status = FeatureTaskRuntimeReadinessCheckStatus.PASSED,
+        )
+      }
+    val evidence =
+      FeatureTaskRuntimeReadinessEvidence(
+        sourceTreeSha = identity.sourceTreeSha,
+        baseRefSha = identity.baseRefSha,
+        headSha = identity.headSha,
+        selectedChecks = packOnly.map(ReadinessSelectedCheck::checkId),
+        checkResults = results,
       )
-    }
-    val evidence = FeatureTaskRuntimeReadinessEvidence(
-      sourceTreeSha = identity.sourceTreeSha,
-      baseRefSha = identity.baseRefSha,
-      headSha = identity.headSha,
-      selectedChecks = packOnly.map(ReadinessSelectedCheck::checkId),
-      checkResults = results,
-    )
     persistEvidence(request.workflowId, evidence, "readiness-post-validate-persistence")
   }
 
@@ -127,28 +131,31 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     } ?: prepareAfterPathDiscovery(request)
 
   private fun prepareAfterPathDiscovery(request: ReadinessCommitPushSettleRequest): CommitPushPreparation {
-    val identity = request.gitOperations.resolveReadinessTreeIdentity(
-      request.repoRoot,
-      request.baseBranch,
-      request.workflowId,
-    ) ?: run {
-      recordDegradation(
-        "readiness-commit-push-identity",
-        "Could not resolve readiness tree identity before commit_push.",
-      )
-      return CommitPushPreparation.Blocked(
-        blocked("Readiness could not resolve repository identity before commit_push."),
-      )
-    }
-    val selectedChecks = selectCommitPushChecks(request)
-      ?: return CommitPushPreparation.Blocked(blocked("Readiness check discovery failed."))
+    val identity =
+      request.gitOperations.resolveReadinessTreeIdentity(
+        request.repoRoot,
+        request.baseBranch,
+        request.workflowId,
+      ) ?: run {
+        recordDegradation(
+          "readiness-commit-push-identity",
+          "Could not resolve readiness tree identity before commit_push.",
+        )
+        return CommitPushPreparation.Blocked(
+          blocked("Readiness could not resolve repository identity before commit_push."),
+        )
+      }
+    val selectedChecks =
+      selectCommitPushChecks(request)
+        ?: return CommitPushPreparation.Blocked(blocked("Readiness check discovery failed."))
     val persistedResult = runCatching { readinessEvidence.loadReadinessEvidence(request.workflowId) }
     val persisted = persistedResult.getOrNull()
     val staleReason = persisted?.let { persistedIdentityMismatch(it, identity) }
     return when {
       persistedResult.isFailure -> {
-        val reason = "Could not load persisted readiness evidence: " +
-          persistedResult.exceptionOrNull()?.message.orEmpty()
+        val reason =
+          "Could not load persisted readiness evidence: " +
+            persistedResult.exceptionOrNull()?.message.orEmpty()
         recordDegradation("readiness-commit-push-persistence", reason)
         CommitPushPreparation.Blocked(
           blocked("Readiness evidence could not be loaded before commit_push."),
@@ -195,27 +202,30 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
   private fun persistedIdentityMismatch(
     persisted: FeatureTaskRuntimeReadinessEvidence,
     identity: ReadinessTreeIdentity,
-  ): String? = when {
-    persisted.baseRefSha != identity.baseRefSha -> identityMismatchReason(persisted, identity)
-    else -> null
-  }
+  ): String? =
+    when {
+      persisted.baseRefSha != identity.baseRefSha -> identityMismatchReason(persisted, identity)
+      else -> null
+    }
 
   private fun settlePreparedCommitPush(
     request: ReadinessCommitPushSettleRequest,
     preparation: CommitPushPreparation.Ready,
   ): ReadinessCommitPushSettleResult {
     val execution = executeChecks(request, preparation)
-    val results = when (execution) {
-      is CheckExecution.Complete -> execution.results
-      is CheckExecution.Blocked -> return persistBlockedResult(request, preparation, execution)
-    }
-    val evidence = FeatureTaskRuntimeReadinessEvidence(
-      sourceTreeSha = preparation.identity.sourceTreeSha,
-      baseRefSha = preparation.identity.baseRefSha,
-      headSha = preparation.identity.headSha,
-      selectedChecks = preparation.selectedChecks.map(ReadinessSelectedCheck::checkId),
-      checkResults = results,
-    )
+    val results =
+      when (execution) {
+        is CheckExecution.Complete -> execution.results
+        is CheckExecution.Blocked -> return persistBlockedResult(request, preparation, execution)
+      }
+    val evidence =
+      FeatureTaskRuntimeReadinessEvidence(
+        sourceTreeSha = preparation.identity.sourceTreeSha,
+        baseRefSha = preparation.identity.baseRefSha,
+        headSha = preparation.identity.headSha,
+        selectedChecks = preparation.selectedChecks.map(ReadinessSelectedCheck::checkId),
+        checkResults = results,
+      )
     return settleReadyEvidence(request.workflowId, preparation.identity, evidence)
   }
 
@@ -225,9 +235,10 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
   ): CheckExecution {
     val results = mutableListOf<FeatureTaskRuntimeReadinessCheckResult>()
     preparation.selectedChecks.forEach { check ->
-      val reused = preparation.persisted?.let { existing ->
-        reuseExistingResult(existing, check, preparation.identity, preparation.invalidated)
-      }
+      val reused =
+        preparation.persisted?.let { existing ->
+          reuseExistingResult(existing, check, preparation.identity, preparation.invalidated)
+        }
       val executed = reused ?: executeCheckSafely(request, check)
       results += executed
       if (executed.status != FeatureTaskRuntimeReadinessCheckStatus.PASSED || executed.exitCode != 0) {
@@ -246,31 +257,33 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
   private fun executeCheckSafely(
     request: ReadinessCommitPushSettleRequest,
     check: ReadinessSelectedCheck,
-  ): FeatureTaskRuntimeReadinessCheckResult = runCatching { executeCheck(request, check) }.getOrElse { error ->
-    recordDegradation(
-      "readiness-commit-push-execution",
-      "Selected check '${check.checkId}' could not execute: ${error.message.orEmpty()}",
-    )
-    FeatureTaskRuntimeReadinessCheckResult(
-      checkId = check.checkId,
-      command = check.command,
-      exitCode = 1,
-      status = FeatureTaskRuntimeReadinessCheckStatus.UNPERSISTED,
-    )
-  }
+  ): FeatureTaskRuntimeReadinessCheckResult =
+    runCatching { executeCheck(request, check) }.getOrElse { error ->
+      recordDegradation(
+        "readiness-commit-push-execution",
+        "Selected check '${check.checkId}' could not execute: ${error.message.orEmpty()}",
+      )
+      FeatureTaskRuntimeReadinessCheckResult(
+        checkId = check.checkId,
+        command = check.command,
+        exitCode = 1,
+        status = FeatureTaskRuntimeReadinessCheckStatus.UNPERSISTED,
+      )
+    }
 
   private fun persistBlockedResult(
     request: ReadinessCommitPushSettleRequest,
     preparation: CommitPushPreparation.Ready,
     execution: CheckExecution.Blocked,
   ): ReadinessCommitPushSettleResult {
-    val evidence = FeatureTaskRuntimeReadinessEvidence(
-      sourceTreeSha = preparation.identity.sourceTreeSha,
-      baseRefSha = preparation.identity.baseRefSha,
-      headSha = preparation.identity.headSha,
-      selectedChecks = preparation.selectedChecks.map(ReadinessSelectedCheck::checkId),
-      checkResults = execution.results,
-    )
+    val evidence =
+      FeatureTaskRuntimeReadinessEvidence(
+        sourceTreeSha = preparation.identity.sourceTreeSha,
+        baseRefSha = preparation.identity.baseRefSha,
+        headSha = preparation.identity.headSha,
+        selectedChecks = preparation.selectedChecks.map(ReadinessSelectedCheck::checkId),
+        checkResults = execution.results,
+      )
     persistEvidence(request.workflowId, evidence, "readiness-commit-push-persistence")
     return execution.result
   }
@@ -279,17 +292,18 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     workflowId: String,
     identity: ReadinessTreeIdentity,
     evidence: FeatureTaskRuntimeReadinessEvidence,
-  ): ReadinessCommitPushSettleResult = try {
-    evidence.requireReady("commit_push", identity.sourceTreeSha, identity.baseRefSha, identity.headSha)
-    if (persistEvidence(workflowId, evidence, "readiness-commit-push-persistence")) {
-      ReadinessCommitPushSettleResult.Ready
-    } else {
-      blocked("Readiness evidence could not be persisted before commit_push.")
+  ): ReadinessCommitPushSettleResult =
+    try {
+      evidence.requireReady("commit_push", identity.sourceTreeSha, identity.baseRefSha, identity.headSha)
+      if (persistEvidence(workflowId, evidence, "readiness-commit-push-persistence")) {
+        ReadinessCommitPushSettleResult.Ready
+      } else {
+        blocked("Readiness evidence could not be persisted before commit_push.")
+      }
+    } catch (error: InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError) {
+      persistEvidence(workflowId, evidence, "readiness-commit-push-persistence")
+      blocked(error.message.orEmpty())
     }
-  } catch (error: InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError) {
-    persistEvidence(workflowId, evidence, "readiness-commit-push-persistence")
-    blocked(error.message.orEmpty())
-  }
 
   fun bindCommittedHead(
     workflowId: String,
@@ -298,8 +312,9 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     gitOperations: WorkflowGitOperations,
     commitSha: String,
   ): ReadinessCommitPushSettleResult {
-    val current = gitOperations.resolveReadinessTreeIdentity(repoRoot, baseBranch, workflowId)
-      ?: return identityAfterCommitBlocked()
+    val current =
+      gitOperations.resolveReadinessTreeIdentity(repoRoot, baseBranch, workflowId)
+        ?: return identityAfterCommitBlocked()
     return bindCommittedHeadWithIdentity(workflowId, current, commitSha)
   }
 
@@ -319,13 +334,15 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     }
     val evidenceResult = runCatching { readinessEvidence.loadReadinessEvidence(workflowId) }
     if (evidenceResult.isFailure) {
-      val reason = "Could not load readiness evidence after commit: " +
-        evidenceResult.exceptionOrNull()?.message.orEmpty()
+      val reason =
+        "Could not load readiness evidence after commit: " +
+          evidenceResult.exceptionOrNull()?.message.orEmpty()
       recordDegradation("readiness-commit-push-persistence", reason)
       return blocked("Readiness evidence could not be loaded after commit.")
     }
-    val evidence = evidenceResult.getOrNull()
-      ?: return missingEvidenceAfterCommitBlocked()
+    val evidence =
+      evidenceResult.getOrNull()
+        ?: return missingEvidenceAfterCommitBlocked()
     return bindEvidenceAfterCommit(workflowId, current, evidence)
   }
 
@@ -334,13 +351,15 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     current: ReadinessTreeIdentity,
     evidence: FeatureTaskRuntimeReadinessEvidence,
   ): ReadinessCommitPushSettleResult {
-    val aligned = evidence.copy(
-      sourceTreeSha = current.sourceTreeSha,
-      baseRefSha = current.baseRefSha,
-    )
-    val readinessError = runCatching {
-      aligned.requireReady("commit_push", current.sourceTreeSha, current.baseRefSha, aligned.headSha)
-    }.exceptionOrNull()
+    val aligned =
+      evidence.copy(
+        sourceTreeSha = current.sourceTreeSha,
+        baseRefSha = current.baseRefSha,
+      )
+    val readinessError =
+      runCatching {
+        aligned.requireReady("commit_push", current.sourceTreeSha, current.baseRefSha, aligned.headSha)
+      }.exceptionOrNull()
     if (readinessError != null) {
       recordDegradation("readiness-commit-push-persistence", readinessError.message.orEmpty())
       return blocked(readinessError.message.orEmpty())
@@ -370,18 +389,20 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     baseBranch: String,
     gitOperations: WorkflowGitOperations,
   ): ReadinessCommitPushSettleResult {
-    val identity = gitOperations.resolveReadinessTreeIdentity(repoRoot, baseBranch, workflowId)
-      ?: run {
-        recordDegradation("readiness-pr-identity", "Readiness identity is unavailable for PR entry.")
-        return blocked("Readiness identity is unavailable for PR entry.")
+    val identity =
+      gitOperations.resolveReadinessTreeIdentity(repoRoot, baseBranch, workflowId)
+        ?: run {
+          recordDegradation("readiness-pr-identity", "Readiness identity is unavailable for PR entry.")
+          return blocked("Readiness identity is unavailable for PR entry.")
+        }
+    val persisted =
+      runCatching { readinessEvidence.loadReadinessEvidence(workflowId) }.getOrElse { error ->
+        recordDegradation("readiness-pr-persistence", "Could not load readiness evidence: ${error.message.orEmpty()}")
+        return blocked("Readiness evidence could not be loaded for PR entry.")
+      } ?: run {
+        recordDegradation("readiness-pr-persistence", "Readiness evidence is missing for PR entry.")
+        return blocked("Readiness evidence is missing for PR entry.")
       }
-    val persisted = runCatching { readinessEvidence.loadReadinessEvidence(workflowId) }.getOrElse { error ->
-      recordDegradation("readiness-pr-persistence", "Could not load readiness evidence: ${error.message.orEmpty()}")
-      return blocked("Readiness evidence could not be loaded for PR entry.")
-    } ?: run {
-      recordDegradation("readiness-pr-persistence", "Readiness evidence is missing for PR entry.")
-      return blocked("Readiness evidence is missing for PR entry.")
-    }
     return try {
       persisted.requireReady("pr", identity.sourceTreeSha, identity.baseRefSha, identity.headSha)
       ReadinessCommitPushSettleResult.Ready
@@ -416,11 +437,12 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
       checkId = check.checkId,
       command = check.command,
       exitCode = pluginResult.exitCode,
-      status = if (pluginResult.exitCode == 0) {
-        FeatureTaskRuntimeReadinessCheckStatus.PASSED
-      } else {
-        FeatureTaskRuntimeReadinessCheckStatus.FAILED
-      },
+      status =
+        if (pluginResult.exitCode == 0) {
+          FeatureTaskRuntimeReadinessCheckStatus.PASSED
+        } else {
+          FeatureTaskRuntimeReadinessCheckStatus.FAILED
+        },
     )
   }
 
@@ -434,20 +456,25 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     workflowId: String,
     evidence: FeatureTaskRuntimeReadinessEvidence,
     seam: String,
-  ): Boolean = runCatching {
-    readinessEvidence.persistReadinessEvidence(workflowId, evidence)
-  }.onFailure { error ->
-    recordDegradation(seam, "Could not persist readiness evidence: ${error.message.orEmpty()}")
-  }.isSuccess
+  ): Boolean =
+    runCatching {
+      readinessEvidence.persistReadinessEvidence(workflowId, evidence)
+    }.onFailure { error ->
+      recordDegradation(seam, "Could not persist readiness evidence: ${error.message.orEmpty()}")
+    }.isSuccess
 
   private fun identityMismatchReason(
     captured: FeatureTaskRuntimeReadinessEvidence,
     current: ReadinessTreeIdentity,
-  ): String = "Readiness identity is stale: source tree captured '${captured.sourceTreeSha}' vs current " +
-    "'${current.sourceTreeSha}'; base captured '${captured.baseRefSha}' vs current " +
-    "'${current.baseRefSha}'; head captured '${captured.headSha}' vs current '${current.headSha}'."
+  ): String =
+    "Readiness identity is stale: source tree captured '${captured.sourceTreeSha}' vs current " +
+      "'${current.sourceTreeSha}'; base captured '${captured.baseRefSha}' vs current " +
+      "'${current.baseRefSha}'; head captured '${captured.headSha}' vs current '${current.headSha}'."
 
-  private fun recordDegradation(seam: String, reason: String) {
+  private fun recordDegradation(
+    seam: String,
+    reason: String,
+  ) {
     emitFeatureTaskRuntimeEventSafely(diagnostics, "readiness-gate-$seam") {
       RuntimeDiagnosticsBestEffortWarning.record(diagnostics, reason)
     }

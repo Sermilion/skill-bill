@@ -6,7 +6,10 @@ import java.nio.file.Path
 
 @Inject
 class FileSystemFeatureTaskRuntimeSpecStatusWriter : FeatureTaskRuntimeSpecStatusWriter {
-  override fun writeFinalizingAgent(specPath: Path, finalizingAgentId: String) {
+  override fun writeFinalizingAgent(
+    specPath: Path,
+    finalizingAgentId: String,
+  ) {
     val agentId = finalizingAgentId.trim()
     if (agentId.isEmpty()) {
       return
@@ -37,7 +40,10 @@ class FileSystemFeatureTaskRuntimeSpecStatusWriter : FeatureTaskRuntimeSpecStatu
     }
   }
 
-  private fun sectionEndExclusive(lines: List<String>, headingIndex: Int): Int {
+  private fun sectionEndExclusive(
+    lines: List<String>,
+    headingIndex: Int,
+  ): Int {
     val next = (headingIndex + 1 until lines.size).firstOrNull { HEADING.matches(lines[it]) }
     return next ?: lines.size
   }

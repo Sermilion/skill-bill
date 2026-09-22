@@ -4,7 +4,9 @@ import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
 import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.execution.sha256
+
 const val REVIEW_RULE_EXCERPT_MAX_CHARS: Int = 2_000
+
 data class ReviewRevision(val sessionId: String, val runRevision: Int) {
   init {
     require(sessionId.isNotBlank()) { "Review revision session id must not be blank." }
@@ -38,8 +40,9 @@ data class ReviewRuleReference(
   }
 
   val canonical: String
-    get() = listOf(ruleId, sourcePath, excerpt.replace("\r\n", "\n"), digest)
-      .let { canonicalFieldList(it) }
+    get() =
+      listOf(ruleId, sourcePath, excerpt.replace("\r\n", "\n"), digest)
+        .let { canonicalFieldList(it) }
 }
 
 data class ReviewLearningsReference(val learningId: String, val source: String, val digest: String) {
@@ -89,10 +92,11 @@ data class ReviewBaselineUntrackedPolicy(
     }
   }
 
-  val canonical: String get() = canonicalFields(
-    canonicalFieldList(includedPaths.sorted()),
-    canonicalFieldList(excludedPaths.sorted()),
-  )
+  val canonical: String get() =
+    canonicalFields(
+      canonicalFieldList(includedPaths.sorted()),
+      canonicalFieldList(excludedPaths.sorted()),
+    )
 
   companion object {
     val EMPTY = ReviewBaselineUntrackedPolicy()

@@ -20,29 +20,31 @@ internal object McpScaffoldRuntime {
     val runtimeComponent = component.runtimeComponent
     val resolvedRoot = runtimeComponent.resolvedEnvironmentContext.repositoryRoot
     val sessionId = generateNewSkillSessionId(component.clock)
-    val outcome = runCatching {
-      val request = parseMcpScaffoldCommandRequest(payload + ("repo_root" to resolvedRoot.toString()))
-      val result = runtimeComponent.scaffoldGateway.scaffold(request, dryRun)
-      scaffoldSuccessMap(
-        sessionId = sessionId,
-        payload = payload,
-        result = result,
-        dryRun = dryRun,
-        orchestrated = orchestrated,
-      )
-    }
+    val outcome =
+      runCatching {
+        val request = parseMcpScaffoldCommandRequest(payload + ("repo_root" to resolvedRoot.toString()))
+        val result = runtimeComponent.scaffoldGateway.scaffold(request, dryRun)
+        scaffoldSuccessMap(
+          sessionId = sessionId,
+          payload = payload,
+          result = result,
+          dryRun = dryRun,
+          orchestrated = orchestrated,
+        )
+      }
     val error = outcome.exceptionOrNull()
     return if (error == null) {
       outcome.getOrThrow()
     } else {
       when (error) {
         is CancellationException -> throw error
-        is Exception -> scaffoldFailureMap(
-          sessionId = sessionId,
-          payload = payload,
-          orchestrated = orchestrated,
-          error = error,
-        )
+        is Exception ->
+          scaffoldFailureMap(
+            sessionId = sessionId,
+            payload = payload,
+            orchestrated = orchestrated,
+            error = error,
+          )
         else -> throw error
       }
     }

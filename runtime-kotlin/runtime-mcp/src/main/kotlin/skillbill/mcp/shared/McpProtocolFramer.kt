@@ -2,6 +2,7 @@ package skillbill.mcp.shared
 
 import skillbill.contracts.JsonCodec
 import skillbill.di.core.SkillBillVersion
+
 internal object McpProtocolFramer {
   const val JSON_RPC_KEY: String = "jsonrpc"
   const val JSON_RPC_VERSION: String = "2.0"
@@ -37,23 +38,33 @@ internal object McpProtocolFramer {
   const val METHOD_NOT_FOUND: Int = -32601
   const val INTERNAL_ERROR: Int = -32603
 
-  fun initialize(serverName: String): Map<String, Any?> = linkedMapOf(
-    PROTOCOL_VERSION_KEY to MCP_PROTOCOL_VERSION,
-    CAPABILITIES_KEY to mapOf(TOOLS_KEY to mapOf(LIST_CHANGED_KEY to false)),
-    SERVER_INFO_KEY to mapOf(NAME_KEY to serverName, VERSION_KEY to SkillBillVersion.VALUE),
-  )
+  fun initialize(serverName: String): Map<String, Any?> =
+    linkedMapOf(
+      PROTOCOL_VERSION_KEY to MCP_PROTOCOL_VERSION,
+      CAPABILITIES_KEY to mapOf(TOOLS_KEY to mapOf(LIST_CHANGED_KEY to false)),
+      SERVER_INFO_KEY to mapOf(NAME_KEY to serverName, VERSION_KEY to SkillBillVersion.VALUE),
+    )
 
   fun toolsList(tools: List<Map<String, Any?>>): Map<String, Any?> = mapOf(TOOLS_KEY to tools)
 
-  fun successResponse(id: Any?, result: Map<String, Any?>): String = JsonCodec.mapToJsonString(
-    linkedMapOf(JSON_RPC_KEY to JSON_RPC_VERSION, ID_KEY to id, RESULT_KEY to result),
-  )
+  fun successResponse(
+    id: Any?,
+    result: Map<String, Any?>,
+  ): String =
+    JsonCodec.mapToJsonString(
+      linkedMapOf(JSON_RPC_KEY to JSON_RPC_VERSION, ID_KEY to id, RESULT_KEY to result),
+    )
 
-  fun errorResponse(id: Any?, code: Int, message: String): String = JsonCodec.mapToJsonString(
-    linkedMapOf(
-      JSON_RPC_KEY to JSON_RPC_VERSION,
-      ID_KEY to id,
-      ERROR_KEY to mapOf(CODE_KEY to code, MESSAGE_KEY to message),
-    ),
-  )
+  fun errorResponse(
+    id: Any?,
+    code: Int,
+    message: String,
+  ): String =
+    JsonCodec.mapToJsonString(
+      linkedMapOf(
+        JSON_RPC_KEY to JSON_RPC_VERSION,
+        ID_KEY to id,
+        ERROR_KEY to mapOf(CODE_KEY to code, MESSAGE_KEY to message),
+      ),
+    )
 }

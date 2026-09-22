@@ -10,16 +10,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class GoalRunnerLedgerRecorderBackwardEdgeTest {
-  private fun recorder(outcomes: RecordingOutcomeStore): GoalRunnerLedgerRecorder = GoalRunnerLedgerRecorder(
-    outcomes,
-    GoalRunnerRunRequest(
-      issueKey = "SKILL-142",
-      repoRoot = Path.of("/tmp/skillbill-goal-runner"),
-      invokedAgentId = "claude",
-    ),
-    testHarnessClock,
-    NoopRuntimeDiagnostics,
-  )
+  private fun recorder(outcomes: RecordingOutcomeStore): GoalRunnerLedgerRecorder =
+    GoalRunnerLedgerRecorder(
+      outcomes,
+      GoalRunnerRunRequest(
+        issueKey = "SKILL-142",
+        repoRoot = Path.of("/tmp/skillbill-goal-runner"),
+        invokedAgentId = "claude",
+      ),
+      testHarnessClock,
+      NoopRuntimeDiagnostics,
+    )
 
   @Test
   fun `backward edge cumulative count advances by the child edge iteration not one`() {

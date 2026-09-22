@@ -18,6 +18,7 @@ import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+
 class FeatureTaskRuntimeWorkflowPersistenceSeamTest {
   @Test
   fun `artifacts round trip preserves bytes`() {
@@ -31,32 +32,36 @@ class FeatureTaskRuntimeWorkflowPersistenceSeamTest {
   fun `supported artifact families decode after owner round trip`() {
     assertFamilyRoundTrip(
       key = FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY,
-      expected = FeatureTaskRuntimeGoalContinuationArtifact(
-        issueKey = "SKILL-352",
-        subtaskId = 2,
-        suppressPr = false,
-        goalBranch = "feat/skill-352",
-        codeReviewMode = CodeReviewExecutionMode.AUTO,
-      ),
-      wire = FeatureTaskRuntimeGoalContinuationArtifact(
-        issueKey = "SKILL-352",
-        subtaskId = 2,
-        suppressPr = false,
-        goalBranch = "feat/skill-352",
-        codeReviewMode = CodeReviewExecutionMode.AUTO,
-      ).asWorkflowArtifactEntry(),
+      expected =
+        FeatureTaskRuntimeGoalContinuationArtifact(
+          issueKey = "SKILL-352",
+          subtaskId = 2,
+          suppressPr = false,
+          goalBranch = "feat/skill-352",
+          codeReviewMode = CodeReviewExecutionMode.AUTO,
+        ),
+      wire =
+        FeatureTaskRuntimeGoalContinuationArtifact(
+          issueKey = "SKILL-352",
+          subtaskId = 2,
+          suppressPr = false,
+          goalBranch = "feat/skill-352",
+          codeReviewMode = CodeReviewExecutionMode.AUTO,
+        ).asWorkflowArtifactEntry(),
       decode = { raw -> requireNotNull(decodeGoalContinuationArtifactFromArtifact(raw)) },
     )
     assertFamilyRoundTrip(
       key = FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY,
-      expected = FeatureTaskRuntimeValidationGateProgress(
-        gateRunCount = 0,
-        gateRuns = emptyList(),
-      ),
-      wire = FeatureTaskRuntimeValidationGateProgress(
-        gateRunCount = 0,
-        gateRuns = emptyList(),
-      ).asWorkflowArtifactEntry(),
+      expected =
+        FeatureTaskRuntimeValidationGateProgress(
+          gateRunCount = 0,
+          gateRuns = emptyList(),
+        ),
+      wire =
+        FeatureTaskRuntimeValidationGateProgress(
+          gateRunCount = 0,
+          gateRuns = emptyList(),
+        ).asWorkflowArtifactEntry(),
       decode = { raw -> requireNotNull(decodeValidationGateProgressFromArtifact(raw)) },
     )
     assertFamilyRoundTrip(
@@ -82,7 +87,12 @@ class FeatureTaskRuntimeWorkflowPersistenceSeamTest {
     }
   }
 
-  private fun assertFamilyRoundTrip(key: String, expected: Any, wire: Any, decode: (Map<String, Any?>) -> Any) {
+  private fun assertFamilyRoundTrip(
+    key: String,
+    expected: Any,
+    wire: Any,
+    decode: (Map<String, Any?>) -> Any,
+  ) {
     val valueMap = assertNotNull(JsonCodec.anyToStringAnyMap(wire))
     val fixture = JsonCodec.mapToJsonString(mapOf(key to valueMap))
     val restored = requireNotNull(FeatureTaskRuntimeWorkflowPersistence.artifactsFromJson(fixture))
@@ -95,9 +105,10 @@ class FeatureTaskRuntimeWorkflowPersistenceSeamTest {
 
   @Test
   fun `phase recorder role interfaces and wire mapping are removed`() {
-    val featuretaskDir = Path.of(
-      "src/main/kotlin/skillbill/engine/featuretask",
-    )
+    val featuretaskDir =
+      Path.of(
+        "src/main/kotlin/skillbill/engine/featuretask",
+      )
     listOf(
       "FeatureTaskRuntimePhaseRecorderApis.kt",
       "FeatureTaskRuntimePhaseRecorderExtendedApis.kt",

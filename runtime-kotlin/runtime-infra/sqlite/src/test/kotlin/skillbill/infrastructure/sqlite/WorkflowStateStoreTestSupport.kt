@@ -16,16 +16,18 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 internal fun assertRuntimeAndVerifyStateTransitions(
   store: WorkflowStateStore,
   initial: WorkflowStateRow,
   startedAt: String,
 ) {
-  val runtimeInitial = initial.copy(
-    workflowId = "wftr-state-entry",
-    sessionId = "ftr-state-entry",
-    mode = FeatureTaskWorkflowMode.RUNTIME,
-  )
+  val runtimeInitial =
+    initial.copy(
+      workflowId = "wftr-state-entry",
+      sessionId = "ftr-state-entry",
+      mode = FeatureTaskWorkflowMode.RUNTIME,
+    )
   store.saveFeatureTaskRuntimeWorkflow(runtimeInitial)
   val runtimeInserted = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry"))
   assertEquals(startedAt, runtimeInserted.stateEnteredAt)
@@ -37,19 +39,20 @@ internal fun assertRuntimeAndVerifyStateTransitions(
   assertTrue(Instant.parse(runtimeTransitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))
   assertEquals(false, runtimeTransitioned.stateEnteredAtEstimated)
 
-  val verifyInitial = WorkflowStateRow(
-    workflowId = "wfv-state-entry",
-    sessionId = "fvr-state-entry",
-    workflowName = "bill-feature-verify",
-    contractVersion = "0.1",
-    workflowStatus = WorkflowStatus.RUNNING.wireValue,
-    currentStepId = "gather_diff",
-    stepsJson = "[]",
-    artifactsJson = "{}",
-    startedAt = startedAt,
-    updatedAt = null,
-    finishedAt = null,
-  )
+  val verifyInitial =
+    WorkflowStateRow(
+      workflowId = "wfv-state-entry",
+      sessionId = "fvr-state-entry",
+      workflowName = "bill-feature-verify",
+      contractVersion = "0.1",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+      currentStepId = "gather_diff",
+      stepsJson = "[]",
+      artifactsJson = "{}",
+      startedAt = startedAt,
+      updatedAt = null,
+      finishedAt = null,
+    )
   store.saveFeatureVerifyWorkflow(verifyInitial)
   val verifyInserted = assertNotNull(store.getFeatureVerifyWorkflow("wfv-state-entry"))
   assertEquals(startedAt, verifyInserted.stateEnteredAt)
@@ -66,19 +69,22 @@ internal fun assertRuntimeAndVerifyStateTransitions(
   assertEquals(false, verifyTransitioned.stateEnteredAtEstimated)
 }
 
-internal fun prepareConcurrentWorkflowTransitions(dbPath: Path, initial: WorkflowStateRow) {
+internal fun prepareConcurrentWorkflowTransitions(
+  dbPath: Path,
+  initial: WorkflowStateRow,
+) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
     WorkflowStateStore(connection, Clock.systemUTC()).saveFeatureTaskRuntimeWorkflow(initial)
     connection.createStatement().use { statement ->
       statement.execute("CREATE TABLE workflow_transition_log (state_entered_at TEXT NOT NULL)")
       statement.execute(
         """
-          CREATE TRIGGER workflow_state_transition_log
-          AFTER UPDATE OF workflow_status ON feature_task_workflows
-          WHEN OLD.workflow_status != NEW.workflow_status
-          BEGIN
-            INSERT INTO workflow_transition_log (state_entered_at) VALUES (NEW.state_entered_at);
-          END
+        CREATE TRIGGER workflow_state_transition_log
+        AFTER UPDATE OF workflow_status ON feature_task_workflows
+        WHEN OLD.workflow_status != NEW.workflow_status
+        BEGIN
+          INSERT INTO workflow_transition_log (state_entered_at) VALUES (NEW.state_entered_at);
+        END
         """.trimIndent(),
       )
     }
@@ -105,31 +111,36 @@ internal fun seedRunningRowWithLease(
   check(store.acquireFeatureTaskRuntimeWorker(ownership, updatedAt))
 }
 
-internal fun interruptionReasonOf(connection: Connection, workflowId: String): String? = connection.prepareStatement(
-  "SELECT interruption_reason FROM feature_task_workflows WHERE workflow_id = ?",
-).use { statement ->
-  statement.setString(1, workflowId)
-  statement.executeQuery().use { rows -> if (rows.next()) rows.getString("interruption_reason") else null }
-}
+internal fun interruptionReasonOf(
+  connection: Connection,
+  workflowId: String,
+): String? =
+  connection.prepareStatement(
+    "SELECT interruption_reason FROM feature_task_workflows WHERE workflow_id = ?",
+  ).use { statement ->
+    statement.setString(1, workflowId)
+    statement.executeQuery().use { rows -> if (rows.next()) rows.getString("interruption_reason") else null }
+  }
 
 internal fun workerOwnership(
   workflowId: String,
   generation: Long,
   ownerToken: String,
-): FeatureTaskRuntimeWorkerOwnership = FeatureTaskRuntimeWorkerOwnership(
-  workflowId = workflowId,
-  generation = generation,
-  ownerToken = ownerToken,
-  hostIdentity = "host-a",
-  bootIdentity = "boot-a",
-  pid = 1234,
-  processBirthToken = "birth-1234",
-  leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
-  heartbeatAt = "2026-07-14T10:00:00Z",
-  expiresAt = "2026-07-14T10:05:00Z",
-  phaseId = "implement",
-  phaseAttempt = 1,
-)
+): FeatureTaskRuntimeWorkerOwnership =
+  FeatureTaskRuntimeWorkerOwnership(
+    workflowId = workflowId,
+    generation = generation,
+    ownerToken = ownerToken,
+    hostIdentity = "host-a",
+    bootIdentity = "boot-a",
+    pid = 1234,
+    processBirthToken = "birth-1234",
+    leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
+    heartbeatAt = "2026-07-14T10:00:00Z",
+    expiresAt = "2026-07-14T10:05:00Z",
+    phaseId = "implement",
+    phaseAttempt = 1,
+  )
 
 internal val taskRuntimeArtifactsJson: String =
   """
@@ -167,7 +178,8 @@ internal val taskRuntimeArtifactsJson: String =
   }
   """.trimIndent()
 
-internal fun auditRepairArtifactsJson(contractVersion: String = "0.2"): String = """
+internal fun auditRepairArtifactsJson(contractVersion: String = "0.2"): String =
+  """
   {"feature_task_runtime_audit_repair_state":{
     "contract_version":"$contractVersion",
     "accepted_plans":[{"contract_version":"0.2","gaps":[{
@@ -198,7 +210,7 @@ internal fun auditRepairArtifactsJson(contractVersion: String = "0.2"): String =
     "progress":{"first_pass_convergence":false,"recurring_gap_count":0,"new_gap_count":1,
       "attempted_repair_item_count":0,"resolved_repair_item_count":0,"audit_gap_iteration_count":1}
   }}
-""".trimIndent()
+  """.trimIndent()
 
 internal fun insertFeatureImplementSession(connection: Connection) {
   connection.prepareStatement(
@@ -258,37 +270,43 @@ internal fun workflowRow(
   workflowName: String,
   currentStepId: String,
   mode: FeatureTaskWorkflowMode? = null,
-): WorkflowStateRow = WorkflowStateRow(
-  workflowId = workflowId,
-  sessionId = sessionId,
-  workflowName = workflowName,
-  contractVersion = "0.1",
-  workflowStatus = WorkflowStatus.RUNNING.wireValue,
-  currentStepId = currentStepId,
-  stepsJson = "[]",
-  artifactsJson = "{}",
-  startedAt = null,
-  updatedAt = null,
-  finishedAt = null,
-  mode = mode,
-)
+): WorkflowStateRow =
+  WorkflowStateRow(
+    workflowId = workflowId,
+    sessionId = sessionId,
+    workflowName = workflowName,
+    contractVersion = "0.1",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
+    currentStepId = currentStepId,
+    stepsJson = "[]",
+    artifactsJson = "{}",
+    startedAt = null,
+    updatedAt = null,
+    finishedAt = null,
+    mode = mode,
+  )
 
-internal fun goalChildWorkflow(workflowId: String, parentWorkflowId: String): WorkflowStateRow = workflowRow(
-  workflowId = workflowId,
-  sessionId = "ftr-$workflowId",
-  workflowName = "bill-feature-task",
-  currentStepId = "preplan",
-  mode = FeatureTaskWorkflowMode.RUNTIME,
-).copy(
-  artifactsJson =
-  """{"goal_continuation":{"issue_key":"SKILL-128","subtask_id":1,"parent_workflow_id":"$parentWorkflowId"}}""",
-)
+internal fun goalChildWorkflow(
+  workflowId: String,
+  parentWorkflowId: String,
+): WorkflowStateRow =
+  workflowRow(
+    workflowId = workflowId,
+    sessionId = "ftr-$workflowId",
+    workflowName = "bill-feature-task",
+    currentStepId = "preplan",
+    mode = FeatureTaskWorkflowMode.RUNTIME,
+  ).copy(
+    artifactsJson =
+      """{"goal_continuation":{"issue_key":"SKILL-128","subtask_id":1,"parent_workflow_id":"$parentWorkflowId"}}""",
+  )
 
-internal fun goalChildIdentity(row: WorkflowStateRow): FeatureTaskExecutionIdentity = FeatureTaskExecutionIdentity(
-  workflowId = row.workflowId,
-  normalizedIssueKey = "SKILL-128",
-  repositoryIdentity = "repo",
-  governedSpecPath = ".feature-specs/SKILL-128/spec.md",
-  mode = FeatureTaskWorkflowMode.RUNTIME,
-  routeScope = FeatureTaskRouteScope.GOAL_CHILD,
-)
+internal fun goalChildIdentity(row: WorkflowStateRow): FeatureTaskExecutionIdentity =
+  FeatureTaskExecutionIdentity(
+    workflowId = row.workflowId,
+    normalizedIssueKey = "SKILL-128",
+    repositoryIdentity = "repo",
+    governedSpecPath = ".feature-specs/SKILL-128/spec.md",
+    mode = FeatureTaskWorkflowMode.RUNTIME,
+    routeScope = FeatureTaskRouteScope.GOAL_CHILD,
+  )

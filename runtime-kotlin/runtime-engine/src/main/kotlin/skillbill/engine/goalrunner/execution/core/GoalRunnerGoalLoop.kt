@@ -48,12 +48,13 @@ internal class GoalRunnerGoalLoop(
         val selection = GoalRunnerPlanner.selectNext(state.manifest)
         when (selection) {
           is GoalRunnerSelection.Done ->
-            terminalReport = finalization.finalizeGoal(
-              state,
-              args.request,
-              attemptState.attempted,
-              args.ledger,
-            )
+            terminalReport =
+              finalization.finalizeGoal(
+                state,
+                args.request,
+                attemptState.attempted,
+                args.ledger,
+              )
           is GoalRunnerSelection.Blocked ->
             blockedSelectionIteration(
               BlockedSelectionIterationArgs(
@@ -94,8 +95,9 @@ internal class GoalRunnerGoalLoop(
     args: DriveGoalLoopArgs,
   ): RunSelectionAdvance {
     var planning = currentPlanning
-    val planningHydrationMissing = planning.identity != null &&
-      planning.hydrationFor(selection.decision.subtask.id) == null
+    val planningHydrationMissing =
+      planning.identity != null &&
+        planning.hydrationFor(selection.decision.subtask.id) == null
     if (planningHydrationMissing) {
       when (val refreshedPlanning = goalPlanningSweep.prepare(state, args.request)) {
         is GoalPlanningSweepOutcome.PreparedAll -> planning = refreshedPlanning
@@ -103,34 +105,36 @@ internal class GoalRunnerGoalLoop(
           return RunSelectionAdvance(
             state = state,
             planning = planning,
-            report = stopped(
-              StoppedReportArgs(
-                issueKey = refreshedPlanning.issueKey,
-                attempted = attemptState.attempted,
-                subtaskId = refreshedPlanning.currentSubtaskId,
-                reason = refreshedPlanning.reason,
-                blockedReason = refreshedPlanning.blockedReason,
-                workflowId = state.manifest.workflowIdFor(refreshedPlanning.currentSubtaskId),
-                lastResumableStep = refreshedPlanning.lastResumableStep,
+            report =
+              stopped(
+                StoppedReportArgs(
+                  issueKey = refreshedPlanning.issueKey,
+                  attempted = attemptState.attempted,
+                  subtaskId = refreshedPlanning.currentSubtaskId,
+                  reason = refreshedPlanning.reason,
+                  blockedReason = refreshedPlanning.blockedReason,
+                  workflowId = state.manifest.workflowIdFor(refreshedPlanning.currentSubtaskId),
+                  lastResumableStep = refreshedPlanning.lastResumableStep,
+                ),
               ),
-            ),
           )
         }
       }
     }
-    val result = selectedSubtaskLoop.runSelectedSubtask(
-      RunSelectedSubtaskArgs(
-        state = state,
-        selection = selection,
-        request = args.request,
-        attemptedSnapshot = attemptState::attempted,
-        recordAttempt = attemptState::record,
-        observability = args.observability,
-        ledger = args.ledger,
-        telemetryEmitter = args.telemetryEmitter,
-        planning = planning,
-      ),
-    )
+    val result =
+      selectedSubtaskLoop.runSelectedSubtask(
+        RunSelectedSubtaskArgs(
+          state = state,
+          selection = selection,
+          request = args.request,
+          attemptedSnapshot = attemptState::attempted,
+          recordAttempt = attemptState::record,
+          observability = args.observability,
+          ledger = args.ledger,
+          telemetryEmitter = args.telemetryEmitter,
+          planning = planning,
+        ),
+      )
     return RunSelectionAdvance(result.state, planning, result.report)
   }
 
@@ -141,17 +145,19 @@ internal class GoalRunnerGoalLoop(
     val observability = args.observability
     val ledger = args.ledger
     val attempted = attemptState.attempted
-    val saved = manifestStore.save(
-      state.copy(manifest = state.manifest.withBlockedSelection(selection.subtask.id, selection.reason)),
-    )
+    val saved =
+      manifestStore.save(
+        state.copy(manifest = state.manifest.withBlockedSelection(selection.subtask.id, selection.reason)),
+      )
     selection.subtask.workflowId?.takeIf(String::isNotBlank)?.let { workflowId ->
       observability.record(
         subject = GoalRunnerObservabilitySubject(workflowId, saved.manifest.issueKey, selection.subtask.id),
-        signal = GoalRunnerObservabilitySignal(
-          workflowPhase = selection.subtask.lastResumableStep.orEmpty().ifBlank { "preplan" },
-          livenessClass = GoalRunnerObservabilityLivenessClass.BLOCK,
-          activitySummary = selection.reason,
-        ),
+        signal =
+          GoalRunnerObservabilitySignal(
+            workflowPhase = selection.subtask.lastResumableStep.orEmpty().ifBlank { "preplan" },
+            livenessClass = GoalRunnerObservabilityLivenessClass.BLOCK,
+            activitySummary = selection.reason,
+          ),
       )
       ledger.recordLedgerEntry(
         GoalRunnerLedgerContext.PolicyBlock(
@@ -175,17 +181,18 @@ internal class GoalRunnerGoalLoop(
     )
     return GoalRunnerIterationResult(
       state = saved,
-      report = stopped(
-        StoppedReportArgs(
-          issueKey = saved.manifest.issueKey,
-          attempted = attempted,
-          subtaskId = selection.subtask.id,
-          reason = GoalRunnerStopReason.DEPENDENCIES_BLOCKED,
-          blockedReason = selection.reason,
-          workflowId = selection.subtask.workflowId,
-          lastResumableStep = selection.subtask.lastResumableStep.orEmpty().ifBlank { "preplan" },
+      report =
+        stopped(
+          StoppedReportArgs(
+            issueKey = saved.manifest.issueKey,
+            attempted = attempted,
+            subtaskId = selection.subtask.id,
+            reason = GoalRunnerStopReason.DEPENDENCIES_BLOCKED,
+            blockedReason = selection.reason,
+            workflowId = selection.subtask.workflowId,
+            lastResumableStep = selection.subtask.lastResumableStep.orEmpty().ifBlank { "preplan" },
+          ),
         ),
-      ),
     )
   }
 
@@ -210,19 +217,21 @@ internal class GoalRunnerGoalLoop(
     selection: GoalRunnerSelection,
     ledger: GoalRunnerLedgerRecorder,
   ): GoalRunnerRunReport.Stopped {
-    val subtaskId = when (selection) {
-      is GoalRunnerSelection.Run -> selection.decision.subtask.id
-      is GoalRunnerSelection.Blocked -> selection.subtask.id
-      is GoalRunnerSelection.Done -> 0
-    }
-    val blockedManifest = if (subtaskId > 0) {
-      state.manifest.withBlockedSelection(subtaskId, violation)
-    } else {
-      state.manifest.copy(
-        status = "blocked",
-        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 0, action = "blocked"),
-      )
-    }
+    val subtaskId =
+      when (selection) {
+        is GoalRunnerSelection.Run -> selection.decision.subtask.id
+        is GoalRunnerSelection.Blocked -> selection.subtask.id
+        is GoalRunnerSelection.Done -> 0
+      }
+    val blockedManifest =
+      if (subtaskId > 0) {
+        state.manifest.withBlockedSelection(subtaskId, violation)
+      } else {
+        state.manifest.copy(
+          status = "blocked",
+          currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 0, action = "blocked"),
+        )
+      }
     val saved = manifestStore.save(state.copy(manifest = blockedManifest))
     ledger.recordLedgerEntry(
       GoalRunnerLedgerContext.PolicyBlock(
@@ -267,15 +276,17 @@ internal class GoalRunnerGoalLoop(
 
   private fun protectedBranchViolationMessage(manifest: DecompositionManifest): String? {
     val selection = GoalRunnerPlanner.selectNext(manifest) as? GoalRunnerSelection.Run
-    val selectedBranch = selection
-      ?.decision
-      ?.subtask
-      ?.id
-      ?.let { subtaskId -> manifest.branchPlanFor(subtaskId).branch }
-      ?.takeIf(String::isNotBlank)
-      ?: manifest.featureBranch
-    val protectedBranch = protectedBranchName(selectedBranch)
-      ?: return null
+    val selectedBranch =
+      selection
+        ?.decision
+        ?.subtask
+        ?.id
+        ?.let { subtaskId -> manifest.branchPlanFor(subtaskId).branch }
+        ?.takeIf(String::isNotBlank)
+        ?: manifest.featureBranch
+    val protectedBranch =
+      protectedBranchName(selectedBranch)
+        ?: return null
     return "Goal runner policy blocked execution because same-branch mode resolved to protected branch " +
       "'$protectedBranch'. Set decomposition feature/subtask branches to a non-protected branch " +
       "(for example `feat/${manifest.issueKey}-${manifest.featureName}`) before resuming."

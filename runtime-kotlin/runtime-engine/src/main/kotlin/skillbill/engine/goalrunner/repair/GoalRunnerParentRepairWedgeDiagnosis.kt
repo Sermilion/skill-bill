@@ -38,11 +38,12 @@ internal class GoalRunnerParentRepairWedgeDiagnosis(
       passed += PASSED_PARENT_EXECUTION_LEASE
       return
     }
-    wedges += GoalRunnerWedgeFinding(
-      wedgeClass = GoalRunnerWedgeClass.STALE_EXECUTION_LEASE,
-      field = GoalRunnerWedgeClass.STALE_EXECUTION_LEASE.durableField,
-      currentValue = lease.expiresAt,
-    )
+    wedges +=
+      GoalRunnerWedgeFinding(
+        wedgeClass = GoalRunnerWedgeClass.STALE_EXECUTION_LEASE,
+        field = GoalRunnerWedgeClass.STALE_EXECUTION_LEASE.durableField,
+        currentValue = lease.expiresAt,
+      )
   }
 
   private fun diagnoseRunnerInterruptedPause(
@@ -50,17 +51,19 @@ internal class GoalRunnerParentRepairWedgeDiagnosis(
     wedges: MutableList<GoalRunnerWedgeFinding>,
     passed: MutableList<String>,
   ) {
-    val runnerInterrupted = (controlState.paused || controlState.pauseRequested) &&
-      controlState.pauseReason == GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
+    val runnerInterrupted =
+      (controlState.paused || controlState.pauseRequested) &&
+        controlState.pauseReason == GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
     if (!runnerInterrupted) {
       passed += PASSED_PARENT_PAUSE_STATE
       return
     }
-    wedges += GoalRunnerWedgeFinding(
-      wedgeClass = GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE,
-      field = GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE.durableField,
-      currentValue = controlState.pauseReason,
-    )
+    wedges +=
+      GoalRunnerWedgeFinding(
+        wedgeClass = GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE,
+        field = GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE.durableField,
+        currentValue = controlState.pauseReason,
+      )
   }
 
   private fun leaseExpired(lease: GoalRunnerExecutionLease): Boolean = !lease.expiresAtInstant.isAfter(clock.instant())

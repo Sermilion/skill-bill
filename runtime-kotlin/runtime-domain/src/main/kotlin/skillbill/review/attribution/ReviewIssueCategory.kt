@@ -51,26 +51,31 @@ fun resolveReviewIssueCategory(
   routedSkill: String?,
   specialistReviews: List<String>,
   finding: ImportedFinding,
-): String = (
-  resolveExplicitCategory(explicitCategory)
-    ?: resolveExplicitCategory(extractBulletCategory(finding.findingText))
-    ?: resolveRoutedCategory(routedSkill, specialistReviews)
-    ?: classifyFindingCategory(finding)
-    ?: ReviewIssueCategory.OTHER
+): String =
+  (
+    resolveExplicitCategory(explicitCategory)
+      ?: resolveExplicitCategory(extractBulletCategory(finding.findingText))
+      ?: resolveRoutedCategory(routedSkill, specialistReviews)
+      ?: classifyFindingCategory(finding)
+      ?: ReviewIssueCategory.OTHER
   ).wireValue
 
-private fun resolveExplicitCategory(rawValue: String?): ReviewIssueCategory? = rawValue
-  ?.trim()
-  ?.lowercase()
-  ?.replace(Regex("[^a-z0-9]+"), "_")
-  ?.trim('_')
-  ?.takeIf(String::isNotEmpty)
-  ?.let(explicitCategoryAliases::get)
+private fun resolveExplicitCategory(rawValue: String?): ReviewIssueCategory? =
+  rawValue
+    ?.trim()
+    ?.lowercase()
+    ?.replace(Regex("[^a-z0-9]+"), "_")
+    ?.trim('_')
+    ?.takeIf(String::isNotEmpty)
+    ?.let(explicitCategoryAliases::get)
 
 private fun extractBulletCategory(findingText: String): String? =
   bulletCategoryPattern.find(findingText)?.groups?.get(SharedPayloadKeys.VALUE)?.value
 
-private fun resolveRoutedCategory(routedSkill: String?, specialistReviews: List<String>): ReviewIssueCategory? {
+private fun resolveRoutedCategory(
+  routedSkill: String?,
+  specialistReviews: List<String>,
+): ReviewIssueCategory? {
   val labels = listOfNotNull(routedSkill) + specialistReviews
   return labels.asSequence().mapNotNull(::categoryFromRoutedLabel).firstOrNull()
 }

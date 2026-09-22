@@ -17,30 +17,36 @@ class SharedInstallSelectionModelTest {
 
   @Test
   fun `resolved installed agents derive only reusable links from non failure apply results`() {
-    val successResult = installApplyResult(
-      status = InstallApplyStatus.SUCCESS,
-      links = listOf(
-        link(InstallAgent.CODEX, InstallAgentLinkStatus.CREATED),
-        link(InstallAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
-        link(InstallAgent.CURSOR, InstallAgentLinkStatus.WARNING),
-        link(InstallAgent.JUNIE, InstallAgentLinkStatus.FAILED),
-      ),
-    )
-    val warningResult = installApplyResult(
-      status = InstallApplyStatus.WARNING,
-      links = listOf(
-        link(InstallAgent.CODEX, InstallAgentLinkStatus.CREATED),
-        link(InstallAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
-        link(InstallAgent.JUNIE, InstallAgentLinkStatus.FAILED),
-      ),
-    )
-    val failureResult = installApplyResult(
-      status = InstallApplyStatus.FAILURE,
-      links = listOf(
-        link(InstallAgent.CODEX, InstallAgentLinkStatus.CREATED),
-        link(InstallAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
-      ),
-    )
+    val successResult =
+      installApplyResult(
+        status = InstallApplyStatus.SUCCESS,
+        links =
+          listOf(
+            link(InstallAgent.CODEX, InstallAgentLinkStatus.CREATED),
+            link(InstallAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
+            link(InstallAgent.CURSOR, InstallAgentLinkStatus.WARNING),
+            link(InstallAgent.JUNIE, InstallAgentLinkStatus.FAILED),
+          ),
+      )
+    val warningResult =
+      installApplyResult(
+        status = InstallApplyStatus.WARNING,
+        links =
+          listOf(
+            link(InstallAgent.CODEX, InstallAgentLinkStatus.CREATED),
+            link(InstallAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
+            link(InstallAgent.JUNIE, InstallAgentLinkStatus.FAILED),
+          ),
+      )
+    val failureResult =
+      installApplyResult(
+        status = InstallApplyStatus.FAILURE,
+        links =
+          listOf(
+            link(InstallAgent.CODEX, InstallAgentLinkStatus.CREATED),
+            link(InstallAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
+          ),
+      )
 
     assertEquals(setOf(InstallAgent.CODEX, InstallAgent.CLAUDE), successResult.resolvedInstalledAgents.agents)
     assertEquals(setOf(InstallAgent.CODEX, InstallAgent.CLAUDE), warningResult.resolvedInstalledAgents.agents)
@@ -50,50 +56,61 @@ class SharedInstallSelectionModelTest {
   private fun installApplyResult(
     status: InstallApplyStatus,
     links: List<InstallAgentSkillLinkOutcome>,
-  ): InstallApplyResult = InstallApplyResult(
-    status = status,
-    skills = listOf(
-      InstallAppliedSkill(
-        skillName = "bill-code-review",
-        kind = InstallPlanSkillKind.BASE,
-        sourceDir = FileLocation("/repo/skills/bill-code-review"),
-        staging = InstallSkillStagingOutcome(
-          status = InstallSkillStagingStatus.STAGED,
-          sourceDir = FileLocation("/repo/skills/bill-code-review"),
-          stagingDir = FileLocation("/home/.skill-bill/installed-skills/bill-code-review-hash"),
+  ): InstallApplyResult =
+    InstallApplyResult(
+      status = status,
+      skills =
+        listOf(
+          InstallAppliedSkill(
+            skillName = "bill-code-review",
+            kind = InstallPlanSkillKind.BASE,
+            sourceDir = FileLocation("/repo/skills/bill-code-review"),
+            staging =
+              InstallSkillStagingOutcome(
+                status = InstallSkillStagingStatus.STAGED,
+                sourceDir = FileLocation("/repo/skills/bill-code-review"),
+                stagingDir = FileLocation("/home/.skill-bill/installed-skills/bill-code-review-hash"),
+              ),
+            links = links,
+          ),
         ),
-        links = links,
-      ),
-    ),
-    nativeAgents = emptyList(),
-    telemetryOutcome = InstallTelemetryApplyOutcome(
-      level = InstallTelemetryLevel.ANONYMOUS,
-      status = InstallTelemetryApplyStatus.SUCCESS,
-    ),
-    mcpRegistrationOutcomes = listOf(
-      McpRegistrationApplyOutcome(
-        agent = InstallAgent.CURSOR,
-        status = McpRegistrationApplyStatus.SUCCESS,
-      ),
-    ),
-    warnings = emptyList(),
-    failures = emptyList(),
-    windowsSymlinkOutcome = WindowsSymlinkApplyOutcome(
-      preflight = WindowsSymlinkPreflight(
-        state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-        decision = WindowsSymlinkDecision.NOT_REQUIRED,
-      ),
-      fallbackState = WindowsSymlinkFallbackState.NOT_REQUIRED,
-    ),
-    telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-    mcpRegistrationIntent = McpRegistrationIntent(
-      register = true,
-      runtimeMcpBin = FileLocation("/runtime-mcp"),
-      agents = listOf(InstallAgent.CURSOR),
-    ),
-  )
+      nativeAgents = emptyList(),
+      telemetryOutcome =
+        InstallTelemetryApplyOutcome(
+          level = InstallTelemetryLevel.ANONYMOUS,
+          status = InstallTelemetryApplyStatus.SUCCESS,
+        ),
+      mcpRegistrationOutcomes =
+        listOf(
+          McpRegistrationApplyOutcome(
+            agent = InstallAgent.CURSOR,
+            status = McpRegistrationApplyStatus.SUCCESS,
+          ),
+        ),
+      warnings = emptyList(),
+      failures = emptyList(),
+      windowsSymlinkOutcome =
+        WindowsSymlinkApplyOutcome(
+          preflight =
+            WindowsSymlinkPreflight(
+              state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+              decision = WindowsSymlinkDecision.NOT_REQUIRED,
+            ),
+          fallbackState = WindowsSymlinkFallbackState.NOT_REQUIRED,
+        ),
+      telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+      mcpRegistrationIntent =
+        McpRegistrationIntent(
+          register = true,
+          runtimeMcpBin = FileLocation("/runtime-mcp"),
+          agents = listOf(InstallAgent.CURSOR),
+        ),
+    )
 
-  private fun link(agent: InstallAgent, status: InstallAgentLinkStatus): InstallAgentSkillLinkOutcome =
+  private fun link(
+    agent: InstallAgent,
+    status: InstallAgentLinkStatus,
+  ): InstallAgentSkillLinkOutcome =
     InstallAgentSkillLinkOutcome(
       agent = agent,
       targetDir = FileLocation("/home/.${agent.id}/skills"),

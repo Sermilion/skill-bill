@@ -69,37 +69,39 @@ internal class GoalPlanningStatusProjectionSql(
     }
   }
 
-  private fun readSharedPreplanPrepared(parentGoalWorkflowId: String): Boolean = connection.prepareStatement(
-    "SELECT preparation_status, preplan_payload_json FROM goal_shared_preplans WHERE parent_goal_workflow_id = ?",
-  ).use { statement ->
-    statement.bindAll(parentGoalWorkflowId)
-    statement.executeQuery().use { result ->
-      result.next() &&
-        result.getString(1) == "prepared" &&
-        result.getString(2) != INVALIDATED_SHARED_PREPLAN_PAYLOAD
+  private fun readSharedPreplanPrepared(parentGoalWorkflowId: String): Boolean =
+    connection.prepareStatement(
+      "SELECT preparation_status, preplan_payload_json FROM goal_shared_preplans WHERE parent_goal_workflow_id = ?",
+    ).use { statement ->
+      statement.bindAll(parentGoalWorkflowId)
+      statement.executeQuery().use { result ->
+        result.next() &&
+          result.getString(1) == "prepared" &&
+          result.getString(2) != INVALIDATED_SHARED_PREPLAN_PAYLOAD
+      }
     }
-  }
 
-  private fun preparedPlanIds(parentGoalWorkflowId: String): List<Int> = connection.prepareStatement(
-    "SELECT subtask_id, preparation_status FROM goal_subtask_plans " +
-      "WHERE parent_goal_workflow_id = ? ORDER BY manifest_order, subtask_id",
-  ).use { statement ->
-    statement.bindAll(parentGoalWorkflowId)
-    statement.executeQuery().use { result ->
-      buildList {
-        while (result.next()) {
-          if (result.getString("preparation_status") != "prepared") {
-            throw InvalidGoalPlanningPreparationSchemaError(
-              parentGoalWorkflowId,
-              "preparation_status",
-              "plan checkpoint must be prepared",
-            )
+  private fun preparedPlanIds(parentGoalWorkflowId: String): List<Int> =
+    connection.prepareStatement(
+      "SELECT subtask_id, preparation_status FROM goal_subtask_plans " +
+        "WHERE parent_goal_workflow_id = ? ORDER BY manifest_order, subtask_id",
+    ).use { statement ->
+      statement.bindAll(parentGoalWorkflowId)
+      statement.executeQuery().use { result ->
+        buildList {
+          while (result.next()) {
+            if (result.getString("preparation_status") != "prepared") {
+              throw InvalidGoalPlanningPreparationSchemaError(
+                parentGoalWorkflowId,
+                "preparation_status",
+                "plan checkpoint must be prepared",
+              )
+            }
+            add(result.getInt("subtask_id"))
           }
-          add(result.getInt("subtask_id"))
         }
       }
     }
-  }
 
   private fun validatePreparedPlanIds(
     parentGoalWorkflowId: String,

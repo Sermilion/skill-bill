@@ -21,19 +21,16 @@ data class FeatureTaskRuntimePhaseRecord(
   val executionOrigin: FeatureTaskRuntimePhaseExecutionOrigin =
     FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
   val outputArtifact: String? = null,
-
   val rejectedOutput: String? = null,
   val blockedReason: String? = null,
   val failureDisposition: FeatureTaskRuntimeFailureDisposition? = null,
   val fileManifestBefore: List<String> = emptyList(),
   val fileManifestAfter: List<String> = emptyList(),
   val fileManifestIntroduced: List<String> = emptyList(),
-
   val loopId: String? = null,
   val edgeIteration: Int? = null,
   val reviewPassNumber: Int? = null,
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence? = null,
-
   val launchedModel: String? = null,
   val launchedEffort: String? = null,
   val reviewRunId: String? = null,
@@ -64,9 +61,10 @@ data class FeatureTaskRuntimePhaseRecord(
     reviewRunId: String? = null,
   ) : this(
     phaseId = phaseId,
-    status = requireNotNull(WorkflowStepStatus.fromWire(status)) {
-      "Unknown feature-task-runtime phase status '$status'."
-    },
+    status =
+      requireNotNull(WorkflowStepStatus.fromWire(status)) {
+        "Unknown feature-task-runtime phase status '$status'."
+      },
     attemptCount = attemptCount,
     startedAt = startedAt,
     firstStartedAt = firstStartedAt,
@@ -126,31 +124,33 @@ data class FeatureTaskRuntimePhaseRecord(
       }
     }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
-    "record_kind" to "private_phase_record",
-    SharedPayloadKeys.PHASE_ID to phaseId,
-    SharedPayloadKeys.STATUS to status.wireValue,
-    "attempt_count" to attemptCount,
-    "started_at" to startedAt,
-    "first_started_at" to firstStartedAt,
-    "resolved_agent_id" to resolvedAgentId,
-    "execution_origin" to executionOrigin.wireValue,
-  ).apply {
-    finishedAt?.let { put("finished_at", it) }
-    durationMillis?.let { put("duration_millis", it) }
-    outputArtifact?.let { put("output_artifact", it) }
-    blockedReason?.let { put(DecompositionManifestPayloadKeys.BLOCKED_REASON, it) }
-    failureDisposition?.let { put(SharedPayloadKeys.FAILURE_DISPOSITION, it.wireValue) }
-    if (fileManifestBefore.isNotEmpty()) put("file_manifest_before", fileManifestBefore)
-    if (fileManifestAfter.isNotEmpty()) put("file_manifest_after", fileManifestAfter)
-    if (fileManifestIntroduced.isNotEmpty()) put("file_manifest_introduced", fileManifestIntroduced)
-    loopId?.let { put("loop_id", it) }
-    edgeIteration?.let { put("edge_iteration", it) }
-    reviewPassNumber?.let { put("review_pass_number", it) }
-    repairEvidence?.let { put("repair_evidence", it.toArtifactMap()) }
-    putLaunchPair()
-  }
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
+      "record_kind" to "private_phase_record",
+      SharedPayloadKeys.PHASE_ID to phaseId,
+      SharedPayloadKeys.STATUS to status.wireValue,
+      "attempt_count" to attemptCount,
+      "started_at" to startedAt,
+      "first_started_at" to firstStartedAt,
+      "resolved_agent_id" to resolvedAgentId,
+      "execution_origin" to executionOrigin.wireValue,
+    ).apply {
+      finishedAt?.let { put("finished_at", it) }
+      durationMillis?.let { put("duration_millis", it) }
+      outputArtifact?.let { put("output_artifact", it) }
+      blockedReason?.let { put(DecompositionManifestPayloadKeys.BLOCKED_REASON, it) }
+      failureDisposition?.let { put(SharedPayloadKeys.FAILURE_DISPOSITION, it.wireValue) }
+      if (fileManifestBefore.isNotEmpty()) put("file_manifest_before", fileManifestBefore)
+      if (fileManifestAfter.isNotEmpty()) put("file_manifest_after", fileManifestAfter)
+      if (fileManifestIntroduced.isNotEmpty()) put("file_manifest_introduced", fileManifestIntroduced)
+      loopId?.let { put("loop_id", it) }
+      edgeIteration?.let { put("edge_iteration", it) }
+      reviewPassNumber?.let { put("review_pass_number", it) }
+      repairEvidence?.let { put("repair_evidence", it.toArtifactMap()) }
+      putLaunchPair()
+    }
 
   private fun MutableMap<String, Any?>.putLaunchPair() {
     launchedModel?.let { put("launched_model", it) }
@@ -159,7 +159,6 @@ data class FeatureTaskRuntimePhaseRecord(
   }
 
   companion object {
-
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseRecord {
       requireCompatibleShape(raw)
       val phaseId =
@@ -171,36 +170,41 @@ data class FeatureTaskRuntimePhaseRecord(
         val reader = durableArtifactMapReader(raw)
         FeatureTaskRuntimePhaseRecord(
           phaseId = phaseId,
-          status = WorkflowStepStatus.fromWire(reader.requiredString(SharedPayloadKeys.STATUS))
-            ?: incompatiblePhaseRecord(listOf("unknown status '${raw[SharedPayloadKeys.STATUS]}'")),
+          status =
+            WorkflowStepStatus.fromWire(reader.requiredString(SharedPayloadKeys.STATUS))
+              ?: incompatiblePhaseRecord(listOf("unknown status '${raw[SharedPayloadKeys.STATUS]}'")),
           attemptCount = reader.requiredInt("attempt_count"),
           startedAt = reader.requiredString("started_at"),
           firstStartedAt = reader.requiredString("first_started_at"),
           finishedAt = reader.optionalString("finished_at"),
           durationMillis = reader.optionalLong("duration_millis"),
           resolvedAgentId = reader.requiredString("resolved_agent_id"),
-          executionOrigin = FeatureTaskRuntimePhaseExecutionOrigin.fromWireValue(
-            reader.requiredString("execution_origin"),
-          ),
+          executionOrigin =
+            FeatureTaskRuntimePhaseExecutionOrigin.fromWireValue(
+              reader.requiredString("execution_origin"),
+            ),
           outputArtifact = reader.optionalString("output_artifact"),
           rejectedOutput = null,
           blockedReason = reader.optionalString(DecompositionManifestPayloadKeys.BLOCKED_REASON),
-          failureDisposition = reader.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
-            FeatureTaskRuntimeFailureDisposition.fromWireValue(value) ?: incompatiblePhaseRecord()
-          },
+          failureDisposition =
+            reader.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
+              FeatureTaskRuntimeFailureDisposition.fromWireValue(value) ?: incompatiblePhaseRecord()
+            },
           fileManifestBefore = reader.optionalStringList("file_manifest_before"),
           fileManifestAfter = reader.optionalStringList("file_manifest_after"),
           fileManifestIntroduced = reader.optionalStringList("file_manifest_introduced"),
           loopId = reader.optionalString("loop_id"),
           edgeIteration = reader.optionalInt("edge_iteration"),
           reviewPassNumber = reader.optionalInt("review_pass_number"),
-          repairEvidence = raw["repair_evidence"]?.let { value ->
-            val evidence = value as? Map<*, *>
-              ?: incompatiblePhaseRecord()
-            FeatureTaskRuntimePhaseOutputRepairEvidence.fromArtifactMap(
-              evidence.entries.associate { (key, item) -> key.toString() to item },
-            )
-          },
+          repairEvidence =
+            raw["repair_evidence"]?.let { value ->
+              val evidence =
+                value as? Map<*, *>
+                  ?: incompatiblePhaseRecord()
+              FeatureTaskRuntimePhaseOutputRepairEvidence.fromArtifactMap(
+                evidence.entries.associate { (key, item) -> key.toString() to item },
+              )
+            },
           launchedModel = reader.optionalString("launched_model"),
           launchedEffort = reader.optionalString("launched_effort"),
           reviewRunId = reader.optionalString("review_run_id"),
@@ -211,44 +215,48 @@ data class FeatureTaskRuntimePhaseRecord(
     }
 
     private fun requireCompatibleShape(raw: Map<String, Any?>) {
-      val required = setOf(
-        SharedPayloadKeys.CONTRACT_VERSION,
-        "record_kind",
-        SharedPayloadKeys.PHASE_ID,
-        SharedPayloadKeys.STATUS,
-        "attempt_count",
-        "started_at",
-        "first_started_at",
-        "resolved_agent_id",
-        "execution_origin",
-      )
-      val allowed = required + setOf(
-        "finished_at",
-        "duration_millis",
-        "output_artifact",
-        DecompositionManifestPayloadKeys.BLOCKED_REASON,
-        SharedPayloadKeys.FAILURE_DISPOSITION,
-        "file_manifest_before",
-        "file_manifest_after",
-        "file_manifest_introduced",
-        "loop_id",
-        "edge_iteration",
-        "review_pass_number",
-        "rejected_output",
-        "repair_evidence",
-        "launched_model",
-        "launched_effort",
-        "review_run_id",
-      )
+      val required =
+        setOf(
+          SharedPayloadKeys.CONTRACT_VERSION,
+          "record_kind",
+          SharedPayloadKeys.PHASE_ID,
+          SharedPayloadKeys.STATUS,
+          "attempt_count",
+          "started_at",
+          "first_started_at",
+          "resolved_agent_id",
+          "execution_origin",
+        )
+      val allowed =
+        required +
+          setOf(
+            "finished_at",
+            "duration_millis",
+            "output_artifact",
+            DecompositionManifestPayloadKeys.BLOCKED_REASON,
+            SharedPayloadKeys.FAILURE_DISPOSITION,
+            "file_manifest_before",
+            "file_manifest_after",
+            "file_manifest_introduced",
+            "loop_id",
+            "edge_iteration",
+            "review_pass_number",
+            "rejected_output",
+            "repair_evidence",
+            "launched_model",
+            "launched_effort",
+            "review_run_id",
+          )
       val missing = required - raw.keys
       val unknown = raw.keys - allowed
-      val identityDetail = when {
-        raw["record_kind"] != "private_phase_record" -> "record_kind was '${raw["record_kind"]}'"
-        raw[SharedPayloadKeys.CONTRACT_VERSION] != FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION ->
-          "contract_version was '${raw[SharedPayloadKeys.CONTRACT_VERSION]}'"
+      val identityDetail =
+        when {
+          raw["record_kind"] != "private_phase_record" -> "record_kind was '${raw["record_kind"]}'"
+          raw[SharedPayloadKeys.CONTRACT_VERSION] != FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION ->
+            "contract_version was '${raw[SharedPayloadKeys.CONTRACT_VERSION]}'"
 
-        else -> null
-      }
+          else -> null
+        }
       if (missing.isNotEmpty() || unknown.isNotEmpty() || identityDetail != null) {
         incompatiblePhaseRecord(
           listOfNotNull(

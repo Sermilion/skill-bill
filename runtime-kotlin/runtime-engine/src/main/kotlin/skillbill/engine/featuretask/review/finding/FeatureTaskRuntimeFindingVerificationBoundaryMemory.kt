@@ -17,26 +17,29 @@ class FeatureTaskRuntimeFindingVerificationBoundaryMemory(
   fun sectionsForFindings(
     repoRoot: Path,
     requests: List<FeatureTaskRuntimeFindingBoundaryMemoryRequest>,
-  ): List<FeatureTaskRuntimeFindingBoundaryMemorySection> = requests.map { request ->
-    FeatureTaskRuntimeFindingBoundaryMemorySection(
-      findingId = request.findingId,
-      discovery = contextDiscovery.discoverForFindingPaths(
-        repoRoot = repoRoot,
-        findingPaths = request.findingPaths,
-        loudFailOnCapExceeded = false,
-      ),
-    )
-  }
+  ): List<FeatureTaskRuntimeFindingBoundaryMemorySection> =
+    requests.map { request ->
+      FeatureTaskRuntimeFindingBoundaryMemorySection(
+        findingId = request.findingId,
+        discovery =
+          contextDiscovery.discoverForFindingPaths(
+            repoRoot = repoRoot,
+            findingPaths = request.findingPaths,
+            loudFailOnCapExceeded = false,
+          ),
+      )
+    }
 
   fun resolveSelectedBodies(
     repoRoot: Path,
     catalog: List<GoalPlanningBoundaryHeading>,
     selectedHeadingIds: List<String>,
-  ): GoalPlanningResolvedBoundaryBodies = boundaryBodyResolver.resolve(
-    repoRoot = repoRoot,
-    headingIds = selectedHeadingIds,
-    catalogHeadingIds = catalog.map(GoalPlanningBoundaryHeading::headingId).toSet(),
-    caps = GoalPlanningBoundaryBodyResolutionCaps.VERIFICATION,
-    loudFailOnCapExceeded = true,
-  )
+  ): GoalPlanningResolvedBoundaryBodies =
+    boundaryBodyResolver.resolve(
+      repoRoot = repoRoot,
+      headingIds = selectedHeadingIds,
+      catalogHeadingIds = catalog.map(GoalPlanningBoundaryHeading::headingId).toSet(),
+      caps = GoalPlanningBoundaryBodyResolutionCaps.VERIFICATION,
+      loudFailOnCapExceeded = true,
+    )
 }

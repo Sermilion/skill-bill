@@ -12,6 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class SQLiteDatabaseSessionFactoryTypedFailureTest {
   @Test
   fun `read surfaces the typed error rather than a jdbc exception at the ports boundary`() {
@@ -19,9 +20,10 @@ class SQLiteDatabaseSessionFactoryTypedFailureTest {
     val unopenable = unopenableDatabasePath(tempDir)
     val database = boundDatabase(tempDir, unopenable)
 
-    val error = assertFailsWith<DatabaseAccessError> {
-      database.read { it.workflowStates }
-    }
+    val error =
+      assertFailsWith<DatabaseAccessError> {
+        database.read { it.workflowStates }
+      }
 
     assertEquals(unopenable.toAbsolutePath().normalize().toString(), error.dbPath)
     assertEquals(DatabaseAccessOperation.READ, error.operation)
@@ -37,9 +39,10 @@ class SQLiteDatabaseSessionFactoryTypedFailureTest {
     }
     val database = boundDatabase(tempDir, schemaless)
 
-    val error = assertFailsWith<DatabaseAccessError> {
-      database.read { it.workflowStates.getFeatureTaskExecutionIdentity("missing") }
-    }
+    val error =
+      assertFailsWith<DatabaseAccessError> {
+        database.read { it.workflowStates.getFeatureTaskExecutionIdentity("missing") }
+      }
 
     assertEquals(DatabaseAccessOperation.READ, error.operation)
     assertEquals(schemaless.toAbsolutePath().normalize().toString(), error.dbPath)
@@ -83,9 +86,10 @@ class SQLiteDatabaseSessionFactoryTypedFailureTest {
     val unopenable = unopenableDatabasePath(tempDir)
     val database = boundDatabase(tempDir, unopenable)
 
-    val thrown = runCatching {
-      database.transaction { it.workflowStates }
-    }.exceptionOrNull()
+    val thrown =
+      runCatching {
+        database.transaction { it.workflowStates }
+      }.exceptionOrNull()
 
     assertFalse(thrown is SQLiteException, "raw JDBC exception crossed the ports boundary: $thrown")
     assertTrue(thrown is DatabaseAccessError, "expected the typed error, got $thrown")
@@ -107,6 +111,9 @@ class SQLiteDatabaseSessionFactoryTypedFailureTest {
   private fun unopenableDatabasePath(tempDir: Path): Path =
     tempDir.resolve("unopenable.db").also { it.createDirectories() }
 
-  private fun boundDatabase(tempDir: Path, dbPath: Path): SQLiteDatabaseSessionFactory =
+  private fun boundDatabase(
+    tempDir: Path,
+    dbPath: Path,
+  ): SQLiteDatabaseSessionFactory =
     sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
 }

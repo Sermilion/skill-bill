@@ -16,7 +16,10 @@ internal val runtimeArchitectureSourceRoots: List<Path> =
       )
     }
 
-internal fun engineInboundApiViolations(consumerSourceRoots: List<String>, allowedTypes: Set<String>): List<String> {
+internal fun engineInboundApiViolations(
+  consumerSourceRoots: List<String>,
+  allowedTypes: Set<String>,
+): List<String> {
   val violations = mutableListOf<String>()
   consumerSourceRoots.forEach { relativeRoot ->
     val root = runtimeArchitectureRoot.resolve(relativeRoot)
@@ -48,16 +51,18 @@ internal fun engineInboundApiViolationMessage(
   relativePath: String,
   referencedType: String,
   allowedTypes: Set<String>,
-): String? = if (referencedType in allowedTypes) {
-  null
-} else {
-  "$relativePath references unpinned engine type $referencedType"
-}
+): String? =
+  if (referencedType in allowedTypes) {
+    null
+  } else {
+    "$relativePath references unpinned engine type $referencedType"
+  }
 
 internal fun mainPackageRootsForModule(moduleName: String): Set<String> {
-  val root = runtimeArchitectureRoot.resolve(
-    "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin",
-  )
+  val root =
+    runtimeArchitectureRoot.resolve(
+      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin",
+    )
   if (!Files.isDirectory(root)) return emptySet()
   return Files.walk(root).use { paths ->
     paths.filter { path -> Files.isRegularFile(path) && path.toString().endsWith(".kt") }
@@ -87,19 +92,23 @@ internal fun subsystemPackageRootViolationMessage(
   moduleName: String,
   actualRoots: Set<String>,
   expectedRoot: String,
-): String? = when {
-  actualRoots.isEmpty() -> "$moduleName has no main-source package root"
-  actualRoots.size > 1 ->
-    "$moduleName has multiple main-source roots: ${actualRoots.sorted()}"
-  actualRoots.single() != expectedRoot ->
-    "$moduleName root ${actualRoots.single()} does not match expected $expectedRoot"
-  else -> null
-}
+): String? =
+  when {
+    actualRoots.isEmpty() -> "$moduleName has no main-source package root"
+    actualRoots.size > 1 ->
+      "$moduleName has multiple main-source roots: ${actualRoots.sorted()}"
+    actualRoots.single() != expectedRoot ->
+      "$moduleName root ${actualRoots.single()} does not match expected $expectedRoot"
+    else -> null
+  }
 
 internal const val MCP_SCAFFOLD_RUNTIME_PATH =
   "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/scaffold/McpScaffoldRuntime.kt"
 
-internal fun assertRegularFiles(relativePaths: List<String>, present: Boolean) {
+internal fun assertRegularFiles(
+  relativePaths: List<String>,
+  present: Boolean,
+) {
   relativePaths.forEach { relative ->
     val path = runtimeArchitectureRoot.resolve(relative)
     if (present) {
@@ -109,29 +118,37 @@ internal fun assertRegularFiles(relativePaths: List<String>, present: Boolean) {
     }
   }
 }
-internal fun syntheticSourceFile(relativePath: String, source: String): SourceFile = SourceFile(
-  relativePath = relativePath,
-  packageName = RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1).orEmpty(),
-  imports = RuntimeArchitectureScanConstants.importPattern.findAll(source)
-    .map { it.groupValues[1].substringBefore(" as ") }
-    .toList(),
-  source = source,
-)
+
+internal fun syntheticSourceFile(
+  relativePath: String,
+  source: String,
+): SourceFile =
+  SourceFile(
+    relativePath = relativePath,
+    packageName = RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1).orEmpty(),
+    imports =
+      RuntimeArchitectureScanConstants.importPattern.findAll(source)
+        .map { it.groupValues[1].substringBefore(" as ") }
+        .toList(),
+    source = source,
+  )
 
 internal fun installPortFunctionSignatures(sourceFile: SourceFile): List<InstallPortFunctionSignature> {
   val lines = sourceFile.source.lines()
   return lines.mapIndexedNotNull { index, line ->
-    val match = RuntimeArchitectureScanConstants.portFunctionStartPattern.find(line.trim())
-      ?: return@mapIndexedNotNull null
+    val match =
+      RuntimeArchitectureScanConstants.portFunctionStartPattern.find(line.trim())
+        ?: return@mapIndexedNotNull null
     val signatureText = collectFunctionSignature(lines, index)
     val parsed = RuntimeArchitectureScanConstants.portFunctionSignaturePattern.find(signatureText)
     val functionName = match.groupValues[1]
     val parameters = parsed?.groupValues?.get(2).orEmpty().trim()
     val returnType = parsed?.groupValues?.get(3).orEmpty()
-    val parameterTypes = parameters.split(",")
-      .map(String::trim)
-      .filter(String::isNotBlank)
-      .map { parameter -> parameter.substringAfter(":").trim().substringAfterLast(".") }
+    val parameterTypes =
+      parameters.split(",")
+        .map(String::trim)
+        .filter(String::isNotBlank)
+        .map { parameter -> parameter.substringAfter(":").trim().substringAfterLast(".") }
     InstallPortFunctionSignature(
       sourcePath = sourceFile.relativePath,
       functionName = functionName,
@@ -142,7 +159,11 @@ internal fun installPortFunctionSignatures(sourceFile: SourceFile): List<Install
     )
   }
 }
-internal fun collectFunctionSignature(lines: List<String>, startIndex: Int): String {
+
+internal fun collectFunctionSignature(
+  lines: List<String>,
+  startIndex: Int,
+): String {
   val signature = StringBuilder()
   var openParens = 0
   var sawParen = false
@@ -170,86 +191,89 @@ internal fun collectFunctionSignature(lines: List<String>, startIndex: Int): Str
   }
   return signature.toString()
 }
+
 internal fun hasFunctionSignatureTerminator(text: String): Boolean =
   containsReturnTypeSeparator(text) || " =" in text || text.trim().endsWith("{")
 
 internal fun containsReturnTypeSeparator(text: String): Boolean = "):" in text || ") :" in text
 
-internal fun rawMapViolationFixtureSource(): String = """
-    package skillbill.application
+internal fun rawMapViolationFixtureSource(): String =
+  """
+  package skillbill.application
 
-    typealias AnyMapAlias = Map<String, Any>
-    typealias HashMapAlias = HashMap<String, Any?>
+  typealias AnyMapAlias = Map<String, Any>
+  typealias HashMapAlias = HashMap<String, Any?>
 
-    open class PublicBase {
-      open fun overrideMap(): Map<String, Any?> = emptyMap()
-    }
+  open class PublicBase {
+    open fun overrideMap(): Map<String, Any?> = emptyMap()
+  }
 
-    class PublicDerived : PublicBase() {
-      override fun overrideMap(): Map<String, Any?> = emptyMap()
-    }
+  class PublicDerived : PublicBase() {
+    override fun overrideMap(): Map<String, Any?> = emptyMap()
+  }
 
-    class PublicPayload {
-      fun payloadMap(): Map<String, Any?> = emptyMap()
-    }
+  class PublicPayload {
+    fun payloadMap(): Map<String, Any?> = emptyMap()
+  }
 
-    class Fake {
-      public fun foo(): Map<String, Any?> = emptyMap()
+  class Fake {
+    public fun foo(): Map<String, Any?> = emptyMap()
 
-      public fun nonNullMap(): Map<String, Any> = emptyMap()
+    public fun nonNullMap(): Map<String, Any> = emptyMap()
 
-      fun bar(): Map<String, *> = emptyMap<String, Any?>()
+    fun bar(): Map<String, *> = emptyMap<String, Any?>()
 
-      fun baz(input: MutableMap<String, Any?>) { input.clear() }
+    fun baz(input: MutableMap<String, Any?>) { input.clear() }
 
-      fun mutableNonNull(input: MutableMap<String, Any>) { input.clear() }
+    fun mutableNonNull(input: MutableMap<String, Any>) { input.clear() }
 
-      fun mutableStar(input: MutableMap<String, *>) {}
+    fun mutableStar(input: MutableMap<String, *>) {}
 
-      fun hashMap(input: HashMap<String, Any?>) { input.clear() }
+    fun hashMap(input: HashMap<String, Any?>) { input.clear() }
 
-      fun hashMapNonNull(input: HashMap<String, Any>) { input.clear() }
+    fun hashMapNonNull(input: HashMap<String, Any>) { input.clear() }
 
-      fun hashMapStar(input: HashMap<String, *>) {}
+    fun hashMapStar(input: HashMap<String, *>) {}
 
-      fun linkedHashMap(input: LinkedHashMap<String, Any?>) { input.clear() }
+    fun linkedHashMap(input: LinkedHashMap<String, Any?>) { input.clear() }
 
-      fun linkedHashMapNonNull(input: LinkedHashMap<String, Any>) { input.clear() }
+    fun linkedHashMapNonNull(input: LinkedHashMap<String, Any>) { input.clear() }
 
-      fun linkedHashMapStar(input: LinkedHashMap<String, *>) {}
+    fun linkedHashMapStar(input: LinkedHashMap<String, *>) {}
 
-      fun aliasMap(input: AnyMapAlias) {}
+    fun aliasMap(input: AnyMapAlias) {}
 
-      fun aliasHashMap(): HashMapAlias = hashMapOf()
+    fun aliasHashMap(): HashMapAlias = hashMapOf()
 
-      fun multiLine(
-        first: String,
-      ): Map<String, Any?> = emptyMap()
-    }
-""".trimIndent()
+    fun multiLine(
+      first: String,
+    ): Map<String, Any?> = emptyMap()
+  }
+  """.trimIndent()
 
-internal fun expectedRawMapViolationFixtureNames(): List<String> = listOf(
-  "aliasHashMap",
-  "aliasMap",
-  "AnyMapAlias",
-  "bar",
-  "baz",
-  "foo",
-  "hashMap",
-  "hashMapNonNull",
-  "hashMapStar",
-  "linkedHashMap",
-  "linkedHashMapNonNull",
-  "linkedHashMapStar",
-  "multiLine",
-  "mutableNonNull",
-  "mutableStar",
-  "nonNullMap",
-  "overrideMap",
-  "overrideMap",
-  "payloadMap",
-  "HashMapAlias",
-).sorted()
+internal fun expectedRawMapViolationFixtureNames(): List<String> =
+  listOf(
+    "aliasHashMap",
+    "aliasMap",
+    "AnyMapAlias",
+    "bar",
+    "baz",
+    "foo",
+    "hashMap",
+    "hashMapNonNull",
+    "hashMapStar",
+    "linkedHashMap",
+    "linkedHashMapNonNull",
+    "linkedHashMapStar",
+    "multiLine",
+    "mutableNonNull",
+    "mutableStar",
+    "nonNullMap",
+    "overrideMap",
+    "overrideMap",
+    "payloadMap",
+    "HashMapAlias",
+  ).sorted()
 
 private val rawMapBannedShapes =
   listOf(
@@ -297,7 +321,11 @@ private fun rawMapDeclarationName(trimmed: String): String? {
   return funMatch?.groupValues?.get(1) ?: valMatch?.groupValues?.get(1)
 }
 
-private fun collectRawMapDeclarationSignature(lines: List<String>, startIndex: Int, hasValDecl: Boolean): String {
+private fun collectRawMapDeclarationSignature(
+  lines: List<String>,
+  startIndex: Int,
+  hasValDecl: Boolean,
+): String {
   val signature = StringBuilder()
   var index = startIndex
   var openParens = 0
@@ -332,9 +360,10 @@ private fun rawMapSignatureComplete(
   hasValDecl: Boolean,
 ): Boolean {
   if (closed) {
-    val containsReturnMarker = current.contains("):") || current.contains(") :") ||
-      current.endsWith(":") || current.contains(" {") || current.endsWith("{") ||
-      current.contains(" =") || current.endsWith("= ") || current.endsWith(") = null")
+    val containsReturnMarker =
+      current.contains("):") || current.contains(") :") ||
+        current.endsWith(":") || current.contains(" {") || current.endsWith("{") ||
+        current.contains(" =") || current.endsWith("= ") || current.endsWith(") = null")
     if (containsReturnMarker || awaitingReturn) return true
   }
   return !sawParen && hasValDecl && current.contains(": ")
@@ -344,8 +373,9 @@ private fun signatureUsesBannedRawMap(
   sigText: String,
   bannedShapes: List<String>,
   bannedTypeAliases: Set<String>,
-): Boolean = bannedShapes.any { shape -> shape in sigText } ||
-  bannedTypeAliases.any { alias -> Regex("""\b${Regex.escape(alias)}\b""").containsMatchIn(sigText) }
+): Boolean =
+  bannedShapes.any { shape -> shape in sigText } ||
+    bannedTypeAliases.any { alias -> Regex("""\b${Regex.escape(alias)}\b""").containsMatchIn(sigText) }
 
 private data class RawMapDeclarationContext(
   val trimmed: String,
@@ -366,14 +396,15 @@ private fun isBoundaryCarrierRawMapDeclaration(context: RawMapDeclarationContext
     return true
   }
   val enclosingName = context.tracker.enclosingStack.lastOrNull().orEmpty()
-  val namedCarrier = enclosingName.endsWith("Map") ||
-    enclosingName.endsWith("Payload") ||
-    enclosingName.endsWith("Artifacts") ||
-    enclosingName.endsWith("Document") ||
-    enclosingName.endsWith("Arguments") ||
-    enclosingName.endsWith("Patch") ||
-    enclosingName == "WorkflowStepUpdates" ||
-    enclosingName == "DurableWorkflowArtifacts"
+  val namedCarrier =
+    enclosingName.endsWith("Map") ||
+      enclosingName.endsWith("Payload") ||
+      enclosingName.endsWith("Artifacts") ||
+      enclosingName.endsWith("Document") ||
+      enclosingName.endsWith("Arguments") ||
+      enclosingName.endsWith("Patch") ||
+      enclosingName == "WorkflowStepUpdates" ||
+      enclosingName == "DurableWorkflowArtifacts"
   if (!namedCarrier) return false
   return Regex(
     """(?s)(?:class|data\s+class)\s+$enclosingName\b[^{}]*?\bprivate\s+(?:val|var)\s+\w+\s*:\s*""" +
@@ -410,20 +441,23 @@ private fun rawMapViolationForLine(
   bannedTypeAliases: Set<String>,
 ): String? {
   val trimmed = lines[index].trim()
-  val directViolation = rawMapDelegatingClassViolation(trimmed, index, tracker, file)
-    ?: rawMapTypeAliasViolation(trimmed, index, tracker, file, bannedTypeAliases)
+  val directViolation =
+    rawMapDelegatingClassViolation(trimmed, index, tracker, file)
+      ?: rawMapTypeAliasViolation(trimmed, index, tracker, file, bannedTypeAliases)
   if (directViolation != null) return directViolation
   val declName = rawMapDeclarationName(trimmed) ?: return null
-  val signature = collectRawMapDeclarationSignature(
-    lines,
-    index,
-    rawMapValDeclPattern.find(trimmed) != null,
-  )
+  val signature =
+    collectRawMapDeclarationSignature(
+      lines,
+      index,
+      rawMapValDeclPattern.find(trimmed) != null,
+    )
   val context = RawMapDeclarationContext(trimmed, tracker, file.source, file.relativePath)
   val enclosingPrefix = tracker.enclosingStack.joinToString(".").let { if (it.isEmpty()) "" else "$it." }
-  val fqn = listOf(file.packageName, "$enclosingPrefix$declName")
-    .filter(String::isNotBlank)
-    .joinToString(".")
+  val fqn =
+    listOf(file.packageName, "$enclosingPrefix$declName")
+      .filter(String::isNotBlank)
+      .joinToString(".")
   return when {
     !signatureUsesBannedRawMap(signature, rawMapBannedShapes, bannedTypeAliases) -> null
     isBoundaryCarrierRawMapDeclaration(context) -> null
@@ -442,7 +476,10 @@ private fun rawMapDelegatingClassViolation(
   return "${file.relativePath}:${index + 1}: public `${match.groupValues[1]}` exposes raw map shape"
 }
 
-private fun isPublicRawMapDelegation(trimmed: String, tracker: ScopeTracker): Boolean {
+private fun isPublicRawMapDelegation(
+  trimmed: String,
+  tracker: ScopeTracker,
+): Boolean {
   if (tracker.insideNonPublicScope) return false
   if (rawMapDeclarationModifiers(trimmed).any { it in setOf("private", "protected", "internal") }) return false
   if (trimmed.startsWith("private ") || trimmed.startsWith("protected ") || trimmed.startsWith("internal ")) {
@@ -466,12 +503,16 @@ private fun rawMapTypeAliasViolation(
     "public `${match.groupValues[1]}` exposes raw map shape"
 }
 
-internal fun rawMapTypeAliases(source: String, bannedShapes: List<String>): Set<String> {
+internal fun rawMapTypeAliases(
+  source: String,
+  bannedShapes: List<String>,
+): Set<String> {
   val directAliases = mutableMapOf<String, String>()
-  val aliasPattern = Regex(
-    """^(?:(?:public|private|protected|internal)\s+)*typealias\s+([A-Za-z0-9_]+)\s*=\s*(.+)$""",
-    RegexOption.MULTILINE,
-  )
+  val aliasPattern =
+    Regex(
+      """^(?:(?:public|private|protected|internal)\s+)*typealias\s+([A-Za-z0-9_]+)\s*=\s*(.+)$""",
+      RegexOption.MULTILINE,
+    )
   aliasPattern.findAll(source).forEach { match ->
     directAliases[match.groupValues[1]] = match.groupValues[2].trim()
   }
@@ -571,14 +612,22 @@ internal class ScopeTracker {
     popScopesWhile(Kind.PAREN) { parenDepth <= it }
   }
 
-  internal fun pushScope(name: String, kind: Kind, depth: Int, nonPublic: Boolean) {
+  internal fun pushScope(
+    name: String,
+    kind: Kind,
+    depth: Int,
+    nonPublic: Boolean,
+  ) {
     enclosingStack.addLast(name)
     scopeKind.addLast(kind)
     scopeDepth.addLast(depth)
     scopeNonPublic.addLast(nonPublic)
   }
 
-  private inline fun popScopesWhile(kind: Kind, condition: (Int) -> Boolean) {
+  private inline fun popScopesWhile(
+    kind: Kind,
+    condition: (Int) -> Boolean,
+  ) {
     while (scopeKind.isNotEmpty() && scopeKind.last() == kind && condition(scopeDepth.last())) {
       scopeKind.removeLast()
       scopeDepth.removeLast()
@@ -588,7 +637,10 @@ internal class ScopeTracker {
   }
 }
 
-internal fun assertNoBannedImports(files: List<SourceFile>, bannedImports: List<String>) {
+internal fun assertNoBannedImports(
+  files: List<SourceFile>,
+  bannedImports: List<String>,
+) {
   val violations =
     files.flatMap { file ->
       file.imports
@@ -616,11 +668,12 @@ internal fun assertNoBannedSourceReferences(
   assertTrue(violations.isEmpty(), violations.joinToString(separator = "\n"))
 }
 
-internal fun String.containsBannedReference(reference: String): Boolean = if (reference == "Files.") {
-  Regex("""\bFiles\.""").containsMatchIn(this)
-} else {
-  reference in this
-}
+internal fun String.containsBannedReference(reference: String): Boolean =
+  if (reference == "Files.") {
+    Regex("""\bFiles\.""").containsMatchIn(this)
+  } else {
+    reference in this
+  }
 
 internal fun assertMcpScaffoldRuntimeOnlyUsesFilesForRepoRootDiscovery(mcpFiles: List<SourceFile>) {
   val scaffoldFile =
@@ -635,13 +688,15 @@ internal fun assertMcpScaffoldRuntimeOnlyUsesFilesForRepoRootDiscovery(mcpFiles:
   assertEquals(emptyList(), filesReferenceLines)
 }
 
-internal fun sourceFiles(): List<SourceFile> = runtimeArchitectureSourceRoots.flatMap { sourceRoot ->
-  sourceFilesIn(sourceRoot)
-}
+internal fun sourceFiles(): List<SourceFile> =
+  runtimeArchitectureSourceRoots.flatMap { sourceRoot ->
+    sourceFilesIn(sourceRoot)
+  }
 
-internal fun declaredMainSourceFiles(): List<SourceFile> = RuntimeModuleCatalog.declaredGradleModules
-  .flatMap { moduleName -> mainSourceRoots(moduleName) }
-  .flatMap { sourceRoot -> sourceFilesIn(sourceRoot) }
+internal fun declaredMainSourceFiles(): List<SourceFile> =
+  RuntimeModuleCatalog.declaredGradleModules
+    .flatMap { moduleName -> mainSourceRoots(moduleName) }
+    .flatMap { sourceRoot -> sourceFilesIn(sourceRoot) }
 
 internal fun innerLayerTestSourceFiles(): List<SourceFile> =
   listOf("runtime-application", "runtime-domain", "runtime-ports")
@@ -673,29 +728,32 @@ internal fun mainSourceRoots(moduleName: String): List<Path> {
   }
 }
 
-internal fun sourceFilesIn(sourceRoot: Path): List<SourceFile> = Files.walk(sourceRoot).use { stream ->
-  stream
-    .filter { path -> Files.isRegularFile(path) && path.fileName.toString().endsWith(".kt") }
-    .map(::sourceFile)
-    .toList()
-}
+internal fun sourceFilesIn(sourceRoot: Path): List<SourceFile> =
+  Files.walk(sourceRoot).use { stream ->
+    stream
+      .filter { path -> Files.isRegularFile(path) && path.fileName.toString().endsWith(".kt") }
+      .map(::sourceFile)
+      .toList()
+  }
 
 internal fun sourceFile(path: Path): SourceFile {
   val source = Files.readString(path)
   return SourceFile(
     relativePath = runtimeArchitectureRoot.relativize(path).toString().replace('\\', '/'),
     packageName = RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1).orEmpty(),
-    imports = RuntimeArchitectureScanConstants.importPattern.findAll(source)
-      .map { it.groupValues[1].substringBefore(" as ") }
-      .toList(),
+    imports =
+      RuntimeArchitectureScanConstants.importPattern.findAll(source)
+        .map { it.groupValues[1].substringBefore(" as ") }
+        .toList(),
     source = source,
   )
 }
 
-internal fun sourcePath(relativePath: String): Path = runtimeArchitectureSourceRoots
-  .map { sourceRoot -> sourceRoot.resolve(relativePath) }
-  .firstOrNull(Files::exists)
-  ?: error("Missing source file: $relativePath")
+internal fun sourcePath(relativePath: String): Path =
+  runtimeArchitectureSourceRoots
+    .map { sourceRoot -> sourceRoot.resolve(relativePath) }
+    .firstOrNull(Files::exists)
+    ?: error("Missing source file: $relativePath")
 
 internal data class SourceFile(
   val relativePath: String,

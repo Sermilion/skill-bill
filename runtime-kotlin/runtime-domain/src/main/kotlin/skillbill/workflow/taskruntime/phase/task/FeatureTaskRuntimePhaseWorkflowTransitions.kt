@@ -11,33 +11,36 @@ internal object FeatureTaskRuntimePhaseWorkflowTransitions {
   fun transitions(definition: WorkflowDefinition): FeatureTaskRuntimeTransitionDeclaration =
     FeatureTaskRuntimeTransitionDeclaration(
       forwardPhaseIds = definition.stepIds,
-      entryGates = listOf(
-        FeatureTaskRuntimePhaseEntryGate(
-          phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-          requiredPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-          requiredVerdict = FeatureTaskRuntimeVerdict.SATISFIED,
+      entryGates =
+        listOf(
+          FeatureTaskRuntimePhaseEntryGate(
+            phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
+            requiredPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+            requiredVerdict = FeatureTaskRuntimeVerdict.SATISFIED,
+          ),
+          FeatureTaskRuntimePhaseEntryGate(
+            phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
+            requiredPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+            requiredVerdict = FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
+          ),
         ),
-        FeatureTaskRuntimePhaseEntryGate(
-          phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
-          requiredPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-          requiredVerdict = FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
+      backwardEdges =
+        listOf(
+          FeatureTaskRuntimeBackwardEdge(
+            fromPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+            triggeringVerdict = FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
+            destinationPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
+            loopId = FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID,
+            perEdgeCap = 1,
+            capExhaustionBehavior = FeatureTaskRuntimeCapExhaustionBehavior.ADVANCE,
+            capScope = FeatureTaskRuntimeBackwardEdgeCapScope.PER_SUBTASK,
+          ),
         ),
-      ),
-      backwardEdges = listOf(
-        FeatureTaskRuntimeBackwardEdge(
-          fromPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-          triggeringVerdict = FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
-          destinationPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
-          loopId = FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID,
-          perEdgeCap = 1,
-          capExhaustionBehavior = FeatureTaskRuntimeCapExhaustionBehavior.ADVANCE,
-          capScope = FeatureTaskRuntimeBackwardEdgeCapScope.PER_SUBTASK,
+      loopOnlyPhaseIds =
+        setOf(
+          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
+          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD,
         ),
-      ),
-      loopOnlyPhaseIds = setOf(
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD,
-      ),
       loopOnlySuccessors = emptyMap(),
     )
 

@@ -63,16 +63,18 @@ class DecompositionManifestSchemaContractVersionTest {
 
   @Test
   fun `schema content hash matches known hash for current contract version — bump version if schema changed`() {
-    val resourceStream = DecompositionManifestSchemaValidator::class.java.classLoader
-      .getResourceAsStream(DecompositionManifestSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      DecompositionManifestSchemaValidator::class.java.classLoader
+        .getResourceAsStream(DecompositionManifestSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Schema missing from classpath at '${DecompositionManifestSchemaPaths.CLASSPATH_RESOURCE}'.",
     )
     val yamlText = resourceStream.use { it.readBytes().toString(Charsets.UTF_8) }
-    val contentWithoutVersionLine = yamlText.lines()
-      .filter { !it.trimStart().startsWith("const:") }
-      .joinToString("\n")
+    val contentWithoutVersionLine =
+      yamlText.lines()
+        .filter { !it.trimStart().startsWith("const:") }
+        .joinToString("\n")
     val digest = MessageDigest.getInstance("SHA-256")
     val hashBytes = digest.digest(contentWithoutVersionLine.toByteArray(Charsets.UTF_8))
     val actualHash = hashBytes.joinToString("") { "%02x".format(it) }
@@ -86,8 +88,9 @@ class DecompositionManifestSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = DecompositionManifestSchemaValidator::class.java.classLoader
-      .getResourceAsStream(DecompositionManifestSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      DecompositionManifestSchemaValidator::class.java.classLoader
+        .getResourceAsStream(DecompositionManifestSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical decomposition manifest schema is missing from the classpath at " +

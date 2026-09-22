@@ -140,7 +140,10 @@ class InstallerProcessAdapterLifetimeTest {
     }
   }
 
-  private fun awaitDead(handle: ProcessHandle, seconds: Long = 5): Boolean {
+  private fun awaitDead(
+    handle: ProcessHandle,
+    seconds: Long = 5,
+  ): Boolean {
     val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(seconds)
     while (handle.isAlive && System.nanoTime() < deadline) {
       Thread.sleep(50)

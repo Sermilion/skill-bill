@@ -13,8 +13,9 @@ import kotlin.test.assertTrue
 class InstallPlanSchemaContractVersionTest {
   @Test
   fun `schema contract_version const matches INSTALL_PLAN_CONTRACT_VERSION`() {
-    val resourceStream = InstallPlanSchemaValidator::class.java.classLoader
-      .getResourceAsStream(InstallPlanSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      InstallPlanSchemaValidator::class.java.classLoader
+        .getResourceAsStream(InstallPlanSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical install-plan schema is missing from the classpath at " +
@@ -51,8 +52,9 @@ class InstallPlanSchemaContractVersionTest {
 
   @Test
   fun `schema id matches InstallPlanSchemaPaths EXPECTED_SCHEMA_ID`() {
-    val resourceStream = InstallPlanSchemaValidator::class.java.classLoader
-      .getResourceAsStream(InstallPlanSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      InstallPlanSchemaValidator::class.java.classLoader
+        .getResourceAsStream(InstallPlanSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical install-plan schema is missing from the classpath at " +
@@ -70,8 +72,9 @@ class InstallPlanSchemaContractVersionTest {
   }
 
   private fun readSchema(): JsonNode {
-    val resourceStream = InstallPlanSchemaValidator::class.java.classLoader
-      .getResourceAsStream(InstallPlanSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      InstallPlanSchemaValidator::class.java.classLoader
+        .getResourceAsStream(InstallPlanSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical install-plan schema is missing from the classpath at " +

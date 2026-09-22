@@ -24,15 +24,17 @@ import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 fun FeatureTaskRuntimeRunner.executePreparedRun(
   runRequest: FeatureTaskRuntimeRunRequest,
   reconciliation: FeatureTaskRuntimeCrashReconciliationResult,
 ): FeatureTaskRuntimeRunReport {
-  val specSource = specSourceResolver.resolve(
-    repoRoot = runRequest.repoRoot,
-    specReference = runRequest.runInvariants.specReference,
-    isGoalContinuation = isGoalContinuationRun(runRequest),
-  )
+  val specSource =
+    specSourceResolver.resolve(
+      repoRoot = runRequest.repoRoot,
+      specReference = runRequest.runInvariants.specReference,
+      isGoalContinuation = isGoalContinuationRun(runRequest),
+    )
   emitFeatureTaskRuntimeEventSafely(
     diagnostics = diagnostics,
     seam = "RunStarted event-sink emission",
@@ -45,20 +47,22 @@ fun FeatureTaskRuntimeRunner.executePreparedRun(
   val observability = FeatureTaskRuntimeRunObservability(recorder, runRequest, diagnostics)
   val transitions = transitionsFor(runRequest)
   val state = createExecutePreparedRunState(runRequest, transitions)
-  val telemetryContext = buildExecutePreparedRunTelemetryContext(
-    runRequest,
-    telemetrySessionId,
-    reconciliation,
-    state,
-  )
-  val report = runCatching {
-    driveExecutePreparedRunLoop(runRequest, specSource, transitions, observability, state)
-  }.onFailure { error ->
-    lifecycleTelemetry.finishedError(
-      telemetryContext,
-      error,
+  val telemetryContext =
+    buildExecutePreparedRunTelemetryContext(
+      runRequest,
+      telemetrySessionId,
+      reconciliation,
+      state,
     )
-  }.getOrThrow()
+  val report =
+    runCatching {
+      driveExecutePreparedRunLoop(runRequest, specSource, transitions, observability, state)
+    }.onFailure { error ->
+      lifecycleTelemetry.finishedError(
+        telemetryContext,
+        error,
+      )
+    }.getOrThrow()
   val terminalReport = finalizeExecutePreparedRunReport(runRequest, report, specSource)
   lifecycleTelemetry.finished(terminalReport, telemetryContext)
   return terminalReport
@@ -73,18 +77,20 @@ fun FeatureTaskRuntimeRunner.reopenCappedReviewOnChangedDelta(request: FeatureTa
 
 fun FeatureTaskRuntimeRunner.cappedReviewIsStale(request: FeatureTaskRuntimeRunRequest): Boolean {
   val goalBranch = request.goalContinuation?.goalBranch ?: return false
-  val state = goalContinuationRecorder.reviewState(request.workflowId)
-    ?.takeIf { it.reviewCapReached || it.pausedForOperatorDecision }
-    ?: return false
+  val state =
+    goalContinuationRecorder.reviewState(request.workflowId)
+      ?.takeIf { it.reviewCapReached || it.pausedForOperatorDecision }
+      ?: return false
   val judgedDigest = state.reviewedDeltaDigest ?: return true
   val resolved = recorder.loadResolvedBranch(request.workflowId)
-  val digests = listOfNotNull(state.remediationBaseSha, state.reviewBaseSha).distinct().mapNotNull { base ->
-    phaseGates.gitOperations.buildGoalSubtaskReviewInput(
-      request.repoRoot,
-      reviewBaseline(request, resolved, state, base),
-      goalBranch,
-    ).input?.deltaDigest
-  }
+  val digests =
+    listOfNotNull(state.remediationBaseSha, state.reviewBaseSha).distinct().mapNotNull { base ->
+      phaseGates.gitOperations.buildGoalSubtaskReviewInput(
+        request.repoRoot,
+        reviewBaseline(request, resolved, state, base),
+        goalBranch,
+      ).input?.deltaDigest
+    }
   return digests.isNotEmpty() && judgedDigest !in digests
 }
 
@@ -93,9 +99,10 @@ fun FeatureTaskRuntimeRunner.reviewBaseline(
   resolved: FeatureTaskRuntimeResolvedBranch?,
   state: GoalSubtaskReviewState,
   reviewBaseSha: String,
-): GoalSubtaskReviewBaseline = resolved
-  ?.let { FeatureTaskRuntimeScopedReviewBaseline.of(phaseGates.gitOperations, request.repoRoot, it, reviewBaseSha) }
-  ?: GoalSubtaskReviewBaseline(reviewBaseSha, state.baselineUntrackedPaths)
+): GoalSubtaskReviewBaseline =
+  resolved
+    ?.let { FeatureTaskRuntimeScopedReviewBaseline.of(phaseGates.gitOperations, request.repoRoot, it, reviewBaseSha) }
+    ?: GoalSubtaskReviewBaseline(reviewBaseSha, state.baselineUntrackedPaths)
 
 internal fun FeatureTaskRuntimeRunner.loadReviewFixIterationCount(request: FeatureTaskRuntimeRunRequest): Int =
   recorder.loadPhaseLedger(request.workflowId)
@@ -112,15 +119,17 @@ internal fun FeatureTaskRuntimeRunner.loadFindingVerificationTelemetry(
   request: FeatureTaskRuntimeRunRequest,
 ): FeatureTaskRuntimeFindingVerificationTelemetry {
   val capExhausted = reviewFixCapExhaustion(request.workflowId)
-  val verifyRecord = recorder.loadPhaseRecords(request.workflowId)
-    ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS)
-    ?: return FeatureTaskRuntimeFindingVerificationTelemetry(reviewFixCapExhausted = capExhausted)
-  val outputMap = verifyRecord.outputArtifact
-    ?.let(JsonCodec::parseObjectOrNull)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?.toWorkflowArtifactMap()
-    ?: return FeatureTaskRuntimeFindingVerificationTelemetry(reviewFixCapExhausted = capExhausted)
+  val verifyRecord =
+    recorder.loadPhaseRecords(request.workflowId)
+      ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS)
+      ?: return FeatureTaskRuntimeFindingVerificationTelemetry(reviewFixCapExhausted = capExhausted)
+  val outputMap =
+    verifyRecord.outputArtifact
+      ?.let(JsonCodec::parseObjectOrNull)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?.toWorkflowArtifactMap()
+      ?: return FeatureTaskRuntimeFindingVerificationTelemetry(reviewFixCapExhausted = capExhausted)
   return FeatureTaskRuntimeFindingVerificationTelemetry(
     verifiedCount = FeatureTaskRuntimeOutputVerification.verifiedFindingDispositions(outputMap).size,
     rejectedCount = FeatureTaskRuntimeOutputVerification.rejectedFindingDispositions(outputMap).size,
@@ -132,32 +141,38 @@ internal fun FeatureTaskRuntimeRunner.loadRegenerationTelemetry(
   request: FeatureTaskRuntimeRunRequest,
 ): FeatureTaskRuntimeRegenerationTelemetry {
   val ledger = recorder.loadPhaseLedger(request.workflowId).orEmpty()
-  val regenFires = ledger.filter {
-    it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE &&
-      FeatureTaskRuntimePhaseWorkflowDefinition.isRegenerationLoopId(it.loopId.orEmpty())
-  }
+  val regenFires =
+    ledger.filter {
+      it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE &&
+        FeatureTaskRuntimePhaseWorkflowDefinition.isRegenerationLoopId(it.loopId.orEmpty())
+    }
   val firedLoops = regenFires.mapNotNull { it.loopId }.toSet()
-  val blocked = recorder.loadPhaseRecords(request.workflowId)
-    .orEmpty()
-    .values
-    .filter { it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED }
-  val capExhaustedLoops = blocked
-    .mapNotNull { it.loopId }
-    .filter(FeatureTaskRuntimePhaseWorkflowDefinition::isRegenerationLoopId)
-    .toSet()
-  val unattributable = blocked.count {
-    (it.blockedReason ?: "").contains("cannot attribute to a producing phase")
-  }
-  val producerNotInPipeline = blocked.count {
-    (it.blockedReason ?: "").contains("absent from this run's resolved pipeline")
-  }
+  val blocked =
+    recorder.loadPhaseRecords(request.workflowId)
+      .orEmpty()
+      .values
+      .filter { it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED }
+  val capExhaustedLoops =
+    blocked
+      .mapNotNull { it.loopId }
+      .filter(FeatureTaskRuntimePhaseWorkflowDefinition::isRegenerationLoopId)
+      .toSet()
+  val unattributable =
+    blocked.count {
+      (it.blockedReason ?: "").contains("cannot attribute to a producing phase")
+    }
+  val producerNotInPipeline =
+    blocked.count {
+      (it.blockedReason ?: "").contains("absent from this run's resolved pipeline")
+    }
   val regenerated = (firedLoops - capExhaustedLoops).size
-  val outcomeCounts = buildMap {
-    if (regenerated > 0) put("regenerated", regenerated)
-    if (capExhaustedLoops.isNotEmpty()) put("cap_exhausted", capExhaustedLoops.size)
-    if (unattributable > 0) put("unattributable", unattributable)
-    if (producerNotInPipeline > 0) put("producer_not_in_pipeline", producerNotInPipeline)
-  }
+  val outcomeCounts =
+    buildMap {
+      if (regenerated > 0) put("regenerated", regenerated)
+      if (capExhaustedLoops.isNotEmpty()) put("cap_exhausted", capExhaustedLoops.size)
+      if (unattributable > 0) put("unattributable", unattributable)
+      if (producerNotInPipeline > 0) put("producer_not_in_pipeline", producerNotInPipeline)
+    }
   return FeatureTaskRuntimeRegenerationTelemetry(
     activationCount = firedLoops.size,
     attemptCount = regenFires.size,

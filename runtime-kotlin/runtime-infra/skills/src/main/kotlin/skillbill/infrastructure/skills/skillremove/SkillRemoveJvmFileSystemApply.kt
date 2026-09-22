@@ -24,7 +24,10 @@ import kotlin.coroutines.cancellation.CancellationException
 internal class SkillRemoveJvmFileSystemApply(
   private val home: Path?,
 ) {
-  fun applyCascade(request: SkillRemovalRequest, preview: SkillRemovalPreview): AppliedCascade {
+  fun applyCascade(
+    request: SkillRemovalRequest,
+    preview: SkillRemovalPreview,
+  ): AppliedCascade {
     val repoRoot = skillRemoveRepoRoot(request)
     val rollbackStash = mutableListOf<RollbackEntry>()
     log.info(
@@ -46,12 +49,14 @@ internal class SkillRemoveJvmFileSystemApply(
       onFailure = { error -> handleApplyCascadeFailure(error, rollbackStash) },
     )
   }
-  fun providerUnlink(provider: AgentSymlinkProvider): (NativeAgentLinkRequest) -> List<Path> = when (provider) {
-    AgentSymlinkProvider.CLAUDE -> InstallNativeAgentOperations::unlinkClaudeAgents
-    AgentSymlinkProvider.CODEX -> InstallNativeAgentOperations::unlinkCodexAgents
-    AgentSymlinkProvider.JUNIE -> InstallNativeAgentOperations::unlinkJunieAgents
-    AgentSymlinkProvider.CURSOR -> InstallNativeAgentOperations::unlinkCursorAgents
-  }
+
+  fun providerUnlink(provider: AgentSymlinkProvider): (NativeAgentLinkRequest) -> List<Path> =
+    when (provider) {
+      AgentSymlinkProvider.CLAUDE -> InstallNativeAgentOperations::unlinkClaudeAgents
+      AgentSymlinkProvider.CODEX -> InstallNativeAgentOperations::unlinkCodexAgents
+      AgentSymlinkProvider.JUNIE -> InstallNativeAgentOperations::unlinkJunieAgents
+      AgentSymlinkProvider.CURSOR -> InstallNativeAgentOperations::unlinkCursorAgents
+    }
 
   fun unlinkProviderAgents(request: SkillRemovalRequest): List<Path> {
     val repoRoot = skillRemoveRepoRoot(request)
@@ -59,19 +64,21 @@ internal class SkillRemoveJvmFileSystemApply(
     val resolvedHome = skillRemoveUserHome(request, home)
     val platformPacksRoot = repoRoot.resolve("platform-packs")
     val skillsRoot = repoRoot.resolve("skills")
-    val selectedPlatforms: List<String>? = when (target) {
-      is SkillRemovalTarget.PlatformPack -> listOf(target.platform)
-      is SkillRemovalTarget.HorizontalSkill,
-      is SkillRemovalTarget.AddOn,
-      is SkillRemovalTarget.ExternalAddOn,
-      -> null
-    }
-    val baseRequest = NativeAgentLinkRequest(
-      platformPacksRoot = platformPacksRoot,
-      skillsRoot = skillsRoot,
-      home = resolvedHome,
-      selectedPlatforms = selectedPlatforms,
-    )
+    val selectedPlatforms: List<String>? =
+      when (target) {
+        is SkillRemovalTarget.PlatformPack -> listOf(target.platform)
+        is SkillRemovalTarget.HorizontalSkill,
+        is SkillRemovalTarget.AddOn,
+        is SkillRemovalTarget.ExternalAddOn,
+        -> null
+      }
+    val baseRequest =
+      NativeAgentLinkRequest(
+        platformPacksRoot = platformPacksRoot,
+        skillsRoot = skillsRoot,
+        home = resolvedHome,
+        selectedPlatforms = selectedPlatforms,
+      )
     val unlinked = mutableListOf<Path>()
     val failures = mutableListOf<UnlinkFailure>()
     AgentSymlinkProvider.entries.forEach { provider ->
@@ -100,13 +107,19 @@ internal class SkillRemoveJvmFileSystemApply(
 
   internal data class RollbackEntry(val path: Path, val bytes: ByteArray?, val wasDirectory: Boolean)
 
-  internal fun stashFile(path: Path, stash: MutableList<RollbackEntry>) {
+  internal fun stashFile(
+    path: Path,
+    stash: MutableList<RollbackEntry>,
+  ) {
     if (Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
       stash += RollbackEntry(path = path, bytes = Files.readAllBytes(path), wasDirectory = false)
     }
   }
 
-  internal fun stashTree(root: Path, stash: MutableList<RollbackEntry>) {
+  internal fun stashTree(
+    root: Path,
+    stash: MutableList<RollbackEntry>,
+  ) {
     if (Files.isSymbolicLink(root)) {
       return
     }
@@ -114,14 +127,20 @@ internal class SkillRemoveJvmFileSystemApply(
       Files.walkFileTree(
         root,
         object : SimpleFileVisitor<Path>() {
-          override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+          override fun visitFile(
+            file: Path,
+            attrs: BasicFileAttributes,
+          ): FileVisitResult {
             if (Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
               stash += RollbackEntry(path = file, bytes = Files.readAllBytes(file), wasDirectory = false)
             }
             return CONTINUE
           }
 
-          override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
+          override fun preVisitDirectory(
+            dir: Path,
+            attrs: BasicFileAttributes,
+          ): FileVisitResult {
             stash += RollbackEntry(path = dir, bytes = null, wasDirectory = true)
             return CONTINUE
           }
@@ -136,25 +155,26 @@ internal class SkillRemoveJvmFileSystemApply(
     rollbackDeletePathEntry(target)
   }
 
-  internal fun attemptRollback(stash: List<RollbackEntry>): Boolean = try {
-    stash.filter { it.wasDirectory }
-      .sortedBy { it.path.nameCount }
-      .forEach { entry ->
-        if (!Files.isDirectory(entry.path, LinkOption.NOFOLLOW_LINKS)) {
-          Files.createDirectories(entry.path)
+  internal fun attemptRollback(stash: List<RollbackEntry>): Boolean =
+    try {
+      stash.filter { it.wasDirectory }
+        .sortedBy { it.path.nameCount }
+        .forEach { entry ->
+          if (!Files.isDirectory(entry.path, LinkOption.NOFOLLOW_LINKS)) {
+            Files.createDirectories(entry.path)
+          }
         }
+      stash.filterNot { it.wasDirectory }.forEach { entry ->
+        val bytes = entry.bytes ?: return@forEach
+        Files.createDirectories(entry.path.parent ?: return@forEach)
+        rollbackRestoreBytes(entry.path, bytes)
       }
-    stash.filterNot { it.wasDirectory }.forEach { entry ->
-      val bytes = entry.bytes ?: return@forEach
-      Files.createDirectories(entry.path.parent ?: return@forEach)
-      rollbackRestoreBytes(entry.path, bytes)
+      true
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (_: Exception) {
+      false
     }
-    true
-  } catch (cancellation: CancellationException) {
-    throw cancellation
-  } catch (_: Exception) {
-    false
-  }
 
   internal companion object {
     internal val log: Logger = Logger.getLogger("skillbill.skillremove.SkillRemoveJvmFileSystem")

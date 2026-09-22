@@ -37,9 +37,10 @@ class FileSystemReviewRubricResolverTest {
     Files.writeString(baseline, "baseline rubric")
     Files.writeString(security, "security specialist rubric")
 
-    val resolved = FileSystemReviewRubricResolver().resolve(
-      manifest(root, baseline, mapOf("security" to security)),
-    )
+    val resolved =
+      FileSystemReviewRubricResolver().resolve(
+        manifest(root, baseline, mapOf("security" to security)),
+      )
 
     assertEquals("baseline rubric", resolved.body)
     assertEquals(1, resolved.specialists.size)
@@ -70,33 +71,37 @@ class FileSystemReviewRubricResolverTest {
     Files.writeString(ui, "ui specialist rubric")
     Files.writeString(addon, "## Activation signals\n\n- `@Composable` functions and `LaunchedEffect`")
     val base = manifest(root, baseline, mapOf("ui" to ui))
-    val configured = base.copy(
-      addonUsage = listOf(
-        GovernedAddonUsage(
-          "code-review/bill-kotlin-code-review-ui",
+    val configured =
+      base.copy(
+        addonUsage =
           listOf(
-            GovernedAddonSelection(
-              "android-compose",
-              "android-compose-review.md",
-              activation = GovernedAddonActivation(anyContent = listOf("@composable")),
+            GovernedAddonUsage(
+              "code-review/bill-kotlin-code-review-ui",
+              listOf(
+                GovernedAddonSelection(
+                  "android-compose",
+                  "android-compose-review.md",
+                  activation = GovernedAddonActivation(anyContent = listOf("@composable")),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-      pointers = listOf(
-        PointerSpec(
-          "code-review/bill-kotlin-code-review-ui",
-          "android-compose-review.md",
-          "addons/android-compose-review.md",
-        ),
-      ),
-    )
+        pointers =
+          listOf(
+            PointerSpec(
+              "code-review/bill-kotlin-code-review-ui",
+              "android-compose-review.md",
+              "addons/android-compose-review.md",
+            ),
+          ),
+      )
 
-    val resolved = FileSystemReviewRubricResolver().resolve(
-      configured,
-      listOf(ReviewOwnedFileEvidence("src/commonMain/Screen.kt", "+ @COMPOSABLE fun Screen() = Unit")),
-      "bill-kotlin-code-review-ui",
-    )
+    val resolved =
+      FileSystemReviewRubricResolver().resolve(
+        configured,
+        listOf(ReviewOwnedFileEvidence("src/commonMain/Screen.kt", "+ @COMPOSABLE fun Screen() = Unit")),
+        "bill-kotlin-code-review-ui",
+      )
 
     assertEquals(listOf("android-compose"), resolved.selectedAddOns)
     assertEquals(true, resolved.body.contains("Selected governed add-on guidance"))
@@ -114,36 +119,41 @@ class FileSystemReviewRubricResolverTest {
     Files.writeString(baseline, "baseline rubric")
     Files.writeString(ui, "ui specialist rubric")
     Files.writeString(addon, "compose guidance")
-    val configured = manifest(root, baseline, mapOf("ui" to ui)).copy(
-      addonUsage = listOf(
-        GovernedAddonUsage(
-          "code-review/bill-kotlin-code-review-ui",
+    val configured =
+      manifest(root, baseline, mapOf("ui" to ui)).copy(
+        addonUsage =
           listOf(
-            GovernedAddonSelection(
-              "android-compose",
-              "android-compose-review.md",
-              activation = GovernedAddonActivation(
-                anyContent = listOf("@composable"),
-                excludeContent = listOf("commonmain"),
+            GovernedAddonUsage(
+              "code-review/bill-kotlin-code-review-ui",
+              listOf(
+                GovernedAddonSelection(
+                  "android-compose",
+                  "android-compose-review.md",
+                  activation =
+                    GovernedAddonActivation(
+                      anyContent = listOf("@composable"),
+                      excludeContent = listOf("commonmain"),
+                    ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
-      pointers = listOf(
-        PointerSpec(
-          "code-review/bill-kotlin-code-review-ui",
-          "android-compose-review.md",
-          "addons/android-compose-review.md",
-        ),
-      ),
-    )
+        pointers =
+          listOf(
+            PointerSpec(
+              "code-review/bill-kotlin-code-review-ui",
+              "android-compose-review.md",
+              "addons/android-compose-review.md",
+            ),
+          ),
+      )
 
-    val resolved = FileSystemReviewRubricResolver().resolve(
-      configured,
-      listOf(ReviewOwnedFileEvidence("Screen.kt", "+ @COMPOSABLE fun Screen() = COMMONMAIN")),
-      "bill-kotlin-code-review-ui",
-    )
+    val resolved =
+      FileSystemReviewRubricResolver().resolve(
+        configured,
+        listOf(ReviewOwnedFileEvidence("Screen.kt", "+ @COMPOSABLE fun Screen() = COMMONMAIN")),
+        "bill-kotlin-code-review-ui",
+      )
 
     assertEquals(emptyList(), resolved.selectedAddOns)
   }
@@ -159,36 +169,41 @@ class FileSystemReviewRubricResolverTest {
     Files.writeString(baseline, "baseline rubric")
     Files.writeString(ui, "ui specialist rubric")
     Files.writeString(addon, "## Activation signals\n\n- `@Composable` functions")
-    val configured = manifest(root, baseline, mapOf("ui" to ui)).copy(
-      addonUsage = listOf(
-        GovernedAddonUsage(
-          "code-review/bill-kotlin-code-review-ui",
+    val configured =
+      manifest(root, baseline, mapOf("ui" to ui)).copy(
+        addonUsage =
           listOf(
-            GovernedAddonSelection(
-              "android-compose",
-              "android-compose-review.md",
-              activation = GovernedAddonActivation(
-                anyContent = listOf("@composable"),
-                excludePath = listOf("/commonMain/"),
+            GovernedAddonUsage(
+              "code-review/bill-kotlin-code-review-ui",
+              listOf(
+                GovernedAddonSelection(
+                  "android-compose",
+                  "android-compose-review.md",
+                  activation =
+                    GovernedAddonActivation(
+                      anyContent = listOf("@composable"),
+                      excludePath = listOf("/commonMain/"),
+                    ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
-      pointers = listOf(
-        PointerSpec(
-          "code-review/bill-kotlin-code-review-ui",
-          "android-compose-review.md",
-          "addons/android-compose-review.md",
-        ),
-      ),
-    )
+        pointers =
+          listOf(
+            PointerSpec(
+              "code-review/bill-kotlin-code-review-ui",
+              "android-compose-review.md",
+              "addons/android-compose-review.md",
+            ),
+          ),
+      )
 
-    val resolved = FileSystemReviewRubricResolver().resolve(
-      configured,
-      listOf(ReviewOwnedFileEvidence("src/commonMain/kotlin/Screen.kt", "+ @composable fun Screen() = Unit")),
-      "bill-kotlin-code-review-ui",
-    )
+    val resolved =
+      FileSystemReviewRubricResolver().resolve(
+        configured,
+        listOf(ReviewOwnedFileEvidence("src/commonMain/kotlin/Screen.kt", "+ @composable fun Screen() = Unit")),
+        "bill-kotlin-code-review-ui",
+      )
 
     assertEquals(emptyList(), resolved.selectedAddOns)
     assertEquals("ui specialist rubric", resolved.body)
@@ -205,34 +220,38 @@ class FileSystemReviewRubricResolverTest {
     Files.writeString(baseline, "baseline rubric")
     Files.writeString(correctness, "correctness specialist rubric")
     Files.writeString(addon, "R8 bounded guidance")
-    val configured = manifest(root, baseline, mapOf("platform-correctness" to correctness)).copy(
-      addonUsage = listOf(
-        GovernedAddonUsage(
-          "code-review/bill-kotlin-code-review",
+    val configured =
+      manifest(root, baseline, mapOf("platform-correctness" to correctness)).copy(
+        addonUsage =
           listOf(
-            GovernedAddonSelection(
-              "android-r8",
-              "android-r8-review.md",
-              activation = GovernedAddonActivation(anyPath = listOf("proguard-rules.pro")),
-              specialistAreas = listOf("platform-correctness"),
+            GovernedAddonUsage(
+              "code-review/bill-kotlin-code-review",
+              listOf(
+                GovernedAddonSelection(
+                  "android-r8",
+                  "android-r8-review.md",
+                  activation = GovernedAddonActivation(anyPath = listOf("proguard-rules.pro")),
+                  specialistAreas = listOf("platform-correctness"),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-      pointers = listOf(
-        PointerSpec(
-          "code-review/bill-kotlin-code-review-platform-correctness",
-          "android-r8-review.md",
-          "addons/android-r8-review.md",
-        ),
-      ),
-    )
+        pointers =
+          listOf(
+            PointerSpec(
+              "code-review/bill-kotlin-code-review-platform-correctness",
+              "android-r8-review.md",
+              "addons/android-r8-review.md",
+            ),
+          ),
+      )
 
-    val resolved = FileSystemReviewRubricResolver().resolve(
-      configured,
-      listOf(ReviewOwnedFileEvidence("android/proguard-rules.pro", "+ -keep class example.Model")),
-      "bill-kotlin-code-review-platform-correctness",
-    )
+    val resolved =
+      FileSystemReviewRubricResolver().resolve(
+        configured,
+        listOf(ReviewOwnedFileEvidence("android/proguard-rules.pro", "+ -keep class example.Model")),
+        "bill-kotlin-code-review-platform-correctness",
+      )
 
     assertEquals(listOf("android-r8"), resolved.selectedAddOns)
     assertEquals(true, resolved.body.contains("R8 bounded guidance"))
@@ -249,27 +268,30 @@ class FileSystemReviewRubricResolverTest {
     Files.writeString(baseline, "baseline rubric")
     Files.writeString(persistence, "persistence specialist rubric")
     Files.writeString(addon, "offline bounded guidance")
-    val configured = manifest(root, baseline, mapOf("persistence" to persistence)).copy(
-      addonUsage = listOf(
-        GovernedAddonUsage(
-          "code-review/bill-kotlin-code-review-persistence",
+    val configured =
+      manifest(root, baseline, mapOf("persistence" to persistence)).copy(
+        addonUsage =
           listOf(
-            GovernedAddonSelection(
-              "offline-first",
-              "offline-first-review.md",
-              activation = GovernedAddonActivation(anyOfAllContent = listOf(listOf("sqlite", "sync"))),
+            GovernedAddonUsage(
+              "code-review/bill-kotlin-code-review-persistence",
+              listOf(
+                GovernedAddonSelection(
+                  "offline-first",
+                  "offline-first-review.md",
+                  activation = GovernedAddonActivation(anyOfAllContent = listOf(listOf("sqlite", "sync"))),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-      pointers = listOf(
-        PointerSpec(
-          "code-review/bill-kotlin-code-review-persistence",
-          "offline-first-review.md",
-          "addons/offline-first-review.md",
-        ),
-      ),
-    )
+        pointers =
+          listOf(
+            PointerSpec(
+              "code-review/bill-kotlin-code-review-persistence",
+              "offline-first-review.md",
+              "addons/offline-first-review.md",
+            ),
+          ),
+      )
     val resolver = FileSystemReviewRubricResolver()
 
     assertEquals(
@@ -290,7 +312,11 @@ class FileSystemReviewRubricResolverTest {
     )
   }
 
-  private fun manifest(root: Path, baseline: Path, areas: Map<String, Path> = emptyMap()) = PlatformManifest(
+  private fun manifest(
+    root: Path,
+    baseline: Path,
+    areas: Map<String, Path> = emptyMap(),
+  ) = PlatformManifest(
     slug = "kotlin",
     packRoot = root.toFileLocation(),
     contractVersion = "1.3",

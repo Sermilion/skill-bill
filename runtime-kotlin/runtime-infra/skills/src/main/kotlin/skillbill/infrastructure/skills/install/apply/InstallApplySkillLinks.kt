@@ -13,21 +13,23 @@ import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
+
 internal fun linkPlannedSkill(
   skill: InstallPlanSkill,
   stagingDir: Path,
   plan: InstallPlan,
   failures: MutableList<InstallApplyIssue>,
-): List<InstallAgentSkillLinkOutcome> = plan.agents.map { agentTarget ->
-  linkSkillToAgent(
-    skillName = skill.name,
-    stagingDir = stagingDir,
-    agentTarget = agentTarget,
-    installedSkillsRoot = installedSkillsCacheRoot(plan.request.home.toPath()),
-  ).also { outcome ->
-    outcome.issue?.let(failures::add)
+): List<InstallAgentSkillLinkOutcome> =
+  plan.agents.map { agentTarget ->
+    linkSkillToAgent(
+      skillName = skill.name,
+      stagingDir = stagingDir,
+      agentTarget = agentTarget,
+      installedSkillsRoot = installedSkillsCacheRoot(plan.request.home.toPath()),
+    ).also { outcome ->
+      outcome.issue?.let(failures::add)
+    }
   }
-}
 
 private fun linkSkillToAgent(
   skillName: String,
@@ -36,14 +38,15 @@ private fun linkSkillToAgent(
   installedSkillsRoot: Path,
 ): InstallAgentSkillLinkOutcome {
   val targetDir = agentTarget.path.toPath().toAbsolutePath().normalize()
-  val context = SkillLinkContext(
-    skillName = skillName,
-    agentTarget = agentTarget,
-    targetDir = targetDir,
-    linkPath = targetDir.resolve(skillName).normalize(),
-    linkTarget = stagingDir.toAbsolutePath().normalize(),
-    installedSkillsRoot = installedSkillsRoot.toAbsolutePath().normalize(),
-  )
+  val context =
+    SkillLinkContext(
+      skillName = skillName,
+      agentTarget = agentTarget,
+      targetDir = targetDir,
+      linkPath = targetDir.resolve(skillName).normalize(),
+      linkTarget = stagingDir.toAbsolutePath().normalize(),
+      installedSkillsRoot = installedSkillsRoot.toAbsolutePath().normalize(),
+    )
   return runCatching { createOrSkipSkillLink(context) }
     .getOrElse { error -> failedSkillLinkOutcome(context, error) }
 }
@@ -97,27 +100,32 @@ private fun skillLinkOutcome(
   status: InstallAgentLinkStatus,
   message: String,
   issue: InstallApplyIssue? = null,
-): InstallAgentSkillLinkOutcome = InstallAgentSkillLinkOutcome(
-  agent = context.agentTarget.agent,
-  targetDir = context.targetDir.toFileLocation(),
-  linkPath = context.linkPath.toFileLocation(),
-  linkTarget = context.linkTarget.toFileLocation(),
-  status = status,
-  message = message,
-  issue = issue,
-)
-
-private fun failedSkillLinkOutcome(context: SkillLinkContext, error: Throwable): InstallAgentSkillLinkOutcome {
-  val symlinkError = error as? InstallSymlinkException
-  val issue = InstallApplyIssue(
-    kind = InstallApplyIssueKind.SKILL_LINK_FAILED,
-    message = error.message.orEmpty(),
-    skillName = context.skillName,
+): InstallAgentSkillLinkOutcome =
+  InstallAgentSkillLinkOutcome(
     agent = context.agentTarget.agent,
-    path = context.linkPath.toFileLocation(),
-    guidance = symlinkError?.guidance,
-    causeClass = error::class.qualifiedName,
+    targetDir = context.targetDir.toFileLocation(),
+    linkPath = context.linkPath.toFileLocation(),
+    linkTarget = context.linkTarget.toFileLocation(),
+    status = status,
+    message = message,
+    issue = issue,
   )
+
+private fun failedSkillLinkOutcome(
+  context: SkillLinkContext,
+  error: Throwable,
+): InstallAgentSkillLinkOutcome {
+  val symlinkError = error as? InstallSymlinkException
+  val issue =
+    InstallApplyIssue(
+      kind = InstallApplyIssueKind.SKILL_LINK_FAILED,
+      message = error.message.orEmpty(),
+      skillName = context.skillName,
+      agent = context.agentTarget.agent,
+      path = context.linkPath.toFileLocation(),
+      guidance = symlinkError?.guidance,
+      causeClass = error::class.qualifiedName,
+    )
   return skillLinkOutcome(
     context = context,
     status = InstallAgentLinkStatus.FAILED,
@@ -126,11 +134,12 @@ private fun failedSkillLinkOutcome(context: SkillLinkContext, error: Throwable):
   )
 }
 
-private fun resolveSymlinkTarget(linkPath: Path): Path? = runCatching {
-  val rawTarget = Files.readSymbolicLink(linkPath)
-  val resolvedTarget = if (rawTarget.isAbsolute) rawTarget else linkPath.parent.resolve(rawTarget)
-  resolvedTarget.toAbsolutePath().normalize()
-}.getOrNull()
+private fun resolveSymlinkTarget(linkPath: Path): Path? =
+  runCatching {
+    val rawTarget = Files.readSymbolicLink(linkPath)
+    val resolvedTarget = if (rawTarget.isAbsolute) rawTarget else linkPath.parent.resolve(rawTarget)
+    resolvedTarget.toAbsolutePath().normalize()
+  }.getOrNull()
 
 private data class SkillLinkContext(
   val skillName: String,

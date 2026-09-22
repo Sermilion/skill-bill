@@ -15,6 +15,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class SqliteRejectedOutputDiagnosticRepositoryTest {
   @Test
   fun `round trip preserves binary response and metadata`() {
@@ -67,9 +68,10 @@ class SqliteRejectedOutputDiagnosticRepositoryTest {
     withRepository("producer-evidence-conflict") { repository ->
       repository.retainProducerOutput(evidence(byteArrayOf(1)))
 
-      val failure = assertFailsWith<RejectedOutputDiagnosticError.Conflict> {
-        repository.retainProducerOutput(evidence(byteArrayOf(2)))
-      }
+      val failure =
+        assertFailsWith<RejectedOutputDiagnosticError.Conflict> {
+          repository.retainProducerOutput(evidence(byteArrayOf(2)))
+        }
 
       assertContains(failure.message.orEmpty(), "workflow-1:review:0:1:0:codex")
       assertContentEquals(
@@ -155,9 +157,10 @@ class SqliteRejectedOutputDiagnosticRepositoryTest {
     withRepository("producer-evidence-repair-turn-conflict") { repository ->
       repository.retainProducerOutput(evidence(byteArrayOf(1), phaseId = "validate", repairTurn = 2))
 
-      val failure = assertFailsWith<RejectedOutputDiagnosticError.Conflict> {
-        repository.retainProducerOutput(evidence(byteArrayOf(2), phaseId = "validate", repairTurn = 2))
-      }
+      val failure =
+        assertFailsWith<RejectedOutputDiagnosticError.Conflict> {
+          repository.retainProducerOutput(evidence(byteArrayOf(2), phaseId = "validate", repairTurn = 2))
+        }
 
       assertContains(failure.message.orEmpty(), "workflow-1:validate:0:1:2:codex")
     }
@@ -185,7 +188,10 @@ class SqliteRejectedOutputDiagnosticRepositoryTest {
     }
   }
 
-  private fun withRepository(label: String, block: (SqliteRejectedOutputDiagnosticRepository) -> Unit) {
+  private fun withRepository(
+    label: String,
+    block: (SqliteRejectedOutputDiagnosticRepository) -> Unit,
+  ) {
     val directory = Files.createTempDirectory(label)
     DatabaseRuntime.ensureDatabase(directory.resolve("runtime.db")).use { connection ->
       block(SqliteRejectedOutputDiagnosticRepository(connection))
@@ -201,50 +207,63 @@ class SqliteRejectedOutputDiagnosticRepositoryTest {
     val repairTurn: Int = 0,
   )
 
-  private fun evidence(payload: ByteArray, attempt: Int = 1, generation: Int = 0, agentId: String = "codex") =
+  private fun evidence(
+    payload: ByteArray,
+    attempt: Int = 1,
+    generation: Int = 0,
+    agentId: String = "codex",
+  ) =
     evidence(ProducerEvidenceFixture(payload = payload, attempt = attempt, generation = generation, agentId = agentId))
 
-  private fun evidence(payload: ByteArray, phaseId: String, repairTurn: Int) =
-    evidence(ProducerEvidenceFixture(payload = payload, phaseId = phaseId, repairTurn = repairTurn))
+  private fun evidence(
+    payload: ByteArray,
+    phaseId: String,
+    repairTurn: Int,
+  ) = evidence(ProducerEvidenceFixture(payload = payload, phaseId = phaseId, repairTurn = repairTurn))
 
-  private fun evidence(payload: ByteArray, attempt: Int, agentId: String) =
-    evidence(ProducerEvidenceFixture(payload = payload, attempt = attempt, agentId = agentId))
+  private fun evidence(
+    payload: ByteArray,
+    attempt: Int,
+    agentId: String,
+  ) = evidence(ProducerEvidenceFixture(payload = payload, attempt = attempt, agentId = agentId))
 
-  private fun evidence(fixture: ProducerEvidenceFixture) = ProducerOutputEvidence(
-    workflowId = "workflow-1",
-    phaseId = fixture.phaseId,
-    attempt = fixture.attempt,
-    agentId = fixture.agentId,
-    model = "gpt",
-    recordedAt = Instant.parse("2026-07-28T10:00:00Z"),
-    byteSize = fixture.payload.size.toLong(),
-    sha256 = MessageDigest.getInstance("SHA-256").digest(fixture.payload).joinToString("") { "%02x".format(it) },
-    payload = fixture.payload,
-    generation = fixture.generation,
-    repairTurn = fixture.repairTurn,
-  )
+  private fun evidence(fixture: ProducerEvidenceFixture) =
+    ProducerOutputEvidence(
+      workflowId = "workflow-1",
+      phaseId = fixture.phaseId,
+      attempt = fixture.attempt,
+      agentId = fixture.agentId,
+      model = "gpt",
+      recordedAt = Instant.parse("2026-07-28T10:00:00Z"),
+      byteSize = fixture.payload.size.toLong(),
+      sha256 = MessageDigest.getInstance("SHA-256").digest(fixture.payload).joinToString("") { "%02x".format(it) },
+      payload = fixture.payload,
+      generation = fixture.generation,
+      repairTurn = fixture.repairTurn,
+    )
 
   private fun record(
     payload: ByteArray,
     identity: String = "rod_${"a".repeat(64)}",
     repairTurn: Int = 0,
-  ): RejectedOutputDiagnosticRecord = RejectedOutputDiagnosticRecord(
-    RejectedOutputDiagnostic(
-      identity = identity,
-      workflowId = "workflow-1",
-      phaseId = "plan",
-      attempt = 1,
-      rule = "schema",
-      path = "/status",
-      reason = "invalid",
-      agentId = "codex",
-      model = "gpt",
-      recordedAt = Instant.parse("2026-07-28T10:00:00Z"),
-      byteSize = payload.size.toLong(),
-      sha256 = "b".repeat(64),
-      lifecycle = RejectedOutputLifecycle.STORED,
-      repairTurn = repairTurn,
-    ),
-    payload,
-  )
+  ): RejectedOutputDiagnosticRecord =
+    RejectedOutputDiagnosticRecord(
+      RejectedOutputDiagnostic(
+        identity = identity,
+        workflowId = "workflow-1",
+        phaseId = "plan",
+        attempt = 1,
+        rule = "schema",
+        path = "/status",
+        reason = "invalid",
+        agentId = "codex",
+        model = "gpt",
+        recordedAt = Instant.parse("2026-07-28T10:00:00Z"),
+        byteSize = payload.size.toLong(),
+        sha256 = "b".repeat(64),
+        lifecycle = RejectedOutputLifecycle.STORED,
+        repairTurn = repairTurn,
+      ),
+      payload,
+    )
 }

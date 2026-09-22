@@ -20,14 +20,15 @@ internal object NoopWorkflowGitWorktreeOperations : WorkflowGitWorktreeOperation
   override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult {
     return WorkflowWorktreeActivityResult(
       status = WorkflowGitOperationStatus.OK,
-      changedFileSummary = GoalObservabilityChangedFileSummary(
-        total = 0,
-        added = 0,
-        modified = 0,
-        deleted = 0,
-        renamed = 0,
-        untracked = 0,
-      ),
+      changedFileSummary =
+        GoalObservabilityChangedFileSummary(
+          total = 0,
+          added = 0,
+          modified = 0,
+          deleted = 0,
+          renamed = 0,
+          untracked = 0,
+        ),
       diffStat = GoalObservabilityDiffStat(filesChanged = 0, insertions = 0, deletions = 0),
     )
   }

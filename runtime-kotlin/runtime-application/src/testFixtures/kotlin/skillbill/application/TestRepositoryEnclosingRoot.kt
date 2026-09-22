@@ -14,14 +14,16 @@ object TestRepositoryEnclosingRoot : RepositoryEnclosingRootPort {
     return canonicalPath(candidate)
   }
 
-  override fun canonicalPath(path: Path): Path = runCatching { path.toAbsolutePath().normalize().toRealPath() }
-    .getOrElse { path.toAbsolutePath().normalize() }
+  override fun canonicalPath(path: Path): Path =
+    runCatching { path.toAbsolutePath().normalize().toRealPath() }
+      .getOrElse { path.toAbsolutePath().normalize() }
 
-  override fun optionalRealPath(path: Path): Path? = if (Files.exists(path)) {
-    runCatching { path.toRealPath() }.getOrNull()
-  } else {
-    null
-  }
+  override fun optionalRealPath(path: Path): Path? =
+    if (Files.exists(path)) {
+      runCatching { path.toRealPath() }.getOrNull()
+    } else {
+      null
+    }
 
   override fun repositoryIdentity(repoRoot: Path): String = "repo-root-realpath-v1:${canonicalPath(repoRoot)}"
 }

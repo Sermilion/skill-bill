@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.phase.prompt.directives
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 fun mutatingPhaseIdempotencyDirective(phaseId: String): String {
   if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) {
     return ""
@@ -14,7 +15,7 @@ fun mutatingPhaseIdempotencyDirective(phaseId: String): String {
     be safe to run again: reconciling to target, not re-applying from scratch. Before finishing,
     verify every changed file is at its intended state and report that reconciled end-state in
     produced_outputs (see the reconciliation report in the required output below).
-  """.trimIndent()
+    """.trimIndent()
 }
 
 fun minimalismDisciplineDirective(phaseId: String): String {
@@ -59,7 +60,7 @@ fun minimalismDisciplineDirective(phaseId: String): String {
       <upgrade trigger>` (e.g. `// shortcut: global lock,
         per-account locks if throughput matters`). Exception to comments-are-a-last-resort: `shortcut:`
         markers are permitted because they record a non-obvious why (ceiling and upgrade trigger).
-  """.trimIndent()
+    """.trimIndent()
 }
 
 fun simplifyScopeBoundaryDirective(phaseId: String): String {
@@ -72,7 +73,7 @@ fun simplifyScopeBoundaryDirective(phaseId: String): String {
     for this session. Work exclusively inside that boundary. Forbidden: repository-wide search for
     complexity, edits outside listed paths, `./gradlew` build or check, test execution, bill-code-review,
     review subagents, delegated review, or spawning other agents.
-  """.trimIndent()
+    """.trimIndent()
 }
 
 fun testValueDisciplineDirective(phaseId: String): String {
@@ -100,11 +101,12 @@ fun testValueDisciplineDirective(phaseId: String): String {
     - Never remove or weaken regression coverage tied to a real past bug, and never treat governed
       parity tests or validator-backed rules as omission candidates — the minimalism carve-outs
       apply to tests too.
-  """.trimIndent()
+    """.trimIndent()
 }
 
-private val TEST_VALUE_DISCIPLINE_PHASES: Set<String> = setOf(
-  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
-)
+private val TEST_VALUE_DISCIPLINE_PHASES: Set<String> =
+  setOf(
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
+  )

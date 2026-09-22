@@ -24,43 +24,50 @@ class DecompositionManifestPayloadProjectionTest {
     val subtaskSpec = parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningResult(
-          parentSpecPath = parentSpecPath.toString(),
-          subtasks = listOf(
-            decompositionPlanningSubtask(id = 1, name = "Foundation", specPath = subtaskSpec.toString()),
-          ),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult =
+            decompositionPlanningResult(
+              parentSpecPath = parentSpecPath.toString(),
+              subtasks =
+                listOf(
+                  decompositionPlanningSubtask(id = 1, name = "Foundation", specPath = subtaskSpec.toString()),
+                ),
+            ),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
+      )
     assertNotNull(initial)
 
-    val result = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf(
-          "review_result" to mapOf("finding_count" to 0),
-          "audit_report" to mapOf("pass" to true),
-          "validation_result" to mapOf("passed" to true),
-        ),
-      ),
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-1",
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "validate",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1),
+    val result =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf(
+              "review_result" to mapOf("finding_count" to 0),
+              "audit_report" to mapOf("pass" to true),
+              "validation_result" to mapOf("passed" to true),
+            ),
           ),
-        ),
-      ),
-    )
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-subtask-1",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
+            currentStepId = "validate",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1),
+                ),
+              ),
+          ),
+      )
 
     assertNotNull(result)
     val subtaskWire = firstSubtaskWire(result.manifest)
@@ -69,11 +76,15 @@ class DecompositionManifestPayloadProjectionTest {
     assertFalse("validation_result" in subtaskWire)
   }
 
-  private fun firstSubtaskWire(manifest: DecompositionManifest): Map<*, *> = (
-    testDecompositionManifestValidator.encodeManifestWireMap(manifest).getValue("subtasks") as List<*>
+  private fun firstSubtaskWire(manifest: DecompositionManifest): Map<*, *> =
+    (
+      testDecompositionManifestValidator.encodeManifestWireMap(manifest).getValue("subtasks") as List<*>
     ).first() as Map<*, *>
 
-  private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest, subtaskSpec: Path): String =
+  private fun durableRuntimeArtifactsJson(
+    manifest: DecompositionManifest,
+    subtaskSpec: Path,
+  ): String =
     JsonCodec.mapToJsonString(
       mapOf(
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),

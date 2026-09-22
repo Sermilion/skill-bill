@@ -17,6 +17,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class ComposedReviewLaunchPlanTest {
   @Test
   fun `composed kmp plan resolves seven kmp lanes and three kotlin baseline lanes`() {
@@ -56,11 +57,12 @@ class ComposedReviewLaunchPlanTest {
     val manifest = loadPlatformPack(pack.packRoot)
     val plan = ReviewLaunchPlanPolicy.flatten(HARBOR_PACK_SLUG, listOf(manifest), setOf("architecture"))
     val reported = plan.lanes.single { lane -> lane.skillName == HARBOR_ARCHITECTURE_WORKER }.addOns.toSet()
-    val source = discoverNativeAgentSourceEntries(
-      pack.repoRoot.resolve("platform-packs"),
-      null,
-      listOf(HARBOR_PACK_SLUG),
-    ).single { entry -> entry.name == HARBOR_ARCHITECTURE_WORKER }
+    val source =
+      discoverNativeAgentSourceEntries(
+        pack.repoRoot.resolve("platform-packs"),
+        null,
+        listOf(HARBOR_PACK_SLUG),
+      ).single { entry -> entry.name == HARBOR_ARCHITECTURE_WORKER }
     val body = testComposeNativeAgentSource(pack.repoRoot, source).body
     val headings = Regex("""### Add-On: ([^ (\n]+)""").findAll(body).map { match -> match.groupValues[1] }.toSet()
     assertEquals(setOf(HARBOR_ADDON_SLUG), reported)
@@ -82,16 +84,17 @@ class ComposedReviewLaunchPlanTest {
       assertTrue(block in contract, "The governed source must carry the authoritative block verbatim.")
     }
 
-    val handAuthored = Files.walk(repoRoot.resolve("platform-packs")).use { paths ->
-      paths.filter { it.fileName.toString() == "agents.yaml" && "code-review" in it.toString() }.toList()
-    }.flatMap { source ->
-      val bundle = YAMLMapper().readTree(source.toFile())
-      bundle.path("agents").mapNotNull { entry ->
-        val name = entry.path("name").asText()
+    val handAuthored =
+      Files.walk(repoRoot.resolve("platform-packs")).use { paths ->
+        paths.filter { it.fileName.toString() == "agents.yaml" && "code-review" in it.toString() }.toList()
+      }.flatMap { source ->
+        val bundle = YAMLMapper().readTree(source.toFile())
+        bundle.path("agents").mapNotNull { entry ->
+          val name = entry.path("name").asText()
 
-        "$source/$name".takeIf { entry.path("compose").asText() != "governed-content" }
+          "$source/$name".takeIf { entry.path("compose").asText() != "governed-content" }
+        }
       }
-    }
 
     assertEquals(emptyList(), handAuthored, handAuthored.joinToString("\n"))
   }

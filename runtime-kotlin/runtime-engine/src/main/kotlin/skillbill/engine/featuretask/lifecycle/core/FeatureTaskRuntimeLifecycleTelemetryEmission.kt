@@ -12,6 +12,7 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.review.core.auditGapIterationCount
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
+
 internal fun emitFeatureTaskRuntimeFinished(
   lifecycleTelemetryService: LifecycleTelemetryService,
   report: FeatureTaskRuntimeRunReport,
@@ -57,16 +58,18 @@ internal fun emitFeatureTaskRuntimeFinishedError(
     FeatureTaskRuntimeFinishedRequest(
       sessionId = context.telemetrySessionId,
       completionStatus = "error",
-      completedPhaseIds = outcomes
-        .filterValues { it.workflowStepStatus() == WorkflowStepStatus.COMPLETED }
-        .keys.toList(),
+      completedPhaseIds =
+        outcomes
+          .filterValues { it.workflowStepStatus() == WorkflowStepStatus.COMPLETED }
+          .keys.toList(),
       phaseOutcomes = outcomes,
       lastIncompletePhase = outcomes.firstIncompletePhase(),
-      blockedReason = normalizedBlockedReason(
-        reason = error?.let { "Feature-task-runtime finished with an unhandled ${it.terminalFailureClass()}." },
-        category = "runtime",
-        fallback = "Feature-task-runtime finished with an unhandled error.",
-      ),
+      blockedReason =
+        normalizedBlockedReason(
+          reason = error?.let { "Feature-task-runtime finished with an unhandled ${it.terminalFailureClass()}." },
+          category = "runtime",
+          fallback = "Feature-task-runtime finished with an unhandled error.",
+        ),
       resolvedBranch = "",
       reviewFixIterationCount = telemetryPayload.reviewFixIterationCount,
       regenerationActivationCount = telemetryPayload.regeneration.activationCount,
@@ -85,8 +88,9 @@ internal fun emitFeatureTaskRuntimeFinishedError(
   )
 }
 
-private fun Throwable.terminalFailureClass(): String = (this::class.simpleName ?: "Throwable")
-  .let { name -> if (name.endsWith("Exception") || name.endsWith("Error")) name else "$name exception" }
+private fun Throwable.terminalFailureClass(): String =
+  (this::class.simpleName ?: "Throwable")
+    .let { name -> if (name.endsWith("Exception") || name.endsWith("Error")) name else "$name exception" }
 
 internal data class ResolvedFeatureTaskRuntimeTelemetryPayload(
   val tokenBreakdownJson: String?,
@@ -104,11 +108,13 @@ internal fun resolvedFeatureTaskRuntimeTelemetryPayload(
 ): ResolvedFeatureTaskRuntimeTelemetryPayload {
   val (tokenBreakdownJson, totalTokens) = runCatching(context.phaseTokenData).getOrDefault(null to null)
   val phaseOutcomes = runCatching(context.phaseOutcomes).getOrDefault(emptyMap())
-  val verificationTelemetry = runCatching(context.findingVerificationTelemetry)
-    .getOrDefault(FeatureTaskRuntimeFindingVerificationTelemetry())
+  val verificationTelemetry =
+    runCatching(context.findingVerificationTelemetry)
+      .getOrDefault(FeatureTaskRuntimeFindingVerificationTelemetry())
   val regeneration = runCatching(context.regenerationTelemetry).getOrNull() ?: FeatureTaskRuntimeRegenerationTelemetry()
-  val reconciliation = runCatching(context.crashReconciliation).getOrNull()
-    ?: FeatureTaskRuntimeCrashReconciliationResult.NONE
+  val reconciliation =
+    runCatching(context.crashReconciliation).getOrNull()
+      ?: FeatureTaskRuntimeCrashReconciliationResult.NONE
   return ResolvedFeatureTaskRuntimeTelemetryPayload(
     tokenBreakdownJson = tokenBreakdownJson,
     totalTokens = totalTokens,
@@ -121,44 +127,53 @@ internal fun resolvedFeatureTaskRuntimeTelemetryPayload(
   )
 }
 
-internal fun completionStatusOf(report: FeatureTaskRuntimeRunReport): String = when (report) {
-  is FeatureTaskRuntimeRunReport.Completed -> "completed"
-  is FeatureTaskRuntimeRunReport.Blocked -> "blocked"
-  is FeatureTaskRuntimeRunReport.Paused -> "paused"
-  is FeatureTaskRuntimeRunReport.Decomposed -> "decomposed_at_planning"
-}
+internal fun completionStatusOf(report: FeatureTaskRuntimeRunReport): String =
+  when (report) {
+    is FeatureTaskRuntimeRunReport.Completed -> "completed"
+    is FeatureTaskRuntimeRunReport.Blocked -> "blocked"
+    is FeatureTaskRuntimeRunReport.Paused -> "paused"
+    is FeatureTaskRuntimeRunReport.Decomposed -> "decomposed_at_planning"
+  }
 
-fun completedPhaseIdsOf(report: FeatureTaskRuntimeRunReport): List<String> = when (report) {
-  is FeatureTaskRuntimeRunReport.Completed -> report.completedPhaseIds
-  is FeatureTaskRuntimeRunReport.Blocked -> report.completedPhaseIds
-  is FeatureTaskRuntimeRunReport.Paused -> report.completedPhaseIds
-  is FeatureTaskRuntimeRunReport.Decomposed -> report.completedPhaseIds
-}
+fun completedPhaseIdsOf(report: FeatureTaskRuntimeRunReport): List<String> =
+  when (report) {
+    is FeatureTaskRuntimeRunReport.Completed -> report.completedPhaseIds
+    is FeatureTaskRuntimeRunReport.Blocked -> report.completedPhaseIds
+    is FeatureTaskRuntimeRunReport.Paused -> report.completedPhaseIds
+    is FeatureTaskRuntimeRunReport.Decomposed -> report.completedPhaseIds
+  }
 
-fun lastIncompletePhaseOf(report: FeatureTaskRuntimeRunReport, outcomes: Map<String, String>): String = when (report) {
-  is FeatureTaskRuntimeRunReport.Completed -> "completed"
-  is FeatureTaskRuntimeRunReport.Decomposed -> "decomposed_at_planning"
-  is FeatureTaskRuntimeRunReport.Paused -> report.pausedPhase
-  is FeatureTaskRuntimeRunReport.Blocked ->
-    report.lastIncompletePhase.takeIf(String::isNotBlank) ?: outcomes.firstIncompletePhase()
-}
+fun lastIncompletePhaseOf(
+  report: FeatureTaskRuntimeRunReport,
+  outcomes: Map<String, String>,
+): String =
+  when (report) {
+    is FeatureTaskRuntimeRunReport.Completed -> "completed"
+    is FeatureTaskRuntimeRunReport.Decomposed -> "decomposed_at_planning"
+    is FeatureTaskRuntimeRunReport.Paused -> report.pausedPhase
+    is FeatureTaskRuntimeRunReport.Blocked ->
+      report.lastIncompletePhase.takeIf(String::isNotBlank) ?: outcomes.firstIncompletePhase()
+  }
 
 fun Map<String, String>.firstIncompletePhase(): String =
   entries.firstOrNull { it.value.workflowStepStatus() != WorkflowStepStatus.COMPLETED }?.key?.takeIf(String::isNotBlank)
     ?: "unknown"
 
-fun blockedReasonOf(report: FeatureTaskRuntimeRunReport): String = when (report) {
-  is FeatureTaskRuntimeRunReport.Blocked -> normalizedBlockedReason(
-    reason = report.blockedReason,
-    category = "runtime",
-    fallback = "Feature-task-runtime blocked without a specific reason.",
-  )
-  is FeatureTaskRuntimeRunReport.Paused -> normalizedBlockedReason(
-    reason = report.pauseReason,
-    category = "runtime",
-    fallback = "Feature-task-runtime paused in phase '${report.pausedPhase}' without a specific reason.",
-  )
-  is FeatureTaskRuntimeRunReport.Completed,
-  is FeatureTaskRuntimeRunReport.Decomposed,
-  -> ""
-}
+fun blockedReasonOf(report: FeatureTaskRuntimeRunReport): String =
+  when (report) {
+    is FeatureTaskRuntimeRunReport.Blocked ->
+      normalizedBlockedReason(
+        reason = report.blockedReason,
+        category = "runtime",
+        fallback = "Feature-task-runtime blocked without a specific reason.",
+      )
+    is FeatureTaskRuntimeRunReport.Paused ->
+      normalizedBlockedReason(
+        reason = report.pauseReason,
+        category = "runtime",
+        fallback = "Feature-task-runtime paused in phase '${report.pausedPhase}' without a specific reason.",
+      )
+    is FeatureTaskRuntimeRunReport.Completed,
+    is FeatureTaskRuntimeRunReport.Decomposed,
+    -> ""
+  }

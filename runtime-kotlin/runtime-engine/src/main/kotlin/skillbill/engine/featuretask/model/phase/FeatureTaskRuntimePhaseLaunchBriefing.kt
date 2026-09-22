@@ -7,17 +7,16 @@ import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.decodeHandoffEnvelopeFromArtifact
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
+
 data class FeatureTaskRuntimePhaseLaunchBriefing(
   val phaseId: String,
   val specReference: String,
   val featureSize: String,
   val acceptanceCriteria: List<String>,
   val mandatesAndOverrides: List<String>,
-
   val handoffEnvelope: FeatureTaskRuntimeHandoffEnvelope,
   val derivedContextKeys: List<String>,
   val briefingText: String,
-
   val drivingVerdict: String? = null,
 ) {
   init {
@@ -36,24 +35,24 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
 
   fun asBriefingArtifactEntry(): Any = briefingArtifactWireMap()
 
-  internal fun briefingArtifactWireMap(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.CONTRACT_VERSION to CONTRACT_VERSION,
-    SharedPayloadKeys.PHASE_ID to phaseId,
-    "spec_reference" to specReference,
-    "feature_size" to featureSize,
-    "acceptance_criteria" to acceptanceCriteria,
-    "mandates_and_overrides" to mandatesAndOverrides,
-    "handoff_envelope" to handoffEnvelope.asWorkflowArtifactEntry(),
-    "derived_context_keys" to derivedContextKeys,
-    "briefing_text" to briefingText,
-  ).let { base ->
-    LinkedHashMap(base).apply {
-      drivingVerdict?.let { put("driving_verdict", it) }
+  internal fun briefingArtifactWireMap(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.CONTRACT_VERSION to CONTRACT_VERSION,
+      SharedPayloadKeys.PHASE_ID to phaseId,
+      "spec_reference" to specReference,
+      "feature_size" to featureSize,
+      "acceptance_criteria" to acceptanceCriteria,
+      "mandates_and_overrides" to mandatesAndOverrides,
+      "handoff_envelope" to handoffEnvelope.asWorkflowArtifactEntry(),
+      "derived_context_keys" to derivedContextKeys,
+      "briefing_text" to briefingText,
+    ).let { base ->
+      LinkedHashMap(base).apply {
+        drivingVerdict?.let { put("driving_verdict", it) }
+      }
     }
-  }
 
   companion object {
-
     internal fun fromBriefingArtifactWire(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLaunchBriefing {
       val unknownFields = raw.keys - ALLOWED_FIELDS - FeatureTaskRuntimeHandoffSourceRef.RETIRED_PRIOR_GAP_MEMORY_WIRE
       if (unknownFields.isNotEmpty()) {
@@ -94,8 +93,9 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
 
     private fun Map<String, Any?>.requireEnvelopeField(key: String): FeatureTaskRuntimeHandoffEnvelope {
       val rawValue = if (containsKey(key)) this[key] else schemaError(missingMessage(key, "object"))
-      val envelope = JsonCodec.anyToStringAnyMap(rawValue)
-        ?: schemaError("Feature-task-runtime briefing artifact field '$key' must decode to an object.")
+      val envelope =
+        JsonCodec.anyToStringAnyMap(rawValue)
+          ?: schemaError("Feature-task-runtime briefing artifact field '$key' must decode to an object.")
       return requireNotNull(decodeHandoffEnvelopeFromArtifact(envelope))
     }
 
@@ -116,30 +116,34 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
     }
 
     private fun Map<String, Any?>.requireStringListField(key: String): List<String> {
-      val list = (if (containsKey(key)) this[key] else schemaError(missingMessage(key, "list"))) as? List<*>
-        ?: schemaError("Feature-task-runtime briefing artifact field '$key' must decode to a list.")
+      val list =
+        (if (containsKey(key)) this[key] else schemaError(missingMessage(key, "list"))) as? List<*>
+          ?: schemaError("Feature-task-runtime briefing artifact field '$key' must decode to a list.")
       return list.map { element ->
         element as? String ?: schemaError("Feature-task-runtime briefing artifact field '$key' must contain strings.")
       }
     }
 
-    private fun missingMessage(key: String, kind: String): String =
-      "Feature-task-runtime briefing artifact map is missing required $kind field '$key'."
+    private fun missingMessage(
+      key: String,
+      kind: String,
+    ): String = "Feature-task-runtime briefing artifact map is missing required $kind field '$key'."
 
     const val CONTRACT_VERSION: String = FEATURE_TASK_RUNTIME_PHASE_LAUNCH_BRIEFING_CONTRACT_VERSION
 
-    private val ALLOWED_FIELDS: Set<String> = setOf(
-      SharedPayloadKeys.CONTRACT_VERSION,
-      SharedPayloadKeys.PHASE_ID,
-      "spec_reference",
-      "feature_size",
-      "acceptance_criteria",
-      "mandates_and_overrides",
-      "handoff_envelope",
-      "derived_context_keys",
-      "briefing_text",
-      "driving_verdict",
-      "durably_closed_criterion_refs",
-    )
+    private val ALLOWED_FIELDS: Set<String> =
+      setOf(
+        SharedPayloadKeys.CONTRACT_VERSION,
+        SharedPayloadKeys.PHASE_ID,
+        "spec_reference",
+        "feature_size",
+        "acceptance_criteria",
+        "mandates_and_overrides",
+        "handoff_envelope",
+        "derived_context_keys",
+        "briefing_text",
+        "driving_verdict",
+        "durably_closed_criterion_refs",
+      )
   }
 }

@@ -28,8 +28,9 @@ class GoalObservabilityEventSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = GoalObservabilityEventSchemaValidator::class.java.classLoader
-      .getResourceAsStream(GoalObservabilityEventSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      GoalObservabilityEventSchemaValidator::class.java.classLoader
+        .getResourceAsStream(GoalObservabilityEventSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical goal-observability event schema is missing from the classpath at " +

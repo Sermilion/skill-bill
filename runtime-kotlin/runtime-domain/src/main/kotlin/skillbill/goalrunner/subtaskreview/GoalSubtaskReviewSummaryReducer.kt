@@ -17,6 +17,7 @@ import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.taskruntime.model.repair.task.withStableFindingRefs
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+
 object GoalSubtaskReviewSummaryReducer {
   internal const val REJECTED_VERIFICATION_REASON_MAX_UTF8_BYTES: Int =
     GoalSubtaskReviewVerificationRejection.REJECTED_VERIFICATION_REASON_MAX_UTF8_BYTES
@@ -77,7 +78,10 @@ object GoalSubtaskReviewSummaryReducer {
       }
   }
 
-  internal fun unresolvedCount(output: Any, recordedVerdicts: List<ReviewFindingVerdict> = emptyList()): Int =
+  internal fun unresolvedCount(
+    output: Any,
+    recordedVerdicts: List<ReviewFindingVerdict> = emptyList(),
+  ): Int =
     fromOutput(output, recordedVerdicts)
       .count(GoalSubtaskReviewCompactFinding::blocksAdvance)
 
@@ -91,14 +95,15 @@ object GoalSubtaskReviewSummaryReducer {
     val coverageIncomplete = GoalSubtaskReviewSummaryReducer.evidenceCoverageComplete(output) == false
     return GoalSubtaskReviewOutputOutcome(
       verdict = verdict,
-      unresolvedFindingCount = when {
-        coverageIncomplete -> maxOf(advanceBlockingCount, 1)
-        advanceBlockingCount > 0 -> advanceBlockingCount
-        hasOnlyNonBlockingFindings ||
-          verdict == FeatureTaskRuntimeVerdict.APPROVED ||
-          verdict == FeatureTaskRuntimeVerdict.REVIEW_SKIPPED_BY_USER -> 0
-        else -> 1
-      },
+      unresolvedFindingCount =
+        when {
+          coverageIncomplete -> maxOf(advanceBlockingCount, 1)
+          advanceBlockingCount > 0 -> advanceBlockingCount
+          hasOnlyNonBlockingFindings ||
+            verdict == FeatureTaskRuntimeVerdict.APPROVED ||
+            verdict == FeatureTaskRuntimeVerdict.REVIEW_SKIPPED_BY_USER -> 0
+          else -> 1
+        },
     )
   }
 
@@ -119,22 +124,24 @@ object GoalSubtaskReviewSummaryReducer {
     reviewOutput: Any,
     scope: UnaddressedFindingLedgerScope,
     recordedVerdicts: List<ReviewFindingVerdict> = emptyList(),
-  ): RejectedVerificationFindingsResult = GoalSubtaskReviewVerificationRejection.rejectedVerificationFindings(
-    verifyOutput,
-    reviewOutput,
-    scope,
-    recordedVerdicts,
-  )
+  ): RejectedVerificationFindingsResult =
+    GoalSubtaskReviewVerificationRejection.rejectedVerificationFindings(
+      verifyOutput,
+      reviewOutput,
+      scope,
+      recordedVerdicts,
+    )
 
   fun reviewFindingOutcomes(
     supersededFindings: List<UnaddressedFinding>,
     currentFindings: List<UnaddressedFinding>,
     blockerDispositions: List<GoalSubtaskBlockerDisposition>,
-  ): List<ReviewFindingOutcomeRecord> = GoalSubtaskReviewOutcomeDispositionReduction.reviewFindingOutcomes(
-    supersededFindings,
-    currentFindings,
-    blockerDispositions,
-  )
+  ): List<ReviewFindingOutcomeRecord> =
+    GoalSubtaskReviewOutcomeDispositionReduction.reviewFindingOutcomes(
+      supersededFindings,
+      currentFindings,
+      blockerDispositions,
+    )
 
   fun blockerDispositions(
     output: Any,
@@ -146,11 +153,12 @@ object GoalSubtaskReviewSummaryReducer {
     priorFindings: List<UnaddressedFinding>,
     currentFindings: List<UnaddressedFinding>,
     recordedVerdicts: List<ReviewFindingVerdict> = emptyList(),
-  ): List<GoalSubtaskBlockerDisposition> = GoalSubtaskReviewOutcomeDispositionReduction.refutedBlockerSupersedes(
-    priorFindings,
-    currentFindings,
-    recordedVerdicts,
-  )
+  ): List<GoalSubtaskBlockerDisposition> =
+    GoalSubtaskReviewOutcomeDispositionReduction.refutedBlockerSupersedes(
+      priorFindings,
+      currentFindings,
+      recordedVerdicts,
+    )
 }
 
 internal fun GoalSubtaskReviewSummaryReducer.structuredFindings(
@@ -186,15 +194,17 @@ fun reviewPassVerdict(
   }
   val declaredVerdict = (wire[SharedPayloadKeys.VERDICT] as? String)?.trim()
   val changesRequested = declaredVerdict in setOf("needs_fix", FeatureTaskRuntimeVerdict.CHANGES_REQUESTED.wireValue)
-  val reportedFindingsWereFiltered = findings.isEmpty() &&
-    GoalSubtaskReviewStructuredFindingsParse.structuredFindings(output).isNotEmpty()
+  val reportedFindingsWereFiltered =
+    findings.isEmpty() &&
+      GoalSubtaskReviewStructuredFindingsParse.structuredFindings(output).isNotEmpty()
   return when {
     advanceBlockingCount > 0 -> FeatureTaskRuntimeVerdict.CHANGES_REQUESTED
     hasOnlyNonBlockingFindings || reportedFindingsWereFiltered -> FeatureTaskRuntimeVerdict.APPROVED
     changesRequested -> FeatureTaskRuntimeVerdict.CHANGES_REQUESTED
-    declaredVerdict?.isNotBlank() == true -> FeatureTaskRuntimeVerdict.fromWire(declaredVerdict)
-      .takeIf(GOAL_SUBTASK_REVIEW_PASS_VERDICTS::contains)
-      ?: FeatureTaskRuntimeVerdict.APPROVED
+    declaredVerdict?.isNotBlank() == true ->
+      FeatureTaskRuntimeVerdict.fromWire(declaredVerdict)
+        .takeIf(GOAL_SUBTASK_REVIEW_PASS_VERDICTS::contains)
+        ?: FeatureTaskRuntimeVerdict.APPROVED
     else -> FeatureTaskRuntimeVerdict.APPROVED
   }
 }

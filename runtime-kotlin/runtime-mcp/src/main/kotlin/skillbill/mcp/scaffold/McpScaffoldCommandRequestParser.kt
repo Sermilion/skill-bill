@@ -16,6 +16,7 @@ import skillbill.scaffold.model.command.SCAFFOLD_COMMAND_PAYLOAD_VERSION
 import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import skillbill.scaffold.model.command.isRetiredPartialScaffoldCommandKindAlias
 import skillbill.scaffold.model.command.rejectRetiredPartialScaffoldCommandKind
+
 internal fun parseMcpScaffoldCommandRequest(args: Map<String, Any?>): ScaffoldCommandRequest {
   val (version, kind) = validateVersionAndKind(args)
   val repoRoot = requireOptionalNonBlank(args, "repo_root")
@@ -52,15 +53,16 @@ private fun parseHorizontal(
   args: Map<String, Any?>,
   version: String,
   repoRoot: String?,
-): ScaffoldCommandRequest.HorizontalSkill = ScaffoldCommandRequest.HorizontalSkill(
-  name = requireString(args, "name"),
-  description = requireStringOrDefault(args, "description", ""),
-  contentBody = optionalString(args, "content_body"),
-  subagentSpecialists = parseStringListOrEmpty(args, "subagent_specialists"),
-  suppressSubagents = parseBooleanOrFalse(args, "no_subagents"),
-  scaffoldPayloadVersion = version,
-  repoRoot = repoRoot,
-)
+): ScaffoldCommandRequest.HorizontalSkill =
+  ScaffoldCommandRequest.HorizontalSkill(
+    name = requireString(args, "name"),
+    description = requireStringOrDefault(args, "description", ""),
+    contentBody = optionalString(args, "content_body"),
+    subagentSpecialists = parseStringListOrEmpty(args, "subagent_specialists"),
+    suppressSubagents = parseBooleanOrFalse(args, "no_subagents"),
+    scaffoldPayloadVersion = version,
+    repoRoot = repoRoot,
+  )
 
 private fun parsePlatformPack(
   args: Map<String, Any?>,
@@ -76,11 +78,12 @@ private fun parsePlatformPack(
     description = requireStringOrDefault(args, "description", ""),
     routingSignals = routingInput,
     baselineLayers = parseBaselineLayers(args),
-    subagentSpecialists = if (args.containsKey("subagent_specialists")) {
-      parseStringList(args, "subagent_specialists")
-    } else {
-      null
-    },
+    subagentSpecialists =
+      if (args.containsKey("subagent_specialists")) {
+        parseStringList(args, "subagent_specialists")
+      } else {
+        null
+      },
     suppressSubagents = parseBooleanOrFalse(args, "no_subagents"),
     contentBody = optionalString(args, "content_body"),
     nameOverride = requireOptionalNonBlank(args, "name"),
@@ -91,7 +94,10 @@ private fun parsePlatformPack(
   )
 }
 
-private fun rejectLegacyPlatformPackSelector(args: Map<String, Any?>, field: String) {
+private fun rejectLegacyPlatformPackSelector(
+  args: Map<String, Any?>,
+  field: String,
+) {
   if (!args.containsKey(field)) return
   throw InvalidScaffoldPayloadError(
     "Scaffold payload field '$field' is no longer supported for kind 'platform-pack'. " +
@@ -99,29 +105,36 @@ private fun rejectLegacyPlatformPackSelector(args: Map<String, Any?>, field: Str
   )
 }
 
-private fun parseRoutingSignalsInput(routing: Any?): RoutingSignalsInput? = when {
-  routing == null -> null
-  routing is Map<*, *> -> RoutingSignalsInput(
-    strong = parseRoutingSignalList(routing, "strong", "routing_signals.strong"),
-    tieBreakers = parseRoutingSignalList(routing, "tie_breakers", "routing_signals.tie_breakers"),
-  )
-  else -> throw InvalidScaffoldPayloadError(
-    "Scaffold payload field 'routing_signals' must be an object when provided.",
-  )
-}
+private fun parseRoutingSignalsInput(routing: Any?): RoutingSignalsInput? =
+  when {
+    routing == null -> null
+    routing is Map<*, *> ->
+      RoutingSignalsInput(
+        strong = parseRoutingSignalList(routing, "strong", "routing_signals.strong"),
+        tieBreakers = parseRoutingSignalList(routing, "tie_breakers", "routing_signals.tie_breakers"),
+      )
+    else -> throw InvalidScaffoldPayloadError(
+      "Scaffold payload field 'routing_signals' must be an object when provided.",
+    )
+  }
 
-private fun parseAddOn(args: Map<String, Any?>, version: String, repoRoot: String?): ScaffoldCommandRequest.AddOn =
+private fun parseAddOn(
+  args: Map<String, Any?>,
+  version: String,
+  repoRoot: String?,
+): ScaffoldCommandRequest.AddOn =
   ScaffoldCommandRequest.AddOn(
     name = requireString(args, "name"),
     platform = requireString(args, "platform"),
     description = requireStringOrDefault(args, "description", ""),
     body = optionalString(args, "body"),
     addonLocationPath = requireOptionalNonBlank(args, "addon_location_path"),
-    consumerSkillDirs = if (args.containsKey("consumer_skill_dirs")) {
-      parseStringList(args, "consumer_skill_dirs")
-    } else {
-      null
-    },
+    consumerSkillDirs =
+      if (args.containsKey("consumer_skill_dirs")) {
+        parseStringList(args, "consumer_skill_dirs")
+      } else {
+        null
+      },
     scaffoldPayloadVersion = version,
     repoRoot = repoRoot,
   )
@@ -130,12 +143,13 @@ private fun parseAgentAddon(
   args: Map<String, Any?>,
   version: String,
   repoRoot: String?,
-): ScaffoldCommandRequest.AgentAddon = ScaffoldCommandRequest.AgentAddon(
-  slug = requireString(args, "slug"),
-  description = requireString(args, "description"),
-  agentIds = parseStringList(args, "agent_ids"),
-  consumers = parseStringList(args, "consumers"),
-  contentBody = optionalString(args, "content_body"),
-  scaffoldPayloadVersion = version,
-  repoRoot = repoRoot,
-)
+): ScaffoldCommandRequest.AgentAddon =
+  ScaffoldCommandRequest.AgentAddon(
+    slug = requireString(args, "slug"),
+    description = requireString(args, "description"),
+    agentIds = parseStringList(args, "agent_ids"),
+    consumers = parseStringList(args, "consumers"),
+    contentBody = optionalString(args, "content_body"),
+    scaffoldPayloadVersion = version,
+    repoRoot = repoRoot,
+  )

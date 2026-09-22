@@ -12,6 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class SQLiteWorkListRepositoryTest {
   @Test
   fun `work list sorts parsed instants exactly before applying its limit and excludes child goal rows`() {
@@ -104,18 +105,25 @@ class SQLiteWorkListRepositoryTest {
       "('SKILL-117', '${row.mode}', ${row.workflowId}, '${row.startedAt}', " +
       "'${row.workflowStatus}', '${row.stateEnteredAt}', ${row.estimated})"
 
-  private fun goalIssueProgressRow(parentWorkflowId: String, status: String = "running"): String =
+  private fun goalIssueProgressRow(
+    parentWorkflowId: String,
+    status: String = "running",
+  ): String =
     "INSERT INTO goal_issue_progress VALUES " +
       "('SKILL-117', '$parentWorkflowId', '2026-05-01T12:00:00Z', '$status', '2026-05-01T12:00:00Z', 0)"
 
-  private fun assertMalformedWorkListRow(insert: String, expectedDetail: String) {
+  private fun assertMalformedWorkListRow(
+    insert: String,
+    expectedDetail: String,
+  ) {
     DriverManager.getConnection("jdbc:sqlite::memory:").use { connection ->
       createWorkListTables(connection)
       connection.createStatement().use { it.executeUpdate(insert) }
 
-      val error = assertFailsWith<InvalidWorkListRowError> {
-        SQLiteWorkListRepository(connection).list()
-      }
+      val error =
+        assertFailsWith<InvalidWorkListRowError> {
+          SQLiteWorkListRepository(connection).list()
+        }
 
       assertContains(error.message.orEmpty(), expectedDetail)
     }
@@ -141,7 +149,12 @@ class SQLiteWorkListRepositoryTest {
     }
   }
 
-  private fun insertFeatureTask(connection: Connection, workflowId: String, mode: String, startedAt: String) {
+  private fun insertFeatureTask(
+    connection: Connection,
+    workflowId: String,
+    mode: String,
+    startedAt: String,
+  ) {
     connection.prepareStatement(
       """
       INSERT INTO feature_task_workflows (
@@ -157,7 +170,11 @@ class SQLiteWorkListRepositoryTest {
     }
   }
 
-  private fun insertFeatureVerify(connection: Connection, workflowId: String, startedAt: String) {
+  private fun insertFeatureVerify(
+    connection: Connection,
+    workflowId: String,
+    startedAt: String,
+  ) {
     connection.prepareStatement(
       """
       INSERT INTO feature_verify_workflows (
@@ -172,7 +189,12 @@ class SQLiteWorkListRepositoryTest {
     }
   }
 
-  private fun insertGoal(connection: Connection, workflowId: String, issueKey: String, startedAt: String) {
+  private fun insertGoal(
+    connection: Connection,
+    workflowId: String,
+    issueKey: String,
+    startedAt: String,
+  ) {
     connection.prepareStatement(
       """
       INSERT INTO goal_issue_progress (

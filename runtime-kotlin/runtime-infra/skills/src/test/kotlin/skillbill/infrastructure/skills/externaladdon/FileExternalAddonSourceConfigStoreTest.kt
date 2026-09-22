@@ -19,14 +19,18 @@ class FileExternalAddonSourceConfigStoreTest {
   private val store = FileExternalAddonSourceConfigStore()
 
   @Test
-  fun `absent config returns empty`(@TempDir home: Path) {
+  fun `absent config returns empty`(
+    @TempDir home: Path,
+  ) {
     val sources = store.readExternalAddonSources(request(home, configPath(home))).sources
 
     assertTrue(sources.isEmpty())
   }
 
   @Test
-  fun `empty array returns empty`(@TempDir home: Path) {
+  fun `empty array returns empty`(
+    @TempDir home: Path,
+  ) {
     writeConfig(home, mapOf("external_addon_sources" to emptyList<String>()))
 
     val sources = store.readExternalAddonSources(request(home, configPath(home))).sources
@@ -35,7 +39,9 @@ class FileExternalAddonSourceConfigStoreTest {
   }
 
   @Test
-  fun `valid sources are returned in declared order`(@TempDir home: Path) {
+  fun `valid sources are returned in declared order`(
+    @TempDir home: Path,
+  ) {
     val ios = Files.createDirectories(home.resolve("private/ios"))
     val kotlin = Files.createDirectories(home.resolve("private/kotlin"))
     writeConfig(
@@ -59,7 +65,9 @@ class FileExternalAddonSourceConfigStoreTest {
   }
 
   @Test
-  fun `tilde path expands against request user home`(@TempDir home: Path) {
+  fun `tilde path expands against request user home`(
+    @TempDir home: Path,
+  ) {
     Files.createDirectories(home.resolve("private/ios"))
     writeConfig(
       home,
@@ -75,12 +83,15 @@ class FileExternalAddonSourceConfigStoreTest {
   }
 
   @Test
-  fun `register external source creates config and returns registered source`(@TempDir home: Path) {
+  fun `register external source creates config and returns registered source`(
+    @TempDir home: Path,
+  ) {
     val sourceDir = Files.createDirectories(home.resolve("private/ios"))
 
-    val sources = store.registerExternalAddonSource(
-      registrationRequest(home, configPath(home), ExternalAddonSource(sourceDir.toFileLocation(), "ios")),
-    ).sources
+    val sources =
+      store.registerExternalAddonSource(
+        registrationRequest(home, configPath(home), ExternalAddonSource(sourceDir.toFileLocation(), "ios")),
+      ).sources
 
     assertEquals(listOf(ExternalAddonSource(sourceDir.toAbsolutePath().normalize().toFileLocation(), "ios")), sources)
     val payload = JsonCodec.parseObjectOrNull(Files.readString(configPath(home))).toString()
@@ -92,7 +103,9 @@ class FileExternalAddonSourceConfigStoreTest {
   }
 
   @Test
-  fun `register external source is idempotent and preserves existing config fields`(@TempDir home: Path) {
+  fun `register external source is idempotent and preserves existing config fields`(
+    @TempDir home: Path,
+  ) {
     val sourceDir = Files.createDirectories(home.resolve("private/kotlin"))
     writeConfig(
       home,
@@ -102,9 +115,10 @@ class FileExternalAddonSourceConfigStoreTest {
       ),
     )
 
-    val sources = store.registerExternalAddonSource(
-      registrationRequest(home, configPath(home), ExternalAddonSource(sourceDir.toFileLocation(), "kotlin")),
-    ).sources
+    val sources =
+      store.registerExternalAddonSource(
+        registrationRequest(home, configPath(home), ExternalAddonSource(sourceDir.toFileLocation(), "kotlin")),
+      ).sources
 
     assertEquals(listOf(ExternalAddonSource(sourceDir.toFileLocation(), "kotlin")), sources)
     val config = Files.readString(configPath(home))
@@ -113,7 +127,9 @@ class FileExternalAddonSourceConfigStoreTest {
   }
 
   @Test
-  fun `malformed json loud-fails`(@TempDir home: Path) {
+  fun `malformed json loud-fails`(
+    @TempDir home: Path,
+  ) {
     Files.createDirectories(home.resolve(".skill-bill"))
     Files.writeString(configPath(home), "{ not valid json")
 
@@ -123,7 +139,9 @@ class FileExternalAddonSourceConfigStoreTest {
   }
 
   @Test
-  fun `external_addon_sources not a list loud-fails`(@TempDir home: Path) {
+  fun `external_addon_sources not a list loud-fails`(
+    @TempDir home: Path,
+  ) {
     writeConfig(home, mapOf("external_addon_sources" to "nope"))
 
     assertFailsWith<ExternalAddonConfigError> {
@@ -132,7 +150,9 @@ class FileExternalAddonSourceConfigStoreTest {
   }
 
   @Test
-  fun `element missing path loud-fails`(@TempDir home: Path) {
+  fun `element missing path loud-fails`(
+    @TempDir home: Path,
+  ) {
     writeConfig(
       home,
       mapOf("external_addon_sources" to listOf(mapOf("platform" to "ios"))),
@@ -144,7 +164,9 @@ class FileExternalAddonSourceConfigStoreTest {
   }
 
   @Test
-  fun `non-existent path loud-fails`(@TempDir home: Path) {
+  fun `non-existent path loud-fails`(
+    @TempDir home: Path,
+  ) {
     writeConfig(
       home,
       mapOf(
@@ -160,7 +182,10 @@ class FileExternalAddonSourceConfigStoreTest {
 
   private fun configPath(home: Path): Path = home.resolve(".skill-bill").resolve("config.json")
 
-  private fun request(home: Path, configPath: Path): ExternalAddonSourceConfigRequest =
+  private fun request(
+    home: Path,
+    configPath: Path,
+  ): ExternalAddonSourceConfigRequest =
     ExternalAddonSourceConfigRequest(
       userHome = home,
       environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath.toString()),
@@ -170,13 +195,17 @@ class FileExternalAddonSourceConfigStoreTest {
     home: Path,
     configPath: Path,
     source: ExternalAddonSource,
-  ): ExternalAddonSourceRegistrationRequest = ExternalAddonSourceRegistrationRequest(
-    userHome = home,
-    environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath.toString()),
-    source = source,
-  )
+  ): ExternalAddonSourceRegistrationRequest =
+    ExternalAddonSourceRegistrationRequest(
+      userHome = home,
+      environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath.toString()),
+      source = source,
+    )
 
-  private fun writeConfig(home: Path, payload: Map<String, Any?>) {
+  private fun writeConfig(
+    home: Path,
+    payload: Map<String, Any?>,
+  ) {
     Files.createDirectories(home.resolve(".skill-bill"))
     Files.writeString(configPath(home), JsonCodec.mapToJsonString(payload) + "\n")
   }

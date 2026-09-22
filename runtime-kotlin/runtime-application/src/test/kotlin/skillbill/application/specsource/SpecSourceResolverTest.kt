@@ -87,7 +87,11 @@ class SpecSourceResolverTest {
     )
   }
 
-  private fun seedSpec(repoRoot: Path, name: String, content: String): Path {
+  private fun seedSpec(
+    repoRoot: Path,
+    name: String,
+    content: String,
+  ): Path {
     val specDir = repoRoot.resolve(".feature-specs/SKILL-71")
     Files.createDirectories(specDir)
     val path = specDir.resolve(name)
@@ -95,24 +99,30 @@ class SpecSourceResolverTest {
     return path
   }
 
-  private fun writeManifest(repoRoot: Path, specSource: SpecSource) {
-    val manifest = DecompositionManifest(
-      issueKey = "SKILL-71",
-      featureName = "local-config",
-      parentSpecPath = ".feature-specs/SKILL-71/spec.md",
-      specSource = specSource,
-      baseBranch = "main",
-      featureBranch = "feat/SKILL-71",
-      currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
-      subtasks = listOf(
-        DecompositionSubtask(id = 1, name = "subtask", specPath = ".feature-specs/SKILL-71/spec_subtask_1.md"),
-      ),
-    )
-    val yaml = encodeDecompositionManifestYaml(
-      manifest,
-      testDecompositionManifestValidator,
-      TestDecompositionManifestStore,
-    )
+  private fun writeManifest(
+    repoRoot: Path,
+    specSource: SpecSource,
+  ) {
+    val manifest =
+      DecompositionManifest(
+        issueKey = "SKILL-71",
+        featureName = "local-config",
+        parentSpecPath = ".feature-specs/SKILL-71/spec.md",
+        specSource = specSource,
+        baseBranch = "main",
+        featureBranch = "feat/SKILL-71",
+        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
+        subtasks =
+          listOf(
+            DecompositionSubtask(id = 1, name = "subtask", specPath = ".feature-specs/SKILL-71/spec_subtask_1.md"),
+          ),
+      )
+    val yaml =
+      encodeDecompositionManifestYaml(
+        manifest,
+        testDecompositionManifestValidator,
+        TestDecompositionManifestStore,
+      )
     writeDecompositionManifestText(
       repoRoot.resolve(".feature-specs/SKILL-71/decomposition-manifest.yaml"),
       yaml,
@@ -126,9 +136,10 @@ private fun encodeDecompositionManifestYaml(
   validator: DecompositionManifestValidator,
   fileStore: DecompositionManifestStore,
   sourceLabel: String = "<in-memory>",
-): String = skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml(
-  manifest,
-  validator,
-  fileStore,
-  sourceLabel,
-).yamlText
+): String =
+  skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml(
+    manifest,
+    validator,
+    fileStore,
+    sourceLabel,
+  ).yamlText

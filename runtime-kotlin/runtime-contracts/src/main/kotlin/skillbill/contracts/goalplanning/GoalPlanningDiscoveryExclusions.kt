@@ -5,6 +5,7 @@ import skillbill.contracts.packaged.PackagedYamlMappingFailure
 import skillbill.contracts.packaged.loadPackagedYamlRootMapping
 import skillbill.contracts.packaged.requireUniqueStringItems
 import skillbill.error.shellcontent.InvalidGoalPlanningDiscoveryExclusionsSchemaError
+
 object GoalPlanningDiscoveryExclusions {
   const val CONTRACT_VERSION = "0.3"
   const val RESOURCE_PATH = "skillbill/infrastructure/contracts/goal-planning-discovery-exclusions.yaml"
@@ -57,16 +58,17 @@ object GoalPlanningDiscoveryExclusions {
     )
   }
 
-  private fun loadRootMapping(document: String): Map<*, *> = try {
-    loadPackagedYamlRootMapping(
-      document,
-      "goal planning discovery exclusion contract is not a YAML mapping",
-    )
-  } catch (_: PackagedYamlMappingFailure) {
-    throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
-      "goal planning discovery exclusion contract is not a YAML mapping",
-    )
-  }
+  private fun loadRootMapping(document: String): Map<*, *> =
+    try {
+      loadPackagedYamlRootMapping(
+        document,
+        "goal planning discovery exclusion contract is not a YAML mapping",
+      )
+    } catch (_: PackagedYamlMappingFailure) {
+      throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
+        "goal planning discovery exclusion contract is not a YAML mapping",
+      )
+    }
 
   private fun requireKnownKeysOnly(root: Map<*, *>) {
     val unknown = root.keys.map(Any?::toString).filterNot { key -> key in KNOWN_KEYS }.sorted()
@@ -85,7 +87,10 @@ object GoalPlanningDiscoveryExclusions {
     }
   }
 
-  private fun requiredStringList(root: Map<*, *>, key: String): List<String> {
+  private fun requiredStringList(
+    root: Map<*, *>,
+    key: String,
+  ): List<String> {
     val entries = (root[key] as? List<*>)?.map { entry -> requiredStringListEntry(entry, key) }.orEmpty()
     requireStringListNotEmpty(entries, key)
     requireUniqueStringItems(entries, "goal planning discovery exclusion $key") { message ->
@@ -94,12 +99,18 @@ object GoalPlanningDiscoveryExclusions {
     return entries
   }
 
-  private fun requiredStringListEntry(entry: Any?, key: String): String =
+  private fun requiredStringListEntry(
+    entry: Any?,
+    key: String,
+  ): String =
     entry as? String ?: throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
       "goal planning discovery exclusion $key entry '$entry' is not a string",
     )
 
-  private fun requireStringListNotEmpty(entries: List<String>, key: String) {
+  private fun requireStringListNotEmpty(
+    entries: List<String>,
+    key: String,
+  ) {
     if (entries.isEmpty()) {
       throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
         "goal planning discovery exclusion contract declares no $key",
@@ -117,12 +128,13 @@ object GoalPlanningDiscoveryExclusions {
   }
 
   private fun requireNormalizedRoot(root: String) {
-    val invalid = root.isBlank() ||
-      !root.endsWith("/") ||
-      root.startsWith("/") ||
-      root.startsWith("./") ||
-      root.contains("\\") ||
-      root.split("/").any { segment -> segment == ".." || segment == "." }
+    val invalid =
+      root.isBlank() ||
+        !root.endsWith("/") ||
+        root.startsWith("/") ||
+        root.startsWith("./") ||
+        root.contains("\\") ||
+        root.split("/").any { segment -> segment == ".." || segment == "." }
     if (invalid) {
       throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
         "goal planning discovery exclusion root '$root' must be a normalized repo-relative prefix ending in '/'",

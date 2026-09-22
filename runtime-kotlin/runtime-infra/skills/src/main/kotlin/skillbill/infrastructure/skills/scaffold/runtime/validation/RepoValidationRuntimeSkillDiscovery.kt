@@ -11,7 +11,10 @@ import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 import kotlin.io.path.relativeTo
 
-internal fun discoverSkillFiles(root: Path, issues: MutableList<String>): Map<String, Path> {
+internal fun discoverSkillFiles(
+  root: Path,
+  issues: MutableList<String>,
+): Map<String, Path> {
   val skillsDir = root.resolve("skills")
   if (!skillsDir.isDirectory()) {
     issues += "skills/ directory is missing"
@@ -52,7 +55,10 @@ internal fun discoverSkillFiles(root: Path, issues: MutableList<String>): Map<St
   return found
 }
 
-internal fun discoverPlatformPackSkillFiles(root: Path, issues: MutableList<String>): Map<String, Path> {
+internal fun discoverPlatformPackSkillFiles(
+  root: Path,
+  issues: MutableList<String>,
+): Map<String, Path> {
   val packsRoot = root.resolve("platform-packs")
   if (!packsRoot.isDirectory()) {
     return emptyMap()
@@ -83,7 +89,10 @@ internal fun discoverPlatformPackSkillFiles(root: Path, issues: MutableList<Stri
   return found
 }
 
-internal fun validatePlatformPacks(root: Path, issues: MutableList<String>): Int {
+internal fun validatePlatformPacks(
+  root: Path,
+  issues: MutableList<String>,
+): Int {
   val packsRoot = root.resolve("platform-packs")
   if (!packsRoot.isDirectory()) {
     return 0
@@ -116,12 +125,14 @@ internal fun discoverPortableReviewSkills(root: Path): Set<String> {
       .filter { it.isDirectory() && !it.name.startsWith(".") }
       .sorted()
       .forEach { packRoot ->
-        reviewSkills += runCatching { loadPlatformManifest(packRoot).declaredCodeReviewSkillNames() }
-          .getOrDefault(emptySet())
+        reviewSkills +=
+          runCatching { loadPlatformManifest(packRoot).declaredCodeReviewSkillNames() }
+            .getOrDefault(emptySet())
       }
   }
   return reviewSkills
 }
+
 internal fun discoverAllAddonFiles(root: Path): List<Path> {
   val containers = listOf(root.resolve("skills"), root.resolve("platform-packs"))
   return containers.filter(Path::isDirectory).flatMap { container ->

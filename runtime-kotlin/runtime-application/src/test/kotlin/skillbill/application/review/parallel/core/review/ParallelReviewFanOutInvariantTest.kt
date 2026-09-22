@@ -40,7 +40,10 @@ import kotlin.test.assertTrue
 class ParallelReviewFanOutInvariantTest {
   private val hunkTemplate = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
 
-  private fun decision(lane: String, paths: List<String>) = ReviewLaneDecision(
+  private fun decision(
+    lane: String,
+    paths: List<String>,
+  ) = ReviewLaneDecision(
     lane = lane,
     included = true,
     reason = "routed",
@@ -50,7 +53,10 @@ class ParallelReviewFanOutInvariantTest {
     specialistSkillName = "bill-kotlin-code-review-$lane",
   )
 
-  private fun focusedMatrix(scope: ReviewScopeFacts, lanes: List<String>) = ReviewCommitLaneRoutingMatrix(
+  private fun focusedMatrix(
+    scope: ReviewScopeFacts,
+    lanes: List<String>,
+  ) = ReviewCommitLaneRoutingMatrix(
     scope.commitUnits.sortedBy { it.orderIndex }.map { it.commitSha },
     lanes,
     scope.commitUnits.sortedBy { it.orderIndex }.flatMap { unit ->
@@ -60,49 +66,66 @@ class ParallelReviewFanOutInvariantTest {
     },
   )
 
-  private fun service(scope: ReviewScopeFacts, decisions: List<ReviewLaneDecision>): ReviewPreparationService {
-    val ports = object :
-      ReviewScopeResolverPort,
-      ReviewStackRoutingPort,
-      ReviewGuidancePort,
-      ReviewLearningsPort,
-      ReviewBuildTestFactsPort,
-      ReviewLaneSelectionPort {
-      override fun resolveScope(reviewId: String) = scope
-      override fun resolveStackRouting(scope: ReviewScopeFacts) =
-        ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin"))
+  private fun service(
+    scope: ReviewScopeFacts,
+    decisions: List<ReviewLaneDecision>,
+  ): ReviewPreparationService {
+    val ports =
+      object :
+        ReviewScopeResolverPort,
+        ReviewStackRoutingPort,
+        ReviewGuidancePort,
+        ReviewLearningsPort,
+        ReviewBuildTestFactsPort,
+        ReviewLaneSelectionPort {
+        override fun resolveScope(reviewId: String) = scope
 
-      override fun resolveMatchedRules(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts) =
-        emptyList<ReviewRuleReference>()
+        override fun resolveStackRouting(scope: ReviewScopeFacts) =
+          ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin"))
 
-      override fun resolveLearnings(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts) =
-        emptyList<ReviewLearningsReference>()
+        override fun resolveMatchedRules(
+          scope: ReviewScopeFacts,
+          routing: ReviewStackRoutingFacts,
+        ) = emptyList<ReviewRuleReference>()
 
-      override fun resolveBuildTestFacts(scope: ReviewScopeFacts) = emptyList<ReviewBuildTestFact>()
-      override fun decideLanes(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts) =
-        ReviewLaneSelection(decisions, focusedMatrix(scope, decisions.filter { it.included }.map { it.lane }))
-    }
+        override fun resolveLearnings(
+          scope: ReviewScopeFacts,
+          routing: ReviewStackRoutingFacts,
+        ) = emptyList<ReviewLearningsReference>()
+
+        override fun resolveBuildTestFacts(scope: ReviewScopeFacts) = emptyList<ReviewBuildTestFact>()
+
+        override fun decideLanes(
+          scope: ReviewScopeFacts,
+          routing: ReviewStackRoutingFacts,
+        ) = ReviewLaneSelection(decisions, focusedMatrix(scope, decisions.filter { it.included }.map { it.lane }))
+      }
     return ReviewPreparationService(
       ReviewFactPorts(ports, ports, ports, ports, ports, ports),
       object : ReviewContextEnvelopeValidator {
-        override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+        override fun validate(
+          envelope: ReviewContextWireMap,
+          sourceLabel: String,
+        ) = Unit
       },
     )
   }
 
   private fun scopeWithCommitCount(count: Int): ReviewScopeFacts {
-    val units = (0 until count).map { index ->
-      val sha = if (index == count - 1) "head" else "c$index"
-      val parent = if (index == 0) {
-        "base"
-      } else if (index == count - 1 && count > 1) {
-        "c${index - 1}"
-      } else {
-        "c${index - 1}"
+    val units =
+      (0 until count).map { index ->
+        val sha = if (index == count - 1) "head" else "c$index"
+        val parent =
+          if (index == 0) {
+            "base"
+          } else if (index == count - 1 && count > 1) {
+            "c${index - 1}"
+          } else {
+            "c${index - 1}"
+          }
+        val hunk = hunkTemplate.copy(path = "src/File$index.kt", content = "+line-$index")
+        ReviewCommitUnit(sha, parent, "commit $sha", index, listOf(hunk), ReviewCommitSource.COMMIT_RANGE)
       }
-      val hunk = hunkTemplate.copy(path = "src/File$index.kt", content = "+line-$index")
-      ReviewCommitUnit(sha, parent, "commit $sha", index, listOf(hunk), ReviewCommitSource.COMMIT_RANGE)
-    }
     return ReviewScopeFacts(
       "acme/repo",
       "base",
@@ -158,20 +181,23 @@ class ParallelReviewFanOutInvariantTest {
   @Test fun `synthesized launch set larger than selected lane count is rejected loudly`() {
     val prepared = prepare(2)
     val source = prepared.assignments.first()
-    val extra = source.copy(
-      lane = "forged-lane",
-      laneRouting = source.laneRouting.map { it.copy(lane = "forged-lane") },
-      laneDecision = source.laneDecision.copy(
+    val extra =
+      source.copy(
         lane = "forged-lane",
-        specialistSkillName = "bill-kotlin-code-review-forged-lane",
-      ),
-    )
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(scopeWithCommitCount(2), prepared.packet.laneDecisions).validateAgainstPacket(
-        prepared.packet,
-        prepared.assignments + extra,
+        laneRouting = source.laneRouting.map { it.copy(lane = "forged-lane") },
+        laneDecision =
+          source.laneDecision.copy(
+            lane = "forged-lane",
+            specialistSkillName = "bill-kotlin-code-review-forged-lane",
+          ),
       )
-    }
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(scopeWithCommitCount(2), prepared.packet.laneDecisions).validateAgainstPacket(
+          prepared.packet,
+          prepared.assignments + extra,
+        )
+      }
     assertTrue(
       "synthesized ${prepared.assignments.size + 1} assignment" in failure.message.orEmpty() ||
         "must cover exactly the packet's selected lanes" in failure.message.orEmpty(),

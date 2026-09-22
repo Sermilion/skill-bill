@@ -16,8 +16,9 @@ class FileSystemDeclaredReviewSpecialistsTest {
     val installedRoot = Files.createTempDirectory("installed-review-catalog")
     val packsRoot = Files.createDirectories(installedRoot.resolve("platform-packs"))
     writePack(packsRoot, "neutral-review", emptyList(), listOf("architecture", "security"))
-    val specialists = FileSystemDeclaredReviewSpecialists(installedCatalog(packsRoot))
-      .routedSpecialists(changed("docs/guide.md"))
+    val specialists =
+      FileSystemDeclaredReviewSpecialists(installedCatalog(packsRoot))
+        .routedSpecialists(changed("docs/guide.md"))
 
     assertEquals(
       listOf(
@@ -30,9 +31,10 @@ class FileSystemDeclaredReviewSpecialistsTest {
 
   @Test
   fun `no installed packs yields no specialists`() {
-    val specialists = FileSystemDeclaredReviewSpecialists(
-      installedCatalog(Files.createTempDirectory("declared-specialists-empty")),
-    ).routedSpecialists(changed("src/Main.kt"))
+    val specialists =
+      FileSystemDeclaredReviewSpecialists(
+        installedCatalog(Files.createTempDirectory("declared-specialists-empty")),
+      ).routedSpecialists(changed("src/Main.kt"))
     assertEquals(emptyList(), specialists)
   }
 
@@ -65,8 +67,9 @@ class FileSystemDeclaredReviewSpecialistsTest {
 
   @Test
   fun `only packs the changed paths route to contribute specialists`() {
-    val specialists = FileSystemDeclaredReviewSpecialists(installedCatalog(packsWithKotlinAndGo()))
-      .routedSpecialists(changed("runtime/src/main/kotlin/Runner.kt"))
+    val specialists =
+      FileSystemDeclaredReviewSpecialists(installedCatalog(packsWithKotlinAndGo()))
+        .routedSpecialists(changed("runtime/src/main/kotlin/Runner.kt"))
     assertEquals(
       listOf("bill-kotlin-code-review-architecture", "bill-kotlin-code-review-security"),
       specialists.sorted(),
@@ -84,16 +87,18 @@ class FileSystemDeclaredReviewSpecialistsTest {
       options = PackOptions(includeLaneConditions = false),
     )
 
-    val specialists = FileSystemDeclaredReviewSpecialists(installedCatalog(packsRoot))
-      .routedSpecialists(changed("runtime/src/main/kotlin/Runner.kt"))
+    val specialists =
+      FileSystemDeclaredReviewSpecialists(installedCatalog(packsRoot))
+        .routedSpecialists(changed("runtime/src/main/kotlin/Runner.kt"))
 
     assertEquals(emptyList(), specialists)
   }
 
   @Test
   fun `a vendored pack that no changed path routes to is never required`() {
-    val specialists = FileSystemDeclaredReviewSpecialists(installedCatalog(packsWithKotlinAndGo()))
-      .routedSpecialists(changed("runtime/src/main/kotlin/Runner.kt"))
+    val specialists =
+      FileSystemDeclaredReviewSpecialists(installedCatalog(packsWithKotlinAndGo()))
+        .routedSpecialists(changed("runtime/src/main/kotlin/Runner.kt"))
     assertTrue(
       specialists.none { it.startsWith("bill-go-") },
       "a Kotlin-only delta must not demand the vendored Go pack's specialists: $specialists",
@@ -117,8 +122,9 @@ class FileSystemDeclaredReviewSpecialistsTest {
       listOf("platform-correctness"),
       options = PackOptions(contentSignals = listOf("expect class")),
     )
-    val specialists = FileSystemDeclaredReviewSpecialists(installedCatalog(packsRoot))
-      .routedSpecialists(changed("src/commonMain/kotlin/Shared.kt", "expect class Shared"))
+    val specialists =
+      FileSystemDeclaredReviewSpecialists(installedCatalog(packsRoot))
+        .routedSpecialists(changed("src/commonMain/kotlin/Shared.kt", "expect class Shared"))
 
     assertEquals(listOf("bill-kmp-code-review-platform-correctness"), specialists)
   }
@@ -146,7 +152,10 @@ class FileSystemDeclaredReviewSpecialistsTest {
   private fun installedCatalog(packsRoot: Path) =
     InstalledPlatformPackCatalogPort { discoverPlatformPackManifests(packsRoot) }
 
-  private fun changed(path: String, content: String = "") = listOf(ReviewRoutingChangedFile(path, content))
+  private fun changed(
+    path: String,
+    content: String = "",
+  ) = listOf(ReviewRoutingChangedFile(path, content))
 
   private data class PackOptions(
     val contentSignals: List<String> = emptyList(),

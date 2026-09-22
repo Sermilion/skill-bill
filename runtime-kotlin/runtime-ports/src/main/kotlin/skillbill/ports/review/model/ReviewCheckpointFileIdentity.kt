@@ -1,5 +1,6 @@
 package skillbill.ports.review.model
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+
 sealed interface ReviewCheckpointFileIdentity {
   data class Regular(val digest: String) : ReviewCheckpointFileIdentity {
     init {

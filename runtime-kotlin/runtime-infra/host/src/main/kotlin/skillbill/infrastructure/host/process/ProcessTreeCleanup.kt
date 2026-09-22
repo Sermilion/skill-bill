@@ -6,15 +6,20 @@ const val PROCESS_CLEANUP_BUDGET_SECONDS = 5L
 const val PROCESS_POLL_MILLIS = 50L
 const val DESTROY_WAIT_TIMEOUT_MILLIS = 1_000L
 
-fun destroyOwnedProcessTree(process: Process, knownDescendants: Set<ProcessHandle> = emptySet()) {
+fun destroyOwnedProcessTree(
+  process: Process,
+  knownDescendants: Set<ProcessHandle> = emptySet(),
+) {
   var failure: Throwable? = null
+
   fun attempt(action: () -> Unit) {
     val error = runCatching(action).exceptionOrNull() ?: return
     failure = failure?.also { existing -> existing.addSuppressed(error) } ?: error
   }
-  val handle = runCatching { process.toHandle() }
-    .onFailure { error -> failure = error }
-    .getOrNull()
+  val handle =
+    runCatching { process.toHandle() }
+      .onFailure { error -> failure = error }
+      .getOrNull()
   handle?.let { ownedProcess ->
     val descendants = linkedSetOf<ProcessHandle>()
     descendants += knownDescendants
@@ -30,7 +35,11 @@ fun destroyOwnedProcessTree(process: Process, knownDescendants: Set<ProcessHandl
   failure?.let { throw it }
 }
 
-fun closeInputAndJoin(process: Process, outputThread: Thread, joinDeadlineNanos: Long): Boolean {
+fun closeInputAndJoin(
+  process: Process,
+  outputThread: Thread,
+  joinDeadlineNanos: Long,
+): Boolean {
   if (joinWithDeadline(outputThread, joinDeadlineNanos)) {
     return true
   }
@@ -39,7 +48,10 @@ fun closeInputAndJoin(process: Process, outputThread: Thread, joinDeadlineNanos:
   return false
 }
 
-fun joinWithDeadline(thread: Thread, deadlineNanos: Long): Boolean {
+fun joinWithDeadline(
+  thread: Thread,
+  deadlineNanos: Long,
+): Boolean {
   val remainingMillis = TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime())
   if (remainingMillis <= 0L) {
     return false

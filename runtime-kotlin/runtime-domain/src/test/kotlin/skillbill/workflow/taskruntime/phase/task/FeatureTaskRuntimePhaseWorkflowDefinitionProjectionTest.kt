@@ -25,12 +25,14 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
   @Test
   fun `forward checkpoints refresh while reviewed remediation alone requires an exact match`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
-    val checkpointedDeclarations = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations.values
-      .flatMap { it.projectionDeclarations }
-      .filter { "repository_checkpoint" in it.declaredFieldNames }
-    val mustMatch = checkpointedDeclarations.filter {
-      it.checkpointPolicy == FeatureTaskRuntimeRepositoryCheckpointPolicy.MUST_MATCH
-    }
+    val checkpointedDeclarations =
+      FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations.values
+        .flatMap { it.projectionDeclarations }
+        .filter { "repository_checkpoint" in it.declaredFieldNames }
+    val mustMatch =
+      checkpointedDeclarations.filter {
+        it.checkpointPolicy == FeatureTaskRuntimeRepositoryCheckpointPolicy.MUST_MATCH
+      }
 
     assertTrue(checkpointedDeclarations.isNotEmpty())
     assertEquals(
@@ -47,7 +49,11 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
   @Test
   fun `repair and finalization projections expose only checkpoint-specific request fields`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
-    fun fields(consumer: String, projection: String): List<String> =
+
+    fun fields(
+      consumer: String,
+      projection: String,
+    ): List<String> =
       def.phaseDeclarations.getValue(consumer).projectionDeclarations
         .single { it.projectionName == projection }
         .declaredFieldNames
@@ -97,9 +103,10 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
       def.PHASE_COMMIT_PUSH,
       def.PHASE_PR,
     ).forEach { consumer ->
-      val prose = def.phaseDeclarations.getValue(consumer).projectionDeclarations.filter {
-        it.projectionContractId == FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE
-      }
+      val prose =
+        def.phaseDeclarations.getValue(consumer).projectionDeclarations.filter {
+          it.projectionContractId == FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE
+        }
       assertTrue(prose.isNotEmpty(), "$consumer must declare phase_prose")
       prose.forEach { declaration ->
         assertEquals(
@@ -165,14 +172,16 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
 
   @Test
   fun `an entry gate whose required phase does not precede the gated phase fails at construction`() {
-    val error = assertFailsWith<IllegalArgumentException> {
-      FeatureTaskRuntimeTransitionDeclaration(
-        forwardPhaseIds = listOf("review", "audit"),
-        entryGates = listOf(
-          FeatureTaskRuntimePhaseEntryGate("review", "audit", FeatureTaskRuntimeVerdict.SATISFIED),
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        FeatureTaskRuntimeTransitionDeclaration(
+          forwardPhaseIds = listOf("review", "audit"),
+          entryGates =
+            listOf(
+              FeatureTaskRuntimePhaseEntryGate("review", "audit", FeatureTaskRuntimeVerdict.SATISFIED),
+            ),
+        )
+      }
     assertTrue(error.message.orEmpty().contains("precede"))
   }
 
@@ -201,9 +210,10 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
   fun `review and audit both declare the shared review evidence projection`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
     listOf(def.PHASE_REVIEW, def.PHASE_AUDIT).forEach { phaseId ->
-      val shared = def.phaseDeclarations.getValue(phaseId).projectionDeclarations.single {
-        it.sourceRef == FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence
-      }
+      val shared =
+        def.phaseDeclarations.getValue(phaseId).projectionDeclarations.single {
+          it.sourceRef == FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence
+        }
       assertEquals(def.SHARED_REVIEW_EVIDENCE_PROJECTION_NAME, shared.projectionName)
       assertEquals(
         FeatureTaskRuntimePlanningProjectionContract.SHARED_REVIEW_EVIDENCE_ID,

@@ -1,6 +1,7 @@
 package skillbill.application.reviewevidence
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitUnit
+
 internal data class ResolvedCommitSequence(
   val units: List<ReviewCommitUnit>,
   val coverageFact: ReviewCommitCoverageFact,

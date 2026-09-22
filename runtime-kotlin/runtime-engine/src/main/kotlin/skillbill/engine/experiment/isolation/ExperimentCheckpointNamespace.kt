@@ -4,7 +4,10 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.
 import java.nio.file.Path
 
 object ExperimentCheckpointNamespace {
-  fun prefix(pairId: String, armId: ExperimentArmId): String = "experiment/$pairId/${armId.wireValue}"
+  fun prefix(
+    pairId: String,
+    armId: ExperimentArmId,
+  ): String = "experiment/$pairId/${armId.wireValue}"
 
   fun forRepositoryRoot(repoRoot: Path): String {
     val segments = repoRoot.toAbsolutePath().normalize().map(Path::toString)

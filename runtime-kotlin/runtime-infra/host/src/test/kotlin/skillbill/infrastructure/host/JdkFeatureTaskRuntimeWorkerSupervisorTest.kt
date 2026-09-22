@@ -23,11 +23,17 @@ private class RecordingDiagnostics : RuntimeDiagnostics {
   val warnings = CopyOnWriteArrayList<String>()
   val errors = CopyOnWriteArrayList<String>()
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message
   }
 
-  override fun error(message: String, error: Throwable?) {
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) {
     errors += message
   }
 }
@@ -37,20 +43,21 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
   fun `worker from a previous boot on this host is not running`() {
     val supervisor = JdkFeatureTaskRuntimeWorkerSupervisor(RecordingDiagnostics())
     val current = supervisor.currentProcess()
-    val ownership = FeatureTaskRuntimeWorkerOwnership(
-      workflowId = "wftr-test",
-      generation = 1,
-      ownerToken = "owner-token-0001",
-      hostIdentity = current.hostIdentity,
-      bootIdentity = "previous-${current.bootIdentity}",
-      pid = current.pid,
-      processBirthToken = current.processBirthToken,
-      leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
-      heartbeatAt = "2026-07-14T10:00:00Z",
-      expiresAt = "2026-07-14T10:00:30Z",
-      phaseId = "implement",
-      phaseAttempt = 1,
-    )
+    val ownership =
+      FeatureTaskRuntimeWorkerOwnership(
+        workflowId = "wftr-test",
+        generation = 1,
+        ownerToken = "owner-token-0001",
+        hostIdentity = current.hostIdentity,
+        bootIdentity = "previous-${current.bootIdentity}",
+        pid = current.pid,
+        processBirthToken = current.processBirthToken,
+        leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
+        heartbeatAt = "2026-07-14T10:00:00Z",
+        expiresAt = "2026-07-14T10:00:30Z",
+        phaseId = "implement",
+        phaseAttempt = 1,
+      )
 
     assertEquals(FeatureTaskRuntimeProcessInspection.NotRunning, supervisor.inspect(ownership))
   }
@@ -72,20 +79,21 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
     val child = ProcessBuilder("sleep", "1").start()
     val childHandle = child.toHandle()
     val birth = childHandle.info().startInstant().orElseThrow().toEpochMilli().toString()
-    val ownership = FeatureTaskRuntimeWorkerOwnership(
-      workflowId = "wftr-test",
-      generation = 1,
-      ownerToken = "owner-token-0001",
-      hostIdentity = current.hostIdentity,
-      bootIdentity = current.bootIdentity,
-      pid = child.pid(),
-      processBirthToken = birth,
-      leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
-      heartbeatAt = "2026-07-14T10:00:00Z",
-      expiresAt = "2026-07-14T10:00:30Z",
-      phaseId = "goal_runner",
-      phaseAttempt = 1,
-    )
+    val ownership =
+      FeatureTaskRuntimeWorkerOwnership(
+        workflowId = "wftr-test",
+        generation = 1,
+        ownerToken = "owner-token-0001",
+        hostIdentity = current.hostIdentity,
+        bootIdentity = current.bootIdentity,
+        pid = child.pid(),
+        processBirthToken = birth,
+        leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
+        heartbeatAt = "2026-07-14T10:00:00Z",
+        expiresAt = "2026-07-14T10:00:30Z",
+        phaseId = "goal_runner",
+        phaseAttempt = 1,
+      )
     try {
       assertEquals(FeatureTaskRuntimeProcessInspection.ExactLive, supervisor.inspect(ownership))
       supervisor.awaitExit(ownership, Duration.ofSeconds(5))
@@ -103,20 +111,21 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
     val child = ProcessBuilder("sleep", "30").start()
     val childHandle = child.toHandle()
     val birth = childHandle.info().startInstant().orElseThrow().toEpochMilli().toString()
-    val ownership = FeatureTaskRuntimeWorkerOwnership(
-      workflowId = "wftr-test",
-      generation = 1,
-      ownerToken = "owner-token-0001",
-      hostIdentity = current.hostIdentity,
-      bootIdentity = current.bootIdentity,
-      pid = child.pid(),
-      processBirthToken = birth,
-      leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
-      heartbeatAt = "2026-07-14T10:00:00Z",
-      expiresAt = "2026-07-14T10:00:30Z",
-      phaseId = "goal_runner",
-      phaseAttempt = 1,
-    )
+    val ownership =
+      FeatureTaskRuntimeWorkerOwnership(
+        workflowId = "wftr-test",
+        generation = 1,
+        ownerToken = "owner-token-0001",
+        hostIdentity = current.hostIdentity,
+        bootIdentity = current.bootIdentity,
+        pid = child.pid(),
+        processBirthToken = birth,
+        leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
+        heartbeatAt = "2026-07-14T10:00:00Z",
+        expiresAt = "2026-07-14T10:00:30Z",
+        phaseId = "goal_runner",
+        phaseAttempt = 1,
+      )
     try {
       assertEquals(FeatureTaskRuntimeProcessInspection.ExactLive, supervisor.inspect(ownership))
       supervisor.awaitExit(ownership, Duration.ofMillis(200))
@@ -145,11 +154,12 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
     val supervisor = JdkFeatureTaskRuntimeWorkerSupervisor(RecordingDiagnostics())
     val current = supervisor.currentProcess()
 
-    val ownership = ownershipFor(
-      current,
-      bootIdentity = "boot-identity-unavailable",
-      processBirthToken = (current.processBirthToken.toLong() - 1).toString(),
-    )
+    val ownership =
+      ownershipFor(
+        current,
+        bootIdentity = "boot-identity-unavailable",
+        processBirthToken = (current.processBirthToken.toLong() - 1).toString(),
+      )
 
     assertTrue(
       supervisor.inspect(ownership) is FeatureTaskRuntimeProcessInspection.OwnershipMismatch,
@@ -161,11 +171,12 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
   fun `boot identity is a property of the machine's boot, not of the calling process`() {
     val supervisor = JdkFeatureTaskRuntimeWorkerSupervisor(RecordingDiagnostics())
     val kernelBootId = Path.of("/proc/sys/kernel/random/boot_id")
-    val expected = if (Files.isReadable(kernelBootId)) {
-      Files.readString(kernelBootId).trim()
-    } else {
-      "boot-" + ProcessHandle.of(1).flatMap { it.info().startInstant() }.orElseThrow().toEpochMilli()
-    }
+    val expected =
+      if (Files.isReadable(kernelBootId)) {
+        Files.readString(kernelBootId).trim()
+      } else {
+        "boot-" + ProcessHandle.of(1).flatMap { it.info().startInstant() }.orElseThrow().toEpochMilli()
+      }
 
     assertEquals(expected, supervisor.currentProcess().bootIdentity)
     assertEquals(
@@ -201,11 +212,12 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
     val ticks = AtomicInteger()
     val renewedAfterFailure = CountDownLatch(2)
 
-    val heartbeat = supervisor.startHeartbeat(plan()) {
-      if (ticks.incrementAndGet() == 1) error("database is locked")
-      renewedAfterFailure.countDown()
-      FeatureTaskRuntimeHeartbeatTick.Renewed
-    }
+    val heartbeat =
+      supervisor.startHeartbeat(plan()) {
+        if (ticks.incrementAndGet() == 1) error("database is locked")
+        renewedAfterFailure.countDown()
+        FeatureTaskRuntimeHeartbeatTick.Renewed
+      }
 
     try {
       assertTrue(
@@ -228,10 +240,11 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
     val supervisor = JdkFeatureTaskRuntimeWorkerSupervisor(diagnostics)
     val escalated = CountDownLatch(1)
 
-    val heartbeat = supervisor.startHeartbeat(plan(leaseSeconds = 0)) {
-      escalated.countDown()
-      error("database is locked")
-    }
+    val heartbeat =
+      supervisor.startHeartbeat(plan(leaseSeconds = 0)) {
+        escalated.countDown()
+        error("database is locked")
+      }
 
     try {
       assertTrue(escalated.await(TICK_TIMEOUT_SECONDS, TimeUnit.SECONDS), "the first tick never ran")
@@ -252,11 +265,12 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
     val ticks = AtomicInteger()
     val observed = CountDownLatch(1)
 
-    val heartbeat = supervisor.startHeartbeat(plan()) {
-      ticks.incrementAndGet()
-      observed.countDown()
-      FeatureTaskRuntimeHeartbeatTick.FencingLost("another owner holds the lease")
-    }
+    val heartbeat =
+      supervisor.startHeartbeat(plan()) {
+        ticks.incrementAndGet()
+        observed.countDown()
+        FeatureTaskRuntimeHeartbeatTick.FencingLost("another owner holds the lease")
+      }
 
     try {
       assertTrue(observed.await(TICK_TIMEOUT_SECONDS, TimeUnit.SECONDS), "the first tick never ran")
@@ -273,12 +287,13 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
     )
   }
 
-  private fun plan(leaseSeconds: Long = 30) = FeatureTaskRuntimeHeartbeatPlan(
-    label = "wftr-label",
-    intervalSeconds = 1,
-    leaseSeconds = leaseSeconds,
-    retryDelaySeconds = 1,
-  )
+  private fun plan(leaseSeconds: Long = 30) =
+    FeatureTaskRuntimeHeartbeatPlan(
+      label = "wftr-label",
+      intervalSeconds = 1,
+      leaseSeconds = leaseSeconds,
+      retryDelaySeconds = 1,
+    )
 
   private fun <T> assertSingle(values: List<T>): T {
     assertEquals(1, values.size, "expected exactly one entry, got $values")

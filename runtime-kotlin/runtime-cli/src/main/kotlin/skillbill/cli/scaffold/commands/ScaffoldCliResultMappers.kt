@@ -11,23 +11,25 @@ import skillbill.ports.scaffold.source.model.ScaffoldEditWithBodyFileResult
 import skillbill.ports.scaffold.source.model.ScaffoldFillResult
 import skillbill.ports.scaffold.source.model.ScaffoldSaveExactContentResult
 
-internal fun ScaffoldListResult.toCliMap(): Map<String, Any?> = linkedMapOf(
-  "repo_root" to repoRoot,
-  "skill_count" to skillCount,
-  "skills" to skills.map(ScaffoldSkillStatus::toWireMap),
-)
+internal fun ScaffoldListResult.toCliMap(): Map<String, Any?> =
+  linkedMapOf(
+    "repo_root" to repoRoot,
+    "skill_count" to skillCount,
+    "skills" to skills.map(ScaffoldSkillStatus::toWireMap),
+  )
 
 internal fun ScaffoldShowResult.toCliMap(): Map<String, Any?> = status.toWireMap()
 
 internal fun ScaffoldExplainResult.toCliMap(): Map<String, Any?> {
-  val map = linkedMapOf<String, Any?>(
-    "explanation" to explanation,
-    "editable_surface" to editableSurface,
-    "generated_surface" to generatedSurface,
-    "governed_sidecars" to governedSidecars,
-    "normal_workflow" to normalWorkflow,
-    "notes" to notes,
-  )
+  val map =
+    linkedMapOf<String, Any?>(
+      "explanation" to explanation,
+      "editable_surface" to editableSurface,
+      "generated_surface" to generatedSurface,
+      "governed_sidecars" to governedSidecars,
+      "normal_workflow" to normalWorkflow,
+      "notes" to notes,
+    )
   skill?.let { map["skill"] = it.toWireMap() }
   return map
 }
@@ -45,14 +47,15 @@ internal fun ScaffoldValidateResult.toCliMap(): Map<String, Any?> {
   return map
 }
 
-internal fun ScaffoldUpgradeResult.toCliMap(): Map<String, Any?> = linkedMapOf(
-  "repo_root" to repoRoot,
-  "regenerated_count" to regeneratedCount,
-  "regenerated_files" to regeneratedFiles,
-  "content_md_touched" to contentMdTouched,
-  "shell_ceremony_touched" to shellCeremonyTouched,
-  "validator_ran" to validatorRan,
-)
+internal fun ScaffoldUpgradeResult.toCliMap(): Map<String, Any?> =
+  linkedMapOf(
+    "repo_root" to repoRoot,
+    "regenerated_count" to regeneratedCount,
+    "regenerated_files" to regeneratedFiles,
+    "content_md_touched" to contentMdTouched,
+    "shell_ceremony_touched" to shellCeremonyTouched,
+    "validator_ran" to validatorRan,
+  )
 
 internal fun ScaffoldFillResult.toCliMap(): Map<String, Any?> {
   val map = LinkedHashMap<String, Any?>(status.toWireMap())
@@ -71,12 +74,13 @@ internal fun ScaffoldSaveExactContentResult.toCliMap(): Map<String, Any?> {
 }
 
 internal fun ScaffoldEditWithBodyFileResult.toCliMap(): Map<String, Any?> {
-  val map = linkedMapOf<String, Any?>(
-    "used_editor" to usedEditor,
-    "guided_sections" to guidedSections,
-    "updated_section" to updatedSection,
-    "validator_ran" to validatorRan,
-  )
+  val map =
+    linkedMapOf<String, Any?>(
+      "used_editor" to usedEditor,
+      "guided_sections" to guidedSections,
+      "updated_section" to updatedSection,
+      "validator_ran" to validatorRan,
+    )
   map.putAll(status.toWireMap())
   map["wrapper_regenerated"] = wrapperRegenerated
   return map

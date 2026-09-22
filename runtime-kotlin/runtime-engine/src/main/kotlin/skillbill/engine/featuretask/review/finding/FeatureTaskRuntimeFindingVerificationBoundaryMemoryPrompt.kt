@@ -5,6 +5,7 @@ import skillbill.error.shellcontent.GoalVerificationBoundaryCapExceededError
 import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 import java.nio.file.Path
+
 fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.validateDispositionBoundaryBodies(
   repoRoot: Path,
   sections: List<FeatureTaskRuntimeFindingBoundaryMemorySection>,
@@ -29,8 +30,9 @@ private fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.dispositionBound
   persistedSelections: Map<String, List<FeatureTaskRuntimeVerificationBoundaryHeadingProvenance>>?,
 ): String? {
   if (section == null || section.discovery.boundaryContextUnavailable) return null
-  val selections = persistedSelections?.get(disposition.findingId)
-    ?: catalogValidatedBoundaryHeadings(section.discovery.boundaryCatalog, disposition.selectedBoundaryHeadings)
+  val selections =
+    persistedSelections?.get(disposition.findingId)
+      ?: catalogValidatedBoundaryHeadings(section.discovery.boundaryCatalog, disposition.selectedBoundaryHeadings)
   if (selections.isEmpty()) return null
   return try {
     resolveSelectedBodies(
@@ -62,11 +64,12 @@ fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.resolvedBodiesPromptSect
     )
     validatedSelections.forEach { (findingId, selections) ->
       val section = sectionByFindingId[findingId] ?: return@forEach
-      val resolved = resolveSelectedBodies(
-        repoRoot = repoRoot,
-        catalog = section.discovery.boundaryCatalog,
-        selectedHeadingIds = selections.map(FeatureTaskRuntimeVerificationBoundaryHeadingProvenance::headingId),
-      )
+      val resolved =
+        resolveSelectedBodies(
+          repoRoot = repoRoot,
+          catalog = section.discovery.boundaryCatalog,
+          selectedHeadingIds = selections.map(FeatureTaskRuntimeVerificationBoundaryHeadingProvenance::headingId),
+        )
       appendLine()
       appendLine("### Finding $findingId")
       for (body in resolved.bodies) {
@@ -111,14 +114,15 @@ fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.promptSection(
         appendLine(
           JsonCodec.mapToJsonString(
             mapOf(
-              "headings" to section.discovery.boundaryCatalog.map { heading ->
-                mapOf(
-                  "heading_id" to heading.headingId,
-                  "source_path" to heading.sourcePath,
-                  "kind" to heading.kind.wireValue,
-                  "heading" to heading.heading,
-                )
-              },
+              "headings" to
+                section.discovery.boundaryCatalog.map { heading ->
+                  mapOf(
+                    "heading_id" to heading.headingId,
+                    "source_path" to heading.sourcePath,
+                    "kind" to heading.kind.wireValue,
+                    "heading" to heading.heading,
+                  )
+                },
               "truncated" to section.discovery.boundaryCatalogTruncated,
             ),
           ),

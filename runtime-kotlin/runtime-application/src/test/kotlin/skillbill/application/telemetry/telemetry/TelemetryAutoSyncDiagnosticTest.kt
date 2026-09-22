@@ -115,11 +115,11 @@ class TelemetryAutoSyncDiagnosticTest {
       telemetryClient = FailingTelemetryClient(),
       clock = Clock.fixed(Instant.parse("2026-09-15T10:00:00Z"), ZoneOffset.UTC),
       levelMutationService =
-      TelemetryLevelMutationService(
-        database = database,
-        settingsProvider = settingsProvider,
-        configStore = DiagnosticTelemetryConfigStore(),
-      ),
+        TelemetryLevelMutationService(
+          database = database,
+          settingsProvider = settingsProvider,
+          configStore = DiagnosticTelemetryConfigStore(),
+        ),
       diagnostics = diagnostics,
       interruptSignal = interruptSignal,
     )
@@ -129,33 +129,44 @@ class TelemetryAutoSyncDiagnosticTest {
 private class RecordingDiagnostics : RuntimeDiagnostics {
   val warnings = mutableListOf<Pair<String, Throwable?>>()
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message to error
   }
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private class FailingTelemetryClient : TelemetryClient {
-  override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport =
-    error("relay handshake blew up")
+  override fun sendBatch(
+    settings: TelemetrySettings,
+    rows: List<TelemetryOutboxRecord>,
+  ): TelemetryDeliveryReport = error("relay handshake blew up")
 
   override fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities = error("unexpected")
 
-  override fun fetchRemoteStats(settings: TelemetrySettings, request: RemoteStatsRequest): TelemetryRemoteStatsResult =
-    error("unexpected")
+  override fun fetchRemoteStats(
+    settings: TelemetrySettings,
+    request: RemoteStatsRequest,
+  ): TelemetryRemoteStatsResult = error("unexpected")
 }
 
 private class EnabledSettingsProvider : TelemetrySettingsProvider {
-  override fun load(materialize: Boolean): TelemetrySettings = TelemetrySettings(
-    configPath = Files.createTempFile("auto-sync", ".json").toFileLocation(),
-    level = "anonymous",
-    enabled = true,
-    installId = "install",
-    proxyUrl = "https://telemetry.example.dev/ingest",
-    customProxyUrl = "https://telemetry.example.dev/ingest",
-    batchSize = 50,
-  )
+  override fun load(materialize: Boolean): TelemetrySettings =
+    TelemetrySettings(
+      configPath = Files.createTempFile("auto-sync", ".json").toFileLocation(),
+      level = "anonymous",
+      enabled = true,
+      installId = "install",
+      proxyUrl = "https://telemetry.example.dev/ingest",
+      customProxyUrl = "https://telemetry.example.dev/ingest",
+      batchSize = 50,
+    )
 }
 
 private class DiagnosticTelemetryConfigStore : TelemetryConfigStore {
@@ -165,14 +176,15 @@ private class DiagnosticTelemetryConfigStore : TelemetryConfigStore {
 
   override fun read(): TelemetryConfigDocument? = null
 
-  override fun ensure(): TelemetryConfigDocument = TelemetryConfigDocument(
-    TelemetryOpenDocument.from(
-      mapOf(
-        "install_id" to "install",
-        "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 50),
+  override fun ensure(): TelemetryConfigDocument =
+    TelemetryConfigDocument(
+      TelemetryOpenDocument.from(
+        mapOf(
+          "install_id" to "install",
+          "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 50),
+        ),
       ),
-    ),
-  )
+    )
 
   override fun write(document: TelemetryConfigDocument) = Unit
 }
@@ -180,23 +192,27 @@ private class DiagnosticTelemetryConfigStore : TelemetryConfigStore {
 private class PendingOutbox(
   private val failingEnqueue: Boolean,
 ) : TelemetryOutboxRepository {
-  override fun enqueue(eventName: String, payloadJson: String): Long {
+  override fun enqueue(
+    eventName: String,
+    payloadJson: String,
+  ): Long {
     if (failingEnqueue && eventName == RUNTIME_EXCEPTION_EVENT) {
       error("outbox unavailable")
     }
     return 1L
   }
 
-  override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> = listOf(
-    TelemetryOutboxRecord(
-      id = 1L,
-      eventName = "skillbill_goal_finished",
-      payloadJson = "{}",
-      createdAt = "2026-09-15T10:00:00Z",
-      syncedAt = null,
-      lastError = "",
-    ),
-  )
+  override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
+    listOf(
+      TelemetryOutboxRecord(
+        id = 1L,
+        eventName = "skillbill_goal_finished",
+        payloadJson = "{}",
+        createdAt = "2026-09-15T10:00:00Z",
+        syncedAt = null,
+        lastError = "",
+      ),
+    )
 
   override fun pendingCount(): Int = 1
 
@@ -206,8 +222,10 @@ private class PendingOutbox(
 
   override fun lastSyncedAt(): String? = null
 
-  override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
-    TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = eventIds.size)
+  override fun markSynced(
+    eventIds: List<Long>,
+    claimToken: String,
+  ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = eventIds.size)
 
   override fun markFailed(
     eventIds: List<Long>,
@@ -238,28 +256,29 @@ private class DiagnosticDatabaseSessionFactory(
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unitOfWork())
 
-  private fun unitOfWork(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = Path.of("diagnostic.db")
-    override val telemetryOutbox: TelemetryOutboxRepository = outbox
-    override val telemetryReconciliation: TelemetryReconciliationRepository =
-      object : TelemetryReconciliationRepository {
-        override fun reconcileStaleSessions(request: TelemetryReconciliationRequest): TelemetryReconciliationResult {
-          reconciliationFailure?.let { throw it }
-          return TelemetryReconciliationResult.Empty
+  private fun unitOfWork(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = Path.of("diagnostic.db")
+      override val telemetryOutbox: TelemetryOutboxRepository = outbox
+      override val telemetryReconciliation: TelemetryReconciliationRepository =
+        object : TelemetryReconciliationRepository {
+          override fun reconcileStaleSessions(request: TelemetryReconciliationRequest): TelemetryReconciliationResult {
+            reconciliationFailure?.let { throw it }
+            return TelemetryReconciliationResult.Empty
+          }
         }
-      }
-    override val workflowStates: WorkflowStateRepository
-      get() = error("not exercised")
-    override val workList = EmptyWorkListRepository
-    override val learnings: LearningRepository
-      get() = error("not exercised")
-    override val reviews: ReviewRepository
-      get() = error("not exercised")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository
-      get() = error("not exercised")
-    override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
-    override val goalRunnerControls = EmptyGoalRunnerControlRepository
-  }
+      override val workflowStates: WorkflowStateRepository
+        get() = error("not exercised")
+      override val workList = EmptyWorkListRepository
+      override val learnings: LearningRepository
+        get() = error("not exercised")
+      override val reviews: ReviewRepository
+        get() = error("not exercised")
+      override val lifecycleTelemetry: LifecycleTelemetryRepository
+        get() = error("not exercised")
+      override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
+      override val goalRunnerControls = EmptyGoalRunnerControlRepository
+    }
 }
 
 private object NoopInterruptSignalPort : InterruptSignalPort {

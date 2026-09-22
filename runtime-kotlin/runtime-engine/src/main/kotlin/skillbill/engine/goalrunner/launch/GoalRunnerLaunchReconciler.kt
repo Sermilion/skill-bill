@@ -45,6 +45,7 @@ import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.Clock
+
 @Inject
 class GoalRunnerLaunchReconciler(
   private val manifestStore: GoalRunnerManifestStore,
@@ -70,36 +71,41 @@ class GoalRunnerLaunchReconciler(
     val assignedWorkflowId = args.assignedWorkflowId
     val reviewBaseline = args.reviewBaseline
     val spawnAuthorization = args.spawnAuthorization
-    val tickReader = GoalRunnerTickProgressReader(
-      manifestStore = manifestStore,
-      progressReader = progressReader,
-      issueKey = issueKey,
-      subtaskId = subtaskId,
-      request = request,
-    )
-    val progressWatermark = try {
-      outcomeStore.ledgerSequenceWatermarks(issueKey).maxProgressSequence
-    } catch (interrupted: InterruptedException) {
-      Thread.currentThread().interrupt()
-      throw interrupted
-    }
-    val progressEmitter = GoalRunnerProgressEventEmitter(
-      outcomeStore = outcomeStore,
-      resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId?.takeIf(String::isNotBlank) },
-      watermarkSeed = progressWatermark,
-      clock = clock,
-      diagnostics = diagnostics,
-    )
+    val tickReader =
+      GoalRunnerTickProgressReader(
+        manifestStore = manifestStore,
+        progressReader = progressReader,
+        issueKey = issueKey,
+        subtaskId = subtaskId,
+        request = request,
+      )
+    val progressWatermark =
+      try {
+        outcomeStore.ledgerSequenceWatermarks(issueKey).maxProgressSequence
+      } catch (interrupted: InterruptedException) {
+        Thread.currentThread().interrupt()
+        throw interrupted
+      }
+    val progressEmitter =
+      GoalRunnerProgressEventEmitter(
+        outcomeStore = outcomeStore,
+        resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId?.takeIf(String::isNotBlank) },
+        watermarkSeed = progressWatermark,
+        clock = clock,
+        diagnostics = diagnostics,
+      )
     val goalContinuation = goalContinuationContext(issueKey, subtaskId, request, assignedWorkflowId, reviewBaseline)
-    val activityStampSink = activityStampWriter.lazySink(
-      resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId },
-      parentWorkflowId = goalContinuation?.parentWorkflowId,
-    )
-    val worktreeEditObserver = worktreeEditJournalWriter.observer(
-      repoRoot = request.repoRoot,
-      resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId },
-      resolvePhaseId = { tickReader.progressState()?.childProgress?.currentStepId },
-    )
+    val activityStampSink =
+      activityStampWriter.lazySink(
+        resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId },
+        parentWorkflowId = goalContinuation?.parentWorkflowId,
+      )
+    val worktreeEditObserver =
+      worktreeEditJournalWriter.observer(
+        repoRoot = request.repoRoot,
+        resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId },
+        resolvePhaseId = { tickReader.progressState()?.childProgress?.currentStepId },
+      )
     return buildLaunchRequest(
       args,
       SubtaskLaunchDependencies(tickReader, progressEmitter, goalContinuation, activityStampSink, worktreeEditObserver),
@@ -116,42 +122,47 @@ class GoalRunnerLaunchReconciler(
     return GoalRunnerSubtaskLaunchRequest(
       invokedAgentId = request.invokedAgentId,
       configuredAgentOverrideId = request.configuredAgentOverrideId,
-      skillRunRequest = SkillRunRequest(
-        issueKey = args.issueKey,
-        repoRoot = request.repoRoot,
-        subtaskId = args.subtaskId,
-        timeout = request.timeout,
-        progressIdleTimeout = request.progressIdleTimeout,
-        progressProbe = progressProbe(dependencies.tickReader, args.subtaskId),
-        declaredProgressProbe = declaredProgressProbe(dependencies.tickReader),
-        progressEmitter = dependencies.progressEmitter,
-        outputSink = request.outputSink,
-        readOnlyPhase = dependencies.goalContinuation?.lastResumableStep ==
-          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-        treatmentCapabilitiesEnabled = if (
-          request.experimentArmId == ExperimentArmId.TREATMENT ||
-          dependencies.goalContinuation?.experimentArmId == ExperimentArmId.TREATMENT
-        ) {
-          request.experimentTreatmentCapabilities.ifEmpty {
-            dependencies.goalContinuation?.experimentTreatmentCapabilities.orEmpty()
-          }
-        } else {
-          emptySet()
-        },
-        treatmentCapabilitiesDenied = if (request.experimentArmId == ExperimentArmId.CONTROL) {
-          request.experimentTreatmentCapabilitiesDenied.ifEmpty {
-            request.experimentTreatmentCapabilities
-          }
-        } else {
-          emptySet()
-        },
-        denyRemotePublication = request.deferRemotePublication ||
-          dependencies.goalContinuation?.deferRemotePublication == true,
-        goalContinuation = dependencies.goalContinuation,
-        spawnAuthorization = spawnAuthorization,
-        activityStampSink = dependencies.activityStampSink,
-        worktreeEditObserver = dependencies.worktreeEditObserver,
-      ),
+      skillRunRequest =
+        SkillRunRequest(
+          issueKey = args.issueKey,
+          repoRoot = request.repoRoot,
+          subtaskId = args.subtaskId,
+          timeout = request.timeout,
+          progressIdleTimeout = request.progressIdleTimeout,
+          progressProbe = progressProbe(dependencies.tickReader, args.subtaskId),
+          declaredProgressProbe = declaredProgressProbe(dependencies.tickReader),
+          progressEmitter = dependencies.progressEmitter,
+          outputSink = request.outputSink,
+          readOnlyPhase =
+            dependencies.goalContinuation?.lastResumableStep ==
+              FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
+          treatmentCapabilitiesEnabled =
+            if (
+              request.experimentArmId == ExperimentArmId.TREATMENT ||
+              dependencies.goalContinuation?.experimentArmId == ExperimentArmId.TREATMENT
+            ) {
+              request.experimentTreatmentCapabilities.ifEmpty {
+                dependencies.goalContinuation?.experimentTreatmentCapabilities.orEmpty()
+              }
+            } else {
+              emptySet()
+            },
+          treatmentCapabilitiesDenied =
+            if (request.experimentArmId == ExperimentArmId.CONTROL) {
+              request.experimentTreatmentCapabilitiesDenied.ifEmpty {
+                request.experimentTreatmentCapabilities
+              }
+            } else {
+              emptySet()
+            },
+          denyRemotePublication =
+            request.deferRemotePublication ||
+              dependencies.goalContinuation?.deferRemotePublication == true,
+          goalContinuation = dependencies.goalContinuation,
+          spawnAuthorization = spawnAuthorization,
+          activityStampSink = dependencies.activityStampSink,
+          worktreeEditObserver = dependencies.worktreeEditObserver,
+        ),
     )
   }
 
@@ -163,16 +174,18 @@ class GoalRunnerLaunchReconciler(
     reviewBaseline: GoalSubtaskReviewBaseline?,
   ): SkillRunGoalContinuationContext? {
     val state = manifestStore.loadByIssueKey(issueKey, request.repoRoot) ?: return null
-    val branch = state.manifest.branchPlanFor(subtaskId).branch.takeIf(String::isNotBlank)
-      ?: state.manifest.featureBranch?.takeIf(String::isNotBlank)
+    val branch =
+      state.manifest.branchPlanFor(subtaskId).branch.takeIf(String::isNotBlank)
+        ?: state.manifest.featureBranch?.takeIf(String::isNotBlank)
     val subtask = state.manifest.subtasks.firstOrNull { it.id == subtaskId }
     val specPath = subtask?.specPath?.takeIf(String::isNotBlank)
     return if (branch != null && subtask != null && specPath != null) {
-      val childWorkflowId = if (assignedWorkflowId == null) {
-        state.manifest.workflowIdFor(subtaskId)
-      } else {
-        null
-      }
+      val childWorkflowId =
+        if (assignedWorkflowId == null) {
+          state.manifest.workflowIdFor(subtaskId)
+        } else {
+          null
+        }
       SkillRunGoalContinuationContext(
         parentIssueKey = issueKey,
         subtaskId = subtaskId,
@@ -190,12 +203,13 @@ class GoalRunnerLaunchReconciler(
         validationDepth = ValidationDepth.FULL,
         qualityGateSelection = GoalRunnerQualityGateSelectionResolver.resolve(state.manifest, subtaskId),
         agentAddonSelection = manifestStore.effectiveAgentAddonSelection(state.parentWorkflowId, request),
-        reviewBaseline = state.manifest.workflowIdFor(subtaskId)
-          ?.let { workflowId -> outcomeStore.goalSubtaskReviewState(workflowId) }
-          ?.let { reviewState ->
-            GoalSubtaskReviewBaseline(reviewState.reviewBaseSha, reviewState.baselineUntrackedPaths)
-          }
-          ?: reviewBaseline,
+        reviewBaseline =
+          state.manifest.workflowIdFor(subtaskId)
+            ?.let { workflowId -> outcomeStore.goalSubtaskReviewState(workflowId) }
+            ?.let { reviewState ->
+              GoalSubtaskReviewBaseline(reviewState.reviewBaseSha, reviewState.baselineUntrackedPaths)
+            }
+            ?: reviewBaseline,
       )
     } else {
       null
@@ -208,14 +222,16 @@ class GoalRunnerLaunchReconciler(
     subtaskId: Int,
     request: GoalRunnerRunRequest,
   ): GoalRunnerLaunchReconciliation {
-    val refreshed = manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
-      ?: attemptedState
+    val refreshed =
+      manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
+        ?: attemptedState
     val launchFacts = launchOutcome.toGoalRunnerLaunchFacts()
-    val reconciled = GoalRunnerOutcomeReconciler.reconcile(
-      subtaskId = subtaskId,
-      launchFacts = launchFacts,
-      storedOutcome = storedOutcome(refreshed, subtaskId, request),
-    )
+    val reconciled =
+      GoalRunnerOutcomeReconciler.reconcile(
+        subtaskId = subtaskId,
+        launchFacts = launchFacts,
+        storedOutcome = storedOutcome(refreshed, subtaskId, request),
+      )
     return launchReconciliation(refreshed, reconciled, launchOutcome, subtaskId, request)
   }
 
@@ -227,13 +243,14 @@ class GoalRunnerLaunchReconciler(
     request: GoalRunnerRunRequest,
   ): GoalRunnerLaunchReconciliation {
     val recovery = missingResultPrefixRecovery(refreshed, reconciled, launchOutcome, subtaskId, request)
-    val recoveredReconciled = recovery?.storedOutcome?.let { recoveredOutcome ->
-      GoalRunnerOutcomeReconciler.reconcile(
-        subtaskId = subtaskId,
-        launchFacts = launchOutcome.toGoalRunnerLaunchFacts(),
-        storedOutcome = recoveredOutcome,
-      )
-    } ?: reconciled
+    val recoveredReconciled =
+      recovery?.storedOutcome?.let { recoveredOutcome ->
+        GoalRunnerOutcomeReconciler.reconcile(
+          subtaskId = subtaskId,
+          launchFacts = launchOutcome.toGoalRunnerLaunchFacts(),
+          storedOutcome = recoveredOutcome,
+        )
+      } ?: reconciled
     return GoalRunnerLaunchReconciliation(
       refreshed = refreshed,
       reconciled = recoveredReconciled,
@@ -248,33 +265,37 @@ class GoalRunnerLaunchReconciler(
     launchOutcome: AgentRunLaunchOutcome,
     subtaskId: Int,
     request: GoalRunnerRunRequest,
-  ): GoalRunnerMissingResultPrefixRecovery? = missingPrefixRecoveryCandidate(
-    reconciled,
-    launchOutcome,
-  )?.let { candidate ->
-    val workflowId = refreshed.manifest.workflowIdFor(subtaskId)
-      ?: candidate.workflowId
-    val storedOutcome = workflowId?.let { resolvedWorkflowId ->
-      outcomeStore.recoverMissingResultPrefixOutput(
-        workflowId = resolvedWorkflowId,
-        issueKey = request.issueKey,
-        subtaskId = subtaskId,
-        output = candidate.output,
+  ): GoalRunnerMissingResultPrefixRecovery? =
+    missingPrefixRecoveryCandidate(
+      reconciled,
+      launchOutcome,
+    )?.let { candidate ->
+      val workflowId =
+        refreshed.manifest.workflowIdFor(subtaskId)
+          ?: candidate.workflowId
+      val storedOutcome =
+        workflowId?.let { resolvedWorkflowId ->
+          outcomeStore.recoverMissingResultPrefixOutput(
+            workflowId = resolvedWorkflowId,
+            issueKey = request.issueKey,
+            subtaskId = subtaskId,
+            output = candidate.output,
+          )
+        }
+      GoalRunnerMissingResultPrefixRecovery(
+        storedOutcome = storedOutcome,
+        diagnostics = missingResultPrefixDiagnostics(storedOutcome?.lastResumableStep ?: candidate.lastResumableStep),
       )
     }
-    GoalRunnerMissingResultPrefixRecovery(
-      storedOutcome = storedOutcome,
-      diagnostics = missingResultPrefixDiagnostics(storedOutcome?.lastResumableStep ?: candidate.lastResumableStep),
-    )
-  }
 
   private fun storedOutcome(
     state: GoalRunnerManifestState,
     subtaskId: Int,
     request: GoalRunnerRunRequest,
   ): GoalRunnerStoredOutcome? {
-    val manifestWorkflowId = state.manifest.subtasks.firstOrNull { it.id == subtaskId }?.workflowId
-      ?.takeIf(String::isNotBlank)
+    val manifestWorkflowId =
+      state.manifest.subtasks.firstOrNull { it.id == subtaskId }?.workflowId
+        ?.takeIf(String::isNotBlank)
     if (manifestWorkflowId != null) {
       return outcomeStore.recoverAndPersistTerminalOutcome(
         workflowId = manifestWorkflowId,
@@ -291,31 +312,35 @@ class GoalRunnerLaunchReconciler(
   }
 }
 
-internal fun AgentRunLaunchOutcome.toGoalRunnerLaunchFacts(): GoalRunnerLaunchFacts = when (this) {
-  is AgentRunLaunchFacts -> GoalRunnerLaunchFacts(
-    timedOut = timedOut,
-    interrupted = interrupted,
-    spawnFailed = spawnFailed,
-    exitStatus = exitStatus,
-    stderrExcerpt = stderrExcerpt(stderr, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS),
-    liveness = liveness?.let { snapshot ->
-      GoalRunnerLivenessSnapshot(
-        phase = snapshot.phase,
-        reason = snapshot.reason,
-        processState = snapshot.processState,
-        workflowId = snapshot.workflowId,
-        workflowStep = snapshot.workflowStep,
-        lastDurableProgressAt = snapshot.lastDurableProgressAt,
-        lastDurableProgressLabel = snapshot.lastDurableProgressLabel,
-        lastWorkflowSnapshotAt = snapshot.lastWorkflowSnapshotAt,
-        lastFileActivityAt = snapshot.lastFileActivityAt,
-        lastFileActivityLabel = snapshot.lastFileActivityLabel,
-        lastOutputAt = snapshot.lastOutputAt,
-        livenessState = snapshot.livenessState,
-        aliveAtKill = snapshot.livenessState == GoalRunnerLivenessState.WORKING ||
-          snapshot.livenessState == GoalRunnerLivenessState.PROGRESSING,
+internal fun AgentRunLaunchOutcome.toGoalRunnerLaunchFacts(): GoalRunnerLaunchFacts =
+  when (this) {
+    is AgentRunLaunchFacts ->
+      GoalRunnerLaunchFacts(
+        timedOut = timedOut,
+        interrupted = interrupted,
+        spawnFailed = spawnFailed,
+        exitStatus = exitStatus,
+        stderrExcerpt = stderrExcerpt(stderr, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS),
+        liveness =
+          liveness?.let { snapshot ->
+            GoalRunnerLivenessSnapshot(
+              phase = snapshot.phase,
+              reason = snapshot.reason,
+              processState = snapshot.processState,
+              workflowId = snapshot.workflowId,
+              workflowStep = snapshot.workflowStep,
+              lastDurableProgressAt = snapshot.lastDurableProgressAt,
+              lastDurableProgressLabel = snapshot.lastDurableProgressLabel,
+              lastWorkflowSnapshotAt = snapshot.lastWorkflowSnapshotAt,
+              lastFileActivityAt = snapshot.lastFileActivityAt,
+              lastFileActivityLabel = snapshot.lastFileActivityLabel,
+              lastOutputAt = snapshot.lastOutputAt,
+              livenessState = snapshot.livenessState,
+              aliveAtKill =
+                snapshot.livenessState == GoalRunnerLivenessState.WORKING ||
+                  snapshot.livenessState == GoalRunnerLivenessState.PROGRESSING,
+            )
+          },
       )
-    },
-  )
-  is UnsupportedAgentRunLaunch -> GoalRunnerLaunchFacts(spawnFailed = true)
-}
+    is UnsupportedAgentRunLaunch -> GoalRunnerLaunchFacts(spawnFailed = true)
+  }

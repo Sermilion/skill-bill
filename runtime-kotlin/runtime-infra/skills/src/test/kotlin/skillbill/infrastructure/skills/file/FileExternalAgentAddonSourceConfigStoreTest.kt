@@ -19,16 +19,18 @@ class FileExternalAgentAddonSourceConfigStoreTest {
     writeConfig(
       home,
       mapOf(
-        "external_addon_sources" to listOf(
-          mapOf("kind" to "platform-pack", "path" to platformRoot.toString(), "platform" to "ios"),
-          mapOf("kind" to "agent-addon", "path" to "~/agent-addons"),
-        ),
+        "external_addon_sources" to
+          listOf(
+            mapOf("kind" to "platform-pack", "path" to platformRoot.toString(), "platform" to "ios"),
+            mapOf("kind" to "agent-addon", "path" to "~/agent-addons"),
+          ),
       ),
     )
 
-    val result = FileExternalAgentAddonSourceConfigStore().readExternalAgentAddonSources(
-      ExternalAgentAddonSourceConfigRequest(home, mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
-    )
+    val result =
+      FileExternalAgentAddonSourceConfigStore().readExternalAgentAddonSources(
+        ExternalAgentAddonSourceConfigRequest(home, mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
+      )
 
     assertEquals(listOf(agentRoot.toAbsolutePath().normalize()), result.sources.map { it.path.toPath() })
   }
@@ -40,15 +42,17 @@ class FileExternalAgentAddonSourceConfigStoreTest {
     writeConfig(
       home,
       mapOf(
-        "external_addon_sources" to listOf(
-          mapOf("path" to platformRoot.toString(), "platform" to "ios"),
-        ),
+        "external_addon_sources" to
+          listOf(
+            mapOf("path" to platformRoot.toString(), "platform" to "ios"),
+          ),
       ),
     )
 
-    val result = FileExternalAgentAddonSourceConfigStore().readExternalAgentAddonSources(
-      ExternalAgentAddonSourceConfigRequest(home, mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
-    )
+    val result =
+      FileExternalAgentAddonSourceConfigStore().readExternalAgentAddonSources(
+        ExternalAgentAddonSourceConfigRequest(home, mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
+      )
 
     assertEquals(emptyList(), result.sources)
   }
@@ -60,9 +64,10 @@ class FileExternalAgentAddonSourceConfigStoreTest {
     writeConfig(
       home,
       mapOf(
-        "external_addon_sources" to listOf(
-          mapOf("kind" to "unknown", "path" to sourceRoot.toString()),
-        ),
+        "external_addon_sources" to
+          listOf(
+            mapOf("kind" to "unknown", "path" to sourceRoot.toString()),
+          ),
       ),
     )
 
@@ -75,7 +80,10 @@ class FileExternalAgentAddonSourceConfigStoreTest {
 
   private fun configPath(home: Path): Path = home.resolve("config.json")
 
-  private fun writeConfig(home: Path, payload: Map<String, Any?>) {
+  private fun writeConfig(
+    home: Path,
+    payload: Map<String, Any?>,
+  ) {
     Files.writeString(configPath(home), JsonCodec.mapToJsonString(payload) + "\n")
   }
 }

@@ -34,7 +34,6 @@ class FileSystemExternalAddonOverlay(
   private val externalPlatformPackSourceConfigPort: ExternalPlatformPackSourceConfigPort,
   private val platformPackCatalogLoader: PlatformPackCatalogLoader,
 ) : ExternalAddonOverlayPort {
-
   override fun applyOverlay(request: ExternalAddonOverlayRequest): ExternalAddonOverlayResult {
     if (request.sources.isEmpty()) {
       return ExternalAddonOverlayResult(touched = false)
@@ -51,13 +50,14 @@ class FileSystemExternalAddonOverlay(
     }
     plans.forEach(::applyPlan)
     return ExternalAddonOverlayResult(
-      appliedSources = plans.map { plan ->
-        AppliedExternalAddonSource(
-          platform = plan.platform,
-          sourcePath = plan.sourcePath,
-          addons = plan.copiedFiles.values.map { it.fileName.toString() }.sorted(),
-        )
-      },
+      appliedSources =
+        plans.map { plan ->
+          AppliedExternalAddonSource(
+            platform = plan.platform,
+            sourcePath = plan.sourcePath,
+            addons = plan.copiedFiles.values.map { it.fileName.toString() }.sorted(),
+          )
+        },
       skippedSources = skipped,
       touched = plans.isNotEmpty(),
     )
@@ -71,6 +71,7 @@ private data class OverlayPlanningContext(
 
 private sealed interface OverlaySourceOutcome {
   data class Skip(val skipped: SkippedExternalAddonSource) : OverlaySourceOutcome
+
   data class Ready(val plan: SourcePlan) : OverlaySourceOutcome
 }
 
@@ -82,25 +83,27 @@ private fun overlayPlanningContext(
   val platformPacksRoot = request.platformPacksRoot.toAbsolutePath().normalize()
   val repoRoot = request.repoRoot?.toAbsolutePath()?.normalize() ?: platformPacksRoot.parent
   val userHome = request.userHome
-  val registeredPacks = if (userHome == null) {
-    emptyList()
-  } else {
-    packSources.readExternalPlatformPackSources(
-      ExternalPlatformPackSourceConfigRequest(userHome = userHome, environment = request.environment),
-    ).sources
-  }
-  val effectiveBySlug = if (registeredPacks.isEmpty() || repoRoot == null || userHome == null) {
-    emptyMap()
-  } else {
-    catalogLoader.loadEffectiveCatalog(
-      PlatformPackDiscoveryContext(
-        repoRoot = repoRoot,
-        userHome = userHome,
-        environment = request.environment,
-        catalogLoader = catalogLoader,
-      ),
-    ).entries.associate { entry -> entry.loaded.manifest.slug to entry.loaded }
-  }
+  val registeredPacks =
+    if (userHome == null) {
+      emptyList()
+    } else {
+      packSources.readExternalPlatformPackSources(
+        ExternalPlatformPackSourceConfigRequest(userHome = userHome, environment = request.environment),
+      ).sources
+    }
+  val effectiveBySlug =
+    if (registeredPacks.isEmpty() || repoRoot == null || userHome == null) {
+      emptyMap()
+    } else {
+      catalogLoader.loadEffectiveCatalog(
+        PlatformPackDiscoveryContext(
+          repoRoot = repoRoot,
+          userHome = userHome,
+          environment = request.environment,
+          catalogLoader = catalogLoader,
+        ),
+      ).entries.associate { entry -> entry.loaded.manifest.slug to entry.loaded }
+    }
   return OverlayPlanningContext(platformPacksRoot, effectiveBySlug)
 }
 
@@ -146,8 +149,9 @@ private fun skipUninstalledExternalPack(
   return SkippedExternalAddonSource(
     platform = source.platform,
     sourcePath = source.path.toPath(),
-    reason = "platform pack '${source.platform}' is not installed in the managed tree; " +
-      "skipping external addon source.",
+    reason =
+      "platform pack '${source.platform}' is not installed in the managed tree; " +
+        "skipping external addon source.",
   )
 }
 
@@ -165,7 +169,11 @@ private fun requireEffectiveDeclaredDirs(
   )
 }
 
-private fun requirePlannedConsumerDirs(platform: String, effective: LoadedPlatformPack?, plan: SourcePlan) {
+private fun requirePlannedConsumerDirs(
+  platform: String,
+  effective: LoadedPlatformPack?,
+  plan: SourcePlan,
+) {
   if (effective?.sourceKind != PlatformPackSourceKind.EXTERNAL) return
   val allowed = effective.manifest.declaredSkillRelativeDirs()
   val referenced = plan.pointersToAppend.keys + plan.addonsToAppend.keys

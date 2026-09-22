@@ -11,14 +11,15 @@ internal fun parseWorkerLeaseInstant(
   field: String,
   value: String,
   diagnostics: RuntimeDiagnostics,
-): Instant = try {
-  parseFeatureTaskRuntimeWorkerLeaseInstant(workflowId, field, value)
-} catch (error: InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError) {
-  diagnostics.recordDegradedValue(
-    seam = "worker_lease.$field",
-    expected = "RFC 3339 instant",
-    used = value.degradedValuePreview(),
-    error = error,
-  )
-  throw error
-}
+): Instant =
+  try {
+    parseFeatureTaskRuntimeWorkerLeaseInstant(workflowId, field, value)
+  } catch (error: InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError) {
+    diagnostics.recordDegradedValue(
+      seam = "worker_lease.$field",
+      expected = "RFC 3339 instant",
+      used = value.degradedValuePreview(),
+      error = error,
+    )
+    throw error
+  }

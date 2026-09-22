@@ -1,5 +1,6 @@
 package skillbill.workflow.taskruntime.model.repair
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairBudget
+
 data class CorrectiveRepairDiagnosticLocator(
   val identity: String,
 ) {
@@ -22,7 +23,6 @@ data class CorrectiveRepairDiagnosticLocator(
       "private-diagnostic mechanism. Do not invent an excerpt of the rejected response."
 
   companion object {
-
     private val OPAQUE_IDENTITY_PATTERN: Regex = Regex("^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
   }
 }
@@ -106,7 +106,11 @@ sealed class CorrectiveRepairCapturedResponse {
   companion object {
     private val DIGEST_PATTERN = Regex("^[0-9a-f]{64}$")
 
-    private fun requireMetadata(utf8ByteCount: Int, digestSha256: String, label: String) {
+    private fun requireMetadata(
+      utf8ByteCount: Int,
+      digestSha256: String,
+      label: String,
+    ) {
       require(utf8ByteCount >= 0) {
         "CorrectiveRepairCapturedResponse.$label.utf8ByteCount must be non-negative, was $utf8ByteCount."
       }

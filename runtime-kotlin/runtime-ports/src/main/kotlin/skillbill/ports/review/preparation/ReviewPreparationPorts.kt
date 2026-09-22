@@ -15,11 +15,17 @@ interface ReviewStackRoutingPort {
 }
 
 interface ReviewGuidancePort {
-  fun resolveMatchedRules(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts): List<ReviewRuleReference>
+  fun resolveMatchedRules(
+    scope: ReviewScopeFacts,
+    routing: ReviewStackRoutingFacts,
+  ): List<ReviewRuleReference>
 }
 
 interface ReviewLearningsPort {
-  fun resolveLearnings(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts): List<ReviewLearningsReference>
+  fun resolveLearnings(
+    scope: ReviewScopeFacts,
+    routing: ReviewStackRoutingFacts,
+  ): List<ReviewLearningsReference>
 }
 
 interface ReviewBuildTestFactsPort {
@@ -27,5 +33,8 @@ interface ReviewBuildTestFactsPort {
 }
 
 interface ReviewLaneSelectionPort {
-  fun decideLanes(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts): ReviewLaneSelection
+  fun decideLanes(
+    scope: ReviewScopeFacts,
+    routing: ReviewStackRoutingFacts,
+  ): ReviewLaneSelection
 }

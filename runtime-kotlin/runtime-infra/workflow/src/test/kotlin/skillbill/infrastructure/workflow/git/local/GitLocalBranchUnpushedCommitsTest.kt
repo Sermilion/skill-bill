@@ -107,12 +107,18 @@ class GitLocalBranchUnpushedCommitsTest {
 
   private fun git(vararg args: String) = runGit(repo, *args)
 
-  private fun runGit(root: Path, vararg args: String) {
+  private fun runGit(
+    root: Path,
+    vararg args: String,
+  ) {
     val result = runGitCommand(root, *args)
     assertTrue(result.ok, "git ${args.joinToString(" ")} failed: ${result.error}")
   }
 
-  private fun write(relativePath: String, content: String) {
+  private fun write(
+    relativePath: String,
+    content: String,
+  ) {
     repo.resolve(relativePath).writeText(content)
   }
 }

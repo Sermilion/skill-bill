@@ -6,18 +6,20 @@ import kotlin.test.assertEquals
 class RuntimeApplicationAmbientClockArchitectureTest {
   @Test
   fun `runtime-application main matches the ambient clock baseline`() {
-    val violations = ArchitectureScanSupport.ambientClockViolations(
-      baseline = baseline("runtime-application-ambient-clock-baseline.txt"),
-      scanRoot = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
-    )
+    val violations =
+      ArchitectureScanSupport.ambientClockViolations(
+        baseline = baseline("runtime-application-ambient-clock-baseline.txt"),
+        scanRoot = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
+      )
     assertEquals(emptyList(), violations, violations.joinToString("\n"))
   }
 
   @Test
   fun `runtime-cli ambient clock sites equal the recorded census`() {
-    val current = ArchitectureScanSupport.ambientClockCallSites(PrincipleEnforcementInventory.RUNTIME_CLI_MAIN)
-      .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
-      .toSet()
+    val current =
+      ArchitectureScanSupport.ambientClockCallSites(PrincipleEnforcementInventory.RUNTIME_CLI_MAIN)
+        .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
+        .toSet()
     assertEquals(
       baseline("runtime-cli-ambient-clock-baseline.txt"),
       current,
@@ -87,18 +89,20 @@ class RuntimeApplicationAmbientClockArchitectureTest {
 
   @Test
   fun `ambient clock scanner fires on unlisted Instant now site`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import java.time.Instant
 
       fun nowMarker() = Instant.now()
-    """.trimIndent()
-    val violations = ArchitectureScanSupport.ambientClockViolationsInSource(
-      relativePath = EXAMPLE_PATH,
-      source = source,
-      baseline = emptySet(),
-    )
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.ambientClockViolationsInSource(
+        relativePath = EXAMPLE_PATH,
+        source = source,
+        baseline = emptySet(),
+      )
     assertEquals(
       listOf("$EXAMPLE_PATH:5:Instant.now() is not listed in the ambient-clock baseline."),
       violations,
@@ -107,19 +111,21 @@ class RuntimeApplicationAmbientClockArchitectureTest {
 
   @Test
   fun `ambient clock scanner fires on unlisted OffsetDateTime now site`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import java.time.OffsetDateTime
       import java.time.ZoneOffset
 
       fun nowMarker() = OffsetDateTime.now(ZoneOffset.UTC)
-    """.trimIndent()
-    val violations = ArchitectureScanSupport.ambientClockViolationsInSource(
-      relativePath = EXAMPLE_PATH,
-      source = source,
-      baseline = emptySet(),
-    )
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.ambientClockViolationsInSource(
+        relativePath = EXAMPLE_PATH,
+        source = source,
+        baseline = emptySet(),
+      )
     assertEquals(
       listOf("$EXAMPLE_PATH:6:OffsetDateTime.now() is not listed in the ambient-clock baseline."),
       violations,
@@ -128,18 +134,20 @@ class RuntimeApplicationAmbientClockArchitectureTest {
 
   @Test
   fun `ambient clock scanner fires on unlisted ZonedDateTime now site`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import java.time.ZonedDateTime
 
       fun nowMarker() = ZonedDateTime.now()
-    """.trimIndent()
-    val violations = ArchitectureScanSupport.ambientClockViolationsInSource(
-      relativePath = EXAMPLE_PATH,
-      source = source,
-      baseline = emptySet(),
-    )
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.ambientClockViolationsInSource(
+        relativePath = EXAMPLE_PATH,
+        source = source,
+        baseline = emptySet(),
+      )
     assertEquals(
       listOf("$EXAMPLE_PATH:5:ZonedDateTime.now() is not listed in the ambient-clock baseline."),
       violations,
@@ -148,18 +156,20 @@ class RuntimeApplicationAmbientClockArchitectureTest {
 
   @Test
   fun `ambient clock scanner fires on unlisted JvmSystemClock instant site`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import skillbill.contracts.time.JvmSystemClock
 
       fun nowMarker() = JvmSystemClock.instant()
-    """.trimIndent()
-    val violations = ArchitectureScanSupport.ambientClockViolationsInSource(
-      relativePath = EXAMPLE_PATH,
-      source = source,
-      baseline = emptySet(),
-    )
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.ambientClockViolationsInSource(
+        relativePath = EXAMPLE_PATH,
+        source = source,
+        baseline = emptySet(),
+      )
     assertEquals(
       listOf("$EXAMPLE_PATH:5:JvmSystemClock.instant() is not listed in the ambient-clock baseline."),
       violations,
@@ -168,18 +178,20 @@ class RuntimeApplicationAmbientClockArchitectureTest {
 
   @Test
   fun `ambient clock scanner fires on unlisted LocalDate now site`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import java.time.LocalDate
 
       fun todayMarker() = LocalDate.now()
-    """.trimIndent()
-    val violations = ArchitectureScanSupport.ambientClockViolationsInSource(
-      relativePath = EXAMPLE_PATH,
-      source = source,
-      baseline = emptySet(),
-    )
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.ambientClockViolationsInSource(
+        relativePath = EXAMPLE_PATH,
+        source = source,
+        baseline = emptySet(),
+      )
     assertEquals(
       listOf("$EXAMPLE_PATH:5:LocalDate.now() is not listed in the ambient-clock baseline."),
       violations,
@@ -187,11 +199,13 @@ class RuntimeApplicationAmbientClockArchitectureTest {
   }
 
   private fun assertAmbientClockMatchesBaseline(moduleName: String) {
-    val scanCase = PrincipleEnforcementInventory.moduleArchitectureScanCases
-      .single { scanCase -> scanCase.moduleName == moduleName }
-    val current = ArchitectureScanSupport.ambientClockCallSites(scanCase.mainScanRoot)
-      .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
-      .toSet()
+    val scanCase =
+      PrincipleEnforcementInventory.moduleArchitectureScanCases
+        .single { scanCase -> scanCase.moduleName == moduleName }
+    val current =
+      ArchitectureScanSupport.ambientClockCallSites(scanCase.mainScanRoot)
+        .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
+        .toSet()
     assertEquals(
       baseline(scanCase.ambientClockBaseline),
       current,

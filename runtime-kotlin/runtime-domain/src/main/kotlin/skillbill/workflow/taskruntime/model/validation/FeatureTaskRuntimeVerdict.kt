@@ -9,7 +9,6 @@ data class FeatureTaskRuntimeVerdict(
   }
 
   companion object {
-
     val ADVANCE: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("advance")
 
     val APPROVED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("approved")
@@ -36,7 +35,10 @@ data class FeatureTaskRuntimeVerdict(
 
     val REMOVED_VERDICTS: Set<FeatureTaskRuntimeVerdict> = setOf(REPAIR_PLANNED, ESCALATED, GAPS_FOUND)
 
-    fun rejectRemovedVerdict(value: String, context: String): FeatureTaskRuntimeVerdict {
+    fun rejectRemovedVerdict(
+      value: String,
+      context: String,
+    ): FeatureTaskRuntimeVerdict {
       val verdict = fromWire(value)
       if (verdict in REMOVED_VERDICTS) {
         throw InvalidWorkflowStateSchemaError(

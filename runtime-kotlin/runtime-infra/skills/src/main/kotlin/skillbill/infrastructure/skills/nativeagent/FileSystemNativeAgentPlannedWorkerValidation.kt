@@ -12,18 +12,21 @@ internal fun validatePlannedNativeAgentWorkers(repoRoot: Path): List<String> {
     return emptyList()
   }
   val issues = mutableListOf<String>()
-  val sources = discoverRepoNativeAgentSourceFiles(root).flatMap { path ->
-    runCatching { skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentSourceFile(path) }
-      .getOrElse { emptyList() }
-  }
-  val manifests = runCatching { discoverPlatformPackManifests(packsRoot) }
-    .getOrElse { error ->
-      return listOf("platform-packs: cannot derive native-agent worker set: ${error.message.orEmpty()}")
+  val sources =
+    discoverRepoNativeAgentSourceFiles(root).flatMap { path ->
+      runCatching { skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentSourceFile(path) }
+        .getOrElse { emptyList() }
     }
-  val plannedNames = manifests.flatMap { manifest ->
-    val selectedAreas = ReviewLaunchPlanPolicy.composedAreas(manifest.slug, manifests)
-    ReviewLaunchPlanPolicy.flatten(manifest.slug, manifests, selectedAreas).lanes.map { it.skillName }
-  }.toSortedSet()
+  val manifests =
+    runCatching { discoverPlatformPackManifests(packsRoot) }
+      .getOrElse { error ->
+        return listOf("platform-packs: cannot derive native-agent worker set: ${error.message.orEmpty()}")
+      }
+  val plannedNames =
+    manifests.flatMap { manifest ->
+      val selectedAreas = ReviewLaunchPlanPolicy.composedAreas(manifest.slug, manifests)
+      ReviewLaunchPlanPolicy.flatten(manifest.slug, manifests, selectedAreas).lanes.map { it.skillName }
+    }.toSortedSet()
   val declarations = sources.groupBy { it.name }
   plannedNames.forEach { worker ->
     when (declarations[worker].orEmpty().size) {

@@ -12,6 +12,7 @@ import skillbill.telemetry.parseTelemetryBoolValue
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
+
 @Inject
 class FileTelemetryConfigStore(
   private val context: EnvironmentContext,
@@ -33,10 +34,12 @@ fun readTelemetryConfigFile(path: Path): TelemetryConfigDocument? {
   if (!Files.exists(path)) {
     return null
   }
-  val rawPayload = JsonCodec.parseObjectOrNull(Files.readString(path))
-    ?: throw IllegalArgumentException("Telemetry config at '$path' is not valid JSON.")
-  val payload = JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(rawPayload))
-    ?: throw IllegalArgumentException("Telemetry config at '$path' must contain a JSON object.")
+  val rawPayload =
+    JsonCodec.parseObjectOrNull(Files.readString(path))
+      ?: throw IllegalArgumentException("Telemetry config at '$path' is not valid JSON.")
+  val payload =
+    JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(rawPayload))
+      ?: throw IllegalArgumentException("Telemetry config at '$path' must contain a JSON object.")
   return TelemetryConfigDocument(TelemetryOpenDocument.from(payload))
 }
 
@@ -62,16 +65,25 @@ internal fun ensureTelemetryConfigFile(
   return document
 }
 
-fun writeTelemetryConfigFile(path: Path, document: TelemetryConfigDocument) {
+fun writeTelemetryConfigFile(
+  path: Path,
+  document: TelemetryConfigDocument,
+) {
   path.parent?.let(Files::createDirectories)
   Files.writeString(path, JsonCodec.mapToJsonString(document.payload) + "\n")
 }
 
-private fun normalizedInstallId(payload: MutableMap<String, Any?>, defaults: Map<String, Any?>): String =
+private fun normalizedInstallId(
+  payload: MutableMap<String, Any?>,
+  defaults: Map<String, Any?>,
+): String =
   (payload["install_id"] as? String)?.takeIf(String::isNotBlank)
     ?: defaults.getValue("install_id").toString()
 
-private fun normalizedTelemetryMap(payload: MutableMap<String, Any?>, defaults: Map<String, Any?>): Map<String, Any?> {
+private fun normalizedTelemetryMap(
+  payload: MutableMap<String, Any?>,
+  defaults: Map<String, Any?>,
+): Map<String, Any?> {
   val telemetryRaw = payload["telemetry"]
   val telemetry =
     (telemetryRaw as? Map<*, *>)
@@ -96,7 +108,10 @@ private fun normalizeLegacyEnabledFlag(telemetry: MutableMap<String, Any?>) {
   }
 }
 
-private fun preserveUnownedTopLevelKeys(payload: MutableMap<String, Any?>, existing: Map<String, Any?>?) {
+private fun preserveUnownedTopLevelKeys(
+  payload: MutableMap<String, Any?>,
+  existing: Map<String, Any?>?,
+) {
   val ownedKeys = setOf("install_id", "telemetry")
   existing?.forEach { (key, value) ->
     if (key !in ownedKeys && !payload.containsKey(key)) {
@@ -105,8 +120,9 @@ private fun preserveUnownedTopLevelKeys(payload: MutableMap<String, Any?>, exist
   }
 }
 
-private fun legacyEnabledLevel(enabledRaw: Any?): String = when (enabledRaw) {
-  is Boolean -> if (enabledRaw) "anonymous" else "off"
-  is String -> if (parseTelemetryBoolValue(enabledRaw, "telemetry.enabled")) "anonymous" else "off"
-  else -> if (enabledRaw == true) "anonymous" else "off"
-}
+private fun legacyEnabledLevel(enabledRaw: Any?): String =
+  when (enabledRaw) {
+    is Boolean -> if (enabledRaw) "anonymous" else "off"
+    is String -> if (parseTelemetryBoolValue(enabledRaw, "telemetry.enabled")) "anonymous" else "off"
+    else -> if (enabledRaw == true) "anonymous" else "off"
+  }

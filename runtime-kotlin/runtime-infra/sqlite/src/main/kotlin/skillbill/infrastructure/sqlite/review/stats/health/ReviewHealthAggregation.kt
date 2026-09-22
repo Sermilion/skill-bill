@@ -52,7 +52,10 @@ internal fun aggregatePayloadValueCounts(
   return counts.toMap()
 }
 
-internal fun countReviewHealthSources(payloads: List<ReviewHealthPayload>, malformedRecords: Int): Map<String, Int> {
+internal fun countReviewHealthSources(
+  payloads: List<ReviewHealthPayload>,
+  malformedRecords: Int,
+): Map<String, Int> {
   val counts = reviewHealthSources.associateWith { 0 }.toMutableMap()
   payloads.forEach { payload ->
     val source = payload.source.takeIf(counts::containsKey) ?: UNKNOWN_REVIEW_HEALTH_SOURCE
@@ -69,10 +72,11 @@ internal fun aggregateCategorySeverityCrossTab(payloads: List<ReviewHealthPayloa
   payloads.forEach { payload ->
     reviewFindingDetails(payload.payload).forEach { detail ->
       val category = detail[ReviewFindingPayloadKeys.ISSUE_CATEGORY]?.toString().orEmpty()
-      val severity = normalizeFindingDetailValue(
-        "severity",
-        detail[SqliteReviewTelemetryPayloadKeys.SEVERITY]?.toString().orEmpty(),
-      )
+      val severity =
+        normalizeFindingDetailValue(
+          "severity",
+          detail[SqliteReviewTelemetryPayloadKeys.SEVERITY]?.toString().orEmpty(),
+        )
       if (category.isNotBlank() && severity.isNotBlank()) {
         crossTab.getOrPut(category) { mutableMapOf() }[severity] =
           crossTab.getValue(category).getOrDefault(severity, 0) + 1
@@ -82,7 +86,11 @@ internal fun aggregateCategorySeverityCrossTab(payloads: List<ReviewHealthPayloa
   return crossTab.mapValues { it.value.toMap() }
 }
 
-private fun addOutcomeCount(counts: MutableMap<String, Int>, key: String, count: Int) {
+private fun addOutcomeCount(
+  counts: MutableMap<String, Int>,
+  key: String,
+  count: Int,
+) {
   if (key in counts) {
     counts[key] = counts.getValue(key) + count
   }
@@ -100,18 +108,24 @@ private fun reviewFindingDetails(payload: Map<String, Any?>): List<Map<*, *>> {
   return accepted + rejected
 }
 
-private fun normalizeFindingDetailValue(fieldName: String, value: String): String = when (fieldName) {
-  "confidence" -> when (value.lowercase()) {
-    "high" -> "High"
-    "medium" -> "Medium"
-    "low" -> "Low"
+private fun normalizeFindingDetailValue(
+  fieldName: String,
+  value: String,
+): String =
+  when (fieldName) {
+    "confidence" ->
+      when (value.lowercase()) {
+        "high" -> "High"
+        "medium" -> "Medium"
+        "low" -> "Low"
+        else -> value
+      }
     else -> value
   }
-  else -> value
-}
 
-private fun Any?.asInt(): Int = when (this) {
-  is Number -> toInt()
-  is String -> toIntOrNull() ?: 0
-  else -> 0
-}
+private fun Any?.asInt(): Int =
+  when (this) {
+    is Number -> toInt()
+    is String -> toIntOrNull() ?: 0
+    else -> 0
+  }

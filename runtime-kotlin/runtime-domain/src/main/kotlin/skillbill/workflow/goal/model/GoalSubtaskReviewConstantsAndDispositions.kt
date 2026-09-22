@@ -18,8 +18,9 @@ enum class GoalSubtaskOperatorDecision(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalSubtaskOperatorDecision = entries.firstOrNull { it.wireValue == value }
-      ?: reviewStateError("operator_decision", "must be one of ${entries.joinToString { it.wireValue }}.")
+    fun fromWire(value: String): GoalSubtaskOperatorDecision =
+      entries.firstOrNull { it.wireValue == value }
+        ?: reviewStateError("operator_decision", "must be one of ${entries.joinToString { it.wireValue }}.")
   }
 }
 
@@ -29,14 +30,17 @@ enum class GoalSubtaskBlockerDispositionVerdict(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalSubtaskBlockerDispositionVerdict = when (value) {
-      "superseded" -> reviewStateError(
-        "verdict",
-        "superseded is removed; records naming it must be regenerated.",
-      )
-      else -> entries.firstOrNull { it.wireValue == value }
-        ?: reviewStateError("verdict", "must be one of ${entries.joinToString { it.wireValue }}.")
-    }
+    fun fromWire(value: String): GoalSubtaskBlockerDispositionVerdict =
+      when (value) {
+        "superseded" ->
+          reviewStateError(
+            "verdict",
+            "superseded is removed; records naming it must be regenerated.",
+          )
+        else ->
+          entries.firstOrNull { it.wireValue == value }
+            ?: reviewStateError("verdict", "must be one of ${entries.joinToString { it.wireValue }}.")
+      }
   }
 }
 
@@ -55,22 +59,27 @@ data class GoalSubtaskBlockerDisposition(
     }
   }
 
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    ReviewFindingPayloadKeys.FINDING_ID to findingId,
-    SharedPayloadKeys.VERDICT to verdict.wireValue,
-    "evidence" to evidence,
-  )
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      ReviewFindingPayloadKeys.FINDING_ID to findingId,
+      SharedPayloadKeys.VERDICT to verdict.wireValue,
+      "evidence" to evidence,
+    )
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskBlockerDisposition {
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      path: String,
+    ): GoalSubtaskBlockerDisposition {
       raw.requireOnlyReviewStateKeys(setOf("finding_id", "verdict", "evidence"), path)
       val reader = reviewStateReader(raw, path)
-      val evidence = reader.requiredList("evidence").mapIndexed { index, value ->
-        (value as? String)?.takeIf(String::isNotBlank) ?: reviewStateError(
-          "$path.evidence[$index]",
-          "must be a non-blank string.",
-        )
-      }
+      val evidence =
+        reader.requiredList("evidence").mapIndexed { index, value ->
+          (value as? String)?.takeIf(String::isNotBlank) ?: reviewStateError(
+            "$path.evidence[$index]",
+            "must be a non-blank string.",
+          )
+        }
       return GoalSubtaskBlockerDisposition(
         findingId = reader.requiredString("finding_id"),
         verdict = GoalSubtaskBlockerDispositionVerdict.fromWire(reader.requiredString("verdict")),
@@ -97,7 +106,8 @@ enum class GoalSubtaskReviewDisposition(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalSubtaskReviewDisposition = entries.firstOrNull { it.wireValue == value }
-      ?: reviewStateError("disposition", "must be one of ${entries.joinToString { it.wireValue }}.")
+    fun fromWire(value: String): GoalSubtaskReviewDisposition =
+      entries.firstOrNull { it.wireValue == value }
+        ?: reviewStateError("disposition", "must be one of ${entries.joinToString { it.wireValue }}.")
   }
 }

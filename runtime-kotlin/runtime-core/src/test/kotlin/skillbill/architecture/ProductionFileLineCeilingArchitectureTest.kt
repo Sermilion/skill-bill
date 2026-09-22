@@ -6,11 +6,12 @@ import kotlin.test.assertEquals
 class ProductionFileLineCeilingArchitectureTest {
   @Test
   fun `production Kotlin files stay within the line ceiling`() {
-    val violations = ArchitectureScanSupport.productionLineCeilingViolations(
-      productionRoots = listOf("runtime-kotlin", "intellij-plugin"),
-      ceiling = PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING,
-      exemptions = PrincipleEnforcementInventory.productionLineCeilingExemptions,
-    )
+    val violations =
+      ArchitectureScanSupport.productionLineCeilingViolations(
+        productionRoots = listOf("runtime-kotlin", "intellij-plugin"),
+        ceiling = PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING,
+        exemptions = PrincipleEnforcementInventory.productionLineCeilingExemptions,
+      )
     assertEquals(
       emptyList(),
       violations,
@@ -23,12 +24,13 @@ class ProductionFileLineCeilingArchitectureTest {
   fun `production line ceiling scanner fires on synthetic oversized fixture`() {
     val oversizedLineCount = PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING + 1
     val fixtureLines = (1..oversizedLineCount).joinToString("\n") { index -> "fun line$index() = $index" }
-    val violations = ArchitectureScanSupport.productionLineCeilingViolationsInSource(
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/Example.kt",
-      source = fixtureLines,
-      ceiling = PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING,
-      exemptions = PrincipleEnforcementInventory.productionLineCeilingExemptions,
-    )
+    val violations =
+      ArchitectureScanSupport.productionLineCeilingViolationsInSource(
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/Example.kt",
+        source = fixtureLines,
+        ceiling = PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING,
+        exemptions = PrincipleEnforcementInventory.productionLineCeilingExemptions,
+      )
     assertEquals(
       listOf(
         "runtime-kotlin/runtime-example/src/main/kotlin/Example.kt has $oversizedLineCount lines; split it below the " +

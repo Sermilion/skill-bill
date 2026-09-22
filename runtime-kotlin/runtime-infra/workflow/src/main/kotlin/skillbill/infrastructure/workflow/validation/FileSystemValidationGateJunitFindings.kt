@@ -19,11 +19,15 @@ internal fun junitFailureMessage(failure: Element): String {
   return truncateJunitFailureMessage("$attr\n$preview")
 }
 
-internal fun junitFailureLocation(testcase: Element, failureBody: String): String? {
-  val fromAttrs = listOfNotNull(
-    testcase.getAttribute("file").takeIf(String::isNotBlank),
-    testcase.getAttribute("line").takeIf(String::isNotBlank),
-  ).joinToString(":").ifBlank { null }
+internal fun junitFailureLocation(
+  testcase: Element,
+  failureBody: String,
+): String? {
+  val fromAttrs =
+    listOfNotNull(
+      testcase.getAttribute("file").takeIf(String::isNotBlank),
+      testcase.getAttribute("line").takeIf(String::isNotBlank),
+    ).joinToString(":").ifBlank { null }
   if (fromAttrs != null) return fromAttrs
   return junitLocationFromStack(failureBody)
 }

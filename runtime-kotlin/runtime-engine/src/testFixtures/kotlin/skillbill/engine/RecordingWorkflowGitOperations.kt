@@ -50,11 +50,12 @@ class RecordingWorkflowGitOperations(
   val repositoryFingerprintSequence = ArrayDeque<String>()
   var repositoryFingerprintValue: String? = null
   var repositoryFingerprintCalls: Int = 0
-  var readinessTreeIdentity: ReadinessTreeIdentity = ReadinessTreeIdentity(
-    sourceTreeSha = "a".repeat(40),
-    baseRefSha = "b".repeat(40),
-    headSha = "c".repeat(40),
-  )
+  var readinessTreeIdentity: ReadinessTreeIdentity =
+    ReadinessTreeIdentity(
+      sourceTreeSha = "a".repeat(40),
+      baseRefSha = "b".repeat(40),
+      headSha = "c".repeat(40),
+    )
   val createCommitMessages = mutableListOf<String>()
   var createCommitResult: WorkflowGitOperationResult? = null
   var localBranchHasUnpushedCommitsValue: Boolean = true
@@ -97,7 +98,11 @@ class RecordingWorkflowGitOperations(
   val branchExistsCalls = mutableListOf<String>()
   var currentBranchCalls: Int = 0
 
-  override fun checkoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult {
+  override fun checkoutBranch(
+    repoRoot: Path,
+    branch: String,
+    baseBranch: String?,
+  ): WorkflowGitOperationResult {
     checkoutCalls += CheckoutCall(branch, baseBranch)
     val result = checkoutResult ?: WorkflowGitOperationResult.Ok(value = branch)
     if (result is WorkflowGitOperationResult.Ok) {
@@ -106,7 +111,10 @@ class RecordingWorkflowGitOperations(
     return result
   }
 
-  override fun branchExists(repoRoot: Path, branch: String): WorkflowGitOperationResult {
+  override fun branchExists(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult {
     branchExistsCalls += branch
     branchExistsResult?.let { return it }
     val exists = existingBranches?.contains(branch.trim()) ?: true
@@ -117,15 +125,20 @@ class RecordingWorkflowGitOperations(
     currentBranchCalls++
     return currentBranchResult ?: WorkflowGitOperationResult.Ok(value = currentBranchValue)
   }
-  override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult {
+
+  override fun createCommit(
+    repoRoot: Path,
+    message: String,
+  ): WorkflowGitOperationResult {
     createCommitMessages += message
     if (invalidShaOnRemediationCommit && message.contains("remediation checkpoint")) {
       val bogus = "not-a-valid-commit-sha"
       headCommitShaValue = bogus
       return WorkflowGitOperationResult.Ok(value = bogus)
     }
-    val result = createCommitResult
-      ?: WorkflowGitOperationResult.Ok(value = createCommitMessages.size.toString(16).padStart(40, '0'))
+    val result =
+      createCommitResult
+        ?: WorkflowGitOperationResult.Ok(value = createCommitMessages.size.toString(16).padStart(40, '0'))
     if (result is WorkflowGitOperationResult.Ok && result.value.isNotBlank()) {
       headCommitShaValue = result.value.trim()
       headCommitMessageValue = message
@@ -133,8 +146,10 @@ class RecordingWorkflowGitOperations(
     return result
   }
 
-  override fun localBranchHasUnpushedCommits(repoRoot: Path, branch: String): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = localBranchHasUnpushedCommitsValue.toString())
+  override fun localBranchHasUnpushedCommits(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = localBranchHasUnpushedCommitsValue.toString())
 
   override val linkedWorktreeOperations: WorkflowGitLinkedWorktreeOperations =
     object : WorkflowGitLinkedWorktreeOperations {
@@ -186,23 +201,37 @@ class RecordingWorkflowGitOperations(
         return WorkflowGitOperationResult.Ok(value = refName)
       }
 
-      override fun resolveRef(repoRoot: Path, namespacePrefix: String, refName: String): WorkflowGitOperationResult =
+      override fun resolveRef(
+        repoRoot: Path,
+        namespacePrefix: String,
+        refName: String,
+      ): WorkflowGitOperationResult =
         onResolveCheckpointRef?.invoke(refName)
           ?: resolveCheckpointRefResult
           ?: WorkflowGitOperationResult.Ok(value = checkpointRefs[refName].orEmpty())
 
-      override fun listRefs(repoRoot: Path, namespacePrefix: String): WorkflowGitOperationResult =
+      override fun listRefs(
+        repoRoot: Path,
+        namespacePrefix: String,
+      ): WorkflowGitOperationResult =
         WorkflowGitOperationResult.Ok(
           value = checkpointRefs.entries.joinToString("") { (ref, sha) -> "$sha\u0000$ref\u0000" },
         )
 
-      override fun deleteRef(repoRoot: Path, namespacePrefix: String, refName: String): WorkflowGitOperationResult {
+      override fun deleteRef(
+        repoRoot: Path,
+        namespacePrefix: String,
+        refName: String,
+      ): WorkflowGitOperationResult {
         checkpointRefs.remove(refName)
         return WorkflowGitOperationResult.Ok(value = refName)
       }
     }
 
-  override fun resetSoftToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult {
+  override fun resetSoftToCommit(
+    repoRoot: Path,
+    commitSha: String,
+  ): WorkflowGitOperationResult {
     resetSoftToCommitCalls += commitSha.trim()
     val result = resetSoftToCommitResult ?: WorkflowGitOperationResult.Ok(value = commitSha.trim())
     if (result is WorkflowGitOperationResult.Ok) {
@@ -211,7 +240,10 @@ class RecordingWorkflowGitOperations(
     return result
   }
 
-  override fun resetHardToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult {
+  override fun resetHardToCommit(
+    repoRoot: Path,
+    commitSha: String,
+  ): WorkflowGitOperationResult {
     resetHardToCommitCalls += commitSha.trim()
     val result = resetHardToCommitResult ?: WorkflowGitOperationResult.Ok(value = commitSha.trim())
     if (result is WorkflowGitOperationResult.Ok) {
@@ -245,17 +277,26 @@ class RecordingWorkflowGitOperations(
   val leasePushedBranches: MutableList<String> = mutableListOf()
   var pushBranchResult: WorkflowGitOperationResult? = null
 
-  override fun pushBranch(repoRoot: Path, branch: String): WorkflowGitOperationResult {
+  override fun pushBranch(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult {
     pushedBranches += branch
     return pushBranchResult ?: WorkflowGitOperationResult.Ok(value = branch)
   }
 
-  override fun pushBranchWithLease(repoRoot: Path, branch: String): WorkflowGitOperationResult {
+  override fun pushBranchWithLease(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult {
     leasePushedBranches += branch
     return pushBranchResult ?: WorkflowGitOperationResult.Ok(value = branch)
   }
 
-  override fun resolveCommit(repoRoot: Path, revision: String): WorkflowGitOperationResult =
+  override fun resolveCommit(
+    repoRoot: Path,
+    revision: String,
+  ): WorkflowGitOperationResult =
     onResolveCommit?.invoke(revision)
       ?: if (revision.startsWith("origin/")) {
         WorkflowGitOperationResult.Failed(
@@ -269,17 +310,19 @@ class RecordingWorkflowGitOperations(
 
   override val runtimePhaseFileManifestOperations: RuntimePhaseFileManifestGitOperations =
     object : RuntimePhaseFileManifestGitOperations {
-      override fun headCommit(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(
-        value = runtimePhaseHeadCommitSequence.removeFirstOrNull().orEmpty(),
-      )
+      override fun headCommit(repoRoot: Path): WorkflowGitOperationResult =
+        WorkflowGitOperationResult.Ok(
+          value = runtimePhaseHeadCommitSequence.removeFirstOrNull().orEmpty(),
+        )
 
       override fun changedPathsBetweenCommits(
         repoRoot: Path,
         beforeCommit: String,
         afterCommit: String,
-      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(
-        value = if (beforeCommit == afterCommit) "" else changedPathsBetweenCommitsValue,
-      )
+      ): WorkflowGitOperationResult =
+        WorkflowGitOperationResult.Ok(
+          value = if (beforeCommit == afterCommit) "" else changedPathsBetweenCommitsValue,
+        )
     }
 
   override fun validateBranchBase(
@@ -295,12 +338,18 @@ class RecordingWorkflowGitOperations(
 
   override val scopedStagingOperations: ScopedStagingGitOperations =
     object : ScopedStagingGitOperations {
-      override fun stagePaths(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult {
+      override fun stagePaths(
+        repoRoot: Path,
+        paths: List<String>,
+      ): WorkflowGitOperationResult {
         stagePathsCalls += paths
         return stagePathsResult ?: WorkflowGitOperationResult.Ok(value = "")
       }
 
-      override fun captureIndexState(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult =
+      override fun captureIndexState(
+        repoRoot: Path,
+        paths: List<String>,
+      ): WorkflowGitOperationResult =
         captureIndexStateResult ?: WorkflowGitOperationResult.Ok(value = indexSnapshotValue)
 
       override fun restoreIndexState(
@@ -319,20 +368,25 @@ class RecordingWorkflowGitOperations(
         )
       }
 
-      override fun pathContentIdentities(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult =
+      override fun pathContentIdentities(
+        repoRoot: Path,
+        paths: List<String>,
+      ): WorkflowGitOperationResult =
         WorkflowGitOperationResult.Ok(
-          value = paths.joinToString(separator = "\u0000") { path ->
-            "${contentIdentities[path] ?: "identity"}\t$path"
-          },
+          value =
+            paths.joinToString(separator = "\u0000") { path ->
+              "${contentIdentities[path] ?: "identity"}\t$path"
+            },
         )
     }
 
   override val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations =
     object : RepositoryOwnedPathsGitOperations {
-      override fun ownedPaths(repoRoot: Path): WorkflowGitOperationResult = ownedPathsResult
-        ?: WorkflowGitOperationResult.Ok(
-          value = ownedPathsValue.joinToString(separator = "") { "$it\u0000" },
-        )
+      override fun ownedPaths(repoRoot: Path): WorkflowGitOperationResult =
+        ownedPathsResult
+          ?: WorkflowGitOperationResult.Ok(
+            value = ownedPathsValue.joinToString(separator = "") { "$it\u0000" },
+          )
     }
 
   override val readinessTreeIdentityOperations: ReadinessTreeIdentityGitOperations =
@@ -341,13 +395,18 @@ class RecordingWorkflowGitOperations(
         repoRoot: Path,
         baseBranch: String,
         workflowId: String,
-      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(
-        value = ReadinessTreeIdentityPayloadCodec.encode(
-          readinessTreeIdentity.copy(headSha = headCommitShaValue.ifBlank { readinessTreeIdentity.headSha }),
-        ),
-      )
+      ): WorkflowGitOperationResult =
+        WorkflowGitOperationResult.Ok(
+          value =
+            ReadinessTreeIdentityPayloadCodec.encode(
+              readinessTreeIdentity.copy(headSha = headCommitShaValue.ifBlank { readinessTreeIdentity.headSha }),
+            ),
+        )
 
-      override fun changedPathsAgainstBase(repoRoot: Path, baseBranch: String): WorkflowGitOperationResult =
+      override fun changedPathsAgainstBase(
+        repoRoot: Path,
+        baseBranch: String,
+      ): WorkflowGitOperationResult =
         WorkflowGitOperationResult.Ok(
           value = ownedPathsValue.joinToString(separator = "\u0000"),
         )
@@ -358,9 +417,10 @@ class RecordingWorkflowGitOperations(
       override fun repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult {
         repositoryFingerprintCalls += 1
         return WorkflowGitOperationResult.Ok(
-          value = repositoryFingerprintSequence.removeFirstOrNull()
-            ?: repositoryFingerprintValue
-            ?: "repository-fingerprint-$repositoryFingerprintCalls",
+          value =
+            repositoryFingerprintSequence.removeFirstOrNull()
+              ?: repositoryFingerprintValue
+              ?: "repository-fingerprint-$repositoryFingerprintCalls",
         )
       }
 
@@ -371,43 +431,51 @@ class RecordingWorkflowGitOperations(
         ownedPaths: List<String>,
       ): WorkflowGitOperationResult {
         repositoryFingerprintCalls += 1
-        val scopeHash = listOf(
-          baseCommit.orEmpty(),
-          headCommit,
-          ownedPaths.distinct().sorted().joinToString("\u0000"),
-        ).joinToString("\u0000").hashCode().toUInt().toString(16)
+        val scopeHash =
+          listOf(
+            baseCommit.orEmpty(),
+            headCommit,
+            ownedPaths.distinct().sorted().joinToString("\u0000"),
+          ).joinToString("\u0000").hashCode().toUInt().toString(16)
         return WorkflowGitOperationResult.Ok(
-          value = repositoryFingerprintSequence.removeFirstOrNull()
-            ?: repositoryFingerprintValue
-            ?: "repository-checkpoint-$scopeHash",
+          value =
+            repositoryFingerprintSequence.removeFirstOrNull()
+              ?: repositoryFingerprintValue
+              ?: "repository-checkpoint-$scopeHash",
         )
       }
     }
 
-  override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult = WorkflowWorktreeActivityResult(
-    status = WorkflowGitOperationStatus.OK,
-    changedFileSummary = GoalObservabilityChangedFileSummary(
-      total = 0,
-      added = 0,
-      modified = 0,
-      deleted = 0,
-      renamed = 0,
-      untracked = 0,
-    ),
-    diffStat = GoalObservabilityDiffStat(filesChanged = 0, insertions = 0, deletions = 0),
-  )
+  override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult =
+    WorkflowWorktreeActivityResult(
+      status = WorkflowGitOperationStatus.OK,
+      changedFileSummary =
+        GoalObservabilityChangedFileSummary(
+          total = 0,
+          added = 0,
+          modified = 0,
+          deleted = 0,
+          renamed = 0,
+          untracked = 0,
+        ),
+      diffStat = GoalObservabilityDiffStat(filesChanged = 0, insertions = 0, deletions = 0),
+    )
 
   override fun selectedDiffHunks(
     repoRoot: Path,
     request: WorkflowSelectedDiffHunksRequest,
-  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(
-    status = WorkflowGitOperationStatus.OK,
-    selectedDiffHunks = GoalObservabilitySelectedDiffHunks(),
-  )
+  ): WorkflowSelectedDiffHunksResult =
+    WorkflowSelectedDiffHunksResult(
+      status = WorkflowGitOperationStatus.OK,
+      selectedDiffHunks = GoalObservabilitySelectedDiffHunks(),
+    )
 
   override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
     object : GoalSubtaskReviewGitOperations {
-      override fun captureBaseline(repoRoot: Path, expectedBranch: String) = GoalSubtaskReviewBaselineResult(
+      override fun captureBaseline(
+        repoRoot: Path,
+        expectedBranch: String,
+      ) = GoalSubtaskReviewBaselineResult(
         status = WorkflowGitOperationStatus.OK,
         baseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
       )
@@ -420,12 +488,13 @@ class RecordingWorkflowGitOperations(
         goalReviewBuildInputs += baseline
         return goalReviewBuildResults.removeFirstOrNull() ?: GoalSubtaskReviewInputResult(
           status = WorkflowGitOperationStatus.OK,
-          input = GoalSubtaskReviewInput(
-            reviewBaseSha = baseline.reviewBaseSha,
-            currentHeadSha = baseline.reviewBaseSha,
-            trackedDelta = goalReviewTrackedDelta,
-            ownedUntrackedPatches = "",
-          ),
+          input =
+            GoalSubtaskReviewInput(
+              reviewBaseSha = baseline.reviewBaseSha,
+              currentHeadSha = baseline.reviewBaseSha,
+              trackedDelta = goalReviewTrackedDelta,
+              ownedUntrackedPatches = "",
+            ),
         )
       }
 

@@ -15,19 +15,20 @@ object FeatureTaskRuntimePhaseIds {
   const val COMMIT_PUSH: String = "commit_push"
   const val PR: String = "pr"
 
-  val all: List<String> = listOf(
-    PREPLAN,
-    PLAN,
-    IMPLEMENT,
-    SIMPLIFY,
-    AUDIT,
-    REVIEW,
-    VERIFY_FINDINGS,
-    IMPLEMENT_FIX,
-    BUILD,
-    VALIDATE,
-    WRITE_HISTORY,
-    COMMIT_PUSH,
-    PR,
-  )
+  val all: List<String> =
+    listOf(
+      PREPLAN,
+      PLAN,
+      IMPLEMENT,
+      SIMPLIFY,
+      AUDIT,
+      REVIEW,
+      VERIFY_FINDINGS,
+      IMPLEMENT_FIX,
+      BUILD,
+      VALIDATE,
+      WRITE_HISTORY,
+      COMMIT_PUSH,
+      PR,
+    )
 }

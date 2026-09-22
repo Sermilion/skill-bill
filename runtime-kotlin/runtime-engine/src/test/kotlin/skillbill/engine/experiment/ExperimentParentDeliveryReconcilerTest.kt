@@ -16,25 +16,30 @@ class ExperimentParentDeliveryReconcilerTest {
   fun `only completed control work is published and repeated reconciliation is idempotent at gateway`() {
     val attempts = mutableListOf<ExperimentPublicationAttempt>()
     val published = mutableSetOf<String>()
-    val reconciler = ExperimentParentDeliveryReconciler(
-      deferredPublication = object : ExperimentDeferredPublicationPort {
-        override fun recordDeferredAttempt(attempt: ExperimentPublicationAttempt) {
-          attempts += attempt
-        }
+    val reconciler =
+      ExperimentParentDeliveryReconciler(
+        deferredPublication =
+          object : ExperimentDeferredPublicationPort {
+            override fun recordDeferredAttempt(attempt: ExperimentPublicationAttempt) {
+              attempts += attempt
+            }
 
-        override fun parentMayPublish(pairId: String): Boolean = true
+            override fun parentMayPublish(pairId: String): Boolean = true
 
-        override fun publicationRecorded(pairId: String, commitSha: String): Boolean =
-          published.contains("$pairId:$commitSha")
-      },
-      publicationGateway = ExperimentPublicationGateway { attempt ->
-        if (published.add("${attempt.pairId}:${attempt.commitSha}")) {
-          ExperimentPublicationResult(published = true)
-        } else {
-          ExperimentPublicationResult(published = true, alreadyPublished = true)
-        }
-      },
-    )
+            override fun publicationRecorded(
+              pairId: String,
+              commitSha: String,
+            ): Boolean = published.contains("$pairId:$commitSha")
+          },
+        publicationGateway =
+          ExperimentPublicationGateway { attempt ->
+            if (published.add("${attempt.pairId}:${attempt.commitSha}")) {
+              ExperimentPublicationResult(published = true)
+            } else {
+              ExperimentPublicationResult(published = true, alreadyPublished = true)
+            }
+          },
+      )
 
     val request = ExperimentParentDeliveryRequest("SKILL-366", Path.of("."))
     val blocked = reconciler.reconcile("pair", "control-wf", "sha", controlCompleted = false, request = request)

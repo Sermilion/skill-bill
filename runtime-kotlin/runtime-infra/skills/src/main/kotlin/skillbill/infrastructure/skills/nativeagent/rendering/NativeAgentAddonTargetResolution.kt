@@ -13,6 +13,7 @@ import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPoint
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.name
+
 internal const val NATIVE_AGENT_ADDON_ENTRYPOINT_SLOT = "entrypoint"
 
 internal data class ComposedAddonTarget(
@@ -50,23 +51,27 @@ internal fun resolveDeclaredAddonTargets(
   }
   val contentPath = target.contentPath.toAbsolutePath().normalize()
   val packRoot = platformPackRoot(root, contentPath, additionalPackRoots)
-  val pack = requireNotNull(target.manifest) {
-    "${displayPath(root, contentPath)}: platform-pack native agent composition requires a parsed platform.yaml manifest"
-  }
+  val pack =
+    requireNotNull(target.manifest) {
+      "${displayPath(root, contentPath)}: platform-pack native agent composition requires a parsed " +
+        "platform.yaml manifest"
+    }
   val skillName = contentPath.parent.name
   val selections = NativeAgentAddonSelectionPolicy.select(pack, skillName)
   if (selections.isEmpty()) {
     return ResolvedAddonComposition(emptyList(), emptyList())
   }
   val skillRelativeDir = nativeAgentSkillRelativeDir(packRoot, contentPath)
-  val lookup = AddonPointerLookup(
-    pack = pack,
-    root = root,
-    declared = pack.pointers
-      .filter { pointer -> pointer.skillRelativeDir == skillRelativeDir }
-      .associateBy(NativeAgentPointerSpec::name),
-    skillRelativeDir = skillRelativeDir,
-  )
+  val lookup =
+    AddonPointerLookup(
+      pack = pack,
+      root = root,
+      declared =
+        pack.pointers
+          .filter { pointer -> pointer.skillRelativeDir == skillRelativeDir }
+          .associateBy(NativeAgentPointerSpec::name),
+      skillRelativeDir = skillRelativeDir,
+    )
   val resolved = linkedMapOf<Path, ComposedAddonTarget>()
   selections.forEach { selection ->
     selectionSlots(selection).forEach { (slot, pointerName) ->
@@ -80,14 +85,22 @@ internal fun resolveDeclaredAddonTargets(
   )
 }
 
-internal fun readAddonFile(root: Path, addon: ComposedAddonTarget): String {
-  val bytes = runCatching { Files.readAllBytes(addon.path) }.getOrElse { failure ->
-    throw MissingContentFileError(addonFailureMessage(root, addon, "is unreadable"), failure)
-  }
+internal fun readAddonFile(
+  root: Path,
+  addon: ComposedAddonTarget,
+): String {
+  val bytes =
+    runCatching { Files.readAllBytes(addon.path) }.getOrElse { failure ->
+      throw MissingContentFileError(addonFailureMessage(root, addon, "is unreadable"), failure)
+    }
   return normalizeMarkdownLineEndings(String(bytes, Charsets.UTF_8))
 }
 
-internal fun addonFailureMessage(root: Path, addon: ComposedAddonTarget, problem: String): String =
+internal fun addonFailureMessage(
+  root: Path,
+  addon: ComposedAddonTarget,
+  problem: String,
+): String =
   "pack '${addon.packSlug}' add-on '${addon.slug}' slot '${addon.slot}': declared target $problem at '${addon.path}' " +
     "(repository path '${displayPath(root, addon.path)}')"
 
@@ -101,20 +114,22 @@ private fun resolveAddonTarget(
   slot: String,
   pointerName: String,
 ): ComposedAddonTarget {
-  val pointer = lookup.declared[pointerName]
-    ?: throw MissingContentFileError(
-      "pack '${lookup.pack.slug}' add-on '${selection.slug}' slot '$slot': '$pointerName' is not declared in " +
-        "platform.yaml pointers for '${lookup.skillRelativeDir}' at " +
-        "'${lookup.pack.packRoot.resolve("platform.yaml").toAbsolutePath().normalize()}'",
-    )
+  val pointer =
+    lookup.declared[pointerName]
+      ?: throw MissingContentFileError(
+        "pack '${lookup.pack.slug}' add-on '${selection.slug}' slot '$slot': '$pointerName' is not declared in " +
+          "platform.yaml pointers for '${lookup.skillRelativeDir}' at " +
+          "'${lookup.pack.packRoot.resolve("platform.yaml").toAbsolutePath().normalize()}'",
+      )
   val path = lookup.root.resolve(pointer.target).toAbsolutePath().normalize()
-  val addon = ComposedAddonTarget(
-    packSlug = lookup.pack.slug,
-    slug = selection.slug,
-    slot = slot,
-    path = path,
-    activation = selection.activation,
-  )
+  val addon =
+    ComposedAddonTarget(
+      packSlug = lookup.pack.slug,
+      slug = selection.slug,
+      slot = slot,
+      path = path,
+      activation = selection.activation,
+    )
   if (!Files.isRegularFile(path)) {
     throw MissingContentFileError(addonFailureMessage(lookup.root, addon, "is missing"))
   }
@@ -127,16 +142,18 @@ private fun enforceResolvedAddonProjectionParity(
   composedByPath: Map<Path, ComposedAddonTarget>,
 ): List<String> {
   val composedPaths = composedByPath.keys
-  val composedSlugs = selections.map { selection ->
-    val missing = selectionSlots(selection).firstNotNullOfOrNull { (slot, pointerName) ->
-      val addon = resolveAddonTarget(lookup, selection, slot, pointerName)
-      addon.takeUnless { it.path in composedPaths }
+  val composedSlugs =
+    selections.map { selection ->
+      val missing =
+        selectionSlots(selection).firstNotNullOfOrNull { (slot, pointerName) ->
+          val addon = resolveAddonTarget(lookup, selection, slot, pointerName)
+          addon.takeUnless { it.path in composedPaths }
+        }
+      if (missing != null) {
+        throw MissingContentFileError(addonFailureMessage(lookup.root, missing, "did not compose"))
+      }
+      selection.slug
     }
-    if (missing != null) {
-      throw MissingContentFileError(addonFailureMessage(lookup.root, missing, "did not compose"))
-    }
-    selection.slug
-  }
   val extra = composedByPath.values.firstOrNull { addon -> addon.slug !in composedSlugs }
   if (extra != null) {
     throw MissingContentFileError(addonFailureMessage(lookup.root, extra, "is unprojected"))

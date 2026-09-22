@@ -35,12 +35,13 @@ class PrDescriptionTelemetryEditDetectionTest {
     )
 
     ensureTestDatabase(tempDir.resolve("metrics.db")).use { connection ->
-      val payload = decodeJsonObject(
-        scalarString(
-          connection,
-          "SELECT payload_json FROM telemetry_outbox WHERE event_name = 'skillbill_pr_description_generated'",
-        ),
-      )
+      val payload =
+        decodeJsonObject(
+          scalarString(
+            connection,
+            "SELECT payload_json FROM telemetry_outbox WHERE event_name = 'skillbill_pr_description_generated'",
+          ),
+        )
       assertEquals(true, payload["was_edited_by_user"])
       assertEquals(true, payload["pr_created"])
     }
@@ -51,20 +52,21 @@ class PrDescriptionTelemetryEditDetectionTest {
     val tempDir = Files.createTempDirectory("skillbill-mcp-pr-description-orchestrated-edited")
     val context = McpRuntimeContext(environment = enabledTelemetryEnvironment(tempDir), userHome = tempDir)
 
-    val result = McpToolDispatcher.call(
-      "pr_description_generated",
-      mapOf(
-        "commit_count" to 2,
-        "files_changed_count" to 4,
-        "was_edited_by_user" to false,
-        "pr_created" to true,
-        "pr_title" to "SKILL-109 reliable telemetry",
-        "orchestrated" to true,
-        "generated_description" to "## Summary\r\n\r\n- generated body\r\n",
-        "final_pr_body" to "## Summary\n\n- generated body with reviewer edit\n",
-      ),
-      context,
-    )
+    val result =
+      McpToolDispatcher.call(
+        "pr_description_generated",
+        mapOf(
+          "commit_count" to 2,
+          "files_changed_count" to 4,
+          "was_edited_by_user" to false,
+          "pr_created" to true,
+          "pr_title" to "SKILL-109 reliable telemetry",
+          "orchestrated" to true,
+          "generated_description" to "## Summary\r\n\r\n- generated body\r\n",
+          "final_pr_body" to "## Summary\n\n- generated body with reviewer edit\n",
+        ),
+        context,
+      )
 
     val payload = result["telemetry_payload"] as Map<*, *>
     assertEquals("orchestrated", result["mode"])
@@ -94,7 +96,10 @@ class PrDescriptionTelemetryEditDetectionTest {
     )
   }
 
-  private fun scalarString(connection: Connection, sql: String): String =
+  private fun scalarString(
+    connection: Connection,
+    sql: String,
+  ): String =
     connection.createStatement().use { statement ->
       statement.executeQuery(sql).use { rows ->
         check(rows.next()) { "Expected scalar row for query: $sql" }

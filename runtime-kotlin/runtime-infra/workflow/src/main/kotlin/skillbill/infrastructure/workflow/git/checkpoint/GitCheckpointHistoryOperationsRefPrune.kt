@@ -19,7 +19,10 @@ internal fun gitCheckpointProtectedBranchFailure(repoRoot: Path): WorkflowGitOpe
   )
 }
 
-internal fun gitCheckpointOwnedHeadFailure(repoRoot: Path, expected: String): WorkflowGitOperationResult? {
+internal fun gitCheckpointOwnedHeadFailure(
+  repoRoot: Path,
+  expected: String,
+): WorkflowGitOperationResult? {
   if (expected.isBlank()) {
     return WorkflowGitOperationResult.Failed(error = "An owned HEAD sha is required to amend.")
   }
@@ -34,7 +37,10 @@ internal fun gitCheckpointOwnedHeadFailure(repoRoot: Path, expected: String): Wo
   )
 }
 
-internal fun gitCheckpointStagedContentFailure(repoRoot: Path, currentHead: String): WorkflowGitOperationResult? {
+internal fun gitCheckpointStagedContentFailure(
+  repoRoot: Path,
+  currentHead: String,
+): WorkflowGitOperationResult? {
   val staged = runGitProcess(repoRoot, listOf("diff", "--cached", "--quiet"))
   if (staged.timedOut || staged.readFailure != null) {
     return WorkflowGitOperationResult.Failed(
@@ -47,21 +53,29 @@ internal fun gitCheckpointStagedContentFailure(repoRoot: Path, currentHead: Stri
   )
 }
 
-internal fun gitCheckpointValidatedRef(namespacePrefix: String, refName: String): String? {
+internal fun gitCheckpointValidatedRef(
+  namespacePrefix: String,
+  refName: String,
+): String? {
   val prefix = namespacePrefix.trim().removeSuffix("/")
   val ref = refName.trim()
   if (prefix.isBlank() || !ref.startsWith("$prefix/")) return null
   if (ref.endsWith("/") || ref.endsWith(".lock")) return null
-  val segmentRejected = ref.split('/').any { segment ->
-    segment in GIT_CHECKPOINT_REF_NAME_REJECTED_SEGMENTS || segment.endsWith(".lock") || segment.contains("..")
-  }
-  val charRejected = ref.any { char ->
-    char.isWhitespace() || char.isISOControl() || char in GIT_CHECKPOINT_REF_NAME_REJECTED_CHARS
-  }
+  val segmentRejected =
+    ref.split('/').any { segment ->
+      segment in GIT_CHECKPOINT_REF_NAME_REJECTED_SEGMENTS || segment.endsWith(".lock") || segment.contains("..")
+    }
+  val charRejected =
+    ref.any { char ->
+      char.isWhitespace() || char.isISOControl() || char in GIT_CHECKPOINT_REF_NAME_REJECTED_CHARS
+    }
   return ref.takeIf { !segmentRejected && !charRejected }
 }
 
-internal fun gitCheckpointRejectedRef(namespacePrefix: String, refName: String) = WorkflowGitOperationResult.Failed(
+internal fun gitCheckpointRejectedRef(
+  namespacePrefix: String,
+  refName: String,
+) = WorkflowGitOperationResult.Failed(
   error = "Ref '${refName.trim()}' is not a valid ref inside namespace '${namespacePrefix.trim()}'.",
 )
 

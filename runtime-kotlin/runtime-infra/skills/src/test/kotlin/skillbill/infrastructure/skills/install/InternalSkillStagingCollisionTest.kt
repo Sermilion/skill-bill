@@ -29,6 +29,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
 class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
   @Test
   fun `selected pack child authored companion installs flat beside its rendered wrapper`() {
@@ -41,14 +42,15 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
         "\nRead [compose-guidelines.md](compose-guidelines.md) for the detailed rubric.\n",
     )
 
-    val rendered = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val rendered =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
 
     val wrapper = rendered.stagingDir.resolve("${fixture.packChildName}.md")
     val companion = rendered.stagingDir.resolve("compose-guidelines.md")
@@ -69,34 +71,37 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
     )
     Files.writeString(companionSource, "first rubric\n")
 
-    val first = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val first =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
     Files.writeString(companionSource, "second rubric\n")
-    val changed = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val changed =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
     assertNotEquals(first.contentHash, changed.contentHash)
 
     Files.delete(changed.stagingDir.resolve("review-guidelines.md").toPath())
-    val restored = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = listOf(fixture.packChildPlanSkill),
-      ),
-    )
+    val restored =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = listOf(fixture.packChildPlanSkill),
+        ),
+      )
     assertEquals(changed.contentHash, restored.contentHash)
     assertEquals("second rubric\n", Files.readString(restored.stagingDir.resolve("review-guidelines.md").toPath()))
   }
@@ -121,16 +126,17 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
         "\nRead [${fixture.packChildName}.md](${fixture.packChildName}.md) for the governed rubric.\n",
     )
     Files.writeString(fixture.packChildDir.resolve("${fixture.packChildName}.md"), "collision\n")
-    val error = assertFailsWith<InternalSkillSidecarCollisionError> {
-      stageInstalledSkill(
-        StageInstalledSkillInput(
-          repoRoot = fixture.repoRoot,
-          sourceSkillDir = fixture.parentDir,
-          home = fixture.home,
-          selectedPackSkills = listOf(fixture.packChildPlanSkill),
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<InternalSkillSidecarCollisionError> {
+        stageInstalledSkill(
+          StageInstalledSkillInput(
+            repoRoot = fixture.repoRoot,
+            sourceSkillDir = fixture.parentDir,
+            home = fixture.home,
+            selectedPackSkills = listOf(fixture.packChildPlanSkill),
+          ),
+        )
+      }
     assertEquals("${fixture.packChildName}.md", error.sidecarRelativePath)
   }
 
@@ -172,22 +178,25 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
   @Test
   fun `portable collision validation rejects companions claimed by two children`() {
     val parent = Files.createTempDirectory("skillbill-sidecar-collision-parent").also(tempDirs::add)
-    val first = InternalSidecarTarget(
-      skillName = "bill-first",
-      sourceDir = parent,
-      renderedWrapper = "first",
-      authoredCompanions = listOf(InternalSidecarCompanion("Rubric.md", byteArrayOf(1))),
-    )
-    val second = InternalSidecarTarget(
-      skillName = "bill-second",
-      sourceDir = parent,
-      renderedWrapper = "second",
-      authoredCompanions = listOf(InternalSidecarCompanion("rubric.md", byteArrayOf(2))),
-    )
+    val first =
+      InternalSidecarTarget(
+        skillName = "bill-first",
+        sourceDir = parent,
+        renderedWrapper = "first",
+        authoredCompanions = listOf(InternalSidecarCompanion("Rubric.md", byteArrayOf(1))),
+      )
+    val second =
+      InternalSidecarTarget(
+        skillName = "bill-second",
+        sourceDir = parent,
+        renderedWrapper = "second",
+        authoredCompanions = listOf(InternalSidecarCompanion("rubric.md", byteArrayOf(2))),
+      )
 
-    val error = assertFailsWith<InternalSkillSidecarCollisionError> {
-      validateInternalSidecarFileNames(parent, listOf(first, second))
-    }
+    val error =
+      assertFailsWith<InternalSkillSidecarCollisionError> {
+        validateInternalSidecarFileNames(parent, listOf(first, second))
+      }
 
     assertEquals("rubric.md", error.sidecarRelativePath)
   }
@@ -214,14 +223,15 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
     val inert = stageInstalledSkill(fixture.repoRoot, fixture.parentDir, fixture.home)
     assertTrue(inert.renderedSidecarFiles.isEmpty(), "inert staging must carry no sidecars")
 
-    val inertExplicitEmpty = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = fixture.repoRoot,
-        sourceSkillDir = fixture.parentDir,
-        home = fixture.home,
-        selectedPackSkills = emptyList(),
-      ),
-    )
+    val inertExplicitEmpty =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = fixture.repoRoot,
+          sourceSkillDir = fixture.parentDir,
+          home = fixture.home,
+          selectedPackSkills = emptyList(),
+        ),
+      )
     assertEquals(
       inert.contentHash,
       inertExplicitEmpty.contentHash,
@@ -233,11 +243,12 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
   @Test
   fun `standaloneInstallableSkills excludes internal pack skills that nativeAgentSourceRoots retains`() {
     val parent = planSkill("bill-code-review", internalFor = null)
-    val packInternal = planSkill(
-      "bill-kotlin-code-review",
-      internalFor = "bill-code-review",
-      platformSlug = "kotlin",
-    )
+    val packInternal =
+      planSkill(
+        "bill-kotlin-code-review",
+        internalFor = "bill-code-review",
+        platformSlug = "kotlin",
+      )
     val skills = listOf(parent, packInternal)
 
     val standalone = standaloneInstallableSkills(skills, selectedPlatformSlugs = setOf("kotlin"))
@@ -247,9 +258,10 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
       "an internal pack skill must not stage standalone or link into skills_dir",
     )
 
-    val sourceRoots = nativeAgentSourceRoots(
-      NativeAgentSourceRootsRequest(skills = skills, selectedPlatformSlugs = setOf("kotlin")),
-    )
+    val sourceRoots =
+      nativeAgentSourceRoots(
+        NativeAgentSourceRootsRequest(skills = skills, selectedPlatformSlugs = setOf("kotlin")),
+      )
     assertTrue(
       packInternal.sourceDir.toPath() in sourceRoots,
       "an internal pack skill's dir must remain a native-agent source root (PD6 parity)",
@@ -262,13 +274,14 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
     val agentRoot = fixture.home.resolve("agents")
     Files.createDirectories(agentRoot)
 
-    val error = assertFailsWith<InvalidInternalSkillClassificationError> {
-      installSkill(
-        skillPath = fixture.packChildDir,
-        agentTargets = listOf(AgentTarget("test-agent", agentRoot.toFileLocation())),
-        context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidInternalSkillClassificationError> {
+        installSkill(
+          skillPath = fixture.packChildDir,
+          agentTargets = listOf(AgentTarget("test-agent", agentRoot.toFileLocation())),
+          context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
+        )
+      }
     assertTrue(error.message.orEmpty().contains("internal-for: ${fixture.parentName}"))
     assertFalse(
       Files.exists(agentRoot.resolve(fixture.packChildName), LinkOption.NOFOLLOW_LINKS),
@@ -280,14 +293,16 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
   fun `repo validation accepts a healthy pack internal child classification`() {
     val fixture = setupParentWithInternalPackChild()
 
-    val report = RepoValidationRuntime.validateRepo(
-      fixture.repoRoot,
-      testNativeAgentCompositionContext(fixture.repoRoot),
-    )
+    val report =
+      RepoValidationRuntime.validateRepo(
+        fixture.repoRoot,
+        testNativeAgentCompositionContext(fixture.repoRoot),
+      )
 
-    val internalIssues = report.issues.filter { issue ->
-      issue.contains("internal-for") || issue.contains("internal skill") || issue.contains("platform-pack skill")
-    }
+    val internalIssues =
+      report.issues.filter { issue ->
+        issue.contains("internal-for") || issue.contains("internal skill") || issue.contains("platform-pack skill")
+      }
     assertTrue(
       internalIssues.isEmpty(),
       "healthy pack internal classification must raise no internal-skill issue, got: $internalIssues",
@@ -310,10 +325,11 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
       """.trimIndent(),
     )
 
-    val report = RepoValidationRuntime.validateRepo(
-      fixture.repoRoot,
-      testNativeAgentCompositionContext(fixture.repoRoot),
-    )
+    val report =
+      RepoValidationRuntime.validateRepo(
+        fixture.repoRoot,
+        testNativeAgentCompositionContext(fixture.repoRoot),
+      )
 
     assertTrue(
       report.issues.any { it.contains("not a discovered skill") && it.contains(fixture.packChildName) },

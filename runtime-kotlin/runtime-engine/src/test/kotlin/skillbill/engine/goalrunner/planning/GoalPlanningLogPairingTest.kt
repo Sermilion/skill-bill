@@ -28,12 +28,13 @@ private const val OPERATION = "plan:3:attempt:1"
 class GoalPlanningLogPairingTest {
   @Test
   fun `a relaunched attempt does not borrow the previous segment's completion`() {
-    val log = logFrom(
-      started("2026-08-24T11:57:20Z"),
-      completed("2026-08-24T11:57:50Z", outcome = "failed"),
-      started("2026-08-24T12:28:01Z"),
-      completed("2026-08-24T12:32:01Z", outcome = "succeeded"),
-    )
+    val log =
+      logFrom(
+        started("2026-08-24T11:57:20Z"),
+        completed("2026-08-24T11:57:50Z", outcome = "failed"),
+        started("2026-08-24T12:28:01Z"),
+        completed("2026-08-24T12:32:01Z", outcome = "succeeded"),
+      )
 
     assertEquals(2, log.attempts.size, "each segment is its own attempt")
     val (first, second) = log.attempts
@@ -47,11 +48,12 @@ class GoalPlanningLogPairingTest {
 
   @Test
   fun `an attempt whose process died stays in flight instead of taking a later finish`() {
-    val log = logFrom(
-      started("2026-08-24T11:57:20Z"),
-      started("2026-08-24T12:28:01Z"),
-      completed("2026-08-24T12:32:01Z", outcome = "succeeded"),
-    )
+    val log =
+      logFrom(
+        started("2026-08-24T11:57:20Z"),
+        started("2026-08-24T12:28:01Z"),
+        completed("2026-08-24T12:32:01Z", outcome = "succeeded"),
+      )
 
     assertEquals(2, log.attempts.size)
     val crashed = log.attempts.first { it.outcome == GoalPlanningAttemptOutcome.IN_FLIGHT }
@@ -63,10 +65,11 @@ class GoalPlanningLogPairingTest {
 
   @Test
   fun `an inverted pair reports no duration and says the record is inconsistent`() {
-    val log = logFrom(
-      started("2026-08-24T12:28:01Z"),
-      completed("2026-08-24T11:57:50Z", outcome = "failed"),
-    )
+    val log =
+      logFrom(
+        started("2026-08-24T12:28:01Z"),
+        completed("2026-08-24T11:57:50Z", outcome = "failed"),
+      )
 
     val attempt = log.attempts.single()
     assertTrue(attempt.timestampsInconsistent)
@@ -74,41 +77,49 @@ class GoalPlanningLogPairingTest {
     assertEquals(0L, log.totalPlanningMs, "an unusable record must not subtract from the total")
   }
 
-  private fun logFrom(vararg events: GoalProgressEvent) = GoalPlanningLogService(
-    manifestStore = StubManifestStore,
-    outcomeStore = StubOutcomeStore(events.toList()),
-    database = UnreadableDatabase,
-    diagnosticMetadataValidator = RejectedOutputDiagnosticMetadataValidator { },
-    clock = testHarnessClock,
-  ).log(GoalPlanningLogRequest(issueKey = ISSUE_KEY))
+  private fun logFrom(vararg events: GoalProgressEvent) =
+    GoalPlanningLogService(
+      manifestStore = StubManifestStore,
+      outcomeStore = StubOutcomeStore(events.toList()),
+      database = UnreadableDatabase,
+      diagnosticMetadataValidator = RejectedOutputDiagnosticMetadataValidator { },
+      clock = testHarnessClock,
+    ).log(GoalPlanningLogRequest(issueKey = ISSUE_KEY))
 
-  private fun started(timestamp: String): GoalProgressEvent = GoalProgressEvent(
-    eventKind = GoalProgressEventKind.OPERATION_STARTED,
-    workflowId = PARENT_WORKFLOW_ID,
-    workflowPhase = "goal_planning",
-    processAlive = true,
-    sequenceNumber = 0,
-    timestamp = timestamp,
-    operationName = OPERATION,
-    expectedLong = true,
-  )
+  private fun started(timestamp: String): GoalProgressEvent =
+    GoalProgressEvent(
+      eventKind = GoalProgressEventKind.OPERATION_STARTED,
+      workflowId = PARENT_WORKFLOW_ID,
+      workflowPhase = "goal_planning",
+      processAlive = true,
+      sequenceNumber = 0,
+      timestamp = timestamp,
+      operationName = OPERATION,
+      expectedLong = true,
+    )
 
-  private fun completed(timestamp: String, outcome: String): GoalProgressEvent = GoalProgressEvent(
-    eventKind = GoalProgressEventKind.OPERATION_COMPLETED,
-    workflowId = PARENT_WORKFLOW_ID,
-    workflowPhase = "goal_planning",
-    processAlive = true,
-    sequenceNumber = 0,
-    timestamp = timestamp,
-    operationName = OPERATION,
-    expectedLong = true,
-    outcome = GoalProgressOutcome.fromWire(outcome),
-  )
+  private fun completed(
+    timestamp: String,
+    outcome: String,
+  ): GoalProgressEvent =
+    GoalProgressEvent(
+      eventKind = GoalProgressEventKind.OPERATION_COMPLETED,
+      workflowId = PARENT_WORKFLOW_ID,
+      workflowPhase = "goal_planning",
+      processAlive = true,
+      sequenceNumber = 0,
+      timestamp = timestamp,
+      operationName = OPERATION,
+      expectedLong = true,
+      outcome = GoalProgressOutcome.fromWire(outcome),
+    )
 }
 
 private object StubManifestStore : GoalRunnerManifestStoreDefaults() {
-  override fun loadByIssueKey(issueKey: String, repoRoot: Path?) =
-    GoalRunnerManifestState(PARENT_WORKFLOW_ID, "/fake/metrics.db", manifest(subtaskCount = 3))
+  override fun loadByIssueKey(
+    issueKey: String,
+    repoRoot: Path?,
+  ) = GoalRunnerManifestState(PARENT_WORKFLOW_ID, "/fake/metrics.db", manifest(subtaskCount = 3))
 
   override fun save(state: GoalRunnerManifestState) = state
 
@@ -118,9 +129,16 @@ private object StubManifestStore : GoalRunnerManifestStoreDefaults() {
     expectedOwnerToken: String?,
   ): Boolean = true
 
-  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = true
+  override fun heartbeatExecutionLease(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+  ): Boolean = true
 
-  override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = true
+  override fun releaseExecutionLease(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean = true
 }
 
 private class StubOutcomeStore(private val events: List<GoalProgressEvent>) :

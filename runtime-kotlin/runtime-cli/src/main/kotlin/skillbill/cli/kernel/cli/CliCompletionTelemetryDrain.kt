@@ -4,11 +4,15 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 
 private const val DRAIN_TIMEOUT_MILLIS = 5_000L
 
-internal fun drainTelemetryOnCompletion(telemetryService: TelemetryService, diagnostics: RuntimeDiagnostics) {
-  val worker = Thread {
-    runCatching { telemetryService.autoSync() }
-      .onFailure { error -> diagnostics.warning("telemetry completion drain failed to flush the outbox", error) }
-  }
+internal fun drainTelemetryOnCompletion(
+  telemetryService: TelemetryService,
+  diagnostics: RuntimeDiagnostics,
+) {
+  val worker =
+    Thread {
+      runCatching { telemetryService.autoSync() }
+        .onFailure { error -> diagnostics.warning("telemetry completion drain failed to flush the outbox", error) }
+    }
   worker.isDaemon = true
   worker.start()
   try {

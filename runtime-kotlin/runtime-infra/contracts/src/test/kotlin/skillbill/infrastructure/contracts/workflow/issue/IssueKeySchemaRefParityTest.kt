@@ -29,12 +29,16 @@ class IssueKeySchemaRefParityTest {
 
   private fun checkpointIdentity() = load(FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE)
 
-  private fun load(resource: String) = assertNotNull(
-    javaClass.classLoader.getResourceAsStream(resource),
-    resource,
-  ).use { YAMLMapper().readTree(it) }
+  private fun load(resource: String) =
+    assertNotNull(
+      javaClass.classLoader.getResourceAsStream(resource),
+      resource,
+    ).use { YAMLMapper().readTree(it) }
 
-  private fun refAt(root: JsonNode, vararg path: String): String {
+  private fun refAt(
+    root: JsonNode,
+    vararg path: String,
+  ): String {
     var node = root
     path.forEach { segment -> node = node.path(segment) }
     return node.path("\$ref").asText()

@@ -14,7 +14,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-internal fun runInstall(fixture: InstallFixture, command: String, vararg extraArgs: String): CliExecutionResult =
+internal fun runInstall(
+  fixture: InstallFixture,
+  command: String,
+  vararg extraArgs: String,
+): CliExecutionResult =
   CliRuntime.run(
     listOf(
       "install",
@@ -27,10 +31,11 @@ internal fun runInstall(fixture: InstallFixture, command: String, vararg extraAr
     installCliContext(fixture.home),
   )
 
-internal fun installCliContext(home: Path): CliRuntimeContext = CliRuntimeContext(
-  userHome = home,
-  environment = isolatedCliEnvironment(home),
-)
+internal fun installCliContext(home: Path): CliRuntimeContext =
+  CliRuntimeContext(
+    userHome = home,
+    environment = isolatedCliEnvironment(home),
+  )
 
 internal fun installFixture(): InstallFixture {
   val home = Files.createTempDirectory("skillbill-cli-install-native")
@@ -56,22 +61,24 @@ internal fun installFixture(): InstallFixture {
   val baseJunieMd = baseJunieAgents.resolve("bill-code-review-worker.md")
   val codexToml = codexAgents.resolve("bill-kotlin-code-review-testing.toml")
   val junieMd = junieAgents.resolve("bill-kotlin-code-review-testing.md")
-  val cursorMd = platformPacks.resolve("kotlin/code-review/bill-kotlin-code-review/cursor-agents")
-    .resolve("bill-kotlin-code-review-testing.md")
+  val cursorMd =
+    platformPacks.resolve("kotlin/code-review/bill-kotlin-code-review/cursor-agents")
+      .resolve("bill-kotlin-code-review-testing.md")
   val kmpCodexToml = kmpCodexAgents.resolve("bill-kmp-code-review-ui.toml")
   val kmpJunieMd = kmpJunieAgents.resolve("bill-kmp-code-review-ui.md")
-  val fixture = InstallFixture(
-    home,
-    platformPacks,
-    skills,
-    baseCodexToml,
-    baseJunieMd,
-    codexToml,
-    junieMd,
-    kmpCodexToml,
-    kmpJunieMd,
-    cursorMd,
-  )
+  val fixture =
+    InstallFixture(
+      home,
+      platformPacks,
+      skills,
+      baseCodexToml,
+      baseJunieMd,
+      codexToml,
+      junieMd,
+      kmpCodexToml,
+      kmpJunieMd,
+      cursorMd,
+    )
   writeInstallFixtureFiles(fixture)
   return fixture
 }
@@ -84,20 +91,28 @@ internal fun writeInstallFixtureFiles(fixture: InstallFixture) {
   writeNativeAgentSet(fixture.kmpCodexToml, "bill-kmp-code-review-ui", "Review KMP UI.")
 }
 
-internal fun assertGeneratedAgentLinked(path: Path, expected: Path?) {
+internal fun assertGeneratedAgentLinked(
+  path: Path,
+  expected: Path?,
+) {
   assertTrue(Files.isSymbolicLink(path))
   assertContains(path.toRealPath().toString(), ".skill-bill")
   if (expected != null) {
-    val provider = NativeAgentProvider.entries.first { provider ->
-      provider.directoryName == expected.parent.fileName.toString()
-    }
+    val provider =
+      NativeAgentProvider.entries.first { provider ->
+        provider.directoryName == expected.parent.fileName.toString()
+      }
     val name = expected.fileName.toString().removeSuffix(".${provider.extension}")
     val source = parseNativeAgentSource(expected.parent.parent.resolve("native-agents/$name.md"))
     assertEquals(provider.render(source), Files.readString(path))
   }
 }
 
-internal fun writeNativeAgentSet(codexPath: Path, name: String, description: String) {
+internal fun writeNativeAgentSet(
+  codexPath: Path,
+  name: String,
+  description: String,
+) {
   val skillDir = codexPath.parent.parent
   val source = NativeAgentSource(name = name, description = description, body = "# $name\n\nDo the work.")
   Files.writeString(skillDir.resolve("native-agents/$name.md"), renderNativeAgentSource(source))
@@ -114,7 +129,10 @@ internal fun snapshotInstallRepo(fixture: InstallFixture): Map<String, String> =
     }
   }.toMap()
 
-internal fun writeMinimalPackManifest(packRoot: Path, strongSignal: String) {
+internal fun writeMinimalPackManifest(
+  packRoot: Path,
+  strongSignal: String,
+) {
   Files.writeString(
     packRoot.resolve("platform.yaml"),
     """
@@ -148,40 +166,42 @@ internal data class McpCase(
   val assertUnregistered: (String) -> Unit,
 )
 
-internal fun mcpCases(): List<McpCase> = listOf(
-  mcpJsonCase(
-    agent = "claude",
-    relativeConfigPath = ".claude.json",
-    seed = "{\n  \"theme\": \"dark\",\n  \"mcpServers\": {\"other\": {\"command\": \"other\"}}\n}\n",
-    expectedKey = "theme",
-    expectedValue = "dark",
-  ),
-  junieMcpCase(),
-  McpCase(
-    agent = "codex",
-    relativeConfigPath = ".codex/config.toml",
-    seed = "[profile.default]\nmodel = \"gpt-5\"\n\n[mcp_servers.other]\ncommand = \"other\"\nargs = []\n",
-    assertRegistered = { raw ->
-      assertContains(raw, "[profile.default]")
-      assertContains(raw, "[mcp_servers.other]")
-      assertContains(raw, "[mcp_servers.skill-bill]")
-      assertContains(raw, "command = \"/tmp/runtime-mcp\"")
-    },
-    assertUnregistered = { raw ->
-      assertContains(raw, "[profile.default]")
-      assertContains(raw, "[mcp_servers.other]")
-      assertFalse("[mcp_servers.skill-bill]" in raw)
-    },
-  ),
-)
+internal fun mcpCases(): List<McpCase> =
+  listOf(
+    mcpJsonCase(
+      agent = "claude",
+      relativeConfigPath = ".claude.json",
+      seed = "{\n  \"theme\": \"dark\",\n  \"mcpServers\": {\"other\": {\"command\": \"other\"}}\n}\n",
+      expectedKey = "theme",
+      expectedValue = "dark",
+    ),
+    junieMcpCase(),
+    McpCase(
+      agent = "codex",
+      relativeConfigPath = ".codex/config.toml",
+      seed = "[profile.default]\nmodel = \"gpt-5\"\n\n[mcp_servers.other]\ncommand = \"other\"\nargs = []\n",
+      assertRegistered = { raw ->
+        assertContains(raw, "[profile.default]")
+        assertContains(raw, "[mcp_servers.other]")
+        assertContains(raw, "[mcp_servers.skill-bill]")
+        assertContains(raw, "command = \"/tmp/runtime-mcp\"")
+      },
+      assertUnregistered = { raw ->
+        assertContains(raw, "[profile.default]")
+        assertContains(raw, "[mcp_servers.other]")
+        assertFalse("[mcp_servers.skill-bill]" in raw)
+      },
+    ),
+  )
 
-internal fun junieMcpCase(): McpCase = mcpJsonCase(
-  agent = "junie",
-  relativeConfigPath = ".junie/mcp/mcp.json",
-  seed = "{\n  \"mcpServers\": {\"other\": {\"command\": \"other\"}}\n}\n",
-  expectedKey = null,
-  expectedValue = null,
-)
+internal fun junieMcpCase(): McpCase =
+  mcpJsonCase(
+    agent = "junie",
+    relativeConfigPath = ".junie/mcp/mcp.json",
+    seed = "{\n  \"mcpServers\": {\"other\": {\"command\": \"other\"}}\n}\n",
+    expectedKey = null,
+    expectedValue = null,
+  )
 
 internal fun mcpJsonCase(
   agent: String,
@@ -189,29 +209,30 @@ internal fun mcpJsonCase(
   seed: String,
   expectedKey: String?,
   expectedValue: Any?,
-): McpCase = McpCase(
-  agent = agent,
-  relativeConfigPath = relativeConfigPath,
-  seed = seed,
-  assertRegistered = { raw ->
-    val settings = decodeJsonObject(raw)
-    if (expectedKey != null) {
-      assertEquals(expectedValue, settings[expectedKey])
-    }
-    val servers = settings["mcpServers"] as Map<*, *>
-    assertTrue("other" in servers)
-    val skillBill = servers["skill-bill"] as Map<*, *>
-    assertEquals("/tmp/runtime-mcp", skillBill["command"])
-  },
-  assertUnregistered = { raw ->
-    val settings = decodeJsonObject(raw)
-    if (expectedKey != null) {
-      assertEquals(expectedValue, settings[expectedKey])
-    }
-    assertTrue("other" in (settings["mcpServers"] as Map<*, *>))
-    assertFalse("skill-bill" in (settings["mcpServers"] as Map<*, *>))
-  },
-)
+): McpCase =
+  McpCase(
+    agent = agent,
+    relativeConfigPath = relativeConfigPath,
+    seed = seed,
+    assertRegistered = { raw ->
+      val settings = decodeJsonObject(raw)
+      if (expectedKey != null) {
+        assertEquals(expectedValue, settings[expectedKey])
+      }
+      val servers = settings["mcpServers"] as Map<*, *>
+      assertTrue("other" in servers)
+      val skillBill = servers["skill-bill"] as Map<*, *>
+      assertEquals("/tmp/runtime-mcp", skillBill["command"])
+    },
+    assertUnregistered = { raw ->
+      val settings = decodeJsonObject(raw)
+      if (expectedKey != null) {
+        assertEquals(expectedValue, settings[expectedKey])
+      }
+      assertTrue("other" in (settings["mcpServers"] as Map<*, *>))
+      assertFalse("skill-bill" in (settings["mcpServers"] as Map<*, *>))
+    },
+  )
 
 internal fun mcpProfileEntries(result: CliExecutionResult): List<Map<*, *>> =
   (result.payload?.get("profiles") as? List<*>).orEmpty().filterIsInstance<Map<*, *>>()

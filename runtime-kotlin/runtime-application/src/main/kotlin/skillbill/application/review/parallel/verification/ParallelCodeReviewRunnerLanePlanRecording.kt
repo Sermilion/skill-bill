@@ -19,15 +19,20 @@ internal class ParallelCodeReviewRunnerLanePlanRecording(
   private val runtimeOwnedPersistence: RuntimeOwnedPersistenceBoundary,
   private val clock: Clock,
 ) {
-  fun recordSpecIntent(reviewRunId: String?, resolution: SpecIntentResolution) {
+  fun recordSpecIntent(
+    reviewRunId: String?,
+    resolution: SpecIntentResolution,
+  ) {
     if (reviewRunId == null) return
-    val reference = when (resolution) {
-      is SpecIntentResolution.Resolved -> ReviewSpecProjectionReference(
-        specPath = resolution.projection.provenance.specPath,
-        contentDigest = resolution.projection.provenance.contentDigest,
-      )
-      is SpecIntentResolution.None -> ReviewSpecProjectionReference(absenceReason = resolution.reason.wireValue)
-    }
+    val reference =
+      when (resolution) {
+        is SpecIntentResolution.Resolved ->
+          ReviewSpecProjectionReference(
+            specPath = resolution.projection.provenance.specPath,
+            contentDigest = resolution.projection.provenance.contentDigest,
+          )
+        is SpecIntentResolution.None -> ReviewSpecProjectionReference(absenceReason = resolution.reason.wireValue)
+      }
     runtimeOwnedPersistence.requiredWrite(
       seam = "ParallelCodeReviewRunner.recordSpecIntent",
       expected = "runtime-owned review spec projection reference",
@@ -52,15 +57,17 @@ internal class ParallelCodeReviewRunnerLanePlanRecording(
     launches: List<ReviewSpecialistLaunchRequest>,
   ): List<ReviewSpecialistLaunchRequest> {
     if (reviewRunId == null || launches.isEmpty()) return launches
-    val existing = runtimeOwnedPersistence.requiredRead(
-      seam = "ParallelCodeReviewRunner.selectLaunchesForResume",
-      expected = "runtime-owned review lane dispositions",
-    ) { unitOfWork -> unitOfWork.reviews.fetchReviewRunLanes(reviewRunId) }
+    val existing =
+      runtimeOwnedPersistence.requiredRead(
+        seam = "ParallelCodeReviewRunner.selectLaunchesForResume",
+        expected = "runtime-owned review lane dispositions",
+      ) { unitOfWork -> unitOfWork.reviews.fetchReviewRunLanes(reviewRunId) }
     if (existing.isEmpty()) return launches
-    val completeNames = existing
-      .filter { it.reviewDisposition == ReviewLaneReviewDisposition.COMPLETE }
-      .map { it.laneSkillName }
-      .toSet()
+    val completeNames =
+      existing
+        .filter { it.reviewDisposition == ReviewLaneReviewDisposition.COMPLETE }
+        .map { it.laneSkillName }
+        .toSet()
     return launches.filterNot { launch ->
       launch.assignment.laneDecision.specialistSkillName in completeNames
     }
@@ -72,38 +79,42 @@ internal class ParallelCodeReviewRunnerLanePlanRecording(
     launches: List<ReviewSpecialistLaunchRequest>,
   ) {
     if (reviewRunId == null || launches.isEmpty()) return
-    val existing = runtimeOwnedPersistence.requiredRead(
-      seam = "ParallelCodeReviewRunner.recordPlannedLanes.read",
-      expected = "runtime-owned review lane dispositions",
-    ) { unitOfWork -> unitOfWork.reviews.fetchReviewRunLanes(reviewRunId) }
-    val preservedComplete = existing.filter {
-      it.reviewDisposition == ReviewLaneReviewDisposition.COMPLETE
-    }
-    val completionBySkill = launches.associate { launch ->
-      requireNotNull(launch.assignment.laneDecision.specialistSkillName) to
-        parallelCodeReviewGovernedLaunchFor(launch).completionState
-    }
-    val relaunchNames = completionBySkill.keys
-    val pending = plannedRubrics
-      .filter { it.descriptor.skillName in relaunchNames }
-      .map { planned ->
-        val completion = completionBySkill.getValue(planned.descriptor.skillName)
-        ReviewRunLane(
-          laneSkillName = planned.descriptor.skillName,
-          packSlug = planned.descriptor.packSlug,
-          area = planned.descriptor.area,
-          depth = planned.descriptor.depth,
-          required = planned.descriptor.required,
-          orderIndex = planned.descriptor.orderIndex,
-          originLayerChain = planned.descriptor.originLayerChain,
-          resolutionState = ReviewLaneResolutionState.RESOLVED,
-          reviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
-          bundleCompositionDigest = completion.bundleCompositionDigest,
-          segmentAccountingJson = ReviewRunLaneSegmentAccountingJson.encode(completion.segments),
-          unreviewedSegmentIds = completion.unreviewedSegmentIds,
-          budgetDimension = completion.budgetDimension,
-        )
+    val existing =
+      runtimeOwnedPersistence.requiredRead(
+        seam = "ParallelCodeReviewRunner.recordPlannedLanes.read",
+        expected = "runtime-owned review lane dispositions",
+      ) { unitOfWork -> unitOfWork.reviews.fetchReviewRunLanes(reviewRunId) }
+    val preservedComplete =
+      existing.filter {
+        it.reviewDisposition == ReviewLaneReviewDisposition.COMPLETE
       }
+    val completionBySkill =
+      launches.associate { launch ->
+        requireNotNull(launch.assignment.laneDecision.specialistSkillName) to
+          parallelCodeReviewGovernedLaunchFor(launch).completionState
+      }
+    val relaunchNames = completionBySkill.keys
+    val pending =
+      plannedRubrics
+        .filter { it.descriptor.skillName in relaunchNames }
+        .map { planned ->
+          val completion = completionBySkill.getValue(planned.descriptor.skillName)
+          ReviewRunLane(
+            laneSkillName = planned.descriptor.skillName,
+            packSlug = planned.descriptor.packSlug,
+            area = planned.descriptor.area,
+            depth = planned.descriptor.depth,
+            required = planned.descriptor.required,
+            orderIndex = planned.descriptor.orderIndex,
+            originLayerChain = planned.descriptor.originLayerChain,
+            resolutionState = ReviewLaneResolutionState.RESOLVED,
+            reviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
+            bundleCompositionDigest = completion.bundleCompositionDigest,
+            segmentAccountingJson = ReviewRunLaneSegmentAccountingJson.encode(completion.segments),
+            unreviewedSegmentIds = completion.unreviewedSegmentIds,
+            budgetDimension = completion.budgetDimension,
+          )
+        }
     val merged = preservedComplete.filter { it.laneSkillName !in relaunchNames } + pending
     runtimeOwnedPersistence.requiredWrite(
       seam = "ParallelCodeReviewRunner.recordPlannedLanes.write",

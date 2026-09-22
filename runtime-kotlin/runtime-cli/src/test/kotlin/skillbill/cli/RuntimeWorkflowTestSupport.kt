@@ -20,6 +20,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import kotlin.test.assertIs
+
 internal fun installFakeRuntimeMcpBin(home: Path): Path {
   val bin = home.resolve(".skill-bill").resolve("runtime").resolve("runtime-mcp").resolve("bin").resolve("runtime-mcp")
   Files.createDirectories(bin.parent)
@@ -29,13 +30,17 @@ internal fun installFakeRuntimeMcpBin(home: Path): Path {
 }
 
 internal object RuntimeWorkflowTestSupport {
-  fun open(dbPath: Path, context: CliRuntimeContext): Map<String, Any?> {
+  fun open(
+    dbPath: Path,
+    context: CliRuntimeContext,
+  ): Map<String, Any?> {
     val service = component(context, dbPath).workflowService
-    val result = service.open(
-      WorkflowServiceOpenArgs(
-        kind = WorkflowFamilyKind.TASK_RUNTIME,
-      ),
-    )
+    val result =
+      service.open(
+        WorkflowServiceOpenArgs(
+          kind = WorkflowFamilyKind.TASK_RUNTIME,
+        ),
+      )
     return assertIs<WorkflowOpenResult.Ok>(result)
       .toCliMap(service.goalObservabilityEventValidator)
   }
@@ -52,23 +57,29 @@ internal object RuntimeWorkflowTestSupport {
 
   fun update(args: UpdateArgs): Map<String, Any?> {
     val service = component(args.context, args.dbPath).workflowService
-    val result = service.update(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      WorkflowUpdateRequest(
-        workflowId = args.workflowId,
-        workflowStatus = args.workflowStatus,
-        currentStepId = args.currentStepId,
-        stepUpdates = args.stepUpdates?.let(WorkflowStepUpdates::from),
-        artifactsPatch = args.artifactsPatch?.let(WorkflowArtifactPatch::from),
-        planningResult = args.artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
-          ?.let(JsonCodec::anyToStringAnyMap)
-          ?.let { DecompositionPlanningResult.fromWireMap(it, "test.artifacts_patch.plan") },
-      ),
-    )
+    val result =
+      service.update(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        WorkflowUpdateRequest(
+          workflowId = args.workflowId,
+          workflowStatus = args.workflowStatus,
+          currentStepId = args.currentStepId,
+          stepUpdates = args.stepUpdates?.let(WorkflowStepUpdates::from),
+          artifactsPatch = args.artifactsPatch?.let(WorkflowArtifactPatch::from),
+          planningResult =
+            args.artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
+              ?.let(JsonCodec::anyToStringAnyMap)
+              ?.let { DecompositionPlanningResult.fromWireMap(it, "test.artifacts_patch.plan") },
+        ),
+      )
     return assertIs<WorkflowUpdateResult.Ok>(result).toPayload()
   }
 
-  fun get(dbPath: Path, workflowId: String, context: CliRuntimeContext): Map<String, Any?> {
+  fun get(
+    dbPath: Path,
+    workflowId: String,
+    context: CliRuntimeContext,
+  ): Map<String, Any?> {
     val service = component(context, dbPath).workflowService
     val result = service.get(WorkflowFamilyKind.TASK_RUNTIME, workflowId)
     return assertIs<WorkflowGetResult.Ok>(result).toCliMap(service.goalObservabilityEventValidator)
@@ -88,16 +99,20 @@ internal object RuntimeWorkflowTestSupport {
     ).toCliMap()
   }
 
-  fun parseStepUpdates(rawJson: String): List<Map<String, Any?>> = JsonCodec.parseArrayOrEmpty(rawJson).map { value ->
-    requireNotNull(JsonCodec.anyToStringAnyMap(value))
-  }
+  fun parseStepUpdates(rawJson: String): List<Map<String, Any?>> =
+    JsonCodec.parseArrayOrEmpty(rawJson).map { value ->
+      requireNotNull(JsonCodec.anyToStringAnyMap(value))
+    }
 
-  fun parseArtifactsPatch(rawJson: String): Map<String, Any?> = requireNotNull(
-    JsonCodec.parseObjectOrNull(rawJson)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap),
-  )
+  fun parseArtifactsPatch(rawJson: String): Map<String, Any?> =
+    requireNotNull(
+      JsonCodec.parseObjectOrNull(rawJson)
+        ?.let(JsonCodec::jsonElementToValue)
+        ?.let(JsonCodec::anyToStringAnyMap),
+    )
 
-  private fun component(context: CliRuntimeContext, dbPath: Path): RuntimeComponent =
-    RuntimeComponent::class.create(context.toRuntimeContext(dbPathOverride = dbPath.toString()))
+  private fun component(
+    context: CliRuntimeContext,
+    dbPath: Path,
+  ): RuntimeComponent = RuntimeComponent::class.create(context.toRuntimeContext(dbPathOverride = dbPath.toString()))
 }

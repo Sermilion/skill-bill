@@ -15,5 +15,4 @@ fun issueAndFeature(directoryName: String): Pair<String, String> {
   return parts.first() to parts.getOrElse(1) { "decomposition" }
 }
 
-fun issueKeyFromBranch(branchName: String): String? =
-  TRACKER_STYLE_ISSUE_KEY.find(branchName)?.value?.uppercase()
+fun issueKeyFromBranch(branchName: String): String? = TRACKER_STYLE_ISSUE_KEY.find(branchName)?.value?.uppercase()

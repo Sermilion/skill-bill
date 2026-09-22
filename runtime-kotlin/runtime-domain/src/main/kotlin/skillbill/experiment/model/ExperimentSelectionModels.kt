@@ -6,10 +6,11 @@ enum class ExperimentExecutionMode {
   ;
 
   val wireValue: String
-    get() = when (this) {
-      GOAL_PAIR -> "goal_pair"
-      NAVIGATION -> "navigation"
-    }
+    get() =
+      when (this) {
+        GOAL_PAIR -> "goal_pair"
+        NAVIGATION -> "navigation"
+      }
 
   companion object {
     fun fromWire(value: String): ExperimentExecutionMode? =
@@ -23,10 +24,11 @@ enum class ExperimentArmId {
   ;
 
   val wireValue: String
-    get() = when (this) {
-      CONTROL -> "control"
-      TREATMENT -> "treatment"
-    }
+    get() =
+      when (this) {
+        CONTROL -> "control"
+        TREATMENT -> "treatment"
+      }
 
   companion object {
     fun fromWire(value: String): ExperimentArmId? =

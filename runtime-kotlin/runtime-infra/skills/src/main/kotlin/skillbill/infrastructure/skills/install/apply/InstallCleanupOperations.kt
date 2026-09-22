@@ -28,9 +28,10 @@ internal object InstallCleanupOperations {
 
     if (installedSkillsRoot != null) {
       val root = installedSkillsRoot.toAbsolutePath().normalize()
-      val owned = Files.list(targetDir).use { stream ->
-        stream.filter { path -> symlinkPointsInto(path, root) }.collect(Collectors.toList())
-      }
+      val owned =
+        Files.list(targetDir).use { stream ->
+          stream.filter { path -> symlinkPointsInto(path, root) }.collect(Collectors.toList())
+        }
       owned.forEach { path -> removeCleanupTarget(path, managedInstallMarker, removed, skipped) }
     }
     (skillNames + legacyNames).distinct().forEach { name ->
@@ -42,7 +43,10 @@ internal object InstallCleanupOperations {
     return removed to skipped
   }
 
-  private fun symlinkPointsInto(path: Path, root: Path): Boolean {
+  private fun symlinkPointsInto(
+    path: Path,
+    root: Path,
+  ): Boolean {
     if (!Files.isSymbolicLink(path)) return false
     return try {
       val target = Files.readSymbolicLink(path)
@@ -74,12 +78,18 @@ internal object InstallCleanupOperations {
     Files.walkFileTree(
       target,
       object : SimpleFileVisitor<Path>() {
-        override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+        override fun visitFile(
+          file: Path,
+          attrs: BasicFileAttributes,
+        ): FileVisitResult {
           Files.delete(file)
           return CONTINUE
         }
 
-        override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
+        override fun postVisitDirectory(
+          dir: Path,
+          exc: IOException?,
+        ): FileVisitResult {
           if (exc != null) throw exc
           Files.delete(dir)
           return CONTINUE

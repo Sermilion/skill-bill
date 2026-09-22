@@ -5,7 +5,6 @@ import skillbill.workflow.engine.model.ReviewContextWireMap
 class ReviewContextEnvelope private constructor(
   private val wire: ReviewContextWireMap,
 ) {
-
   val kind: String get() = wire.kind
 
   fun asWireMap(): ReviewContextWireMap = wire

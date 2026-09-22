@@ -18,9 +18,11 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatu
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 internal fun featureSizeFromArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeFeatureSize {
-  val raw = artifacts[FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY] as? Map<*, *>
-    ?: return FeatureTaskRuntimeFeatureSize.MEDIUM
+  val raw =
+    artifacts[FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY] as? Map<*, *>
+      ?: return FeatureTaskRuntimeFeatureSize.MEDIUM
   val invariantsMap = JsonCodec.anyToStringAnyMap(raw) ?: return FeatureTaskRuntimeFeatureSize.MEDIUM
   return decodeRunInvariantsFromArtifact(invariantsMap)?.featureSize
     ?: FeatureTaskRuntimeFeatureSize.MEDIUM
@@ -34,17 +36,19 @@ fun diagnoseUnsettledCompletedUpstreamPhaseId(
 ): String? {
   val recordedOutputs = settledPhaseOutputs(phaseRecords)
   val stepOrder = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds
-  val blockedConsumers = phaseRecords.filterValues {
-    it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
-  }.keys
+  val blockedConsumers =
+    phaseRecords.filterValues {
+      it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
+    }.keys
   for (consumerPhaseId in blockedConsumers) {
     val declaration = phaseDeclaration(consumerPhaseId, featureSize, qualityGateSelection)
     val blockedReason = phaseRecords[consumerPhaseId]?.blockedReason.orEmpty()
-    val missing = missingUpstream(declaration, recordedOutputs)
-      ?.filter { upstreamId ->
-        val upstream = phaseRecords[upstreamId] ?: return@filter false
-        upstream.outputArtifact.isNullOrBlank()
-      }
+    val missing =
+      missingUpstream(declaration, recordedOutputs)
+        ?.filter { upstreamId ->
+          val upstream = phaseRecords[upstreamId] ?: return@filter false
+          upstream.outputArtifact.isNullOrBlank()
+        }
     if (!missing.isNullOrEmpty()) {
       return missing.minBy { stepOrder.indexOf(it).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }
     }
@@ -63,9 +67,10 @@ fun buildCompletedUpstreamMissingOutputRepair(request: CompletedUpstreamRepairRe
   val phasesToReopen = phasesToReopenForCompletedUpstreamRepair(request, recordedOutputs)
   val reopenedRecords = LinkedHashMap(request.phaseRecords)
   phasesToReopen.forEach { phaseId ->
-    val existing = requireNotNull(reopenedRecords[phaseId]) {
-      "Cannot reopen missing phase record '$phaseId'."
-    }
+    val existing =
+      requireNotNull(reopenedRecords[phaseId]) {
+        "Cannot reopen missing phase record '$phaseId'."
+      }
     reopenedRecords[phaseId] = existing.asPendingForOperatorResume()
   }
   return completedUpstreamRepairWorkflowUpdate(

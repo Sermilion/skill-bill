@@ -3,11 +3,23 @@ import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRu
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
 
 interface FeatureTaskRuntimePhaseOutputValidator {
-  fun validatePhaseOutput(phaseOutputText: String, sourceLabel: String): FeatureTaskRuntimePhaseOutputValidationResult
+  fun validatePhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): FeatureTaskRuntimePhaseOutputValidationResult
 
-  fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String)
+  fun validatePhaseOutputText(
+    phaseOutputText: String,
+    sourceLabel: String,
+  )
 
-  fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Any
+  fun validateAndReadPhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): Any
 
-  fun normalizePhaseOutput(phaseOutputText: String, sourceLabel: String): NormalizedFeatureTaskRuntimePhaseOutput
+  fun normalizePhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): NormalizedFeatureTaskRuntimePhaseOutput
 }

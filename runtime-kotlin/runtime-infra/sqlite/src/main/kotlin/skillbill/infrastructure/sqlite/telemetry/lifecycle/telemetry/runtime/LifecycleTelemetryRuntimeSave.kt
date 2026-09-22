@@ -13,7 +13,10 @@ import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
 import java.sql.Connection
 import java.sql.PreparedStatement
 
-internal fun saveFeatureTaskRuntimeStarted(connection: Connection, record: FeatureTaskRuntimeStartedRecord) {
+internal fun saveFeatureTaskRuntimeStarted(
+  connection: Connection,
+  record: FeatureTaskRuntimeStartedRecord,
+) {
   if (rowExists(connection, "feature_task_runtime_sessions", record.sessionId)) {
     updateFeatureTaskRuntimeStarted(connection, record)
     return
@@ -39,7 +42,10 @@ internal fun saveFeatureTaskRuntimeStarted(connection: Connection, record: Featu
   }
 }
 
-private fun updateFeatureTaskRuntimeStarted(connection: Connection, record: FeatureTaskRuntimeStartedRecord) {
+private fun updateFeatureTaskRuntimeStarted(
+  connection: Connection,
+  record: FeatureTaskRuntimeStartedRecord,
+) {
   connection.prepareStatement(
     """
     UPDATE feature_task_runtime_sessions SET
@@ -159,11 +165,12 @@ private fun bindFeatureTaskRuntimeFinishedUpdate(
 
 private fun List<String>?.namesJson(): String? = this?.takeIf { it.isNotEmpty() }?.let(::listJson)
 
-private fun Any?.availabilityWire(): String = if (this == null) {
-  TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE.wireValue
-} else {
-  TelemetryMeasurementAvailability.MEASURED.wireValue
-}
+private fun Any?.availabilityWire(): String =
+  if (this == null) {
+    TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE.wireValue
+  } else {
+    TelemetryMeasurementAvailability.MEASURED.wireValue
+  }
 
 private fun regenerationOutcomeCountsJson(record: FeatureTaskRuntimeFinishedRecord): String? =
   record.regenerationOutcomeCounts.takeIf { it.isNotEmpty() }?.let { JsonCodec.mapToJsonString(it) }

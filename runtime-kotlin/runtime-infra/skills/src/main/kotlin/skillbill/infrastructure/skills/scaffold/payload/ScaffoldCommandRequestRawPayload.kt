@@ -8,10 +8,12 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_HORIZONTAL
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
+
 internal fun ScaffoldCommandRequest.toRawScaffoldPayload(): Map<String, Any?> {
-  val base = linkedMapOf<String, Any?>(
-    "scaffold_payload_version" to scaffoldPayloadVersion,
-  )
+  val base =
+    linkedMapOf<String, Any?>(
+      "scaffold_payload_version" to scaffoldPayloadVersion,
+    )
   repoRoot?.let { base["repo_root"] = it }
   when (this) {
     is ScaffoldCommandRequest.HorizontalSkill -> appendHorizontalFields(base)
@@ -55,15 +57,16 @@ private fun ScaffoldCommandRequest.PlatformPack.appendPlatformPackFields(base: M
     base["routing_signals"] = routing
   }
   if (baselineLayers.isNotEmpty()) {
-    base["baseline_layers"] = baselineLayers.map { layer ->
-      linkedMapOf<String, Any?>(
-        "platform" to layer.platform,
-        "skill" to layer.skill,
-        "scope" to layer.scope.wireValue,
-        "required" to layer.required,
-        "mode" to layer.mode.wireValue,
-      )
-    }
+    base["baseline_layers"] =
+      baselineLayers.map { layer ->
+        linkedMapOf<String, Any?>(
+          "platform" to layer.platform,
+          "skill" to layer.skill,
+          "scope" to layer.scope.wireValue,
+          "required" to layer.required,
+          "mode" to layer.mode.wireValue,
+        )
+      }
   }
   subagentSpecialists?.let { base["subagent_specialists"] = it }
   if (suppressSubagents) base["no_subagents"] = true

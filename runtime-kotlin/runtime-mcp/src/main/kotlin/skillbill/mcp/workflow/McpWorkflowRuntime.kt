@@ -9,6 +9,7 @@ import skillbill.error.core.InvalidMcpToolArgumentError
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.componentForLegacyContext
 import skillbill.workflow.model.FeatureTaskRouteScope
+
 internal data class McpWorkflowOpenArgs(
   val kind: WorkflowFamilyKind,
   val sessionId: String = "",
@@ -21,20 +22,34 @@ internal data class McpWorkflowOpenArgs(
 )
 
 internal object McpWorkflowRuntime {
-  fun update(kind: WorkflowFamilyKind, request: WorkflowUpdateRequest, context: Any): Map<String, Any?> =
-    update(kind, request, componentForLegacyContext(context))
+  fun update(
+    kind: WorkflowFamilyKind,
+    request: WorkflowUpdateRequest,
+    context: Any,
+  ): Map<String, Any?> = update(kind, request, componentForLegacyContext(context))
 
-  fun get(kind: WorkflowFamilyKind, workflowId: String, context: Any): Map<String, Any?> =
-    get(kind, workflowId, componentForLegacyContext(context))
+  fun get(
+    kind: WorkflowFamilyKind,
+    workflowId: String,
+    context: Any,
+  ): Map<String, Any?> = get(kind, workflowId, componentForLegacyContext(context))
 
-  fun list(kind: WorkflowFamilyKind, limit: Int = 20, context: Any): Map<String, Any?> =
-    list(kind, limit, componentForLegacyContext(context))
+  fun list(
+    kind: WorkflowFamilyKind,
+    limit: Int = 20,
+    context: Any,
+  ): Map<String, Any?> = list(kind, limit, componentForLegacyContext(context))
 
-  fun latest(kind: WorkflowFamilyKind, context: Any): Map<String, Any?> =
-    latest(kind, componentForLegacyContext(context))
+  fun latest(
+    kind: WorkflowFamilyKind,
+    context: Any,
+  ): Map<String, Any?> = latest(kind, componentForLegacyContext(context))
 
-  fun resume(kind: WorkflowFamilyKind, workflowId: String, context: Any): Map<String, Any?> =
-    resume(kind, workflowId, componentForLegacyContext(context))
+  fun resume(
+    kind: WorkflowFamilyKind,
+    workflowId: String,
+    context: Any,
+  ): Map<String, Any?> = resume(kind, workflowId, componentForLegacyContext(context))
 
   fun continueWorkflow(
     kind: WorkflowFamilyKind,
@@ -45,37 +60,44 @@ internal object McpWorkflowRuntime {
 
   fun open(args: McpWorkflowOpenArgs): Map<String, Any?> {
     val runtimeServices = args.component ?: componentForLegacyContext(requireContext(args))
-    val open = if (args.kind != WorkflowFamilyKind.VERIFY && args.issueKey != null) {
-      runtimeServices.workflowService.openFeatureTask(
-        WorkflowServiceOpenFeatureTaskArgs(
-          kind = args.kind,
-          sessionId = args.sessionId,
-          currentStepId = args.currentStepId,
-          issueKey = args.issueKey,
-          repositoryIdentity = args.repositoryIdentity
-            ?: requiredRepositoryIdentity(),
-          governedSpecPath = args.governedSpecPath
-            ?: requiredGovernedSpecPath(),
-          routeScope = FeatureTaskRouteScope.STANDALONE,
-        ),
-      )
-    } else {
-      runtimeServices.workflowService.open(
-        WorkflowServiceOpenArgs(
-          kind = args.kind,
-          sessionId = args.sessionId,
-          currentStepId = args.currentStepId,
-          issueKey = args.issueKey,
-          repositoryIdentity = args.repositoryIdentity,
-          governedSpecPath = args.governedSpecPath,
-          routeScope = FeatureTaskRouteScope.STANDALONE,
-        ),
-      )
-    }
+    val open =
+      if (args.kind != WorkflowFamilyKind.VERIFY && args.issueKey != null) {
+        runtimeServices.workflowService.openFeatureTask(
+          WorkflowServiceOpenFeatureTaskArgs(
+            kind = args.kind,
+            sessionId = args.sessionId,
+            currentStepId = args.currentStepId,
+            issueKey = args.issueKey,
+            repositoryIdentity =
+              args.repositoryIdentity
+                ?: requiredRepositoryIdentity(),
+            governedSpecPath =
+              args.governedSpecPath
+                ?: requiredGovernedSpecPath(),
+            routeScope = FeatureTaskRouteScope.STANDALONE,
+          ),
+        )
+      } else {
+        runtimeServices.workflowService.open(
+          WorkflowServiceOpenArgs(
+            kind = args.kind,
+            sessionId = args.sessionId,
+            currentStepId = args.currentStepId,
+            issueKey = args.issueKey,
+            repositoryIdentity = args.repositoryIdentity,
+            governedSpecPath = args.governedSpecPath,
+            routeScope = FeatureTaskRouteScope.STANDALONE,
+          ),
+        )
+      }
     return open.toMcpMap(runtimeServices.workflowService.goalObservabilityEventValidator)
   }
 
-  fun update(kind: WorkflowFamilyKind, request: WorkflowUpdateRequest, component: McpComponent): Map<String, Any?> {
+  fun update(
+    kind: WorkflowFamilyKind,
+    request: WorkflowUpdateRequest,
+    component: McpComponent,
+  ): Map<String, Any?> {
     val runtimeServices = component
     return runtimeServices.workflowService.update(
       kind,
@@ -83,31 +105,44 @@ internal object McpWorkflowRuntime {
     ).toMcpMap()
   }
 
-  fun get(kind: WorkflowFamilyKind, workflowId: String, component: McpComponent): Map<String, Any?> {
+  fun get(
+    kind: WorkflowFamilyKind,
+    workflowId: String,
+    component: McpComponent,
+  ): Map<String, Any?> {
     val runtimeServices = component
     return runtimeServices.workflowService.get(kind, workflowId)
       .toMcpMap(runtimeServices.workflowService.goalObservabilityEventValidator)
   }
 
-  fun list(kind: WorkflowFamilyKind, limit: Int = 20, component: McpComponent): Map<String, Any?> =
-    component.workflowService.list(kind, limit).toMcpMap()
+  fun list(
+    kind: WorkflowFamilyKind,
+    limit: Int = 20,
+    component: McpComponent,
+  ): Map<String, Any?> = component.workflowService.list(kind, limit).toMcpMap()
 
-  fun latest(kind: WorkflowFamilyKind, component: McpComponent): Map<String, Any?> =
-    component.workflowService.latest(kind).toMcpMap()
+  fun latest(
+    kind: WorkflowFamilyKind,
+    component: McpComponent,
+  ): Map<String, Any?> = component.workflowService.latest(kind).toMcpMap()
 
-  fun resume(kind: WorkflowFamilyKind, workflowId: String, component: McpComponent): Map<String, Any?> =
-    component.workflowService.resume(kind, workflowId).toMcpMap()
+  fun resume(
+    kind: WorkflowFamilyKind,
+    workflowId: String,
+    component: McpComponent,
+  ): Map<String, Any?> = component.workflowService.resume(kind, workflowId).toMcpMap()
 
   fun continueWorkflow(
     kind: WorkflowFamilyKind,
     workflowId: String,
     component: McpComponent,
     subtaskId: Int? = null,
-  ): Map<String, Any?> = component.workflowService.continueWorkflow(
-    kind,
-    workflowId,
-    subtaskId = subtaskId,
-  ).toMcpMap()
+  ): Map<String, Any?> =
+    component.workflowService.continueWorkflow(
+      kind,
+      workflowId,
+      subtaskId = subtaskId,
+    ).toMcpMap()
 }
 
 private fun requireContext(args: McpWorkflowOpenArgs): Any =

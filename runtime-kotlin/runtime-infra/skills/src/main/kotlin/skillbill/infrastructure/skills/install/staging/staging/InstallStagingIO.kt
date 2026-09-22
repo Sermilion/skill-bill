@@ -38,49 +38,55 @@ internal fun isReusableInstallStaging(
   }
   val marker = finalStagingDir.resolve(INSTALL_STAGING_CONTENT_HASH_FILENAME)
   val markerIsFile = Files.isRegularFile(marker, LinkOption.NOFOLLOW_LINKS)
-  val recorded = if (markerIsFile) {
-    String(Files.readAllBytes(marker), StandardCharsets.UTF_8).trimEnd('\n', '\r')
-  } else {
-    null
-  }
+  val recorded =
+    if (markerIsFile) {
+      String(Files.readAllBytes(marker), StandardCharsets.UTF_8).trimEnd('\n', '\r')
+    } else {
+      null
+    }
   val skillFile = finalStagingDir.resolve(INSTALL_STAGING_SKILL_FILENAME)
   val skillIsFile = Files.isRegularFile(skillFile, LinkOption.NOFOLLOW_LINKS)
-  val stagedFilesIntact = expectedStagedNames.all { name ->
-    Files.isRegularFile(finalStagingDir.resolve(name), LinkOption.NOFOLLOW_LINKS)
-  }
+  val stagedFilesIntact =
+    expectedStagedNames.all { name ->
+      Files.isRegularFile(finalStagingDir.resolve(name), LinkOption.NOFOLLOW_LINKS)
+    }
   return markerIsFile && recorded == contentHash && skillIsFile && stagedFilesIntact
 }
 
 internal fun reuseInstallStaging(input: ReuseInstallStagingInput): RenderedSkill {
   val skillFile = input.finalStagingDir.resolve(INSTALL_STAGING_SKILL_FILENAME)
   val skillFileNormalized = skillFile.toAbsolutePath().normalize()
-  val staged = Files.walk(input.finalStagingDir).use { stream ->
-    stream
-      .sorted()
-      .filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
-      .filter { path ->
-        path.fileName.toString() != INSTALL_STAGING_CONTENT_HASH_FILENAME &&
-          path.fileName.toString() != SKILL_CONTENT_IDENTITY_FILENAME
-      }
-      .filter { path -> path.toAbsolutePath().normalize() != skillFileNormalized }
-      .toList()
-  }
+  val staged =
+    Files.walk(input.finalStagingDir).use { stream ->
+      stream
+        .sorted()
+        .filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
+        .filter { path ->
+          path.fileName.toString() != INSTALL_STAGING_CONTENT_HASH_FILENAME &&
+            path.fileName.toString() != SKILL_CONTENT_IDENTITY_FILENAME
+        }
+        .filter { path -> path.toAbsolutePath().normalize() != skillFileNormalized }
+        .toList()
+    }
   val finalRoot = input.finalStagingDir.toAbsolutePath().normalize()
-  val pointerRelativePaths = (
-    input.applicablePointers.map { (_, spec) -> spec.name } +
-      input.generatedSupportPointers.map { pointer -> pointer.name } +
-      input.agentAddonPointerNames
+  val pointerRelativePaths =
+    (
+      input.applicablePointers.map { (_, spec) -> spec.name } +
+        input.generatedSupportPointers.map { pointer -> pointer.name } +
+        input.agentAddonPointerNames
     ).map { name -> Path.of(name) }.toSet()
   val sidecarRelativePaths = input.internalSidecarNames.map { name -> Path.of(name) }.toSet()
-  val authoredCopied = staged.filter { path ->
-    val rel = finalRoot.relativize(path.toAbsolutePath().normalize())
-    rel !in pointerRelativePaths && rel !in sidecarRelativePaths &&
-      Files.isRegularFile(input.sourceSkillDir.resolve(rel), LinkOption.NOFOLLOW_LINKS)
-  }
-  val sidecarFiles = staged.filter { path ->
-    val rel = finalRoot.relativize(path.toAbsolutePath().normalize())
-    rel in sidecarRelativePaths
-  }
+  val authoredCopied =
+    staged.filter { path ->
+      val rel = finalRoot.relativize(path.toAbsolutePath().normalize())
+      rel !in pointerRelativePaths && rel !in sidecarRelativePaths &&
+        Files.isRegularFile(input.sourceSkillDir.resolve(rel), LinkOption.NOFOLLOW_LINKS)
+    }
+  val sidecarFiles =
+    staged.filter { path ->
+      val rel = finalRoot.relativize(path.toAbsolutePath().normalize())
+      rel in sidecarRelativePaths
+    }
   val pointerFiles = staged.filter { path -> path !in authoredCopied && path !in sidecarFiles }
   return RenderedSkill(
     skillName = input.sourceSkillDir.fileName.toString(),
@@ -94,7 +100,10 @@ internal fun reuseInstallStaging(input: ReuseInstallStagingInput): RenderedSkill
   )
 }
 
-internal fun writeAgentAddonPointerFiles(tempDir: Path, pointers: List<AgentAddonPointer>): List<Path> =
+internal fun writeAgentAddonPointerFiles(
+  tempDir: Path,
+  pointers: List<AgentAddonPointer>,
+): List<Path> =
   pointers.sortedBy { it.slug }.map { pointer ->
     val destination = tempDir.resolve(pointer.name).normalize()
     require(destination.parent == tempDir.toAbsolutePath().normalize()) {
@@ -104,7 +113,11 @@ internal fun writeAgentAddonPointerFiles(tempDir: Path, pointers: List<AgentAddo
     destination
   }
 
-internal fun copyAuthoredIntoStaging(sourceSkillDir: Path, tempDir: Path, authored: List<Path>): List<Path> {
+internal fun copyAuthoredIntoStaging(
+  sourceSkillDir: Path,
+  tempDir: Path,
+  authored: List<Path>,
+): List<Path> {
   val copied = mutableListOf<Path>()
   authored.forEach { file ->
     val rel = sourceSkillDir.relativize(file).toString().replace(File.separatorChar, '/')
@@ -122,7 +135,10 @@ internal fun copyAuthoredIntoStaging(sourceSkillDir: Path, tempDir: Path, author
   return copied
 }
 
-internal fun writeRenderedSkillFile(tempDir: Path, target: AuthoringTarget): Path {
+internal fun writeRenderedSkillFile(
+  tempDir: Path,
+  target: AuthoringTarget,
+): Path {
   val skillFile = tempDir.resolve(INSTALL_STAGING_SKILL_FILENAME).normalize()
   require(skillFile.startsWith(tempDir)) {
     "SKILL.md staging path '$skillFile' escapes staging dir '$tempDir'."
@@ -135,17 +151,18 @@ internal fun writeRenderedPointerFiles(
   repoRoot: Path,
   tempDir: Path,
   pointers: List<Pair<PlatformManifest, PointerSpec>>,
-): List<Path> = pointers.map { (manifest, spec) ->
-  val pointerFile = tempDir.resolve(spec.name).normalize()
-  require(pointerFile.startsWith(tempDir)) {
-    "Pointer '${spec.name}' staging path '$pointerFile' escapes staging dir '$tempDir'."
+): List<Path> =
+  pointers.map { (manifest, spec) ->
+    val pointerFile = tempDir.resolve(spec.name).normalize()
+    require(pointerFile.startsWith(tempDir)) {
+      "Pointer '${spec.name}' staging path '$pointerFile' escapes staging dir '$tempDir'."
+    }
+    renderPointer(repoRoot = repoRoot, packRoot = manifest.packRoot.toPath(), spec = spec)
+    val targetFile = repoRoot.toAbsolutePath().normalize().resolve(spec.target).normalize()
+    val rendered = normalizeMarkdownLineEndings(Files.readString(targetFile)).trimEnd() + "\n"
+    Files.write(pointerFile, rendered.toByteArray(StandardCharsets.UTF_8))
+    pointerFile
   }
-  renderPointer(repoRoot = repoRoot, packRoot = manifest.packRoot.toPath(), spec = spec)
-  val targetFile = repoRoot.toAbsolutePath().normalize().resolve(spec.target).normalize()
-  val rendered = normalizeMarkdownLineEndings(Files.readString(targetFile)).trimEnd() + "\n"
-  Files.write(pointerFile, rendered.toByteArray(StandardCharsets.UTF_8))
-  pointerFile
-}
 
 internal fun writeInternalSidecarFiles(
   tempDir: Path,
@@ -154,19 +171,24 @@ internal fun writeInternalSidecarFiles(
 ): List<Path> {
   validateInternalSidecarFileNames(parentSourceDir, children)
   return children.sortedBy { child -> child.skillName }.flatMap { child ->
-    val wrapper = writeInternalStagingFile(
-      tempDir,
-      "${child.skillName}.md",
-      child.renderedWrapper.toByteArray(StandardCharsets.UTF_8),
-    )
-    val companions = child.authoredCompanions.sortedBy { companion -> companion.name }.map { companion ->
-      writeInternalStagingFile(tempDir, companion.name, companion.bytes)
-    }
+    val wrapper =
+      writeInternalStagingFile(
+        tempDir,
+        "${child.skillName}.md",
+        child.renderedWrapper.toByteArray(StandardCharsets.UTF_8),
+      )
+    val companions =
+      child.authoredCompanions.sortedBy { companion -> companion.name }.map { companion ->
+        writeInternalStagingFile(tempDir, companion.name, companion.bytes)
+      }
     listOf(wrapper) + companions
   }
 }
 
-internal fun promoteInstallStagingDir(tempDir: Path, finalStagingDir: Path) {
+internal fun promoteInstallStagingDir(
+  tempDir: Path,
+  finalStagingDir: Path,
+) {
   if (Files.exists(finalStagingDir, LinkOption.NOFOLLOW_LINKS)) {
     promoteByBackupAndMove(tempDir, finalStagingDir)
     return
@@ -174,7 +196,11 @@ internal fun promoteInstallStagingDir(tempDir: Path, finalStagingDir: Path) {
   atomicMoveReplacing(tempDir, finalStagingDir)
 }
 
-internal fun cleanupInstallStagingOnFailure(tempDir: Path, finalStagingDir: Path, promoted: Boolean) {
+internal fun cleanupInstallStagingOnFailure(
+  tempDir: Path,
+  finalStagingDir: Path,
+  promoted: Boolean,
+) {
   log.log(
     Level.WARNING,
     "cleanupInstallStagingOnFailure tempDir=$tempDir finalDir=$finalStagingDir promoted=$promoted",

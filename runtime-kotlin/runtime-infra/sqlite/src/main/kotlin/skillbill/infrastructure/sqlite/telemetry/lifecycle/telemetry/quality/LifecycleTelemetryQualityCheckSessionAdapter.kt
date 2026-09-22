@@ -12,12 +12,18 @@ import java.sql.Connection
 internal class LifecycleTelemetryQualityCheckSessionAdapter(
   private val connection: Connection,
 ) : QualityCheckLifecycleTelemetryRepository {
-  override fun qualityCheckStarted(record: QualityCheckStartedRecord, level: String) {
+  override fun qualityCheckStarted(
+    record: QualityCheckStartedRecord,
+    level: String,
+  ) {
     saveQualityCheckStarted(connection, record)
     emitQualityCheckStarted(connection, record.sessionId)
   }
 
-  override fun qualityCheckFinished(record: QualityCheckFinishedRecord, level: String) {
+  override fun qualityCheckFinished(
+    record: QualityCheckFinishedRecord,
+    level: String,
+  ) {
     if (saveQualityCheckFinished(connection, record) == TerminalSaveOutcome.FIRST_TERMINAL) {
       emitQualityCheckFinished(connection, record.sessionId, level)
     }

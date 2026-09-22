@@ -16,7 +16,10 @@ internal fun SkillRemoveJvmFileSystemPlanning.horizontalCascadePaths(
   return out.toList()
 }
 
-internal fun SkillRemoveJvmFileSystemPlanning.platformPackCascadePaths(repoRoot: Path, platform: String): List<String> {
+internal fun SkillRemoveJvmFileSystemPlanning.platformPackCascadePaths(
+  repoRoot: Path,
+  platform: String,
+): List<String> {
   val out = linkedSetOf<String>()
   val pack = repoRoot.resolve("platform-packs/$platform")
   if (Files.exists(pack, LinkOption.NOFOLLOW_LINKS)) out += "platform-packs/$platform"
@@ -47,18 +50,20 @@ internal fun SkillRemoveJvmFileSystemPlanning.addonReferenceEdits(
   if (!isPackAddonPath(parts)) return emptyList()
   val pointerName = parts[SkillRemoveJvmFileSystemPlanning.ADDON_FILE_SEGMENT]
   val pointerSlug = pointerName.removeSuffix(".md")
-  val platformManifest = repoRoot.resolve(
-    "platform-packs/${parts[SkillRemoveJvmFileSystemPlanning.ADDON_PLATFORM_SEGMENT]}/platform.yaml",
-  )
+  val platformManifest =
+    repoRoot.resolve(
+      "platform-packs/${parts[SkillRemoveJvmFileSystemPlanning.ADDON_PLATFORM_SEGMENT]}/platform.yaml",
+    )
   val edits = mutableListOf<ManifestEdit>()
   if (Files.isRegularFile(platformManifest, LinkOption.NOFOLLOW_LINKS)) {
     val text = Files.readString(platformManifest)
     if (text.contains(pointerName) || text.contains(normalized)) {
-      edits += ManifestEdit(
-        repoRoot.relativize(platformManifest).toString().replace('\\', '/'),
-        ManifestEditKind.REMOVE_ADDON_REFERENCES,
-        pointerName,
-      )
+      edits +=
+        ManifestEdit(
+          repoRoot.relativize(platformManifest).toString().replace('\\', '/'),
+          ManifestEditKind.REMOVE_ADDON_REFERENCES,
+          pointerName,
+        )
     }
   }
   val skillClassesDir = repoRoot.resolve("orchestration/skill-classes")
@@ -78,11 +83,12 @@ internal fun SkillRemoveJvmFileSystemPlanning.addonReferenceEdits(
               RegexOption.MULTILINE,
             ).containsMatchIn(text)
           ) {
-            edits += ManifestEdit(
-              repoRoot.relativize(manifest).toString().replace('\\', '/'),
-              ManifestEditKind.REMOVE_SKILL_CLASS_POINTER,
-              pointerSlug,
-            )
+            edits +=
+              ManifestEdit(
+                repoRoot.relativize(manifest).toString().replace('\\', '/'),
+                ManifestEditKind.REMOVE_SKILL_CLASS_POINTER,
+                pointerSlug,
+              )
           }
         }
     }
@@ -93,8 +99,9 @@ internal fun SkillRemoveJvmFileSystemPlanning.addonReferenceEdits(
 internal fun SkillRemoveJvmFileSystemPlanning.externalAddonReferenceEdits(
   target: SkillRemovalTarget.ExternalAddOn,
 ): List<ManifestEdit> {
-  val manifest = skillRemoveExternalSourceRoot(target)
-    .resolve(SkillRemoveJvmFileSystemPlanning.EXTERNAL_ADDON_MANIFEST_FILE).normalize()
+  val manifest =
+    skillRemoveExternalSourceRoot(target)
+      .resolve(SkillRemoveJvmFileSystemPlanning.EXTERNAL_ADDON_MANIFEST_FILE).normalize()
   if (!Files.isRegularFile(manifest, LinkOption.NOFOLLOW_LINKS)) return emptyList()
   val text = Files.readString(manifest)
   if (!text.contains(target.fileName)) return emptyList()

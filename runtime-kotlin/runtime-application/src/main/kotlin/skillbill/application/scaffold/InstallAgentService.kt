@@ -14,19 +14,34 @@ import java.nio.file.Path
 class InstallAgentService(
   private val agentTargetPort: InstallAgentTargetPort,
 ) {
-  fun agentPath(agent: String, home: Path? = null, environment: Map<String, String> = emptyMap()): Path =
+  fun agentPath(
+    agent: String,
+    home: Path? = null,
+    environment: Map<String, String> = emptyMap(),
+  ): Path =
     agentTargetPort.agentPath(InstallAgentPathRequest(agent = agent, home = home, environment = environment)).path
 
-  fun detectAgentTargets(home: Path? = null, environment: Map<String, String> = emptyMap()) =
-    agentTargetPort.detectAgentTargets(DetectInstallAgentTargetsRequest(home, environment)).targets
+  fun detectAgentTargets(
+    home: Path? = null,
+    environment: Map<String, String> = emptyMap(),
+  ) = agentTargetPort.detectAgentTargets(DetectInstallAgentTargetsRequest(home, environment)).targets
 
-  fun claudeRoots(home: Path? = null, environment: Map<String, String>): List<Path> =
+  fun claudeRoots(
+    home: Path? = null,
+    environment: Map<String, String>,
+  ): List<Path> =
     agentTargetPort.claudeConfigRoots(ClaudeConfigRootsRequest(home = home, environment = environment)).roots
 
-  fun codexRoots(home: Path? = null, environment: Map<String, String>): List<Path> =
+  fun codexRoots(
+    home: Path? = null,
+    environment: Map<String, String>,
+  ): List<Path> =
     agentTargetPort.codexConfigRoots(CodexConfigRootsRequest(home = home, environment = environment)).roots
 
-  fun codexAgentsPath(home: Path? = null, environment: Map<String, String> = emptyMap()): Path =
+  fun codexAgentsPath(
+    home: Path? = null,
+    environment: Map<String, String> = emptyMap(),
+  ): Path =
     agentTargetPort.agentDirectory(
       InstallAgentDirectoryRequest(agent = "codex", home = home, environment = environment),
     ).path
@@ -53,6 +68,8 @@ class InstallAgentService(
     ),
   ).cleanup
 
-  private fun agentDirectory(agent: String, home: Path?): Path =
-    agentTargetPort.agentDirectory(InstallAgentDirectoryRequest(agent = agent, home = home)).path
+  private fun agentDirectory(
+    agent: String,
+    home: Path?,
+  ): Path = agentTargetPort.agentDirectory(InstallAgentDirectoryRequest(agent = agent, home = home)).path
 }

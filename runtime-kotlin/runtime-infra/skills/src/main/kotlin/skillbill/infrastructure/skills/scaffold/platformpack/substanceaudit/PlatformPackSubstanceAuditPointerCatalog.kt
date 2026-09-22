@@ -14,15 +14,19 @@ internal data class PlatformPackSubstanceAuditPointerCatalog(
   val pairs: List<SimilarityPair>,
 )
 
-internal fun auditPlatformPacksImpl(repoRoot: Path, policy: SubstancePolicy): PlatformPackSubstanceReport {
+internal fun auditPlatformPacksImpl(
+  repoRoot: Path,
+  policy: SubstancePolicy,
+): PlatformPackSubstanceReport {
   val root = repoRoot.toAbsolutePath().normalize()
   val (discoveredManifests, manifestErrors) = discoverManifests(root)
   val (manifests, contentErrors) = retainManifestsWithReadableDeclaredContent(root, discoveredManifests)
   val auditErrors = (manifestErrors + contentErrors).sorted()
   val manifestsBySlug = manifests.associateBy { it.slug }
-  val effectiveAreas = manifests.associate {
-    it.slug to effectiveAreas(it.slug, manifestsBySlug)
-  }
+  val effectiveAreas =
+    manifests.associate {
+      it.slug to effectiveAreas(it.slug, manifestsBySlug)
+    }
   val files = manifests.flatMap(::authoredFiles).sortedBy { it.path.toString() }
   val pairs = correspondingPairs(files)
   val context = PlatformPackSubstanceAuditPointerCatalog(root, policy, manifestsBySlug, effectiveAreas, files, pairs)
@@ -48,10 +52,11 @@ internal fun auditSinglePack(
   auditPackAreaCoverageViolations(pack, context, rawViolations)
   auditPackSpecialistViolations(specialists, context.policy, rawViolations)
   val shared = auditPackSharedShingleViolation(pack, packFiles, context, rawViolations)
-  val packPairs = context.pairs.filter { pair ->
-    pair.firstFile.startsWith("platform-packs/${pack.slug}/") ||
-      pair.secondFile.startsWith("platform-packs/${pack.slug}/")
-  }
+  val packPairs =
+    context.pairs.filter { pair ->
+      pair.firstFile.startsWith("platform-packs/${pack.slug}/") ||
+        pair.secondFile.startsWith("platform-packs/${pack.slug}/")
+    }
   auditPackPairViolations(pack, packPairs, context.policy, rawViolations)
   return PackMetric(
     pack.slug,
@@ -73,16 +78,17 @@ internal fun auditPackAreaCoverageViolations(
 ) {
   val missingAreas = APPROVED_CODE_REVIEW_AREAS - context.effectiveAreas.getValue(pack.slug)
   if (missingAreas.isEmpty()) return
-  rawViolations += packViolation(
-    PackViolationArgs(
-      pack = pack.slug,
-      role = "effective-area-coverage",
-      files = listOf("platform-packs/${pack.slug}/platform.yaml"),
-      measured = missingAreas.sorted().joinToString(","),
-      target = "all-approved-areas",
-      rule = "maintained pack must effectively cover every approved review area",
-    ),
-  )
+  rawViolations +=
+    packViolation(
+      PackViolationArgs(
+        pack = pack.slug,
+        role = "effective-area-coverage",
+        files = listOf("platform-packs/${pack.slug}/platform.yaml"),
+        measured = missingAreas.sorted().joinToString(","),
+        target = "all-approved-areas",
+        rule = "maintained pack must effectively cover every approved review area",
+      ),
+    )
 }
 
 internal fun auditPackSpecialistViolations(
@@ -92,31 +98,34 @@ internal fun auditPackSpecialistViolations(
 ) {
   specialists.filterNot { it.inherited }.forEach { metric ->
     if (metric.substantiveRules < policy.minimumRules) {
-      rawViolations += violation(
-        metric,
-        "rules",
-        metric.substantiveRules.toString(),
-        ">=${policy.minimumRules}",
-        "physical specialist requires substantive enforceable rules",
-      )
+      rawViolations +=
+        violation(
+          metric,
+          "rules",
+          metric.substantiveRules.toString(),
+          ">=${policy.minimumRules}",
+          "physical specialist requires substantive enforceable rules",
+        )
     }
     if (metric.failureModeClusters < policy.minimumClusters) {
-      rawViolations += violation(
-        metric,
-        "clusters",
-        metric.failureModeClusters.toString(),
-        "${policy.minimumClusters}",
-        "physical specialist must represent all failure-mode clusters",
-      )
+      rawViolations +=
+        violation(
+          metric,
+          "clusters",
+          metric.failureModeClusters.toString(),
+          "${policy.minimumClusters}",
+          "physical specialist must represent all failure-mode clusters",
+        )
     }
     if (metric.placeholders.isNotEmpty()) {
-      rawViolations += violation(
-        metric,
-        "placeholders",
-        metric.placeholders.joinToString("|"),
-        "none",
-        "forbidden placeholder content is not substantive",
-      )
+      rawViolations +=
+        violation(
+          metric,
+          "placeholders",
+          metric.placeholders.joinToString("|"),
+          "none",
+          "forbidden placeholder content is not substantive",
+        )
     }
   }
 }
@@ -131,16 +140,17 @@ internal fun auditPackSharedShingleViolation(
   val otherShingles = context.files.filter { it.pack != pack.slug }.flatMap { it.shingles }.toSet()
   val shared = fraction(packShingles.count { it in otherShingles }, packShingles.size)
   if (shared > context.policy.maximumSharedShingles) {
-    rawViolations += packViolation(
-      PackViolationArgs(
-        pack = pack.slug,
-        role = "shared-shingles",
-        files = packFiles.map { it.path.relativeTo(context.root).toString() },
-        measured = shared.percentage(),
-        target = "<=35.00%",
-        rule = "pack exceeds shared normalized five-word sequence threshold",
-      ),
-    )
+    rawViolations +=
+      packViolation(
+        PackViolationArgs(
+          pack = pack.slug,
+          role = "shared-shingles",
+          files = packFiles.map { it.path.relativeTo(context.root).toString() },
+          measured = shared.percentage(),
+          target = "<=35.00%",
+          rule = "pack exceeds shared normalized five-word sequence threshold",
+        ),
+      )
   }
   return shared
 }
@@ -152,15 +162,16 @@ internal fun auditPackPairViolations(
   rawViolations: MutableList<SubstanceViolation>,
 ) {
   packPairs.filter { it.similarity > policy.maximumPairSimilarity }.forEach { pair ->
-    rawViolations += packViolation(
-      PackViolationArgs(
-        pack = pack.slug,
-        role = "pair:${pair.role}",
-        files = listOf(pair.firstFile, pair.secondFile),
-        measured = pair.similarity.percentage(),
-        target = "<=65.00%",
-        rule = "corresponding authored rubrics exceed similarity threshold",
-      ),
-    )
+    rawViolations +=
+      packViolation(
+        PackViolationArgs(
+          pack = pack.slug,
+          role = "pair:${pair.role}",
+          files = listOf(pair.firstFile, pair.secondFile),
+          measured = pair.similarity.percentage(),
+          target = "<=65.00%",
+          rule = "corresponding authored rubrics exceed similarity threshold",
+        ),
+      )
   }
 }

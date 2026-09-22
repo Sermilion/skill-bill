@@ -17,30 +17,34 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-class FeatureTaskRuntimePhaseBriefingBudgetTest {
 
+class FeatureTaskRuntimePhaseBriefingBudgetTest {
   @Test
   fun `an oversized upstream projection is delivered whole rather than truncated`() {
     val oversizedBytes = 400_000
-    val checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(
-      "fixture-checkpoint",
-    )
-    val handoff = FeatureTaskRuntimeHandoffContract.assembleHandoff(
-      FeatureTaskRuntimeHandoffAssemblyRequest(
-        declaration = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
-          .getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX),
-        runInvariants = multiUpstreamInvariants(),
-        recordedOutputs = multiUpstreamOutputs(oversizedBytes),
-        repositoryCheckpoint = checkpoint,
-        expectedRepositoryCheckpoint = checkpoint,
-      ),
-    )
+    val checkpoint =
+      FeatureTaskRuntimeRepositoryCheckpoint(
+        "fixture-checkpoint",
+      )
+    val handoff =
+      FeatureTaskRuntimeHandoffContract.assembleHandoff(
+        FeatureTaskRuntimeHandoffAssemblyRequest(
+          declaration =
+            FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
+              .getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX),
+          runInvariants = multiUpstreamInvariants(),
+          recordedOutputs = multiUpstreamOutputs(oversizedBytes),
+          repositoryCheckpoint = checkpoint,
+          expectedRepositoryCheckpoint = checkpoint,
+        ),
+      )
 
-    val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
-      handoff,
-      workflowId = "wftr-1",
-      planningProjectionValidator = realPlanningProjectionValidator,
-    )
+    val briefing =
+      FeatureTaskRuntimePhaseBriefingAssembler.assemble(
+        handoff,
+        workflowId = "wftr-1",
+        planningProjectionValidator = realPlanningProjectionValidator,
+      )
     assertContains(briefing.briefingText, "r".repeat(64))
   }
 
@@ -49,30 +53,35 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
     val planBody = "p".repeat(4000)
     val implementBody = "i".repeat(4000)
     val reviewBody = "r".repeat(4000)
-    val checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(
-      "fixture-checkpoint",
-    )
-    val recordedOutputs = listOf(
-      phaseOutput(
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-        """{"produced_outputs":{"finding_dispositions":[{"finding_id":"F-1","disposition":"verified"}]}}""",
-      ),
-    )
-    val handoff = FeatureTaskRuntimeHandoffContract.assembleHandoff(
-      FeatureTaskRuntimeHandoffAssemblyRequest(
-        declaration = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
-          .getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX),
-        runInvariants = multiUpstreamInvariants(),
-        recordedOutputs = recordedOutputs,
-        repositoryCheckpoint = checkpoint,
-        expectedRepositoryCheckpoint = checkpoint,
-      ),
-    )
+    val checkpoint =
+      FeatureTaskRuntimeRepositoryCheckpoint(
+        "fixture-checkpoint",
+      )
+    val recordedOutputs =
+      listOf(
+        phaseOutput(
+          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+          """{"produced_outputs":{"finding_dispositions":[{"finding_id":"F-1","disposition":"verified"}]}}""",
+        ),
+      )
+    val handoff =
+      FeatureTaskRuntimeHandoffContract.assembleHandoff(
+        FeatureTaskRuntimeHandoffAssemblyRequest(
+          declaration =
+            FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
+              .getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX),
+          runInvariants = multiUpstreamInvariants(),
+          recordedOutputs = recordedOutputs,
+          repositoryCheckpoint = checkpoint,
+          expectedRepositoryCheckpoint = checkpoint,
+        ),
+      )
 
-    val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
-      handoff,
-      planningProjectionValidator = realPlanningProjectionValidator,
-    )
+    val briefing =
+      FeatureTaskRuntimePhaseBriefingAssembler.assemble(
+        handoff,
+        planningProjectionValidator = realPlanningProjectionValidator,
+      )
 
     assertFalse(briefing.briefingText.contains(planBody))
     assertFalse(briefing.briefingText.contains(implementBody))
@@ -83,22 +92,26 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
 
   @Test
   fun `an undeclared recorded output is never delivered, even when it is present in state`() {
-    val handoff = FeatureTaskRuntimeHandoffContract.assembleHandoff(
-      FeatureTaskRuntimeHandoffAssemblyRequest(
-        declaration = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
-          .getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT),
-        runInvariants = multiUpstreamInvariants(),
-        recordedOutputs = listOf(
-          phaseOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN, planProjectionOutput()),
-          phaseOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW, """{"review":"undeclared"}"""),
+    val handoff =
+      FeatureTaskRuntimeHandoffContract.assembleHandoff(
+        FeatureTaskRuntimeHandoffAssemblyRequest(
+          declaration =
+            FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
+              .getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT),
+          runInvariants = multiUpstreamInvariants(),
+          recordedOutputs =
+            listOf(
+              phaseOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN, planProjectionOutput()),
+              phaseOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW, """{"review":"undeclared"}"""),
+            ),
         ),
-      ),
-    )
+      )
 
-    val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
-      handoff,
-      planningProjectionValidator = realPlanningProjectionValidator,
-    )
+    val briefing =
+      FeatureTaskRuntimePhaseBriefingAssembler.assemble(
+        handoff,
+        planningProjectionValidator = realPlanningProjectionValidator,
+      )
 
     assertTrue(briefing.briefingText.contains("Fixture plan prose for downstream implement and audit."))
     assertFalse(briefing.hasUpstreamReceipt("review"))
@@ -108,42 +121,48 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
   @Test
   fun `pathologically large layer-1 still renders the acceptance contract`() {
     val pathologicalCriterion = "AC-huge: ${"x".repeat(80_000)}"
-    val handoff = FeatureTaskRuntimePhaseHandoff(
-      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-      runInvariants = FeatureTaskRuntimeRunInvariants(
-        specReference = ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec.md",
-        acceptanceCriteria = listOf(pathologicalCriterion),
-        mandatesAndOverrides = emptyList(),
-      ),
-      upstreamOutputs = FeatureTaskRuntimeResolvedUpstreamOutputs(emptyMap()),
-      derivedContextKeys = emptyList(),
-    )
+    val handoff =
+      FeatureTaskRuntimePhaseHandoff(
+        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+        runInvariants =
+          FeatureTaskRuntimeRunInvariants(
+            specReference = ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec.md",
+            acceptanceCriteria = listOf(pathologicalCriterion),
+            mandatesAndOverrides = emptyList(),
+          ),
+        upstreamOutputs = FeatureTaskRuntimeResolvedUpstreamOutputs(emptyMap()),
+        derivedContextKeys = emptyList(),
+      )
 
-    val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
-      handoff,
-      workflowId = "wftr-1",
-      planningProjectionValidator = realPlanningProjectionValidator,
-    )
+    val briefing =
+      FeatureTaskRuntimePhaseBriefingAssembler.assemble(
+        handoff,
+        workflowId = "wftr-1",
+        planningProjectionValidator = realPlanningProjectionValidator,
+      )
     assertContains(briefing.briefingText, "AC-huge:")
     assertContains(briefing.briefingText, "x".repeat(64))
   }
 
   @Test
   fun `a finalization phase omits the acceptance contract but still receives the operator mandates`() {
-    val invariants = FeatureTaskRuntimeRunInvariants(
-      specReference = ".feature-specs/SKILL-137/spec.md",
-      acceptanceCriteria = listOf("AC-1: the acceptance contract text"),
-      mandatesAndOverrides = listOf("mandate-1: the policy text"),
-    )
-    fun briefingFor(phaseId: String) = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
-      FeatureTaskRuntimePhaseHandoff(
-        phaseId = phaseId,
-        runInvariants = invariants,
-        upstreamOutputs = FeatureTaskRuntimeResolvedUpstreamOutputs(emptyMap()),
-        derivedContextKeys = emptyList(),
-      ),
-      planningProjectionValidator = realPlanningProjectionValidator,
-    )
+    val invariants =
+      FeatureTaskRuntimeRunInvariants(
+        specReference = ".feature-specs/SKILL-137/spec.md",
+        acceptanceCriteria = listOf("AC-1: the acceptance contract text"),
+        mandatesAndOverrides = listOf("mandate-1: the policy text"),
+      )
+
+    fun briefingFor(phaseId: String) =
+      FeatureTaskRuntimePhaseBriefingAssembler.assemble(
+        FeatureTaskRuntimePhaseHandoff(
+          phaseId = phaseId,
+          runInvariants = invariants,
+          upstreamOutputs = FeatureTaskRuntimeResolvedUpstreamOutputs(emptyMap()),
+          derivedContextKeys = emptyList(),
+        ),
+        planningProjectionValidator = realPlanningProjectionValidator,
+      )
 
     val implementText = briefingFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT).briefingText
     assertContains(implementText, "acceptance_criteria:")
@@ -161,8 +180,9 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
       assertContains(
         briefing.briefingText,
         "the policy text",
-        message = "finalization phase '$phaseId' lost the operator mandates; " +
-          "the allowlist is their only delivery path",
+        message =
+          "finalization phase '$phaseId' lost the operator mandates; " +
+            "the allowlist is their only delivery path",
       )
 
       assertEquals(invariants.acceptanceCriteria, briefing.acceptanceCriteria)
@@ -176,21 +196,25 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
 
   @Test
   fun `the rendered briefing carries no forbidden raw-context field name`() {
-    val handoff = FeatureTaskRuntimeHandoffContract.assembleHandoff(
-      FeatureTaskRuntimeHandoffAssemblyRequest(
-        declaration = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
-          .getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT),
-        runInvariants = multiUpstreamInvariants(),
-        recordedOutputs = listOf(
-          phaseOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN, planProjectionOutput()),
+    val handoff =
+      FeatureTaskRuntimeHandoffContract.assembleHandoff(
+        FeatureTaskRuntimeHandoffAssemblyRequest(
+          declaration =
+            FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
+              .getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT),
+          runInvariants = multiUpstreamInvariants(),
+          recordedOutputs =
+            listOf(
+              phaseOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN, planProjectionOutput()),
+            ),
         ),
-      ),
-    )
+      )
 
-    val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
-      handoff,
-      planningProjectionValidator = realPlanningProjectionValidator,
-    )
+    val briefing =
+      FeatureTaskRuntimePhaseBriefingAssembler.assemble(
+        handoff,
+        planningProjectionValidator = realPlanningProjectionValidator,
+      )
     val serialized = JsonCodec.mapToJsonString(briefing.briefingArtifactWireMap())
 
     FEATURE_TASK_RUNTIME_FORBIDDEN_PROJECTION_FIELD_NAMES.forEach { forbidden ->
@@ -207,39 +231,48 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
 
   @Test
   fun `shared evidence projection size is independent of branch diff size for review and audit`() {
-    fun evidence(hunksPerFile: Int) = FeatureTaskRuntimeSharedReviewEvidenceReference(
-      storePath = ".skill-bill/run-evidence/wf/fp",
-      checkpointFingerprint = "fp",
-      baseRef = "base",
-      headRef = "head",
-      changedFileCount = 8,
-      changedHunkCount = 8 * hunksPerFile,
-      fileHunkIndexDigest = "a".repeat(64),
-    )
+    fun evidence(hunksPerFile: Int) =
+      FeatureTaskRuntimeSharedReviewEvidenceReference(
+        storePath = ".skill-bill/run-evidence/wf/fp",
+        checkpointFingerprint = "fp",
+        baseRef = "base",
+        headRef = "head",
+        changedFileCount = 8,
+        changedHunkCount = 8 * hunksPerFile,
+        fileHunkIndexDigest = "a".repeat(64),
+      )
 
-    fun projectionBytes(phaseId: String, hunksPerFile: Int): Int {
+    fun projectionBytes(
+      phaseId: String,
+      hunksPerFile: Int,
+    ): Int {
       val declaration = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations.getValue(phaseId)
-      val handoff = FeatureTaskRuntimePhaseHandoff(
-        phaseId = phaseId,
-        runInvariants = FeatureTaskRuntimeRunInvariants(
-          specReference = ".feature-specs/SKILL-164/spec.md",
-          acceptanceCriteria = listOf("AC-002"),
-          mandatesAndOverrides = emptyList(),
-        ),
-        upstreamOutputs = FeatureTaskRuntimeResolvedUpstreamOutputs(emptyMap()),
-        derivedContextKeys = declaration.derivedContextKeys,
-        projectionDeclarations = listOf(
-          FeatureTaskRuntimePhaseWorkflowDefinition.sharedReviewEvidenceDeclaration(phaseId),
-        ),
-        repositoryCheckpoint = FeatureTaskRuntimeRepositoryCheckpoint(
-          fingerprint = "fp",
-        ),
-      )
-      val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
-        handoff,
-        sharedReviewEvidence = evidence(hunksPerFile),
-        planningProjectionValidator = realPlanningProjectionValidator,
-      )
+      val handoff =
+        FeatureTaskRuntimePhaseHandoff(
+          phaseId = phaseId,
+          runInvariants =
+            FeatureTaskRuntimeRunInvariants(
+              specReference = ".feature-specs/SKILL-164/spec.md",
+              acceptanceCriteria = listOf("AC-002"),
+              mandatesAndOverrides = emptyList(),
+            ),
+          upstreamOutputs = FeatureTaskRuntimeResolvedUpstreamOutputs(emptyMap()),
+          derivedContextKeys = declaration.derivedContextKeys,
+          projectionDeclarations =
+            listOf(
+              FeatureTaskRuntimePhaseWorkflowDefinition.sharedReviewEvidenceDeclaration(phaseId),
+            ),
+          repositoryCheckpoint =
+            FeatureTaskRuntimeRepositoryCheckpoint(
+              fingerprint = "fp",
+            ),
+        )
+      val briefing =
+        FeatureTaskRuntimePhaseBriefingAssembler.assemble(
+          handoff,
+          sharedReviewEvidence = evidence(hunksPerFile),
+          planningProjectionValidator = realPlanningProjectionValidator,
+        )
       assertFalse(briefing.briefingText.contains("@@"), "diff hunk bodies must not reach the briefing")
       assertFalse(briefing.briefingText.contains("+val "), "diff bytes must not reach the briefing")
       val marker = "changed_file_count:"
@@ -262,24 +295,29 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
     }
   }
 
-  private fun multiUpstreamInvariants() = FeatureTaskRuntimeRunInvariants(
-    specReference = ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec.md",
-    acceptanceCriteria = (1..11).map { "AC-$it: ${"criterion-detail ".repeat(20)}" },
-    mandatesAndOverrides = (1..6).map { "mandate-$it: ${"override-detail ".repeat(20)}" },
-  )
+  private fun multiUpstreamInvariants() =
+    FeatureTaskRuntimeRunInvariants(
+      specReference = ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec.md",
+      acceptanceCriteria = (1..11).map { "AC-$it: ${"criterion-detail ".repeat(20)}" },
+      mandatesAndOverrides = (1..6).map { "mandate-$it: ${"override-detail ".repeat(20)}" },
+    )
 
-  private fun multiUpstreamOutputs(bodyBytes: Int) = listOf(
-    phaseOutput(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-      """{"produced_outputs":{"finding_dispositions":[{"finding_id":"F-1","disposition":"verified",""" +
-        """"reason":"${"r".repeat(bodyBytes)}"}]}}""",
-    ),
-  )
+  private fun multiUpstreamOutputs(bodyBytes: Int) =
+    listOf(
+      phaseOutput(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+        """{"produced_outputs":{"finding_dispositions":[{"finding_id":"F-1","disposition":"verified",""" +
+          """"reason":"${"r".repeat(bodyBytes)}"}]}}""",
+      ),
+    )
 
-  private fun phaseOutput(phaseId: String, payload: String) =
-    FeatureTaskRuntimePhaseOutput(phaseId = phaseId, iteration = 1, payload = payload)
+  private fun phaseOutput(
+    phaseId: String,
+    payload: String,
+  ) = FeatureTaskRuntimePhaseOutput(phaseId = phaseId, iteration = 1, payload = payload)
 
-  private fun planProjectionOutput(): String = """{"contract_version":"0.4","phase_id":"plan","status":"completed",""" +
-    """"summary":"Phase produced a validated output.","produced_outputs":""" +
-    PlanningProjectionFixtures.PLAN_PROSE + "}"
+  private fun planProjectionOutput(): String =
+    """{"contract_version":"0.4","phase_id":"plan","status":"completed",""" +
+      """"summary":"Phase produced a validated output.","produced_outputs":""" +
+      PlanningProjectionFixtures.PLAN_PROSE + "}"
 }

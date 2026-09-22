@@ -15,44 +15,50 @@ class ReviewWirePayloadKeysYamlParityTest {
 
   @Test
   fun `ReviewAccountingPayloadKeys owns every accounting_summary schema field`() {
-    val schema = yaml.readTree(
-      Files.readString(repoRootFromTest().resolve(ReviewContextSchemaPaths.REPO_RELATIVE_PATH)),
-    )
-    val kotlinKeys = payloadKeyValues(ReviewAccountingPayloadKeys::class.java) -
-      ReviewAccountingPayloadKeys.ACCOUNTING_SUMMARY_KIND
-    val schemaKeys = referencedSchemaProperties(
-      schema.path("\$defs").path("accounting_summary"),
-      schema.path("\$defs"),
-    )
+    val schema =
+      yaml.readTree(
+        Files.readString(repoRootFromTest().resolve(ReviewContextSchemaPaths.REPO_RELATIVE_PATH)),
+      )
+    val kotlinKeys =
+      payloadKeyValues(ReviewAccountingPayloadKeys::class.java) -
+        ReviewAccountingPayloadKeys.ACCOUNTING_SUMMARY_KIND
+    val schemaKeys =
+      referencedSchemaProperties(
+        schema.path("\$defs").path("accounting_summary"),
+        schema.path("\$defs"),
+      )
     val drift = schemaFieldOwnerDrift(schemaKeys, kotlinKeys)
     assertTrue(drift.isEmpty(), "Accounting schema/key-owner drift: $drift")
   }
 
   @Test
   fun `ReviewFinishedTelemetryPayloadKeys owns every skillbill_review_finished property`() {
-    val schema = yaml.readTree(
-      Files.readString(repoRootFromTest().resolve("orchestration/contracts/telemetry-event-schema.yaml")),
-    )
-    val kotlinKeys = (
-      payloadKeyValues(ReviewFinishedTelemetryPayloadKeys::class.java) -
-        unconstrainedReviewFinishedDetailKeys
-      ) +
-      setOf(ReviewVerificationSignalKeys.REVIEW_RUN_ID) +
-      setOf(
-        ReviewFindingPayloadKeys.CLAIM_VERDICT,
-        ReviewFindingPayloadKeys.SCOPE_DISPOSITION,
-      ) +
-      setOf(
-        LifecycleTelemetryPayloadKeys.ROUTED_SKILL,
-        LifecycleTelemetryPayloadKeys.DETECTED_STACK,
-        LifecycleTelemetryPayloadKeys.FALLBACK,
-        LifecycleTelemetryPayloadKeys.FALLBACK_REASON,
-        LifecycleTelemetryPayloadKeys.SCOPE_TYPE,
+    val schema =
+      yaml.readTree(
+        Files.readString(repoRootFromTest().resolve("orchestration/contracts/telemetry-event-schema.yaml")),
       )
-    val yamlKeys = referencedSchemaProperties(
-      schema.path("\$defs").path("skillbillReviewFinishedEvent"),
-      schema.path("\$defs"),
-    ) - setOf(SqliteReviewTelemetryPayloadKeys.EVENT_NAME, SharedPayloadKeys.CONTRACT_VERSION)
+    val kotlinKeys =
+      (
+        payloadKeyValues(ReviewFinishedTelemetryPayloadKeys::class.java) -
+          unconstrainedReviewFinishedDetailKeys
+      ) +
+        setOf(ReviewVerificationSignalKeys.REVIEW_RUN_ID) +
+        setOf(
+          ReviewFindingPayloadKeys.CLAIM_VERDICT,
+          ReviewFindingPayloadKeys.SCOPE_DISPOSITION,
+        ) +
+        setOf(
+          LifecycleTelemetryPayloadKeys.ROUTED_SKILL,
+          LifecycleTelemetryPayloadKeys.DETECTED_STACK,
+          LifecycleTelemetryPayloadKeys.FALLBACK,
+          LifecycleTelemetryPayloadKeys.FALLBACK_REASON,
+          LifecycleTelemetryPayloadKeys.SCOPE_TYPE,
+        )
+    val yamlKeys =
+      referencedSchemaProperties(
+        schema.path("\$defs").path("skillbillReviewFinishedEvent"),
+        schema.path("\$defs"),
+      ) - setOf(SqliteReviewTelemetryPayloadKeys.EVENT_NAME, SharedPayloadKeys.CONTRACT_VERSION)
     val drift = schemaFieldOwnerDrift(yamlKeys, kotlinKeys)
     assertTrue(drift.isEmpty(), "Review-finished schema/key-owner drift: $drift")
   }
@@ -75,7 +81,10 @@ class ReviewWirePayloadKeysYamlParityTest {
     )
   }
 
-  private fun schemaFieldOwnerDrift(schemaPropertyKeys: Set<String>, declaredKeyValues: Set<String>): List<String> =
+  private fun schemaFieldOwnerDrift(
+    schemaPropertyKeys: Set<String>,
+    declaredKeyValues: Set<String>,
+  ): List<String> =
     buildList {
       (schemaPropertyKeys - declaredKeyValues).sorted().forEach { field ->
         add("missing:$field")
@@ -85,15 +94,19 @@ class ReviewWirePayloadKeysYamlParityTest {
       }
     }
 
-  private fun payloadKeyValues(owner: Class<*>): Set<String> = owner.declaredFields
-    .filter { field -> field.type == String::class.java }
-    .map { field ->
-      field.isAccessible = true
-      field.get(null) as String
-    }
-    .toSet()
+  private fun payloadKeyValues(owner: Class<*>): Set<String> =
+    owner.declaredFields
+      .filter { field -> field.type == String::class.java }
+      .map { field ->
+        field.isAccessible = true
+        field.get(null) as String
+      }
+      .toSet()
 
-  private fun referencedSchemaProperties(node: JsonNode, definitions: JsonNode): Set<String> {
+  private fun referencedSchemaProperties(
+    node: JsonNode,
+    definitions: JsonNode,
+  ): Set<String> {
     val visitedDefinitions = mutableSetOf<String>()
 
     fun collect(current: JsonNode): Set<String> {
@@ -105,42 +118,45 @@ class ReviewWirePayloadKeysYamlParityTest {
         return collect(definitions.path(definitionName))
       }
       val properties = current.path("properties")
-      val propertyNames = if (properties.isObject) {
-        properties.fields().asSequence().flatMap { entry ->
-          sequenceOf(entry.key) + collect(entry.value).asSequence()
-        }.toSet()
-      } else {
-        emptySet()
-      }
-      val nestedSchemaNodes = buildList {
-        if (current.has("items")) add(current.path("items"))
-        listOf("oneOf", "anyOf", "allOf").forEach { keyword ->
-          current.path(keyword).takeIf(JsonNode::isArray)?.forEach(::add)
+      val propertyNames =
+        if (properties.isObject) {
+          properties.fields().asSequence().flatMap { entry ->
+            sequenceOf(entry.key) + collect(entry.value).asSequence()
+          }.toSet()
+        } else {
+          emptySet()
         }
-      }
+      val nestedSchemaNodes =
+        buildList {
+          if (current.has("items")) add(current.path("items"))
+          listOf("oneOf", "anyOf", "allOf").forEach { keyword ->
+            current.path(keyword).takeIf(JsonNode::isArray)?.forEach(::add)
+          }
+        }
       return propertyNames + nestedSchemaNodes.flatMap(::collect)
     }
 
     return collect(node)
   }
 
-  private val unconstrainedReviewFinishedDetailKeys = setOf(
-    ReviewFindingPayloadKeys.FINDING_ID,
-    ReviewFindingPayloadKeys.ISSUE_CATEGORY,
-    ReviewFinishedTelemetryPayloadKeys.SEVERITY,
-    ReviewFinishedTelemetryPayloadKeys.CONFIDENCE,
-    ReviewFinishedTelemetryPayloadKeys.OUTCOME_TYPE,
-    ReviewFinishedTelemetryPayloadKeys.LOCATION,
-    ReviewFinishedTelemetryPayloadKeys.DESCRIPTION,
-    ReviewFinishedTelemetryPayloadKeys.NOTE,
-    ReviewFinishedTelemetryPayloadKeys.APPLIED_COUNT,
-    ReviewFinishedTelemetryPayloadKeys.APPLIED_REFERENCES,
-    ReviewFinishedTelemetryPayloadKeys.APPLIED_SUMMARY,
-    ReviewFinishedTelemetryPayloadKeys.SCOPE_COUNTS,
-    ReviewFinishedTelemetryPayloadKeys.ENTRIES,
-    ReviewFinishedTelemetryPayloadKeys.REFERENCE,
-    ReviewFinishedTelemetryPayloadKeys.SCOPE,
-    ReviewFinishedTelemetryPayloadKeys.TITLE,
-    ReviewFinishedTelemetryPayloadKeys.RULE_TEXT,
-  )
+  private val unconstrainedReviewFinishedDetailKeys =
+    setOf(
+      ReviewFindingPayloadKeys.FINDING_ID,
+      ReviewFindingPayloadKeys.ISSUE_CATEGORY,
+      ReviewFinishedTelemetryPayloadKeys.SEVERITY,
+      ReviewFinishedTelemetryPayloadKeys.CONFIDENCE,
+      ReviewFinishedTelemetryPayloadKeys.OUTCOME_TYPE,
+      ReviewFinishedTelemetryPayloadKeys.LOCATION,
+      ReviewFinishedTelemetryPayloadKeys.DESCRIPTION,
+      ReviewFinishedTelemetryPayloadKeys.NOTE,
+      ReviewFinishedTelemetryPayloadKeys.APPLIED_COUNT,
+      ReviewFinishedTelemetryPayloadKeys.APPLIED_REFERENCES,
+      ReviewFinishedTelemetryPayloadKeys.APPLIED_SUMMARY,
+      ReviewFinishedTelemetryPayloadKeys.SCOPE_COUNTS,
+      ReviewFinishedTelemetryPayloadKeys.ENTRIES,
+      ReviewFinishedTelemetryPayloadKeys.REFERENCE,
+      ReviewFinishedTelemetryPayloadKeys.SCOPE,
+      ReviewFinishedTelemetryPayloadKeys.TITLE,
+      ReviewFinishedTelemetryPayloadKeys.RULE_TEXT,
+    )
 }

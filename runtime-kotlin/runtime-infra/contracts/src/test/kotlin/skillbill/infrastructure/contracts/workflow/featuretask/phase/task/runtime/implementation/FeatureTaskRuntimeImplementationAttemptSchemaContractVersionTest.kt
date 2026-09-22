@@ -46,8 +46,9 @@ class FeatureTaskRuntimeImplementationAttemptSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = FeatureTaskRuntimeImplementationAttemptSchemaValidator::class.java.classLoader
-      .getResourceAsStream(FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      FeatureTaskRuntimeImplementationAttemptSchemaValidator::class.java.classLoader
+        .getResourceAsStream(FeatureTaskRuntimeImplementationAttemptSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical feature-task-runtime implementation-attempt schema is missing from the classpath at " +

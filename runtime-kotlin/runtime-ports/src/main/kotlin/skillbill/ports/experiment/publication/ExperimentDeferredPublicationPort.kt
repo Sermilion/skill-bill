@@ -10,8 +10,13 @@ typealias ExperimentPublicationResult = ExperimentPublicationResultModel
 
 interface ExperimentDeferredPublicationPort {
   fun recordDeferredAttempt(attempt: ExperimentPublicationAttempt)
+
   fun parentMayPublish(pairId: String): Boolean
-  fun publicationRecorded(pairId: String, commitSha: String): Boolean = false
+
+  fun publicationRecorded(
+    pairId: String,
+    commitSha: String,
+  ): Boolean = false
 }
 
 fun interface ExperimentParentDeliveryPort {

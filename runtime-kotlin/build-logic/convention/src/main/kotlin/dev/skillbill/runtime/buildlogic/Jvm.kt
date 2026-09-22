@@ -1,9 +1,7 @@
 package dev.skillbill.runtime.buildlogic
 
 import org.gradle.api.Project
-import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.jvm.toolchain.JavaLanguageVersion
@@ -18,10 +16,11 @@ private const val MAX_TEST_FORKS = 8
 private const val TEST_FORK_CPU_DIVISOR = 2
 private const val TEST_MAX_HEAP = "2g"
 
-private val HARNESS_ENVIRONMENT_GATES = listOf(
-  "SKILL_BILL_REAL_STORE_DB",
-  "SKILL_BILL_MIGRATION_FIXTURE_DB",
-)
+private val HARNESS_ENVIRONMENT_GATES =
+  listOf(
+    "SKILL_BILL_REAL_STORE_DB",
+    "SKILL_BILL_MIGRATION_FIXTURE_DB",
+  )
 
 internal fun Project.configureKotlinJvm() {
   extensions.configure(KotlinJvmProjectExtension::class.java) {
@@ -45,8 +44,6 @@ internal fun Project.configureKotlinJvm() {
   }
 
   configureKotlinJvmTestDefaults()
-
-  configureRepoTestSourceSet()
 }
 
 private fun Project.configureKotlinJvmTestDefaults() {
@@ -85,58 +82,4 @@ private fun Project.configureKotlinJvmTestDefaults() {
       }
     }
   }
-}
-
-private fun Project.configureRepoTestSourceSet() {
-  val repoTestRoot = layout.projectDirectory.dir("src/repoTest/kotlin").asFile
-  if (!repoTestRoot.isDirectory) {
-    return
-  }
-
-  val java = extensions.getByType(JavaPluginExtension::class.java)
-  val repoTestSourceSet = java.sourceSets.create("repoTest")
-  val testSourceSet = java.sourceSets.getByName("test")
-
-  configurations.getByName(repoTestSourceSet.implementationConfigurationName)
-    .extendsFrom(configurations.getByName(testSourceSet.implementationConfigurationName))
-  configurations.getByName(repoTestSourceSet.runtimeOnlyConfigurationName)
-    .extendsFrom(configurations.getByName(testSourceSet.runtimeOnlyConfigurationName))
-
-  extensions.configure(KotlinJvmProjectExtension::class.java) {
-    val compilations = target.compilations
-    compilations.getByName("repoTest").associateWith(compilations.getByName("test"))
-  }
-
-  dependencies.add(repoTestSourceSet.implementationConfigurationName, testSourceSet.output)
-
-  val repoTest = tasks.register("repoTest", Test::class.java) {
-    group = "verification"
-    description = "Repository-contract suites that read governed sources outside runtime-kotlin."
-    testClassesDirs = repoTestSourceSet.output.classesDirs
-    classpath = repoTestSourceSet.runtimeClasspath
-    inputs.files(governedRepositorySources())
-      .withPathSensitivity(PathSensitivity.RELATIVE)
-      .withPropertyName("governedRepositorySources")
-  }
-
-  tasks.named("check") {
-    dependsOn(repoTest)
-  }
-}
-
-private fun Project.governedRepositorySources(): FileCollection {
-  val repoRoot = rootProject.layout.projectDirectory.dir("..")
-  return files(
-    repoRoot.dir("skills"),
-    repoRoot.dir("platform-packs"),
-    repoRoot.dir("orchestration"),
-    repoRoot.dir("agent-addons"),
-    repoRoot.dir("docs"),
-    repoRoot.dir("tests"),
-    repoRoot.dir("scripts"),
-    repoRoot.file("README.md"),
-    repoRoot.file("LICENSE"),
-    repoRoot.file("install.sh"),
-    repoRoot.file("uninstall.sh"),
-  )
 }

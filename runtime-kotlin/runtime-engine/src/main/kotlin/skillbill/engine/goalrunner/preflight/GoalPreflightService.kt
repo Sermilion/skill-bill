@@ -26,13 +26,14 @@ class GoalPreflightService(
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
   experimentSelectionPort: ExperimentSelectionPort,
 ) {
-  private val gateBlockBuilder = GoalPreflightGateBlockBuilder(
-    manifestStore,
-    agentAddonSelectionPort,
-    externalAgentAddonSourceConfigPort,
-    manifestFileStore,
-    experimentSelectionPort,
-  )
+  private val gateBlockBuilder =
+    GoalPreflightGateBlockBuilder(
+      manifestStore,
+      agentAddonSelectionPort,
+      externalAgentAddonSourceConfigPort,
+      manifestFileStore,
+      experimentSelectionPort,
+    )
   private val lookupResolver = GoalPreflightLookupResolver(gateBlockBuilder)
 
   fun preflight(request: GoalPreflightRequest): GoalPreflightResult {
@@ -40,25 +41,28 @@ class GoalPreflightService(
     GoalPreflightInputValidation.requireOptionalIdentity("agent_override_id", request.agentOverrideId)
     val root = GoalPreflightInputValidation.resolveRepositoryRoot(request.repoRoot, repositoryEnclosingRootPort)
     val normalizedIssueKey = GoalPreflightInputValidation.normalizeIssueKey(request.issueKey)
-    val projectedManifest = resolveDecompositionManifest(
-      repoRoot = root,
-      issueKey = normalizedIssueKey,
-      fileStore = manifestFileStore,
-      validator = manifestValidator,
-      recoverPending = false,
-    )
-    val manifestState = manifestStore.readByIssueKeyIfPresent(
-      normalizedIssueKey,
-      root,
-    )
+    val projectedManifest =
+      resolveDecompositionManifest(
+        repoRoot = root,
+        issueKey = normalizedIssueKey,
+        fileStore = manifestFileStore,
+        validator = manifestValidator,
+        recoverPending = false,
+      )
+    val manifestState =
+      manifestStore.readByIssueKeyIfPresent(
+        normalizedIssueKey,
+        root,
+      )
     val manifest = manifestState?.manifest ?: projectedManifest
     if (manifest != null) {
       GoalPreflightInputValidation.requireManifestIssueKey(manifest.issueKey, normalizedIssueKey)
     }
-    val lookup = continuationLookup.lookupIfPresent(
-      issueKey = normalizedIssueKey,
-      repositoryIdentity = goalRepositoryIdentity(root, repositoryEnclosingRootPort),
-    )
+    val lookup =
+      continuationLookup.lookupIfPresent(
+        issueKey = normalizedIssueKey,
+        repositoryIdentity = goalRepositoryIdentity(root, repositoryEnclosingRootPort),
+      )
     return lookupResolver.resolve(
       GoalPreflightLookupInput(
         lookup = lookup,

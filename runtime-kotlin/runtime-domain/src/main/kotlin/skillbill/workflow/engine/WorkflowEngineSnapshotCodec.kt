@@ -9,6 +9,7 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowStepStatus
+
 internal fun snapshotViewFrom(record: WorkflowStateSnapshot): WorkflowSnapshotView {
   val steps = decodeSteps(record.stepsJson).map(::workflowStepStateFrom)
   return WorkflowSnapshotView(
@@ -27,7 +28,10 @@ internal fun snapshotViewFrom(record: WorkflowStateSnapshot): WorkflowSnapshotVi
   )
 }
 
-internal fun defaultSteps(definition: WorkflowDefinition, initialStepId: String): List<Map<String, Any?>> {
+internal fun defaultSteps(
+  definition: WorkflowDefinition,
+  initialStepId: String,
+): List<Map<String, Any?>> {
   var seenInitial = false
   return definition.stepIds.map { stepId ->
     when {
@@ -42,12 +46,15 @@ internal fun defaultSteps(definition: WorkflowDefinition, initialStepId: String)
 }
 
 private fun workflowStepStateFrom(stepMap: Map<String, Any?>): WorkflowStepState {
-  val statusWire = stepMap[SharedPayloadKeys.STATUS] as? String
-    ?: invalidWorkflowStep("Workflow state step status must decode to a string.")
-  val status = WorkflowStepStatus.fromWire(statusWire)
-    ?: invalidWorkflowStep("Workflow state step status has unsupported value '$statusWire'.")
-  val attemptCount = stepMap[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asExactIntOrNull()
-    ?: invalidWorkflowStep("Workflow state step attempt_count must decode to an integer.")
+  val statusWire =
+    stepMap[SharedPayloadKeys.STATUS] as? String
+      ?: invalidWorkflowStep("Workflow state step status must decode to a string.")
+  val status =
+    WorkflowStepStatus.fromWire(statusWire)
+      ?: invalidWorkflowStep("Workflow state step status has unsupported value '$statusWire'.")
+  val attemptCount =
+    stepMap[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asExactIntOrNull()
+      ?: invalidWorkflowStep("Workflow state step attempt_count must decode to an integer.")
   return WorkflowStepState(
     stepId = stepMap[SharedPayloadKeys.STEP_ID] as String,
     status = status,
@@ -73,21 +80,28 @@ internal fun mergeStepUpdates(
 
 private fun workflowStepFromUpdate(update: Map<String, Any?>): Map<String, Any?> {
   val stepId = update[SharedPayloadKeys.STEP_ID].toString()
-  val attemptCount = update[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asExactIntOrNull()
-    ?: invalidWorkflowStep("step_updates.attempt_count must be an integer >= 0.")
+  val attemptCount =
+    update[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asExactIntOrNull()
+      ?: invalidWorkflowStep("step_updates.attempt_count must be an integer >= 0.")
   if (attemptCount < 0) {
     invalidWorkflowStep("step_updates.attempt_count must be an integer >= 0.")
   }
-  val statusWire = update[SharedPayloadKeys.STATUS]?.toString()
-    ?: invalidWorkflowStep("step_updates.status must be a non-empty string.")
-  val status = WorkflowStepStatus.fromWire(statusWire)
-    ?: invalidWorkflowStep("step_updates.status has unsupported value '$statusWire'.")
+  val statusWire =
+    update[SharedPayloadKeys.STATUS]?.toString()
+      ?: invalidWorkflowStep("step_updates.status must be a non-empty string.")
+  val status =
+    WorkflowStepStatus.fromWire(statusWire)
+      ?: invalidWorkflowStep("step_updates.status has unsupported value '$statusWire'.")
   return workflowStep(stepId, status, attemptCount)
 }
 
 private fun invalidWorkflowStep(reason: String): Nothing = throw InvalidWorkflowStateSchemaError(reason)
 
-internal fun workflowStep(stepId: String, status: WorkflowStepStatus, attemptCount: Int): Map<String, Any?> =
+internal fun workflowStep(
+  stepId: String,
+  status: WorkflowStepStatus,
+  attemptCount: Int,
+): Map<String, Any?> =
   linkedMapOf(
     SharedPayloadKeys.STEP_ID to stepId,
     SharedPayloadKeys.STATUS to status.wireValue,

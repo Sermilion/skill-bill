@@ -21,12 +21,13 @@ class InternalSkillCompanionInstallApplyTest : InstallApplyTestSupport() {
         "\nWhen the baseline is insufficient, read [review-guidelines.md](review-guidelines.md).\n",
     )
     Files.writeString(internalSkillDir.resolve("review-guidelines.md"), "governed review rubric\n")
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
     val first = applyInstallForTest(plan)
     val parentStaging = first.skills.single { skill -> skill.skillName == "bill-code-review" }.staging.stagingDir
     val companion = assertNotNull(parentStaging).resolve("review-guidelines.md")
@@ -50,9 +51,10 @@ class InternalSkillCompanionInstallApplyTest : InstallApplyTestSupport() {
         "\nWhen the baseline is insufficient, read [review-guidelines.md](review-guidelines.md).\n",
     )
     Files.writeString(internalSkillDir.resolve("review-guidelines.md"), "governed review rubric\n")
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(plan).status)
     Files.writeString(fixture.repoRoot.resolve("skills/bill-code-review/review-guidelines.md"), "parent content\n")
 

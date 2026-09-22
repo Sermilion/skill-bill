@@ -13,10 +13,15 @@ object LearningsRuntime {
       RejectedFindingOutcomeType.FALSE_POSITIVE,
     ).map { it.wireValue }
 
-  fun validateLearningScope(scope: LearningScope, scopeKey: String): Pair<LearningScope, String> =
-    scope to scope.normalizeScopeKey(scopeKey)
+  fun validateLearningScope(
+    scope: LearningScope,
+    scopeKey: String,
+  ): Pair<LearningScope, String> = scope to scope.normalizeScopeKey(scopeKey)
 
-  fun validateLearningSourceReference(sourceReviewRunId: String?, sourceFindingId: String?): LearningSourceReference {
+  fun validateLearningSourceReference(
+    sourceReviewRunId: String?,
+    sourceFindingId: String?,
+  ): LearningSourceReference {
     require(!sourceReviewRunId.isNullOrBlank() && !sourceFindingId.isNullOrBlank()) {
       "Learnings must be derived from a rejected review finding. Provide both --from-run and --from-finding."
     }
@@ -31,11 +36,12 @@ object LearningsRuntime {
     sourceFindingId: String?,
     sourceFindingExists: Boolean,
     latestRejectedOutcome: RejectedLearningSourceOutcome?,
-  ): LearningSourceValidation = validateLearningSource(
-    sourceReference = validateLearningSourceReference(sourceReviewRunId, sourceFindingId),
-    sourceFindingExists = sourceFindingExists,
-    latestRejectedOutcome = latestRejectedOutcome,
-  )
+  ): LearningSourceValidation =
+    validateLearningSource(
+      sourceReference = validateLearningSourceReference(sourceReviewRunId, sourceFindingId),
+      sourceFindingExists = sourceFindingExists,
+      latestRejectedOutcome = latestRejectedOutcome,
+    )
 
   fun validateLearningSource(
     sourceReference: LearningSourceReference,
@@ -58,7 +64,10 @@ object LearningsRuntime {
     )
   }
 
-  fun normalizeOptionalLookupValue(rawValue: String?, argumentName: String): String? {
+  fun normalizeOptionalLookupValue(
+    rawValue: String?,
+    argumentName: String,
+  ): String? {
     if (rawValue == null) {
       return null
     }
@@ -74,7 +83,10 @@ object LearningsRuntime {
     return status
   }
 
-  fun validateLearningText(title: String, ruleText: String): Pair<String, String> {
+  fun validateLearningText(
+    title: String,
+    ruleText: String,
+  ): Pair<String, String> {
     val normalizedTitle = title.trim()
     val normalizedRuleText = ruleText.trim()
     require(normalizedTitle.isNotEmpty()) { "Learning title must not be empty." }
@@ -82,7 +94,10 @@ object LearningsRuntime {
     return normalizedTitle to normalizedRuleText
   }
 
-  fun effectiveRationale(rationale: String, rejectedOutcomeNote: String): String =
+  fun effectiveRationale(
+    rationale: String,
+    rejectedOutcomeNote: String,
+  ): String =
     if (rationale.trim().isEmpty() && rejectedOutcomeNote.isNotBlank()) {
       rejectedOutcomeNote.trim()
     } else {

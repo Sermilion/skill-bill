@@ -15,27 +15,33 @@ import skillbill.di.core.RuntimeComponent
 import skillbill.di.core.create
 import skillbill.error.core.DatabaseAccessError
 import java.nio.file.Path
+
 object CliRuntime {
-  fun run(arguments: List<String>, context: CliRuntimeContext = CliRuntimeContext()): CliExecutionResult {
+  fun run(
+    arguments: List<String>,
+    context: CliRuntimeContext = CliRuntimeContext(),
+  ): CliExecutionResult {
     val rootFlags = RootFlagProbeCommand()
     runCatching { CommandLineParser.parseAndRun(rootFlags, arguments) { } }
-    val runtimeComponent = RuntimeComponent::class.create(
-      context.toRuntimeContext(
-        dbPathOverride = rootFlags.dbOverride ?: context.dbPathOverride,
-        userHome = rootFlags.homeOverride?.let(Path::of) ?: context.userHome,
-      ),
-    )
+    val runtimeComponent =
+      RuntimeComponent::class.create(
+        context.toRuntimeContext(
+          dbPathOverride = rootFlags.dbOverride ?: context.dbPathOverride,
+          userHome = rootFlags.homeOverride?.let(Path::of) ?: context.userHome,
+        ),
+      )
     val resolved = runtimeComponent.resolvedEnvironmentContext
     val runState = CliRunState(context.stdinText)
-    val runInputs = CliRunInputs(
-      databasePath = resolved.dbPathOverride,
-      environment = resolved.environment,
-      userHome = resolved.userHome,
-      repositoryRoot = resolved.repositoryRoot,
-      repositoryEnclosingRootPort = runtimeComponent.repositoryEnclosingRootPort,
-      liveStdout = context.liveStdout,
-      liveStderr = context.liveStderr,
-    )
+    val runInputs =
+      CliRunInputs(
+        databasePath = resolved.dbPathOverride,
+        environment = resolved.environment,
+        userHome = resolved.userHome,
+        repositoryRoot = resolved.repositoryRoot,
+        repositoryEnclosingRootPort = runtimeComponent.repositoryEnclosingRootPort,
+        liveStdout = context.liveStdout,
+        liveStderr = context.liveStderr,
+      )
     val cliComponent = CliComponent::class.create(runtimeComponent, runState, runInputs)
     val rootCommand = cliComponent.rootCommand
     return try {

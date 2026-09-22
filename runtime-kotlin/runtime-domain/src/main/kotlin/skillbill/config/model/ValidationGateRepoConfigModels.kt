@@ -21,11 +21,12 @@ sealed interface ValidationGateRepoConfigParse {
   ) : ValidationGateRepoConfigParse
 }
 
-fun parseValidationGateRepoConfig(raw: Any?): ValidationGateRepoConfigParse = try {
-  ValidationGateRepoConfigParse.Valid(parseValidationGateMapping(raw))
-} catch (failure: InvalidValidationGateRepoConfig) {
-  failure.invalid
-}
+fun parseValidationGateRepoConfig(raw: Any?): ValidationGateRepoConfigParse =
+  try {
+    ValidationGateRepoConfigParse.Valid(parseValidationGateMapping(raw))
+  } catch (failure: InvalidValidationGateRepoConfig) {
+    failure.invalid
+  }
 
 fun parseGradleWrapperPath(raw: String?): String? {
   val trimmed = raw?.trim().orEmpty()
@@ -43,16 +44,20 @@ fun parseGradleWrapperPath(raw: String?): String? {
   return if (invalid) null else segments.joinToString("/")
 }
 
-fun applyValidationGateGradleWrapper(argv: List<String>, gradleWrapper: String?): List<String> {
+fun applyValidationGateGradleWrapper(
+  argv: List<String>,
+  gradleWrapper: String?,
+): List<String> {
   val wrapper = gradleWrapper?.takeIf { path -> path.isNotBlank() } ?: return argv
   val head = argv.firstOrNull() ?: return argv
   if (head != "./gradlew" && head != "gradlew") return argv
   val projectDir = wrapper.substringBeforeLast('/', missingDelimiterValue = "")
-  val rewrittenHead = if (projectDir.isNotEmpty()) {
-    listOf(wrapper, "-p", projectDir)
-  } else {
-    listOf(wrapper)
-  }
+  val rewrittenHead =
+    if (projectDir.isNotEmpty()) {
+      listOf(wrapper, "-p", projectDir)
+    } else {
+      listOf(wrapper)
+    }
   return rewrittenHead + argv.drop(1)
 }
 
@@ -73,16 +78,21 @@ private fun parseValidationGateMapping(raw: Any?): ValidationGateRepoConfig {
       "must be a non-blank repo-relative path string.",
     )
   }
-  val parsed = parseGradleWrapperPath(rawWrapper)
-    ?: invalidValidationGate(
-      "$VALIDATION_GATE_KEY.$GRADLE_WRAPPER_KEY",
-      rawWrapper,
-      "must be a non-blank repo-relative path without '..' segments.",
-    )
+  val parsed =
+    parseGradleWrapperPath(rawWrapper)
+      ?: invalidValidationGate(
+        "$VALIDATION_GATE_KEY.$GRADLE_WRAPPER_KEY",
+        rawWrapper,
+        "must be a non-blank repo-relative path without '..' segments.",
+      )
   return ValidationGateRepoConfig(gradleWrapper = parsed)
 }
 
-private fun invalidValidationGate(keyPath: String, value: Any?, reason: String): Nothing =
+private fun invalidValidationGate(
+  keyPath: String,
+  value: Any?,
+  reason: String,
+): Nothing =
   throw InvalidValidationGateRepoConfig(
     ValidationGateRepoConfigParse.Invalid(
       keyPath = keyPath,

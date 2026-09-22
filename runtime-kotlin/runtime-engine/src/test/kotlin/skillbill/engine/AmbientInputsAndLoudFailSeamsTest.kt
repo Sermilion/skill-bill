@@ -16,30 +16,35 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 class AmbientInputsAndLoudFailSeamsTest {
   @Test
   fun `explicit resume of a finished audit continues from the furthest later phase`() {
-    val completed = mapOf(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to PREPLAN_OUTPUT,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to PLAN_OUTPUT,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to auditSatisfiedOutput(),
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to VALID_REVIEW_OUTPUT,
-    ).mapValues { (phaseId, output) ->
-      completedRecord(phaseId, output)
-    }
-    val state = FeatureTaskRuntimeRunState(
-      initialRecords = completed + (
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY to FeatureTaskRuntimePhaseRecord(
-          phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
-          status = WorkflowStepStatus.RUNNING,
-          attemptCount = 1,
-          startedAt = "2026-09-08T00:00:00Z",
-          resolvedAgentId = "codex",
-        )
-        ),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      outputValidator = AlwaysValidValidator,
-    )
+    val completed =
+      mapOf(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to PREPLAN_OUTPUT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to PLAN_OUTPUT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to auditSatisfiedOutput(),
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to VALID_REVIEW_OUTPUT,
+      ).mapValues { (phaseId, output) ->
+        completedRecord(phaseId, output)
+      }
+    val state =
+      FeatureTaskRuntimeRunState(
+        initialRecords =
+          completed + (
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY to
+              FeatureTaskRuntimePhaseRecord(
+                phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+                status = WorkflowStepStatus.RUNNING,
+                attemptCount = 1,
+                startedAt = "2026-09-08T00:00:00Z",
+                resolvedAgentId = "codex",
+              )
+          ),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
 
     val start = state.explicitResumeStart(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
     assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY, start.phaseId)
@@ -53,24 +58,29 @@ class AmbientInputsAndLoudFailSeamsTest {
 
   @Test
   fun `explicit resume of a finished audit with no later phase starts the next phase`() {
-    val state = FeatureTaskRuntimeRunState(
-      initialRecords = mapOf(
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to completedRecord(
-          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
-          PREPLAN_OUTPUT,
-        ),
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to completedRecord(
-          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-          PLAN_OUTPUT,
-        ),
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to completedRecord(
-          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-          auditSatisfiedOutput(),
-        ),
-      ),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      outputValidator = AlwaysValidValidator,
-    )
+    val state =
+      FeatureTaskRuntimeRunState(
+        initialRecords =
+          mapOf(
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
+                PREPLAN_OUTPUT,
+              ),
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
+                PLAN_OUTPUT,
+              ),
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+                auditSatisfiedOutput(),
+              ),
+          ),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
 
     val start = state.explicitResumeStart(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
     assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW, start.phaseId)
@@ -83,20 +93,24 @@ class AmbientInputsAndLoudFailSeamsTest {
 
   @Test
   fun `explicit resume of an unfinished audit still reopens audit`() {
-    val state = FeatureTaskRuntimeRunState(
-      initialRecords = mapOf(
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to completedRecord(
-          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
-          PREPLAN_OUTPUT,
-        ),
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to completedRecord(
-          FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-          PLAN_OUTPUT,
-        ),
-      ),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      outputValidator = AlwaysValidValidator,
-    )
+    val state =
+      FeatureTaskRuntimeRunState(
+        initialRecords =
+          mapOf(
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
+                PREPLAN_OUTPUT,
+              ),
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
+                PLAN_OUTPUT,
+              ),
+          ),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
 
     val start = state.explicitResumeStart(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
     assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT, start.phaseId)
@@ -105,18 +119,21 @@ class AmbientInputsAndLoudFailSeamsTest {
 
   @Test
   fun `corrupt durable phase payload does not collapse to emptyMap`() {
-    val state = FeatureTaskRuntimeRunState(
-      initialRecords = emptyMap(),
-      transitions = FeatureTaskRuntimeTransitionDeclaration(
-        listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT),
-      ),
-      outputValidator = ThrowingValidator(setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT)),
-    )
-    val output = FeatureTaskRuntimePhaseOutput(
-      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-      iteration = 1,
-      payload = """{"contract_version":"not-a-version","phase_id":"implement","status":"completed"}""",
-    )
+    val state =
+      FeatureTaskRuntimeRunState(
+        initialRecords = emptyMap(),
+        transitions =
+          FeatureTaskRuntimeTransitionDeclaration(
+            listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT),
+          ),
+        outputValidator = ThrowingValidator(setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT)),
+      )
+    val output =
+      FeatureTaskRuntimePhaseOutput(
+        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        iteration = 1,
+        payload = """{"contract_version":"not-a-version","phase_id":"implement","status":"completed"}""",
+      )
 
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
       state.parsedOutput(output)
@@ -132,7 +149,10 @@ class AmbientInputsAndLoudFailSeamsTest {
   }
 }
 
-private fun completedRecord(phaseId: String, output: String): FeatureTaskRuntimePhaseRecord =
+private fun completedRecord(
+  phaseId: String,
+  output: String,
+): FeatureTaskRuntimePhaseRecord =
   FeatureTaskRuntimePhaseRecord(
     phaseId = phaseId,
     status = WorkflowStepStatus.COMPLETED,

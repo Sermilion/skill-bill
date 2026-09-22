@@ -8,12 +8,13 @@ import kotlin.test.assertTrue
 class ValidationGateTriagePredicateTest {
   @Test
   fun `requiresUnparseableGateTriage is true only for sole unparseable_gate_failure`() {
-    val unparseable = ValidationGateFinding(
-      module = "<validation-gate>",
-      ruleOrTestId = UNPARSEABLE_GATE_FAILURE_RULE_ID,
-      message = "blob",
-      location = null,
-    )
+    val unparseable =
+      ValidationGateFinding(
+        module = "<validation-gate>",
+        ruleOrTestId = UNPARSEABLE_GATE_FAILURE_RULE_ID,
+        message = "blob",
+        location = null,
+      )
     assertTrue(requiresUnparseableGateTriage(listOf(unparseable)))
     assertFalse(
       requiresUnparseableGateTriage(

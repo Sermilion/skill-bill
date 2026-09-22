@@ -42,14 +42,15 @@ class PlatformPackCatalogLoader(
 ) : PlatformPackCatalogPort {
   override fun loadEffectiveCatalog(request: PlatformPackCatalogRequest): PlatformPackCatalogResult =
     PlatformPackCatalogResult(
-      catalog = loadEffectiveCatalog(
-        PlatformPackDiscoveryContext(
-          repoRoot = request.repoRoot,
-          userHome = request.userHome,
-          environment = request.environment,
-          enforceContractVersion = request.enforceContractVersion,
+      catalog =
+        loadEffectiveCatalog(
+          PlatformPackDiscoveryContext(
+            repoRoot = request.repoRoot,
+            userHome = request.userHome,
+            environment = request.environment,
+            enforceContractVersion = request.enforceContractVersion,
+          ),
         ),
-      ),
     )
 
   fun loadEffectiveCatalog(context: PlatformPackDiscoveryContext): EffectivePlatformPackCatalog =
@@ -62,11 +63,12 @@ class PlatformPackCatalogLoader(
     val external = externalPacksIncludingPending(context, pendingExternalRoot)
     val shadowedSlugs = external.map { pack -> pack.manifest.slug }.toSet()
     val bundled = loadBundledPacks(context, shadowedSlugs)
-    val catalog = buildEffectivePlatformPackCatalog(
-      bundled = bundled,
-      external = external,
-      bundledSlugs = bundledPackSlugs(context),
-    )
+    val catalog =
+      buildEffectivePlatformPackCatalog(
+        bundled = bundled,
+        external = external,
+        bundledSlugs = bundledPackSlugs(context),
+      )
     val manifests = catalog.manifests
     validatePlatformPackCompositions(manifests, catalog.manifestsBySlug)
     validatePlatformPackFallbacks(manifests)
@@ -94,24 +96,26 @@ class PlatformPackCatalogLoader(
         "Pack path '$normalized' does not resolve to an existing directory.",
       )
     }
-    val catalog = loadEffectiveCatalogInternal(
-      PlatformPackDiscoveryContext(
-        repoRoot = request.catalog.repoRoot,
-        userHome = request.catalog.userHome,
-        environment = request.catalog.environment,
-        enforceContractVersion = request.catalog.enforceContractVersion,
-      ),
-      pendingExternalRoot = normalized,
-    )
+    val catalog =
+      loadEffectiveCatalogInternal(
+        PlatformPackDiscoveryContext(
+          repoRoot = request.catalog.repoRoot,
+          userHome = request.catalog.userHome,
+          environment = request.catalog.environment,
+          enforceContractVersion = request.catalog.enforceContractVersion,
+        ),
+        pendingExternalRoot = normalized,
+      )
     val incoming = loadPlatformPack(normalized, catalog.manifestsBySlug)
     val billSharedRoot = request.catalog.repoRoot.toAbsolutePath().normalize().resolve(".bill-shared")
     assertExternalPackContentPresent(incoming)
     assertExternalPlatformPackDeclaredReads(incoming, billSharedRoot)
-    val conflict = catalog.entries.any { entry ->
-      entry.loaded.sourceKind == PlatformPackSourceKind.EXTERNAL &&
-        entry.loaded.manifest.slug == incoming.slug &&
-        entry.loaded.canonicalRoot != normalized.toString()
-    }
+    val conflict =
+      catalog.entries.any { entry ->
+        entry.loaded.sourceKind == PlatformPackSourceKind.EXTERNAL &&
+          entry.loaded.manifest.slug == incoming.slug &&
+          entry.loaded.canonicalRoot != normalized.toString()
+      }
     if (conflict) {
       throw AmbiguousExternalPlatformPackError(
         "External platform pack slug '${incoming.slug}' is already registered at a different root.",
@@ -149,7 +153,10 @@ class PlatformPackCatalogLoader(
     return childDirectories(packsRoot).map { packRoot -> packRoot.fileName.toString() }.toSet()
   }
 
-  private fun bundledPackDirectoryExists(context: PlatformPackDiscoveryContext, slug: String): Boolean {
+  private fun bundledPackDirectoryExists(
+    context: PlatformPackDiscoveryContext,
+    slug: String,
+  ): Boolean {
     if (slug.isEmpty()) return false
     val packsRoot = context.repoRoot.toAbsolutePath().normalize().resolve("platform-packs")
     return Files.isDirectory(packsRoot.resolve(slug))
@@ -162,9 +169,10 @@ class PlatformPackCatalogLoader(
     val registered = loadExternalPacks(context)
     val pendingRoot = pendingExternalRoot?.toAbsolutePath()?.normalize() ?: return registered
     val pending = loadExternalPack(ExternalPlatformPackSource(pendingRoot.toFileLocation()), context)
-    val conflict = registered.any { pack ->
-      pack.manifest.slug == pending.manifest.slug && pack.canonicalRoot != pending.canonicalRoot
-    }
+    val conflict =
+      registered.any { pack ->
+        pack.manifest.slug == pending.manifest.slug && pack.canonicalRoot != pending.canonicalRoot
+      }
     if (conflict) {
       throw AmbiguousExternalPlatformPackError(
         "External platform pack slug '${pending.manifest.slug}' is already registered at a different root.",
@@ -178,12 +186,13 @@ class PlatformPackCatalogLoader(
   }
 
   private fun loadExternalPacks(context: PlatformPackDiscoveryContext): List<LoadedPlatformPack> {
-    val sources = externalPlatformPackSourceConfigPort.readExternalPlatformPackSources(
-      ExternalPlatformPackSourceConfigRequest(
-        userHome = context.userHome,
-        environment = context.environment,
-      ),
-    ).sources
+    val sources =
+      externalPlatformPackSourceConfigPort.readExternalPlatformPackSources(
+        ExternalPlatformPackSourceConfigRequest(
+          userHome = context.userHome,
+          environment = context.environment,
+        ),
+      ).sources
     return sources.mapNotNull { source ->
       val canonicalRoot = source.path.toPath().toAbsolutePath().normalize()
       val slug = canonicalRoot.fileName?.toString().orEmpty()

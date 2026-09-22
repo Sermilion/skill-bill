@@ -25,6 +25,7 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
 import java.nio.file.Files
 import java.nio.file.Path
+
 internal fun performScaffoldInstall(
   txn: ScaffoldTransaction,
   plan: ScaffoldPlan,
@@ -32,9 +33,10 @@ internal fun performScaffoldInstall(
   runtime: ScaffoldRuntimeContext = ScaffoldRuntimeContext(resolveInstallHome(null, JdkHostPlatformPort)),
 ): Pair<List<Path>, List<String>> {
   if (plan.externalPackRegistrationMode == "register") {
-    return emptyList<Path>() to listOf(
-      "Registered existing external platform pack without rewriting pack files.",
-    )
+    return emptyList<Path>() to
+      listOf(
+        "Registered existing external platform pack without rewriting pack files.",
+      )
   }
   val hostPlatform = JdkHostPlatformPort
   val home = runtime.userHome
@@ -42,30 +44,34 @@ internal fun performScaffoldInstall(
   val agents = detectAgents(home, environment)
   var installTx = InstallTransaction()
   val internalPlatformSkills = internalPlatformInstallSkills(plan)
-  val installPaths = when (plan.kind) {
-    SKILL_KIND_ADD_ON -> emptyList()
-    SKILL_KIND_AGENT_ADDON -> plan.agentAddonConsumers.map { consumer -> repoRoot.resolve("skills").resolve(consumer) }
-    SKILL_KIND_PLATFORM_PACK -> platformPackInstallPaths(plan, repoRoot, internalPlatformSkills)
-    else -> listOf(plan.skillPath)
-  }
+  val skillsRoot = repoRoot.resolve("skills")
+  val installPaths =
+    when (plan.kind) {
+      SKILL_KIND_ADD_ON -> emptyList()
+      SKILL_KIND_AGENT_ADDON -> plan.agentAddonConsumers.map { consumer -> skillsRoot.resolve(consumer) }
+      SKILL_KIND_PLATFORM_PACK -> platformPackInstallPaths(plan, repoRoot, internalPlatformSkills)
+      else -> listOf(plan.skillPath)
+    }
   val packsRoot = repoRoot.resolve("platform-packs")
-  val manifests = runtime.catalogLoader?.loadEffectiveManifests(
-    PlatformPackDiscoveryContext(
+  val manifests =
+    runtime.catalogLoader?.loadEffectiveManifests(
+      PlatformPackDiscoveryContext(
+        repoRoot = repoRoot,
+        userHome = home,
+        environment = environment,
+        catalogLoader = runtime.catalogLoader,
+      ),
+    ) ?: if (Files.isDirectory(packsRoot)) discoverPlatformPackManifests(packsRoot) else emptyList()
+  val context =
+    InstallContext(
       repoRoot = repoRoot,
-      userHome = home,
+      home = home,
+      manifests = manifests,
+      selectedPackSkills = internalPlatformSkills,
+      selectedPlatformSlugs = setOf(plan.platform),
       environment = environment,
       catalogLoader = runtime.catalogLoader,
-    ),
-  ) ?: if (Files.isDirectory(packsRoot)) discoverPlatformPackManifests(packsRoot) else emptyList()
-  val context = InstallContext(
-    repoRoot = repoRoot,
-    home = home,
-    manifests = manifests,
-    selectedPackSkills = internalPlatformSkills,
-    selectedPlatformSlugs = setOf(plan.platform),
-    environment = environment,
-    catalogLoader = runtime.catalogLoader,
-  )
+    )
   val targets =
     installPaths.flatMap { installPath ->
       val outcome = installSkill(installPath, agents, transaction = installTx, context = context)
@@ -73,13 +79,14 @@ internal fun performScaffoldInstall(
       outcome.linkPaths
     }
   txn.installTargets += targets
-  val notes = when {
-    plan.kind == SKILL_KIND_ADD_ON -> listOf(ADD_ON_INSTALL_NOTE)
-    plan.kind == SKILL_KIND_AGENT_ADDON -> listOf("Agent add-on consumers rendered and installed atomically.")
-    agents.isEmpty() -> listOf(noAgentsNote())
-    plan.kind == SKILL_KIND_PLATFORM_PACK -> listOf(PLATFORM_PACK_INSTALL_NOTE)
-    else -> emptyList()
-  }
+  val notes =
+    when {
+      plan.kind == SKILL_KIND_ADD_ON -> listOf(ADD_ON_INSTALL_NOTE)
+      plan.kind == SKILL_KIND_AGENT_ADDON -> listOf("Agent add-on consumers rendered and installed atomically.")
+      agents.isEmpty() -> listOf(noAgentsNote())
+      plan.kind == SKILL_KIND_PLATFORM_PACK -> listOf(PLATFORM_PACK_INSTALL_NOTE)
+      else -> emptyList()
+    }
   return targets to notes
 }
 
@@ -105,12 +112,14 @@ internal fun platformPackInstallPaths(
   internalPlatformSkills: List<InstallPlanSkill>,
 ): List<Path> {
   val internalSkillDirs = internalPlatformSkills.map { skill -> skill.sourceDir.toPath() }.toSet()
-  val listedPaths = plan.installPaths.filterNot { installPath ->
-    installPath.toAbsolutePath().normalize() in internalSkillDirs
-  }
-  val parentPaths = internalPlatformSkills
-    .mapNotNull(InstallPlanSkill::internalFor)
-    .distinct()
-    .map { parent -> repoRoot.resolve("skills").resolve(parent) }
+  val listedPaths =
+    plan.installPaths.filterNot { installPath ->
+      installPath.toAbsolutePath().normalize() in internalSkillDirs
+    }
+  val parentPaths =
+    internalPlatformSkills
+      .mapNotNull(InstallPlanSkill::internalFor)
+      .distinct()
+      .map { parent -> repoRoot.resolve("skills").resolve(parent) }
   return (listedPaths + parentPaths).distinctBy { path -> path.toAbsolutePath().normalize() }
 }

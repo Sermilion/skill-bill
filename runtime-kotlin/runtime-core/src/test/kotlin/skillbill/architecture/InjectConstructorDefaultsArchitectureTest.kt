@@ -11,18 +11,20 @@ class InjectConstructorDefaultsArchitectureTest {
       baseline("inject-constructor-defaults-baseline.txt"),
       "The runtime-application inject-defaults rule is absolute; its baseline must stay empty.",
     )
-    val violations = ArchitectureScanSupport.injectConstructorDefaultViolations(
-      baseline = baseline("inject-constructor-defaults-baseline.txt"),
-      scanRoot = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
-    )
+    val violations =
+      ArchitectureScanSupport.injectConstructorDefaultViolations(
+        baseline = baseline("inject-constructor-defaults-baseline.txt"),
+        scanRoot = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
+      )
     assertEquals(emptyList(), violations, violations.joinToString("\n"))
   }
 
   @Test
   fun `runtime-cli inject defaults equal the recorded census`() {
-    val current = ArchitectureScanSupport.injectConstructorDefaultSites(
-      PrincipleEnforcementInventory.RUNTIME_CLI_MAIN,
-    ).map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }.toSet()
+    val current =
+      ArchitectureScanSupport.injectConstructorDefaultSites(
+        PrincipleEnforcementInventory.RUNTIME_CLI_MAIN,
+      ).map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }.toSet()
     assertEquals(
       baseline("runtime-cli-inject-constructor-defaults-baseline.txt"),
       current,
@@ -77,7 +79,8 @@ class InjectConstructorDefaultsArchitectureTest {
 
   @Test
   fun `inject constructor default scanner fires on synthetic default argument`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import me.tatarka.inject.annotations.Inject
@@ -89,13 +92,14 @@ class InjectConstructorDefaultsArchitectureTest {
           error("auto-approve")
         },
       )
-    """.trimIndent()
-    val violations = ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticInjectBag.kt",
-      source = source,
-    ).map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
-      .filter { encoded -> encoded !in emptySet<String>() }
-      .map { encoded -> "$encoded has a default argument on an @Inject constructor or dependency bag." }
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticInjectBag.kt",
+        source = source,
+      ).map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
+        .filter { encoded -> encoded !in emptySet<String>() }
+        .map { encoded -> "$encoded has a default argument on an @Inject constructor or dependency bag." }
     assertEquals(
       listOf(
         "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticInjectBag.kt::SyntheticInjectBag::reviewDriver " +
@@ -107,7 +111,8 @@ class InjectConstructorDefaultsArchitectureTest {
 
   @Test
   fun `inject constructor default scanner sees past a visibility modifier`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import me.tatarka.inject.annotations.Inject
@@ -118,17 +123,19 @@ class InjectConstructorDefaultsArchitectureTest {
       public class ModifierShieldedInjectClass(
         private val diagnostics: RuntimeDiagnostics = NoopRuntimeDiagnostics,
       )
-    """.trimIndent()
-    val sites = ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/ModifierShieldedInjectClass.kt",
-      source = source,
-    ).map { site -> "${site.symbol}::${site.parameter}" }
+      """.trimIndent()
+    val sites =
+      ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/ModifierShieldedInjectClass.kt",
+        source = source,
+      ).map { site -> "${site.symbol}::${site.parameter}" }
     assertEquals(listOf("ModifierShieldedInjectClass::diagnostics"), sites)
   }
 
   @Test
   fun `inject scanner reports non-private property defaults of a class without a primary constructor`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import me.tatarka.inject.annotations.Inject
@@ -149,11 +156,12 @@ class InjectConstructorDefaultsArchitectureTest {
           result = ExecutionResult(exitCode = exitCode)
         }
       }
-    """.trimIndent()
-    val parameters = ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticRunState.kt",
-      source = source,
-    ).map { site -> site.parameter }
+      """.trimIndent()
+    val parameters =
+      ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticRunState.kt",
+        source = source,
+      ).map { site -> site.parameter }
     assertEquals(
       listOf(
         "dbOverride",
@@ -171,7 +179,8 @@ class InjectConstructorDefaultsArchitectureTest {
 
   @Test
   fun `inject scanner keeps reading defaults past a literal holding an unbalanced delimiter`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import me.tatarka.inject.annotations.Inject
@@ -186,22 +195,26 @@ class InjectConstructorDefaultsArchitectureTest {
           val localOnly = exitCode
         }
       }
-    """.trimIndent()
-    val parameters = ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/LiteralDefaultRunState.kt",
-      source = source,
-    ).map { site -> site.parameter }
+      """.trimIndent()
+    val parameters =
+      ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/LiteralDefaultRunState.kt",
+        source = source,
+      ).map { site -> site.parameter }
     assertEquals(listOf("openBrace", "closingParen", "stdinText"), parameters)
   }
 
   private fun assertInjectDefaultsMatchBaseline(moduleName: String) {
-    val scanCase = PrincipleEnforcementInventory.moduleArchitectureScanCases
-      .single { scanCase -> scanCase.moduleName == moduleName }
-    val baselineName = scanCase.injectDefaultsBaseline
-      ?: error("Module $moduleName has no inject-defaults baseline.")
-    val current = ArchitectureScanSupport.injectConstructorDefaultSites(scanCase.mainScanRoot)
-      .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
-      .toSet()
+    val scanCase =
+      PrincipleEnforcementInventory.moduleArchitectureScanCases
+        .single { scanCase -> scanCase.moduleName == moduleName }
+    val baselineName =
+      scanCase.injectDefaultsBaseline
+        ?: error("Module $moduleName has no inject-defaults baseline.")
+    val current =
+      ArchitectureScanSupport.injectConstructorDefaultSites(scanCase.mainScanRoot)
+        .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
+        .toSet()
     assertEquals(
       baseline(baselineName),
       current,

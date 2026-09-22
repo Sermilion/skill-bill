@@ -25,74 +25,78 @@ import skillbill.engine.featuretask.phase.prompt.directives.testValueDisciplineD
 import skillbill.engine.featuretask.phase.prompt.directives.validationGateFindingsDirective
 import skillbill.engine.featuretask.review.core.reviewExecutionDirective
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> = listOf(
-  phasePromptHeader(
-    PhasePromptHeaderInputs(
-      issueKey = inputs.issueKey,
-      phaseId = inputs.briefing.phaseId,
-      agentRunValidateFallback = inputs.agentRunValidateFallback,
-      packCollectAllCommand = inputs.packCollectAllCommand,
-      packConfirmationGateCommand = inputs.packConfirmationGateCommand,
-      packBuildCommand = inputs.packBuildCommand,
-      validationGateRepair = inputs.validationGateRepair,
-      validationGateTriage = inputs.validationGateTriage,
-      acceptanceCriteria = inputs.briefing.acceptanceCriteria,
-    ),
-  ),
-  installedRuntimeAuthorityDirective(),
-  ceremonyDirective(inputs.briefing),
-  mutatingPhaseIdempotencyDirective(inputs.briefing.phaseId),
-  nonValidatePhaseValidationOwnershipDirective(
-    inputs.briefing.phaseId,
-  ),
-  nonBuildPhaseBuildOwnershipDirective(
-    inputs.briefing.phaseId,
-  ),
-  minimalismDisciplineDirective(inputs.briefing.phaseId),
-  simplifyScopeBoundaryDirective(inputs.briefing.phaseId),
-  testValueDisciplineDirective(inputs.briefing.phaseId),
-)
 
-fun phasePromptMiddleSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> = listOf(
-  goalContinuationDirective(inputs.briefing.phaseId, inputs.suppressDecomposition),
-  validationGateFindingsDirective(
-    inputs.briefing.phaseId,
-    inputs.validationGateFindings,
-    inputs.validationGateTriagePlan,
-  ),
-  reviewExecutionDirective(
-    inputs.briefing.phaseId,
-    ReviewExecutionDirectiveInputs(
-      codeReviewMode = inputs.codeReviewMode,
-      goalSubtaskReviewInput = inputs.goalSubtaskReviewInput,
-      reviewPassNumber = inputs.reviewPassNumber,
-      resolvedReviewTier = inputs.resolvedReviewTier,
-      reviewDecidingRule = inputs.reviewDecidingRule,
-      baselineUntrackedPaths = inputs.baselineUntrackedPaths,
-      repairLedger = inputs.repairLedger,
-      priorReviewContext = inputs.priorReviewContext,
+fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> =
+  listOf(
+    phasePromptHeader(
+      PhasePromptHeaderInputs(
+        issueKey = inputs.issueKey,
+        phaseId = inputs.briefing.phaseId,
+        agentRunValidateFallback = inputs.agentRunValidateFallback,
+        packCollectAllCommand = inputs.packCollectAllCommand,
+        packConfirmationGateCommand = inputs.packConfirmationGateCommand,
+        packBuildCommand = inputs.packBuildCommand,
+        validationGateRepair = inputs.validationGateRepair,
+        validationGateTriage = inputs.validationGateTriage,
+        acceptanceCriteria = inputs.briefing.acceptanceCriteria,
+      ),
     ),
-  ),
-  commitExclusionDirective(inputs.briefing.phaseId),
-  inputs.briefing.briefingText,
-)
+    installedRuntimeAuthorityDirective(),
+    ceremonyDirective(inputs.briefing),
+    mutatingPhaseIdempotencyDirective(inputs.briefing.phaseId),
+    nonValidatePhaseValidationOwnershipDirective(
+      inputs.briefing.phaseId,
+    ),
+    nonBuildPhaseBuildOwnershipDirective(
+      inputs.briefing.phaseId,
+    ),
+    minimalismDisciplineDirective(inputs.briefing.phaseId),
+    simplifyScopeBoundaryDirective(inputs.briefing.phaseId),
+    testValueDisciplineDirective(inputs.briefing.phaseId),
+  )
+
+fun phasePromptMiddleSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> =
+  listOf(
+    goalContinuationDirective(inputs.briefing.phaseId, inputs.suppressDecomposition),
+    validationGateFindingsDirective(
+      inputs.briefing.phaseId,
+      inputs.validationGateFindings,
+      inputs.validationGateTriagePlan,
+    ),
+    reviewExecutionDirective(
+      inputs.briefing.phaseId,
+      ReviewExecutionDirectiveInputs(
+        codeReviewMode = inputs.codeReviewMode,
+        goalSubtaskReviewInput = inputs.goalSubtaskReviewInput,
+        reviewPassNumber = inputs.reviewPassNumber,
+        resolvedReviewTier = inputs.resolvedReviewTier,
+        reviewDecidingRule = inputs.reviewDecidingRule,
+        baselineUntrackedPaths = inputs.baselineUntrackedPaths,
+        repairLedger = inputs.repairLedger,
+        priorReviewContext = inputs.priorReviewContext,
+      ),
+    ),
+    commitExclusionDirective(inputs.briefing.phaseId),
+    inputs.briefing.briefingText,
+  )
 
 fun phasePromptTrailingSections(
   inputs: FeatureTaskRuntimePhasePromptComposeInputs,
   effectiveContinuation: FeatureTaskRuntimeImplementationContinuation?,
-): List<String> = listOf(
-  operatorBlockRetryDirective(inputs.briefing.phaseId, inputs.operatorBlockRetry),
-  auditRetryFocusDirective(inputs.auditRetryFocusHint),
-  implementationContinuationDirective(inputs.briefing.phaseId, effectiveContinuation),
-  retryCorrectionDirective(inputs.briefing, inputs.priorSchemaFailure, inputs.correctiveRepairContext),
-  terminalRetryDirective(inputs.priorTerminalFailure),
-  findingCoverageDirective(inputs.priorFindingCoverage),
-  if (
-    inputs.validationGateFindings != null &&
-    inputs.briefing.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
-  ) {
-    gateRepairNoOutputSchemaDirective(inputs.briefing.phaseId, inputs.validationGateTriage)
-  } else {
-    outputContract(inputs.briefing)
-  },
-)
+): List<String> =
+  listOf(
+    operatorBlockRetryDirective(inputs.briefing.phaseId, inputs.operatorBlockRetry),
+    auditRetryFocusDirective(inputs.auditRetryFocusHint),
+    implementationContinuationDirective(inputs.briefing.phaseId, effectiveContinuation),
+    retryCorrectionDirective(inputs.briefing, inputs.priorSchemaFailure, inputs.correctiveRepairContext),
+    terminalRetryDirective(inputs.priorTerminalFailure),
+    findingCoverageDirective(inputs.priorFindingCoverage),
+    if (
+      inputs.validationGateFindings != null &&
+      inputs.briefing.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+    ) {
+      gateRepairNoOutputSchemaDirective(inputs.briefing.phaseId, inputs.validationGateTriage)
+    } else {
+      outputContract(inputs.briefing)
+    },
+  )

@@ -27,8 +27,9 @@ internal object DatabaseMigrations {
     if (!ledger.hasPendingWork(migrationSet.map { migration -> migration.name })) return
     val dbPath = connection.databasePath()
     val existingDiagnostics = connection.sqliteDiagnostics()
-    val ownsDiagnostics = existingDiagnostics === InternalSqliteDiagnostics &&
-      diagnostics !== InternalSqliteDiagnostics
+    val ownsDiagnostics =
+      existingDiagnostics === InternalSqliteDiagnostics &&
+        diagnostics !== InternalSqliteDiagnostics
     if (ownsDiagnostics) {
       connection.attachSqliteDiagnostics(diagnostics)
     }

@@ -13,6 +13,7 @@ import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import kotlin.io.path.relativeTo
+
 internal data class GeneratedArtifactGuardReport(
   val issues: List<String>,
 ) {
@@ -62,7 +63,7 @@ internal fun discoverGeneratedArtifactFiles(repoRoot: Path): List<GeneratedArtif
       discoverGeneratedAgentAddonPointersUnderSkills(root).map { artifact ->
         GeneratedArtifactFile(path = artifact, reason = "Generated agent add-on install pointer.")
       }
-    )
+  )
     .distinctBy { artifact -> artifact.path.toAbsolutePath().normalize() }
     .sortedBy { artifact -> artifact.path.toString() }
 }
@@ -117,8 +118,10 @@ internal fun validateGeneratedArtifactGuard(
   return GeneratedArtifactGuardReport(issues.sorted())
 }
 
-private fun shouldValidateCommittedArtifact(relativePath: String, trackedFiles: Set<String>?): Boolean =
-  trackedFiles == null || relativePath in trackedFiles
+private fun shouldValidateCommittedArtifact(
+  relativePath: String,
+  trackedFiles: Set<String>?,
+): Boolean = trackedFiles == null || relativePath in trackedFiles
 
 private fun trackedRepoFiles(root: Path): Set<String>? {
   return readGitTrackedFiles(root)
@@ -146,11 +149,12 @@ private fun discoverDeclaredPointerFiles(root: Path): List<Path> {
     stream
       .filter { packRoot -> packRoot.isDirectory() && !packRoot.name.startsWith(".") }
       .flatMap { packRoot ->
-        val pack = try {
-          loadPlatformManifest(packRoot)
-        } catch (_: ShellContentContractException) {
-          return@flatMap emptyList<Path>().stream()
-        }
+        val pack =
+          try {
+            loadPlatformManifest(packRoot)
+          } catch (_: ShellContentContractException) {
+            return@flatMap emptyList<Path>().stream()
+          }
         pack.pointers
           .map { spec -> pack.packRoot.resolve(spec.skillRelativeDir).resolve(spec.name).toPath().normalize() }
           .filter { pointerFile ->
@@ -195,7 +199,10 @@ private fun discoverGeneratedSupportingPointerFiles(root: Path): List<Path> {
   }
 }
 
-private fun displayGuardPath(root: Path, path: Path): String {
+private fun displayGuardPath(
+  root: Path,
+  path: Path,
+): String {
   val resolvedRoot = root.toAbsolutePath().normalize()
   val resolvedPath = path.toAbsolutePath().normalize()
   return runCatching { resolvedPath.relativeTo(resolvedRoot).toString().replace('\\', '/') }

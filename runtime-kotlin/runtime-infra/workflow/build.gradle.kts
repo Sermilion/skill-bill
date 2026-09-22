@@ -23,14 +23,12 @@ dependencies {
 }
 
 governedResources {
-  missingSourceMessageTemplate.set("\$owner is missing at \$sourcePath.")
-  entry(
-    GovernedResourceEntry(
-      taskName = "copySpecialistContract",
-      repoRelativeSource = "orchestration/review-orchestrator/specialist-contract.md",
-      destinationDir = "skillbill/review",
-      owner = "Authoritative delegated-review specialist contract",
-      requireSourceIsFile = true,
-    ),
+  sourceRoot.set(rootProject.layout.projectDirectory.dir("../orchestration/review-orchestrator"))
+  destination.set("skillbill/review")
+
+  copy(
+    "copySpecialistContract",
+    "specialist-contract.md",
+    "Authoritative delegated-review specialist contract",
   )
 }

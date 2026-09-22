@@ -2,6 +2,7 @@ package skillbill.workflow.decomposition.model
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+
 class DecompositionManifestWireMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
@@ -12,9 +13,10 @@ class DecompositionManifestWireMap private constructor(
   companion object {
     fun from(map: Map<String, Any?>): DecompositionManifestWireMap = DecompositionManifestWireMap(LinkedHashMap(map))
 
-    fun fromAny(raw: Any?): DecompositionManifestWireMap = from(
-      JsonCodec.anyToStringAnyMap(raw)
-        ?: throw InvalidWorkflowStateSchemaError("Decomposition manifest wire map must decode to an object."),
-    )
+    fun fromAny(raw: Any?): DecompositionManifestWireMap =
+      from(
+        JsonCodec.anyToStringAnyMap(raw)
+          ?: throw InvalidWorkflowStateSchemaError("Decomposition manifest wire map must decode to an object."),
+      )
   }
 }

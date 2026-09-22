@@ -43,28 +43,32 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class GoalRunnerStatusProjectionDegradationTest {
   @Test
   fun `attempt ledger failure records the seam and marks the projection degraded`() {
     val diagnostics = RecordingStatusDiagnostics()
-    val projection = requireNotNull(
-      testGoalRunnerStatusService(
-        manifestStore = InMemoryGoalManifestStore(manifest(subtaskCount = 1)),
-        outcomeStore = RecordingOutcomeStore(),
-        ports = GoalRunnerStatusTestPorts(
-          attemptLedgerStore = object : GoalRunnerAttemptLedgerStore {
-            override fun readAttemptLedgerSummary(issueKey: String): GoalRunnerAttemptLedgerSummary =
-              error("attempt ledger unavailable")
-          },
-          diagnostics = diagnostics,
+    val projection =
+      requireNotNull(
+        testGoalRunnerStatusService(
+          manifestStore = InMemoryGoalManifestStore(manifest(subtaskCount = 1)),
+          outcomeStore = RecordingOutcomeStore(),
+          ports =
+            GoalRunnerStatusTestPorts(
+              attemptLedgerStore =
+                object : GoalRunnerAttemptLedgerStore {
+                  override fun readAttemptLedgerSummary(issueKey: String): GoalRunnerAttemptLedgerSummary =
+                    error("attempt ledger unavailable")
+                },
+              diagnostics = diagnostics,
+            ),
+        ).status(
+          GoalRunnerStatusRequest(
+            issueKey = "SKILL-56",
+            invokedAgentId = "codex",
+          ),
         ),
-      ).status(
-        GoalRunnerStatusRequest(
-          issueKey = "SKILL-56",
-          invokedAgentId = "codex",
-        ),
-      ),
-    )
+      )
 
     assertTrue(projection.degradedDurableRead)
     assertEquals(0, projection.blockedAttemptCount)
@@ -77,40 +81,51 @@ class GoalRunnerStatusProjectionDegradationTest {
   @Test
   fun `journal and audit retry read failures omit values and name both seams`() {
     val diagnostics = RecordingStatusDiagnostics()
-    val throwingJournalDatabase = object : DatabaseSessionFactory {
-      private val dbPath = Path.of("/fake/goal-status-journal-fail.db")
-      override fun resolveDbPath(): Path = dbPath
-      override fun databaseExists(): Boolean = true
-      override fun <T> read(block: (UnitOfWork) -> T): T = error("journal unavailable")
-      override fun <T> readIfPresent(block: (UnitOfWork) -> T): T? = error("journal unavailable")
-      override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = error("unused")
-      override fun <T> transaction(block: (UnitOfWork) -> T): T = error("unused")
-    }
-    val ledgerFailingStates = object : WorkflowStateRepository by InMemoryWorkflowStates() {
-      override fun getFeatureTaskWorkflowAsMode(
-        workflowId: String,
-        mode: FeatureTaskWorkflowMode,
-      ): WorkflowStateRecord? = error("ledger unavailable")
-    }
-    val projection = requireNotNull(
-      testGoalRunnerStatusService(
-        manifestStore = InMemoryGoalManifestStore(
-          manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-child"),
+    val throwingJournalDatabase =
+      object : DatabaseSessionFactory {
+        private val dbPath = Path.of("/fake/goal-status-journal-fail.db")
+
+        override fun resolveDbPath(): Path = dbPath
+
+        override fun databaseExists(): Boolean = true
+
+        override fun <T> read(block: (UnitOfWork) -> T): T = error("journal unavailable")
+
+        override fun <T> readIfPresent(block: (UnitOfWork) -> T): T? = error("journal unavailable")
+
+        override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = error("unused")
+
+        override fun <T> transaction(block: (UnitOfWork) -> T): T = error("unused")
+      }
+    val ledgerFailingStates =
+      object : WorkflowStateRepository by InMemoryWorkflowStates() {
+        override fun getFeatureTaskWorkflowAsMode(
+          workflowId: String,
+          mode: FeatureTaskWorkflowMode,
+        ): WorkflowStateRecord? = error("ledger unavailable")
+      }
+    val projection =
+      requireNotNull(
+        testGoalRunnerStatusService(
+          manifestStore =
+            InMemoryGoalManifestStore(
+              manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-child"),
+            ),
+          outcomeStore = RecordingOutcomeStore(),
+          phaseRecorder =
+            testPhaseRecorder(
+              FakeDatabaseSessionFactory(ledgerFailingStates),
+              testWorkflowSnapshotValidator,
+            ),
+          database = throwingJournalDatabase,
+          ports = GoalRunnerStatusTestPorts(diagnostics = diagnostics),
+        ).status(
+          GoalRunnerStatusRequest(
+            issueKey = "SKILL-56",
+            invokedAgentId = "codex",
+          ),
         ),
-        outcomeStore = RecordingOutcomeStore(),
-        phaseRecorder = testPhaseRecorder(
-          FakeDatabaseSessionFactory(ledgerFailingStates),
-          testWorkflowSnapshotValidator,
-        ),
-        database = throwingJournalDatabase,
-        ports = GoalRunnerStatusTestPorts(diagnostics = diagnostics),
-      ).status(
-        GoalRunnerStatusRequest(
-          issueKey = "SKILL-56",
-          invokedAgentId = "codex",
-        ),
-      ),
-    )
+      )
 
     assertNull(projection.latestWorktreeEdit)
     assertNull(projection.auditAcRetryCount)
@@ -130,23 +145,25 @@ class GoalRunnerStatusProjectionDegradationTest {
   @Test
   fun `latest worktree edit and audit retry count project from measured durable state`() {
     val childWorkflowId = "wfl-child-measured"
-    val journal = InMemoryStatusWorktreeEditJournalRepository().apply {
-      append(
-        childWorkflowId,
-        WorktreeEditTick(
-          recordedAt = Instant.parse("2026-09-18T12:00:00Z"),
-          phaseId = "implement",
-          source = WorktreeEditSource.WORKTREE_PROBE,
-          entries = ('a'..'g').map { letter ->
-            GoalObservabilityFileDiffStat(
-              path = "$letter.kt",
-              insertions = 1,
-              deletions = 2,
-            )
-          },
-        ),
-      )
-    }
+    val journal =
+      InMemoryStatusWorktreeEditJournalRepository().apply {
+        append(
+          childWorkflowId,
+          WorktreeEditTick(
+            recordedAt = Instant.parse("2026-09-18T12:00:00Z"),
+            phaseId = "implement",
+            source = WorktreeEditSource.WORKTREE_PROBE,
+            entries =
+              ('a'..'g').map { letter ->
+                GoalObservabilityFileDiffStat(
+                  path = "$letter.kt",
+                  insertions = 1,
+                  deletions = 2,
+                )
+              },
+          ),
+        )
+      }
     val phaseDatabase = FakeDatabaseSessionFactory(InMemoryWorkflowStates())
     val phaseRecorder = testPhaseRecorder(phaseDatabase, testWorkflowSnapshotValidator)
     phaseRecorder.ensureWorkflowOpen(childWorkflowId, "session-measured")
@@ -158,28 +175,31 @@ class GoalRunnerStatusProjectionDegradationTest {
           phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
           attemptCount = 1,
           resolvedAgentId = "codex",
-          blockedReason = FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX +
-            FeatureTaskRuntimeContinuationKind.AUDIT_AC_RETRY.wireValue,
+          blockedReason =
+            FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX +
+              FeatureTaskRuntimeContinuationKind.AUDIT_AC_RETRY.wireValue,
           fixLoopIteration = 1,
         ),
       )
     }
 
-    val measured = requireNotNull(
-      testGoalRunnerStatusService(
-        manifestStore = InMemoryGoalManifestStore(
-          manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = childWorkflowId),
+    val measured =
+      requireNotNull(
+        testGoalRunnerStatusService(
+          manifestStore =
+            InMemoryGoalManifestStore(
+              manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = childWorkflowId),
+            ),
+          outcomeStore = RecordingOutcomeStore(),
+          phaseRecorder = phaseRecorder,
+          database = StatusJournalDatabaseSessionFactory(journal),
+        ).status(
+          GoalRunnerStatusRequest(
+            issueKey = "SKILL-56",
+            invokedAgentId = "codex",
+          ),
         ),
-        outcomeStore = RecordingOutcomeStore(),
-        phaseRecorder = phaseRecorder,
-        database = StatusJournalDatabaseSessionFactory(journal),
-      ).status(
-        GoalRunnerStatusRequest(
-          issueKey = "SKILL-56",
-          invokedAgentId = "codex",
-        ),
-      ),
-    )
+      )
     val summary = requireNotNull(measured.latestWorktreeEdit)
     assertEquals(listOf("a.kt", "b.kt", "c.kt", "d.kt", "e.kt"), summary.pathSample)
     assertEquals(7, summary.netInsertions)
@@ -204,21 +224,23 @@ class GoalRunnerStatusProjectionDegradationTest {
         edgeIteration = 1,
       ),
     )
-    val unmeasured = requireNotNull(
-      testGoalRunnerStatusService(
-        manifestStore = InMemoryGoalManifestStore(
-          manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = childWorkflowId),
+    val unmeasured =
+      requireNotNull(
+        testGoalRunnerStatusService(
+          manifestStore =
+            InMemoryGoalManifestStore(
+              manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = childWorkflowId),
+            ),
+          outcomeStore = RecordingOutcomeStore(),
+          phaseRecorder = zeroRetryRecorder,
+          database = StatusJournalDatabaseSessionFactory(InMemoryStatusWorktreeEditJournalRepository()),
+        ).status(
+          GoalRunnerStatusRequest(
+            issueKey = "SKILL-56",
+            invokedAgentId = "codex",
+          ),
         ),
-        outcomeStore = RecordingOutcomeStore(),
-        phaseRecorder = zeroRetryRecorder,
-        database = StatusJournalDatabaseSessionFactory(InMemoryStatusWorktreeEditJournalRepository()),
-      ).status(
-        GoalRunnerStatusRequest(
-          issueKey = "SKILL-56",
-          invokedAgentId = "codex",
-        ),
-      ),
-    )
+      )
     assertNull(unmeasured.latestWorktreeEdit)
     assertNull(unmeasured.auditAcRetryCount)
     assertFalse(unmeasured.degradedDurableRead)
@@ -228,23 +250,35 @@ class GoalRunnerStatusProjectionDegradationTest {
 private class RecordingStatusDiagnostics : RuntimeDiagnostics {
   val warnings = mutableListOf<String>()
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message
   }
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private class InMemoryStatusWorktreeEditJournalRepository : WorktreeEditJournalRepository {
   private val latest = mutableMapOf<String, WorktreeEditTick>()
 
-  override fun append(workflowId: String, tick: WorktreeEditTick) {
+  override fun append(
+    workflowId: String,
+    tick: WorktreeEditTick,
+  ) {
     latest[workflowId] = tick
   }
 
   override fun latestTick(workflowId: String): WorktreeEditTick? = latest[workflowId]
 
-  override fun trimToCap(workflowId: String, maxRows: Int): Int = 0
+  override fun trimToCap(
+    workflowId: String,
+    maxRows: Int,
+  ): Int = 0
 }
 
 private class StatusJournalDatabaseSessionFactory(
@@ -262,23 +296,24 @@ private class StatusJournalDatabaseSessionFactory(
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unit())
 
-  private fun unit(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = this@StatusJournalDatabaseSessionFactory.dbPath
-    override val worktreeEditJournal: WorktreeEditJournalRepository = journal
-    override val workflowStates: WorkflowStateRepository
-      get() = error("unused")
-    override val learnings: LearningRepository
-      get() = error("unused")
-    override val reviews: ReviewRepository
-      get() = error("unused")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository
-      get() = error("unused")
-    override val telemetryReconciliation: TelemetryReconciliationRepository
-      get() = error("unused")
-    override val telemetryOutbox: TelemetryOutboxRepository
-      get() = error("unused")
-    override val workList: WorkListRepository = EmptyWorkListRepository
-    override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
-    override val goalRunnerControls = EmptyGoalRunnerControlRepository
-  }
+  private fun unit(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = this@StatusJournalDatabaseSessionFactory.dbPath
+      override val worktreeEditJournal: WorktreeEditJournalRepository = journal
+      override val workflowStates: WorkflowStateRepository
+        get() = error("unused")
+      override val learnings: LearningRepository
+        get() = error("unused")
+      override val reviews: ReviewRepository
+        get() = error("unused")
+      override val lifecycleTelemetry: LifecycleTelemetryRepository
+        get() = error("unused")
+      override val telemetryReconciliation: TelemetryReconciliationRepository
+        get() = error("unused")
+      override val telemetryOutbox: TelemetryOutboxRepository
+        get() = error("unused")
+      override val workList: WorkListRepository = EmptyWorkListRepository
+      override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
+      override val goalRunnerControls = EmptyGoalRunnerControlRepository
+    }
 }

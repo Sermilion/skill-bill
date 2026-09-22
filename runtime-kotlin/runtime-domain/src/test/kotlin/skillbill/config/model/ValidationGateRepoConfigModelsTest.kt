@@ -40,22 +40,25 @@ class ValidationGateRepoConfigModelsTest {
 
   @Test
   fun `parseValidationGateRepoConfig reads gradle_wrapper`() {
-    val parsed = assertIs<ValidationGateRepoConfigParse.Valid>(
-      parseValidationGateRepoConfig(mapOf("gradle_wrapper" to "runtime-kotlin/gradlew")),
-    )
+    val parsed =
+      assertIs<ValidationGateRepoConfigParse.Valid>(
+        parseValidationGateRepoConfig(mapOf("gradle_wrapper" to "runtime-kotlin/gradlew")),
+      )
     assertEquals("runtime-kotlin/gradlew", parsed.config.gradleWrapper)
   }
 
   @Test
   fun `parseValidationGateRepoConfig rejects absolute paths and unknown keys`() {
-    val absolute = assertIs<ValidationGateRepoConfigParse.Invalid>(
-      parseValidationGateRepoConfig(mapOf("gradle_wrapper" to "/abs/gradlew")),
-    )
+    val absolute =
+      assertIs<ValidationGateRepoConfigParse.Invalid>(
+        parseValidationGateRepoConfig(mapOf("gradle_wrapper" to "/abs/gradlew")),
+      )
     assertEquals("validation_gate.gradle_wrapper", absolute.keyPath)
 
-    val unknown = assertIs<ValidationGateRepoConfigParse.Invalid>(
-      parseValidationGateRepoConfig(mapOf("working_directory" to "runtime-kotlin")),
-    )
+    val unknown =
+      assertIs<ValidationGateRepoConfigParse.Invalid>(
+        parseValidationGateRepoConfig(mapOf("working_directory" to "runtime-kotlin")),
+      )
     assertEquals("validation_gate.working_directory", unknown.keyPath)
   }
 }

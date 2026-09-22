@@ -11,7 +11,12 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-internal fun mutateContent(repoRoot: Path, target: AuthoringTarget, replacementText: String): AuthoringMutationResult {
+
+internal fun mutateContent(
+  repoRoot: Path,
+  target: AuthoringTarget,
+  replacementText: String,
+): AuthoringMutationResult {
   val contentBefore = Files.readAllBytes(target.contentFile)
   return runWithContentRollback(target, contentBefore) {
     Files.writeString(target.contentFile, replacementText)
@@ -27,7 +32,10 @@ internal fun mutateContent(repoRoot: Path, target: AuthoringTarget, replacementT
   }
 }
 
-internal fun validateTarget(target: AuthoringTarget, repoRoot: Path? = null): List<String> {
+internal fun validateTarget(
+  target: AuthoringTarget,
+  repoRoot: Path? = null,
+): List<String> {
   val issues = mutableListOf<String>()
   when {
     !Files.isRegularFile(target.contentFile) -> issues += "${target.contentFile}: content.md is missing"
@@ -36,24 +44,36 @@ internal fun validateTarget(target: AuthoringTarget, repoRoot: Path? = null): Li
   return issues
 }
 
-private fun <T> runWithContentRollback(target: AuthoringTarget, contentBefore: ByteArray, block: () -> T): T = try {
-  block()
-} catch (error: SkillBillRuntimeException) {
-  restoreContentFiles(target, contentBefore)
-  throw error
-} catch (error: IOException) {
-  restoreContentFiles(target, contentBefore)
-  throw error
-} catch (error: IllegalArgumentException) {
-  restoreContentFiles(target, contentBefore)
-  throw error
-}
+private fun <T> runWithContentRollback(
+  target: AuthoringTarget,
+  contentBefore: ByteArray,
+  block: () -> T,
+): T =
+  try {
+    block()
+  } catch (error: SkillBillRuntimeException) {
+    restoreContentFiles(target, contentBefore)
+    throw error
+  } catch (error: IOException) {
+    restoreContentFiles(target, contentBefore)
+    throw error
+  } catch (error: IllegalArgumentException) {
+    restoreContentFiles(target, contentBefore)
+    throw error
+  }
 
-private fun restoreContentFiles(target: AuthoringTarget, contentBefore: ByteArray) {
+private fun restoreContentFiles(
+  target: AuthoringTarget,
+  contentBefore: ByteArray,
+) {
   rollbackRestoreBytes(target.contentFile, contentBefore)
 }
 
-private fun collectTargetIssues(target: AuthoringTarget, repoRoot: Path?, issues: MutableList<String>) {
+private fun collectTargetIssues(
+  target: AuthoringTarget,
+  repoRoot: Path?,
+  issues: MutableList<String>,
+) {
   val contentText = Files.readString(target.contentFile)
   if (!contentText.contains("name: ${target.skillName}\n")) {
     issues += "${target.contentFile}: frontmatter name does not match directory '${target.skillName}'"
@@ -70,12 +90,19 @@ private fun collectTargetIssues(target: AuthoringTarget, repoRoot: Path?, issues
   issues += validateAuthoredContent(target.contentFile, contentText)
 }
 
-private fun isSourceOwnedSkillTarget(repoRoot: Path, target: AuthoringTarget): Boolean {
+private fun isSourceOwnedSkillTarget(
+  repoRoot: Path,
+  target: AuthoringTarget,
+): Boolean {
   val skillsRoot = repoRoot.toAbsolutePath().normalize().resolve("skills")
   return target.contentFile.toAbsolutePath().normalize().startsWith(skillsRoot)
 }
 
-private fun collectSourceSidecarIssues(repoRoot: Path, target: AuthoringTarget, issues: MutableList<String>) {
+private fun collectSourceSidecarIssues(
+  repoRoot: Path,
+  target: AuthoringTarget,
+  issues: MutableList<String>,
+) {
   requiredSupportingFilesForSkill(target.skillName, repoRoot).forEach { fileName ->
     val expectedTarget = supportingFileTargets(repoRoot)[fileName]
     if (expectedTarget == null) {
@@ -118,7 +145,10 @@ private fun validateSourceSidecarSymlink(
   }
 }
 
-private fun isGitSymlinkPlaceholder(sidecar: Path, expectedTarget: Path): Boolean {
+private fun isGitSymlinkPlaceholder(
+  sidecar: Path,
+  expectedTarget: Path,
+): Boolean {
   var matches = false
   if (Files.isRegularFile(sidecar, LinkOption.NOFOLLOW_LINKS)) {
     val rawTarget = Files.readString(sidecar).trim()

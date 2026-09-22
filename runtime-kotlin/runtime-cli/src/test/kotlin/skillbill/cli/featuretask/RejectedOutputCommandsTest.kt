@@ -14,6 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class RejectedOutputCommandsTest {
   @Test
   fun `diagnostic service returns byte exact raw bodies`() {
@@ -37,7 +38,10 @@ class RejectedOutputCommandsTest {
     assertEquals(2, matches.size)
   }
 
-  private fun request(raw: ByteArray, attempt: Int = 1) = RejectedOutputDiagnosticRequest(
+  private fun request(
+    raw: ByteArray,
+    attempt: Int = 1,
+  ) = RejectedOutputDiagnosticRequest(
     workflowId = "workflow-1",
     phaseId = "implement",
     attempt = attempt,

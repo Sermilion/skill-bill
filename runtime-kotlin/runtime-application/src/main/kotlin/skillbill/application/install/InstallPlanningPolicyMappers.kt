@@ -14,14 +14,15 @@ internal fun InstallPlanningFacts.toPolicyInput(
   request: InstallPlanRequest,
   platformPacks: List<InstallPlatformPackSnapshot>,
   resolvedReviewFallbackSlug: String? = null,
-): InstallPolicyInput = InstallPolicyInput(
-  request = request,
-  baseSkills = baseSkills,
-  platformPacks = platformPacks,
-  resolvedReviewFallbackSlug = resolvedReviewFallbackSlug,
-  detectedAgentTargets = detectedAgentTargets,
-  defaultAgentTargets = defaultAgentTargets,
-)
+): InstallPolicyInput =
+  InstallPolicyInput(
+    request = request,
+    baseSkills = baseSkills,
+    platformPacks = platformPacks,
+    resolvedReviewFallbackSlug = resolvedReviewFallbackSlug,
+    detectedAgentTargets = detectedAgentTargets,
+    defaultAgentTargets = defaultAgentTargets,
+  )
 
 internal fun validatedInstallPlan(
   draft: InstallPlanDraft,

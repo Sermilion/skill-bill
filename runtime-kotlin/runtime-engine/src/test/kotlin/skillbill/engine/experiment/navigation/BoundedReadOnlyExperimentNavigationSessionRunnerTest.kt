@@ -19,18 +19,19 @@ class BoundedReadOnlyExperimentNavigationSessionRunnerTest {
     Files.createDirectories(root.resolve("src"))
     Files.writeString(root.resolve("src/Feature.kt"), "fun feature() = true")
 
-    val result = BoundedReadOnlyExperimentNavigationSessionRunner(
-      ExperimentNavigationDecisionAdapter { listOf(ExperimentNavigationDecision.Search("feature")) },
-    ).runSession(
-      ExperimentNavigationSessionRequest(
-        pairId = "pair",
-        armId = "control",
-        repoRoot = root,
-        frozenSpecBytes = "spec".toByteArray(),
-        acceptanceCriteria = listOf("feature"),
-        treatmentEnabled = false,
-      ),
-    )
+    val result =
+      BoundedReadOnlyExperimentNavigationSessionRunner(
+        ExperimentNavigationDecisionAdapter { listOf(ExperimentNavigationDecision.Search("feature")) },
+      ).runSession(
+        ExperimentNavigationSessionRequest(
+          pairId = "pair",
+          armId = "control",
+          repoRoot = root,
+          frozenSpecBytes = "spec".toByteArray(),
+          acceptanceCriteria = listOf("feature"),
+          treatmentEnabled = false,
+        ),
+      )
 
     assertEquals(ExperimentNavigationTerminalOutcome.SEARCH_COMPLETED, result.outcome)
     assertEquals(listOf("src/Feature.kt"), result.deliveredPaths)
@@ -48,23 +49,25 @@ class BoundedReadOnlyExperimentNavigationSessionRunnerTest {
     val root = Files.createTempDirectory("navigation-direct-read")
     Files.createDirectories(root.resolve("src"))
     Files.writeString(root.resolve("src/Feature.kt"), "fun feature() = true")
-    val runner = BoundedReadOnlyExperimentNavigationSessionRunner(
-      ExperimentNavigationDecisionAdapter { context ->
-        assertEquals(root.toAbsolutePath().normalize(), context.repoRoot)
-        listOf(ExperimentNavigationDecision.Read("src/Feature.kt"), ExperimentNavigationDecision.Complete)
-      },
-    )
+    val runner =
+      BoundedReadOnlyExperimentNavigationSessionRunner(
+        ExperimentNavigationDecisionAdapter { context ->
+          assertEquals(root.toAbsolutePath().normalize(), context.repoRoot)
+          listOf(ExperimentNavigationDecision.Read("src/Feature.kt"), ExperimentNavigationDecision.Complete)
+        },
+      )
 
-    val result = runner.runSession(
-      ExperimentNavigationSessionRequest(
-        pairId = "pair",
-        armId = "control",
-        repoRoot = root,
-        frozenSpecBytes = "spec".toByteArray(),
-        acceptanceCriteria = listOf("feature"),
-        treatmentEnabled = false,
-      ),
-    )
+    val result =
+      runner.runSession(
+        ExperimentNavigationSessionRequest(
+          pairId = "pair",
+          armId = "control",
+          repoRoot = root,
+          frozenSpecBytes = "spec".toByteArray(),
+          acceptanceCriteria = listOf("feature"),
+          treatmentEnabled = false,
+        ),
+      )
 
     assertEquals(listOf("src/Feature.kt"), result.readReceipts.map { it.path })
     assertEquals(listOf("direct_read"), result.readReceipts.map { it.purpose })
@@ -73,11 +76,12 @@ class BoundedReadOnlyExperimentNavigationSessionRunnerTest {
   @Test
   fun `model decision adapter cannot escape the snapshot`() {
     val root = Files.createTempDirectory("navigation-escape")
-    val runner = BoundedReadOnlyExperimentNavigationSessionRunner(
-      ExperimentNavigationDecisionAdapter {
-        listOf(ExperimentNavigationDecision.Read("../outside.txt"))
-      },
-    )
+    val runner =
+      BoundedReadOnlyExperimentNavigationSessionRunner(
+        ExperimentNavigationDecisionAdapter {
+          listOf(ExperimentNavigationDecision.Read("../outside.txt"))
+        },
+      )
 
     assertFailsWith<ExperimentIsolationCapabilityRefusalError> {
       runner.runSession(

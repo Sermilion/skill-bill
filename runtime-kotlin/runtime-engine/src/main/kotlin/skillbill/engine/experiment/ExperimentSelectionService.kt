@@ -33,18 +33,20 @@ class ExperimentSelectionService(
     savedSelection: List<String>?,
   ): ExperimentLaunchSelection {
     val parsed = ExperimentParameterParser.parse(parameter)
-    val saved = savedSelection?.let {
-      if (it.isEmpty()) {
-        ResolvedExperimentSelection(emptyList(), explicitDisable = true)
-      } else {
-        ExperimentParameterParser.parse(it.joinToString(","))
+    val saved =
+      savedSelection?.let {
+        if (it.isEmpty()) {
+          ResolvedExperimentSelection(emptyList(), explicitDisable = true)
+        } else {
+          ExperimentParameterParser.parse(it.joinToString(","))
+        }
       }
-    }
-    val resolved = when {
-      saved != null -> saved
-      parsed.explicitDisable -> ResolvedExperimentSelection(emptyList(), explicitDisable = true)
-      else -> parsed
-    }
+    val resolved =
+      when {
+        saved != null -> saved
+        parsed.explicitDisable -> ResolvedExperimentSelection(emptyList(), explicitDisable = true)
+        else -> parsed
+      }
     validateSavedSelection(parameter, savedSelection, saved)
     val repoConfig = repoLocalConfigPort.readRepoLocalConfig(ReadRepoLocalConfigRequest(repoRoot)).config
     val machinePolicy = machineConfig.readExperimentsAvailability()
@@ -55,34 +57,38 @@ class ExperimentSelectionService(
       return ExperimentLaunchSelection(emptyList(), emptyList(), "no experiments selected")
     }
     val compatible = compatibleDescriptors.map { descriptor -> descriptor.name }.toSet()
-    val unavailable = resolved.normalizedNames.filter { name ->
-      name !in compatible ||
-        (savedSelection == null && !ExperimentAvailabilityResolver.isNameAvailable(name, availability))
-    }
+    val unavailable =
+      resolved.normalizedNames.filter { name ->
+        name !in compatible ||
+          (savedSelection == null && !ExperimentAvailabilityResolver.isNameAvailable(name, availability))
+      }
     if (unavailable.isNotEmpty()) {
       throw ExperimentDescriptorUnavailableError(
         requestedNames = resolved.normalizedNames.toSet(),
         mode = mode.wireValue,
-        availableCompatible = compatible.filter { name ->
-          ExperimentAvailabilityResolver.isNameAvailable(name, availability)
-        }.toSet(),
+        availableCompatible =
+          compatible.filter { name ->
+            ExperimentAvailabilityResolver.isNameAvailable(name, availability)
+          }.toSet(),
       )
     }
-    val descriptors = resolved.normalizedNames.map { name ->
-      descriptorCatalog?.resolve(name, mode)?.name
-        ?: throw ExperimentDescriptorUnavailableError(
-          requestedNames = setOf(name),
-          mode = mode.wireValue,
-          availableCompatible = compatible,
-        )
-    }
+    val descriptors =
+      resolved.normalizedNames.map { name ->
+        descriptorCatalog?.resolve(name, mode)?.name
+          ?: throw ExperimentDescriptorUnavailableError(
+            requestedNames = setOf(name),
+            mode = mode.wireValue,
+            availableCompatible = compatible,
+          )
+      }
     return ExperimentLaunchSelection(
       normalizedNames = resolved.normalizedNames,
       descriptors = descriptors,
       availabilitySummary = availability.policy.toString(),
-      treatmentCapabilities = resolved.normalizedNames
-        .mapNotNull { name -> compatibleDescriptors.firstOrNull { it.name == name }?.treatmentCapability }
-        .toSet(),
+      treatmentCapabilities =
+        resolved.normalizedNames
+          .mapNotNull { name -> compatibleDescriptors.firstOrNull { it.name == name }?.treatmentCapability }
+          .toSet(),
     )
   }
 
@@ -121,26 +127,27 @@ class ExperimentSelectionService(
     descriptor: ExperimentDescriptorRecord,
     requestedMode: ExperimentExecutionMode,
     names: MutableSet<String>,
-  ): String? = when {
-    validateExperimentName(descriptor.name) != descriptor.name ->
-      "name must be a unique kebab-case experiment name"
-    descriptor.executionMode != requestedMode ->
-      "execution mode does not match the requested mode"
-    descriptor.descriptorVersion.isBlank() ||
-      descriptor.descriptorVersion.length > MAX_DESCRIPTOR_VERSION_LENGTH ->
-      "descriptor version must be non-blank and at most 32 characters"
-    descriptor.requiredLauncherCapabilities.any { it.isBlank() } ->
-      "launcher capabilities must be non-blank"
-    descriptor.treatmentCapability.isBlank() ->
-      "treatment capability must be non-blank"
-    descriptor.setupRequirements.any { it.isBlank() } ->
-      "setup requirements must be non-blank"
-    descriptor.measurementRequirements.any { it.isBlank() } ->
-      "measurement requirements must be non-blank"
-    descriptor.setupRequirements.size > MAX_DESCRIPTOR_REQUIREMENTS ||
-      descriptor.measurementRequirements.size > MAX_DESCRIPTOR_REQUIREMENTS ->
-      "descriptor requirements exceed the supported limit"
-    !names.add(descriptor.name) -> "descriptor names must be unique"
-    else -> null
-  }
+  ): String? =
+    when {
+      validateExperimentName(descriptor.name) != descriptor.name ->
+        "name must be a unique kebab-case experiment name"
+      descriptor.executionMode != requestedMode ->
+        "execution mode does not match the requested mode"
+      descriptor.descriptorVersion.isBlank() ||
+        descriptor.descriptorVersion.length > MAX_DESCRIPTOR_VERSION_LENGTH ->
+        "descriptor version must be non-blank and at most 32 characters"
+      descriptor.requiredLauncherCapabilities.any { it.isBlank() } ->
+        "launcher capabilities must be non-blank"
+      descriptor.treatmentCapability.isBlank() ->
+        "treatment capability must be non-blank"
+      descriptor.setupRequirements.any { it.isBlank() } ->
+        "setup requirements must be non-blank"
+      descriptor.measurementRequirements.any { it.isBlank() } ->
+        "measurement requirements must be non-blank"
+      descriptor.setupRequirements.size > MAX_DESCRIPTOR_REQUIREMENTS ||
+        descriptor.measurementRequirements.size > MAX_DESCRIPTOR_REQUIREMENTS ->
+        "descriptor requirements exceed the supported limit"
+      !names.add(descriptor.name) -> "descriptor names must be unique"
+      else -> null
+    }
 }

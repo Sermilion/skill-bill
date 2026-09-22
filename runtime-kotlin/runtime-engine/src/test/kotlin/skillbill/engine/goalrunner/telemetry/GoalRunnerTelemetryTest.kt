@@ -34,6 +34,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class GoalRunnerTelemetryTest {
   @Test
   fun `preflight policy block emits one started and one blocked finished for the same segment`() {
@@ -138,23 +139,24 @@ class GoalRunnerTelemetryTest {
   fun `run blocked mid-subtask emits finished events for terminal subtasks and a blocked goal_finished`() {
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 3))
     val outcomes = RecordingOutcomeStore()
-    val launcher = RecordingSubtaskLauncher { request ->
-      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-      outcomes["wfl-$subtaskId"] =
-        if (subtaskId == 2) {
-          GoalRunnerStoredOutcome(
-            status = GoalRunnerTerminalStatus.FAILED,
-            workflowId = "wfl-2",
-            blockedReason = "review failed",
-            lastResumableStep = "review",
-            suppressPr = true,
-          )
-        } else {
-          completeOutcome(subtaskId)
-        }
-      launchFacts()
-    }
+    val launcher =
+      RecordingSubtaskLauncher { request ->
+        val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+        store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+        outcomes["wfl-$subtaskId"] =
+          if (subtaskId == 2) {
+            GoalRunnerStoredOutcome(
+              status = GoalRunnerTerminalStatus.FAILED,
+              workflowId = "wfl-2",
+              blockedReason = "review failed",
+              lastResumableStep = "review",
+              suppressPr = true,
+            )
+          } else {
+            completeOutcome(subtaskId)
+          }
+        launchFacts()
+      }
     val telemetry = RecordingGoalLifecycleTelemetryEmitter()
     val runner = telemetryRunner(store, launcher, outcomes, telemetry)
 
@@ -183,18 +185,20 @@ class GoalRunnerTelemetryTest {
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
     val outcomes = RecordingOutcomeStore()
     val telemetry = RecordingGoalLifecycleTelemetryEmitter()
-    val blockedLauncher = RecordingSubtaskLauncher { request ->
-      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-blocked") }
-      outcomes["wfl-blocked"] = GoalRunnerStoredOutcome(
-        status = GoalRunnerTerminalStatus.FAILED,
-        workflowId = "wfl-blocked",
-        blockedReason = "review failed",
-        lastResumableStep = "review",
-        suppressPr = true,
-      )
-      launchFacts()
-    }
+    val blockedLauncher =
+      RecordingSubtaskLauncher { request ->
+        val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+        store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-blocked") }
+        outcomes["wfl-blocked"] =
+          GoalRunnerStoredOutcome(
+            status = GoalRunnerTerminalStatus.FAILED,
+            workflowId = "wfl-blocked",
+            blockedReason = "review failed",
+            lastResumableStep = "review",
+            suppressPr = true,
+          )
+        launchFacts()
+      }
 
     telemetryRunner(store, blockedLauncher, outcomes, telemetry).run(runRequest())
     store.mutate { current -> current.withBlockedSubtaskState(1, "wfl-blocked", "review failed") }
@@ -217,20 +221,22 @@ class GoalRunnerTelemetryTest {
 
   @Test
   fun `resumed run emits finished only for current-segment terminals and never double-counts`() {
-    val initial = manifest(subtaskCount = 3)
-      .withCompletedSubtaskState(1, workflowId = "wfl-1", commitSha = "sha-1")
-      .withBlockedSubtaskState(2, workflowId = "wfl-2", reason = "validation failed")
+    val initial =
+      manifest(subtaskCount = 3)
+        .withCompletedSubtaskState(1, workflowId = "wfl-1", commitSha = "sha-1")
+        .withBlockedSubtaskState(2, workflowId = "wfl-2", reason = "validation failed")
     val store = InMemoryGoalManifestStore(manifest = initial)
     val outcomes = RecordingOutcomeStore()
     outcomes["wfl-2"] = completeOutcome(2)
-    val launcher = RecordingSubtaskLauncher { request ->
-      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-      if (subtaskId == 3) {
-        store.mutate { current -> current.withWorkflowId(3, "wfl-3") }
-        outcomes["wfl-3"] = completeOutcome(3)
+    val launcher =
+      RecordingSubtaskLauncher { request ->
+        val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+        if (subtaskId == 3) {
+          store.mutate { current -> current.withWorkflowId(3, "wfl-3") }
+          outcomes["wfl-3"] = completeOutcome(3)
+        }
+        launchFacts()
       }
-      launchFacts()
-    }
     val telemetry = RecordingGoalLifecycleTelemetryEmitter()
     val runner = telemetryRunner(store, launcher, outcomes, telemetry)
 
@@ -253,14 +259,15 @@ class GoalRunnerTelemetryTest {
   fun `skipped subtask emits a skipped goal_subtask_finished counted in the segment summary`() {
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 2))
     val outcomes = RecordingOutcomeStore()
-    val launcher = RecordingSubtaskLauncher { request ->
-      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-      store.mutate { current ->
-        current.withWorkflowId(subtaskId, "wfl-$subtaskId").withSkippedSubtaskState(2)
+    val launcher =
+      RecordingSubtaskLauncher { request ->
+        val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+        store.mutate { current ->
+          current.withWorkflowId(subtaskId, "wfl-$subtaskId").withSkippedSubtaskState(2)
+        }
+        outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+        launchFacts()
       }
-      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
-      launchFacts()
-    }
     val telemetry = RecordingGoalLifecycleTelemetryEmitter()
     val runner = telemetryRunner(store, launcher, outcomes, telemetry)
 
@@ -283,14 +290,15 @@ class GoalRunnerTelemetryTest {
   fun `issue finished counts skipped subtasks separately from completed ones`() {
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 5))
     val outcomes = RecordingOutcomeStore()
-    val launcher = RecordingSubtaskLauncher { request ->
-      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-      store.mutate { current ->
-        current.withWorkflowId(subtaskId, "wfl-$subtaskId").withSkippedSubtaskState(3)
+    val launcher =
+      RecordingSubtaskLauncher { request ->
+        val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+        store.mutate { current ->
+          current.withWorkflowId(subtaskId, "wfl-$subtaskId").withSkippedSubtaskState(3)
+        }
+        outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+        launchFacts()
       }
-      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
-      launchFacts()
-    }
     val telemetry = RecordingGoalLifecycleTelemetryEmitter()
     val runner = telemetryRunner(store, launcher, outcomes, telemetry)
 
@@ -337,17 +345,18 @@ class GoalRunnerTelemetryTest {
       val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 2))
       val outcomes = RecordingOutcomeStore()
       val events = mutableListOf<GoalRunnerRunEvent>()
-      val runner = testGoalRunner(
-        goalRunnerDeps(
-          manifestStore = store,
-          subtaskLauncher = completingLauncher(store, outcomes),
-          outcomeStore = outcomes,
-          pullRequestPort = RecordingPullRequestPort(),
-        ).copy(
-          telemetry = telemetry,
-          clock = fixedClock(),
-        ),
-      )
+      val runner =
+        testGoalRunner(
+          goalRunnerDeps(
+            manifestStore = store,
+            subtaskLauncher = completingLauncher(store, outcomes),
+            outcomeStore = outcomes,
+            pullRequestPort = RecordingPullRequestPort(),
+          ).copy(
+            telemetry = telemetry,
+            clock = fixedClock(),
+          ),
+        )
       val result = runner.run(runRequest { events += it })
       Triple(result, store.manifest.status, events)
     }
@@ -366,34 +375,37 @@ class GoalRunnerTelemetryTest {
     launcher: RecordingSubtaskLauncher,
     outcomes: RecordingOutcomeStore,
     telemetry: GoalLifecycleTelemetryEmitter,
-  ): GoalRunner = testGoalRunner(
-    goalRunnerDeps(
-      manifestStore = store,
-      subtaskLauncher = launcher,
-      outcomeStore = outcomes,
-      pullRequestPort = RecordingPullRequestPort(),
-    ).copy(
-      telemetry = telemetry,
-      clock = fixedClock(),
-    ),
-  )
+  ): GoalRunner =
+    testGoalRunner(
+      goalRunnerDeps(
+        manifestStore = store,
+        subtaskLauncher = launcher,
+        outcomeStore = outcomes,
+        pullRequestPort = RecordingPullRequestPort(),
+      ).copy(
+        telemetry = telemetry,
+        clock = fixedClock(),
+      ),
+    )
 
   private fun completingLauncher(
     store: InMemoryGoalManifestStore,
     outcomes: RecordingOutcomeStore,
-  ): RecordingSubtaskLauncher = RecordingSubtaskLauncher { request ->
-    val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-    store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-    outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
-    launchFacts()
-  }
+  ): RecordingSubtaskLauncher =
+    RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+      launchFacts()
+    }
 
-  private fun runRequest(eventSink: (GoalRunnerRunEvent) -> Unit = {}): GoalRunnerRunRequest = GoalRunnerRunRequest(
-    issueKey = "SKILL-56",
-    repoRoot = Path.of("/tmp/skillbill-goal-runner"),
-    invokedAgentId = "claude",
-    eventSink = GoalRunnerEventSink { eventSink(it) },
-  )
+  private fun runRequest(eventSink: (GoalRunnerRunEvent) -> Unit = {}): GoalRunnerRunRequest =
+    GoalRunnerRunRequest(
+      issueKey = "SKILL-56",
+      repoRoot = Path.of("/tmp/skillbill-goal-runner"),
+      invokedAgentId = "claude",
+      eventSink = GoalRunnerEventSink { eventSink(it) },
+    )
 
   private fun fixedClock(): Clock = Clock.fixed(Instant.parse(FIXED_INSTANT), ZoneOffset.UTC)
 
@@ -440,46 +452,52 @@ private fun DecompositionManifest.withCompletedSubtaskState(
   subtaskId: Int,
   workflowId: String,
   commitSha: String,
-): DecompositionManifest = copy(
-  status = "in_progress",
-  currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 0, action = "complete"),
-  subtasks = subtasks.map { subtask ->
-    if (subtask.id == subtaskId) {
-      subtask.copy(
-        status = "complete",
-        workflowId = workflowId,
-        commitSha = commitSha,
-        lastResumableStep = "commit_push",
-      )
-    } else {
-      subtask
-    }
-  },
-)
+): DecompositionManifest =
+  copy(
+    status = "in_progress",
+    currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 0, action = "complete"),
+    subtasks =
+      subtasks.map { subtask ->
+        if (subtask.id == subtaskId) {
+          subtask.copy(
+            status = "complete",
+            workflowId = workflowId,
+            commitSha = commitSha,
+            lastResumableStep = "commit_push",
+          )
+        } else {
+          subtask
+        }
+      },
+  )
 
 private fun DecompositionManifest.withBlockedSubtaskState(
   subtaskId: Int,
   workflowId: String,
   reason: String,
-): DecompositionManifest = copy(
-  status = "blocked",
-  currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = subtaskId, action = "blocked"),
-  subtasks = subtasks.map { subtask ->
-    if (subtask.id == subtaskId) {
-      subtask.copy(
-        status = "blocked",
-        workflowId = workflowId,
-        blockedReason = reason,
-        lastResumableStep = "validate",
-      )
-    } else {
-      subtask
-    }
-  },
-)
+): DecompositionManifest =
+  copy(
+    status = "blocked",
+    currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = subtaskId, action = "blocked"),
+    subtasks =
+      subtasks.map { subtask ->
+        if (subtask.id == subtaskId) {
+          subtask.copy(
+            status = "blocked",
+            workflowId = workflowId,
+            blockedReason = reason,
+            lastResumableStep = "validate",
+          )
+        } else {
+          subtask
+        }
+      },
+  )
 
-private fun DecompositionManifest.withSkippedSubtaskState(subtaskId: Int): DecompositionManifest = copy(
-  subtasks = subtasks.map { subtask ->
-    if (subtask.id == subtaskId) subtask.copy(status = "skipped") else subtask
-  },
-)
+private fun DecompositionManifest.withSkippedSubtaskState(subtaskId: Int): DecompositionManifest =
+  copy(
+    subtasks =
+      subtasks.map { subtask ->
+        if (subtask.id == subtaskId) subtask.copy(status = "skipped") else subtask
+      },
+  )

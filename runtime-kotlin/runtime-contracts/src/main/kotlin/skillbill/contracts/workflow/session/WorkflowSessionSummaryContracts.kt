@@ -29,19 +29,20 @@ data class FeatureImplementSessionSummaryContract(
   val openQuestionsCount: Int,
   val specSummary: String,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf(
-    WorkflowSessionSummaryPayloadKeys.SESSION_ID to sessionId,
-    WorkflowSessionSummaryPayloadKeys.ISSUE_KEY_PROVIDED to issueKeyProvided,
-    WorkflowSessionSummaryPayloadKeys.ISSUE_KEY_TYPE to issueKeyType,
-    WorkflowSessionSummaryPayloadKeys.SPEC_INPUT_TYPES to specInputTypes,
-    WorkflowSessionSummaryPayloadKeys.SPEC_WORD_COUNT to specWordCount,
-    WorkflowSessionSummaryPayloadKeys.FEATURE_SIZE to featureSize,
-    WorkflowSessionSummaryPayloadKeys.FEATURE_NAME to featureName,
-    WorkflowSessionSummaryPayloadKeys.ROLLOUT_NEEDED to rolloutNeeded,
-    WorkflowSessionSummaryPayloadKeys.ACCEPTANCE_CRITERIA_COUNT to acceptanceCriteriaCount,
-    WorkflowSessionSummaryPayloadKeys.OPEN_QUESTIONS_COUNT to openQuestionsCount,
-    WorkflowSessionSummaryPayloadKeys.SPEC_SUMMARY to specSummary,
-  )
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf(
+      WorkflowSessionSummaryPayloadKeys.SESSION_ID to sessionId,
+      WorkflowSessionSummaryPayloadKeys.ISSUE_KEY_PROVIDED to issueKeyProvided,
+      WorkflowSessionSummaryPayloadKeys.ISSUE_KEY_TYPE to issueKeyType,
+      WorkflowSessionSummaryPayloadKeys.SPEC_INPUT_TYPES to specInputTypes,
+      WorkflowSessionSummaryPayloadKeys.SPEC_WORD_COUNT to specWordCount,
+      WorkflowSessionSummaryPayloadKeys.FEATURE_SIZE to featureSize,
+      WorkflowSessionSummaryPayloadKeys.FEATURE_NAME to featureName,
+      WorkflowSessionSummaryPayloadKeys.ROLLOUT_NEEDED to rolloutNeeded,
+      WorkflowSessionSummaryPayloadKeys.ACCEPTANCE_CRITERIA_COUNT to acceptanceCriteriaCount,
+      WorkflowSessionSummaryPayloadKeys.OPEN_QUESTIONS_COUNT to openQuestionsCount,
+      WorkflowSessionSummaryPayloadKeys.SPEC_SUMMARY to specSummary,
+    )
 }
 
 data class FeatureVerifySessionSummaryContract(
@@ -50,10 +51,11 @@ data class FeatureVerifySessionSummaryContract(
   val rolloutRelevant: Boolean,
   val specSummary: String,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf(
-    WorkflowSessionSummaryPayloadKeys.SESSION_ID to sessionId,
-    WorkflowSessionSummaryPayloadKeys.ACCEPTANCE_CRITERIA_COUNT to acceptanceCriteriaCount,
-    WorkflowSessionSummaryPayloadKeys.ROLLOUT_RELEVANT to rolloutRelevant,
-    WorkflowSessionSummaryPayloadKeys.SPEC_SUMMARY to specSummary,
-  )
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf(
+      WorkflowSessionSummaryPayloadKeys.SESSION_ID to sessionId,
+      WorkflowSessionSummaryPayloadKeys.ACCEPTANCE_CRITERIA_COUNT to acceptanceCriteriaCount,
+      WorkflowSessionSummaryPayloadKeys.ROLLOUT_RELEVANT to rolloutRelevant,
+      WorkflowSessionSummaryPayloadKeys.SPEC_SUMMARY to specSummary,
+    )
 }

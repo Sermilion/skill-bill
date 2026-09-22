@@ -27,6 +27,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class GovernedReviewEvidenceEndpointTest {
   private class RecordingBroker : ReviewEvidenceBroker {
     val reads = mutableListOf<ReviewEvidenceBatchRequest>()
@@ -37,15 +38,16 @@ class GovernedReviewEvidenceEndpointTest {
     override fun readBatch(request: ReviewEvidenceBatchRequest): ReviewEvidenceBatchResult {
       reads += request
       return ReviewEvidenceBatchResult(
-        results = listOf(
-          ReviewEvidenceResult(
-            content = "package secrets",
-            bytes = 15,
-            cumulativeBytes = 0,
-            expansionCount = 0,
-            forbidden = ForbiddenReviewOperation("unreachable_path", request.requests.single().path, "not assigned"),
+        results =
+          listOf(
+            ReviewEvidenceResult(
+              content = "package secrets",
+              bytes = 15,
+              cumulativeBytes = 0,
+              expansionCount = 0,
+              forbidden = ForbiddenReviewOperation("unreachable_path", request.requests.single().path, "not assigned"),
+            ),
           ),
-        ),
         cumulativeBytes = 0,
         expansions = emptyList(),
       )
@@ -59,14 +61,15 @@ class GovernedReviewEvidenceEndpointTest {
 
     override fun observeLaneResultChunk(chunk: String): ReviewBudgetOutcome? = null
 
-    override fun accounting(): ReviewLaneAccounting = ReviewLaneAccounting(
-      lane = "architecture",
-      evidenceBytes = 0,
-      expansions = emptyList(),
-      toolCalls = 0,
-      modelTurns = 0,
-      resultBytes = 0,
-    )
+    override fun accounting(): ReviewLaneAccounting =
+      ReviewLaneAccounting(
+        lane = "architecture",
+        evidenceBytes = 0,
+        expansions = emptyList(),
+        toolCalls = 0,
+        modelTurns = 0,
+        resultBytes = 0,
+      )
 
     override fun terminalOutcome(): ReviewBudgetOutcome? = null
   }
@@ -112,19 +115,21 @@ class GovernedReviewEvidenceEndpointTest {
   @Test
   fun `an isolated home without runtime-mcp loud-fails instead of inheriting the host binary`() {
     val home = Files.createTempDirectory("review-evidence-home")
-    val error = assertFailsWith<GovernedReviewEvidenceTransportError> {
-      bridgeCommand(emptyMap(), home)
-    }
+    val error =
+      assertFailsWith<GovernedReviewEvidenceTransportError> {
+        bridgeCommand(emptyMap(), home)
+      }
     assertTrue(error.message!!.contains(home.toString()))
     assertTrue(error.message!!.contains("missing or not executable"))
   }
 
-  private fun perLaunchDirectories(root: Path): Set<String> = Files.list(root).use { paths ->
-    paths.map { it.fileName.toString() }
-      .filter { it.startsWith("skill-bill-review-evidence-") }
-      .toList()
-      .toSet()
-  }
+  private fun perLaunchDirectories(root: Path): Set<String> =
+    Files.list(root).use { paths ->
+      paths.map { it.fileName.toString() }
+        .filter { it.startsWith("skill-bill-review-evidence-") }
+        .toList()
+        .toSet()
+    }
 
   @Test
   fun `a temp root too long for a unix socket path still yields a bindable endpoint`() {
@@ -150,12 +155,14 @@ class GovernedReviewEvidenceEndpointTest {
     val endpoint = GovernedReviewEvidenceEndpoint.bind("architecture", RecordingBroker(), listOf("/bin/true"))
     assertTrue(Files.exists(endpoint.descriptor.socketPath))
     assertTrue(Files.exists(endpoint.descriptor.mcpConfigPath))
-    val cursorConfig = GovernedReviewMcpConfigWriter.cursorProjectConfigPath(
-      endpoint.descriptor.mcpConfigPath,
-    )
-    val tomlConfig = GovernedReviewMcpConfigWriter.tomlConfigPath(
-      endpoint.descriptor.mcpConfigPath,
-    )
+    val cursorConfig =
+      GovernedReviewMcpConfigWriter.cursorProjectConfigPath(
+        endpoint.descriptor.mcpConfigPath,
+      )
+    val tomlConfig =
+      GovernedReviewMcpConfigWriter.tomlConfigPath(
+        endpoint.descriptor.mcpConfigPath,
+      )
     assertEquals(Files.readString(endpoint.descriptor.mcpConfigPath), Files.readString(cursorConfig))
     assertTrue(Files.exists(tomlConfig))
     assertTrue(Files.readString(tomlConfig).contains("[mcp_servers.skill-bill-review-evidence]"))
@@ -196,21 +203,26 @@ class GovernedReviewEvidenceEndpointTest {
     }
   }
 
-  private fun connect(endpoint: GovernedReviewEvidenceEndpoint, token: String): Client =
+  private fun connect(
+    endpoint: GovernedReviewEvidenceEndpoint,
+    token: String,
+  ): Client =
     Client(SocketChannel.open(UnixDomainSocketAddress.of(endpoint.descriptor.socketPath)))
       .also { it.handshake(token) }
 
-  private fun readFrame(path: String): String = JsonCodec.mapToJsonString(
-    linkedMapOf(
-      "jsonrpc" to "2.0",
-      "id" to 1,
-      "method" to "tools/call",
-      "params" to linkedMapOf(
-        "name" to "read_evidence",
-        "arguments" to mapOf("requests" to listOf(mapOf("path" to path))),
+  private fun readFrame(path: String): String =
+    JsonCodec.mapToJsonString(
+      linkedMapOf(
+        "jsonrpc" to "2.0",
+        "id" to 1,
+        "method" to "tools/call",
+        "params" to
+          linkedMapOf(
+            "name" to "read_evidence",
+            "arguments" to mapOf("requests" to listOf(mapOf("path" to path))),
+          ),
       ),
-    ),
-  )
+    )
 
   private fun toolPayload(reply: String): Map<String, Any?> {
     val message = requireNotNull(JsonCodec.parseObjectOrNull(reply))

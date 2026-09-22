@@ -37,8 +37,9 @@ class FeatureTaskRuntimeHandoffEnvelopeSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = FeatureTaskRuntimeHandoffEnvelopeSchemaValidator::class.java.classLoader
-      .getResourceAsStream(FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      FeatureTaskRuntimeHandoffEnvelopeSchemaValidator::class.java.classLoader
+        .getResourceAsStream(FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical feature-task-runtime handoff envelope schema is missing from the classpath at " +

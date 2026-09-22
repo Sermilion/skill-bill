@@ -15,6 +15,7 @@ import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
 import skillbill.review.model.ReviewStageResumeReport
 import java.nio.file.Path
 import kotlin.time.Duration
+
 data class ParallelCodeReviewRequest(
   val agent1Id: String,
   val scope: ParallelReviewScope,
@@ -77,8 +78,10 @@ data class ParallelCodeReviewRequest(
   }
 
   companion object {
-    fun baselineUntrackedPolicy(includedPaths: List<String>, excludedPaths: List<String>) =
-      ReviewBaselineUntrackedPolicy(includedPaths, excludedPaths)
+    fun baselineUntrackedPolicy(
+      includedPaths: List<String>,
+      excludedPaths: List<String>,
+    ) = ReviewBaselineUntrackedPolicy(includedPaths, excludedPaths)
   }
 }
 

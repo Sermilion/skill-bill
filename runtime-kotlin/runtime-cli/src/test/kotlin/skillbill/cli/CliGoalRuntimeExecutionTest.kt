@@ -13,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
+
 class CliGoalRuntimeExecutionTest {
   @Test
   fun `goal status help documents diff observability cost controls`() {
@@ -41,18 +42,19 @@ class CliGoalRuntimeExecutionTest {
     val run = CliRuntime.run(fixture.goalCommand(), fixture.context(launcher = launcher))
     assertEquals(1, run.exitCode, run.stdout)
 
-    val reset = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "reset",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val reset =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "reset",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(1, reset.exitCode, reset.stdout)
     assertContains(reset.stdout, "status: recovery_required")
@@ -68,10 +70,11 @@ class CliGoalRuntimeExecutionTest {
       reset.stdout,
       "recovery_command: skill-bill goal reset SKILL-901 --hard --yes",
     )
-    val status = CliRuntime.run(
-      listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
-      fixture.context(launcher = launcher),
-    )
+    val status =
+      CliRuntime.run(
+        listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
+        fixture.context(launcher = launcher),
+      )
     assertContains(status.stdout, "complete: 1")
     assertContains(status.stdout, "pending: 0")
     assertContains(status.stdout, "blocked: 1")
@@ -83,28 +86,30 @@ class CliGoalRuntimeExecutionTest {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
-    val denied = CliRuntime.run(
-      listOf("--db", fixture.dbPath.toString(), "goal", "reset", "SKILL-901", "--hard"),
-      fixture.context(launcher = launcher),
-    )
+    val denied =
+      CliRuntime.run(
+        listOf("--db", fixture.dbPath.toString(), "goal", "reset", "SKILL-901", "--hard"),
+        fixture.context(launcher = launcher),
+      )
     assertEquals(1, denied.exitCode, denied.stdout)
     assertContains(denied.stdout, "Hard reset requires explicit confirmation")
 
-    val confirmed = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "reset",
-        "SKILL-901",
-        "--hard",
-        "--confirm-issue-key",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val confirmed =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "reset",
+          "SKILL-901",
+          "--hard",
+          "--confirm-issue-key",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = launcher),
+      )
     assertEquals(0, confirmed.exitCode, confirmed.stdout)
     assertContains(confirmed.stdout, "mode: hard")
     assertContains(confirmed.stdout, "after: status=pending")
@@ -117,30 +122,32 @@ class CliGoalRuntimeExecutionTest {
     val run = CliRuntime.run(fixture.goalCommand(), fixture.context(launcher = launcher))
     assertEquals(1, run.exitCode, run.stdout)
 
-    val reset = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "reset",
-        "SKILL-901",
-        "--hard",
-        "--force",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val reset =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "reset",
+          "SKILL-901",
+          "--hard",
+          "--force",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(0, reset.exitCode, reset.stdout)
     assertContains(reset.stdout, "status: ok")
     assertContains(reset.stdout, "mode: hard")
     assertContains(reset.stdout, "id=1; status=pending")
     assertContains(reset.stdout, "id=2; status=pending")
-    val status = CliRuntime.run(
-      listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
-      fixture.context(launcher = launcher),
-    )
+    val status =
+      CliRuntime.run(
+        listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
+        fixture.context(launcher = launcher),
+      )
     assertContains(status.stdout, "complete: 0")
     assertContains(status.stdout, "pending: 2")
     assertContains(status.stdout, "blocked: 0")
@@ -154,14 +161,15 @@ class CliGoalRuntimeExecutionTest {
     val liveStderr = StringBuilder()
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
-    val result = CliRuntime.run(
-      fixture.goalCommand(extra = listOf("--debug-child-output")),
-      fixture.context(
-        launcher = launcher,
-        liveStdout = { liveStdout.append(it) },
-        liveStderr = { liveStderr.append(it) },
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        fixture.goalCommand(extra = listOf("--debug-child-output")),
+        fixture.context(
+          launcher = launcher,
+          liveStdout = { liveStdout.append(it) },
+          liveStderr = { liveStderr.append(it) },
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "goal SKILL-901: finished")
@@ -184,11 +192,12 @@ class CliGoalRuntimeExecutionTest {
           "FROM feature_task_execution_identities ORDER BY governed_spec_path",
       ).use { statement ->
         statement.executeQuery().use { rows ->
-          val identities = buildList {
-            while (rows.next()) {
-              add(Triple(rows.getString(1), rows.getString(2), rows.getString(3)))
+          val identities =
+            buildList {
+              while (rows.next()) {
+                add(Triple(rows.getString(1), rows.getString(2), rows.getString(3)))
+              }
             }
-          }
           assertEquals(2, identities.size)
           assertTrue(identities.all { it.first == "SKILL-901" && it.third == "goal_child" })
           assertEquals(
@@ -208,13 +217,14 @@ class CliGoalRuntimeExecutionTest {
     val fixture = goalFixture(subtaskCount = 1)
     val liveStdout = StringBuilder()
 
-    val result = CliRuntime.run(
-      fixture.goalCommand(),
-      fixture.context(
-        launcher = GoalFixtureAgentRunLauncher(fixture),
-        liveStdout = { liveStdout.append(it) },
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        fixture.goalCommand(),
+        fixture.context(
+          launcher = GoalFixtureAgentRunLauncher(fixture),
+          liveStdout = { liveStdout.append(it) },
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val output = liveStdout.toString()
@@ -233,27 +243,28 @@ class CliGoalRuntimeExecutionTest {
   fun `goal run defaults invoked agent to detected invoking context when no agent flag is set`() {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
-    val command = buildList {
-      add("--db")
-      add(fixture.dbPath.toString())
-      add("goal")
-      add("SKILL-901")
-      add("--repo-root")
-      add(fixture.tempDir.toString())
-    }
+    val command =
+      buildList {
+        add("--db")
+        add(fixture.dbPath.toString())
+        add("goal")
+        add("SKILL-901")
+        add("--repo-root")
+        add(fixture.tempDir.toString())
+      }
 
-    val result = CliRuntime.run(
-      command,
-      CliRuntimeContext(
-        userHome = fixture.tempDir,
-        workflowGitOperations = GoalTestWorkflowGitOperations,
-        agentRunLauncher = launcher,
-        goalPullRequestPort = fixture.pullRequests,
-
-        environment = mapOf("CLAUDECODE" to "1"),
-        executableLookup = ExecutableLookup { true },
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        command,
+        CliRuntimeContext(
+          userHome = fixture.tempDir,
+          workflowGitOperations = GoalTestWorkflowGitOperations,
+          agentRunLauncher = launcher,
+          goalPullRequestPort = fixture.pullRequests,
+          environment = mapOf("CLAUDECODE" to "1"),
+          executableLookup = ExecutableLookup { true },
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals(listOf("claude"), launcher.childLaunches.map { it.agentId }.distinct())
@@ -264,17 +275,18 @@ class CliGoalRuntimeExecutionTest {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
-    val result = CliRuntime.run(
-      fixture.goalCommand(),
-      CliRuntimeContext(
-        userHome = fixture.tempDir,
-        workflowGitOperations = GoalTestWorkflowGitOperations,
-        agentRunLauncher = launcher,
-        goalPullRequestPort = fixture.pullRequests,
-        environment = mapOf("CLAUDECODE" to "1", "SKILL_BILL_AGENT" to "junie"),
-        executableLookup = ExecutableLookup { true },
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        fixture.goalCommand(),
+        CliRuntimeContext(
+          userHome = fixture.tempDir,
+          workflowGitOperations = GoalTestWorkflowGitOperations,
+          agentRunLauncher = launcher,
+          goalPullRequestPort = fixture.pullRequests,
+          environment = mapOf("CLAUDECODE" to "1", "SKILL_BILL_AGENT" to "junie"),
+          executableLookup = ExecutableLookup { true },
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
 
@@ -287,14 +299,15 @@ class CliGoalRuntimeExecutionTest {
     val liveStdout = StringBuilder()
     val liveStderr = StringBuilder()
 
-    val result = CliRuntime.run(
-      fixture.goalCommand(),
-      fixture.context(
-        launcher = GoalFixtureAgentRunLauncher(fixture),
-        liveStdout = { liveStdout.append(it) },
-        liveStderr = { liveStderr.append(it) },
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        fixture.goalCommand(),
+        fixture.context(
+          launcher = GoalFixtureAgentRunLauncher(fixture),
+          liveStdout = { liveStdout.append(it) },
+          liveStderr = { liveStderr.append(it) },
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(liveStdout.toString(), "goal watch SKILL-901 --repo-root")
@@ -314,29 +327,30 @@ class CliGoalRuntimeExecutionTest {
     val childWorkflowId = startRunningGoalChild(fixture)
     recordRunningGoalChildProgress(fixture, childWorkflowId, sequence = 8)
 
-    val status = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "status",
-        "SKILL-901",
-        "--agent",
-        "codex",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--diff-stat",
-        "--diff-hunk",
-        "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/GoalCliCommands.kt",
-        "--diff-hunk-max-hunks",
-        "2",
-        "--diff-hunk-max-lines",
-        "3",
-        "--diff-hunk-max-bytes",
-        "40",
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher, workflowGitOperations = gitOperations),
-    )
+    val status =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "status",
+          "SKILL-901",
+          "--agent",
+          "codex",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--diff-stat",
+          "--diff-hunk",
+          "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/GoalCliCommands.kt",
+          "--diff-hunk-max-hunks",
+          "2",
+          "--diff-hunk-max-lines",
+          "3",
+          "--diff-hunk-max-bytes",
+          "40",
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher, workflowGitOperations = gitOperations),
+      )
 
     assertEquals(0, status.exitCode, status.stdout)
     assertContains(status.stdout, "latest_observability: phase=implement role=phase_subagent")
@@ -358,26 +372,28 @@ class CliGoalRuntimeExecutionTest {
     )
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
-    val status = CliRuntime.run(
-      listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-    )
-    val watch = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "watch",
-        "SKILL-901",
-        "--agent",
-        "codex",
-        "--interval-seconds",
-        "0",
-        "--max-refreshes",
-        "1",
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-    )
+    val status =
+      CliRuntime.run(
+        listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+      )
+    val watch =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "watch",
+          "SKILL-901",
+          "--agent",
+          "codex",
+          "--interval-seconds",
+          "0",
+          "--max-refreshes",
+          "1",
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+      )
     val resumed = CliRuntime.run(fixture.goalCommand(), fixture.context(launcher = launcher))
 
     assertInterruptedLegacyChildOutput(status, watch, resumed, launcher)
@@ -388,33 +404,34 @@ class CliGoalRuntimeExecutionTest {
     val fixture = goalFixture(subtaskCount = 1)
     val gitOperations = RecordingGoalTestWorkflowGitOperations()
 
-    val watch = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "watch",
-        "SKILL-901",
-        "--agent",
-        "codex",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--diff-stat",
-        "--diff-hunk",
-        "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/GoalCliCommands.kt",
-        "--diff-hunk-max-hunks",
-        "2",
-        "--diff-hunk-max-lines",
-        "3",
-        "--diff-hunk-max-bytes",
-        "40",
-        "--interval-seconds",
-        "0",
-        "--max-refreshes",
-        "2",
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher, workflowGitOperations = gitOperations),
-    )
+    val watch =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "watch",
+          "SKILL-901",
+          "--agent",
+          "codex",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--diff-stat",
+          "--diff-hunk",
+          "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/GoalCliCommands.kt",
+          "--diff-hunk-max-hunks",
+          "2",
+          "--diff-hunk-max-lines",
+          "3",
+          "--diff-hunk-max-bytes",
+          "40",
+          "--interval-seconds",
+          "0",
+          "--max-refreshes",
+          "2",
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher, workflowGitOperations = gitOperations),
+      )
 
     assertEquals(0, watch.exitCode, watch.stdout)
     assertEquals(

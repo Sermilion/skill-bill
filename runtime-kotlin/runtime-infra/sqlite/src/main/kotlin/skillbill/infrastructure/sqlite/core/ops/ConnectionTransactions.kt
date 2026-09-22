@@ -24,24 +24,29 @@ internal data class DatabaseTransactionSpec(
   val mapSqlExceptions: Boolean = true,
 )
 
-internal inline fun <T> Connection.inDatabaseTransaction(spec: DatabaseTransactionSpec, block: Connection.() -> T): T {
+internal inline fun <T> Connection.inDatabaseTransaction(
+  spec: DatabaseTransactionSpec,
+  block: Connection.() -> T,
+): T {
   executeTransactionStatement(spec.beginMode.sql)
   var committed = false
   var primaryFailure: Throwable? = null
   return try {
-    val result = runCatching { block() }.getOrElse { failure ->
-      primaryFailure = when (failure) {
-        is SQLException ->
-          if (spec.mapSqlExceptions) {
-            mapTransactionBlockFailure(spec.dbPath, spec.operation, failure)
-          } else {
-            failure
+    val result =
+      runCatching { block() }.getOrElse { failure ->
+        primaryFailure =
+          when (failure) {
+            is SQLException ->
+              if (spec.mapSqlExceptions) {
+                mapTransactionBlockFailure(spec.dbPath, spec.operation, failure)
+              } else {
+                failure
+              }
+            is RuntimeException -> failure
+            else -> throw failure
           }
-        is RuntimeException -> failure
-        else -> throw failure
+        throw primaryFailure
       }
-      throw primaryFailure
-    }
     commitWriteTransaction { failure -> primaryFailure = failure }
     committed = true
     result
@@ -56,11 +61,12 @@ private fun mapTransactionBlockFailure(
   dbPath: Path,
   operation: DatabaseAccessOperation,
   failure: SQLException,
-): Throwable = when (operation) {
-  DatabaseAccessOperation.WRITE -> databaseAccessError(dbPath, DatabaseAccessOperation.WRITE, failure)
-  DatabaseAccessOperation.READ -> databaseAccessError(dbPath, DatabaseAccessOperation.READ, failure)
-  else -> failure
-}
+): Throwable =
+  when (operation) {
+    DatabaseAccessOperation.WRITE -> databaseAccessError(dbPath, DatabaseAccessOperation.WRITE, failure)
+    DatabaseAccessOperation.READ -> databaseAccessError(dbPath, DatabaseAccessOperation.READ, failure)
+    else -> failure
+  }
 
 private fun Connection.executeTransactionStatement(sql: String) {
   createStatement().use { it.execute(sql) }
@@ -112,16 +118,17 @@ private fun boundedTransactionFailureDetail(failure: Throwable): String {
 internal inline fun <T> Connection.inNestedWriteTransaction(
   diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
   block: Connection.() -> T,
-): T = inDatabaseTransaction(
-  DatabaseTransactionSpec(
-    dbPath = this.databasePath(),
-    beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
-    operation = DatabaseAccessOperation.WRITE,
-    diagnostics = diagnostics,
-    mapSqlExceptions = false,
-  ),
-  block = block,
-)
+): T =
+  inDatabaseTransaction(
+    DatabaseTransactionSpec(
+      dbPath = this.databasePath(),
+      beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
+      operation = DatabaseAccessOperation.WRITE,
+      diagnostics = diagnostics,
+      mapSqlExceptions = false,
+    ),
+    block = block,
+  )
 
 internal fun PreparedStatement.bindAll(values: Iterable<*>) {
   values.forEachIndexed { index, value -> bindParameter(index + 1, value) }
@@ -131,7 +138,10 @@ internal fun PreparedStatement.bindAll(vararg values: Any?) {
   bindAll(values.asList())
 }
 
-private fun PreparedStatement.bindParameter(parameterIndex: Int, value: Any?) {
+private fun PreparedStatement.bindParameter(
+  parameterIndex: Int,
+  value: Any?,
+) {
   when (value) {
     null -> setNull(parameterIndex, Types.NULL)
     is String -> setString(parameterIndex, value)

@@ -19,17 +19,18 @@ internal fun stageReviewCatalogPacks(
   effectivePackRoots: List<Path> = emptyList(),
 ) {
   val selected = selectedPlatforms?.toSet()
-  val desiredPacks = if (effectivePackRoots.isNotEmpty()) {
-    effectivePackRoots.filter { root ->
-      selected == null || root.fileName.toString() in selected
+  val desiredPacks =
+    if (effectivePackRoots.isNotEmpty()) {
+      effectivePackRoots.filter { root ->
+        selected == null || root.fileName.toString() in selected
+      }
+    } else {
+      Files.list(platformPacksRoot).use { packs ->
+        packs.filter(Files::isDirectory)
+          .filter { selected == null || it.fileName.toString() in selected }
+          .toList()
+      }
     }
-  } else {
-    Files.list(platformPacksRoot).use { packs ->
-      packs.filter(Files::isDirectory)
-        .filter { selected == null || it.fileName.toString() in selected }
-        .toList()
-    }
-  }
   desiredPacks.forEach { source ->
     val failure = runCatching { stageReviewCatalogPack(source, staging) }.exceptionOrNull() ?: return@forEach
     throw reviewCatalogStageFailure(platformPacksRoot, source, failure)
@@ -43,14 +44,16 @@ internal fun retainedCatalogFailure(
 ): ExternalPlatformPackPublishError {
   if (error is ExternalPlatformPackPublishError) return error
   val source = effectivePackRoots.singleOrNull()
-  val sourceKind = source?.let { packRoot ->
-    platformPacksRoot?.let { bundledRoot -> sourceKind(bundledRoot, packRoot) }
-  }
-  val payload = externalPlatformPackTelemetryPayload(
-    error,
-    slug = source?.fileName?.toString(),
-    sourceKind = sourceKind,
-  ).toMutableMap()
+  val sourceKind =
+    source?.let { packRoot ->
+      platformPacksRoot?.let { bundledRoot -> sourceKind(bundledRoot, packRoot) }
+    }
+  val payload =
+    externalPlatformPackTelemetryPayload(
+      error,
+      slug = source?.fileName?.toString(),
+      sourceKind = sourceKind,
+    ).toMutableMap()
   payload[ExternalPlatformPackTelemetryPayloadKeys.RECOVERY] = "previous_catalog_retained"
   return ExternalPlatformPackPublishError(
     "Installed review catalog was not promoted; the previous catalog remains.",
@@ -59,13 +62,18 @@ internal fun retainedCatalogFailure(
   )
 }
 
-private fun reviewCatalogStageFailure(platformPacksRoot: Path, source: Path, error: Throwable): Throwable {
+private fun reviewCatalogStageFailure(
+  platformPacksRoot: Path,
+  source: Path,
+  error: Throwable,
+): Throwable {
   if (error is CancellationException || error is ExternalPlatformPackPublishError) return error
-  val payload = externalPlatformPackTelemetryPayload(
-    error,
-    slug = source.fileName.toString(),
-    sourceKind = sourceKind(platformPacksRoot, source),
-  ).toMutableMap()
+  val payload =
+    externalPlatformPackTelemetryPayload(
+      error,
+      slug = source.fileName.toString(),
+      sourceKind = sourceKind(platformPacksRoot, source),
+    ).toMutableMap()
   payload[ExternalPlatformPackTelemetryPayloadKeys.RECOVERY] = "previous_catalog_retained"
   return ExternalPlatformPackPublishError(
     "Installed review catalog for platform pack '${source.fileName}' was not promoted; " +
@@ -75,28 +83,37 @@ private fun reviewCatalogStageFailure(platformPacksRoot: Path, source: Path, err
   )
 }
 
-private fun sourceKind(platformPacksRoot: Path, source: Path): PlatformPackSourceKind = if (
-  source.toAbsolutePath().normalize().startsWith(platformPacksRoot.toAbsolutePath().normalize())
-) {
-  PlatformPackSourceKind.BUNDLED
-} else {
-  PlatformPackSourceKind.EXTERNAL
-}
+private fun sourceKind(
+  platformPacksRoot: Path,
+  source: Path,
+): PlatformPackSourceKind =
+  if (
+    source.toAbsolutePath().normalize().startsWith(platformPacksRoot.toAbsolutePath().normalize())
+  ) {
+    PlatformPackSourceKind.BUNDLED
+  } else {
+    PlatformPackSourceKind.EXTERNAL
+  }
 
-private fun stageReviewCatalogPack(source: Path, staging: Path) {
+private fun stageReviewCatalogPack(
+  source: Path,
+  staging: Path,
+) {
   val stagedPack = staging.resolve(source.fileName.toString())
   val manifest = loadPlatformManifest(source)
-  val runtimeFiles = buildList {
-    add(source.resolve("platform.yaml"))
-    manifest.declaredFiles.baseline?.let { baseline -> add(baseline.toPath()) }
-    addAll(manifest.declaredFiles.areas.values.map { area -> area.toPath() })
-    val declaredAddons = manifest.addonUsage.flatMap { it.addons } +
-      manifest.featureAddonUsage.flatMap { it.addons }
-    declaredAddons.forEach { addon ->
-      add(source.resolve("addons").resolve(addon.entrypoint))
-      addon.companionPointers.forEach { pointer -> add(source.resolve("addons").resolve(pointer)) }
-    }
-  }.distinct()
+  val runtimeFiles =
+    buildList {
+      add(source.resolve("platform.yaml"))
+      manifest.declaredFiles.baseline?.let { baseline -> add(baseline.toPath()) }
+      addAll(manifest.declaredFiles.areas.values.map { area -> area.toPath() })
+      val declaredAddons =
+        manifest.addonUsage.flatMap { it.addons } +
+          manifest.featureAddonUsage.flatMap { it.addons }
+      declaredAddons.forEach { addon ->
+        add(source.resolve("addons").resolve(addon.entrypoint))
+        addon.companionPointers.forEach { pointer -> add(source.resolve("addons").resolve(pointer)) }
+      }
+    }.distinct()
   runtimeFiles.forEach { path ->
     val relative = source.relativize(path.toAbsolutePath().normalize())
     require(!relative.startsWith("..")) {
@@ -117,7 +134,11 @@ private fun stageReviewCatalogPack(source: Path, staging: Path) {
   }
 }
 
-internal fun journalReviewCatalogSwap(catalogRoot: Path, staging: Path, journal: ProviderMutationJournal) {
+internal fun journalReviewCatalogSwap(
+  catalogRoot: Path,
+  staging: Path,
+  journal: ProviderMutationJournal,
+) {
   if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
     Files.walk(catalogRoot).use { paths -> paths.sorted().forEach(journal::beforeMutation) }
   }
@@ -128,16 +149,21 @@ internal fun journalReviewCatalogSwap(catalogRoot: Path, staging: Path, journal:
   }
 }
 
-internal fun swapReviewCatalogIntoPlace(catalogRoot: Path, staging: Path, superseded: Path) {
+internal fun swapReviewCatalogIntoPlace(
+  catalogRoot: Path,
+  staging: Path,
+  superseded: Path,
+) {
   var supersededMoved = false
-  val publishResult = runCatching {
-    if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
-      atomicMoveReplacing(catalogRoot, superseded)
-      supersededMoved = true
+  val publishResult =
+    runCatching {
+      if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
+        atomicMoveReplacing(catalogRoot, superseded)
+        supersededMoved = true
+      }
+      atomicMoveReplacing(staging, catalogRoot)
+      deleteRecursively(superseded)
     }
-    atomicMoveReplacing(staging, catalogRoot)
-    deleteRecursively(superseded)
-  }
   publishResult.exceptionOrNull()?.let { error ->
     if (supersededMoved && Files.exists(superseded, LinkOption.NOFOLLOW_LINKS)) {
       runCatching {

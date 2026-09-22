@@ -17,20 +17,21 @@ internal fun Map<String, Any?>.toTelemetryProxyCapabilities(
   val supportedWorkflows = readSupportedWorkflows(diagnostics)
   return TelemetryProxyCapabilities(
     contractVersion =
-    stringValue(SharedPayloadKeys.CONTRACT_VERSION, TELEMETRY_PROXY_CONTRACT_VERSION),
+      stringValue(SharedPayloadKeys.CONTRACT_VERSION, TELEMETRY_PROXY_CONTRACT_VERSION),
     source = stringValue(TelemetryProxyPayloadKeys.SOURCE, TelemetryProxyPayloadKeys.REMOTE_PROXY),
     proxyUrl = stringValue(TelemetryProxyPayloadKeys.PROXY_URL, proxyUrl),
     capabilitiesUrl = stringValue(TelemetryProxyPayloadKeys.CAPABILITIES_URL, capabilitiesUrl),
     supportsIngest =
-    booleanValue(TelemetryProxyPayloadKeys.SUPPORTS_INGEST)
-      ?: !containsKey(TelemetryProxyPayloadKeys.SUPPORTS_INGEST),
+      booleanValue(TelemetryProxyPayloadKeys.SUPPORTS_INGEST)
+        ?: !containsKey(TelemetryProxyPayloadKeys.SUPPORTS_INGEST),
     supportsStats = booleanValue(TelemetryProxyPayloadKeys.SUPPORTS_STATS) ?: false,
     supportedWorkflows = supportedWorkflows,
     supportsEventDeduplication =
-    booleanValue(TelemetryProxyPayloadKeys.SUPPORTS_EVENT_DEDUPLICATION) ?: true,
-    additionalFields = CustomFieldMap.from(
-      filterKeys { key -> key !in TELEMETRY_PROXY_CAPABILITY_OWNED_KEYS },
-    ),
+      booleanValue(TelemetryProxyPayloadKeys.SUPPORTS_EVENT_DEDUPLICATION) ?: true,
+    additionalFields =
+      CustomFieldMap.from(
+        filterKeys { key -> key !in TELEMETRY_PROXY_CAPABILITY_OWNED_KEYS },
+      ),
   )
 }
 
@@ -43,12 +44,14 @@ internal fun Map<String, Any?>.toTelemetryRemoteStatsResult(
     dateTo = stringValue(TelemetryProxyPayloadKeys.DATE_TO, context.dateTo),
     source = stringValue(TelemetryProxyPayloadKeys.SOURCE, TelemetryProxyPayloadKeys.REMOTE_PROXY),
     statsUrl = stringValue(TelemetryProxyPayloadKeys.STATS_URL, context.statsUrl),
-    groupBy = stringValue(TelemetryProxyPayloadKeys.GROUP_BY, context.groupBy)
-      .takeIf(String::isNotBlank),
+    groupBy =
+      stringValue(TelemetryProxyPayloadKeys.GROUP_BY, context.groupBy)
+        .takeIf(String::isNotBlank),
     capabilities = context.capabilities,
-    metrics = TelemetryOpenDocument.from(
-      filterKeys { key -> key !in TELEMETRY_REMOTE_STATS_OWNED_KEYS },
-    ),
+    metrics =
+      TelemetryOpenDocument.from(
+        filterKeys { key -> key !in TELEMETRY_REMOTE_STATS_OWNED_KEYS },
+      ),
   )
 }
 
@@ -87,6 +90,9 @@ private fun Map<String, Any?>.readSupportedWorkflows(diagnostics: RuntimeDiagnos
     }
     .orEmpty()
 
-private fun Map<String, Any?>.stringValue(key: String, fallback: String): String = this[key]?.toString() ?: fallback
+private fun Map<String, Any?>.stringValue(
+  key: String,
+  fallback: String,
+): String = this[key]?.toString() ?: fallback
 
 private fun Map<String, Any?>.booleanValue(key: String): Boolean? = this[key] as? Boolean

@@ -37,8 +37,9 @@ class FeatureTaskRuntimeQuarantineSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = FeatureTaskRuntimeQuarantineSchemaValidator::class.java.classLoader
-      .getResourceAsStream(FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      FeatureTaskRuntimeQuarantineSchemaValidator::class.java.classLoader
+        .getResourceAsStream(FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical feature-task-runtime quarantine schema is missing from the classpath at " +

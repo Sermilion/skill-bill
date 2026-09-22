@@ -6,23 +6,25 @@ import skillbill.contracts.packaged.loadPackagedYamlRootMapping
 import skillbill.contracts.packaged.packagedPositiveInt
 import skillbill.contracts.packaged.packagedPositiveLong
 import skillbill.error.shellcontent.InvalidGoalVerificationBoundaryCapsSchemaError
+
 object GoalVerificationBoundaryCaps {
   const val CONTRACT_VERSION = "0.2"
   const val RESOURCE_PATH = "skillbill/infrastructure/contracts/goal-verification-boundary-caps.yaml"
   const val CONTRACT_FILE = "orchestration/contracts/goal-verification-boundary-caps.yaml"
   const val SCHEMA_FILE = "orchestration/contracts/goal-verification-boundary-caps-schema.yaml"
 
-  private val KNOWN_KEYS = setOf(
-    "contract_version",
-    "max_discovery_file_count",
-    "max_headings_per_file",
-    "max_catalog_headings",
-    "history_recency_days",
-    "max_selected_bodies",
-    "max_body_bytes",
-    "max_total_body_bytes",
-    "max_boundary_file_bytes",
-  )
+  private val KNOWN_KEYS =
+    setOf(
+      "contract_version",
+      "max_discovery_file_count",
+      "max_headings_per_file",
+      "max_catalog_headings",
+      "history_recency_days",
+      "max_selected_bodies",
+      "max_body_bytes",
+      "max_total_body_bytes",
+      "max_boundary_file_bytes",
+    )
 
   private val contract: Contract by lazy { parse(readContract()) }
 
@@ -68,16 +70,17 @@ object GoalVerificationBoundaryCaps {
     )
   }
 
-  private fun loadRootMapping(document: String): Map<*, *> = try {
-    loadPackagedYamlRootMapping(
-      document,
-      "goal verification boundary caps contract is not a YAML mapping",
-    )
-  } catch (_: PackagedYamlMappingFailure) {
-    throw InvalidGoalVerificationBoundaryCapsSchemaError(
-      "goal verification boundary caps contract is not a YAML mapping",
-    )
-  }
+  private fun loadRootMapping(document: String): Map<*, *> =
+    try {
+      loadPackagedYamlRootMapping(
+        document,
+        "goal verification boundary caps contract is not a YAML mapping",
+      )
+    } catch (_: PackagedYamlMappingFailure) {
+      throw InvalidGoalVerificationBoundaryCapsSchemaError(
+        "goal verification boundary caps contract is not a YAML mapping",
+      )
+    }
 
   private fun requireKnownKeysOnly(root: Map<*, *>) {
     val unknown = root.keys.map(Any?::toString).filterNot { key -> key in KNOWN_KEYS }.sorted()
@@ -96,12 +99,18 @@ object GoalVerificationBoundaryCaps {
     }
   }
 
-  private fun requiredPositiveInt(root: Map<*, *>, key: String): Int =
+  private fun requiredPositiveInt(
+    root: Map<*, *>,
+    key: String,
+  ): Int =
     root[key].packagedPositiveInt("goal verification boundary caps $key") { message ->
       throw InvalidGoalVerificationBoundaryCapsSchemaError(message)
     }
 
-  private fun requiredPositiveLong(root: Map<*, *>, key: String): Long =
+  private fun requiredPositiveLong(
+    root: Map<*, *>,
+    key: String,
+  ): Long =
     root[key].packagedPositiveLong("goal verification boundary caps $key") { message ->
       throw InvalidGoalVerificationBoundaryCapsSchemaError(message)
     }

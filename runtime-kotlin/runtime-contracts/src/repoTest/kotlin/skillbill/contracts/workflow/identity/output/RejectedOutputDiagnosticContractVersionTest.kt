@@ -8,9 +8,10 @@ import kotlin.test.assertTrue
 class RejectedOutputDiagnosticContractVersionTest {
   @Test
   fun `schema and Kotlin contract versions match`() {
-    val schema = Files.readString(
-      repoRootFromTest().resolve(RejectedOutputDiagnosticSchemaPaths.REPOSITORY_PATH),
-    )
+    val schema =
+      Files.readString(
+        repoRootFromTest().resolve(RejectedOutputDiagnosticSchemaPaths.REPOSITORY_PATH),
+      )
 
     assertTrue("additionalProperties: false" in schema)
     val version = Regex("""const:\s*"([^"]+)"""").find(schema)?.groupValues?.get(1)

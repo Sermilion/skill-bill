@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.core
+
 sealed interface FeatureTaskRuntimeCheckpointDecision {
   /**
    * Stage [ownedPaths] and commit. [adoptedPaths] is the subset that was already staged or modified

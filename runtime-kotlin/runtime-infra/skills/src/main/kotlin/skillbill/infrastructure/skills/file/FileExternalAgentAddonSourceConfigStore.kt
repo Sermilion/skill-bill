@@ -18,11 +18,12 @@ class FileExternalAgentAddonSourceConfigStore : ExternalAgentAddonSourceConfigPo
   ): ExternalAgentAddonSourceConfigResult {
     val configPath = resolveTelemetryConfigPath(request.environment, request.userHome)
     if (!Files.exists(configPath)) return ExternalAgentAddonSourceConfigResult()
-    val payload = try {
-      readTelemetryConfigFile(configPath)?.payload
-    } catch (error: IllegalArgumentException) {
-      throw ExternalAddonConfigError(error.message.orEmpty(), error)
-    } ?: return ExternalAgentAddonSourceConfigResult()
+    val payload =
+      try {
+        readTelemetryConfigFile(configPath)?.payload
+      } catch (error: IllegalArgumentException) {
+        throw ExternalAddonConfigError(error.message.orEmpty(), error)
+      } ?: return ExternalAgentAddonSourceConfigResult()
 
     val raw = payload[CONFIG_KEY] ?: return ExternalAgentAddonSourceConfigResult()
     if (raw !is List<*>) {
@@ -34,9 +35,15 @@ class FileExternalAgentAddonSourceConfigStore : ExternalAgentAddonSourceConfigPo
     return ExternalAgentAddonSourceConfigResult(sources)
   }
 
-  private fun parseEntry(configPath: Path, userHome: Path, index: Int, entry: Any?): ExternalAgentAddonSource? {
-    val map = entry as? Map<*, *>
-      ?: invalidConfig(configPath, "$CONFIG_KEY[$index]", "must be a mapping")
+  private fun parseEntry(
+    configPath: Path,
+    userHome: Path,
+    index: Int,
+    entry: Any?,
+  ): ExternalAgentAddonSource? {
+    val map =
+      entry as? Map<*, *>
+        ?: invalidConfig(configPath, "$CONFIG_KEY[$index]", "must be a mapping")
     val kind = (map["kind"] as? String)?.trim()
     if (kind == null && map.containsKey("platform")) return null
     if (kind == "platform-pack") return null
@@ -47,8 +54,9 @@ class FileExternalAgentAddonSourceConfigStore : ExternalAgentAddonSourceConfigPo
         "must be 'agent-addon' for agent add-on sources",
       )
     }
-    val rawPath = (map["path"] as? String)?.takeIf(String::isNotBlank)
-      ?: invalidConfig(configPath, "$CONFIG_KEY[$index].path", "must be a non-empty string")
+    val rawPath =
+      (map["path"] as? String)?.takeIf(String::isNotBlank)
+        ?: invalidConfig(configPath, "$CONFIG_KEY[$index].path", "must be a non-empty string")
     val resolvedPath = resolveSourcePath(userHome, rawPath)
     if (!Files.isDirectory(resolvedPath)) {
       invalidConfig(
@@ -60,12 +68,16 @@ class FileExternalAgentAddonSourceConfigStore : ExternalAgentAddonSourceConfigPo
     return ExternalAgentAddonSource(resolvedPath.toFileLocation())
   }
 
-  private fun resolveSourcePath(userHome: Path, rawPath: String): Path {
-    val expanded = when {
-      rawPath == "~" -> userHome.toString()
-      rawPath.startsWith("~/") -> userHome.resolve(rawPath.removePrefix("~/")).toString()
-      else -> rawPath
-    }
+  private fun resolveSourcePath(
+    userHome: Path,
+    rawPath: String,
+  ): Path {
+    val expanded =
+      when {
+        rawPath == "~" -> userHome.toString()
+        rawPath.startsWith("~/") -> userHome.resolve(rawPath.removePrefix("~/")).toString()
+        else -> rawPath
+      }
     val candidate = Path.of(expanded)
     return if (candidate.isAbsolute) {
       candidate.normalize()
@@ -79,6 +91,10 @@ class FileExternalAgentAddonSourceConfigStore : ExternalAgentAddonSourceConfigPo
   }
 }
 
-private fun invalidConfig(configPath: Path, field: String, reason: String): Nothing {
+private fun invalidConfig(
+  configPath: Path,
+  field: String,
+  reason: String,
+): Nothing {
   throw ExternalAddonConfigError("External agent add-on config at '$configPath': '$field' $reason.")
 }

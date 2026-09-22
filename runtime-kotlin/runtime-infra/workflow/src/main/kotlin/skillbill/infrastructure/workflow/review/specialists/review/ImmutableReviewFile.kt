@@ -8,12 +8,21 @@ import skillbill.infrastructure.workflow.review.broker.validateRepositoryMapping
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun readImmutableReviewFile(root: Path, revision: String, path: String, maxBytes: Long): ByteArray? {
+internal fun readImmutableReviewFile(
+  root: Path,
+  revision: String,
+  path: String,
+  maxBytes: Long,
+): ByteArray? {
   if (!immutableReviewFileExists(root, revision, path)) return null
   return readImmutableReviewCommand(root, listOf("cat-file", "blob", "$revision:$path"), maxBytes)
 }
 
-internal fun immutableReviewFileExists(root: Path, revision: String, path: String): Boolean {
+internal fun immutableReviewFileExists(
+  root: Path,
+  revision: String,
+  path: String,
+): Boolean {
   validateRepositoryMapping(root, path)
   val entry = runGitCommand(root, "--literal-pathspecs", "ls-tree", revision, "--", path)
   if (!entry.ok) throw InvalidReviewContextSchemaError("review-expansion", "Immutable revision is unavailable.")
@@ -41,17 +50,22 @@ internal fun readImmutableReviewDelta(
   )
 }
 
-internal fun readImmutableReviewCommand(root: Path, args: List<String>, maxBytes: Long): ByteArray {
+internal fun readImmutableReviewCommand(
+  root: Path,
+  args: List<String>,
+  maxBytes: Long,
+): ByteArray {
   val output = Files.createTempFile("skill-bill-evidence", ".blob")
   try {
-    val result = BoundedExternalProcessRunner.run(
-      BoundedExternalProcessRequest(
-        argv = listOf("git", "-C", root.toString()) + args,
-        redirectOutputFile = output,
-        deadlineSeconds = GIT_TIMEOUT_SECONDS,
-        outputCapBytes = null,
-      ),
-    )
+    val result =
+      BoundedExternalProcessRunner.run(
+        BoundedExternalProcessRequest(
+          argv = listOf("git", "-C", root.toString()) + args,
+          redirectOutputFile = output,
+          deadlineSeconds = GIT_TIMEOUT_SECONDS,
+          outputCapBytes = null,
+        ),
+      )
     if (result.timedOut) {
       throw InvalidReviewContextSchemaError("review-expansion", "Immutable evidence read timed out.")
     }

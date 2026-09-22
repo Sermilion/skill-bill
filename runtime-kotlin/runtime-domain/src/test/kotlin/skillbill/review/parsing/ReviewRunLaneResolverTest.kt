@@ -7,28 +7,31 @@ import kotlin.test.assertEquals
 class ReviewRunLaneResolverTest {
   @Test
   fun `lane identity comes from the composed plan even when reported narration disagrees`() {
-    val plan = ReviewLaunchPlan(
-      routedPackSlug = "kmp",
-      lanes = listOf(
-        lane(skillName = "bill-kmp-code-review-architecture", packSlug = "kmp", area = "architecture"),
-        ReviewLaunchLane(
-          skillName = "bill-kotlin-code-review-testing",
-          packSlug = "kotlin",
-          area = "testing",
-          depth = 1,
-          originLayerChain = listOf("kmp", "kotlin"),
-          required = true,
-          addOns = emptyList(),
-          orderIndex = 1,
-          inclusionReason = "routed-pack override",
-        ),
-      ),
-    )
+    val plan =
+      ReviewLaunchPlan(
+        routedPackSlug = "kmp",
+        lanes =
+          listOf(
+            lane(skillName = "bill-kmp-code-review-architecture", packSlug = "kmp", area = "architecture"),
+            ReviewLaunchLane(
+              skillName = "bill-kotlin-code-review-testing",
+              packSlug = "kotlin",
+              area = "testing",
+              depth = 1,
+              originLayerChain = listOf("kmp", "kotlin"),
+              required = true,
+              addOns = emptyList(),
+              orderIndex = 1,
+              inclusionReason = "routed-pack override",
+            ),
+          ),
+      )
 
-    val resolved = ReviewRunLaneResolver.resolve(
-      plan,
-      reportedLaneNames = listOf("bill-kmp-code-review-architecture", "bill-kotlin-code-review-testing"),
-    )
+    val resolved =
+      ReviewRunLaneResolver.resolve(
+        plan,
+        reportedLaneNames = listOf("bill-kmp-code-review-architecture", "bill-kotlin-code-review-testing"),
+      )
 
     assertEquals(
       listOf("kmp" to "architecture", "kotlin" to "testing"),
@@ -42,15 +45,23 @@ class ReviewRunLaneResolverTest {
 
   @Test
   fun `a reported lane the plan does not contain is retained verbatim and marked unresolved`() {
-    val plan = ReviewLaunchPlan(
-      routedPackSlug = "kmp",
-      lanes = listOf(lane(skillName = "bill-kmp-code-review-architecture", packSlug = "kmp", area = "architecture")),
-    )
+    val plan =
+      ReviewLaunchPlan(
+        routedPackSlug = "kmp",
+        lanes = listOf(lane(skillName = "bill-kmp-code-review-architecture", packSlug = "kmp", area = "architecture")),
+      )
 
-    val resolved = ReviewRunLaneResolver.resolve(
-      plan,
-      reportedLaneNames = listOf("bill-kmp-code-review-architecture", " narrated-only-lane ", "narrated-only-lane", ""),
-    )
+    val resolved =
+      ReviewRunLaneResolver.resolve(
+        plan,
+        reportedLaneNames =
+          listOf(
+            "bill-kmp-code-review-architecture",
+            " narrated-only-lane ",
+            "narrated-only-lane",
+            "",
+          ),
+      )
 
     assertEquals(2, resolved.size, "The unknown lane must be retained, and retained only once.")
     val unresolved = resolved.last()
@@ -63,10 +74,11 @@ class ReviewRunLaneResolverTest {
 
   @Test
   fun `a lane reported by bare area name is not a routing gap`() {
-    val plan = ReviewLaunchPlan(
-      routedPackSlug = "kmp",
-      lanes = listOf(lane(skillName = "bill-kmp-code-review-architecture", packSlug = "kmp", area = "architecture")),
-    )
+    val plan =
+      ReviewLaunchPlan(
+        routedPackSlug = "kmp",
+        lanes = listOf(lane(skillName = "bill-kmp-code-review-architecture", packSlug = "kmp", area = "architecture")),
+      )
 
     val resolved = ReviewRunLaneResolver.resolve(plan, reportedLaneNames = listOf("architecture"))
 
@@ -76,10 +88,11 @@ class ReviewRunLaneResolverTest {
 
   @Test
   fun `a plan lane the run never reported is recorded but not claimed as launched`() {
-    val plan = ReviewLaunchPlan(
-      routedPackSlug = "kmp",
-      lanes = listOf(lane(skillName = "bill-kmp-code-review-architecture", packSlug = "kmp", area = "architecture")),
-    )
+    val plan =
+      ReviewLaunchPlan(
+        routedPackSlug = "kmp",
+        lanes = listOf(lane(skillName = "bill-kmp-code-review-architecture", packSlug = "kmp", area = "architecture")),
+      )
 
     val resolved = ReviewRunLaneResolver.resolve(plan, reportedLaneNames = emptyList())
 
@@ -92,7 +105,11 @@ class ReviewRunLaneResolverTest {
     )
   }
 
-  private fun lane(skillName: String, packSlug: String, area: String) = ReviewLaunchLane(
+  private fun lane(
+    skillName: String,
+    packSlug: String,
+    area: String,
+  ) = ReviewLaunchLane(
     skillName = skillName,
     packSlug = packSlug,
     area = area,

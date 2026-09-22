@@ -10,16 +10,18 @@ import kotlin.test.assertTrue
 class TelemetryConfigLevelRuleTest {
   @Test
   fun `writing a level preserves every unrelated payload key`() {
-    val document = TelemetryConfigDocument(
-      payload = TelemetryOpenDocument.from(
-        mapOf(
-          "install_id" to "retained-install-id",
-          "external_addon_sources" to listOf("/tmp/addons"),
-          "execution_matrix" to mapOf("default" to "claude"),
-          "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 10),
-        ),
-      ),
-    )
+    val document =
+      TelemetryConfigDocument(
+        payload =
+          TelemetryOpenDocument.from(
+            mapOf(
+              "install_id" to "retained-install-id",
+              "external_addon_sources" to listOf("/tmp/addons"),
+              "execution_matrix" to mapOf("default" to "claude"),
+              "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 10),
+            ),
+          ),
+      )
 
     val updated = document.withTelemetryLevel("off", "/tmp/config.json")
 
@@ -34,9 +36,10 @@ class TelemetryConfigLevelRuleTest {
 
   @Test
   fun `the legacy enabled flag is dropped when a level is written`() {
-    val document = TelemetryConfigDocument(
-      payload = TelemetryOpenDocument.from(mapOf("telemetry" to mapOf("level" to "anonymous", "enabled" to true))),
-    )
+    val document =
+      TelemetryConfigDocument(
+        payload = TelemetryOpenDocument.from(mapOf("telemetry" to mapOf("level" to "anonymous", "enabled" to true))),
+      )
 
     val telemetry = document.withTelemetryLevel("off", "/tmp/config.json").payload["telemetry"] as Map<*, *>
 
@@ -46,9 +49,10 @@ class TelemetryConfigLevelRuleTest {
 
   @Test
   fun `a config with no telemetry object gains one instead of failing the level write`() {
-    val document = TelemetryConfigDocument(
-      payload = TelemetryOpenDocument.from(mapOf("install_id" to "retained-install-id")),
-    )
+    val document =
+      TelemetryConfigDocument(
+        payload = TelemetryOpenDocument.from(mapOf("install_id" to "retained-install-id")),
+      )
 
     val updated = document.withTelemetryLevel("off", "/tmp/config.json")
 
@@ -58,13 +62,15 @@ class TelemetryConfigLevelRuleTest {
 
   @Test
   fun `a non-object telemetry entry is rejected rather than silently replaced`() {
-    val document = TelemetryConfigDocument(
-      payload = TelemetryOpenDocument.from(mapOf("telemetry" to "anonymous")),
-    )
+    val document =
+      TelemetryConfigDocument(
+        payload = TelemetryOpenDocument.from(mapOf("telemetry" to "anonymous")),
+      )
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      document.withTelemetryLevel("off", "/tmp/config.json")
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        document.withTelemetryLevel("off", "/tmp/config.json")
+      }
 
     assertEquals("Telemetry config at '/tmp/config.json' must contain a 'telemetry' object.", error.message)
   }

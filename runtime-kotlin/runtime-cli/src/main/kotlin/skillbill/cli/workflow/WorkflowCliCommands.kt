@@ -117,9 +117,10 @@ class VerifyWorkflowUpdateCommand(
         currentStepId = currentStepId,
         stepUpdates = stepUpdates?.let(::parseStepUpdatesStrict)?.let(WorkflowStepUpdates::from),
         artifactsPatch = parsedArtifactsPatch?.let(WorkflowArtifactPatch::from),
-        planningResult = parsedArtifactsPatch?.get(WorkflowArtifactKeys.PLAN)
-          ?.let(JsonCodec::anyToStringAnyMap)
-          ?.let { DecompositionPlanningResult.fromWireMap(it, "cli.artifacts_patch.plan") },
+        planningResult =
+          parsedArtifactsPatch?.get(WorkflowArtifactKeys.PLAN)
+            ?.let(JsonCodec::anyToStringAnyMap)
+            ?.let { DecompositionPlanningResult.fromWireMap(it, "cli.artifacts_patch.plan") },
         sessionId = sessionId,
       )
     val payload = service.update(VERIFY_KIND, request).toPayload()
@@ -243,13 +244,15 @@ class VerifyWorkflowContinueCommand(
 }
 
 private fun parseStepUpdatesStrict(rawValue: String): List<Map<String, Any?>> {
-  val parsed = try {
-    JsonCodec.parseValue(rawValue)
-  } catch (_: Exception) {
-    throw UsageError("--step-updates must be a JSON array of objects.")
-  }
-  val updates = parsed as? List<*>
-    ?: throw UsageError("--step-updates must be a JSON array of objects.")
+  val parsed =
+    try {
+      JsonCodec.parseValue(rawValue)
+    } catch (_: Exception) {
+      throw UsageError("--step-updates must be a JSON array of objects.")
+    }
+  val updates =
+    parsed as? List<*>
+      ?: throw UsageError("--step-updates must be a JSON array of objects.")
   return updates.mapIndexed { index, value ->
     JsonCodec.anyToStringAnyMap(value) ?: invalidStepUpdate(index)
   }
@@ -257,13 +260,14 @@ private fun parseStepUpdatesStrict(rawValue: String): List<Map<String, Any?>> {
 
 private fun invalidStepUpdate(index: Int): Nothing = throw UsageError("--step-updates[$index] must be an object.")
 
-private fun parseArtifactsPatch(rawValue: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(rawValue)
-  ?.let(JsonCodec::jsonElementToValue)
-  ?.let(JsonCodec::anyToStringAnyMap)
-  ?: run {
-    require(false) { "artifacts_patch must be an object." }
-    emptyMap()
-  }
+private fun parseArtifactsPatch(rawValue: String): Map<String, Any?> =
+  JsonCodec.parseObjectOrNull(rawValue)
+    ?.let(JsonCodec::jsonElementToValue)
+    ?.let(JsonCodec::anyToStringAnyMap)
+    ?: run {
+      require(false) { "artifacts_patch must be an object." }
+      emptyMap()
+    }
 
 private fun Map<String, Any?>.exitCode(): Int = if (this[SharedPayloadKeys.STATUS] == "error") 1 else 0
 

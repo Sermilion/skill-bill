@@ -21,24 +21,27 @@ class FileSystemScaffoldInstallLink(
     val home = environmentContext.userHome
     val environment = environmentContext.environment
     val agents = detectAgents(home, environment)
-    val manifests = catalogLoader.loadEffectiveManifests(
-      PlatformPackDiscoveryContext(
+    val manifests =
+      catalogLoader.loadEffectiveManifests(
+        PlatformPackDiscoveryContext(
+          repoRoot = request.repoRoot,
+          userHome = home,
+          environment = environment,
+          catalogLoader = catalogLoader,
+        ),
+      )
+    val context =
+      InstallContext(
         repoRoot = request.repoRoot,
-        userHome = home,
+        home = home,
+        manifests = manifests,
         environment = environment,
         catalogLoader = catalogLoader,
-      ),
-    )
-    val context = InstallContext(
-      repoRoot = request.repoRoot,
-      home = home,
-      manifests = manifests,
-      environment = environment,
-      catalogLoader = catalogLoader,
-    )
-    val targets = request.installPaths.flatMap { installPath ->
-      installSkill(installPath, agents, context = context).linkPaths
-    }
+      )
+    val targets =
+      request.installPaths.flatMap { installPath ->
+        installSkill(installPath, agents, context = context).linkPaths
+      }
     return ScaffoldInstallLinkResult(installTargets = targets)
   }
 

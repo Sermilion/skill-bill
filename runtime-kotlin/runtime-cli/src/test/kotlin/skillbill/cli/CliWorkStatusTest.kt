@@ -18,6 +18,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class CliWorkStatusTest {
   @Test
   fun `work status emits schema-valid idle json for a git repo with empty database`() {
@@ -25,13 +26,15 @@ class CliWorkStatusTest {
     val dbPath = fixture.resolve("metrics.db")
     ensureTestDatabase(dbPath).close()
 
-    val result = CliRuntime.run(
-      listOf("--db", dbPath.toString(), "work", "status", "--repo-root", fixture.toString(), "--format", "json"),
-      context = CliRuntimeContext(
-        environment = emptyMap(),
-        userHome = Files.createTempDirectory("skillbill-cli-work-status-home"),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--db", dbPath.toString(), "work", "status", "--repo-root", fixture.toString(), "--format", "json"),
+        context =
+          CliRuntimeContext(
+            environment = emptyMap(),
+            userHome = Files.createTempDirectory("skillbill-cli-work-status-home"),
+          ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val payload = decodeJsonObject(result.stdout)
@@ -47,13 +50,15 @@ class CliWorkStatusTest {
     val fixture = gitRepoFixture("skillbill-cli-work-status-absent-db")
     val missingDb = fixture.resolve("missing-metrics.db")
 
-    val result = CliRuntime.run(
-      listOf("--db", missingDb.toString(), "work", "status", "--repo-root", fixture.toString(), "--format", "json"),
-      context = CliRuntimeContext(
-        environment = emptyMap(),
-        userHome = Files.createTempDirectory("skillbill-cli-work-status-home-absent"),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--db", missingDb.toString(), "work", "status", "--repo-root", fixture.toString(), "--format", "json"),
+        context =
+          CliRuntimeContext(
+            environment = emptyMap(),
+            userHome = Files.createTempDirectory("skillbill-cli-work-status-home-absent"),
+          ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val payload = decodeJsonObject(result.stdout)
@@ -67,9 +72,10 @@ class CliWorkStatusTest {
     val dbPath = Files.createTempDirectory("skillbill-cli-work-status-invalid-db").resolve("metrics.db")
     ensureTestDatabase(dbPath).close()
 
-    val result = CliRuntime.run(
-      listOf("--db", dbPath.toString(), "work", "status", "--repo-root", missing.toString(), "--format", "json"),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--db", dbPath.toString(), "work", "status", "--repo-root", missing.toString(), "--format", "json"),
+      )
 
     assertEquals(1, result.exitCode, result.stdout)
     val payload = decodeJsonObject(result.stdout)
@@ -85,13 +91,15 @@ class CliWorkStatusTest {
     ensureTestDatabase(dbPath).close()
     val before = Files.readAllBytes(dbPath)
 
-    val result = CliRuntime.run(
-      listOf("--db", dbPath.toString(), "work", "status", "--repo-root", fixture.toString(), "--format", "json"),
-      context = CliRuntimeContext(
-        environment = emptyMap(),
-        userHome = Files.createTempDirectory("skillbill-cli-work-status-home-ro"),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--db", dbPath.toString(), "work", "status", "--repo-root", fixture.toString(), "--format", "json"),
+        context =
+          CliRuntimeContext(
+            environment = emptyMap(),
+            userHome = Files.createTempDirectory("skillbill-cli-work-status-home-ro"),
+          ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertTrue(before.contentEquals(Files.readAllBytes(dbPath)))
@@ -99,27 +107,29 @@ class CliWorkStatusTest {
 
   @Test
   fun `mid-planning goal emit shape validates against the canonical schema`() {
-    val snapshot = IdeStatusSnapshot(
-      repositoryIdentity = "repo-root-realpath-v1:/repo",
-      issueKey = "SKILL-165",
-      workflowId = "goal-1",
-      workflowFamily = IdeStatusWorkflowFamily.FEATURE_GOAL,
-      lifecycleState = IdeStatusLifecycleState.ACTIVE,
-      currentStep = IdeStatusStep(id = "planning", label = "Planning"),
-      progress = IdeStatusProgress(completed = 0, total = 5),
-      planning = IdeStatusPlanning(
-        state = GoalPlanningStatusState.PARTIALLY_PLANNED,
-        sharedPreplanPrepared = true,
-        plannedSubtaskCount = 2,
-        totalSubtaskCount = 5,
-        currentPlanningSubtaskId = "3",
-        planningWaveSubtaskIds = listOf("3", "4", "5"),
-        reason = "Planning subtask 3.",
-      ),
-      updatedAt = Instant.parse("2026-08-06T10:00:00Z"),
-      freshness = IdeStatusFreshness.FRESH,
-      summary = "Goal SKILL-165 is planning subtasks (2/5 planned). 3 subtasks are being planned now.",
-    )
+    val snapshot =
+      IdeStatusSnapshot(
+        repositoryIdentity = "repo-root-realpath-v1:/repo",
+        issueKey = "SKILL-165",
+        workflowId = "goal-1",
+        workflowFamily = IdeStatusWorkflowFamily.FEATURE_GOAL,
+        lifecycleState = IdeStatusLifecycleState.ACTIVE,
+        currentStep = IdeStatusStep(id = "planning", label = "Planning"),
+        progress = IdeStatusProgress(completed = 0, total = 5),
+        planning =
+          IdeStatusPlanning(
+            state = GoalPlanningStatusState.PARTIALLY_PLANNED,
+            sharedPreplanPrepared = true,
+            plannedSubtaskCount = 2,
+            totalSubtaskCount = 5,
+            currentPlanningSubtaskId = "3",
+            planningWaveSubtaskIds = listOf("3", "4", "5"),
+            reason = "Planning subtask 3.",
+          ),
+        updatedAt = Instant.parse("2026-08-06T10:00:00Z"),
+        freshness = IdeStatusFreshness.FRESH,
+        summary = "Goal SKILL-165 is planning subtasks (2/5 planned). 3 subtasks are being planned now.",
+      )
 
     val wire = IdeStatusSchemaValidator.wireMap(snapshot)
     IdeStatusSchemaValidator.validate(wire, "cli-goal-planning")

@@ -8,14 +8,15 @@ object FeatureTaskRuntimePhasePromptComposer {
     issueKey: String,
     briefing: FeatureTaskRuntimePhaseLaunchBriefing,
     configure: FeatureTaskRuntimePhasePromptComposeInputs.() -> FeatureTaskRuntimePhasePromptComposeInputs = { this },
-  ): String = compose(
-    configure(
-      FeatureTaskRuntimePhasePromptComposeInputs(
-        issueKey = issueKey,
-        briefing = briefing,
+  ): String =
+    compose(
+      configure(
+        FeatureTaskRuntimePhasePromptComposeInputs(
+          issueKey = issueKey,
+          briefing = briefing,
+        ),
       ),
-    ),
-  )
+    )
 
   fun compose(inputs: FeatureTaskRuntimePhasePromptComposeInputs): String = composePhasePrompt(inputs)
 

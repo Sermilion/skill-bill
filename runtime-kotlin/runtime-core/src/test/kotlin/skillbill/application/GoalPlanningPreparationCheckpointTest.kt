@@ -170,11 +170,12 @@ class GoalPlanningPreparationCheckpointTest {
       validPlan(payload = payloadJson("plan", producedOutputsJson = MISSING_VALUE_PLAN_PROJECTION)),
     )
 
-    val recovered = harness.checkpoint.findSubtaskPlan(
-      identity(),
-      subtaskId = 1,
-      governedSubSpecPath = descriptor().governedSubSpecPath,
-    )
+    val recovered =
+      harness.checkpoint.findSubtaskPlan(
+        identity(),
+        subtaskId = 1,
+        governedSubSpecPath = descriptor().governedSubSpecPath,
+      )
 
     assertNull(recovered)
   }
@@ -227,11 +228,12 @@ class GoalPlanningPreparationCheckpointTest {
       validPlan(payload = payloadJson("plan", producedOutputsJson = MISSING_VALUE_PLAN_PROJECTION)),
     )
 
-    val stored = harness.checkpoint.findStoredSubtaskPlan(
-      identity(),
-      subtaskId = 1,
-      governedSubSpecPath = descriptor().governedSubSpecPath,
-    )
+    val stored =
+      harness.checkpoint.findStoredSubtaskPlan(
+        identity(),
+        subtaskId = 1,
+        governedSubSpecPath = descriptor().governedSubSpecPath,
+      )
 
     assertEquals(descriptor().subSpecHash, stored?.subSpecHash)
   }
@@ -244,11 +246,12 @@ class GoalPlanningPreparationCheckpointTest {
       validPlan(payload = payloadJson("plan", producedOutputsJson = MISSING_VALUE_PLAN_PROJECTION)),
     )
 
-    val wedged = harness.checkpoint.recoveryProgress(
-      identity(),
-      listOf(descriptor()),
-      provenance(),
-    )
+    val wedged =
+      harness.checkpoint.recoveryProgress(
+        identity(),
+        listOf(descriptor()),
+        provenance(),
+      )
     assertFalse(wedged.sharedPreplanPrepared, "a projection-invalid preplan must read as not prepared")
     assertEquals(0, wedged.preparedPlanCount)
     assertEquals(1, wedged.firstMissingSubtaskId)
@@ -256,11 +259,12 @@ class GoalPlanningPreparationCheckpointTest {
     harness.checkpoint.recheckpointSharedPreplan(validShared())
     harness.checkpoint.recheckpointSubtaskPlan(validPlan())
 
-    val recovered = harness.checkpoint.recoveryProgress(
-      identity(),
-      listOf(descriptor()),
-      provenance(),
-    )
+    val recovered =
+      harness.checkpoint.recoveryProgress(
+        identity(),
+        listOf(descriptor()),
+        provenance(),
+      )
     assertTrue(recovered.sharedPreplanPrepared)
     assertEquals(1, recovered.preparedPlanCount)
     assertNull(recovered.firstMissingSubtaskId, "the goal must be fully prepared again with no operator surgery")
@@ -271,9 +275,10 @@ class GoalPlanningPreparationCheckpointTest {
     val harness = checkpointHarness().withShared()
     val escape = validPlan(payload = payloadJson("plan", producedOutputsJson = MISSING_VALUE_PLAN_PROJECTION))
 
-    val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      harness.checkpoint.checkpointSubtaskPlan(escape)
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
+        harness.checkpoint.checkpointSubtaskPlan(escape)
+      }
 
     assertContains(error.reason, "value")
     assertNull(harness.readPlan(), "a projection-invalid plan must leave no durable row behind")
@@ -281,17 +286,19 @@ class GoalPlanningPreparationCheckpointTest {
 
   private fun checkpointHarness(): CheckpointHarness {
     val tempDir = Files.createTempDirectory("goal-planning-checkpoint")
-    val database = SQLiteDatabaseSessionFactory(
-      EnvironmentContext(environment = emptyMap(), userHome = tempDir),
-      Clock.systemUTC(),
-      NoOpCheckpointDiagnostics,
-    )
-    val checkpoint = GoalPlanningPreparationCheckpoint(
-      database = database,
-      envelopeValidator = FeatureTaskRuntimeWireArtifactSchemaValidator(),
-      phaseOutputValidator = FeatureTaskRuntimePhaseOutputSchemaValidator(),
-      planningProjectionValidator = FeatureTaskRuntimeWireArtifactSchemaValidator(),
-    )
+    val database =
+      SQLiteDatabaseSessionFactory(
+        EnvironmentContext(environment = emptyMap(), userHome = tempDir),
+        Clock.systemUTC(),
+        NoOpCheckpointDiagnostics,
+      )
+    val checkpoint =
+      GoalPlanningPreparationCheckpoint(
+        database = database,
+        envelopeValidator = FeatureTaskRuntimeWireArtifactSchemaValidator(),
+        phaseOutputValidator = FeatureTaskRuntimePhaseOutputSchemaValidator(),
+        planningProjectionValidator = FeatureTaskRuntimeWireArtifactSchemaValidator(),
+      )
     return CheckpointHarness(checkpoint, database)
   }
 
@@ -299,9 +306,10 @@ class GoalPlanningPreparationCheckpointTest {
     val checkpoint: GoalPlanningPreparationCheckpoint,
     private val database: SQLiteDatabaseSessionFactory,
   ) {
-    fun withShared(): CheckpointHarness = apply {
-      checkpoint.checkpointSharedPreplan(validShared())
-    }
+    fun withShared(): CheckpointHarness =
+      apply {
+        checkpoint.checkpointSharedPreplan(validShared())
+      }
 
     fun storeRawShared(checkpoint: SharedGoalPreplanCheckpoint) {
       database.selfManagedWrite { it.goalPlanningPreparations.checkpointSharedPreplan(checkpoint) }
@@ -314,32 +322,42 @@ class GoalPlanningPreparationCheckpointTest {
     fun readShared(): SharedGoalPreplanCheckpoint? =
       database.read { it.goalPlanningPreparations.findSharedPreplan(identity()) }
 
-    fun readPlan(subtaskId: Int = 1): GoalSubtaskPlanCheckpoint? = database.read {
-      it.goalPlanningPreparations.findSubtaskPlan(identity(), subtaskId, descriptor(subtaskId).governedSubSpecPath)
-    }
+    fun readPlan(subtaskId: Int = 1): GoalSubtaskPlanCheckpoint? =
+      database.read {
+        it.goalPlanningPreparations.findSubtaskPlan(identity(), subtaskId, descriptor(subtaskId).governedSubSpecPath)
+      }
   }
 
   private object NoOpCheckpointDiagnostics : RuntimeDiagnostics {
-    override fun warning(message: String, error: Throwable?) = Unit
-    override fun error(message: String, error: Throwable?) = Unit
+    override fun warning(
+      message: String,
+      error: Throwable?,
+    ) = Unit
+
+    override fun error(
+      message: String,
+      error: Throwable?,
+    ) = Unit
   }
 
   private companion object {
     fun identity(): GoalPlanningIdentity =
       GoalPlanningIdentity("goal-1", "SKILL-128", "repo-root-realpath-v1:/repository")
 
-    fun provenance(): GoalPlanningContractProvenance = GoalPlanningContractProvenance(
-      parentSpecHash = sha256HexUtf8("# parent"),
-      decompositionManifestHash = sha256HexUtf8("# manifest"),
-      planningContractId = "https://skill-bill.dev/contracts/goal-planning-preparation-schema.yaml",
-    )
+    fun provenance(): GoalPlanningContractProvenance =
+      GoalPlanningContractProvenance(
+        parentSpecHash = sha256HexUtf8("# parent"),
+        decompositionManifestHash = sha256HexUtf8("# manifest"),
+        planningContractId = "https://skill-bill.dev/contracts/goal-planning-preparation-schema.yaml",
+      )
 
-    fun descriptor(subtaskId: Int = 1): GovernedGoalSubtaskDescriptor = GovernedGoalSubtaskDescriptor(
-      subtaskId = subtaskId,
-      manifestOrder = 0,
-      governedSubSpecPath = ".feature-specs/SKILL-128/spec_subtask_$subtaskId.md",
-      subSpecHash = sha256HexUtf8("# subtask $subtaskId"),
-    )
+    fun descriptor(subtaskId: Int = 1): GovernedGoalSubtaskDescriptor =
+      GovernedGoalSubtaskDescriptor(
+        subtaskId = subtaskId,
+        manifestOrder = 0,
+        governedSubSpecPath = ".feature-specs/SKILL-128/spec_subtask_$subtaskId.md",
+        subSpecHash = sha256HexUtf8("# subtask $subtaskId"),
+      )
 
     fun validShared(payload: String = payloadJson("preplan")): SharedGoalPreplanCheckpoint =
       SharedGoalPreplanCheckpoint(
@@ -349,7 +367,10 @@ class GoalPlanningPreparationCheckpointTest {
         preplanPayload = payload,
       )
 
-    fun validPlan(subtaskId: Int = 1, payload: String = payloadJson("plan")): GoalSubtaskPlanCheckpoint {
+    fun validPlan(
+      subtaskId: Int = 1,
+      payload: String = payloadJson("plan"),
+    ): GoalSubtaskPlanCheckpoint {
       val descriptor = descriptor(subtaskId)
       return GoalSubtaskPlanCheckpoint(
         identity = identity(),
@@ -368,17 +389,19 @@ class GoalPlanningPreparationCheckpointTest {
       contractVersion: String = FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
       status: String = "completed",
       producedOutputsJson: String = projectionJson(phaseId),
-    ): String = """
+    ): String =
+      """
       {"contract_version":"$contractVersion","phase_id":"$phaseId","status":"$status","summary":"s",
       "produced_outputs":$producedOutputsJson}
-    """.trimIndent().replace("\n", "")
+      """.trimIndent().replace("\n", "")
 
     const val MISSING_VALUE_PLAN_PROJECTION = """{"prompt":"optional only"}"""
 
-    fun projectionJson(phaseId: String): String = if (phaseId == "preplan") {
-      """{"value":"Producer may omit obligations in prose."}"""
-    } else {
-      """{"value":"Checkpointed plan prose for downstream implement."}"""
-    }
+    fun projectionJson(phaseId: String): String =
+      if (phaseId == "preplan") {
+        """{"value":"Producer may omit obligations in prose."}"""
+      } else {
+        """{"value":"Checkpointed plan prose for downstream implement."}"""
+      }
   }
 }

@@ -52,9 +52,10 @@ class GoalHardResetCommitSpanRecoveryTest {
         ),
       )
     }
-    val hard = service.reset(
-      GoalRunnerResetRequest(issueKey = issueKey, hard = true, repoRoot = repoRoot),
-    )
+    val hard =
+      service.reset(
+        GoalRunnerResetRequest(issueKey = issueKey, hard = true, repoRoot = repoRoot),
+      )
     requireNotNull(hard)
     assertNull(hard.refusalReason)
     assertEquals("reset_feature_branch_tip_to_$parentSha", hard.branchActionTaken)
@@ -63,11 +64,12 @@ class GoalHardResetCommitSpanRecoveryTest {
       FeatureTaskRuntimeSubtaskCommitResolver.decide(
         identity = identity,
         durableCommitSha = null,
-        head = FeatureTaskRuntimeSubtaskCommitHeadState(
-          sha = parentSha,
-          commitMessage = null,
-          isUnpushed = true,
-        ),
+        head =
+          FeatureTaskRuntimeSubtaskCommitHeadState(
+            sha = parentSha,
+            commitMessage = null,
+            isUnpushed = true,
+          ),
         sequenceNumber = 0,
       ),
     )
@@ -75,80 +77,92 @@ class GoalHardResetCommitSpanRecoveryTest {
 
   @Test
   fun `published trailer survives hard reset with documented relaunch recovery`() {
-    val git = sequenceGit().apply {
-      localBranchHasUnpushedCommitsValue = false
-    }
-    val store = InMemoryGoalManifestStore(
-      manifest(subtaskCount = 1).copy(
-        issueKey = issueKey,
-        featureBranch = branch,
-        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
-        subtasks = listOf(
-          manifest(subtaskCount = 1).subtasks.single().copy(
-            status = "in_progress",
-            workflowId = "wfl-interrupted",
-          ),
+    val git =
+      sequenceGit().apply {
+        localBranchHasUnpushedCommitsValue = false
+      }
+    val store =
+      InMemoryGoalManifestStore(
+        manifest(subtaskCount = 1).copy(
+          issueKey = issueKey,
+          featureBranch = branch,
+          currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
+          subtasks =
+            listOf(
+              manifest(subtaskCount = 1).subtasks.single().copy(
+                status = "in_progress",
+                workflowId = "wfl-interrupted",
+              ),
+            ),
         ),
-      ),
-    )
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      ports = GoalRunnerStatusTestPorts(gitOperations = git),
-    )
+      )
+    val service =
+      testGoalRunnerStatusService(
+        manifestStore = store,
+        outcomeStore = RecordingOutcomeStore(),
+        phaseRecorder = goalTestPhaseRecorder(),
+        ports = GoalRunnerStatusTestPorts(gitOperations = git),
+      )
 
-    val hard = requireNotNull(
-      service.reset(GoalRunnerResetRequest(issueKey = issueKey, hard = true, repoRoot = repoRoot)),
-    )
+    val hard =
+      requireNotNull(
+        service.reset(GoalRunnerResetRequest(issueKey = issueKey, hard = true, repoRoot = repoRoot)),
+      )
 
     assertEquals(
       "retained_published_trailer_tip_$headSha; re_adopt_checkpoint_identity_on_relaunch",
       hard.branchActionTaken,
     )
-    val decision = assertIs<FeatureTaskRuntimeSubtaskCommitAmend>(
-      FeatureTaskRuntimeSubtaskCommitResolver.decide(
-        identity = identity,
-        durableCommitSha = null,
-        head = FeatureTaskRuntimeSubtaskCommitHeadState(
-          sha = headSha,
-          commitMessage = "wip\n\n${identity.trailer}\n",
-          isUnpushed = false,
+    val decision =
+      assertIs<FeatureTaskRuntimeSubtaskCommitAmend>(
+        FeatureTaskRuntimeSubtaskCommitResolver.decide(
+          identity = identity,
+          durableCommitSha = null,
+          head =
+            FeatureTaskRuntimeSubtaskCommitHeadState(
+              sha = headSha,
+              commitMessage = "wip\n\n${identity.trailer}\n",
+              isUnpushed = false,
+            ),
+          sequenceNumber = 0,
         ),
-        sequenceNumber = 0,
-      ),
-    )
+      )
     assertEquals(true, decision.recoveredFromTrailer)
   }
 
   @Test
   fun `hard reset refuses before durable mutation when orphan tip cannot move`() {
-    val git = sequenceGit().apply {
-      resetHardToCommitResult = WorkflowGitOperationResult.Failed(error = "protected branch")
-    }
-    val store = InMemoryGoalManifestStore(
-      manifest(subtaskCount = 1).copy(
-        issueKey = issueKey,
-        featureBranch = branch,
-        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
-        subtasks = listOf(
-          manifest(subtaskCount = 1).subtasks.single().copy(
-            status = "in_progress",
-            workflowId = "wfl-interrupted",
-          ),
+    val git =
+      sequenceGit().apply {
+        resetHardToCommitResult = WorkflowGitOperationResult.Failed(error = "protected branch")
+      }
+    val store =
+      InMemoryGoalManifestStore(
+        manifest(subtaskCount = 1).copy(
+          issueKey = issueKey,
+          featureBranch = branch,
+          currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
+          subtasks =
+            listOf(
+              manifest(subtaskCount = 1).subtasks.single().copy(
+                status = "in_progress",
+                workflowId = "wfl-interrupted",
+              ),
+            ),
         ),
-      ),
-    )
+      )
     val savesBefore = store.saveCount
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      ports = GoalRunnerStatusTestPorts(gitOperations = git),
-    )
-    val hard = service.reset(
-      GoalRunnerResetRequest(issueKey = issueKey, hard = true, repoRoot = repoRoot),
-    )
+    val service =
+      testGoalRunnerStatusService(
+        manifestStore = store,
+        outcomeStore = RecordingOutcomeStore(),
+        phaseRecorder = goalTestPhaseRecorder(),
+        ports = GoalRunnerStatusTestPorts(gitOperations = git),
+      )
+    val hard =
+      service.reset(
+        GoalRunnerResetRequest(issueKey = issueKey, hard = true, repoRoot = repoRoot),
+      )
     requireNotNull(hard)
     assertNotNull(hard.refusalReason)
     assertNotNull(hard.remedyCommand)
@@ -157,79 +171,89 @@ class GoalHardResetCommitSpanRecoveryTest {
 
   @Test
   fun `hard reset refuses before durable mutation when branch identity cannot be inspected`() {
-    val git = sequenceGit().apply {
-      currentBranchResult = WorkflowGitOperationResult.Failed(error = "git unavailable")
-    }
-    val store = InMemoryGoalManifestStore(
-      manifest(subtaskCount = 1).copy(
-        issueKey = issueKey,
-        featureBranch = branch,
-        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
-        subtasks = listOf(
-          manifest(subtaskCount = 1).subtasks.single().copy(
-            status = "in_progress",
-            workflowId = "wfl-interrupted",
-          ),
+    val git =
+      sequenceGit().apply {
+        currentBranchResult = WorkflowGitOperationResult.Failed(error = "git unavailable")
+      }
+    val store =
+      InMemoryGoalManifestStore(
+        manifest(subtaskCount = 1).copy(
+          issueKey = issueKey,
+          featureBranch = branch,
+          currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
+          subtasks =
+            listOf(
+              manifest(subtaskCount = 1).subtasks.single().copy(
+                status = "in_progress",
+                workflowId = "wfl-interrupted",
+              ),
+            ),
         ),
-      ),
-    )
+      )
     val savesBefore = store.saveCount
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      ports = GoalRunnerStatusTestPorts(gitOperations = git),
-    )
+    val service =
+      testGoalRunnerStatusService(
+        manifestStore = store,
+        outcomeStore = RecordingOutcomeStore(),
+        phaseRecorder = goalTestPhaseRecorder(),
+        ports = GoalRunnerStatusTestPorts(gitOperations = git),
+      )
 
-    val hard = requireNotNull(
-      service.reset(GoalRunnerResetRequest(issueKey = issueKey, hard = true, repoRoot = repoRoot)),
-    )
+    val hard =
+      requireNotNull(
+        service.reset(GoalRunnerResetRequest(issueKey = issueKey, hard = true, repoRoot = repoRoot)),
+      )
 
     assertContains(requireNotNull(hard.refusalReason), "could not be inspected")
     assertEquals(goalPlanningHardResetRemedy(issueKey), hard.remedyCommand)
     assertEquals(savesBefore, store.saveCount)
   }
 
-  private fun sequenceGit(): RecordingWorkflowGitOperations = RecordingWorkflowGitOperations(
-    currentBranchValue = branch,
-    currentBranchResult = WorkflowGitOperationResult.Ok(value = branch),
-  ).apply {
-    headCommitShaValue = headSha
-    headCommitMessageValue = "wip\n\n${identity.trailer}\n"
-    localBranchHasUnpushedCommitsValue = true
-    onResolveCommit = { revision ->
-      if (revision == "$headSha~1") {
-        WorkflowGitOperationResult.Ok(value = parentSha)
-      } else {
-        null
+  private fun sequenceGit(): RecordingWorkflowGitOperations =
+    RecordingWorkflowGitOperations(
+      currentBranchValue = branch,
+      currentBranchResult = WorkflowGitOperationResult.Ok(value = branch),
+    ).apply {
+      headCommitShaValue = headSha
+      headCommitMessageValue = "wip\n\n${identity.trailer}\n"
+      localBranchHasUnpushedCommitsValue = true
+      onResolveCommit = { revision ->
+        if (revision == "$headSha~1") {
+          WorkflowGitOperationResult.Ok(value = parentSha)
+        } else {
+          null
+        }
       }
     }
-  }
 
   private fun interruptedSequenceService(git: RecordingWorkflowGitOperations): GoalRunnerStatusService {
-    val outcomes = RecordingOutcomeStore().apply {
-      progresses["wfl-interrupted"] = GoalRunnerWorkflowProgress(
-        workflowId = "wfl-interrupted",
-        workflowStatus = WorkflowStatus.FAILED,
-        currentStepId = "implement",
-        progressToken = "token",
-      )
-    }
-    val store = InMemoryGoalManifestStore(
-      manifest(subtaskCount = 1).copy(
-        issueKey = issueKey,
-        status = "in_progress",
-        featureBranch = branch,
-        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
-        subtasks = listOf(
-          manifest(subtaskCount = 1).subtasks.single().copy(
-            status = "in_progress",
+    val outcomes =
+      RecordingOutcomeStore().apply {
+        progresses["wfl-interrupted"] =
+          GoalRunnerWorkflowProgress(
             workflowId = "wfl-interrupted",
-            branch = branch,
-          ),
+            workflowStatus = WorkflowStatus.FAILED,
+            currentStepId = "implement",
+            progressToken = "token",
+          )
+      }
+    val store =
+      InMemoryGoalManifestStore(
+        manifest(subtaskCount = 1).copy(
+          issueKey = issueKey,
+          status = "in_progress",
+          featureBranch = branch,
+          currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
+          subtasks =
+            listOf(
+              manifest(subtaskCount = 1).subtasks.single().copy(
+                status = "in_progress",
+                workflowId = "wfl-interrupted",
+                branch = branch,
+              ),
+            ),
         ),
-      ),
-    )
+      )
     return testGoalRunnerStatusService(
       manifestStore = store,
       outcomeStore = outcomes,

@@ -32,7 +32,10 @@ class ReviewServicePreviewImportTest {
     var capturedStdin: String? = null
     val inputSource =
       object : ReviewInputSource {
-        override fun readInput(inputPath: String, stdinText: String?): Pair<String, String?> {
+        override fun readInput(
+          inputPath: String,
+          stdinText: String?,
+        ): Pair<String, String?> {
           capturedStdin = stdinText
           return stdinText.orEmpty() to null
         }
@@ -73,14 +76,21 @@ private object PreviewImportTelemetrySettings : TelemetrySettingsProvider {
 private object PreviewImportReviewAttribution : ReviewAttributionPort {
   override fun routedSkillPlatformSlugs(): Map<String, String> = emptyMap()
 
-  override fun composedLaunchPlan(routedPackSlug: String): ReviewLaunchPlan = ReviewLaunchPlan(
-    routedPackSlug,
-    emptyList(),
-  )
+  override fun composedLaunchPlan(routedPackSlug: String): ReviewLaunchPlan =
+    ReviewLaunchPlan(
+      routedPackSlug,
+      emptyList(),
+    )
 }
 
 private object PreviewImportDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }

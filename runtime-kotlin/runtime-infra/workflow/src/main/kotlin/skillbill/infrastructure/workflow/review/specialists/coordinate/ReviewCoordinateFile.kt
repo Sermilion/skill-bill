@@ -16,17 +16,21 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 
-internal fun bindReviewCoordinates(root: Path, coordinates: ReviewEvidenceCoordinates): ReviewEvidenceCoordinates =
+internal fun bindReviewCoordinates(
+  root: Path,
+  coordinates: ReviewEvidenceCoordinates,
+): ReviewEvidenceCoordinates =
   when (coordinates) {
     is ReviewEvidenceCoordinates.Checkpoint -> coordinates.copy(files = coordinates.files.toMap())
     is ReviewEvidenceCoordinates.Committed -> {
-      val resolved = runGitCommand(
-        root,
-        "rev-parse",
-        "--verify",
-        "--end-of-options",
-        "${coordinates.revision}^{commit}",
-      )
+      val resolved =
+        runGitCommand(
+          root,
+          "rev-parse",
+          "--verify",
+          "--end-of-options",
+          "${coordinates.revision}^{commit}",
+        )
       val revision = resolved.value.orEmpty().trim()
       if (!resolved.ok || !revision.matches(Regex("[a-f0-9]{40}|[a-f0-9]{64}"))) {
         throw InvalidReviewContextSchemaError("review-source", "Committed evidence revision is unavailable.")
@@ -40,19 +44,24 @@ internal fun validateReviewCoordinateFile(
   coordinates: ReviewEvidenceCoordinates,
   path: String,
 ) {
-  val available = when (coordinates) {
-    is ReviewEvidenceCoordinates.Committed -> immutableReviewFileExists(state.root, coordinates.revision, path)
-    is ReviewEvidenceCoordinates.Checkpoint -> {
-      val expected = coordinates.files[path] as? ReviewCheckpointFileIdentity.Regular
-        ?: throw InvalidReviewContextSchemaError("review-source", "Expanded path was not a regular checkpoint file.")
-      if (coordinates.kind == ReviewEvidenceCoordinates.Checkpoint.Kind.INDEX) {
-        readCheckpointIndex(state, path, expected.digest)
-      } else if (checkpointFileIdentity(state.root, path) != expected) {
-        rejectCheckpointDrift(state, path)
+  val available =
+    when (coordinates) {
+      is ReviewEvidenceCoordinates.Committed -> immutableReviewFileExists(state.root, coordinates.revision, path)
+      is ReviewEvidenceCoordinates.Checkpoint -> {
+        val expected =
+          coordinates.files[path] as? ReviewCheckpointFileIdentity.Regular
+            ?: throw InvalidReviewContextSchemaError(
+              "review-source",
+              "Expanded path was not a regular checkpoint file.",
+            )
+        if (coordinates.kind == ReviewEvidenceCoordinates.Checkpoint.Kind.INDEX) {
+          readCheckpointIndex(state, path, expected.digest)
+        } else if (checkpointFileIdentity(state.root, path) != expected) {
+          rejectCheckpointDrift(state, path)
+        }
+        true
       }
-      true
     }
-  }
   if (!available) {
     throw InvalidReviewContextSchemaError("review-expansion", "Expanded file is absent at the selected revision.")
   }
@@ -62,11 +71,12 @@ internal fun readReviewCoordinateFile(
   state: FileSystemReviewEvidenceBrokerReadState,
   coordinates: ReviewEvidenceCoordinates,
   path: String,
-): ByteArray? = when (coordinates) {
-  is ReviewEvidenceCoordinates.Committed ->
-    readImmutableReviewFile(state.root, coordinates.revision, path, state.budget.maxEvidenceResultBytes)
-  is ReviewEvidenceCoordinates.Checkpoint -> readCheckpointFile(state, coordinates, path)
-}
+): ByteArray? =
+  when (coordinates) {
+    is ReviewEvidenceCoordinates.Committed ->
+      readImmutableReviewFile(state.root, coordinates.revision, path, state.budget.maxEvidenceResultBytes)
+    is ReviewEvidenceCoordinates.Checkpoint -> readCheckpointFile(state, coordinates, path)
+  }
 
 private fun readCheckpointFile(
   state: FileSystemReviewEvidenceBrokerReadState,
@@ -93,9 +103,10 @@ private fun readCheckpointFile(
     if (expected != null) rejectCheckpointDrift(state, path)
     return null
   }
-  val bytes = Files.newInputStream(real, NOFOLLOW_LINKS).use {
-    it.readNBytes((state.budget.maxEvidenceResultBytes + 1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
-  }
+  val bytes =
+    Files.newInputStream(real, NOFOLLOW_LINKS).use {
+      it.readNBytes((state.budget.maxEvidenceResultBytes + 1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+    }
   if (bytes.size.toLong() > state.budget.maxEvidenceResultBytes) return bytes
   val digest = digest(bytes)
   if (expected == null || digest != expected) rejectCheckpointDrift(state, path)

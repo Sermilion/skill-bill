@@ -12,11 +12,17 @@ interface DecompositionManifestPersistencePort {
 
   fun isRegularFileWithoutRecovery(path: Path): Boolean
 
-  fun writeTextAtomically(target: Path, content: String)
+  fun writeTextAtomically(
+    target: Path,
+    content: String,
+  )
 
   fun deleteIfExists(target: Path)
 
   fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String
 
-  fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T
+  fun <T> writeBundleAtomically(
+    writes: List<Pair<Path, String>>,
+    verify: () -> T,
+  ): T
 }

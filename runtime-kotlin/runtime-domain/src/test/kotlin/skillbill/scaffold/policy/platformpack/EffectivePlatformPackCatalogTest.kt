@@ -15,18 +15,20 @@ import kotlin.test.assertFailsWith
 class EffectivePlatformPackCatalogTest {
   @Test
   fun `external slug replaces bundled even when bundled routing signals are stronger`() {
-    val bundled = loaded(
-      "kotlin",
-      PlatformPackSourceKind.BUNDLED,
-      Path.of("/repo/platform-packs/kotlin"),
-      strong = listOf(".kt", "settings.gradle.kts", "detekt.yml"),
-    )
-    val external = loaded(
-      "kotlin",
-      PlatformPackSourceKind.EXTERNAL,
-      Path.of("/ext/kotlin"),
-      strong = listOf(".kt"),
-    )
+    val bundled =
+      loaded(
+        "kotlin",
+        PlatformPackSourceKind.BUNDLED,
+        Path.of("/repo/platform-packs/kotlin"),
+        strong = listOf(".kt", "settings.gradle.kts", "detekt.yml"),
+      )
+    val external =
+      loaded(
+        "kotlin",
+        PlatformPackSourceKind.EXTERNAL,
+        Path.of("/ext/kotlin"),
+        strong = listOf(".kt"),
+      )
     val catalog = buildEffectivePlatformPackCatalog(listOf(bundled), listOf(external))
 
     val winner = catalog.entryForSlug("kotlin")
@@ -47,7 +49,9 @@ class EffectivePlatformPackCatalogTest {
   }
 
   @Test
-  fun `ambiguous external slug fails`(@TempDir tmp: Path) {
+  fun `ambiguous external slug fails`(
+    @TempDir tmp: Path,
+  ) {
     val first = loaded("kotlin", PlatformPackSourceKind.EXTERNAL, tmp.resolve("a"))
     val second = loaded("kotlin", PlatformPackSourceKind.EXTERNAL, tmp.resolve("b"))
     assertFailsWith<AmbiguousExternalPlatformPackError> {
@@ -60,17 +64,19 @@ class EffectivePlatformPackCatalogTest {
     kind: PlatformPackSourceKind,
     root: Path,
     strong: List<String> = emptyList(),
-  ): LoadedPlatformPack = LoadedPlatformPack(
-    manifest = PlatformManifest(
-      slug = slug,
-      packRoot = FileLocation(root.toString()),
-      contractVersion = "1",
-      routingSignals = RoutingSignals(strong, emptyList()),
-      declaredCodeReviewAreas = emptyList(),
-      declaredFiles = DeclaredFiles(baseline = null, areas = emptyMap()),
-      areaMetadata = emptyMap(),
-    ),
-    sourceKind = kind,
-    canonicalRoot = root.toAbsolutePath().normalize().toString(),
-  )
+  ): LoadedPlatformPack =
+    LoadedPlatformPack(
+      manifest =
+        PlatformManifest(
+          slug = slug,
+          packRoot = FileLocation(root.toString()),
+          contractVersion = "1",
+          routingSignals = RoutingSignals(strong, emptyList()),
+          declaredCodeReviewAreas = emptyList(),
+          declaredFiles = DeclaredFiles(baseline = null, areas = emptyMap()),
+          areaMetadata = emptyMap(),
+        ),
+      sourceKind = kind,
+      canonicalRoot = root.toAbsolutePath().normalize().toString(),
+    )
 }

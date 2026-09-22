@@ -23,22 +23,25 @@ enum class LearningScope(
   companion object {
     val precedence: List<LearningScope> = listOf(SKILL, REPO, GLOBAL)
 
-    fun fromWireName(rawValue: String): LearningScope = entries.firstOrNull {
-      it.wireName == rawValue.trim()
-    } ?: throw IllegalArgumentException(
-      "Learning scope must be one of ${entries.joinToString(", ") { it.wireName }}.",
-    )
+    fun fromWireName(rawValue: String): LearningScope =
+      entries.firstOrNull {
+        it.wireName == rawValue.trim()
+      } ?: throw IllegalArgumentException(
+        "Learning scope must be one of ${entries.joinToString(", ") { it.wireName }}.",
+      )
 
-    fun fromWireNameOrNull(rawValue: String?): LearningScope? = entries.firstOrNull {
-      it.wireName == rawValue?.trim()
-    }
+    fun fromWireNameOrNull(rawValue: String?): LearningScope? =
+      entries.firstOrNull {
+        it.wireName == rawValue?.trim()
+      }
 
     fun wireNames(): List<String> = entries.map { it.wireName }
 
     fun precedenceWireNames(): List<String> = precedence.map { it.wireName }
 
-    fun emptyScopeCounts(): LinkedHashMap<String, Int> = linkedMapOf<String, Int>().apply {
-      LearningScope.entries.forEach { scope -> put(scope.wireName, 0) }
-    }
+    fun emptyScopeCounts(): LinkedHashMap<String, Int> =
+      linkedMapOf<String, Int>().apply {
+        LearningScope.entries.forEach { scope -> put(scope.wireName, 0) }
+      }
   }
 }

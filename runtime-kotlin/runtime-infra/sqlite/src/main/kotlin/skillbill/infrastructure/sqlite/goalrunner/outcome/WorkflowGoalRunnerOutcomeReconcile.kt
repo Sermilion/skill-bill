@@ -62,7 +62,10 @@ internal class WorkflowGoalRunnerOutcomeReconcile(
       .authoritativeOutcomesBySubtask()
   }
 
-  private fun displaceStaleBlockedOutcomes(unitOfWork: UnitOfWork, issueKey: String) {
+  private fun displaceStaleBlockedOutcomes(
+    unitOfWork: UnitOfWork,
+    issueKey: String,
+  ) {
     loadContinuationCandidates(unitOfWork.workflowStates, issueKey, repoRoot = null)
       .forEach { candidate ->
         terminalPersistence.displaceStaleBlockedContinuationOutcomeIfPresent(
@@ -100,12 +103,13 @@ internal class WorkflowGoalRunnerOutcomeReconcile(
       }
       .forEach { stale ->
         val authoritative = request.initialAuthoritative[stale.goalContinuation.subtaskId]
-        val blockedReason = staleRunningReason(
-          staleWorkflowId = stale.snapshot.workflowId,
-          issueKey = request.normalizedIssueKey,
-          subtaskId = stale.goalContinuation.subtaskId,
-          authoritative = authoritative,
-        )
+        val blockedReason =
+          staleRunningReason(
+            staleWorkflowId = stale.snapshot.workflowId,
+            issueKey = request.normalizedIssueKey,
+            subtaskId = stale.goalContinuation.subtaskId,
+            authoritative = authoritative,
+          )
         blockWrites.markBlocked(
           GoalRunnerBlockWrite(
             family = stale.family,
@@ -129,13 +133,15 @@ internal class WorkflowGoalRunnerOutcomeReconcile(
     if (candidate.outcome?.status == GoalRunnerTerminalStatus.COMPLETE) return false
     val authoritative = initialAuthoritative[candidate.goalContinuation.subtaskId]
     val inactive = candidate.snapshot.workflowId !in activeSet
-    val supersededByAuthoritative = authoritative?.status == GoalRunnerTerminalStatus.COMPLETE &&
-      authoritative.workflowId != candidate.snapshot.workflowId
-    val staleByInactivity = if (gate.requireStalenessEvidence) {
-      inactive && candidateIsStale(candidate)
-    } else {
-      gate.allowInactiveReconciliation && inactive
-    }
+    val supersededByAuthoritative =
+      authoritative?.status == GoalRunnerTerminalStatus.COMPLETE &&
+        authoritative.workflowId != candidate.snapshot.workflowId
+    val staleByInactivity =
+      if (gate.requireStalenessEvidence) {
+        inactive && candidateIsStale(candidate)
+      } else {
+        gate.allowInactiveReconciliation && inactive
+      }
     return staleByInactivity || supersededByAuthoritative
   }
 
@@ -143,33 +149,36 @@ internal class WorkflowGoalRunnerOutcomeReconcile(
     workflowStates: WorkflowStateRepository,
     issueKey: String,
     repoRoot: Path? = null,
-  ): List<GoalContinuationCandidate> = listOf(WorkflowFamily.TASK_RUNTIME).flatMap { family ->
-    family.list(workflowStates, Int.MAX_VALUE).mapNotNull { snapshot ->
-      engine.snapshotView(family.definition, snapshot)
-      val artifacts = decodeArtifacts(snapshot.artifactsJson)
-      val goalContinuation = goalContinuation(artifacts) ?: return@mapNotNull null
-      if (goalContinuation.issueKey != issueKey) {
-        return@mapNotNull null
+  ): List<GoalContinuationCandidate> =
+    listOf(WorkflowFamily.TASK_RUNTIME).flatMap { family ->
+      family.list(workflowStates, Int.MAX_VALUE).mapNotNull { snapshot ->
+        engine.snapshotView(family.definition, snapshot)
+        val artifacts = decodeArtifacts(snapshot.artifactsJson)
+        val goalContinuation = goalContinuation(artifacts) ?: return@mapNotNull null
+        if (goalContinuation.issueKey != issueKey) {
+          return@mapNotNull null
+        }
+        GoalContinuationCandidate(
+          family = family,
+          snapshot = snapshot,
+          goalContinuation = goalContinuation,
+          outcome =
+            terminalOutcomeFor(snapshot, artifacts, goalContinuation) {
+              repoRoot?.let { root -> gitOperations.headCommitSha(root).measuredCommitSha() }
+            },
+        )
       }
-      GoalContinuationCandidate(
-        family = family,
-        snapshot = snapshot,
-        goalContinuation = goalContinuation,
-        outcome = terminalOutcomeFor(snapshot, artifacts, goalContinuation) {
-          repoRoot?.let { root -> gitOperations.headCommitSha(root).measuredCommitSha() }
-        },
-      )
     }
-  }
 
-  private fun candidateIsStale(candidate: GoalContinuationCandidate): Boolean = runCatching {
-    candidate.outcome?.status?.let { return@runCatching it != GoalRunnerTerminalStatus.COMPLETE }
-    val now = clock.instant()
-    val window = STALENESS_EVIDENCE_WINDOW
-    val liveness = candidateLivenessInstants(candidate)
-    val recent = liveness.any { signal -> Duration.between(signal, now).let { !it.isNegative && it <= window } }
-    liveness.isNotEmpty() && !recent
-  }.getOrDefault(false)
+  private fun candidateIsStale(candidate: GoalContinuationCandidate): Boolean =
+    runCatching {
+      candidate.outcome?.status?.let { return@runCatching it != GoalRunnerTerminalStatus.COMPLETE }
+      val now = clock.instant()
+      val window = STALENESS_EVIDENCE_WINDOW
+      val liveness = candidateLivenessInstants(candidate)
+      val recent = liveness.any { signal -> Duration.between(signal, now).let { !it.isNegative && it <= window } }
+      liveness.isNotEmpty() && !recent
+    }.getOrDefault(false)
 
   private fun candidateLivenessInstants(candidate: GoalContinuationCandidate): List<Instant> {
     val artifacts = decodeArtifacts(candidate.snapshot.artifactsJson)

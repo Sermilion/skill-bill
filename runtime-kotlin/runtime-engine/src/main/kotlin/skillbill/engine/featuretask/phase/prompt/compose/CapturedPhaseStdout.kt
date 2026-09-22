@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.phase.prompt.compose
+
 internal data class CapturedPhaseStdout(
   val text: String,
   val bytes: ByteArray,

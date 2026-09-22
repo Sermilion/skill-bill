@@ -22,12 +22,16 @@ class GhGoalPullRequestPort() : GoalPullRequestPort {
       ?.let { head -> openWithHead(request, head) }
       ?: GoalPullRequestResult.Failed("A head branch is required before creating the goal pull request.")
 
-  private fun openWithHead(request: GoalPullRequestRequest, head: String): GoalPullRequestResult {
+  private fun openWithHead(
+    request: GoalPullRequestRequest,
+    head: String,
+  ): GoalPullRequestResult {
     val root = request.repoRoot.toAbsolutePath().normalize()
-    val existing = runGh(
-      root,
-      listOf("pr", "list", "--head", head, "--json", "url", "--jq", ".[0].url", "--limit", "1"),
-    )
+    val existing =
+      runGh(
+        root,
+        listOf("pr", "list", "--head", head, "--json", "url", "--jq", ".[0].url", "--limit", "1"),
+      )
     return if (existing.exitCode == 0 && existing.stdout.trim().startsWith("http")) {
       GoalPullRequestResult.Existing(existing.stdout.trim())
     } else {
@@ -35,7 +39,11 @@ class GhGoalPullRequestPort() : GoalPullRequestPort {
     }
   }
 
-  private fun createPullRequest(root: Path, request: GoalPullRequestRequest, head: String): GoalPullRequestResult {
+  private fun createPullRequest(
+    root: Path,
+    request: GoalPullRequestRequest,
+    head: String,
+  ): GoalPullRequestResult {
     val create = runGh(root, createArgs(request, head))
     return if (create.exitCode == 0) {
       create.stdout.lineSequence()
@@ -48,50 +56,61 @@ class GhGoalPullRequestPort() : GoalPullRequestPort {
     }
   }
 
-  private fun createArgs(request: GoalPullRequestRequest, head: String): List<String> = listOf(
-    "pr",
-    "create",
-    "--head",
-    head,
-    "--base",
-    request.baseBranch,
-    "--draft",
-    "--title",
-    request.title,
-    "--body",
-    request.body,
-  )
+  private fun createArgs(
+    request: GoalPullRequestRequest,
+    head: String,
+  ): List<String> =
+    listOf(
+      "pr",
+      "create",
+      "--head",
+      head,
+      "--base",
+      request.baseBranch,
+      "--draft",
+      "--title",
+      request.title,
+      "--body",
+      request.body,
+    )
 
-  private fun runGh(root: Path, args: List<String>): CommandResult = runCatching {
-    val executable = ghExecutableResolver(root)
-      ?: return CommandResult(exitCode = 1, stdout = "GitHub CLI executable was not found on PATH.")
-    val result = BoundedExternalProcessRunner.run(
-      BoundedExternalProcessRequest(
-        argv = listOf(executable.toString()) + args,
-        workingDirectory = root,
-        mergeEnvironment = mapOf("GIT_TERMINAL_PROMPT" to "0"),
-        deadlineSeconds = COMMAND_TIMEOUT_SECONDS,
-        outputCapBytes = MAX_OUTPUT_BYTES.toLong(),
-      ),
-    )
-    if (result.timedOut) {
-      CommandResult(exitCode = 124, stdout = "GitHub CLI timed out.")
-    } else if (result.launchFailure) {
-      CommandResult(exitCode = 1, stdout = result.output)
-    } else {
-      CommandResult(exitCode = result.exitCode, stdout = result.output)
+  private fun runGh(
+    root: Path,
+    args: List<String>,
+  ): CommandResult =
+    runCatching {
+      val executable =
+        ghExecutableResolver(root)
+          ?: return CommandResult(exitCode = 1, stdout = "GitHub CLI executable was not found on PATH.")
+      val result =
+        BoundedExternalProcessRunner.run(
+          BoundedExternalProcessRequest(
+            argv = listOf(executable.toString()) + args,
+            workingDirectory = root,
+            mergeEnvironment = mapOf("GIT_TERMINAL_PROMPT" to "0"),
+            deadlineSeconds = COMMAND_TIMEOUT_SECONDS,
+            outputCapBytes = MAX_OUTPUT_BYTES.toLong(),
+          ),
+        )
+      if (result.timedOut) {
+        CommandResult(exitCode = 124, stdout = "GitHub CLI timed out.")
+      } else if (result.launchFailure) {
+        CommandResult(exitCode = 1, stdout = result.output)
+      } else {
+        CommandResult(exitCode = result.exitCode, stdout = result.output)
+      }
+    }.getOrElse { error ->
+      CommandResult(
+        exitCode = 1,
+        stdout = error.message?.let { "${error::class.simpleName}: $it" } ?: (error::class.simpleName ?: "Error"),
+      )
     }
-  }.getOrElse { error ->
-    CommandResult(
-      exitCode = 1,
-      stdout = error.message?.let { "${error::class.simpleName}: $it" } ?: (error::class.simpleName ?: "Error"),
-    )
-  }
 
   private fun describeGhFailure(result: CommandResult): String {
-    val output = result.stdout.trim().replace(Regex("(?i)(https?://)([^\\s/@]+)@")) { match ->
-      "${match.groupValues[1]}<redacted>@"
-    }
+    val output =
+      result.stdout.trim().replace(Regex("(?i)(https?://)([^\\s/@]+)@")) { match ->
+        "${match.groupValues[1]}<redacted>@"
+      }
     return if (output.isBlank()) "GitHub provider exited with code ${result.exitCode}." else output
   }
 

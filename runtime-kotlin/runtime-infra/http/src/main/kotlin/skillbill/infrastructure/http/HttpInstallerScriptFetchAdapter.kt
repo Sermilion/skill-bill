@@ -17,7 +17,6 @@ class HttpInstallerScriptFetchAdapter(
   private val requester: RemoteTransportPort,
   private val diagnostics: RuntimeDiagnostics,
 ) : InstallerScriptFetchPort {
-
   override fun fetch(request: InstallerScriptFetchRequest): InstallerScriptFetchResult {
     val stagingDirectory =
       try {
@@ -29,12 +28,13 @@ class HttpInstallerScriptFetchAdapter(
     val scriptPath = stagingDirectory.resolve("install.sh")
     var result: InstallerScriptFetchResult? = null
     try {
-      val response = requester.execute(
-        method = "GET",
-        url = request.url,
-        bodyJson = null,
-        headers = mapOf(HttpHeaders.USER_AGENT to INSTALLER_USER_AGENT),
-      )
+      val response =
+        requester.execute(
+          method = "GET",
+          url = request.url,
+          bodyJson = null,
+          headers = mapOf(HttpHeaders.USER_AGENT to INSTALLER_USER_AGENT),
+        )
       result =
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {
           InstallerScriptFetchResult.Failed(
@@ -92,7 +92,11 @@ class HttpInstallerScriptFetchAdapter(
     }
   }
 
-  private fun teardown(stagingDirectory: Path, partialPath: Path, scriptPath: Path) {
+  private fun teardown(
+    stagingDirectory: Path,
+    partialPath: Path,
+    scriptPath: Path,
+  ) {
     listOf(partialPath, scriptPath, stagingDirectory).forEach { path ->
       try {
         Files.deleteIfExists(path)
@@ -102,7 +106,10 @@ class HttpInstallerScriptFetchAdapter(
     }
   }
 
-  private fun recordCleanupFailure(path: Path, error: IOException) {
+  private fun recordCleanupFailure(
+    path: Path,
+    error: IOException,
+  ) {
     diagnostics.warning(
       "seam=installer.cleanup expected=path removable used=${path.toAbsolutePath()}",
       error,

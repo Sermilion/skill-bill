@@ -22,9 +22,10 @@ class InstallPlanModelTest {
 
   @Test
   fun `cursor invoking-agent markers are session identity not api credentials`() {
-    val cursor = InvokingAgentContextResolver.INVOKING_AGENT_CONTEXT_SIGNALS.single { signal ->
-      signal.agent == InstallAgent.CURSOR
-    }
+    val cursor =
+      InvokingAgentContextResolver.INVOKING_AGENT_CONTEXT_SIGNALS.single { signal ->
+        signal.agent == InstallAgent.CURSOR
+      }
     assertEquals(listOf("CURSOR_AGENT", "CURSOR_INVOKED_AS"), cursor.markerKeys)
   }
 
@@ -42,9 +43,10 @@ class InstallPlanModelTest {
       assertEquals(id, InstallAgent.fromId(id).id)
     }
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      InstallAgent.fromId("not-an-agent")
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        InstallAgent.fromId("not-an-agent")
+      }
 
     assertContains(error.message.orEmpty(), "Unknown agent 'not-an-agent'")
     InstallAgent.supportedIds.forEach { id ->

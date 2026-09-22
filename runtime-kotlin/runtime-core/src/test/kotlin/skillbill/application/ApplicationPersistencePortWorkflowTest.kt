@@ -29,6 +29,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class ApplicationPersistencePortWorkflowTest {
   @Test
   fun `workflow service owns implement rows list resume and continuation through ports`() {
@@ -36,36 +37,42 @@ class ApplicationPersistencePortWorkflowTest {
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
-    val updated = service.update(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      WorkflowUpdateRequest(
-        workflowId = workflowId,
-        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
-        currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
-          ),
-        ),
-        artifactsPatch = WorkflowArtifactPatch.from(
-          mapOf(
-            "preplan_digest" to mapOf("ok" to true),
-            FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-              "plan" to completedPhaseRecord("plan", outputArtifact = """{"task_count":1}"""),
+    val updated =
+      service.update(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        WorkflowUpdateRequest(
+          workflowId = workflowId,
+          workflowStatus = WorkflowStatus.BLOCKED.wireValue,
+          currentStepId = "implement",
+          stepUpdates =
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
+              ),
             ),
-          ),
+          artifactsPatch =
+            WorkflowArtifactPatch.from(
+              mapOf(
+                "preplan_digest" to mapOf("ok" to true),
+                FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+                  mapOf(
+                    "plan" to completedPhaseRecord("plan", outputArtifact = """{"task_count":1}"""),
+                  ),
+              ),
+            ),
         ),
-      ),
-    ) as WorkflowUpdateResult.Ok
+      ) as WorkflowUpdateResult.Ok
     val listed = service.list(WorkflowFamilyKind.TASK_RUNTIME)
     val latest = service.latest(WorkflowFamilyKind.TASK_RUNTIME) as WorkflowLatestResult.Ok
     val resumed =
       service.resume(WorkflowFamilyKind.TASK_RUNTIME, workflowId) as WorkflowResumeResult.Ok
-    val continued = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, workflowId)
-      as WorkflowContinueResult.Standard
+    val continued =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, workflowId)
+        as WorkflowContinueResult.Standard
 
     assertEquals(listOf("transaction", "transaction", "read", "read", "read", "transaction"), database.calls)
     assertEquals("blocked", updated.acknowledgement.workflowStatus.wireValue)
@@ -81,13 +88,16 @@ class ApplicationPersistencePortWorkflowTest {
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
 
-    val first = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
-    val second = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-002")
-      as WorkflowOpenResult.Ok
+    val first =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
+    val second =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-002")
+        as WorkflowOpenResult.Ok
 
-    val got = service.get(WorkflowFamilyKind.TASK_RUNTIME, first.workflowId)
-      as WorkflowGetResult.Ok
+    val got =
+      service.get(WorkflowFamilyKind.TASK_RUNTIME, first.workflowId)
+        as WorkflowGetResult.Ok
     val listed = service.list(WorkflowFamilyKind.TASK_RUNTIME)
     val latest = service.latest(WorkflowFamilyKind.TASK_RUNTIME) as WorkflowLatestResult.Ok
 
@@ -105,8 +115,9 @@ class ApplicationPersistencePortWorkflowTest {
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     assertTrue(recorder.appendPlanLedger(workflowId, FeatureTaskRuntimePhaseLedgerAction.START))
@@ -121,12 +132,14 @@ class ApplicationPersistencePortWorkflowTest {
     )
     assertTrue(recorder.appendPlanLedger(workflowId, FeatureTaskRuntimePhaseLedgerAction.COMPLETE))
 
-    val artifacts = decodeArtifactsForTest(
-      requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )
-    val phaseRecords = requireNotNull(
-      JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY]),
-    )
+    val artifacts =
+      decodeArtifactsForTest(
+        requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )
+    val phaseRecords =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY]),
+      )
     val planRecord = requireNotNull(JsonCodec.anyToStringAnyMap(phaseRecords["plan"]))
     assertEquals("completed", planRecord["status"])
     assertEquals("agent-plan-1", planRecord["resolved_agent_id"])
@@ -135,9 +148,10 @@ class ApplicationPersistencePortWorkflowTest {
     assertTrue((planRecord["finished_at"] as String).isNotBlank())
     assertTrue((planRecord["duration_millis"] as Number).toLong() >= 0)
     assertEquals("""{"contract_version":"0.2"}""", planRecord["output_artifact"])
-    val ledger = requireNotNull(
-      JsonCodec.anyToStringAnyMapList(artifacts[FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY]),
-    )
+    val ledger =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMapList(artifacts[FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY]),
+      )
     val sequences = ledger.map { (it["sequence_number"] as Number).toInt() }
     assertEquals(listOf(0, 1), sequences)
     assertEquals(sequences.sorted(), sequences)
@@ -153,9 +167,10 @@ class ApplicationPersistencePortWorkflowTest {
 
     assertTrue(recorder.recordPhaseBriefing(workflowId, handoffBriefing()))
 
-    val artifacts = decodeArtifactsForTest(
-      requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )
+    val artifacts =
+      decodeArtifactsForTest(
+        requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )
     assertTrue(artifacts.containsKey(FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY))
     val delivered = requireNotNull(recorder.loadDeliveredProjections(workflowId))["implement"]
     assertEquals(handoffBriefing().handoffEnvelope, requireNotNull(delivered).envelope)
@@ -163,12 +178,14 @@ class ApplicationPersistencePortWorkflowTest {
 
     assertTrue(recorder.recordPhaseBriefing(workflowId, handoffBriefing()))
     assertEquals(2, requireNotNull(recorder.loadDeliveredProjections(workflowId))["implement"]?.iteration)
-    val afterSecondDelivery = decodeArtifactsForTest(
-      requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )
-    val deliveredHistory = requireNotNull(
-      JsonCodec.anyToStringAnyMap(afterSecondDelivery[FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY]),
-    )
+    val afterSecondDelivery =
+      decodeArtifactsForTest(
+        requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )
+    val deliveredHistory =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMap(afterSecondDelivery[FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY]),
+      )
     assertEquals(1, deliveredHistory.size, "only the latest delivered projection per consumer phase is retained")
     assertTrue(
       deliveredHistory.keys.single().let { key -> "|2|" in key && "|plan#1|" in key },
@@ -182,12 +199,13 @@ class ApplicationPersistencePortWorkflowTest {
     val recorder = testPhaseRecorder(database)
     val workflowId = openTaskRuntimeWorkflow(database)
 
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeHandoffProjectionError> {
-      recorder.recordPhaseBriefing(
-        workflowId,
-        handoffBriefing(envelope = handoffEnvelope().copy(contractVersion = "9.9")),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimeHandoffProjectionError> {
+        recorder.recordPhaseBriefing(
+          workflowId,
+          handoffBriefing(envelope = handoffEnvelope().copy(contractVersion = "9.9")),
+        )
+      }
 
     assertEquals(FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID, error.failureKind)
     assertEquals("implement", error.consumerPhaseId)
@@ -200,17 +218,18 @@ class ApplicationPersistencePortWorkflowTest {
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository, lifecycleTelemetry = telemetry)
     val recorder = testPhaseRecorder(database)
     val workflowId = openTaskRuntimeWorkflow(database)
-    val rejection = InvalidFeatureTaskRuntimeHandoffProjectionError(
-      InvalidFeatureTaskRuntimeHandoffProjectionContext(
-        workflowId = workflowId,
-        consumerPhaseId = "implement",
-        projectionName = "plan_receipt",
-        projectionContractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-        projectionContractVersion = "0.2",
-        failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.CHECKPOINT_POLICY_VIOLATION,
-        reason = "repository checkpoint differs",
-      ),
-    )
+    val rejection =
+      InvalidFeatureTaskRuntimeHandoffProjectionError(
+        InvalidFeatureTaskRuntimeHandoffProjectionContext(
+          workflowId = workflowId,
+          consumerPhaseId = "implement",
+          projectionName = "plan_receipt",
+          projectionContractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
+          projectionContractVersion = "0.2",
+          failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.CHECKPOINT_POLICY_VIOLATION,
+          reason = "repository checkpoint differs",
+        ),
+      )
 
     assertTrue(recorder.recordProjectionRejection(workflowId, "implement", rejection, "checkpoint-2"))
 
@@ -232,9 +251,10 @@ class ApplicationPersistencePortWorkflowTest {
       envelope + ("upstream_outputs_by_phase_id" to mapOf("plan" to "raw payload"))
     }
 
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeHandoffProjectionError> {
-      recorder.loadPhaseBriefings(workflowId)
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimeHandoffProjectionError> {
+        recorder.loadPhaseBriefings(workflowId)
+      }
     assertEquals(FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID, error.failureKind)
   }
 
@@ -257,9 +277,10 @@ class ApplicationPersistencePortWorkflowTest {
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
-    val workflowId = (
-      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-        as WorkflowOpenResult.Ok
+    val workflowId =
+      (
+        service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+          as WorkflowOpenResult.Ok
       ).workflowId
     val reason = "Use the operator-approved fresh-process isolation boundary."
     recorder.recordRuntimePhase(
@@ -300,11 +321,12 @@ class ApplicationPersistencePortWorkflowTest {
   fun `operator blocked-phase retry reopens the authoritative goal manifest`() {
     val fixture = blockedGoalChildRetryFixture()
 
-    val retried = fixture.service.retryBlockedFeatureTaskRuntimePhase(
-      fixture.childWorkflowId,
-      "implement",
-      "Use the operator-approved fresh-process isolation boundary.",
-    )
+    val retried =
+      fixture.service.retryBlockedFeatureTaskRuntimePhase(
+        fixture.childWorkflowId,
+        "implement",
+        "Use the operator-approved fresh-process isolation boundary.",
+      )
 
     assertTrue(retried is WorkflowUpdateResult.Ok)
     val manifest = loadTestDecompositionManifest(fixture.manifestPath)
@@ -315,10 +337,11 @@ class ApplicationPersistencePortWorkflowTest {
     assertEquals(fixture.childWorkflowId, manifest.subtasks.single().workflowId)
     assertEquals(null, manifest.subtasks.single().blockedReason)
     assertEquals("implement", manifest.subtasks.single().lastResumableStep)
-    val parent = fixture.service.get(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      fixture.parentWorkflowId,
-    ) as WorkflowGetResult.Ok
+    val parent =
+      fixture.service.get(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        fixture.parentWorkflowId,
+      ) as WorkflowGetResult.Ok
     val parentRuntime = parent.snapshot.artifacts["decomposition_runtime"] as Map<*, *>
     assertEquals("in_progress", parentRuntime["status"])
   }
@@ -330,8 +353,9 @@ class ApplicationPersistencePortWorkflowTest {
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     assertTrue(recorder.recordRuntimePhase(workflowId, "preplan", status = "running", finished = false))
@@ -387,8 +411,9 @@ class ApplicationPersistencePortWorkflowTest {
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     recorder.recordRuntimePhase(workflowId, "preplan", status = "running", finished = false)
@@ -406,9 +431,10 @@ class ApplicationPersistencePortWorkflowTest {
 
     val records = requireNotNull(recorder.loadPhaseRecords(workflowId))
     val recordDerivedStatuses = records.mapValues { (_, record) -> expectedStepStatusForRecord(record) }
-    val stepStatusByPhaseId = decodeStepsForTest(workflowRepository, workflowId)
-      .filter { (phaseId, _) -> phaseId in records.keys }
-      .toMap()
+    val stepStatusByPhaseId =
+      decodeStepsForTest(workflowRepository, workflowId)
+        .filter { (phaseId, _) -> phaseId in records.keys }
+        .toMap()
 
     assertEquals(recordDerivedStatuses, stepStatusByPhaseId)
     assertEquals(
@@ -429,8 +455,9 @@ class ApplicationPersistencePortWorkflowTest {
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     recorder.recordRuntimePhase(
@@ -453,8 +480,9 @@ class ApplicationPersistencePortWorkflowTest {
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     recorder.recordRuntimePhase(workflowId, "preplan", status = "running", finished = true)
@@ -472,8 +500,9 @@ class ApplicationPersistencePortWorkflowTest {
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     val malformedArtifactsJson =
@@ -513,8 +542,9 @@ class ApplicationPersistencePortWorkflowTest {
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     val malformedArtifactsJson =
@@ -545,8 +575,9 @@ class ApplicationPersistencePortWorkflowTest {
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     val malformedArtifactsJson =
@@ -570,8 +601,9 @@ class ApplicationPersistencePortWorkflowTest {
     val service = testWorkflowService(database)
     val recorder = testPhaseRecorder(database)
 
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     assertTrue(recorder.appendPlanLedger(workflowId, FeatureTaskRuntimePhaseLedgerAction.START))
@@ -579,12 +611,14 @@ class ApplicationPersistencePortWorkflowTest {
 
     assertTrue(recorder.appendPlanLedger(workflowId, FeatureTaskRuntimePhaseLedgerAction.RESUME))
 
-    val artifacts = decodeArtifactsForTest(
-      requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )
-    val ledger = requireNotNull(
-      JsonCodec.anyToStringAnyMapList(artifacts[FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY]),
-    )
+    val artifacts =
+      decodeArtifactsForTest(
+        requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )
+    val ledger =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMapList(artifacts[FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY]),
+      )
     val sequences = ledger.map { (it["sequence_number"] as Number).toInt() }
     assertEquals(listOf(0, 1, 2), sequences)
     assertEquals(listOf("start", "complete", "resume"), ledger.map { it["action"] })

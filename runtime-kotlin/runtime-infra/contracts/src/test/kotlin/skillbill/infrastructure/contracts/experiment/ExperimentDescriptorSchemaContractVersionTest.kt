@@ -20,22 +20,26 @@ class ExperimentDescriptorSchemaContractVersionTest {
 
   @Test
   fun `schema content hash matches known hash for current contract version`() {
-    val resourceStream = ExperimentDescriptorSchemaValidator::class.java.classLoader
-      .getResourceAsStream(ExperimentDescriptorSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      ExperimentDescriptorSchemaValidator::class.java.classLoader
+        .getResourceAsStream(ExperimentDescriptorSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(resourceStream)
     val yamlText = resourceStream.use { it.readBytes().toString(Charsets.UTF_8) }
-    val contentWithoutVersionLine = yamlText.lines()
-      .filter { !it.trimStart().startsWith("const:") }
-      .joinToString("\n")
+    val contentWithoutVersionLine =
+      yamlText.lines()
+        .filter { !it.trimStart().startsWith("const:") }
+        .joinToString("\n")
     val digest = MessageDigest.getInstance("SHA-256")
-    val actualHash = digest.digest(contentWithoutVersionLine.toByteArray(Charsets.UTF_8))
-      .joinToString("") { "%02x".format(it) }
+    val actualHash =
+      digest.digest(contentWithoutVersionLine.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
     assertEquals(KNOWN_SCHEMA_CONTENT_HASH, actualHash)
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = ExperimentDescriptorSchemaValidator::class.java.classLoader
-      .getResourceAsStream(ExperimentDescriptorSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      ExperimentDescriptorSchemaValidator::class.java.classLoader
+        .getResourceAsStream(ExperimentDescriptorSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(resourceStream)
     val yamlText = resourceStream.use { it.readBytes().toString(Charsets.UTF_8) }
     return YAMLMapper().readTree(yamlText)

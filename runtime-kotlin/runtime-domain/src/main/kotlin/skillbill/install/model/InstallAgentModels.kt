@@ -16,27 +16,34 @@ data class AgentLauncherCli(
   }
 }
 
-val AGENT_LAUNCHER_CLIS: Map<InstallAgent, AgentLauncherCli> = mapOf(
-  InstallAgent.CLAUDE to AgentLauncherCli(
-    executables = listOf(InstallAgent.CLAUDE.wireValue),
-    installHint = "install Claude Code (https://docs.claude.com/en/docs/claude-code/setup)",
-  ),
-  InstallAgent.CODEX to AgentLauncherCli(
-    executables = listOf(InstallAgent.CODEX.wireValue),
-    installHint = "install the Codex CLI (npm install -g @openai/codex)",
-  ),
-  InstallAgent.JUNIE to AgentLauncherCli(
-    executables = listOf(InstallAgent.JUNIE.wireValue),
-    installHint = "install the Junie CLI from JetBrains",
-  ),
+val AGENT_LAUNCHER_CLIS: Map<InstallAgent, AgentLauncherCli> =
+  mapOf(
+    InstallAgent.CLAUDE to
+      AgentLauncherCli(
+        executables = listOf(InstallAgent.CLAUDE.wireValue),
+        installHint = "install Claude Code (https://docs.claude.com/en/docs/claude-code/setup)",
+      ),
+    InstallAgent.CODEX to
+      AgentLauncherCli(
+        executables = listOf(InstallAgent.CODEX.wireValue),
+        installHint = "install the Codex CLI (npm install -g @openai/codex)",
+      ),
+    InstallAgent.JUNIE to
+      AgentLauncherCli(
+        executables = listOf(InstallAgent.JUNIE.wireValue),
+        installHint = "install the Junie CLI from JetBrains",
+      ),
+    InstallAgent.CURSOR to
+      AgentLauncherCli(
+        executables = listOf("agent", "${InstallAgent.CURSOR.wireValue}-agent"),
+        installHint = "install the Cursor Agent CLI (curl https://cursor.com/install -fsS | bash)",
+      ),
+  )
 
-  InstallAgent.CURSOR to AgentLauncherCli(
-    executables = listOf("agent", "${InstallAgent.CURSOR.wireValue}-agent"),
-    installHint = "install the Cursor Agent CLI (curl https://cursor.com/install -fsS | bash)",
-  ),
-)
-
-fun unavailableAgentLauncherReason(agentId: String?, onPath: (String) -> Boolean): String? {
+fun unavailableAgentLauncherReason(
+  agentId: String?,
+  onPath: (String) -> Boolean,
+): String? {
   val normalized = agentId?.trim()?.lowercase()?.takeIf(String::isNotBlank) ?: return null
   val agent = InstallAgent.entries.firstOrNull { candidate -> candidate.wireValue == normalized }
   val launcher = agent?.let(AGENT_LAUNCHER_CLIS::get) ?: return null
@@ -44,16 +51,21 @@ fun unavailableAgentLauncherReason(agentId: String?, onPath: (String) -> Boolean
   return agentLauncherUnavailableMessage(agent, launcher.executables.first(), launcher.installHint)
 }
 
-fun agentLauncherUnavailableMessage(agent: InstallAgent, executable: String, installHint: String): String =
+fun agentLauncherUnavailableMessage(
+  agent: InstallAgent,
+  executable: String,
+  installHint: String,
+): String =
   "Agent '${agent.wireValue}' cannot run in runtime mode here: its headless CLI '$executable' is not on PATH. " +
     "Having the ${agent.wireValue} editor or its home directory installed is not enough — the headless CLI is a " +
     "separate install. Either $installHint, or relaunch with a different --agent."
 
-val MODEL_DIRECTIVE_CAPABLE_AGENTS: Set<InstallAgent> = setOf(
-  InstallAgent.CLAUDE,
-  InstallAgent.CODEX,
-  InstallAgent.CURSOR,
-)
+val MODEL_DIRECTIVE_CAPABLE_AGENTS: Set<InstallAgent> =
+  setOf(
+    InstallAgent.CLAUDE,
+    InstallAgent.CODEX,
+    InstallAgent.CURSOR,
+  )
 
 fun supportsModelDirective(agentId: String?): Boolean {
   if (agentId == null) return false
@@ -62,16 +74,17 @@ fun supportsModelDirective(agentId: String?): Boolean {
 }
 
 object InvokingAgentContextResolver {
+  val INVOKING_AGENT_CONTEXT_SIGNALS: List<InvokingAgentContextSignal> =
+    listOf(
+      InvokingAgentContextSignal(InstallAgent.CLAUDE, listOf("CLAUDECODE", "CLAUDE_CODE", "CLAUDE_CODE_ENTRYPOINT")),
+      InvokingAgentContextSignal(InstallAgent.CODEX, listOf("CODEX_SANDBOX", "CODEX_SANDBOX_ENV")),
+      InvokingAgentContextSignal(InstallAgent.CURSOR, listOf("CURSOR_AGENT", "CURSOR_INVOKED_AS")),
+    )
 
-  val INVOKING_AGENT_CONTEXT_SIGNALS: List<InvokingAgentContextSignal> = listOf(
-    InvokingAgentContextSignal(InstallAgent.CLAUDE, listOf("CLAUDECODE", "CLAUDE_CODE", "CLAUDE_CODE_ENTRYPOINT")),
-    InvokingAgentContextSignal(InstallAgent.CODEX, listOf("CODEX_SANDBOX", "CODEX_SANDBOX_ENV")),
-    InvokingAgentContextSignal(InstallAgent.CURSOR, listOf("CURSOR_AGENT", "CURSOR_INVOKED_AS")),
-  )
-
-  fun detect(environment: Map<String, String>): InstallAgent? = INVOKING_AGENT_CONTEXT_SIGNALS
-    .firstOrNull { signal -> signal.markerKeys.any { key -> environment[key]?.isNotBlank() == true } }
-    ?.agent
+  fun detect(environment: Map<String, String>): InstallAgent? =
+    INVOKING_AGENT_CONTEXT_SIGNALS
+      .firstOrNull { signal -> signal.markerKeys.any { key -> environment[key]?.isNotBlank() == true } }
+      ?.agent
 }
 
 data class InvokingAgentContextSignal(

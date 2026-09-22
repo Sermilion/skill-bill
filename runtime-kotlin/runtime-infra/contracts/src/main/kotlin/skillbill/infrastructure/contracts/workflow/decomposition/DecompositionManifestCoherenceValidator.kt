@@ -7,19 +7,27 @@ import java.math.BigDecimal
 import java.math.BigInteger
 
 internal object DecompositionManifestCoherenceValidator {
-  fun validate(manifest: Map<String, Any?>, sourceLabel: String) {
-    val stackBranches = (manifest[DecompositionPlanningPayloadKeys.STACK_BRANCHES] as? List<*>)
-      .orEmpty()
-      .mapNotNull { it as? Map<*, *> }
-    val subtasks = (manifest[DecompositionPlanningPayloadKeys.SUBTASKS] as? List<*>)
-      .orEmpty()
-      .mapNotNull { it as? Map<*, *> }
+  fun validate(
+    manifest: Map<String, Any?>,
+    sourceLabel: String,
+  ) {
+    val stackBranches =
+      (manifest[DecompositionPlanningPayloadKeys.STACK_BRANCHES] as? List<*>)
+        .orEmpty()
+        .mapNotNull { it as? Map<*, *> }
+    val subtasks =
+      (manifest[DecompositionPlanningPayloadKeys.SUBTASKS] as? List<*>)
+        .orEmpty()
+        .mapNotNull { it as? Map<*, *> }
     val subtaskIds = validateSubtasks(subtasks, sourceLabel)
     validateExecutionModel(manifest, subtasks, subtaskIds, stackBranches, sourceLabel)
     validateCurrentIntent(manifest, subtaskIds, sourceLabel)
   }
 
-  private fun validateSubtasks(subtasks: List<Map<*, *>>, sourceLabel: String): Set<Int> {
+  private fun validateSubtasks(
+    subtasks: List<Map<*, *>>,
+    sourceLabel: String,
+  ): Set<Int> {
     val subtaskIds = mutableSetOf<Int>()
     val specPaths = mutableSetOf<String>()
     subtasks.forEachIndexed { index, subtask ->
@@ -43,9 +51,10 @@ internal object DecompositionManifestCoherenceValidator {
     index: Int,
     sourceLabel: String,
   ) {
-    val dependencies = (subtask[DecompositionPlanningPayloadKeys.DEPENDENCIES] as? List<*>)
-      .orEmpty()
-      .mapNotNull { it as? Map<*, *> }
+    val dependencies =
+      (subtask[DecompositionPlanningPayloadKeys.DEPENDENCIES] as? List<*>)
+        .orEmpty()
+        .mapNotNull { it as? Map<*, *> }
     dependencies.forEachIndexed { depIndex, dependency ->
       val path = "subtasks[$index].dependencies[$depIndex].subtask_id"
       val dependencyId = dependency[SharedPayloadKeys.SUBTASK_ID].asExactInt(sourceLabel, path)
@@ -72,7 +81,11 @@ internal object DecompositionManifestCoherenceValidator {
     }
   }
 
-  private fun validateSameBranch(manifest: Map<String, Any?>, stackBranches: List<Map<*, *>>, sourceLabel: String) {
+  private fun validateSameBranch(
+    manifest: Map<String, Any?>,
+    stackBranches: List<Map<*, *>>,
+    sourceLabel: String,
+  ) {
     if (manifest[DecompositionManifestPayloadKeys.FEATURE_BRANCH]?.toString().orEmpty().isBlank()) {
       throw coherenceError(
         sourceLabel,
@@ -103,12 +116,14 @@ internal object DecompositionManifestCoherenceValidator {
         "stacked_branches manifests must set feature_branch to null.",
       )
     }
-    val expectedStackIds = subtasks.mapIndexed { index, subtask ->
-      subtask[DecompositionPlanningPayloadKeys.ID].asExactInt(sourceLabel, "subtasks[$index].id")
-    }
-    val actualStackIds = stackBranches.mapIndexed { index, branch ->
-      branch[SharedPayloadKeys.SUBTASK_ID].asExactInt(sourceLabel, "stack_branches[$index].subtask_id")
-    }
+    val expectedStackIds =
+      subtasks.mapIndexed { index, subtask ->
+        subtask[DecompositionPlanningPayloadKeys.ID].asExactInt(sourceLabel, "subtasks[$index].id")
+      }
+    val actualStackIds =
+      stackBranches.mapIndexed { index, branch ->
+        branch[SharedPayloadKeys.SUBTASK_ID].asExactInt(sourceLabel, "stack_branches[$index].subtask_id")
+      }
     if (actualStackIds != expectedStackIds || actualStackIds.toSet() != subtaskIds) {
       throw coherenceError(
         sourceLabel,
@@ -118,10 +133,15 @@ internal object DecompositionManifestCoherenceValidator {
     }
   }
 
-  private fun validateCurrentIntent(manifest: Map<String, Any?>, subtaskIds: Set<Int>, sourceLabel: String) {
+  private fun validateCurrentIntent(
+    manifest: Map<String, Any?>,
+    subtaskIds: Set<Int>,
+    sourceLabel: String,
+  ) {
     val intent = manifest[DecompositionManifestPayloadKeys.CURRENT_SUBTASK_INTENT] as? Map<*, *> ?: return
-    val intentId = intent[SharedPayloadKeys.SUBTASK_ID]
-      .asExactInt(sourceLabel, "current_subtask_intent.subtask_id")
+    val intentId =
+      intent[SharedPayloadKeys.SUBTASK_ID]
+        .asExactInt(sourceLabel, "current_subtask_intent.subtask_id")
     val intentAction = intent[DecompositionManifestPayloadKeys.ACTION]?.toString().orEmpty()
     val isTerminalAction = intentAction == "none" || intentAction == "complete"
     if (isTerminalAction && intentId != 0) {
@@ -144,34 +164,45 @@ internal object DecompositionManifestCoherenceValidator {
     sourceLabel: String,
     fieldPath: String,
     reason: String,
-  ): InvalidDecompositionManifestSchemaError = InvalidDecompositionManifestSchemaError(
-    sourceLabel = sourceLabel,
-    reason = "$fieldPath: $reason",
-    failureCode = "coherence_invalid",
-  )
+  ): InvalidDecompositionManifestSchemaError =
+    InvalidDecompositionManifestSchemaError(
+      sourceLabel = sourceLabel,
+      reason = "$fieldPath: $reason",
+      failureCode = "coherence_invalid",
+    )
 
-  private fun coherenceFailure(sourceLabel: String, fieldPath: String, reason: String): Nothing =
-    throw coherenceError(sourceLabel, fieldPath, reason)
+  private fun coherenceFailure(
+    sourceLabel: String,
+    fieldPath: String,
+    reason: String,
+  ): Nothing = throw coherenceError(sourceLabel, fieldPath, reason)
 
-  private fun Any?.asExactInt(sourceLabel: String, fieldPath: String): Int = when (this) {
-    is Byte -> toInt()
-    is Short -> toInt()
-    is Int -> this
-    is Long -> try {
-      Math.toIntExact(this)
-    } catch (_: ArithmeticException) {
-      null
-    }
-    is BigInteger -> try {
-      intValueExact()
-    } catch (_: ArithmeticException) {
-      null
-    }
-    is BigDecimal -> try {
-      toBigIntegerExact().intValueExact()
-    } catch (_: ArithmeticException) {
-      null
-    }
-    else -> null
-  } ?: coherenceFailure(sourceLabel, fieldPath, "Value must be an exact Kotlin Int.")
+  private fun Any?.asExactInt(
+    sourceLabel: String,
+    fieldPath: String,
+  ): Int =
+    when (this) {
+      is Byte -> toInt()
+      is Short -> toInt()
+      is Int -> this
+      is Long ->
+        try {
+          Math.toIntExact(this)
+        } catch (_: ArithmeticException) {
+          null
+        }
+      is BigInteger ->
+        try {
+          intValueExact()
+        } catch (_: ArithmeticException) {
+          null
+        }
+      is BigDecimal ->
+        try {
+          toBigIntegerExact().intValueExact()
+        } catch (_: ArithmeticException) {
+          null
+        }
+      else -> null
+    } ?: coherenceFailure(sourceLabel, fieldPath, "Value must be an exact Kotlin Int.")
 }

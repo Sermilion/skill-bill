@@ -32,9 +32,10 @@ class FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest {
   }
 
   private fun actualCensus(): Map<String, Int> {
-    val runLoopRoot = ArchitectureScanSupport.runtimeRoot.resolve(
-      "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask",
-    )
+    val runLoopRoot =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask",
+      )
     return ArchitectureScanSupport.kotlinFilesUnder(runLoopRoot)
       .filter { path -> path.name.startsWith("FeatureTaskRuntimeRunLoop") }
       .associate { path ->
@@ -43,14 +44,16 @@ class FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest {
   }
 
   private fun documentedCensus(): Map<String, CensusCounts> {
-    val architecture = ArchitectureScanSupport.runtimeRoot
-      .resolve("runtime-kotlin/ARCHITECTURE.md")
-      .readText()
+    val architecture =
+      ArchitectureScanSupport.runtimeRoot
+        .resolve("runtime-kotlin/ARCHITECTURE.md")
+        .readText()
     return DOCUMENTED_ROW.findAll(architecture).associate { match ->
-      match.groupValues[1] to CensusCounts(
-        current = match.groupValues[2].toInt(),
-        target = match.groupValues[3].toInt(),
-      )
+      match.groupValues[1] to
+        CensusCounts(
+          current = match.groupValues[2].toInt(),
+          target = match.groupValues[3].toInt(),
+        )
     }
   }
 

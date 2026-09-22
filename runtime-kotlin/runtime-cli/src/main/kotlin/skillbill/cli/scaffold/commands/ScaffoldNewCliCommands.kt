@@ -155,9 +155,9 @@ class CreateAndFillCommand(
   private val scaffoldGateway: ScaffoldGateway,
   private val unsupportedScaffoldGateway: UnsupportedScaffoldGateway,
 ) : DocumentedCliCommand(
-  "create-and-fill",
-  "Scaffold one governed skill, then immediately author content.md and validate it.",
-) {
+    "create-and-fill",
+    "Scaffold one governed skill, then immediately author content.md and validate it.",
+  ) {
   private val payload by option("--payload", help = "Path to a JSON payload file (or '-' for stdin).")
   private val interactive by option("--interactive", help = "Retired in SKILL-32; use --payload instead.")
     .flag(default = false)
@@ -179,13 +179,14 @@ class CreateAndFillCommand(
     state.result =
       createAndFillResult(
         CreateAndFillArgs(
-          content = CreateAndFillContentArgs(
-            payload = payload,
-            interactive = interactive,
-            body = body,
-            bodyFile = bodyFile,
-            editor = editor,
-          ),
+          content =
+            CreateAndFillContentArgs(
+              payload = payload,
+              interactive = interactive,
+              body = body,
+              bodyFile = bodyFile,
+              editor = editor,
+            ),
           dryRun = dryRun,
           format = format,
           state = state,
@@ -207,9 +208,9 @@ class NewAddonCommand(
   private val unsupportedScaffoldGateway: UnsupportedScaffoldGateway,
   private val externalAddonOverlayService: ExternalAddonOverlayService,
 ) : DocumentedCliCommand(
-  "new-addon",
-  "Create a governed add-on file inside an existing platform pack or external add-on source.",
-) {
+    "new-addon",
+    "Create a governed add-on file inside an existing platform pack or external add-on source.",
+  ) {
   private val platform by option("--platform", help = "Owning platform slug.")
   private val name by option(
     "--name",
@@ -226,8 +227,9 @@ class NewAddonCommand(
   )
   private val consumerSkillDirs by option(
     "--consumer-skill-dir",
-    help = "Advanced/scripted: skill-relative directory to register as an add-on consumer. May be repeated. " +
-      "Defaults to the pack baseline code-review skill.",
+    help =
+      "Advanced/scripted: skill-relative directory to register as an add-on consumer. May be repeated. " +
+        "Defaults to the pack baseline code-review skill.",
   ).multiple()
   private val interactive by option("--interactive", help = "Retired in SKILL-32; use explicit options instead.")
     .flag(default = false)

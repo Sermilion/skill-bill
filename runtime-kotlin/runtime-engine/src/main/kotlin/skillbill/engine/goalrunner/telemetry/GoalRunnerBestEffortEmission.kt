@@ -19,9 +19,10 @@ internal object GoalRunnerBestEffortEmission {
   ) {
     val result = runCancellable(write)
     when (val failure = result.exceptionOrNull()) {
-      null -> if (!result.getOrThrow()) {
-        recordWarning(diagnostics, missingMessage())
-      }
+      null ->
+        if (!result.getOrThrow()) {
+          recordWarning(diagnostics, missingMessage())
+        }
       else -> {
         rethrowIfCancellation(failure)
         recordWarning(diagnostics, failureMessage(failure), failure)
@@ -40,7 +41,11 @@ internal object GoalRunnerBestEffortEmission {
     }
   }
 
-  fun recordWarning(diagnostics: RuntimeDiagnostics, message: String, error: Throwable? = null) {
+  fun recordWarning(
+    diagnostics: RuntimeDiagnostics,
+    message: String,
+    error: Throwable? = null,
+  ) {
     RuntimeDiagnosticsBestEffortWarning.record(diagnostics, message, error)
   }
 }

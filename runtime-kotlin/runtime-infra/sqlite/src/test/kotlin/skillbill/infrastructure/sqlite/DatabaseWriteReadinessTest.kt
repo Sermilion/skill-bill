@@ -23,6 +23,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 @Execution(ExecutionMode.SAME_THREAD)
 class DatabaseWriteReadinessTest {
   @Test
@@ -41,11 +42,12 @@ class DatabaseWriteReadinessTest {
   fun `repeated write acquisitions succeed on a warmed database`() {
     val tempDir = Files.createTempDirectory("skillbill-write-readiness")
     val dbPath = tempDir.resolve("metrics.db")
-    val database = sqliteSessionFactoryForTests(
-      userHome = tempDir,
-      dbPathOverride = dbPath.toString(),
-      environment = emptyMap(),
-    )
+    val database =
+      sqliteSessionFactoryForTests(
+        userHome = tempDir,
+        dbPathOverride = dbPath.toString(),
+        environment = emptyMap(),
+      )
 
     database.transaction { unitOfWork ->
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-readiness-1"))
@@ -88,10 +90,11 @@ class DatabaseWriteReadinessTest {
     gate.ensureReady(dbPath)
     val afterInit = executions
     val initialIdentity = assertNotNull(DatabaseIdentity.read(dbPath))
-    val appendedMigration = DatabaseMigration(
-      version = DatabaseMigrations.migrations.maxOf { migration -> migration.version } + 1,
-      name = "test-only-appended-readiness-migration",
-    ) {}
+    val appendedMigration =
+      DatabaseMigration(
+        version = DatabaseMigrations.migrations.maxOf { migration -> migration.version } + 1,
+        name = "test-only-appended-readiness-migration",
+      ) {}
 
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
       DatabaseMigrations.apply(
@@ -142,9 +145,10 @@ class DatabaseWriteReadinessTest {
     var establishments = 0
     val gate = DatabaseWriteReadinessGate { establishments += 1 }
 
-    val error = assertFailsWith<DatabaseAccessError> {
-      gate.ensureReady(dbPath)
-    }
+    val error =
+      assertFailsWith<DatabaseAccessError> {
+        gate.ensureReady(dbPath)
+      }
     assertEquals(DatabaseAccessOperation.READ, error.operation)
     assertEquals(0, establishments)
   }
@@ -154,11 +158,12 @@ class DatabaseWriteReadinessTest {
     val tempDir = Files.createTempDirectory("skillbill-write-readiness-failure")
     val invalidPath = tempDir.resolve("metrics.db")
     Files.createDirectory(invalidPath)
-    val database = sqliteSessionFactoryForTests(
-      userHome = tempDir,
-      dbPathOverride = invalidPath.toString(),
-      environment = emptyMap(),
-    )
+    val database =
+      sqliteSessionFactoryForTests(
+        userHome = tempDir,
+        dbPathOverride = invalidPath.toString(),
+        environment = emptyMap(),
+      )
 
     assertFailsWith<DatabaseAccessError> {
       database.transaction { Unit }
@@ -173,24 +178,28 @@ class DatabaseWriteReadinessTest {
     )
   }
 
-  private fun relocateDatabaseFromPath(dbPath: Path, archivePath: Path) {
+  private fun relocateDatabaseFromPath(
+    dbPath: Path,
+    archivePath: Path,
+  ) {
     Files.deleteIfExists(archivePath)
     Files.move(dbPath, archivePath, StandardCopyOption.ATOMIC_MOVE)
   }
 
-  private fun sampleWorkflow(workflowId: String): WorkflowStateRecord = WorkflowStateRecord(
-    workflowId = workflowId,
-    sessionId = "session-$workflowId",
-    workflowName = "bill-feature-task",
-    contractVersion = "0.3",
-    workflowStatus = WorkflowStatus.PENDING.wireValue,
-    currentStepId = "plan",
-    stepsJson = "[]",
-    artifactsJson = "{}",
-    issueKey = "SKILL-356",
-    startedAt = "2026-09-18T00:00:00Z",
-    updatedAt = "2026-09-18T00:00:00Z",
-    finishedAt = null,
-    mode = FeatureTaskWorkflowMode.RUNTIME,
-  )
+  private fun sampleWorkflow(workflowId: String): WorkflowStateRecord =
+    WorkflowStateRecord(
+      workflowId = workflowId,
+      sessionId = "session-$workflowId",
+      workflowName = "bill-feature-task",
+      contractVersion = "0.3",
+      workflowStatus = WorkflowStatus.PENDING.wireValue,
+      currentStepId = "plan",
+      stepsJson = "[]",
+      artifactsJson = "{}",
+      issueKey = "SKILL-356",
+      startedAt = "2026-09-18T00:00:00Z",
+      updatedAt = "2026-09-18T00:00:00Z",
+      finishedAt = null,
+      mode = FeatureTaskWorkflowMode.RUNTIME,
+    )
 }

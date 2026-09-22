@@ -75,49 +75,53 @@ internal fun TriageResult.toCliNumberedFindingsPresentation(reviewRunId: String)
   CliNumberedFindingsPresentation(
     reviewRunId = reviewRunId,
     findings =
-    findings.map { finding ->
-      CliNumberedFindingLine(
-        number = finding.number,
-        findingId = finding.findingId,
-        severity = finding.severity,
-        confidence = finding.confidence,
-        location = finding.location,
-        description = finding.description,
-        claimVerdict = finding.claimVerdict?.wireValue,
-        scopeDisposition = finding.scopeDisposition?.wireValue,
-        severityAdjustment = finding.severityAdjustment?.let { adjustment ->
-          "${adjustment.direction.wireValue}: ${adjustment.justification}"
-        },
-      )
-    },
+      findings.map { finding ->
+        CliNumberedFindingLine(
+          number = finding.number,
+          findingId = finding.findingId,
+          severity = finding.severity,
+          confidence = finding.confidence,
+          location = finding.location,
+          description = finding.description,
+          claimVerdict = finding.claimVerdict?.wireValue,
+          scopeDisposition = finding.scopeDisposition?.wireValue,
+          severityAdjustment =
+            finding.severityAdjustment?.let { adjustment ->
+              "${adjustment.direction.wireValue}: ${adjustment.justification}"
+            },
+        )
+      },
   )
 
-internal fun TriageResult.toCliTriagePresentation(reviewRunId: String): CliTriagePresentation = CliTriagePresentation(
-  reviewRunId = reviewRunId,
-  decisions =
-  recorded.map { decision ->
-    CliTriageDecisionLine(
-      number = decision.number,
-      findingId = decision.findingId,
-      outcomeType = decision.outcomeType,
-      note = decision.note,
-    )
-  },
-)
+internal fun TriageResult.toCliTriagePresentation(reviewRunId: String): CliTriagePresentation =
+  CliTriagePresentation(
+    reviewRunId = reviewRunId,
+    decisions =
+      recorded.map { decision ->
+        CliTriageDecisionLine(
+          number = decision.number,
+          findingId = decision.findingId,
+          outcomeType = decision.outcomeType,
+          note = decision.note,
+        )
+      },
+  )
 
-private fun LearningEntry.toCliLearningLine(): CliLearningLine = CliLearningLine(
-  reference = reference,
-  status = status,
-  scopeLabel = scopedLabel(),
-  title = title,
-)
+private fun LearningEntry.toCliLearningLine(): CliLearningLine =
+  CliLearningLine(
+    reference = reference,
+    status = status,
+    scopeLabel = scopedLabel(),
+    title = title,
+  )
 
-private fun LearningEntry.toCliResolvedLearningLine(): CliResolvedLearningLine = CliResolvedLearningLine(
-  reference = reference,
-  scopeLabel = scopedLabel(),
-  title = title,
-  ruleText = ruleText,
-)
+private fun LearningEntry.toCliResolvedLearningLine(): CliResolvedLearningLine =
+  CliResolvedLearningLine(
+    reference = reference,
+    scopeLabel = scopedLabel(),
+    title = title,
+    ruleText = ruleText,
+  )
 
 private fun LearningEntry.scopedLabel(): String =
   if (scopeKey.isNotEmpty()) "${scope.wireName}:$scopeKey" else scope.wireName

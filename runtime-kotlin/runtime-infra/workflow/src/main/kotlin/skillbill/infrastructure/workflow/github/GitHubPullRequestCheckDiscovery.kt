@@ -19,8 +19,9 @@ class GitHubPullRequestCheckDiscovery : PrCheckDiscovery {
       PrCheckDiscoveryResult.Discovered(emptyList())
     } else {
       runCatching {
-        val files = workflowsDir.toFile().listFiles()
-          ?: error("Could not read governed workflow directory '$workflowsDir'.")
+        val files =
+          workflowsDir.toFile().listFiles()
+            ?: error("Could not read governed workflow directory '$workflowsDir'.")
         val mapper = YAMLMapper()
         files.asSequence()
           .filter { it.toPath().isRegularFile() && it.toPath().extension in WORKFLOW_EXTENSIONS }
@@ -37,7 +38,10 @@ class GitHubPullRequestCheckDiscovery : PrCheckDiscovery {
     }
   }
 
-  private fun discoverFromWorkflow(workflowSlug: String, root: JsonNode): DiscoveredPrCheck? {
+  private fun discoverFromWorkflow(
+    workflowSlug: String,
+    root: JsonNode,
+  ): DiscoveredPrCheck? {
     val pathsNode = workflowEvents(root).path("pull_request").path("paths")
     if (!pathsNode.isArray || pathsNode.isEmpty) return null
     val pathPatterns = pathsNode.mapNotNull { node -> node.asText(null)?.trim()?.takeIf(String::isNotBlank) }
@@ -59,10 +63,11 @@ class GitHubPullRequestCheckDiscovery : PrCheckDiscovery {
     error("pull_request workflow with paths has no eligible check job.")
   }
 
-  private fun workflowEvents(root: JsonNode): JsonNode = root.fields().asSequence()
-    .firstOrNull { (key, _) -> key == "on" || key == "true" }
-    ?.value
-    ?: root.path("on")
+  private fun workflowEvents(root: JsonNode): JsonNode =
+    root.fields().asSequence()
+      .firstOrNull { (key, _) -> key == "on" || key == "true" }
+      ?.value
+      ?: root.path("on")
 
   private fun jobEligibleForPullRequest(job: JsonNode): Boolean {
     val condition = job.path("if").asText("").trim()

@@ -4,28 +4,29 @@ import skillbill.infrastructure.skills.scaffold.platformpack.manifest.anchoredTo
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-class PlatformPackSchemaAnchoredBijectionTest {
 
-  private val expectedAnchoredFields: Set<String> = setOf(
-    "platform",
-    "contract_version",
-    "display_name",
-    "notes",
-    "routing_signals",
-    "declared_code_review_areas",
-    "declared_files",
-    "area_metadata",
-    "declared_quality_check_file",
-    "validation_gate",
-    "code_review_composition",
-    "fallback_capabilities",
-    "pointers",
-    "addon_usage",
-    "feature_addon_usage",
-    "lane_conditions",
-    "required_rubric_companions",
-    "validation_gate",
-  )
+class PlatformPackSchemaAnchoredBijectionTest {
+  private val expectedAnchoredFields: Set<String> =
+    setOf(
+      "platform",
+      "contract_version",
+      "display_name",
+      "notes",
+      "routing_signals",
+      "declared_code_review_areas",
+      "declared_files",
+      "area_metadata",
+      "declared_quality_check_file",
+      "validation_gate",
+      "code_review_composition",
+      "fallback_capabilities",
+      "pointers",
+      "addon_usage",
+      "feature_addon_usage",
+      "lane_conditions",
+      "required_rubric_companions",
+      "validation_gate",
+    )
 
   @Test
   fun `schema anchored set matches Kotlin runtime-consumed top-level fields`() {

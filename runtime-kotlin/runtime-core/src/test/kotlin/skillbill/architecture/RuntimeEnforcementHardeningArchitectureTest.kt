@@ -21,19 +21,20 @@ class RuntimeEnforcementHardeningArchitectureTest {
 
   @Test
   fun `application domain and ports do not embed inline fully-qualified adapter or infrastructure references`() {
-    val violations = SOURCE_TEXT_LAYER_RULES.flatMap { (sourceRoot, forbiddenPrefixes) ->
-      val sourceFiles = kotlinFilesUnder(runtimeRoot.resolve(sourceRoot))
-      assertTrue(
-        sourceFiles.isNotEmpty(),
-        "Guarded source root '$sourceRoot' must resolve to at least one .kt file; a renamed or absent " +
-          "root would silently make this AC1 inline-FQN guard vacuous (kotlinFilesUnder returns empty).",
-      )
-      sourceFiles.flatMap { sourceFile ->
-        bannedInlineReferences(sourceFile.readText(), forbiddenPrefixes).map { reference ->
-          "${runtimeRoot.relativize(sourceFile)} contains inline reference $reference"
+    val violations =
+      SOURCE_TEXT_LAYER_RULES.flatMap { (sourceRoot, forbiddenPrefixes) ->
+        val sourceFiles = kotlinFilesUnder(runtimeRoot.resolve(sourceRoot))
+        assertTrue(
+          sourceFiles.isNotEmpty(),
+          "Guarded source root '$sourceRoot' must resolve to at least one .kt file; a renamed or absent " +
+            "root would silently make this AC1 inline-FQN guard vacuous (kotlinFilesUnder returns empty).",
+        )
+        sourceFiles.flatMap { sourceFile ->
+          bannedInlineReferences(sourceFile.readText(), forbiddenPrefixes).map { reference ->
+            "${runtimeRoot.relativize(sourceFile)} contains inline reference $reference"
+          }
         }
-      }
-    }.sorted()
+      }.sorted()
 
     assertEquals(
       emptyList(),
@@ -93,27 +94,30 @@ class RuntimeEnforcementHardeningArchitectureTest {
 
   @Test
   fun `pure layers must not import concrete schema or coherence validators`() {
-    val guardedSourceRoots = listOf(
-      "runtime-domain/src/main/kotlin/skillbill/install",
-      "runtime-domain/src/main/kotlin/skillbill/workflow",
-      "runtime-application/src/main/kotlin",
-    )
-    val scannedFiles = guardedSourceRoots
-      .map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
-      .flatMap(::kotlinFilesUnder)
+    val guardedSourceRoots =
+      listOf(
+        "runtime-domain/src/main/kotlin/skillbill/install",
+        "runtime-domain/src/main/kotlin/skillbill/workflow",
+        "runtime-application/src/main/kotlin",
+      )
+    val scannedFiles =
+      guardedSourceRoots
+        .map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
+        .flatMap(::kotlinFilesUnder)
     assertTrue(
       scannedFiles.size >= guardedSourceRoots.size,
       "Each guarded source root must resolve to at least one .kt file; a renamed or absent root would " +
         "silently make this AC3 guard vacuous. Guarded roots: $guardedSourceRoots",
     )
-    val violations = scannedFiles
-      .flatMap { sourceFile ->
-        importedNames(sourceFile.readText())
-          .filter(::isSchemaOrCoherenceValidatorImport)
-          .map { importedName -> "${runtimeRoot.relativize(sourceFile)} imports $importedName" }
-          .toList()
-      }
-      .sorted()
+    val violations =
+      scannedFiles
+        .flatMap { sourceFile ->
+          importedNames(sourceFile.readText())
+            .filter(::isSchemaOrCoherenceValidatorImport)
+            .map { importedName -> "${runtimeRoot.relativize(sourceFile)} imports $importedName" }
+            .toList()
+        }
+        .sorted()
 
     assertEquals(
       emptyList(),
@@ -128,11 +132,11 @@ class RuntimeEnforcementHardeningArchitectureTest {
   fun `validator-import extraction strips aliases before applying the ban predicate`() {
     val aliasedImportSource =
       """
-      package skillbill.application
+            package skillbill.application
 
-import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as IPV
+      import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as IPV
 
-      class Leaky
+            class Leaky
       """.trimIndent()
     val flagged = importedNames(aliasedImportSource).filter(::isSchemaOrCoherenceValidatorImport)
     assertEquals(
@@ -153,13 +157,14 @@ import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as 
       "runtime-contracts main source must resolve to at least one .kt file; a renamed or absent root would " +
         "silently make this concrete-validator placement guard vacuous.",
     )
-    val violations = sourceFiles
-      .flatMap { sourceFile ->
-        concreteContractValidatorDeclarations(sourceFile.readText()).map { declaration ->
-          "${runtimeRoot.relativize(sourceFile)} declares $declaration"
+    val violations =
+      sourceFiles
+        .flatMap { sourceFile ->
+          concreteContractValidatorDeclarations(sourceFile.readText()).map { declaration ->
+            "${runtimeRoot.relativize(sourceFile)} declares $declaration"
+          }
         }
-      }
-      .sorted()
+        .sorted()
 
     assertEquals(
       emptyList(),
@@ -194,7 +199,10 @@ import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as 
     )
   }
 
-  private fun bannedInlineReferences(source: String, forbiddenPrefixes: List<String>): List<String> =
+  private fun bannedInlineReferences(
+    source: String,
+    forbiddenPrefixes: List<String>,
+  ): List<String> =
     source.lineSequence()
       .filterNot { line ->
         val trimmed = line.trim()
@@ -211,22 +219,24 @@ import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as 
       .distinct()
       .toList()
 
-  private fun importedNames(source: String): List<String> = IMPORT_PATTERN.findAll(source)
-    .map { match -> match.groupValues[1].substringBefore(" as ").trim() }
-    .toList()
+  private fun importedNames(source: String): List<String> =
+    IMPORT_PATTERN.findAll(source)
+      .map { match -> match.groupValues[1].substringBefore(" as ").trim() }
+      .toList()
 
-  private fun concreteContractValidatorDeclarations(source: String): List<String> = PACKAGE_PATTERN.find(source)
-    ?.groupValues
-    ?.get(1)
-    ?.takeIf { packageName -> packageName.startsWith("skillbill.contracts.") }
-    ?.let { packageName ->
-      topLevelDeclarationNames(source)
-        .filter { declaration ->
-          declaration.name.endsWith("SchemaValidator") || declaration.name.endsWith("CoherenceValidator")
-        }
-        .map { declaration -> "$packageName.${declaration.name}" }
-    }
-    .orEmpty()
+  private fun concreteContractValidatorDeclarations(source: String): List<String> =
+    PACKAGE_PATTERN.find(source)
+      ?.groupValues
+      ?.get(1)
+      ?.takeIf { packageName -> packageName.startsWith("skillbill.contracts.") }
+      ?.let { packageName ->
+        topLevelDeclarationNames(source)
+          .filter { declaration ->
+            declaration.name.endsWith("SchemaValidator") || declaration.name.endsWith("CoherenceValidator")
+          }
+          .map { declaration -> "$packageName.${declaration.name}" }
+      }
+      .orEmpty()
 
   private fun topLevelDeclarationNames(source: String): List<KotlinDeclaration> {
     var braceDepth = 0
@@ -276,9 +286,10 @@ import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as 
     return SourceLine(output.toString(), inBlockComment)
   }
 
-  private fun SourceLine.topLevelConcreteDeclaration(): KotlinDeclaration? = TOP_LEVEL_DECLARATION_PATTERN.find(text)
-    ?.toKotlinDeclaration()
-    ?.takeIf(KotlinDeclaration::isConcrete)
+  private fun SourceLine.topLevelConcreteDeclaration(): KotlinDeclaration? =
+    TOP_LEVEL_DECLARATION_PATTERN.find(text)
+      ?.toKotlinDeclaration()
+      ?.takeIf(KotlinDeclaration::isConcrete)
 
   private fun kotlinFilesUnder(root: Path): List<Path> {
     if (!Files.exists(root)) return emptyList()
@@ -290,6 +301,7 @@ import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as 
   }
 
   private data class SourceLine(val text: String, val inBlockComment: Boolean)
+
   private data class KotlinDeclaration(val modifiers: Set<String>, val kind: String, val name: String) {
     val isConcrete: Boolean
       get() = kind != "interface" && "abstract" !in modifiers && "sealed" !in modifiers
@@ -303,36 +315,41 @@ import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as 
           """(class|object|interface)\s+([A-Za-z_][A-Za-z0-9_]*)\b""",
       )
 
-    fun MatchResult.toKotlinDeclaration(): KotlinDeclaration = KotlinDeclaration(
-      modifiers = groupValues[1].split(Regex("""\s+""")).filter { modifier -> modifier.isNotBlank() }.toSet(),
-      kind = groupValues[2],
-      name = groupValues[3],
-    )
+    fun MatchResult.toKotlinDeclaration(): KotlinDeclaration =
+      KotlinDeclaration(
+        modifiers = groupValues[1].split(Regex("""\s+""")).filter { modifier -> modifier.isNotBlank() }.toSet(),
+        kind = groupValues[2],
+        name = groupValues[3],
+      )
 
     val IMPORT_PATTERN: Regex = Regex("""^import\s+([A-Za-z0-9_.*]+)""", RegexOption.MULTILINE)
 
-    val SOURCE_TEXT_LAYER_RULES: Map<String, List<String>> = mapOf(
-      "runtime-application/src/main/kotlin" to listOf(
-        "skillbill.cli",
-        "skillbill.mcp",
-        "skillbill.db",
-        "skillbill.di",
-        "skillbill.infrastructure",
-      ),
-      "runtime-domain/src/main/kotlin" to listOf(
-        "skillbill.cli",
-        "skillbill.mcp",
-        "skillbill.db",
-        "skillbill.di",
-        "skillbill.infrastructure",
-      ),
-      "runtime-ports/src/main/kotlin" to listOf(
-        "skillbill.cli",
-        "skillbill.mcp",
-        "skillbill.db",
-        "skillbill.di",
-        "skillbill.infrastructure",
-      ),
-    )
+    val SOURCE_TEXT_LAYER_RULES: Map<String, List<String>> =
+      mapOf(
+        "runtime-application/src/main/kotlin" to
+          listOf(
+            "skillbill.cli",
+            "skillbill.mcp",
+            "skillbill.db",
+            "skillbill.di",
+            "skillbill.infrastructure",
+          ),
+        "runtime-domain/src/main/kotlin" to
+          listOf(
+            "skillbill.cli",
+            "skillbill.mcp",
+            "skillbill.db",
+            "skillbill.di",
+            "skillbill.infrastructure",
+          ),
+        "runtime-ports/src/main/kotlin" to
+          listOf(
+            "skillbill.cli",
+            "skillbill.mcp",
+            "skillbill.db",
+            "skillbill.di",
+            "skillbill.infrastructure",
+          ),
+      )
   }
 }

@@ -5,6 +5,7 @@ import skillbill.error.core.SkillBillRuntimeException
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
+
 class RuntimeOwnedFactUnavailable(
   message: String,
   cause: Throwable? = null,
@@ -18,31 +19,54 @@ class RuntimeOwnedPersistenceBoundary(
 
   fun <T> transaction(block: (UnitOfWork) -> T): T = database.transaction { unitOfWork -> block(unitOfWork) }
 
-  fun <T> requiredRead(seam: String, expected: String, block: (UnitOfWork) -> T): T =
+  fun <T> requiredRead(
+    seam: String,
+    expected: String,
+    block: (UnitOfWork) -> T,
+  ): T =
     invokeOrHandle({ fail(seam, expected, "read_error", it) }) {
       read(block)
     }
 
-  fun <T> requiredWrite(seam: String, expected: String, block: (UnitOfWork) -> T): T =
+  fun <T> requiredWrite(
+    seam: String,
+    expected: String,
+    block: (UnitOfWork) -> T,
+  ): T =
     invokeOrHandle({ fail(seam, expected, "blocked", it) }) {
       transaction(block)
     }
 
-  fun <T> optionalRead(seam: String, expected: String, fallback: T, block: (UnitOfWork) -> T): T = invokeOrHandle({
-    recordFailure(seam, expected, "degraded", it)
-    fallback
-  }) {
-    read(block)
-  }
+  fun <T> optionalRead(
+    seam: String,
+    expected: String,
+    fallback: T,
+    block: (UnitOfWork) -> T,
+  ): T =
+    invokeOrHandle({
+      recordFailure(seam, expected, "degraded", it)
+      fallback
+    }) {
+      read(block)
+    }
 
-  fun <T> optionalWrite(seam: String, expected: String, fallback: T, block: (UnitOfWork) -> T): T = invokeOrHandle({
-    recordFailure(seam, expected, "degraded", it)
-    fallback
-  }) {
-    transaction(block)
-  }
+  fun <T> optionalWrite(
+    seam: String,
+    expected: String,
+    fallback: T,
+    block: (UnitOfWork) -> T,
+  ): T =
+    invokeOrHandle({
+      recordFailure(seam, expected, "degraded", it)
+      fallback
+    }) {
+      transaction(block)
+    }
 
-  private inline fun <T> invokeOrHandle(onFailure: (Exception) -> T, block: () -> T): T {
+  private inline fun <T> invokeOrHandle(
+    onFailure: (Exception) -> T,
+    block: () -> T,
+  ): T {
     val outcome = runCatching(block)
     val error = outcome.exceptionOrNull() ?: return outcome.getOrThrow()
     error.rethrowIfCooperativeCancellationOrInterruption()
@@ -52,7 +76,12 @@ class RuntimeOwnedPersistenceBoundary(
     throw error
   }
 
-  private fun fail(seam: String, expected: String, used: String, error: Exception): Nothing {
+  private fun fail(
+    seam: String,
+    expected: String,
+    used: String,
+    error: Exception,
+  ): Nothing {
     val cause = causeOf(error)
     recordFailure(seam, expected, used, error)
     throw RuntimeOwnedFactUnavailable(
@@ -61,7 +90,12 @@ class RuntimeOwnedPersistenceBoundary(
     )
   }
 
-  private fun recordFailure(seam: String, expected: String, used: String, error: Exception) {
+  private fun recordFailure(
+    seam: String,
+    expected: String,
+    used: String,
+    error: Exception,
+  ) {
     val cause = causeOf(error)
     runCatching {
       diagnostics.warning(

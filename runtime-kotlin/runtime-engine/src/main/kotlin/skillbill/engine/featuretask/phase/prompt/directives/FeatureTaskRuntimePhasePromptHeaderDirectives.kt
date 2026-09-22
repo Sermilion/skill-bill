@@ -6,6 +6,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatu
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowQueries
+
 const val PHASE_PROMPT_TEMPLATE_INDENT = "      "
 
 val forwardPhaseOrder: String =
@@ -13,7 +14,10 @@ val forwardPhaseOrder: String =
     .filterNot { it in FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlyPhaseIds }
     .joinToString(" -> ")
 
-fun operatorBlockRetryDirective(phaseId: String, retry: FeatureTaskRuntimeOperatorBlockRetry?): String {
+fun operatorBlockRetryDirective(
+  phaseId: String,
+  retry: FeatureTaskRuntimeOperatorBlockRetry?,
+): String {
   if (retry == null) return ""
   require(retry.phaseId == phaseId) {
     "Operator blocked-phase retry guidance for '${retry.phaseId}' cannot be delivered to phase '$phaseId'."
@@ -24,23 +28,24 @@ fun operatorBlockRetryDirective(phaseId: String, retry: FeatureTaskRuntimeOperat
     ${retry.reason}
     Re-evaluate the current repository state using this decision. Do not repeat the superseded block solely
     because of the prior interpretation. The governed acceptance criteria and output contract still apply.
-  """.trimIndent()
+    """.trimIndent()
 }
 
 fun phasePromptHeader(inputs: PhasePromptHeaderInputs): String {
   val label = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepLabels[inputs.phaseId] ?: inputs.phaseId
-  val directive = phaseTaskDirective(
-    inputs.phaseId,
-    PhaseTaskDirectiveArgs(
-      agentRunValidateFallback = inputs.agentRunValidateFallback,
-      packCollectAllCommand = inputs.packCollectAllCommand,
-      packConfirmationGateCommand = inputs.packConfirmationGateCommand,
-      packBuildCommand = inputs.packBuildCommand,
-      validationGateRepair = inputs.validationGateRepair,
-      validationGateTriage = inputs.validationGateTriage,
-      acceptanceCriteria = inputs.acceptanceCriteria,
-    ),
-  )
+  val directive =
+    phaseTaskDirective(
+      inputs.phaseId,
+      PhaseTaskDirectiveArgs(
+        agentRunValidateFallback = inputs.agentRunValidateFallback,
+        packCollectAllCommand = inputs.packCollectAllCommand,
+        packConfirmationGateCommand = inputs.packConfirmationGateCommand,
+        packBuildCommand = inputs.packBuildCommand,
+        validationGateRepair = inputs.validationGateRepair,
+        validationGateTriage = inputs.validationGateTriage,
+        acceptanceCriteria = inputs.acceptanceCriteria,
+      ),
+    )
   return buildString {
     appendLine("You are executing exactly one phase of the EXPERIMENTAL skill-bill feature-task-runtime")
     appendLine("loop ($forwardPhaseOrder)")
@@ -53,7 +58,8 @@ fun phasePromptHeader(inputs: PhasePromptHeaderInputs): String {
   }
 }
 
-fun installedRuntimeAuthorityDirective(): String = """
+fun installedRuntimeAuthorityDirective(): String =
+  """
   ## Installed runtime is the contract source
   This briefing was composed by the installed Skill Bill runtime that will validate your output.
   Use the contract_version, envelope fields, skills, packs, and commands it names.
@@ -61,26 +67,27 @@ fun installedRuntimeAuthorityDirective(): String = """
   this workspace to override them. When this repository is skill-bill, those files are the change
   under work, not the validator. If you must inspect a schema, inspect the installed runtime copy,
   never this checkout.
-""".trimIndent()
+  """.trimIndent()
 
 fun ceremonyDirective(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
   val featureSize = FeatureTaskRuntimeFeatureSize.fromWire(briefing.featureSize)
   val scaling = FeatureTaskRuntimePhaseWorkflowQueries.ceremonyScaling(featureSize)
   val reviewScope = scaling.reviewScope.wireValue
-  val phaseSpecific = when (briefing.phaseId) {
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN ->
-      "Apply ${scaling.preplanCeremony.promptLabel}. Keep the gate real: identify concrete scope, " +
-        "affected boundaries, risks, and unknowns at the requested depth."
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
-      "The runtime owns ${scaling.reviewScope.promptLabel}. Keep the review gate real: inspect the implemented " +
-        "change for defects and record concrete file references."
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
-      "Apply ${scaling.auditCeremony.promptLabel}. Keep the audit gate real: verify every acceptance " +
-        "criterion in scope for implementation and meaningful test coverage, repair fixable gaps in this " +
-        "same session, and re-check the in-scope list before completion."
-    else ->
-      "Use the resolved feature size for ceremony expectations; all runtime gates remain mandatory."
-  }
+  val phaseSpecific =
+    when (briefing.phaseId) {
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN ->
+        "Apply ${scaling.preplanCeremony.promptLabel}. Keep the gate real: identify concrete scope, " +
+          "affected boundaries, risks, and unknowns at the requested depth."
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
+        "The runtime owns ${scaling.reviewScope.promptLabel}. Keep the review gate real: inspect the implemented " +
+          "change for defects and record concrete file references."
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
+        "Apply ${scaling.auditCeremony.promptLabel}. Keep the audit gate real: verify every acceptance " +
+          "criterion in scope for implementation and meaningful test coverage, repair fixable gaps in this " +
+          "same session, and re-check the in-scope list before completion."
+      else ->
+        "Use the resolved feature size for ceremony expectations; all runtime gates remain mandatory."
+    }
   return """
     ## Runtime ceremony scaling
     feature_size: ${featureSize.name}
@@ -90,5 +97,5 @@ fun ceremonyDirective(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
     $phaseSpecific
     Scaling changes scope and verbosity only; it must not skip or weaken review, audit, validation,
     schema, branch, history, commit, or PR gates.
-  """.trimIndent()
+    """.trimIndent()
 }

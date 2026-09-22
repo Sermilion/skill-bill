@@ -42,24 +42,27 @@ private fun DefaultGoalPlanningSweep.missingPlanSet(
   descriptors: List<GovernedGoalSubtaskDescriptor>,
 ): MissingPlanSet {
   val shared = args.shared
-  val recovery = runCatching {
-    checkpoint.recoveryProgress(
-      args.identity,
-      descriptors,
-      args.provenance,
-    ).missingSubtaskIds
-  }
+  val recovery =
+    runCatching {
+      checkpoint.recoveryProgress(
+        args.identity,
+        descriptors,
+        args.provenance,
+      ).missingSubtaskIds
+    }
   val error = recovery.exceptionOrNull() ?: return MissingPlanSet(subtaskIds = recovery.getOrThrow())
   val subtaskId = recoverySubtaskId(error)
-  val phaseId = GoalPlanningSweepConstants.PHASE_PLAN.takeIf { subtaskId != 0 }
-    ?: GoalPlanningSweepConstants.PHASE_PREPLAN
+  val phaseId =
+    GoalPlanningSweepConstants.PHASE_PLAN.takeIf { subtaskId != 0 }
+      ?: GoalPlanningSweepConstants.PHASE_PREPLAN
   return MissingPlanSet(
-    outcome = stopped(
-      shared,
-      subtaskId,
-      preparationStateReadReason(error, shared.issueKey, subtaskId),
-      phaseId,
-    ),
+    outcome =
+      stopped(
+        shared,
+        subtaskId,
+        preparationStateReadReason(error, shared.issueKey, subtaskId),
+        phaseId,
+      ),
   )
 }
 
@@ -70,12 +73,13 @@ private fun DefaultGoalPlanningSweep.dispatchPlanWaves(
 ): GoalPlanningSweepOutcome? {
   val shared = args.shared
   val phasePlan = GoalPlanningSweepConstants.PHASE_PLAN
-  val waveArgs = PlanWaveArgs(
-    produce = args,
-    descriptors = descriptors,
-    subtasksById = args.activeSubtasks.associateBy(DecompositionSubtask::id),
-    wave = emptyList(),
-  )
+  val waveArgs =
+    PlanWaveArgs(
+      produce = args,
+      descriptors = descriptors,
+      subtasksById = args.activeSubtasks.associateBy(DecompositionSubtask::id),
+      wave = emptyList(),
+    )
   val waves = missingSubtaskIds.chunked(burstSchedule.planFanOutCap)
   var outcome: GoalPlanningSweepOutcome? = null
   for ((index, wave) in waves.withIndex()) {
@@ -109,8 +113,9 @@ private fun DefaultGoalPlanningSweep.producePlanUnit(
 ): GoalPlanningSweepOutcome.Stopped? {
   val produce = args.produce
   val shared = produce.shared
-  val subtask = args.subtasksById[subtaskId]
-    ?: return stopped(shared, subtaskId, noSuchSubtaskReason(subtaskId))
+  val subtask =
+    args.subtasksById[subtaskId]
+      ?: return stopped(shared, subtaskId, noSuchSubtaskReason(subtaskId))
   val sink = SubtaskAttributedOutputSink(fanOutPort, produce.request.outputSink, subtaskId)
   return try {
     producePlan(
@@ -131,7 +136,10 @@ private class SubtaskAttributedOutputSink(
   private val attribution = "[subtask $subtaskId] "
   private val pending = mutableMapOf<AgentRunOutputStream, StringBuilder>()
 
-  override fun write(stream: AgentRunOutputStream, text: String) = fanOutPort.runExclusively {
+  override fun write(
+    stream: AgentRunOutputStream,
+    text: String,
+  ) = fanOutPort.runExclusively {
     val buffer = pending.getOrPut(stream) { StringBuilder() }.append(text)
     var newline = buffer.indexOf("\n")
     while (newline >= 0) {
@@ -142,12 +150,13 @@ private class SubtaskAttributedOutputSink(
     }
   }
 
-  fun flushTrailingLines() = fanOutPort.runExclusively {
-    pending.forEach { (stream, buffer) ->
-      if (buffer.isNotEmpty()) {
-        delegate.write(stream, attribution + buffer + "\n")
-        buffer.setLength(0)
+  fun flushTrailingLines() =
+    fanOutPort.runExclusively {
+      pending.forEach { (stream, buffer) ->
+        if (buffer.isNotEmpty()) {
+          delegate.write(stream, attribution + buffer + "\n")
+          buffer.setLength(0)
+        }
       }
     }
-  }
 }

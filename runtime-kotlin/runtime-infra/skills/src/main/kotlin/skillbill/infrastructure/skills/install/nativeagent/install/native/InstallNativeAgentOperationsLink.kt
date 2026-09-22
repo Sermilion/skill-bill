@@ -29,13 +29,14 @@ internal fun linkProviderAgents(
 ): NativeAgentLinkOutcome {
   val validationRoot = nativeAgentCompositionRepoRoot(request.platformPacksRoot, request.skillsRoot)
   val resolvedHome = request.home ?: resolveUserHome(null)
-  val effectivePackRoots = effectivePackRootsForInstall(
-    platformPacksRoot = request.platformPacksRoot,
-    userHome = resolvedHome,
-    environment = request.environment,
-    selectedPlatforms = request.selectedPlatforms,
-    catalogLoader = request.catalogLoader,
-  )
+  val effectivePackRoots =
+    effectivePackRootsForInstall(
+      platformPacksRoot = request.platformPacksRoot,
+      userHome = resolvedHome,
+      environment = request.environment,
+      selectedPlatforms = request.selectedPlatforms,
+      catalogLoader = request.catalogLoader,
+    )
   val compositionContext = installNativeAgentCompositionContext(effectivePackRoots)
   request.overrides.sourceRoots
     ?.let { roots ->
@@ -49,8 +50,9 @@ internal fun linkProviderAgents(
     )
   val targets = detectTargets(resolvedHome)
   if (targets.isEmpty()) return NativeAgentLinkOutcome(emptyList(), emptyList())
-  val cacheRoot = request.overrides.installCacheRoot?.toAbsolutePath()?.normalize()
-    ?: NativeAgentOperations.installCacheRoot(resolvedHome, request.platformPacksRoot, request.skillsRoot)
+  val cacheRoot =
+    request.overrides.installCacheRoot?.toAbsolutePath()?.normalize()
+      ?: NativeAgentOperations.installCacheRoot(resolvedHome, request.platformPacksRoot, request.skillsRoot)
   val journal = ProviderMutationJournal()
   return linkProviderAgentsWithJournal(journal) {
     linkProviderAgentsBody(
@@ -88,17 +90,19 @@ internal fun publishInstalledReviewCatalog(
   journal.afterTemporaryCreation(staging)
   Files.createDirectories(staging)
 
-  val failure = runCatching {
-    stageReviewCatalogPacks(platformPacksRoot, selectedPlatforms, staging, effectivePackRoots)
-  }.exceptionOrNull()
+  val failure =
+    runCatching {
+      stageReviewCatalogPacks(platformPacksRoot, selectedPlatforms, staging, effectivePackRoots)
+    }.exceptionOrNull()
   if (failure != null) {
     deleteRecursively(staging)
     throwCatalogStageFailure(failure)
   }
-  val publishFailure = runCatching {
-    journalReviewCatalogSwap(catalogRoot, staging, journal)
-    swapReviewCatalogIntoPlace(catalogRoot, staging, superseded)
-  }.exceptionOrNull()
+  val publishFailure =
+    runCatching {
+      journalReviewCatalogSwap(catalogRoot, staging, journal)
+      swapReviewCatalogIntoPlace(catalogRoot, staging, superseded)
+    }.exceptionOrNull()
   publishFailure?.let { failure ->
     throw retainedCatalogFailure(failure, platformPacksRoot, effectivePackRoots)
   }
@@ -119,17 +123,23 @@ internal fun deleteRecursively(root: Path) {
 internal fun verifyInstalledNativeAgent(entry: NativeAgentLinkInventoryEntry) {
   val installed = entry.installedPath
   val repair = "skill-bill install apply"
-  fun fail(reason: String, cause: Throwable? = null): Nothing = throw MissingInstalledNativeAgentError(
-    logicalName = entry.logicalName,
-    provider = entry.provider,
-    expectedPath = installed.toString(),
-    reason = reason,
-    repairCommand = repair,
-    cause = cause,
-  )
+
+  fun fail(
+    reason: String,
+    cause: Throwable? = null,
+  ): Nothing =
+    throw MissingInstalledNativeAgentError(
+      logicalName = entry.logicalName,
+      provider = entry.provider,
+      expectedPath = installed.toString(),
+      reason = reason,
+      repairCommand = repair,
+      cause = cause,
+    )
   if (!Files.isSymbolicLink(installed)) fail("managed link is missing")
-  val resolved = runCatching { installed.toRealPath() }
-    .getOrElse { fail("managed link is dangling or unreadable", it) }
+  val resolved =
+    runCatching { installed.toRealPath() }
+      .getOrElse { fail("managed link is dangling or unreadable", it) }
   if (resolved != entry.cacheTargetPath.toRealPath()) fail("managed link resolves outside the current cache target")
   if (!Files.isReadable(resolved)) fail("rendered artifact is unreadable")
   if (parseEmbeddedLogicalName(resolved, SupportedAgent.fromWire(entry.provider)) != entry.logicalName) {
@@ -156,8 +166,9 @@ internal class ProviderMutationJournal {
 
   private fun record(normalized: Path) {
     if (normalized !in entries) {
-      entries[normalized] = normalized.takeIf { Files.exists(it, LinkOption.NOFOLLOW_LINKS) }
-        ?.let(FileSnapshot::capture)
+      entries[normalized] =
+        normalized.takeIf { Files.exists(it, LinkOption.NOFOLLOW_LINKS) }
+          ?.let(FileSnapshot::capture)
     }
   }
 
@@ -208,37 +219,42 @@ private data class FileSnapshot(
   }
 
   companion object {
-    fun capture(path: Path): FileSnapshot = FileSnapshot(
-      kind = when {
-        Files.isSymbolicLink(path) -> FileKind.SymbolicLink
-        Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) -> FileKind.Directory
-        else -> FileKind.Regular
-      },
-      bytes = path.takeIf { Files.isRegularFile(it, LinkOption.NOFOLLOW_LINKS) }?.let(Files::readAllBytes),
-      rawTarget = path.takeIf(Files::isSymbolicLink)?.let(Files::readSymbolicLink),
-      permissions = captureOptionalAttributes {
-        Files.getFileAttributeView(path, PosixFileAttributeView::class.java, LinkOption.NOFOLLOW_LINKS)
-          ?.readAttributes()?.permissions()
-      },
-      dosAttributes = captureOptionalAttributes {
-        Files.getFileAttributeView(path, DosFileAttributeView::class.java, LinkOption.NOFOLLOW_LINKS)
-          ?.readAttributes()?.let { DosAttributes(it.isReadOnly, it.isHidden, it.isArchive, it.isSystem) }
-      },
-    )
+    fun capture(path: Path): FileSnapshot =
+      FileSnapshot(
+        kind =
+          when {
+            Files.isSymbolicLink(path) -> FileKind.SymbolicLink
+            Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) -> FileKind.Directory
+            else -> FileKind.Regular
+          },
+        bytes = path.takeIf { Files.isRegularFile(it, LinkOption.NOFOLLOW_LINKS) }?.let(Files::readAllBytes),
+        rawTarget = path.takeIf(Files::isSymbolicLink)?.let(Files::readSymbolicLink),
+        permissions =
+          captureOptionalAttributes {
+            Files.getFileAttributeView(path, PosixFileAttributeView::class.java, LinkOption.NOFOLLOW_LINKS)
+              ?.readAttributes()?.permissions()
+          },
+        dosAttributes =
+          captureOptionalAttributes {
+            Files.getFileAttributeView(path, DosFileAttributeView::class.java, LinkOption.NOFOLLOW_LINKS)
+              ?.readAttributes()?.let { DosAttributes(it.isReadOnly, it.isHidden, it.isArchive, it.isSystem) }
+          },
+      )
 
-    private fun <T> captureOptionalAttributes(read: () -> T?): T? = try {
-      read()
-    } catch (_: UnsupportedOperationException) {
-      null
-    } catch (error: FileSystemException) {
-      if (error.reason.orEmpty().contains("not supported", ignoreCase = true) ||
-        error.reason.orEmpty().contains("too many levels of symbolic links", ignoreCase = true)
-      ) {
+    private fun <T> captureOptionalAttributes(read: () -> T?): T? =
+      try {
+        read()
+      } catch (_: UnsupportedOperationException) {
         null
-      } else {
-        throw error
+      } catch (error: FileSystemException) {
+        if (error.reason.orEmpty().contains("not supported", ignoreCase = true) ||
+          error.reason.orEmpty().contains("too many levels of symbolic links", ignoreCase = true)
+        ) {
+          null
+        } else {
+          throw error
+        }
       }
-    }
   }
 }
 
@@ -262,41 +278,48 @@ private enum class FileKind { Directory, Regular, SymbolicLink }
 
 internal fun isEmptyDirectory(path: Path): Boolean = Files.list(path).use { !it.findAny().isPresent }
 
-internal fun unlinkProviderAgents(provider: NativeAgentProvider, request: NativeAgentLinkRequest): List<Path> {
+internal fun unlinkProviderAgents(
+  provider: NativeAgentProvider,
+  request: NativeAgentLinkRequest,
+): List<Path> {
   val resolvedHome = request.home ?: resolveUserHome(null)
   val compositionContext = installNativeAgentCompositionContext()
-  val generated = NativeAgentOperations.renderInstallArtifacts(
-    NativeAgentInstallRenderRequest(
-      platformPacksRoot = request.platformPacksRoot,
-      skillsRoot = request.skillsRoot,
-      selectedPlatforms = request.selectedPlatforms,
-      provider = provider,
-      home = resolvedHome,
-      compositionContext = compositionContext,
-      overrides = NativeAgentInstallRenderOverrides(
-        cacheRoot = request.overrides.installCacheRoot,
-        sourceRoots = request.overrides.sourceRoots,
-      ),
-    ),
-  )
-  val legacyGenerated = request.overrides.legacyManagedRoot
-    ?.takeIf { legacyRoot -> legacyRoot != generated.cacheRoot }
-    ?.let { legacyRoot ->
-      NativeAgentOperations.renderInstallArtifacts(
-        NativeAgentInstallRenderRequest(
-          platformPacksRoot = request.platformPacksRoot,
-          skillsRoot = request.skillsRoot,
-          selectedPlatforms = request.selectedPlatforms,
-          provider = provider,
-          home = resolvedHome,
-          compositionContext = compositionContext,
-          overrides = NativeAgentInstallRenderOverrides(
-            cacheRoot = legacyRoot,
+  val generated =
+    NativeAgentOperations.renderInstallArtifacts(
+      NativeAgentInstallRenderRequest(
+        platformPacksRoot = request.platformPacksRoot,
+        skillsRoot = request.skillsRoot,
+        selectedPlatforms = request.selectedPlatforms,
+        provider = provider,
+        home = resolvedHome,
+        compositionContext = compositionContext,
+        overrides =
+          NativeAgentInstallRenderOverrides(
+            cacheRoot = request.overrides.installCacheRoot,
             sourceRoots = request.overrides.sourceRoots,
           ),
-        ),
-      )
-    }
+      ),
+    )
+  val legacyGenerated =
+    request.overrides.legacyManagedRoot
+      ?.takeIf { legacyRoot -> legacyRoot != generated.cacheRoot }
+      ?.let { legacyRoot ->
+        NativeAgentOperations.renderInstallArtifacts(
+          NativeAgentInstallRenderRequest(
+            platformPacksRoot = request.platformPacksRoot,
+            skillsRoot = request.skillsRoot,
+            selectedPlatforms = request.selectedPlatforms,
+            provider = provider,
+            home = resolvedHome,
+            compositionContext = compositionContext,
+            overrides =
+              NativeAgentInstallRenderOverrides(
+                cacheRoot = legacyRoot,
+                sourceRoots = request.overrides.sourceRoots,
+              ),
+          ),
+        )
+      }
   return uninstallNativeAgentFiles(
     (generated.generatedFiles + legacyGenerated?.generatedFiles.orEmpty()).distinct(),
     provider.homeAgentDirs(resolvedHome),

@@ -57,10 +57,9 @@ class InstallReconcileCommand(
   private val inputs: CliRunInputs,
   private val installService: InstallService,
 ) : InstallRequestCommand(
-  "reconcile",
-  "Reconcile a reinstall: compare upstream/local/baseline per-skill hashes and emit a machine-readable plan.",
-) {
-
+    "reconcile",
+    "Reconcile a reinstall: compare upstream/local/baseline per-skill hashes and emit a machine-readable plan.",
+  ) {
   private val upstreamRepoRoot by option(
     "--upstream-repo-root",
     help = "Upstream/candidate repo root containing skills/ and platform-packs/ to reconcile against the local copy.",
@@ -78,6 +77,7 @@ class InstallReconcileCommand(
     "--apply",
     help = "Apply the computed plan: install changed upstream skills into the live tree and refresh the baseline.",
   ).flag(default = false)
+
   override fun run() {
     val localRequest = toRequest(inputs)
     val resolvedUpstreamRepoRoot = Path.of(upstreamRepoRoot).toAbsolutePath().normalize()
@@ -89,18 +89,19 @@ class InstallReconcileCommand(
       if (state.refuseInstallMutationDuringGoalContinuation(inputs, "reconcile")) {
         return
       }
-      val outcome = installService.applyReconcile(
-        InstallReconcileApplyRequest(
-          home = inputs.userHome,
-          upstreamRepoRoot = resolvedUpstreamRepoRoot,
-          upstreamSkillsRoot = resolvedUpstreamSkills,
-          upstreamPlatformPacksRoot = resolvedUpstreamPacks,
-          localRepoRoot = localRequest.repoRoot.toPath(),
-          localSkillsRoot = localRequest.targetPaths.skillsRoot.toPath(),
-          localPlatformPacksRoot = localRequest.targetPaths.platformPacksRoot.toPath(),
-          environment = inputs.environment,
-        ),
-      )
+      val outcome =
+        installService.applyReconcile(
+          InstallReconcileApplyRequest(
+            home = inputs.userHome,
+            upstreamRepoRoot = resolvedUpstreamRepoRoot,
+            upstreamSkillsRoot = resolvedUpstreamSkills,
+            upstreamPlatformPacksRoot = resolvedUpstreamPacks,
+            localRepoRoot = localRequest.repoRoot.toPath(),
+            localSkillsRoot = localRequest.targetPaths.skillsRoot.toPath(),
+            localPlatformPacksRoot = localRequest.targetPaths.platformPacksRoot.toPath(),
+            environment = inputs.environment,
+          ),
+        )
       completeReconcile(
         outcome.plan,
         refreshed = outcome.refreshed,
@@ -111,18 +112,19 @@ class InstallReconcileCommand(
       return
     }
 
-    val plan = installService.reconcile(
-      InstallReconcileRequest(
-        home = inputs.userHome,
-        upstreamRepoRoot = resolvedUpstreamRepoRoot,
-        upstreamSkillsRoot = resolvedUpstreamSkills,
-        upstreamPlatformPacksRoot = resolvedUpstreamPacks,
-        localRepoRoot = localRequest.repoRoot.toPath(),
-        localSkillsRoot = localRequest.targetPaths.skillsRoot.toPath(),
-        localPlatformPacksRoot = localRequest.targetPaths.platformPacksRoot.toPath(),
-        environment = inputs.environment,
-      ),
-    )
+    val plan =
+      installService.reconcile(
+        InstallReconcileRequest(
+          home = inputs.userHome,
+          upstreamRepoRoot = resolvedUpstreamRepoRoot,
+          upstreamSkillsRoot = resolvedUpstreamSkills,
+          upstreamPlatformPacksRoot = resolvedUpstreamPacks,
+          localRepoRoot = localRequest.repoRoot.toPath(),
+          localSkillsRoot = localRequest.targetPaths.skillsRoot.toPath(),
+          localPlatformPacksRoot = localRequest.targetPaths.platformPacksRoot.toPath(),
+          environment = inputs.environment,
+        ),
+      )
     completeReconcile(plan, refreshed = false, applied = false, installedPaths = emptyList())
   }
 
@@ -181,9 +183,9 @@ class InstallReplayLastSelectionCommand(
   private val installService: InstallService,
   private val installSelectionPersistencePort: InstallSelectionPersistencePort,
 ) : DocumentedCliCommand(
-  "replay-last-selection",
-  "Print the latest successful install choices as tab-separated replay fields.",
-) {
+    "replay-last-selection",
+    "Print the latest successful install choices as tab-separated replay fields.",
+  ) {
   private val platformPacksRoot by option(
     "--platform-packs",
     help = "Platform packs root used to validate saved selected platform slugs.",
@@ -195,9 +197,10 @@ class InstallReplayLastSelectionCommand(
 
   override fun run() {
     try {
-      val selection = installSelectionPersistencePort
-        .readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(inputs.userHome))
-        .selection
+      val selection =
+        installSelectionPersistencePort
+          .readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(inputs.userHome))
+          .selection
       val availablePlatformSlugs = installService.discoverPlatformPackSlugs(replayDiscoveryRequest())
       val staleSlugs = selection.platformPackSelection.selectedSlugs - availablePlatformSlugs
       require(staleSlugs.isEmpty()) {
@@ -212,49 +215,55 @@ class InstallReplayLastSelectionCommand(
     }
   }
 
-  private fun replayDiscoveryRequest(): InstallPlanRequest = InstallPlanRequest(
-    repoRoot = (Path.of(platformPacksRoot).toAbsolutePath().normalize().parent ?: Path.of(".").toAbsolutePath())
-      .toFileLocation(),
-    home = inputs.userHome.toFileLocation(),
-    agentSelection = InstallAgentSelection(mode = InstallAgentSelectionMode.DETECTED),
-    platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.NONE),
-    telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-    mcpRegistrationChoice = McpRegistrationChoice(register = false),
-    runtimeDistributionInputs = RuntimeDistributionInputs(
-      runtimeInstallRoot = inputs.userHome.resolve(".skill-bill/runtime").toFileLocation(),
-    ),
-    targetPaths = InstallationTargetPaths(
-      skillsRoot = Path.of(skillsRoot).toFileLocation(),
-      platformPacksRoot = Path.of(platformPacksRoot).toFileLocation(),
-    ),
-    windowsSymlinkPreflight = WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-      decision = WindowsSymlinkDecision.NOT_REQUIRED,
-    ),
-    environment = inputs.environment,
-  )
+  private fun replayDiscoveryRequest(): InstallPlanRequest =
+    InstallPlanRequest(
+      repoRoot =
+        (Path.of(platformPacksRoot).toAbsolutePath().normalize().parent ?: Path.of(".").toAbsolutePath())
+          .toFileLocation(),
+      home = inputs.userHome.toFileLocation(),
+      agentSelection = InstallAgentSelection(mode = InstallAgentSelectionMode.DETECTED),
+      platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.NONE),
+      telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+      mcpRegistrationChoice = McpRegistrationChoice(register = false),
+      runtimeDistributionInputs =
+        RuntimeDistributionInputs(
+          runtimeInstallRoot = inputs.userHome.resolve(".skill-bill/runtime").toFileLocation(),
+        ),
+      targetPaths =
+        InstallationTargetPaths(
+          skillsRoot = Path.of(skillsRoot).toFileLocation(),
+          platformPacksRoot = Path.of(platformPacksRoot).toFileLocation(),
+        ),
+      windowsSymlinkPreflight =
+        WindowsSymlinkPreflight(
+          state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+          decision = WindowsSymlinkDecision.NOT_REQUIRED,
+        ),
+      environment = inputs.environment,
+    )
 
-  private fun SharedInstallSelection.toReplayText(): String = buildString {
-    selectedAgents.map(InstallAgent::id).sorted().forEach { agentId ->
-      append("agent\t")
-      append(agentId)
-      append('\t')
-      append(installAgentService.agentPath(agentId, inputs.userHome, inputs.environment))
+  private fun SharedInstallSelection.toReplayText(): String =
+    buildString {
+      selectedAgents.map(InstallAgent::id).sorted().forEach { agentId ->
+        append("agent\t")
+        append(agentId)
+        append('\t')
+        append(installAgentService.agentPath(agentId, inputs.userHome, inputs.environment))
+        append('\n')
+      }
+      append("platform-mode\t")
+      append(platformPackSelection.mode.name.lowercase())
+      append('\n')
+      platformPackSelection.selectedSlugs.sorted().forEach { slug ->
+        append("platform\t")
+        append(slug)
+        append('\n')
+      }
+      append("telemetry\t")
+      append(telemetryLevel.id)
+      append('\n')
+      append("mcp\t")
+      append(if (mcpRegistrationChoice.register) "register" else "skip")
       append('\n')
     }
-    append("platform-mode\t")
-    append(platformPackSelection.mode.name.lowercase())
-    append('\n')
-    platformPackSelection.selectedSlugs.sorted().forEach { slug ->
-      append("platform\t")
-      append(slug)
-      append('\n')
-    }
-    append("telemetry\t")
-    append(telemetryLevel.id)
-    append('\n')
-    append("mcp\t")
-    append(if (mcpRegistrationChoice.register) "register" else "skip")
-    append('\n')
-  }
 }

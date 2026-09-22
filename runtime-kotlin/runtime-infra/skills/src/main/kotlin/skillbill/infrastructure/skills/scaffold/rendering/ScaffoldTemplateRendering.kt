@@ -3,6 +3,7 @@ package skillbill.infrastructure.skills.scaffold.rendering
 import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.skills.nativeagent.rendering.YAML_DOUBLE_QUOTE_ESCAPES
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
+
 private val FRONTMATTER_BLOCK_LEADING = Regex("""(?s)\A---\n.*?\n---\n""")
 
 private val AREA_DESCRIPTION_PHRASES: Map<String, String> =
@@ -22,35 +23,46 @@ private val AREA_DESCRIPTION_PHRASES: Map<String, String> =
 internal fun defaultAreaFocus(area: String): String =
   AREA_DESCRIPTION_PHRASES[area] ?: "${area.replace('-', ' ')} risks"
 
-internal fun inferSkillDescription(context: TemplateContext, areaFocus: String = ""): String {
+internal fun inferSkillDescription(
+  context: TemplateContext,
+  areaFocus: String = "",
+): String {
   val label = context.displayName.ifBlank { context.platform }
   return when (context.family) {
     "code-review" -> codeReviewDescription(context, label, areaFocus)
-    "quality-check" -> if (label.isNotBlank()) {
-      "Use when validating $label changes with the shared quality-check contract."
-    } else {
-      "Use when validating changes with the shared quality-check contract."
-    }
-    "feature-task" -> if (label.isNotBlank()) {
-      "Use when implementing a feature end-to-end in $label codebases, from design doc to verified code."
-    } else {
-      "Use when implementing a feature end-to-end from design doc to verified code."
-    }
-    "feature-verify" -> if (label.isNotBlank()) {
-      "Use when verifying a $label PR against its task spec."
-    } else {
-      "Use when verifying a PR against its task spec."
-    }
-    "add-on" -> if (label.isNotBlank()) {
-      "Pack-owned supporting asset for the $label platform pack."
-    } else {
-      "Pack-owned supporting asset."
-    }
+    "quality-check" ->
+      if (label.isNotBlank()) {
+        "Use when validating $label changes with the shared quality-check contract."
+      } else {
+        "Use when validating changes with the shared quality-check contract."
+      }
+    "feature-task" ->
+      if (label.isNotBlank()) {
+        "Use when implementing a feature end-to-end in $label codebases, from design doc to verified code."
+      } else {
+        "Use when implementing a feature end-to-end from design doc to verified code."
+      }
+    "feature-verify" ->
+      if (label.isNotBlank()) {
+        "Use when verifying a $label PR against its task spec."
+      } else {
+        "Use when verifying a PR against its task spec."
+      }
+    "add-on" ->
+      if (label.isNotBlank()) {
+        "Pack-owned supporting asset for the $label platform pack."
+      } else {
+        "Pack-owned supporting asset."
+      }
     else -> "Use for ${context.skillName.removePrefix("bill-").replace("-", " ")} work."
   }
 }
 
-internal fun renderFrontmatter(skillName: String, description: String, internalFor: String? = null): String =
+internal fun renderFrontmatter(
+  skillName: String,
+  description: String,
+  internalFor: String? = null,
+): String =
   buildString {
     fun scalar(value: String): String {
       if (value.isEmpty()) {
@@ -75,19 +87,23 @@ internal fun renderFrontmatter(skillName: String, description: String, internalF
     appendLine("---")
   }
 
-internal fun renderDescriptorSection(context: TemplateContext, areaFocus: String): String = buildString {
-  appendLine("## Descriptor")
-  appendLine()
-  appendLine("Governed skill: `${context.skillName}`")
-  appendLine("Family: `${context.family}`")
-  if (context.platform.isNotBlank()) {
-    appendLine("Platform pack: `${context.platform}` (${context.displayName.ifBlank { context.platform }})")
+internal fun renderDescriptorSection(
+  context: TemplateContext,
+  areaFocus: String,
+): String =
+  buildString {
+    appendLine("## Descriptor")
+    appendLine()
+    appendLine("Governed skill: `${context.skillName}`")
+    appendLine("Family: `${context.family}`")
+    if (context.platform.isNotBlank()) {
+      appendLine("Platform pack: `${context.platform}` (${context.displayName.ifBlank { context.platform }})")
+    }
+    if (context.area.isNotBlank()) {
+      appendLine("Area: `${context.area}`")
+    }
+    appendLine("Description: ${inferSkillDescription(context, areaFocus)}")
   }
-  if (context.area.isNotBlank()) {
-    appendLine("Area: `${context.area}`")
-  }
-  appendLine("Description: ${inferSkillDescription(context, areaFocus)}")
-}
 
 internal fun renderContentBody(
   context: TemplateContext,
@@ -116,18 +132,27 @@ internal fun renderContentBody(
   }
 }
 
-internal fun renderAddonBody(skillName: String, description: String, explicitBody: String?): String {
-  val body = explicitBody ?: buildString {
-    appendLine("# $skillName")
-    appendLine()
-    appendLine(description)
-    appendLine()
-    appendLine("TODO: replace this placeholder with the add-on guidance body.")
-  }
+internal fun renderAddonBody(
+  skillName: String,
+  description: String,
+  explicitBody: String?,
+): String {
+  val body =
+    explicitBody ?: buildString {
+      appendLine("# $skillName")
+      appendLine()
+      appendLine(description)
+      appendLine()
+      appendLine("TODO: replace this placeholder with the add-on guidance body.")
+    }
   return if (body.endsWith('\n')) body else "$body\n"
 }
 
-private fun codeReviewDescription(context: TemplateContext, label: String, areaFocus: String): String {
+private fun codeReviewDescription(
+  context: TemplateContext,
+  label: String,
+  areaFocus: String,
+): String {
   if (context.area.isNotBlank()) {
     val phrase = areaFocus.ifBlank { defaultAreaFocus(context.area) }
     return if (label.isNotBlank()) {
@@ -148,15 +173,19 @@ private val YAML_RESERVED_LEADING_CHARS: Set<Char> =
 
 private val YAML_RESERVED_INLINE_CHARS: Set<Char> = setOf('\n', '\r', '\t')
 
-private val YAML_DOUBLE_QUOTE_ESCAPES: Map<Char, String> = mapOf(
-  '\\' to "\\\\",
-  '"' to "\\\"",
-  '\n' to "\\n",
-  '\r' to "\\r",
-  '\t' to "\\t",
-)
+private val YAML_DOUBLE_QUOTE_ESCAPES: Map<Char, String> =
+  mapOf(
+    '\\' to "\\\\",
+    '"' to "\\\"",
+    '\n' to "\\n",
+    '\r' to "\\r",
+    '\t' to "\\t",
+  )
 
-private fun renderGovernedContentStarter(context: TemplateContext, description: String): String {
+private fun renderGovernedContentStarter(
+  context: TemplateContext,
+  description: String,
+): String {
   val summary = description.ifBlank { inferSkillDescription(context) }
   return when {
     context.family == "quality-check" -> qualityCheckContent(summary)
@@ -166,10 +195,11 @@ private fun renderGovernedContentStarter(context: TemplateContext, description: 
   }
 }
 
-private fun contentTitle(context: TemplateContext): String = when {
-  context.family == "quality-check" -> "Quality-Check Content"
-  context.family == "code-review" && context.area.isNotBlank() ->
-    "${context.area.replace('-', ' ').split(' ').joinToString(" ") { it.replaceFirstChar(Char::titlecase) }} Content"
-  context.family == "code-review" -> "Review Content"
-  else -> "Content"
-}
+private fun contentTitle(context: TemplateContext): String =
+  when {
+    context.family == "quality-check" -> "Quality-Check Content"
+    context.family == "code-review" && context.area.isNotBlank() ->
+      "${context.area.replace('-', ' ').split(' ').joinToString(" ") { it.replaceFirstChar(Char::titlecase) }} Content"
+    context.family == "code-review" -> "Review Content"
+    else -> "Content"
+  }

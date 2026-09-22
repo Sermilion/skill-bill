@@ -8,9 +8,10 @@ internal object ArchitectureBaselineSupport {
     Path.of("").toAbsolutePath().normalize().let { start ->
       var dir: Path? = start
       while (dir != null) {
-        val candidate = dir.resolve(
-          "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/baselines",
-        )
+        val candidate =
+          dir.resolve(
+            "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/baselines",
+          )
         if (Files.isDirectory(candidate)) return@let candidate
         dir = dir.parent
       }

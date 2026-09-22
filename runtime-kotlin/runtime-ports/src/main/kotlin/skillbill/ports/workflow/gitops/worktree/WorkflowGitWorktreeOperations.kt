@@ -14,7 +14,10 @@ interface WorkflowGitWorktreeOperations {
 
   fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult
 
-  fun selectedDiffHunks(repoRoot: Path, request: WorkflowSelectedDiffHunksRequest): WorkflowSelectedDiffHunksResult
+  fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult
 
   /** Per-file numstat of the worktree against HEAD plus untracked text files counted as insertions. */
   fun worktreeNumstat(repoRoot: Path): WorkflowWorktreeNumstatResult

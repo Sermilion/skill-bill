@@ -10,6 +10,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+
 class SkillContentIdentityTest {
   @Test
   fun `equivalent source staged and symlink identities are accepted without reading installed body`() {
@@ -47,9 +48,10 @@ class SkillContentIdentityTest {
     Files.writeString(installedMarker.resolve(SKILL_CONTENT_IDENTITY_FILENAME), installed.compact())
     Files.delete(installedDir.resolve("content.md"))
     val installedFromMarker = SkillContentIdentity.fromInstalled(installedMarker)
-    val error = assertFailsWith<SkillContentIdentityMismatchError> {
-      SkillContentIdentity.requireMatch(supplied, installedFromMarker)
-    }
+    val error =
+      assertFailsWith<SkillContentIdentityMismatchError> {
+        SkillContentIdentity.requireMatch(supplied, installedFromMarker)
+      }
 
     assertContains(error.message.orEmpty(), supplied.canonicalSourceIdentity)
     assertContains(error.message.orEmpty(), installed.canonicalSourceIdentity)
@@ -94,12 +96,13 @@ class SkillContentIdentityTest {
     val installed = SkillContentIdentity.fromSource(installedDir)
     val staging = root.resolve("staged").also(Files::createDirectories)
     Files.writeString(staging.resolve(SKILL_CONTENT_IDENTITY_FILENAME), installed.compact())
-    val error = assertFailsWith<SkillContentIdentityMismatchError> {
-      routeInstalledSkillBody(
-        suppliedCompactIdentity = supplied.compact(),
-        installedStagingDir = staging,
-      )
-    }
+    val error =
+      assertFailsWith<SkillContentIdentityMismatchError> {
+        routeInstalledSkillBody(
+          suppliedCompactIdentity = supplied.compact(),
+          installedStagingDir = staging,
+        )
+      }
 
     assertContains(error.message.orEmpty(), supplied.canonicalSourceIdentity)
     assertContains(error.message.orEmpty(), installed.canonicalSourceIdentity)

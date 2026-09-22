@@ -7,6 +7,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
+
 internal class FileRejectedOutputDiagnosticPermissions(
   private val databasePath: Path,
   private val diagnostics: RuntimeDiagnostics,

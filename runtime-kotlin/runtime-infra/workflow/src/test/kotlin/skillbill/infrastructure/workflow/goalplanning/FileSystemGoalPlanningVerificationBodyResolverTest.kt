@@ -12,30 +12,34 @@ import java.time.ZoneOffset
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class FileSystemGoalPlanningVerificationBodyResolverTest {
   @Test
   fun `over budget verification resolution raises the named cap error`() {
     val repo = Files.createTempDirectory("goal-verification-body-cap")
     val agent = Files.createDirectories(repo.resolve("modules/a/agent"))
-    val headings = (0 until GoalVerificationBoundaryCaps.maxSelectedBodies + 2).joinToString("\n\n") { index ->
-      "## [${LocalDate.now(ZoneOffset.UTC).minusDays((index % 28).toLong())}] entry-$index\n\nbody $index"
-    }
+    val headings =
+      (0 until GoalVerificationBoundaryCaps.maxSelectedBodies + 2).joinToString("\n\n") { index ->
+        "## [${LocalDate.now(ZoneOffset.UTC).minusDays((index % 28).toLong())}] entry-$index\n\nbody $index"
+      }
     Files.writeString(agent.resolve("history.md"), "# Boundary History\n\n$headings\n")
-    val catalog = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
-      repo,
-      listOf("modules/a/src/Main.kt"),
-    ).boundaryCatalog
+    val catalog =
+      FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
+        repo,
+        listOf("modules/a/src/Main.kt"),
+      ).boundaryCatalog
     val selected = catalog.map(GoalPlanningBoundaryHeading::headingId)
 
-    val error = assertFailsWith<GoalVerificationBoundaryCapExceededError> {
-      FileSystemGoalPlanningBoundaryBodyResolver().resolve(
-        repo,
-        selected,
-        catalog.map(GoalPlanningBoundaryHeading::headingId).toSet(),
-        caps = GoalPlanningBoundaryBodyResolutionCaps.VERIFICATION,
-        loudFailOnCapExceeded = true,
-      )
-    }
+    val error =
+      assertFailsWith<GoalVerificationBoundaryCapExceededError> {
+        FileSystemGoalPlanningBoundaryBodyResolver().resolve(
+          repo,
+          selected,
+          catalog.map(GoalPlanningBoundaryHeading::headingId).toSet(),
+          caps = GoalPlanningBoundaryBodyResolutionCaps.VERIFICATION,
+          loudFailOnCapExceeded = true,
+        )
+      }
     assertEquals(
       "finding verification boundary body resolution exceeded max_selected_bodies or max_total_body_bytes",
       error.message,

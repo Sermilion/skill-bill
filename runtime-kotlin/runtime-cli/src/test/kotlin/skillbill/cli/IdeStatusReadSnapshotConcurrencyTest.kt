@@ -42,6 +42,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class IdeStatusReadSnapshotConcurrencyTest {
   private val observedAt: Instant = Instant.parse("2026-08-06T12:00:00Z")
 
@@ -89,7 +90,11 @@ class IdeStatusReadSnapshotConcurrencyTest {
     return SnapshotFixture(home, repoRoot, dbPath, database, observedAt)
   }
 
-  private fun seed(dbPath: Path, database: SQLiteDatabaseSessionFactory, repositoryIdentity: String) {
+  private fun seed(
+    dbPath: Path,
+    database: SQLiteDatabaseSessionFactory,
+    repositoryIdentity: String,
+  ) {
     ensureTestDatabase(dbPath).use { connection ->
       connection.prepareStatement(
         """
@@ -116,30 +121,32 @@ class IdeStatusReadSnapshotConcurrencyTest {
     }
   }
 
-  private fun foreignChildWorkflow(): WorkflowStateRecord = WorkflowStateRecord(
-    workflowId = FOREIGN_CHILD_WORKFLOW_ID,
-    sessionId = "ftr-$FOREIGN_CHILD_WORKFLOW_ID",
-    workflowName = "bill-feature-task",
-    contractVersion = "1.0",
-    workflowStatus = WorkflowStatus.RUNNING.wireValue,
-    currentStepId = "implement",
-    stepsJson = "[]",
-    artifactsJson = "{}",
-    startedAt = "2026-08-06T09:00:00Z",
-    updatedAt = "2026-08-06T09:00:00Z",
-    finishedAt = null,
-    issueKey = ISSUE_KEY,
-    mode = FeatureTaskWorkflowMode.RUNTIME,
-  )
+  private fun foreignChildWorkflow(): WorkflowStateRecord =
+    WorkflowStateRecord(
+      workflowId = FOREIGN_CHILD_WORKFLOW_ID,
+      sessionId = "ftr-$FOREIGN_CHILD_WORKFLOW_ID",
+      workflowName = "bill-feature-task",
+      contractVersion = "1.0",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+      currentStepId = "implement",
+      stepsJson = "[]",
+      artifactsJson = "{}",
+      startedAt = "2026-08-06T09:00:00Z",
+      updatedAt = "2026-08-06T09:00:00Z",
+      finishedAt = null,
+      issueKey = ISSUE_KEY,
+      mode = FeatureTaskWorkflowMode.RUNTIME,
+    )
 
-  private fun foreignChildIdentity(): FeatureTaskExecutionIdentity = FeatureTaskExecutionIdentity(
-    workflowId = FOREIGN_CHILD_WORKFLOW_ID,
-    normalizedIssueKey = ISSUE_KEY,
-    repositoryIdentity = "${REPOSITORY_IDENTITY_PREFIX}/other-repo",
-    governedSpecPath = "spec.md",
-    mode = FeatureTaskWorkflowMode.RUNTIME,
-    routeScope = FeatureTaskRouteScope.GOAL_CHILD,
-  )
+  private fun foreignChildIdentity(): FeatureTaskExecutionIdentity =
+    FeatureTaskExecutionIdentity(
+      workflowId = FOREIGN_CHILD_WORKFLOW_ID,
+      normalizedIssueKey = ISSUE_KEY,
+      repositoryIdentity = "${REPOSITORY_IDENTITY_PREFIX}/other-repo",
+      governedSpecPath = "spec.md",
+      mode = FeatureTaskWorkflowMode.RUNTIME,
+      routeScope = FeatureTaskRouteScope.GOAL_CHILD,
+    )
 
   private companion object {
     const val ISSUE_KEY = "SKILL-999"
@@ -169,33 +176,36 @@ private class SnapshotFixture(
   }
 
   fun status(interleaveAfterCall: Int?): IdeStatusResult {
-    val instrumented = InterleavingDatabase(database, interleaveAfterCall) {
-      interleaved = true
+    val instrumented =
+      InterleavingDatabase(database, interleaveAfterCall) {
+        interleaved = true
 
-      clearGoalBinding()
-    }
+        clearGoalBinding()
+      }
     return service(instrumented).status(
       IdeStatusRequest(repoRoot = repoRoot.toString(), observedAt = observedAt),
     )
   }
 
   private fun service(database: DatabaseSessionFactory): IdeStatusService {
-    val component = RuntimeComponent::class.create(
-      RuntimeContext(
-        environment = EnvironmentContext(environment = emptyMap(), userHome = home),
-        transport = TransportContext(),
-        workflowOps = WorkflowOpsContext(),
-        callbacks = OptionalCallbacks(),
-      ),
-    )
+    val component =
+      RuntimeComponent::class.create(
+        RuntimeContext(
+          environment = EnvironmentContext(environment = emptyMap(), userHome = home),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
+        ),
+      )
     return IdeStatusService(
       database = database,
-      projector = IdeStatusProjector(
-        workflowSnapshotValidator = NoopSnapshotValidator,
-        goalRunnerStatusService = component.goalRunnerStatusService,
-        featureTaskRuntimeStatusService = component.featureTaskRuntimeStatusService,
-        diagnostics = NoopRuntimeDiagnostics,
-      ),
+      projector =
+        IdeStatusProjector(
+          workflowSnapshotValidator = NoopSnapshotValidator,
+          goalRunnerStatusService = component.goalRunnerStatusService,
+          featureTaskRuntimeStatusService = component.featureTaskRuntimeStatusService,
+          diagnostics = NoopRuntimeDiagnostics,
+        ),
       ideStatusValidator = NoopIdeStatusValidator,
       branchSource = CheckedOutBranchSource { "feat/SKILL-999-snapshot" },
       clock = Clock.fixed(observedAt, ZoneOffset.UTC),
@@ -205,7 +215,10 @@ private class SnapshotFixture(
 }
 
 private object NoopSnapshotValidator : WorkflowSnapshotValidator {
-  override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+  override fun validate(
+    snapshot: WorkflowStateSnapshot,
+    slug: String,
+  ) = Unit
 }
 
 private class InterleavingDatabase(
@@ -247,8 +260,10 @@ private class CountingWorkflowStates(
   override fun getFeatureTaskExecutionIdentity(workflowId: String): FeatureTaskExecutionIdentity? =
     delegate.getFeatureTaskExecutionIdentity(workflowId).also { trigger() }
 
-  override fun findGoalChildFeatureTaskCandidates(normalizedIssueKey: String, repositoryIdentity: String) =
-    delegate.findGoalChildFeatureTaskCandidates(normalizedIssueKey, repositoryIdentity).also { trigger() }
+  override fun findGoalChildFeatureTaskCandidates(
+    normalizedIssueKey: String,
+    repositoryIdentity: String,
+  ) = delegate.findGoalChildFeatureTaskCandidates(normalizedIssueKey, repositoryIdentity).also { trigger() }
 
   override fun countGoalChildIdentities(normalizedIssueKey: String): Int =
     delegate.countGoalChildIdentities(normalizedIssueKey).also { trigger() }

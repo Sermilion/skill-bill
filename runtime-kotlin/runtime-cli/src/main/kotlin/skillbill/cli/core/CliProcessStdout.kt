@@ -4,7 +4,10 @@ import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliStdoutCompletion
 import java.io.OutputStream
 
-internal fun emitCliProcessStdout(result: CliExecutionResult, stdout: OutputStream) {
+internal fun emitCliProcessStdout(
+  result: CliExecutionResult,
+  stdout: OutputStream,
+) {
   when (result.stdoutCompletion) {
     CliStdoutCompletion.RAW -> {
       val bytes = result.rawStdout ?: byteArrayOf()

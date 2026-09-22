@@ -38,47 +38,56 @@ internal fun produceSharedPreplanCheckpoint(
   shared: GoalPlanningSharedContext,
   request: GoalRunnerRunRequest,
   provenance: GoalPlanningContractProvenance,
-): Result<SharedGoalPreplanCheckpoint> = runCatching {
-  val runInvariants = sweep.invariantsSource.read(shared.parentSpecPath)
-  val preplanProduction = sweep.producePhase(
-    GoalPlanningProducePhaseArgs(
-      attempt = GoalPlanningProduceAttemptArgs(
-        phase = GoalPlanningPhaseContext(
-          shared = shared,
-          request = request,
-          subtask = null,
-          runInvariants = runInvariants,
-          phaseId = GoalPlanningSweepConstants.PHASE_PREPLAN,
+): Result<SharedGoalPreplanCheckpoint> =
+  runCatching {
+    val runInvariants = sweep.invariantsSource.read(shared.parentSpecPath)
+    val preplanProduction =
+      sweep.producePhase(
+        GoalPlanningProducePhaseArgs(
+          attempt =
+            GoalPlanningProduceAttemptArgs(
+              phase =
+                GoalPlanningPhaseContext(
+                  shared = shared,
+                  request = request,
+                  subtask = null,
+                  runInvariants = runInvariants,
+                  phaseId = GoalPlanningSweepConstants.PHASE_PREPLAN,
+                ),
+              recordedOutputs = emptyList(),
+            ),
+          finalizePayload = { raw -> enrichPreplan(raw, shared.planningPacket) },
         ),
-        recordedOutputs = emptyList(),
-      ),
-      finalizePayload = { raw -> enrichPreplan(raw, shared.planningPacket) },
-    ),
-  )
-  if (preplanProduction is GoalPlanningPhaseProduction.Stopped) error(preplanProduction.outcome.blockedReason)
-  val captured = preplanProduction as GoalPlanningPhaseProduction.Captured
-  val preplanPayload = captured.payload
-  SharedGoalPreplanCheckpoint(
-    identity = GoalPlanningIdentity(shared.parentWorkflowId, shared.normalizedIssueKey, shared.repositoryIdentity),
-    provenance = provenance,
-    payloadSha256 = sha256HexUtf8(preplanPayload),
-    preplanPayload = preplanPayload,
-    repairEvidence = captured.repairEvidence,
-  )
-}
+      )
+    if (preplanProduction is GoalPlanningPhaseProduction.Stopped) error(preplanProduction.outcome.blockedReason)
+    val captured = preplanProduction as GoalPlanningPhaseProduction.Captured
+    val preplanPayload = captured.payload
+    SharedGoalPreplanCheckpoint(
+      identity = GoalPlanningIdentity(shared.parentWorkflowId, shared.normalizedIssueKey, shared.repositoryIdentity),
+      provenance = provenance,
+      payloadSha256 = sha256HexUtf8(preplanPayload),
+      preplanPayload = preplanPayload,
+      repairEvidence = captured.repairEvidence,
+    )
+  }
 
-fun enrichPreplan(payload: String, packet: Map<String, Any?>): String {
-  val root = JsonCodec.parseObjectOrNull(payload)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?: error("preplan payload is not a JSON object")
-  val produced = JsonCodec.anyToStringAnyMap(root[SharedPayloadKeys.PRODUCED_OUTPUTS])
-    ?: error("preplan produced_outputs is not an object")
+fun enrichPreplan(
+  payload: String,
+  packet: Map<String, Any?>,
+): String {
+  val root =
+    JsonCodec.parseObjectOrNull(payload)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?: error("preplan payload is not a JSON object")
+  val produced =
+    JsonCodec.anyToStringAnyMap(root[SharedPayloadKeys.PRODUCED_OUTPUTS])
+      ?: error("preplan produced_outputs is not an object")
   return JsonCodec.mapToJsonString(
     root + (
       SharedPayloadKeys.PRODUCED_OUTPUTS to
         (produced + (GoalPlanningSweepConstants.SHARED_CONTEXT_FIELD to packet))
-      ),
+    ),
   )
 }
 
@@ -100,26 +109,29 @@ internal fun gatherSharedContext(
   val canonicalRepository = canonicalRepository(request.repoRoot, sweep.repositoryEnclosingRootPort)
   val parentSpecGoverningPath = state.manifest.parentSpecPath
   val manifestGoverningPath = parentSpecGoverningPath.substringBeforeLast("/") + "/" + DECOMPOSITION_MANIFEST_FILENAME
-  val resolvedParentSpecPath = resolvedGovernedPath(
-    canonicalRepository,
-    parentSpecGoverningPath,
-    sweep.repositoryEnclosingRootPort,
-  )
+  val resolvedParentSpecPath =
+    resolvedGovernedPath(
+      canonicalRepository,
+      parentSpecGoverningPath,
+      sweep.repositoryEnclosingRootPort,
+    )
   val parentSpec = sweep.manifestFileStore.readText(resolvedParentSpecPath)
-  val decomposition = sweep.manifestFileStore.readText(
-    resolvedGovernedPath(canonicalRepository, manifestGoverningPath, sweep.repositoryEnclosingRootPort),
-  )
+  val decomposition =
+    sweep.manifestFileStore.readText(
+      resolvedGovernedPath(canonicalRepository, manifestGoverningPath, sweep.repositoryEnclosingRootPort),
+    )
   val parentSpecHash = sha256HexUtf8(parentSpec)
   val decompositionManifestHash = goalPlanningImmutableDecompositionHash(state.manifest)
   val repositoryIdentity = "repo-root-realpath-v1:$canonicalRepository"
-  val planningPacket = recoveredPacket?.let(GoalPlanningSharedContextPacket::migrate)
-    ?: sweep.createPlanningPacket(
-      state,
-      canonicalRepository,
-      parentSpecGoverningPath,
-      parentSpec,
-      decomposition,
-    )
+  val planningPacket =
+    recoveredPacket?.let(GoalPlanningSharedContextPacket::migrate)
+      ?: sweep.createPlanningPacket(
+        state,
+        canonicalRepository,
+        parentSpecGoverningPath,
+        parentSpec,
+        decomposition,
+      )
   GoalPlanningSharedContextPacket.validate(
     packet = planningPacket,
     repositoryIdentity = repositoryIdentity,
@@ -154,24 +166,25 @@ private fun DefaultGoalPlanningSweep.createPlanningPacket(
   decomposition: String,
 ): Map<String, Any?> {
   val discovered = contextDiscovery.loadPlanningContext(canonicalRepository)
-  val packet = linkedMapOf<String, Any?>(
-    GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION to GoalPlanningSharedContextPacket.VERSION,
-    GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to
-      "repo-root-realpath-v1:$canonicalRepository",
-    GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY to state.manifest.issueKey.trim().uppercase(),
-    DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecGoverningPath,
-    GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC to
-      parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
-    GoalPlanningSharedContextPacketPayloadKeys.DECOMPOSITION_MANIFEST to
-      decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
-    GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY to GoalPlanningSharedContextPacket.catalog(discovered),
-    GoalPlanningSharedContextPacketPayloadKeys.VALIDATION_GUIDANCE to
-      discovered.validationGuidance.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
-    GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS to
-      GoalPlanningSharedContextPacket.orderedSubtasks(state.manifest.subtasks),
-  )
+  val packet =
+    linkedMapOf<String, Any?>(
+      GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION to GoalPlanningSharedContextPacket.VERSION,
+      GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to
+        "repo-root-realpath-v1:$canonicalRepository",
+      GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY to state.manifest.issueKey.trim().uppercase(),
+      DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecGoverningPath,
+      GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC to
+        parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+      GoalPlanningSharedContextPacketPayloadKeys.DECOMPOSITION_MANIFEST to
+        decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+      GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY to GoalPlanningSharedContextPacket.catalog(discovered),
+      GoalPlanningSharedContextPacketPayloadKeys.VALIDATION_GUIDANCE to
+        discovered.validationGuidance.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+      GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS to
+        GoalPlanningSharedContextPacket.orderedSubtasks(state.manifest.subtasks),
+    )
   return packet + (
     GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to
       GoalPlanningSharedContextPacket.digest(packet)
-    )
+  )
 }

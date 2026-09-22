@@ -55,8 +55,9 @@ class FeatureTaskRuntimeSharedEvidenceResolveOutcomeTest {
   @Test
   fun `a corrupt payload re-derives without failing the run`() {
     store.resolve(request("fp-corrupt"), CountingDeriver())
-    val payload = artifactDir(request("fp-corrupt"))
-      .resolve(FileSystemFeatureTaskRuntimeSharedEvidenceStore.PAYLOAD_FILE_NAME)
+    val payload =
+      artifactDir(request("fp-corrupt"))
+        .resolve(FileSystemFeatureTaskRuntimeSharedEvidenceStore.PAYLOAD_FILE_NAME)
     Files.writeString(payload, "")
     val deriver = CountingDeriver()
 
@@ -69,8 +70,9 @@ class FeatureTaskRuntimeSharedEvidenceResolveOutcomeTest {
   @Test
   fun `an unparseable envelope re-derives without failing the run`() {
     store.resolve(request("fp-unparseable"), CountingDeriver())
-    val envelope = artifactDir(request("fp-unparseable"))
-      .resolve(FileSystemFeatureTaskRuntimeSharedEvidenceStore.ENVELOPE_FILE_NAME)
+    val envelope =
+      artifactDir(request("fp-unparseable"))
+        .resolve(FileSystemFeatureTaskRuntimeSharedEvidenceStore.ENVELOPE_FILE_NAME)
     Files.writeString(envelope, "{\"fingerprint\": ")
     val deriver = CountingDeriver()
 
@@ -80,11 +82,12 @@ class FeatureTaskRuntimeSharedEvidenceResolveOutcomeTest {
     assertTrue(Files.isRegularFile(envelope))
   }
 
-  private fun request(fingerprint: String) = FeatureTaskRuntimeSharedEvidenceRequest(
-    repoRoot = repoRoot,
-    workflowId = "wf-1",
-    checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(fingerprint),
-  )
+  private fun request(fingerprint: String) =
+    FeatureTaskRuntimeSharedEvidenceRequest(
+      repoRoot = repoRoot,
+      workflowId = "wf-1",
+      checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(fingerprint),
+    )
 }
 
 internal class CountingDeriver(private val baseRef: String? = "main") : FeatureTaskRuntimeSharedEvidenceDeriver {

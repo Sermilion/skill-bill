@@ -9,7 +9,10 @@ object EmptyGoalRunnerControlRepository : GoalRunnerControlRepository {
     return GoalRunnerControlState()
   }
 
-  override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState {
+  override fun persistControlState(
+    parentWorkflowId: String,
+    state: GoalRunnerControlState,
+  ): GoalRunnerControlState {
     return state
   }
 
@@ -20,7 +23,10 @@ object EmptyGoalRunnerControlRepository : GoalRunnerControlRepository {
     return null
   }
 
-  override fun persistReviewPolicy(parentWorkflowId: String, policy: GoalRunnerReviewPolicy): GoalRunnerReviewPolicy {
+  override fun persistReviewPolicy(
+    parentWorkflowId: String,
+    policy: GoalRunnerReviewPolicy,
+  ): GoalRunnerReviewPolicy {
     return policy
   }
 
@@ -46,15 +52,19 @@ object UnavailableGoalRunnerControlRepository : GoalRunnerControlRepository {
 
   override fun controlState(parentWorkflowId: String): GoalRunnerControlState = refuse()
 
-  override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState =
-    refuse()
+  override fun persistControlState(
+    parentWorkflowId: String,
+    state: GoalRunnerControlState,
+  ): GoalRunnerControlState = refuse()
 
   override fun clearControlState(parentWorkflowId: String) = refuse()
 
   override fun reviewPolicy(parentWorkflowId: String): GoalRunnerReviewPolicy? = refuse()
 
-  override fun persistReviewPolicy(parentWorkflowId: String, policy: GoalRunnerReviewPolicy): GoalRunnerReviewPolicy =
-    refuse()
+  override fun persistReviewPolicy(
+    parentWorkflowId: String,
+    policy: GoalRunnerReviewPolicy,
+  ): GoalRunnerReviewPolicy = refuse()
 
   override fun outOfBandAcceptances(parentWorkflowId: String): Map<Int, GoalRunnerOutOfBandAcceptance> = refuse()
 

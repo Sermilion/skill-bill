@@ -55,17 +55,21 @@ class InfrastructureSkillsImportDirectionArchitectureTest {
     }
   }
 
-  private fun readPackageName(text: String, file: Path): String =
+  private fun readPackageName(
+    text: String,
+    file: Path,
+  ): String =
     text.lineSequence().firstOrNull { it.startsWith("package ") }
       ?.removePrefix("package ")
       ?.trimEnd(';')
       ?.trim()
       ?: error("Missing package in $file")
 
-  private fun readSkillImports(text: String): List<String> = text.lineSequence()
-    .map { it.trim() }
-    .filter { it.startsWith("import ") && !it.startsWith("import typealias ") }
-    .map { it.removePrefix("import ").trimEnd(';').trim() }
-    .filter { it.startsWith("skillbill.infrastructure.skills") }
-    .toList()
+  private fun readSkillImports(text: String): List<String> =
+    text.lineSequence()
+      .map { it.trim() }
+      .filter { it.startsWith("import ") && !it.startsWith("import typealias ") }
+      .map { it.removePrefix("import ").trimEnd(';').trim() }
+      .filter { it.startsWith("skillbill.infrastructure.skills") }
+      .toList()
 }

@@ -10,6 +10,7 @@ import skillbill.application.review.service.toTriagePayload
 import skillbill.application.review.stats.toFeatureVerifyStatsPayload
 import skillbill.application.review.stats.toGoalStatsPayload
 import skillbill.application.review.stats.toReviewStatsPayload
+
 internal fun ImportedReviewResult.toMcpMap(): Map<String, Any?> = toImportedReviewContract().toPayload()
 
 internal fun TriageResult.toMcpMap(): Map<String, Any?> = toTriagePayload().toPayload()

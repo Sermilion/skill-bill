@@ -28,6 +28,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class NativeAgentAddonCompositionRegressionTest {
   @Test
   fun `addon_usage without a content md link reaches the rendered agent body`() {
@@ -71,15 +72,16 @@ class NativeAgentAddonCompositionRegressionTest {
         architecture.indexOf(HARBOR_ENTRYPOINT_MARKER) < architecture.indexOf(HARBOR_COMPANION_MARKER),
       "area content, then entrypoint before companion",
     )
-    val baseline = composeGovernedAgentBody(
-      pack.repoRoot,
-      NativeAgentCompositionTarget(
-        contentPath = pack.baselineContent,
-        source = NativeAgentCompositionTargetSource.PlatformManifest,
-        manifest = loadPlatformPack(pack.packRoot).toNativeAgentPlatformPack(),
-      ),
-      renderAuthoredContentBody(pack.baselineContent, "bill-harbor-code-review"),
-    ).body
+    val baseline =
+      composeGovernedAgentBody(
+        pack.repoRoot,
+        NativeAgentCompositionTarget(
+          contentPath = pack.baselineContent,
+          source = NativeAgentCompositionTargetSource.PlatformManifest,
+          manifest = loadPlatformPack(pack.packRoot).toNativeAgentPlatformPack(),
+        ),
+        renderAuthoredContentBody(pack.baselineContent, "bill-harbor-code-review"),
+      ).body
     assertContains(baseline, HARBOR_BASELINE_MARKER)
     assertFalse(HARBOR_ENTRYPOINT_MARKER in baseline)
     assertFalse(HARBOR_COMPANION_MARKER in baseline)
@@ -106,40 +108,56 @@ class NativeAgentAddonCompositionRegressionTest {
     }
   }
 
-  private fun renderArchitecture(repoRoot: Path, provider: NativeAgentProvider): String =
-    renderWorker(repoRoot, provider, HARBOR_ARCHITECTURE_WORKER)
+  private fun renderArchitecture(
+    repoRoot: Path,
+    provider: NativeAgentProvider,
+  ): String = renderWorker(repoRoot, provider, HARBOR_ARCHITECTURE_WORKER)
 
-  private fun renderWorker(repoRoot: Path, provider: NativeAgentProvider, logicalName: String): String {
+  private fun renderWorker(
+    repoRoot: Path,
+    provider: NativeAgentProvider,
+    logicalName: String,
+  ): String {
     val result = renderInstall(repoRoot, provider, Files.createTempDirectory("skillbill-harbor-render"))
     return Files.readString(
       result.generatedFiles.single { path -> path.fileName.toString() == provider.fileName(logicalName) },
     )
   }
 
-  private fun renderInstall(repoRoot: Path, provider: NativeAgentProvider, home: Path, cacheRoot: Path? = null) =
-    NativeAgentOperations.renderInstallArtifacts(
-      NativeAgentInstallRenderRequest(
-        platformPacksRoot = repoRoot.resolve("platform-packs"),
-        skillsRoot = null,
-        selectedPlatforms = listOf(HARBOR_PACK_SLUG),
-        provider = provider,
-        home = home,
-        compositionContext = testNativeAgentCompositionContext(repoRoot),
-        overrides = NativeAgentInstallRenderOverrides(cacheRoot = cacheRoot),
-      ),
-    )
-
-  private fun architectureArtifact(generated: List<Path>, provider: NativeAgentProvider): Path =
-    generated.single { path -> path.fileName.toString() == provider.fileName(HARBOR_ARCHITECTURE_WORKER) }
-
-  private fun harborSources(repoRoot: Path) = discoverNativeAgentSourceEntries(
-    repoRoot.resolve("platform-packs"),
-    null,
-    listOf(HARBOR_PACK_SLUG),
+  private fun renderInstall(
+    repoRoot: Path,
+    provider: NativeAgentProvider,
+    home: Path,
+    cacheRoot: Path? = null,
+  ) = NativeAgentOperations.renderInstallArtifacts(
+    NativeAgentInstallRenderRequest(
+      platformPacksRoot = repoRoot.resolve("platform-packs"),
+      skillsRoot = null,
+      selectedPlatforms = listOf(HARBOR_PACK_SLUG),
+      provider = provider,
+      home = home,
+      compositionContext = testNativeAgentCompositionContext(repoRoot),
+      overrides = NativeAgentInstallRenderOverrides(cacheRoot = cacheRoot),
+    ),
   )
+
+  private fun architectureArtifact(
+    generated: List<Path>,
+    provider: NativeAgentProvider,
+  ): Path = generated.single { path -> path.fileName.toString() == provider.fileName(HARBOR_ARCHITECTURE_WORKER) }
+
+  private fun harborSources(repoRoot: Path) =
+    discoverNativeAgentSourceEntries(
+      repoRoot.resolve("platform-packs"),
+      null,
+      listOf(HARBOR_PACK_SLUG),
+    )
 
   private fun architectureSource(repoRoot: Path) =
     harborSources(repoRoot).single { source -> source.name == HARBOR_ARCHITECTURE_WORKER }
 
-  private fun markerCount(body: String, marker: String): Int = body.split(marker).size - 1
+  private fun markerCount(
+    body: String,
+    marker: String,
+  ): Int = body.split(marker).size - 1
 }

@@ -1,7 +1,6 @@
 plugins {
   id("skillbill.jvm-library")
   id("skillbill.quality")
-  id("skillbill.governed-resources")
   `java-test-fixtures`
 }
 
@@ -18,19 +17,4 @@ dependencies {
   testFixturesImplementation(project(":runtime-ports"))
   testFixturesImplementation(testFixtures(project(":runtime-ports")))
   testFixturesImplementation(libs.kotlin.test)
-}
-
-governedResources {
-  missingSourceMessageTemplate.set("\$owner is missing at \$sourcePath.")
-  entry(
-    GovernedResourceEntry(
-      taskName = "copyJavaGuard",
-      repoRelativeSource = "build-logic/convention/src/main/resources/skill-bill-java-guard.sh",
-      destinationDir = "skillbill/infrastructure/host/jvm",
-      owner =
-        "SKILL-244: canonical Java guard script. The runtime image must ship the single " +
-          "authored guard so gate JVM resolution has a rule",
-      sourceFromRuntimeKotlinProject = true,
-    ),
-  )
 }

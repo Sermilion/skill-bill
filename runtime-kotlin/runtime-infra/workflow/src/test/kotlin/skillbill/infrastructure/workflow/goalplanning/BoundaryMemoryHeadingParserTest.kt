@@ -8,7 +8,8 @@ import kotlin.test.assertTrue
 class BoundaryMemoryHeadingParserTest {
   @Test
   fun `history entries parse in file order with stable ids`() {
-    val content = """
+    val content =
+      """
       # Boundary History — runtime-kotlin/runtime-application
 
       ## [2026-08-01] planning-heading-walk
@@ -18,7 +19,7 @@ class BoundaryMemoryHeadingParserTest {
       ## [2026-07-02] discovery-exclusions
 
       Centralized the exclusion contract.
-    """.trimIndent()
+      """.trimIndent()
 
     val entries = BoundaryMemoryHeadingParser.parse("runtime-kotlin/agent/history.md", content)
 
@@ -37,13 +38,14 @@ class BoundaryMemoryHeadingParserTest {
 
   @Test
   fun `decisions entries parse on the governed title form`() {
-    val content = """
+    val content =
+      """
       # Boundary Decisions — tooling
 
       ## [2026-08-01] Bodies are resolved on demand
 
       Only selected headings are materialized.
-    """.trimIndent()
+      """.trimIndent()
 
     val entries = BoundaryMemoryHeadingParser.parse("tooling/agent/decisions.md", content)
 
@@ -52,7 +54,8 @@ class BoundaryMemoryHeadingParserTest {
 
   @Test
   fun `malformed regions are skipped without inventing headings or dropping later entries`() {
-    val content = """
+    val content =
+      """
       # Boundary History — modules/a
 
       Loose prose before any conforming entry.
@@ -67,7 +70,7 @@ class BoundaryMemoryHeadingParserTest {
       ## [2026-07-01] second-entry
 
       body two
-    """.trimIndent()
+      """.trimIndent()
 
     val entries = BoundaryMemoryHeadingParser.parse("modules/a/agent/history.md", content)
 
@@ -80,20 +83,22 @@ class BoundaryMemoryHeadingParserTest {
 
   @Test
   fun `a file with no conforming entry yields no headings`() {
-    val entries = BoundaryMemoryHeadingParser.parse(
-      "modules/a/agent/history.md",
-      "# Boundary History\n\nnothing governed here\n",
-    )
+    val entries =
+      BoundaryMemoryHeadingParser.parse(
+        "modules/a/agent/history.md",
+        "# Boundary History\n\nnothing governed here\n",
+      )
 
     assertEquals(emptyList(), entries)
   }
 
   @Test
   fun `carriage returns normalize before parsing`() {
-    val entries = BoundaryMemoryHeadingParser.parse(
-      "modules/a/agent/history.md",
-      "# H\r\n\r\n## [2026-08-01] crlf-entry\r\n\r\nbody\r\n",
-    )
+    val entries =
+      BoundaryMemoryHeadingParser.parse(
+        "modules/a/agent/history.md",
+        "# H\r\n\r\n## [2026-08-01] crlf-entry\r\n\r\nbody\r\n",
+      )
 
     assertEquals(listOf("## [2026-08-01] crlf-entry"), entries.map(BoundaryMemoryEntry::heading))
     assertEquals("body", entries.single().body)
@@ -102,7 +107,8 @@ class BoundaryMemoryHeadingParserTest {
   @Test
   fun `heading ids survive prepending a newer entry`() {
     val path = "modules/a/agent/history.md"
-    val before = """
+    val before =
+      """
       # Boundary History — modules/a
 
       ## [2026-08-01] first-entry
@@ -112,8 +118,9 @@ class BoundaryMemoryHeadingParserTest {
       ## [2026-07-01] second-entry
 
       body two
-    """.trimIndent()
-    val after = """
+      """.trimIndent()
+    val after =
+      """
       # Boundary History — modules/a
 
       ## [2026-09-01] newest-entry
@@ -127,7 +134,7 @@ class BoundaryMemoryHeadingParserTest {
       ## [2026-07-01] second-entry
 
       body two
-    """.trimIndent()
+      """.trimIndent()
 
     val original = BoundaryMemoryHeadingParser.parse(path, before)
     val reparsed = BoundaryMemoryHeadingParser.parse(path, after).associateBy(BoundaryMemoryEntry::headingId)
@@ -142,7 +149,8 @@ class BoundaryMemoryHeadingParserTest {
 
   @Test
   fun `identical headings in one file get distinct ids`() {
-    val content = """
+    val content =
+      """
       # Boundary History — modules/a
 
       ## [2026-08-01] repeated
@@ -152,7 +160,7 @@ class BoundaryMemoryHeadingParserTest {
       ## [2026-08-01] repeated
 
       second occurrence
-    """.trimIndent()
+      """.trimIndent()
 
     val entries = BoundaryMemoryHeadingParser.parse("modules/a/agent/history.md", content)
 
@@ -164,7 +172,8 @@ class BoundaryMemoryHeadingParserTest {
 
   @Test
   fun `a fenced heading inside a body is body text, not a new entry`() {
-    val content = """
+    val content =
+      """
       # Boundary History — modules/a
 
       ## [2026-08-01] documents-the-form
@@ -180,7 +189,7 @@ class BoundaryMemoryHeadingParserTest {
       ## [2026-07-01] real-second-entry
 
       body two
-    """.trimIndent()
+      """.trimIndent()
 
     val entries = BoundaryMemoryHeadingParser.parse("modules/a/agent/history.md", content)
 
@@ -194,7 +203,8 @@ class BoundaryMemoryHeadingParserTest {
 
   @Test
   fun `a tilde fence is honoured and an unbalanced inner fence does not close it`() {
-    val content = """
+    val content =
+      """
       # Boundary History — modules/a
 
       ## [2026-08-01] tilde-fenced
@@ -204,7 +214,7 @@ class BoundaryMemoryHeadingParserTest {
       ~~~
 
       after
-    """.trimIndent()
+      """.trimIndent()
 
     val entries = BoundaryMemoryHeadingParser.parse("modules/a/agent/history.md", content)
 
@@ -214,7 +224,8 @@ class BoundaryMemoryHeadingParserTest {
 
   @Test
   fun `an unterminated fence does not swallow the entries behind it`() {
-    val content = """
+    val content =
+      """
       # Boundary History — modules/a
 
       ## [2026-08-01] newest-with-broken-fence
@@ -225,7 +236,7 @@ class BoundaryMemoryHeadingParserTest {
       ## [2026-07-01] older-entry
 
       body two
-    """.trimIndent()
+      """.trimIndent()
 
     val entries = BoundaryMemoryHeadingParser.parse("modules/a/agent/history.md", content)
 
@@ -239,10 +250,11 @@ class BoundaryMemoryHeadingParserTest {
 
   @Test
   fun `a leading byte order mark does not hide the newest entry`() {
-    val entries = BoundaryMemoryHeadingParser.parse(
-      "modules/a/agent/history.md",
-      "\uFEFF## [2026-08-01] newest\n\nbody\n",
-    )
+    val entries =
+      BoundaryMemoryHeadingParser.parse(
+        "modules/a/agent/history.md",
+        "\uFEFF## [2026-08-01] newest\n\nbody\n",
+      )
 
     assertEquals(listOf("## [2026-08-01] newest"), entries.map(BoundaryMemoryEntry::heading))
     assertEquals("body", entries.single().body)
@@ -250,10 +262,11 @@ class BoundaryMemoryHeadingParserTest {
 
   @Test
   fun `a final entry without a trailing newline keeps its body`() {
-    val entries = BoundaryMemoryHeadingParser.parse(
-      "modules/a/agent/history.md",
-      "# H\n\n## [2026-08-01] first\n\nbody one\n\n## [2026-07-01] last\n\nfinal body without newline",
-    )
+    val entries =
+      BoundaryMemoryHeadingParser.parse(
+        "modules/a/agent/history.md",
+        "# H\n\n## [2026-08-01] first\n\nbody one\n\n## [2026-07-01] last\n\nfinal body without newline",
+      )
 
     assertEquals(2, entries.size)
     assertEquals("final body without newline", entries.last().body)

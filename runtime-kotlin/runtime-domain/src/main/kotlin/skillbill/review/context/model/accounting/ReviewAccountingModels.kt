@@ -16,14 +16,15 @@ data class ReviewAccountingCounters(
     require(listOf(expansions, toolCalls, modelTurns).all { it >= 0 })
   }
 
-  operator fun plus(other: ReviewAccountingCounters): ReviewAccountingCounters = ReviewAccountingCounters(
-    launchBytes + other.launchBytes,
-    evidenceBytes + other.evidenceBytes,
-    resultBytes + other.resultBytes,
-    expansions + other.expansions,
-    toolCalls + other.toolCalls,
-    modelTurns + other.modelTurns,
-  )
+  operator fun plus(other: ReviewAccountingCounters): ReviewAccountingCounters =
+    ReviewAccountingCounters(
+      launchBytes + other.launchBytes,
+      evidenceBytes + other.evidenceBytes,
+      resultBytes + other.resultBytes,
+      expansions + other.expansions,
+      toolCalls + other.toolCalls,
+      modelTurns + other.modelTurns,
+    )
 }
 
 data class ReviewAccountingInput(
@@ -48,7 +49,6 @@ data class ReviewAccountingNode(
   val counters: ReviewAccountingCounters,
   val inclusiveCounters: ReviewAccountingCounters,
   val terminalOutcome: ReviewAccountingTerminalOutcome,
-
   val bundleCompositionDigest: String?,
   val segmentAccounting: List<ReviewLaneSegmentAccounting>,
   val unreviewedSegmentIds: List<String>,
@@ -117,6 +117,7 @@ data class ReviewIntegrationAccounting(
     counters,
     skipReason,
   )
+
   init {
     require(commitSequenceDigest.isNotBlank())
     require(summarizedLaneCount >= 0 && findingCount >= 0)
@@ -146,5 +147,6 @@ data class ReviewEvidenceDelivery(
   init {
     require(requiredUnits >= 0 && deliveredUnits in 0..requiredUnits && requestCount >= 0)
   }
+
   val remainingUnits: Int get() = requiredUnits - deliveredUnits
 }

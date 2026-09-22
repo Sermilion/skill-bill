@@ -22,6 +22,7 @@ import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 @Inject
 class FeatureTaskContinuationLookupService(
   private val database: DatabaseSessionFactory,
@@ -30,49 +31,53 @@ class FeatureTaskContinuationLookupService(
 ) {
   private val engine = WorkflowEngine(workflowSnapshotValidator)
 
-  fun claim(candidate: FeatureTaskContinuationCandidate): Boolean = database.transaction { unitOfWork ->
-    unitOfWork.workflowStates.claimFeatureTaskContinuation(candidate.workflowId, candidate.updatedAt)
-  }
+  fun claim(candidate: FeatureTaskContinuationCandidate): Boolean =
+    database.transaction { unitOfWork ->
+      unitOfWork.workflowStates.claimFeatureTaskContinuation(candidate.workflowId, candidate.updatedAt)
+    }
 
   fun lookup(
     issueKey: String,
     repositoryIdentity: String,
     workflowId: String? = null,
-  ): FeatureTaskContinuationLookupResult = lookup(
-    FeatureTaskContinuationLookupQuery(
-      issueKey = issueKey,
-      repositoryIdentity = repositoryIdentity,
-      workflowId = workflowId,
-      routeScope = FeatureTaskRouteScope.STANDALONE,
-    ),
-  )
+  ): FeatureTaskContinuationLookupResult =
+    lookup(
+      FeatureTaskContinuationLookupQuery(
+        issueKey = issueKey,
+        repositoryIdentity = repositoryIdentity,
+        workflowId = workflowId,
+        routeScope = FeatureTaskRouteScope.STANDALONE,
+      ),
+    )
 
   fun lookupGoalChild(
     issueKey: String,
     repositoryIdentity: String,
     workflowId: String,
-  ): FeatureTaskContinuationLookupResult = lookup(
-    FeatureTaskContinuationLookupQuery(
-      issueKey = issueKey,
-      repositoryIdentity = repositoryIdentity,
-      workflowId = workflowId,
-      routeScope = FeatureTaskRouteScope.GOAL_CHILD,
-    ),
-  )
+  ): FeatureTaskContinuationLookupResult =
+    lookup(
+      FeatureTaskContinuationLookupQuery(
+        issueKey = issueKey,
+        repositoryIdentity = repositoryIdentity,
+        workflowId = workflowId,
+        routeScope = FeatureTaskRouteScope.GOAL_CHILD,
+      ),
+    )
 
   fun lookupIfPresent(
     issueKey: String,
     repositoryIdentity: String,
     workflowId: String? = null,
-  ): FeatureTaskContinuationLookupResult = lookup(
-    FeatureTaskContinuationLookupQuery(
-      issueKey = issueKey,
-      repositoryIdentity = repositoryIdentity,
-      workflowId = workflowId,
-      routeScope = FeatureTaskRouteScope.STANDALONE,
-      readIfPresent = true,
-    ),
-  )
+  ): FeatureTaskContinuationLookupResult =
+    lookup(
+      FeatureTaskContinuationLookupQuery(
+        issueKey = issueKey,
+        repositoryIdentity = repositoryIdentity,
+        workflowId = workflowId,
+        routeScope = FeatureTaskRouteScope.STANDALONE,
+        readIfPresent = true,
+      ),
+    )
 
   private fun lookup(query: FeatureTaskContinuationLookupQuery): FeatureTaskContinuationLookupResult {
     val lookup = { unitOfWork: UnitOfWork ->
@@ -96,9 +101,10 @@ class FeatureTaskContinuationLookupService(
     ownership: FeatureTaskRuntimeWorkerOwnership?,
     routeScope: FeatureTaskRouteScope,
   ): FeatureTaskContinuationCandidate {
-    val identity = requireNotNull(candidate.identity) {
-      invalidIdentity(candidate, "missing immutable execution identity")
-    }
+    val identity =
+      requireNotNull(candidate.identity) {
+        invalidIdentity(candidate, "missing immutable execution identity")
+      }
     FeatureTaskExecutionIdentityPolicy.validate(identity)
     if (identity.routeScope != routeScope) {
       invalidIdentity(
@@ -124,27 +130,30 @@ class FeatureTaskContinuationLookupService(
       currentStep = candidate.workflow.currentStepId,
       governedSpecPath = identity.governedSpecPath,
       updatedAt = candidate.workflow.updatedAt,
-      liveness = if (typedStatus == WorkflowStatus.RUNNING) {
-        ownership?.let {
-          FeatureTaskContinuationLiveness(
-            classification = "worker_ownership_recorded",
-            lastEvidenceAt = it.heartbeatAt,
-            evidence = "Runtime worker ownership is fenced at generation ${it.generation}; exact process liveness " +
-              "must be verified before takeover.",
+      liveness =
+        if (typedStatus == WorkflowStatus.RUNNING) {
+          ownership?.let {
+            FeatureTaskContinuationLiveness(
+              classification = "worker_ownership_recorded",
+              lastEvidenceAt = it.heartbeatAt,
+              evidence =
+                "Runtime worker ownership is fenced at generation ${it.generation}; exact process liveness " +
+                  "must be verified before takeover.",
+            )
+          } ?: FeatureTaskContinuationLiveness(
+            classification = "ownership_unavailable",
+            lastEvidenceAt = candidate.workflow.updatedAt,
+            evidence = "The workflow is running without verifiable worker ownership; operator repair is required.",
           )
-        } ?: FeatureTaskContinuationLiveness(
-          classification = "ownership_unavailable",
-          lastEvidenceAt = candidate.workflow.updatedAt,
-          evidence = "The workflow is running without verifiable worker ownership; operator repair is required.",
-        )
-      } else {
-        null
-      },
-      summary = when {
-        typedStatus == WorkflowStatus.RUNNING -> "Workflow is already running; inspect liveness before recovery."
-        typedStatus in TERMINAL_STATUSES -> "Workflow is terminal with status '$status'."
-        else -> "Resume from '${candidate.workflow.currentStepId}' using durable workflow artifacts."
-      },
+        } else {
+          null
+        },
+      summary =
+        when {
+          typedStatus == WorkflowStatus.RUNNING -> "Workflow is already running; inspect liveness before recovery."
+          typedStatus in TERMINAL_STATUSES -> "Workflow is terminal with status '$status'."
+          else -> "Resume from '${candidate.workflow.currentStepId}' using durable workflow artifacts."
+        },
     )
   }
 
@@ -159,8 +168,10 @@ class FeatureTaskContinuationLookupService(
       identity.normalizedIssueKey != workflow.issueKey?.trim()?.uppercase()
   }
 
-  private fun invalidIdentity(candidate: FeatureTaskWorkflowCandidate, reason: String): Nothing =
-    throw InvalidFeatureTaskExecutionIdentitySchemaError(candidate.workflow.workflowId, reason)
+  private fun invalidIdentity(
+    candidate: FeatureTaskWorkflowCandidate,
+    reason: String,
+  ): Nothing = throw InvalidFeatureTaskExecutionIdentitySchemaError(candidate.workflow.workflowId, reason)
 
   private fun classify(candidates: List<FeatureTaskContinuationCandidate>): FeatureTaskContinuationLookupResult {
     if (candidates.isEmpty()) return FeatureTaskContinuationLookupResult.NoMatch

@@ -3,6 +3,7 @@ package skillbill.review.model
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+
 class ReviewStageStateDurableDecodeTest {
   @Test
   fun `unknown review stage wire token fails with review typed error`() {

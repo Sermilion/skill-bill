@@ -26,17 +26,18 @@ internal fun composedRunLanes(
       review.specialistReviews,
     )
   }
-  val plan = try {
-    reviewAttributionPort.composedLaunchPlan(routedPackSlug)
-  } catch (error: ShellContentContractException) {
-    diagnostics.warning(
-      "review lane composition: pack '$routedPackSlug' failed to compose " +
-        "(${error::class.simpleName}); run ${review.reviewRunId} imports with unresolved lanes " +
-        "instead of the composed launch plan.",
-      error,
-    )
-    ReviewLaunchPlan(routedPackSlug, emptyList())
-  }
+  val plan =
+    try {
+      reviewAttributionPort.composedLaunchPlan(routedPackSlug)
+    } catch (error: ShellContentContractException) {
+      diagnostics.warning(
+        "review lane composition: pack '$routedPackSlug' failed to compose " +
+          "(${error::class.simpleName}); run ${review.reviewRunId} imports with unresolved lanes " +
+          "instead of the composed launch plan.",
+        error,
+      )
+      ReviewLaunchPlan(routedPackSlug, emptyList())
+    }
   return ReviewRunLaneResolver.resolve(plan, review.specialistReviews)
 }
 

@@ -17,14 +17,15 @@ class CliRunInputsRuntimeTest {
     Files.createDirectories(repoRoot.resolve(".skill-bill"))
     Files.writeString(repoRoot.resolve(".skill-bill/config.yaml"), "spec_type: linear\n")
 
-    val result = CliRuntime.run(
-      listOf("config", "resolve-spec-type"),
-      CliRuntimeContext(
-        repositoryRoot = repoRoot,
-        userHome = repoRoot,
-        environment = emptyMap(),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("config", "resolve-spec-type"),
+        CliRuntimeContext(
+          repositoryRoot = repoRoot,
+          userHome = repoRoot,
+          environment = emptyMap(),
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals("linear", result.stdout.trim())
@@ -40,14 +41,15 @@ class CliRunInputsRuntimeTest {
 
     try {
       val relativePath = processRoot.relativize(relativeRoot).toString()
-      val result = CliRuntime.run(
-        listOf("config", "resolve-spec-type", "--repo-root", relativePath),
-        CliRuntimeContext(
-          repositoryRoot = embeddingRoot,
-          userHome = embeddingRoot,
-          environment = emptyMap(),
-        ),
-      )
+      val result =
+        CliRuntime.run(
+          listOf("config", "resolve-spec-type", "--repo-root", relativePath),
+          CliRuntimeContext(
+            repositoryRoot = embeddingRoot,
+            userHome = embeddingRoot,
+            environment = emptyMap(),
+          ),
+        )
 
       assertEquals(0, result.exitCode, result.stdout)
       assertEquals("linear", result.stdout.trim())
@@ -81,14 +83,16 @@ class CliRunInputsRuntimeTest {
     val featureTask = listOf("feature-task", "SKILL-901")
 
     val injectedRoot = CliRuntime.run(featureTask, injectedRootContext(repoRoot))
-    val explicitRoot = CliRuntime.run(
-      featureTask + listOf("--repo-root", realRoot.toString()),
-      injectedRootContext(repoRoot),
-    )
-    val processRoot = CliRuntime.run(
-      featureTask,
-      CliRuntimeContext(environment = emptyMap(), userHome = repoRoot),
-    )
+    val explicitRoot =
+      CliRuntime.run(
+        featureTask + listOf("--repo-root", realRoot.toString()),
+        injectedRootContext(repoRoot),
+      )
+    val processRoot =
+      CliRuntime.run(
+        featureTask,
+        CliRuntimeContext(environment = emptyMap(), userHome = repoRoot),
+      )
 
     assertTrue(injectedRoot.stdout.contains(specsRoot), injectedRoot.stdout)
     assertTrue(explicitRoot.stdout.contains(specsRoot), explicitRoot.stdout)
@@ -96,12 +100,13 @@ class CliRunInputsRuntimeTest {
     assertTrue(processRoot.stdout.contains("SKILL-901"), processRoot.stdout)
     assertFalse(processRoot.stdout.contains(specsRoot), processRoot.stdout)
 
-    val scaffold = CliRuntime.run(
-      listOf("new", "--dry-run", "--format", "json"),
-      injectedRootContext(repoRoot).copy(
-        stdinText = "horizontal\nbill-injected-root-skill\nInjected root skill.\n",
-      ),
-    )
+    val scaffold =
+      CliRuntime.run(
+        listOf("new", "--dry-run", "--format", "json"),
+        injectedRootContext(repoRoot).copy(
+          stdinText = "horizontal\nbill-injected-root-skill\nInjected root skill.\n",
+        ),
+      )
 
     assertEquals(0, scaffold.exitCode, scaffold.stdout)
     assertEquals(
@@ -116,14 +121,16 @@ class CliRunInputsRuntimeTest {
     val dbPath = tempDir.resolve("metrics.db")
     val expected = dbPath.toAbsolutePath().normalize().toString()
 
-    val fromContext = CliRuntime.run(
-      listOf("goal-stats", "--format", "json"),
-      CliRuntimeContext(dbPathOverride = dbPath.toString(), environment = emptyMap()),
-    )
-    val fromFlag = CliRuntime.run(
-      listOf("--db", dbPath.toString(), "goal-stats", "--format", "json"),
-      CliRuntimeContext(environment = emptyMap()),
-    )
+    val fromContext =
+      CliRuntime.run(
+        listOf("goal-stats", "--format", "json"),
+        CliRuntimeContext(dbPathOverride = dbPath.toString(), environment = emptyMap()),
+      )
+    val fromFlag =
+      CliRuntime.run(
+        listOf("--db", dbPath.toString(), "goal-stats", "--format", "json"),
+        CliRuntimeContext(environment = emptyMap()),
+      )
 
     assertEquals(0, fromContext.exitCode, fromContext.stdout)
     assertEquals(expected, decodeJsonObject(fromContext.stdout)["db_path"])
@@ -135,14 +142,15 @@ class CliRunInputsRuntimeTest {
   fun `uninstall previews the desktop layout reported by the host platform port`() {
     val home = Files.createTempDirectory("skillbill-cli-host-platform")
 
-    val result = CliRuntime.run(
-      listOf("--home", home.toString(), "uninstall", "--dry-run", "--format", "json"),
-      CliRuntimeContext(
-        environment = emptyMap(),
-        userHome = home,
-        hostPlatformPort = StubHostPlatformPort("Windows 11"),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "uninstall", "--dry-run", "--format", "json"),
+        CliRuntimeContext(
+          environment = emptyMap(),
+          userHome = home,
+          hostPlatformPort = StubHostPlatformPort("Windows 11"),
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val desktop = decodeJsonObject(result.stdout)["desktop"] as Map<*, *>
@@ -154,13 +162,17 @@ class CliRunInputsRuntimeTest {
     )
   }
 
-  private fun injectedRootContext(repoRoot: Path) = CliRuntimeContext(
-    environment = emptyMap(),
-    userHome = repoRoot,
-    repositoryRoot = repoRoot,
-  )
+  private fun injectedRootContext(repoRoot: Path) =
+    CliRuntimeContext(
+      environment = emptyMap(),
+      userHome = repoRoot,
+      repositoryRoot = repoRoot,
+    )
 
-  private fun goalStats(rootFlags: List<String>, contextHome: Path) = CliRuntime.run(
+  private fun goalStats(
+    rootFlags: List<String>,
+    contextHome: Path,
+  ) = CliRuntime.run(
     rootFlags + listOf("goal-stats", "--format", "json"),
     CliRuntimeContext(environment = emptyMap(), userHome = contextHome),
   )
@@ -168,10 +180,15 @@ class CliRunInputsRuntimeTest {
 
 private class StubHostPlatformPort(override val osName: String) : HostPlatformPort {
   override fun resolveUserHome(): Path = Path.of("/tmp")
+
   override fun resolveEnvironment(): Map<String, String> = emptyMap()
+
   override fun resolveJavaHome(): Path = Path.of("/java")
+
   override fun resolveWorkingDirectory(): Path = Path.of("/workspace")
+
   override fun resolveTemporaryDirectory(): Path = Path.of("/tmp")
+
   override val jvmClassPath: String = ""
   override val pathSeparator: String = ":"
 }

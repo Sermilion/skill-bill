@@ -2,18 +2,31 @@ package skillbill.cli.scaffold.wizard
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliRunInputs
 
-internal fun promptRequired(state: CliRunState, inputs: CliRunInputs, label: String): String {
+internal fun promptRequired(
+  state: CliRunState,
+  inputs: CliRunInputs,
+  label: String,
+): String {
   val value = promptOptional(state, inputs, label)
   require(value.isNotBlank()) { "Missing required scaffold wizard value: $label." }
   return value
 }
 
-internal fun promptOptional(state: CliRunState, inputs: CliRunInputs, label: String): String {
+internal fun promptOptional(
+  state: CliRunState,
+  inputs: CliRunInputs,
+  label: String,
+): String {
   inputs.liveStdout("$label: ")
   return state.readInputLine()?.trim().orEmpty()
 }
 
-internal fun promptDefault(state: CliRunState, inputs: CliRunInputs, label: String, default: String): String {
+internal fun promptDefault(
+  state: CliRunState,
+  inputs: CliRunInputs,
+  label: String,
+  default: String,
+): String {
   val value = promptOptional(state, inputs, label)
   return value.ifBlank { default }
 }
@@ -44,7 +57,11 @@ internal fun promptRoutingSignals(
   return signals
 }
 
-internal fun promptAssistedAgent(state: CliRunState, inputs: CliRunInputs, detectedAgents: List<String>): String {
+internal fun promptAssistedAgent(
+  state: CliRunState,
+  inputs: CliRunInputs,
+  detectedAgents: List<String>,
+): String {
   val agents = detectedAgents.distinct().sorted()
   if (agents.isEmpty()) {
     inputs.liveStdout("No installed agents detected; using local deterministic assistance.\n")
@@ -63,7 +80,11 @@ internal fun promptAssistedAgent(state: CliRunState, inputs: CliRunInputs, detec
   )
 }
 
-internal fun requiredCommaSeparated(state: CliRunState, inputs: CliRunInputs, label: String): List<String> =
+internal fun requiredCommaSeparated(
+  state: CliRunState,
+  inputs: CliRunInputs,
+  label: String,
+): List<String> =
   parseCommaSeparated(promptRequired(state, inputs, label)).also { values ->
     require(values.isNotEmpty()) { "Missing required scaffold wizard value: $label." }
   }

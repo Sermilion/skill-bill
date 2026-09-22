@@ -49,10 +49,11 @@ class IdeStatusSchemaValidatorTest {
   @Test
   fun `unknown problem code fails loudly with typed error`() {
     val malformed = validIdleSnapshot().toMutableMap()
-    malformed["problem"] = linkedMapOf(
-      "code" to "not_a_code",
-      "message" to "bad",
-    )
+    malformed["problem"] =
+      linkedMapOf(
+        "code" to "not_a_code",
+        "message" to "bad",
+      )
     assertFailsWith<InvalidIdeStatusSchemaError> {
       IdeStatusSchemaValidator.validate(malformed, "test-bad-problem")
     }
@@ -98,12 +99,13 @@ class IdeStatusSchemaValidatorTest {
         "current_step" to linkedMapOf("id" to "implement", "label" to "Implement"),
         "progress" to linkedMapOf("completed" to 1, "total" to 3),
         "started_at" to "2026-08-06T10:00:00Z",
-        "current_subtask" to linkedMapOf(
-          "id" to "1",
-          "started_at" to "2026-08-06T10:05:00Z",
-          "active_duration_ms" to 45_000,
-          "active_duration_as_of" to "2026-08-06T10:10:00Z",
-        ),
+        "current_subtask" to
+          linkedMapOf(
+            "id" to "1",
+            "started_at" to "2026-08-06T10:05:00Z",
+            "active_duration_ms" to 45_000,
+            "active_duration_as_of" to "2026-08-06T10:10:00Z",
+          ),
         "updated_at" to "2026-08-06T10:10:00Z",
         "freshness" to "fresh",
         "summary" to "Goal SKILL-148 is active on implement.",
@@ -162,12 +164,13 @@ class IdeStatusSchemaValidatorTest {
       ),
       "test-planning-wave-valid",
     )
-    val rejected = mapOf(
-      "not-an-array" to "3",
-      "empty" to emptyList<String>(),
-      "duplicate" to listOf("3", "3"),
-      "over-cap" to (1..GOAL_PLANNING_WAVE_CAP + 1).map(Int::toString),
-    )
+    val rejected =
+      mapOf(
+        "not-an-array" to "3",
+        "empty" to emptyList<String>(),
+        "duplicate" to listOf("3", "3"),
+        "over-cap" to (1..GOAL_PLANNING_WAVE_CAP + 1).map(Int::toString),
+      )
     rejected.forEach { (label, wave) ->
       assertFailsWith<InvalidIdeStatusSchemaError>("planning_wave_subtask_ids accepted $label") {
         IdeStatusSchemaValidator.validate(
@@ -314,11 +317,12 @@ class IdeStatusSchemaValidatorTest {
   @Test
   fun `valid current_phase_execution object passes and remains optional`() {
     val snapshot = validGoalSnapshot()
-    snapshot["current_phase_execution"] = linkedMapOf(
-      "phase_id" to "review",
-      "kind" to "pass",
-      "count" to 3,
-    )
+    snapshot["current_phase_execution"] =
+      linkedMapOf(
+        "phase_id" to "review",
+        "kind" to "pass",
+        "count" to 3,
+      )
     IdeStatusSchemaValidator.validate(snapshot, "test-current-phase-execution-valid")
     IdeStatusSchemaValidator.validate(validGoalSnapshot(), "test-current-phase-execution-absent")
   }
@@ -326,60 +330,66 @@ class IdeStatusSchemaValidatorTest {
   @Test
   fun `malformed current_phase_execution fails loudly with typed error`() {
     val badKind = validGoalSnapshot()
-    badKind["current_phase_execution"] = linkedMapOf(
-      "phase_id" to "audit",
-      "kind" to "loop",
-      "count" to 1,
-    )
+    badKind["current_phase_execution"] =
+      linkedMapOf(
+        "phase_id" to "audit",
+        "kind" to "loop",
+        "count" to 1,
+      )
     assertFailsWith<InvalidIdeStatusSchemaError> {
       IdeStatusSchemaValidator.validate(badKind, "test-current-phase-execution-bad-kind")
     }
     val zeroCount = validGoalSnapshot()
-    zeroCount["current_phase_execution"] = linkedMapOf(
-      "phase_id" to "audit",
-      "kind" to "pass",
-      "count" to 0,
-    )
+    zeroCount["current_phase_execution"] =
+      linkedMapOf(
+        "phase_id" to "audit",
+        "kind" to "pass",
+        "count" to 0,
+      )
     assertFailsWith<InvalidIdeStatusSchemaError> {
       IdeStatusSchemaValidator.validate(zeroCount, "test-current-phase-execution-zero-count")
     }
     val unknownProperty = validGoalSnapshot()
-    unknownProperty["current_phase_execution"] = linkedMapOf(
-      "phase_id" to "audit",
-      "kind" to "pass",
-      "count" to 1,
-      "loop_id" to "audit_gap",
-    )
+    unknownProperty["current_phase_execution"] =
+      linkedMapOf(
+        "phase_id" to "audit",
+        "kind" to "pass",
+        "count" to 1,
+        "loop_id" to "audit_gap",
+      )
     assertFailsWith<InvalidIdeStatusSchemaError> {
       IdeStatusSchemaValidator.validate(unknownProperty, "test-current-phase-execution-unknown-property")
     }
     val totalOnPass = validGoalSnapshot()
-    totalOnPass["current_phase_execution"] = linkedMapOf(
-      "phase_id" to "review",
-      "kind" to "pass",
-      "count" to 2,
-      "total" to 3,
-    )
+    totalOnPass["current_phase_execution"] =
+      linkedMapOf(
+        "phase_id" to "review",
+        "kind" to "pass",
+        "count" to 2,
+        "total" to 3,
+      )
     assertFailsWith<InvalidIdeStatusSchemaError> {
       IdeStatusSchemaValidator.validate(totalOnPass, "test-current-phase-execution-total-on-pass")
     }
     val totalOnSemanticLoop = validGoalSnapshot()
-    totalOnSemanticLoop["current_phase_execution"] = linkedMapOf(
-      "phase_id" to "audit",
-      "kind" to "semantic_loop",
-      "count" to 1,
-      "total" to 2,
-    )
+    totalOnSemanticLoop["current_phase_execution"] =
+      linkedMapOf(
+        "phase_id" to "audit",
+        "kind" to "semantic_loop",
+        "count" to 1,
+        "total" to 2,
+      )
     assertFailsWith<InvalidIdeStatusSchemaError> {
       IdeStatusSchemaValidator.validate(totalOnSemanticLoop, "test-current-phase-execution-total-on-loop")
     }
     val boundedWithTotal = validGoalSnapshot()
-    boundedWithTotal["current_phase_execution"] = linkedMapOf(
-      "phase_id" to "plan",
-      "kind" to "bounded_edge",
-      "count" to 1,
-      "total" to 2,
-    )
+    boundedWithTotal["current_phase_execution"] =
+      linkedMapOf(
+        "phase_id" to "plan",
+        "kind" to "bounded_edge",
+        "count" to 1,
+        "total" to 2,
+      )
     IdeStatusSchemaValidator.validate(boundedWithTotal, "test-current-phase-execution-bounded-total")
   }
 
@@ -392,66 +402,73 @@ class IdeStatusSchemaValidatorTest {
   }
 
   private fun schemaRequiredNames(): List<String> {
-    val resourceStream = IdeStatusSchemaValidator::class.java.classLoader
-      .getResourceAsStream(IdeStatusSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      IdeStatusSchemaValidator::class.java.classLoader
+        .getResourceAsStream(IdeStatusSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(resourceStream, "Canonical IDE status schema is missing from the classpath.")
     val yamlText = resourceStream.use { it.readBytes().toString(Charsets.UTF_8) }
     return YAMLMapper().readTree(yamlText).path("required").map { it.asText() }
   }
 
-  private fun validGoalSnapshot(): LinkedHashMap<String, Any?> = linkedMapOf(
-    "contract_version" to IDE_STATUS_CONTRACT_VERSION,
-    "repository_identity" to "repo-root-realpath-v1:/repo",
-    "issue_key" to "SKILL-148",
-    "workflow_id" to "goal-1",
-    "workflow_family" to "feature-goal",
-    "lifecycle_state" to "active",
-    "current_step" to linkedMapOf("id" to "implement", "label" to "Implement"),
-    "updated_at" to "2026-08-06T10:10:00Z",
-    "freshness" to "fresh",
-    "summary" to "Goal SKILL-148 is active on implement.",
-  )
+  private fun validGoalSnapshot(): LinkedHashMap<String, Any?> =
+    linkedMapOf(
+      "contract_version" to IDE_STATUS_CONTRACT_VERSION,
+      "repository_identity" to "repo-root-realpath-v1:/repo",
+      "issue_key" to "SKILL-148",
+      "workflow_id" to "goal-1",
+      "workflow_family" to "feature-goal",
+      "lifecycle_state" to "active",
+      "current_step" to linkedMapOf("id" to "implement", "label" to "Implement"),
+      "updated_at" to "2026-08-06T10:10:00Z",
+      "freshness" to "fresh",
+      "summary" to "Goal SKILL-148 is active on implement.",
+    )
 
-  private fun goalSnapshotWithPlanning(planning: Map<String, Any?>): LinkedHashMap<String, Any?> = linkedMapOf(
-    "contract_version" to IDE_STATUS_CONTRACT_VERSION,
-    "repository_identity" to "repo-root-realpath-v1:/repo",
-    "issue_key" to "SKILL-165",
-    "workflow_id" to "goal-1",
-    "workflow_family" to "feature-goal",
-    "lifecycle_state" to "active",
-    "current_step" to linkedMapOf("id" to "planning", "label" to "Planning"),
-    "planning" to planning,
-    "updated_at" to "2026-08-06T10:10:00Z",
-    "freshness" to "fresh",
-    "summary" to "Goal SKILL-165 is planning subtasks (2/5 planned).",
-  )
+  private fun goalSnapshotWithPlanning(planning: Map<String, Any?>): LinkedHashMap<String, Any?> =
+    linkedMapOf(
+      "contract_version" to IDE_STATUS_CONTRACT_VERSION,
+      "repository_identity" to "repo-root-realpath-v1:/repo",
+      "issue_key" to "SKILL-165",
+      "workflow_id" to "goal-1",
+      "workflow_family" to "feature-goal",
+      "lifecycle_state" to "active",
+      "current_step" to linkedMapOf("id" to "planning", "label" to "Planning"),
+      "planning" to planning,
+      "updated_at" to "2026-08-06T10:10:00Z",
+      "freshness" to "fresh",
+      "summary" to "Goal SKILL-165 is planning subtasks (2/5 planned).",
+    )
 
-  private fun validIdleSnapshot(): LinkedHashMap<String, Any?> = linkedMapOf(
-    "contract_version" to IDE_STATUS_CONTRACT_VERSION,
-    "repository_identity" to "repo-root-realpath-v1:/repo",
-    "lifecycle_state" to "idle",
-    "current_step" to linkedMapOf("id" to "none", "label" to "No matching work"),
-    "updated_at" to "2026-08-06T10:00:00Z",
-    "freshness" to "fresh",
-    "summary" to "No matching Skill Bill work for this repository.",
-    "problem" to linkedMapOf(
-      "code" to "no_matching_work",
-      "message" to "No matching Skill Bill work for this repository.",
-    ),
-  )
+  private fun validIdleSnapshot(): LinkedHashMap<String, Any?> =
+    linkedMapOf(
+      "contract_version" to IDE_STATUS_CONTRACT_VERSION,
+      "repository_identity" to "repo-root-realpath-v1:/repo",
+      "lifecycle_state" to "idle",
+      "current_step" to linkedMapOf("id" to "none", "label" to "No matching work"),
+      "updated_at" to "2026-08-06T10:00:00Z",
+      "freshness" to "fresh",
+      "summary" to "No matching Skill Bill work for this repository.",
+      "problem" to
+        linkedMapOf(
+          "code" to "no_matching_work",
+          "message" to "No matching Skill Bill work for this repository.",
+        ),
+    )
 
   @Test
   fun `partial agent activity pair fails loudly`() {
-    val onlyAt = validIdleSnapshot().apply {
-      put("last_agent_activity_at", "2026-08-30T10:00:00Z")
-    }
+    val onlyAt =
+      validIdleSnapshot().apply {
+        put("last_agent_activity_at", "2026-08-30T10:00:00Z")
+      }
     assertFailsWith<InvalidIdeStatusSchemaError> {
       IdeStatusSchemaValidator.validate(onlyAt, "test-agent-activity-partial-at")
     }
-    val badLabel = validIdleSnapshot().apply {
-      put("last_agent_activity_at", "2026-08-30T10:00:00Z")
-      put("last_agent_activity_label", "grep")
-    }
+    val badLabel =
+      validIdleSnapshot().apply {
+        put("last_agent_activity_at", "2026-08-30T10:00:00Z")
+        put("last_agent_activity_label", "grep")
+      }
     assertFailsWith<InvalidIdeStatusSchemaError> {
       IdeStatusSchemaValidator.validate(badLabel, "test-agent-activity-bad-label")
     }
@@ -469,10 +486,11 @@ class IdeStatusSchemaValidatorTest {
         "lifecycle_state" to "blocked",
         "current_step" to linkedMapOf("id" to "validate", "label" to "Validate"),
         "progress" to linkedMapOf("completed" to 1, "total" to 3),
-        "pause_reason" to linkedMapOf(
-          "code" to "awaiting_operator_decision",
-          "label" to "Configure GITHUB_REGISTRY_AUTH",
-        ),
+        "pause_reason" to
+          linkedMapOf(
+            "code" to "awaiting_operator_decision",
+            "label" to "Configure GITHUB_REGISTRY_AUTH",
+          ),
         "updated_at" to "2026-08-06T10:00:00Z",
         "freshness" to "fresh",
         "summary" to "Goal SKILL-228 is blocked: Configure GITHUB_REGISTRY_AUTH",

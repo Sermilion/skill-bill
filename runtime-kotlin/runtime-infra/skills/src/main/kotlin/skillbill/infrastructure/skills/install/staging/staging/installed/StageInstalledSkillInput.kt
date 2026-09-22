@@ -19,5 +19,8 @@ internal data class StageInstalledSkillInput(
   val catalogLoader: PlatformPackCatalogLoader? = null,
 )
 
-internal fun stageInstalledSkill(repoRoot: Path, sourceSkillDir: Path, home: Path): RenderedSkill =
-  stageInstalledSkill(StageInstalledSkillInput(repoRoot, sourceSkillDir, home))
+internal fun stageInstalledSkill(
+  repoRoot: Path,
+  sourceSkillDir: Path,
+  home: Path,
+): RenderedSkill = stageInstalledSkill(StageInstalledSkillInput(repoRoot, sourceSkillDir, home))

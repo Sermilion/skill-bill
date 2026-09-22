@@ -2,11 +2,12 @@ package skillbill.infrastructure.contracts.workflow.workflow
 import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.ValidationMessage
 
-internal val workflowStateSchemaViolationOrdering: Comparator<ValidationMessage> = compareBy(
-  { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
-  { it.instanceLocation?.toString().orEmpty() },
-  { it.message.orEmpty() },
-)
+internal val workflowStateSchemaViolationOrdering: Comparator<ValidationMessage> =
+  compareBy(
+    { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
+    { it.instanceLocation?.toString().orEmpty() },
+    { it.message.orEmpty() },
+  )
 
 internal fun buildWorkflowStateSchemaDriftLog(
   slug: String,
@@ -15,12 +16,13 @@ internal fun buildWorkflowStateSchemaDriftLog(
 ): String {
   val sorted = errors.sortedWith(workflowStateSchemaViolationOrdering)
   val topTwo = sorted.take(2)
-  val parts = topTwo.map { error ->
-    val location = error.instanceLocation?.toString().orEmpty()
-    val fieldPath = workflowStateSchemaDottedFieldPath(location).ifBlank { "<root>" }
-    val offendingValue = extractOffendingValueFromInstance(instance, location)
-    if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
-  }
+  val parts =
+    topTwo.map { error ->
+      val location = error.instanceLocation?.toString().orEmpty()
+      val fieldPath = workflowStateSchemaDottedFieldPath(location).ifBlank { "<root>" }
+      val offendingValue = extractOffendingValueFromInstance(instance, location)
+      if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
+    }
   return "Workflow state snapshot failed schema validation: slug='$slug' violations=${parts.joinToString(", ")} " +
     "totalViolations=${errors.size}"
 }

@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.core
+
 data class FeatureTaskRuntimeCrashReconciliationResult(
   val reconciledCount: Int = 0,
   val reasonClassCounts: Map<String, Int> = emptyMap(),

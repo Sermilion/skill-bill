@@ -1,6 +1,7 @@
 package skillbill.error.featuretask
 
 import skillbill.error.core.SkillBillRuntimeException
+
 class FeatureTaskRuntimeSubtaskCommitReconciliationError(
   val workflowId: String,
   val issueKey: String,
@@ -8,7 +9,7 @@ class FeatureTaskRuntimeSubtaskCommitReconciliationError(
   val reason: String,
   cause: Throwable? = null,
 ) : SkillBillRuntimeException(
-  "Feature-task-runtime subtask commit reconciliation refused for " +
-    "'$issueKey/$subtaskId' in workflow '$workflowId': $reason",
-  cause,
-)
+    "Feature-task-runtime subtask commit reconciliation refused for " +
+      "'$issueKey/$subtaskId' in workflow '$workflowId': $reason",
+    cause,
+  )

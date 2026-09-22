@@ -26,18 +26,19 @@ class InstallCleanupAgentTargetCommand(
     if (state.refuseInstallMutationDuringGoalContinuation(inputs, "cleanup-agent-target")) {
       return
     }
-    val cleanup = installAgentService.cleanupAgentTarget(
-      targetDir = Path.of(targetDir),
-      skillNames = skillNames,
-      legacyNames = legacyNames,
-      managedInstallMarker = marker,
-      home = inputs.userHome,
-    )
+    val cleanup =
+      installAgentService.cleanupAgentTarget(
+        targetDir = Path.of(targetDir),
+        skillNames = skillNames,
+        legacyNames = legacyNames,
+        managedInstallMarker = marker,
+        home = inputs.userHome,
+      )
     state.completeText(
       (
         cleanup.removed.map { path -> "removed\t$path" } +
           cleanup.skipped.map { path -> "skipped\t$path" }
-        ).joinToString("\n"),
+      ).joinToString("\n"),
       mapOf("removed" to cleanup.removed.map(Path::toString), "skipped" to cleanup.skipped.map(Path::toString)),
     )
   }

@@ -21,6 +21,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class ShellContentLoaderParityTest {
   @Test
   fun `loads valid pack through manifest driven shell contract`() {
@@ -45,58 +46,62 @@ class ShellContentLoaderParityTest {
       malformedSpecialistContent(),
     )
 
-    val error = assertFailsWith<InvalidReviewSkillStructureError> {
-      loadPlatformPack(packRoot, enforceGovernedReviewStructure = true)
-    }
+    val error =
+      assertFailsWith<InvalidReviewSkillStructureError> {
+        loadPlatformPack(packRoot, enforceGovernedReviewStructure = true)
+      }
 
     assertContains(error.message.orEmpty(), "specialist H2 sequence")
   }
 
   @Test
   fun `declared governed skill paths must point directly at content_md`() {
-    val cases: List<Pair<String, (Path) -> Unit>> = listOf(
-      "declared_files.baseline" to { manifest ->
-        Files.writeString(
-          manifest,
-          Files.readString(manifest).replace(
-            "baseline: code-review/content.md",
-            "baseline: code-review/SKILL.md",
-          ),
-        )
-      },
-      "declared_files.areas.architecture" to { manifest ->
-        Files.writeString(
-          manifest,
-          Files.readString(manifest).replace(
-            "architecture: code-review/architecture/content.md",
-            "architecture: code-review/architecture.md",
-          ),
-        )
-      },
-      "declared_quality_check_file" to { manifest ->
-        Files.writeString(
-          manifest,
-          Files.readString(manifest).replace(
-            "declared_quality_check_file: quality-check/content.md",
-            "declared_quality_check_file: quality-check/SKILL.md",
-          ),
-        )
-      },
-    )
+    val cases: List<Pair<String, (Path) -> Unit>> =
+      listOf(
+        "declared_files.baseline" to { manifest ->
+          Files.writeString(
+            manifest,
+            Files.readString(manifest).replace(
+              "baseline: code-review/content.md",
+              "baseline: code-review/SKILL.md",
+            ),
+          )
+        },
+        "declared_files.areas.architecture" to { manifest ->
+          Files.writeString(
+            manifest,
+            Files.readString(manifest).replace(
+              "architecture: code-review/architecture/content.md",
+              "architecture: code-review/architecture.md",
+            ),
+          )
+        },
+        "declared_quality_check_file" to { manifest ->
+          Files.writeString(
+            manifest,
+            Files.readString(manifest).replace(
+              "declared_quality_check_file: quality-check/content.md",
+              "declared_quality_check_file: quality-check/SKILL.md",
+            ),
+          )
+        },
+      )
 
     cases.forEach { (field, mutateManifest) ->
-      val fixtureName = if (field == "declared_quality_check_file") {
-        "code_review_and_quality_check"
-      } else {
-        "valid_pack"
-      }
+      val fixtureName =
+        if (field == "declared_quality_check_file") {
+          "code_review_and_quality_check"
+        } else {
+          "valid_pack"
+        }
       val root = copyFixture(fixtureName)
       val manifest = root.resolve("platform.yaml")
       mutateManifest(manifest)
 
-      val error = assertFailsWith<InvalidManifestSchemaError>(field) {
-        loadPlatformPack(root)
-      }
+      val error =
+        assertFailsWith<InvalidManifestSchemaError>(field) {
+          loadPlatformPack(root)
+        }
       assertContains(error.message.orEmpty(), field)
       assertContains(error.message.orEmpty(), "content.md")
     }
@@ -124,9 +129,10 @@ class ShellContentLoaderParityTest {
         "description:",
       ),
     )
-    val shapeError = assertFailsWith<InvalidSkillMdShapeError> {
-      loadPlatformPack(shapeRoot)
-    }
+    val shapeError =
+      assertFailsWith<InvalidSkillMdShapeError> {
+        loadPlatformPack(shapeRoot)
+      }
     assertContains(shapeError.message.orEmpty(), "description")
     assertContains(shapeError.message.orEmpty(), "content.md")
   }
@@ -140,9 +146,10 @@ class ShellContentLoaderParityTest {
       "---\nname: code-review\ndescription: Empty authored content fixture.\n---\n",
     )
 
-    val error = assertFailsWith<MissingRequiredSectionError> {
-      loadPlatformPack(root)
-    }
+    val error =
+      assertFailsWith<MissingRequiredSectionError> {
+        loadPlatformPack(root)
+      }
     assertContains(error.message.orEmpty(), "authored content")
     assertContains(error.message.orEmpty(), "content.md")
   }
@@ -163,9 +170,10 @@ class ShellContentLoaderParityTest {
       """.trimIndent() + "\n",
     )
 
-    val error = assertFailsWith<MissingRequiredSectionError> {
-      loadPlatformPack(root)
-    }
+    val error =
+      assertFailsWith<MissingRequiredSectionError> {
+        loadPlatformPack(root)
+      }
     assertContains(error.message.orEmpty(), "authored guidance beyond the title heading")
     assertContains(error.message.orEmpty(), "content.md")
   }
@@ -192,9 +200,10 @@ class ShellContentLoaderParityTest {
       """.trimIndent() + "\n",
     )
 
-    val wrapperError = assertFailsWith<MissingRequiredSectionError> {
-      loadPlatformPack(wrapperRoot)
-    }
+    val wrapperError =
+      assertFailsWith<MissingRequiredSectionError> {
+        loadPlatformPack(wrapperRoot)
+      }
     assertContains(wrapperError.message.orEmpty(), "generated wrapper boilerplate heading '## Ceremony'")
 
     val pointerRoot = copyFixture("valid_pack")
@@ -211,9 +220,10 @@ class ShellContentLoaderParityTest {
       """.trimIndent() + "\n",
     )
 
-    val pointerError = assertFailsWith<MissingRequiredSectionError> {
-      loadPlatformPack(pointerRoot)
-    }
+    val pointerError =
+      assertFailsWith<MissingRequiredSectionError> {
+        loadPlatformPack(pointerRoot)
+      }
     assertContains(pointerError.message.orEmpty(), "self-referential wrapper pointer text")
   }
 
@@ -226,40 +236,43 @@ class ShellContentLoaderParityTest {
       "---\nname: code-review\ndescription: Empty architecture area fixture.\n---\n",
     )
 
-    val areaError = assertFailsWith<MissingRequiredSectionError> {
-      loadPlatformPack(areaRoot)
-    }
+    val areaError =
+      assertFailsWith<MissingRequiredSectionError> {
+        loadPlatformPack(areaRoot)
+      }
     assertContains(areaError.message.orEmpty(), "authored content")
     assertContains(areaError.message.orEmpty(), "code-review/architecture/content.md")
   }
 
   @Test
   fun `invalid skill md shape rejects frontmatter violations on content_md`() {
-    val cases = listOf(
-      Triple(
-        "disallowed frontmatter key",
-        { text: String -> text.replace("---\n", "---\nextra: nope\n", ignoreCase = false) },
-        "extra",
-      ),
-      Triple(
-        "missing name key",
-        { text: String -> text.replace(Regex("(?m)^name:.*$"), "name:") },
-        "name",
-      ),
-      Triple(
-        "missing description key",
-        { text: String -> text.replace(Regex("(?m)^description:.*$"), "description:") },
-        "description",
-      ),
-    )
+    val cases =
+      listOf(
+        Triple(
+          "disallowed frontmatter key",
+          { text: String -> text.replace("---\n", "---\nextra: nope\n", ignoreCase = false) },
+          "extra",
+        ),
+        Triple(
+          "missing name key",
+          { text: String -> text.replace(Regex("(?m)^name:.*$"), "name:") },
+          "name",
+        ),
+        Triple(
+          "missing description key",
+          { text: String -> text.replace(Regex("(?m)^description:.*$"), "description:") },
+          "description",
+        ),
+      )
     cases.forEach { (label, mutate, discriminator) ->
       val root = copyFixture("valid_pack")
       val contentFile = root.resolve("code-review").resolve("content.md")
       Files.writeString(contentFile, mutate(Files.readString(contentFile)))
 
-      val error = assertFailsWith<InvalidSkillMdShapeError>(label) {
-        loadPlatformPack(root)
-      }
+      val error =
+        assertFailsWith<InvalidSkillMdShapeError>(label) {
+          loadPlatformPack(root)
+        }
       val message = error.message.orEmpty()
       assertTrue(message.isNotBlank(), label)
       assertContains(message, discriminator, message = label)
@@ -271,7 +284,8 @@ class ShellContentLoaderParityTest {
   fun `valid frontmatter passes shape validator regardless of body markdown`() {
     val root = copyFixture("valid_pack")
     val contentFile = root.resolve("code-review").resolve("content.md")
-    val richBody = """
+    val richBody =
+      """
       |---
       |name: code-review
       |description: Fixture content with rich markdown to confirm the shape validator no longer rejects body markdown.
@@ -291,14 +305,15 @@ class ShellContentLoaderParityTest {
       |fun example(): Int = 42
       |```
       |
-    """.trimMargin()
+      """.trimMargin()
     Files.writeString(contentFile, richBody)
 
     validateSkillMdShape(contentFile, validateBodyShape = false)
   }
 }
 
-private fun malformedSpecialistContent(): String = """
+private fun malformedSpecialistContent(): String =
+  """
   ---
   name: bill-invalid-review-shape-code-review-architecture
   description: Malformed architecture specialist fixture.
@@ -310,12 +325,16 @@ private fun malformedSpecialistContent(): String = """
   ## Focus
 
   Missing the governed specialist skeleton.
-""".trimIndent()
+  """.trimIndent()
 
-private inline fun <reified T : Throwable> assertNamedFailure(fixtureName: String, expectedMessage: String) {
-  val error = assertFailsWith<T> {
-    loadPlatformPack(fixture(fixtureName))
-  }
+private inline fun <reified T : Throwable> assertNamedFailure(
+  fixtureName: String,
+  expectedMessage: String,
+) {
+  val error =
+    assertFailsWith<T> {
+      loadPlatformPack(fixture(fixtureName))
+    }
   assertContains(error.message.orEmpty(), fixtureName)
   assertContains(error.message.orEmpty(), expectedMessage)
 }

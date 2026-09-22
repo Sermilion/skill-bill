@@ -43,16 +43,17 @@ class SkillBillUninstallCooperativeCancellationTest {
   @Test
   fun `cancellation at first MCP agent stops later mutations`() {
     val unregisterCalls = AtomicInteger(0)
-    val port = object : InstallMcpRegistrationPort {
-      override fun registerMcp(request: InstallMcpRegistrationRequest): InstallMcpRegistrationResult =
-        throw UnsupportedOperationException()
+    val port =
+      object : InstallMcpRegistrationPort {
+        override fun registerMcp(request: InstallMcpRegistrationRequest): InstallMcpRegistrationResult =
+          throw UnsupportedOperationException()
 
-      override fun unregisterMcp(request: InstallMcpUnregistrationRequest): InstallMcpRegistrationResult {
-        unregisterCalls.incrementAndGet()
-        if (request.agent == "claude") throw CancellationException("stop")
-        return throw UnsupportedOperationException("later agents must not run")
+        override fun unregisterMcp(request: InstallMcpUnregistrationRequest): InstallMcpRegistrationResult {
+          unregisterCalls.incrementAndGet()
+          if (request.agent == "claude") throw CancellationException("stop")
+          return throw UnsupportedOperationException("later agents must not run")
+        }
       }
-    }
     val service = uninstallService(port)
     val plan = planWithMcpAgents(listOf("claude", "codex"))
 
@@ -62,13 +63,14 @@ class SkillBillUninstallCooperativeCancellationTest {
 
   @Test
   fun `interruption at MCP seam stops later mutations`() {
-    val port = object : InstallMcpRegistrationPort {
-      override fun registerMcp(request: InstallMcpRegistrationRequest): InstallMcpRegistrationResult =
-        throw UnsupportedOperationException()
+    val port =
+      object : InstallMcpRegistrationPort {
+        override fun registerMcp(request: InstallMcpRegistrationRequest): InstallMcpRegistrationResult =
+          throw UnsupportedOperationException()
 
-      override fun unregisterMcp(request: InstallMcpUnregistrationRequest): InstallMcpRegistrationResult =
-        throw InterruptedException("stop")
-    }
+        override fun unregisterMcp(request: InstallMcpUnregistrationRequest): InstallMcpRegistrationResult =
+          throw InterruptedException("stop")
+      }
     val service = uninstallService(port)
     val plan = planWithMcpAgents(listOf("claude", "codex"))
 
@@ -78,16 +80,17 @@ class SkillBillUninstallCooperativeCancellationTest {
   @Test
   fun `partial Claude MCP failure keeps prior removals and reports degradation`() {
     val removedProfile = HOME.resolve("claude.json")
-    val port = object : InstallMcpRegistrationPort {
-      override fun registerMcp(request: InstallMcpRegistrationRequest): InstallMcpRegistrationResult =
-        throw UnsupportedOperationException()
+    val port =
+      object : InstallMcpRegistrationPort {
+        override fun registerMcp(request: InstallMcpRegistrationRequest): InstallMcpRegistrationResult =
+          throw UnsupportedOperationException()
 
-      override fun unregisterMcp(request: InstallMcpUnregistrationRequest): InstallMcpRegistrationResult =
-        throw ClaudeMcpProfileFailure(
-          "one profile was malformed",
-          listOf(McpProfileOutcome(removedProfile.toFileLocation(), changed = true)),
-        )
-    }
+        override fun unregisterMcp(request: InstallMcpUnregistrationRequest): InstallMcpRegistrationResult =
+          throw ClaudeMcpProfileFailure(
+            "one profile was malformed",
+            listOf(McpProfileOutcome(removedProfile.toFileLocation(), changed = true)),
+          )
+      }
 
     val result = uninstallService(port).apply(planWithMcpAgents(listOf("claude")))
 
@@ -107,17 +110,18 @@ class SkillBillUninstallCooperativeCancellationTest {
       diagnostics = NoopRuntimeDiagnostics,
     )
 
-  private fun planWithMcpAgents(agents: List<String>): UninstallPlan = UninstallPlan(
-    home = HOME,
-    stateRoot = STATE_ROOT,
-    skillNames = emptyList(),
-    legacyNames = emptyList(),
-    agentTargets = emptyList(),
-    nativeSourceRoots = emptyList(),
-    mcpAgents = agents,
-    launchers = emptyList(),
-    desktop = DesktopRemoval(launcher = null, files = emptyList(), directories = emptyList()),
-  )
+  private fun planWithMcpAgents(agents: List<String>): UninstallPlan =
+    UninstallPlan(
+      home = HOME,
+      stateRoot = STATE_ROOT,
+      skillNames = emptyList(),
+      legacyNames = emptyList(),
+      agentTargets = emptyList(),
+      nativeSourceRoots = emptyList(),
+      mcpAgents = agents,
+      launchers = emptyList(),
+      desktop = DesktopRemoval(launcher = null, files = emptyList(), directories = emptyList()),
+    )
 
   private companion object {
     val HOME: Path = Path.of("/tmp/skillbill-uninstall-cancel")
@@ -126,16 +130,26 @@ class SkillBillUninstallCooperativeCancellationTest {
 }
 
 private object NoopRuntimeDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private object StubHostPlatformPort : HostPlatformPort {
   override fun resolveUserHome(): Path = Path.of(System.getProperty("user.home"))
+
   override fun resolveEnvironment(): Map<String, String> = System.getenv()
+
   override fun resolveJavaHome(): Path = Path.of(System.getProperty("java.home"))
+
   override fun resolveWorkingDirectory(): Path = Path.of(System.getProperty("user.dir"))
+
   override fun resolveTemporaryDirectory(): Path = Path.of(System.getProperty("java.io.tmpdir"))
 
   override val osName: String = "Linux"
@@ -171,9 +185,10 @@ private object StubInstallAgentTargetPort : InstallAgentTargetPort {
   override fun agentDirectory(request: InstallAgentDirectoryRequest) =
     InstallAgentDirectoryResult(Path.of("/tmp/skillbill-uninstall-cancel"))
 
-  override fun cleanupAgentTarget(request: InstallAgentTargetCleanupRequest) = InstallAgentTargetCleanupResult(
-    InstallCleanupResult(emptyList(), emptyList()),
-  )
+  override fun cleanupAgentTarget(request: InstallAgentTargetCleanupRequest) =
+    InstallAgentTargetCleanupResult(
+      InstallCleanupResult(emptyList(), emptyList()),
+    )
 }
 
 private object StubInstallNativeAgentLinkPort : InstallNativeAgentLinkPort {

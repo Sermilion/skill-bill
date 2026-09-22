@@ -64,13 +64,14 @@ internal fun ProcessWaitLoop.pollStatusHeartbeat(nowNanos: Long) {
   }
   val workflowLabel = lastProgressLabel?.takeIf(String::isNotBlank)
   val activityLabel = lastActivityLabel?.takeIf(String::isNotBlank)
-  val details = listOfNotNull(
-    workflowLabel?.let { "workflow: $it" },
-    activityLabel?.let { "file activity: $it" },
-  ).joinToString("; ")
-    .takeIf(String::isNotBlank)
-    ?.let { "; $it" }
-    .orEmpty()
+  val details =
+    listOfNotNull(
+      workflowLabel?.let { "workflow: $it" },
+      activityLabel?.let { "file activity: $it" },
+    ).joinToString("; ")
+      .takeIf(String::isNotBlank)
+      ?.let { "; $it" }
+      .orEmpty()
   request.outputSink.write(
     AgentRunOutputStream.STDERR,
     "skill-bill: status heartbeat (${request.statusHeartbeatInterval}): child run still active$details\n",
@@ -93,10 +94,11 @@ internal fun ProcessWaitLoop.writeActivityLabel() {
     lastActivityLabel = activityLabel
   }
   val workflowLabel = request.progressProbe.readProgressLabel(degradation).value?.takeIf(String::isNotBlank)
-  val suffix = listOfNotNull(activityLabel, workflowLabel).joinToString("; ")
-    .takeIf(String::isNotBlank)
-    ?.let { label -> ": $label" }
-    .orEmpty()
+  val suffix =
+    listOfNotNull(activityLabel, workflowLabel).joinToString("; ")
+      .takeIf(String::isNotBlank)
+      ?.let { label -> ": $label" }
+      .orEmpty()
   request.outputSink.write(
     AgentRunOutputStream.STDERR,
     "skill-bill: file activity observed; durable workflow progress is still pending$suffix\n",

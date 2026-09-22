@@ -6,10 +6,11 @@ import kotlin.test.assertEquals
 class InlineFqnArchitectureTest {
   @Test
   fun `production and test Kotlin avoid inline fully-qualified references outside the keep-list`() {
-    val violations = ArchitectureScanSupport.inlineFqnViolations(
-      scanRoots = PrincipleEnforcementInventory.inlineFqnScanRoots,
-      prefixes = PrincipleEnforcementInventory.inlineFqnPrefixes,
-    )
+    val violations =
+      ArchitectureScanSupport.inlineFqnViolations(
+        scanRoots = PrincipleEnforcementInventory.inlineFqnScanRoots,
+        prefixes = PrincipleEnforcementInventory.inlineFqnPrefixes,
+      )
     assertEquals(
       emptyList(),
       violations,

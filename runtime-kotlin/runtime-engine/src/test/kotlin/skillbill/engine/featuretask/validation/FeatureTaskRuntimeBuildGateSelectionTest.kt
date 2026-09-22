@@ -13,22 +13,25 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class FeatureTaskRuntimeBuildGateSelectionTest {
-  private val declaration = ValidationGateDeclaration(
-    fullGateCommand = listOf("echo", "check"),
-    cacheBypassingFullGateCommand = listOf("echo", "check-full"),
-    collectAllFullGateCommand = listOf("echo", "collect-all"),
-    cacheBypassingCollectAllFullGateCommand = listOf("echo", "collect-all-full"),
-    buildCommand = listOf("echo", "build"),
-    cacheBypassingBuildCommand = listOf("echo", "build-full"),
-    findings = ValidationGateFindingsLocator(
-      format = ValidationGateFindingsFormat.JUNIT_XML,
-      artifactGlobs = listOf("**/*.xml"),
-      compilerDiagnostics = ValidationGateCompilerDiagnosticsLocator(
-        GRADLE_KOTLIN_COMPILER_STDOUT,
-      ),
-      executedWork = ValidationGateExecutedWorkSignal(ValidationGateExecutedWorkFormat.GRADLE_ACTIONABLE_SUMMARY),
-    ),
-  )
+  private val declaration =
+    ValidationGateDeclaration(
+      fullGateCommand = listOf("echo", "check"),
+      cacheBypassingFullGateCommand = listOf("echo", "check-full"),
+      collectAllFullGateCommand = listOf("echo", "collect-all"),
+      cacheBypassingCollectAllFullGateCommand = listOf("echo", "collect-all-full"),
+      buildCommand = listOf("echo", "build"),
+      cacheBypassingBuildCommand = listOf("echo", "build-full"),
+      findings =
+        ValidationGateFindingsLocator(
+          format = ValidationGateFindingsFormat.JUNIT_XML,
+          artifactGlobs = listOf("**/*.xml"),
+          compilerDiagnostics =
+            ValidationGateCompilerDiagnosticsLocator(
+              GRADLE_KOTLIN_COMPILER_STDOUT,
+            ),
+          executedWork = ValidationGateExecutedWorkSignal(ValidationGateExecutedWorkFormat.GRADLE_ACTIONABLE_SUMMARY),
+        ),
+    )
 
   @Test
   fun `build gate argv never equals collect-all or full gate commands`() {

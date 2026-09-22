@@ -8,7 +8,6 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeResol
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 object FeatureTaskRuntimeHandoffContract {
-
   fun selectLatestOutputsByPhase(
     recordedOutputs: List<FeatureTaskRuntimePhaseOutput>,
   ): Map<String, FeatureTaskRuntimePhaseOutput> {

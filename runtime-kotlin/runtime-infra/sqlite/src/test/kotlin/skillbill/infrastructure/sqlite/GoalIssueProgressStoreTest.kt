@@ -16,6 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class GoalIssueProgressStoreTest {
   @Test
   fun `goal issue progress state entry metadata changes only on real status transitions`() {
@@ -114,16 +115,20 @@ class GoalIssueProgressStoreTest {
     }
   }
 
-  private fun totalBlocks(connection: Connection, parentWorkflowId: String): Int = connection.prepareStatement(
-    "SELECT total_blocks FROM goal_issue_progress WHERE parent_workflow_id = ? AND issue_key = ?",
-  ).use { statement ->
-    statement.setString(1, parentWorkflowId)
-    statement.setString(2, "SKILL-66")
-    statement.executeQuery().use { rows ->
-      rows.next()
-      rows.getInt(1)
+  private fun totalBlocks(
+    connection: Connection,
+    parentWorkflowId: String,
+  ): Int =
+    connection.prepareStatement(
+      "SELECT total_blocks FROM goal_issue_progress WHERE parent_workflow_id = ? AND issue_key = ?",
+    ).use { statement ->
+      statement.setString(1, parentWorkflowId)
+      statement.setString(2, "SKILL-66")
+      statement.executeQuery().use { rows ->
+        rows.next()
+        rows.getInt(1)
+      }
     }
-  }
 
   private fun finishBlockedSegment(
     connection: Connection,
@@ -171,7 +176,10 @@ class GoalIssueProgressStoreTest {
     }
   }
 
-  private fun assertTerminalTransition(resumed: GoalIssueState, completed: GoalIssueState) {
+  private fun assertTerminalTransition(
+    resumed: GoalIssueState,
+    completed: GoalIssueState,
+  ) {
     assertTrue(Instant.parse(completed.enteredAt).isAfter(Instant.parse(resumed.enteredAt)))
   }
 
@@ -190,19 +198,24 @@ class GoalIssueProgressStoreTest {
     segment: String,
     resumed: Boolean,
     startedAt: String = "2026-06-04T10:00:00Z",
-  ): GoalStartedRecord = GoalStartedRecord(
-    issueKey = "SKILL-66",
-    featureName = "goal telemetry",
-    workflowId = "$parentWorkflowId:$segment",
-    subtaskTotal = 1,
-    resumed = resumed,
-    startedAt = startedAt,
-    status = "running",
-    mode = "runtime",
-    parentWorkflowId = parentWorkflowId,
-  )
+  ): GoalStartedRecord =
+    GoalStartedRecord(
+      issueKey = "SKILL-66",
+      featureName = "goal telemetry",
+      workflowId = "$parentWorkflowId:$segment",
+      subtaskTotal = 1,
+      resumed = resumed,
+      startedAt = startedAt,
+      status = "running",
+      mode = "runtime",
+      parentWorkflowId = parentWorkflowId,
+    )
 
-  private fun finishedRecord(workflowId: String, status: String, startedAt: String): GoalFinishedRecord =
+  private fun finishedRecord(
+    workflowId: String,
+    status: String,
+    startedAt: String,
+  ): GoalFinishedRecord =
     GoalFinishedRecord(
       issueKey = "SKILL-66",
       workflowId = workflowId,
@@ -218,16 +231,17 @@ class GoalIssueProgressStoreTest {
       stopReason = "POLICY_BLOCKED",
     )
 
-  private fun goalIssueFinishedRecord(parentWorkflowId: String): GoalIssueFinishedRecord = GoalIssueFinishedRecord(
-    issueKey = "SKILL-66",
-    parentWorkflowId = parentWorkflowId,
-    status = "completed",
-    subtasksComplete = 1,
-    subtasksBlocked = 0,
-    subtasksSkipped = 0,
-    finishedAt = "2026-06-04T10:30:00Z",
-    mode = "runtime",
-  )
+  private fun goalIssueFinishedRecord(parentWorkflowId: String): GoalIssueFinishedRecord =
+    GoalIssueFinishedRecord(
+      issueKey = "SKILL-66",
+      parentWorkflowId = parentWorkflowId,
+      status = "completed",
+      subtasksComplete = 1,
+      subtasksBlocked = 0,
+      subtasksSkipped = 0,
+      finishedAt = "2026-06-04T10:30:00Z",
+      mode = "runtime",
+    )
 
   private fun terminalPayload(connection: Connection): Map<String, Any?> {
     val payloadJson = pendingOutbox(connection).single { it.eventName == "skillbill_goal_issue_finished" }.payloadJson
@@ -247,7 +261,10 @@ class GoalIssueProgressStoreTest {
     assertEquals(GoalIssueState(status, enteredAt, estimated = false), goalIssueState(connection, parentWorkflowId))
   }
 
-  private fun goalIssueState(connection: Connection, parentWorkflowId: String): GoalIssueState =
+  private fun goalIssueState(
+    connection: Connection,
+    parentWorkflowId: String,
+  ): GoalIssueState =
     connection.prepareStatement(
       "SELECT status, state_entered_at, state_entered_at_estimated " +
         "FROM goal_issue_progress WHERE parent_workflow_id = ?",

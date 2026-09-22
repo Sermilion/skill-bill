@@ -10,6 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class GoalSubtaskReviewStateContractVersionTest {
   @Test
   fun `schema contract_version const matches GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION`() {

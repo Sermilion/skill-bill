@@ -25,19 +25,21 @@ class GoalRunnerPullRequestFormattingTest {
     assertFalse(request.body.contains("- [ ]"))
   }
 
-  private fun manifest() = DecompositionManifest(
-    issueKey = "333",
-    featureName = "review-citation-ingestion",
-    parentSpecPath = ".feature-specs/333-review-citation-ingestion/spec.md",
-    baseBranch = "main",
-    featureBranch = "feat/333-review-citation-ingestion",
-    currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "start"),
-    subtasks = listOf(
-      DecompositionSubtask(
-        id = 1,
-        name = "Parse citation metadata",
-        specPath = ".feature-specs/333-review-citation-ingestion/spec_subtask_1.md",
-      ),
-    ),
-  )
+  private fun manifest() =
+    DecompositionManifest(
+      issueKey = "333",
+      featureName = "review-citation-ingestion",
+      parentSpecPath = ".feature-specs/333-review-citation-ingestion/spec.md",
+      baseBranch = "main",
+      featureBranch = "feat/333-review-citation-ingestion",
+      currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "start"),
+      subtasks =
+        listOf(
+          DecompositionSubtask(
+            id = 1,
+            name = "Parse citation metadata",
+            specPath = ".feature-specs/333-review-citation-ingestion/spec_subtask_1.md",
+          ),
+        ),
+    )
 }

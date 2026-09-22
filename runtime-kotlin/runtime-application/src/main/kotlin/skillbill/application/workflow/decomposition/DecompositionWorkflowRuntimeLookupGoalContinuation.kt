@@ -15,14 +15,17 @@ fun WorkflowStateRepository.goalContinuationFor(
   repositoryIdentity: String,
   validator: DecompositionManifestValidator,
 ): GoalContinuationCandidate? {
-  val record = findDecomposedParentWorkflow(issueKey, validator)
-    ?.takeIf { it.workflowStatus.workflowStatus() !in IMPLEMENT_TERMINAL_STATUSES }
-    ?: return null
-  val manifest = record.toSnapshot().decompositionRuntime(validator)
-    ?.takeIf { it.status.decompositionStatus() !in GOAL_TERMINAL_MANIFEST_STATUSES }
-    ?: return null
-  val boundToThisRepository = findGoalChildFeatureTaskCandidates(issueKey, repositoryIdentity).isNotEmpty() ||
-    countGoalChildIdentities(issueKey) == 0
+  val record =
+    findDecomposedParentWorkflow(issueKey, validator)
+      ?.takeIf { it.workflowStatus.workflowStatus() !in IMPLEMENT_TERMINAL_STATUSES }
+      ?: return null
+  val manifest =
+    record.toSnapshot().decompositionRuntime(validator)
+      ?.takeIf { it.status.decompositionStatus() !in GOAL_TERMINAL_MANIFEST_STATUSES }
+      ?: return null
+  val boundToThisRepository =
+    findGoalChildFeatureTaskCandidates(issueKey, repositoryIdentity).isNotEmpty() ||
+      countGoalChildIdentities(issueKey) == 0
   if (!boundToThisRepository) return null
   val running = record.workflowStatus.workflowStatus() == WorkflowStatus.RUNNING
   return GoalContinuationCandidate(
@@ -35,10 +38,11 @@ fun WorkflowStateRepository.goalContinuationFor(
     pendingCount = manifest.subtasks.count { it.status.decompositionStatus() !in GOAL_TERMINAL_MANIFEST_STATUSES },
     blockedCount = manifest.subtasks.count { it.status.decompositionStatus() == DecompositionStatus.BLOCKED },
     updatedAt = record.updatedAt,
-    summary = if (running) {
-      "A goal run for '${manifest.issueKey}' is already in progress; check it before starting another."
-    } else {
-      "A prepared goal for '${manifest.issueKey}' owns durable state; continue it instead of starting new work."
-    },
+    summary =
+      if (running) {
+        "A goal run for '${manifest.issueKey}' is already in progress; check it before starting another."
+      } else {
+        "A prepared goal for '${manifest.issueKey}' owns durable state; continue it instead of starting new work."
+      },
   )
 }

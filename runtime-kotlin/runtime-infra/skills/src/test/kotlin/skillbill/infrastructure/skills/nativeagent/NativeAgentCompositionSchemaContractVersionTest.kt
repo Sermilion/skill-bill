@@ -13,8 +13,9 @@ import kotlin.test.assertTrue
 class NativeAgentCompositionSchemaContractVersionTest {
   @Test
   fun `schema contract_version const matches NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION`() {
-    val resourceStream = NativeAgentCompositionSchemaValidator::class.java.classLoader
-      .getResourceAsStream(NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      NativeAgentCompositionSchemaValidator::class.java.classLoader
+        .getResourceAsStream(NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical native-agent composition schema is missing from the classpath at " +
@@ -38,8 +39,9 @@ class NativeAgentCompositionSchemaContractVersionTest {
 
   @Test
   fun `schema id matches NativeAgentCompositionSchemaPaths EXPECTED_SCHEMA_ID`() {
-    val resourceStream = NativeAgentCompositionSchemaValidator::class.java.classLoader
-      .getResourceAsStream(NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      NativeAgentCompositionSchemaValidator::class.java.classLoader
+        .getResourceAsStream(NativeAgentCompositionSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical native-agent composition schema is missing from the classpath at " +

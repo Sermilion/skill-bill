@@ -75,23 +75,24 @@ class WorkflowService(
   private val runtimeDiagnostics: RuntimeDiagnostics,
   private val clock: Clock,
 ) {
-
   private val workflowIdRandom = Random.Default
-  private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator) {
-    val resolved = gitOperations.repositoryFingerprint(repositoryRoot.path)
-    check(resolved is WorkflowGitOperationResult.Ok) { resolved.error }
-    resolved.value.orEmpty()
-  }
+  private val engine: WorkflowEngine =
+    WorkflowEngine(workflowSnapshotValidator) {
+      val resolved = gitOperations.repositoryFingerprint(repositoryRoot.path)
+      check(resolved is WorkflowGitOperationResult.Ok) { resolved.error }
+      resolved.value.orEmpty()
+    }
   private val featureTaskAbandon = WorkflowServiceFeatureTaskAbandon(engine, clock)
-  private val blockedPhaseRetry = WorkflowServiceBlockedPhaseRetry(
-    engine,
-    decompositionManifestValidator,
-    decompositionManifestStore,
-    decompositionManifestWriter,
-    repositoryRoot,
-    runtimeDiagnostics,
-    clock,
-  )
+  private val blockedPhaseRetry =
+    WorkflowServiceBlockedPhaseRetry(
+      engine,
+      decompositionManifestValidator,
+      decompositionManifestStore,
+      decompositionManifestWriter,
+      repositoryRoot,
+      runtimeDiagnostics,
+      clock,
+    )
   private val featureTaskIdentityRepair = WorkflowServiceFeatureTaskIdentityRepair(engine, clock)
 
   fun open(args: WorkflowServiceOpenArgs): WorkflowOpenResult {
@@ -99,27 +100,29 @@ class WorkflowService(
     val family = args.kind.workflowFamily()
     val stepId = args.currentStepId ?: family.definition.defaultInitialStepId
     val workflowId = generateWorkflowId(family.definition.workflowIdPrefix, clock, workflowIdRandom)
-    val effectiveSessionId = resolveEffectiveSessionId(
-      args.kind,
-      args.sessionId,
-      family.definition,
-      workflowId,
-    )
+    val effectiveSessionId =
+      resolveEffectiveSessionId(
+        args.kind,
+        args.sessionId,
+        family.definition,
+        workflowId,
+      )
     WorkflowEngine.validateOpen(family.definition, stepId)?.let { error ->
       return WorkflowOpenResult.Error(workflowId, error)
     }
     val hasIdentityCoordinates = args.repositoryIdentity != null || args.governedSpecPath != null
-    val executionIdentity = buildFeatureTaskExecutionIdentity(
-      BuildFeatureTaskExecutionIdentityArgs(
-        kind = args.kind,
-        hasIdentityCoordinates = hasIdentityCoordinates,
-        workflowId = workflowId,
-        issueKey = args.issueKey,
-        repositoryIdentity = args.repositoryIdentity,
-        governedSpecPath = args.governedSpecPath,
-        routeScope = args.routeScope,
-      ),
-    )
+    val executionIdentity =
+      buildFeatureTaskExecutionIdentity(
+        BuildFeatureTaskExecutionIdentityArgs(
+          kind = args.kind,
+          hasIdentityCoordinates = hasIdentityCoordinates,
+          workflowId = workflowId,
+          issueKey = args.issueKey,
+          repositoryIdentity = args.repositoryIdentity,
+          governedSpecPath = args.governedSpecPath,
+          routeScope = args.routeScope,
+        ),
+      )
     return persistOpenedWorkflow(
       PersistOpenedWorkflowArgs(
         family = family,
@@ -134,19 +137,24 @@ class WorkflowService(
     )
   }
 
-  fun update(kind: WorkflowFamilyKind, request: WorkflowUpdateRequest): WorkflowUpdateResult {
+  fun update(
+    kind: WorkflowFamilyKind,
+    request: WorkflowUpdateRequest,
+  ): WorkflowUpdateResult {
     val family = kind.workflowFamily()
-    val input = try {
-      request.toWorkflowUpdateInput()
-    } catch (error: InvalidWorkflowStateSchemaError) {
-      return WorkflowUpdateResult.Error(request.workflowId, error.message.orEmpty())
-    }
+    val input =
+      try {
+        request.toWorkflowUpdateInput()
+      } catch (error: InvalidWorkflowStateSchemaError) {
+        return WorkflowUpdateResult.Error(request.workflowId, error.message.orEmpty())
+      }
     WorkflowEngine.validateUpdate(family.definition, input)?.let { error ->
       return WorkflowUpdateResult.Error(request.workflowId, error)
     }
-    val persisted = database.transaction { unitOfWork ->
-      persistUpdate(family, request, input, unitOfWork)
-    }
+    val persisted =
+      database.transaction { unitOfWork ->
+        persistUpdate(family, request, input, unitOfWork)
+      }
     persisted.pendingProjection?.let { pending ->
       reconcileDecompositionManifestProjectionAfterCommit(pending)
     }
@@ -172,33 +180,36 @@ class WorkflowService(
     input: WorkflowUpdateInput,
     unitOfWork: UnitOfWork,
   ): WorkflowUpdatePersistence {
-    val existing = family.get(unitOfWork.workflowStates, request.workflowId)
-      ?: return WorkflowUpdatePersistence(
-        WorkflowUpdateResult.Error(
-          request.workflowId,
-          "Unknown workflow_id '${request.workflowId}'.",
+    val existing =
+      family.get(unitOfWork.workflowStates, request.workflowId)
+        ?: return WorkflowUpdatePersistence(
+          WorkflowUpdateResult.Error(
+            request.workflowId,
+            "Unknown workflow_id '${request.workflowId}'.",
+          ),
+          pendingProjection = null,
+        )
+    val runtimeInput =
+      family.withDecompositionRuntime(
+        DecompositionRuntimeWriteArgs(
+          existing = existing,
+          input = input,
+          planningResult = request.planningResult,
+          workflowId = request.workflowId,
+          validator = decompositionManifestValidator,
+          fileStore = decompositionManifestStore,
+          repoRoot = repositoryRoot.path,
+          manifestWriter = decompositionManifestWriter,
         ),
-        pendingProjection = null,
       )
-    val runtimeInput = family.withDecompositionRuntime(
-      DecompositionRuntimeWriteArgs(
+    val effectiveInput =
+      runtimeInput.input.withGoalObservabilityArtifacts(
         existing = existing,
-        input = input,
-        planningResult = request.planningResult,
         workflowId = request.workflowId,
-        validator = decompositionManifestValidator,
-        fileStore = decompositionManifestStore,
+        validator = goalObservabilityEventValidator,
+        gitOperations = gitOperations,
         repoRoot = repositoryRoot.path,
-        manifestWriter = decompositionManifestWriter,
-      ),
-    )
-    val effectiveInput = runtimeInput.input.withGoalObservabilityArtifacts(
-      existing = existing,
-      workflowId = request.workflowId,
-      validator = goalObservabilityEventValidator,
-      gitOperations = gitOperations,
-      repoRoot = repositoryRoot.path,
-    )
+      )
     val updatedRecord = engine.updateRecord(family.definition, existing, effectiveInput)
     family.save(unitOfWork.workflowStates, updatedRecord)
     val updated = family.get(unitOfWork.workflowStates, request.workflowId) ?: updatedRecord
@@ -238,7 +249,10 @@ class WorkflowService(
     )
   }
 
-  fun abandonFeatureTaskRuntime(workflowId: String, reason: String): WorkflowUpdateResult {
+  fun abandonFeatureTaskRuntime(
+    workflowId: String,
+    reason: String,
+  ): WorkflowUpdateResult {
     val normalizedReason = reason.trim()
     if (normalizedReason.isEmpty() || normalizedReason.length > MAX_ABANDONMENT_REASON_LENGTH) {
       return WorkflowUpdateResult.Error(
@@ -247,29 +261,35 @@ class WorkflowService(
       )
     }
     return database.transaction { unitOfWork ->
-      val existingRecord = unitOfWork.workflowStates.getFeatureTaskWorkflow(workflowId)
-        ?: return@transaction WorkflowUpdateResult.Error(
-          workflowId,
-          "Unknown feature-task workflow_id '$workflowId'.",
-          unitOfWork.dbPath.toString(),
-        )
+      val existingRecord =
+        unitOfWork.workflowStates.getFeatureTaskWorkflow(workflowId)
+          ?: return@transaction WorkflowUpdateResult.Error(
+            workflowId,
+            "Unknown feature-task workflow_id '$workflowId'.",
+            unitOfWork.dbPath.toString(),
+          )
       when (existingRecord.mode) {
-        FeatureTaskWorkflowMode.RUNTIME -> featureTaskAbandon.abandonRuntimeFeatureTask(
-          unitOfWork,
-          existingRecord.toSnapshot(),
-          normalizedReason,
-        )
-        FeatureTaskWorkflowMode.PROSE, null -> featureTaskAbandon.abandonLegacyProseFeatureTask(
-          unitOfWork,
-          existingRecord,
-          normalizedReason,
-        )
+        FeatureTaskWorkflowMode.RUNTIME ->
+          featureTaskAbandon.abandonRuntimeFeatureTask(
+            unitOfWork,
+            existingRecord.toSnapshot(),
+            normalizedReason,
+          )
+        FeatureTaskWorkflowMode.PROSE, null ->
+          featureTaskAbandon.abandonLegacyProseFeatureTask(
+            unitOfWork,
+            existingRecord,
+            normalizedReason,
+          )
       }
     }
   }
 
-  fun retryBlockedFeatureTaskRuntimePhase(workflowId: String, phaseId: String, reason: String): WorkflowUpdateResult =
-    blockedPhaseRetry.retry(database, workflowId, phaseId, reason)
+  fun retryBlockedFeatureTaskRuntimePhase(
+    workflowId: String,
+    phaseId: String,
+    reason: String,
+  ): WorkflowUpdateResult = blockedPhaseRetry.retry(database, workflowId, phaseId, reason)
 
   fun repairFeatureTaskRuntimeIdentity(args: RepairFeatureTaskRuntimeIdentityArgs): WorkflowUpdateResult {
     val workflowId = args.workflowId
@@ -295,22 +315,30 @@ class WorkflowService(
     }
   }
 
-  fun get(kind: WorkflowFamilyKind, workflowId: String): WorkflowGetResult = database.read { unitOfWork ->
-    val family = kind.workflowFamily()
-    val record = family.get(unitOfWork.workflowStates, workflowId)
-      ?: return@read WorkflowGetResult.Error(
-        workflowId,
-        "Unknown workflow_id '$workflowId'.",
-        unitOfWork.dbPath.toString(),
+  fun get(
+    kind: WorkflowFamilyKind,
+    workflowId: String,
+  ): WorkflowGetResult =
+    database.read { unitOfWork ->
+      val family = kind.workflowFamily()
+      val record =
+        family.get(unitOfWork.workflowStates, workflowId)
+          ?: return@read WorkflowGetResult.Error(
+            workflowId,
+            "Unknown workflow_id '$workflowId'.",
+            unitOfWork.dbPath.toString(),
+          )
+      WorkflowGetResult.Ok(
+        workflowId = record.workflowId,
+        dbPath = unitOfWork.dbPath.toString(),
+        snapshot = engine.snapshotView(family.definition, record),
       )
-    WorkflowGetResult.Ok(
-      workflowId = record.workflowId,
-      dbPath = unitOfWork.dbPath.toString(),
-      snapshot = engine.snapshotView(family.definition, record),
-    )
-  }
+    }
 
-  fun list(kind: WorkflowFamilyKind, limit: Int = DEFAULT_LIST_LIMIT): WorkflowListResult =
+  fun list(
+    kind: WorkflowFamilyKind,
+    limit: Int = DEFAULT_LIST_LIMIT,
+  ): WorkflowListResult =
     database.read { unitOfWork ->
       val family = kind.workflowFamily()
       val rows = family.list(unitOfWork.workflowStates, limit)
@@ -321,73 +349,86 @@ class WorkflowService(
       )
     }
 
-  fun latest(kind: WorkflowFamilyKind): WorkflowLatestResult = database.read { unitOfWork ->
-    val family = kind.workflowFamily()
-    val record = family.latest(unitOfWork.workflowStates)
-      ?: return@read WorkflowLatestResult.Error(
-        dbPath = unitOfWork.dbPath.toString(),
-        error = "No ${family.humanName} workflows found.",
-      )
-    WorkflowLatestResult.Ok(
-      dbPath = unitOfWork.dbPath.toString(),
-      summary = engine.summaryView(family.definition, record),
-    )
-  }
-
-  fun resume(kind: WorkflowFamilyKind, workflowId: String): WorkflowResumeResult = database.read { unitOfWork ->
-    val family = kind.workflowFamily()
-    val record = family.get(unitOfWork.workflowStates, workflowId)
-      ?: return@read WorkflowResumeResult.Error(
-        workflowId,
-        "Unknown workflow_id '$workflowId'.",
-        unitOfWork.dbPath.toString(),
-      )
-    WorkflowResumeResult.Ok(
-      workflowId = record.workflowId,
-      dbPath = unitOfWork.dbPath.toString(),
-      resume = engine.resumeView(family.definition, record),
-    )
-  }
-
-  fun continueWorkflow(kind: WorkflowFamilyKind, workflowId: String, subtaskId: Int? = null): WorkflowContinueResult {
-    var pendingProjection: PendingDecompositionProjection? = null
-    val result = database.transaction { unitOfWork ->
+  fun latest(kind: WorkflowFamilyKind): WorkflowLatestResult =
+    database.read { unitOfWork ->
       val family = kind.workflowFamily()
-      var record = family.get(unitOfWork.workflowStates, workflowId)
-      if (record == null && family == WorkflowFamily.TASK_RUNTIME) {
-        val resolved =
-          DecompositionWorkflowContinuation(
-            engine,
-            gitOperations,
-            decompositionManifestValidator,
-            decompositionManifestStore,
-            repositoryRoot.path,
-            decompositionManifestWriter,
-            clock,
-            workflowIdRandom,
-          ).continueDecomposedParentByIssueKey(workflowId, unitOfWork, subtaskId)
-        pendingProjection = mergePendingProjection(pendingProjection, resolved)
-        return@transaction resolved.result
-      }
-      record ?: return@transaction WorkflowContinueResult.UnknownWorkflow(
+      val record =
+        family.latest(unitOfWork.workflowStates)
+          ?: return@read WorkflowLatestResult.Error(
+            dbPath = unitOfWork.dbPath.toString(),
+            error = "No ${family.humanName} workflows found.",
+          )
+      WorkflowLatestResult.Ok(
         dbPath = unitOfWork.dbPath.toString(),
-        workflowId = workflowId,
+        summary = engine.summaryView(family.definition, record),
       )
-      val continuation = engine.continueExistingWorkflow(
-        family,
-        record,
-        unitOfWork,
-        ContinueExistingWorkflowArgs(
-          validator = decompositionManifestValidator,
-          fileStore = decompositionManifestStore,
-          repoRoot = repositoryRoot.path,
-          manifestWriter = decompositionManifestWriter,
-        ),
-      )
-      pendingProjection = mergePendingProjection(pendingProjection, continuation)
-        ?: currentParentProjectionForChild(record, unitOfWork)
-      continuation.result
     }
+
+  fun resume(
+    kind: WorkflowFamilyKind,
+    workflowId: String,
+  ): WorkflowResumeResult =
+    database.read { unitOfWork ->
+      val family = kind.workflowFamily()
+      val record =
+        family.get(unitOfWork.workflowStates, workflowId)
+          ?: return@read WorkflowResumeResult.Error(
+            workflowId,
+            "Unknown workflow_id '$workflowId'.",
+            unitOfWork.dbPath.toString(),
+          )
+      WorkflowResumeResult.Ok(
+        workflowId = record.workflowId,
+        dbPath = unitOfWork.dbPath.toString(),
+        resume = engine.resumeView(family.definition, record),
+      )
+    }
+
+  fun continueWorkflow(
+    kind: WorkflowFamilyKind,
+    workflowId: String,
+    subtaskId: Int? = null,
+  ): WorkflowContinueResult {
+    var pendingProjection: PendingDecompositionProjection? = null
+    val result =
+      database.transaction { unitOfWork ->
+        val family = kind.workflowFamily()
+        var record = family.get(unitOfWork.workflowStates, workflowId)
+        if (record == null && family == WorkflowFamily.TASK_RUNTIME) {
+          val resolved =
+            DecompositionWorkflowContinuation(
+              engine,
+              gitOperations,
+              decompositionManifestValidator,
+              decompositionManifestStore,
+              repositoryRoot.path,
+              decompositionManifestWriter,
+              clock,
+              workflowIdRandom,
+            ).continueDecomposedParentByIssueKey(workflowId, unitOfWork, subtaskId)
+          pendingProjection = mergePendingProjection(pendingProjection, resolved)
+          return@transaction resolved.result
+        }
+        record ?: return@transaction WorkflowContinueResult.UnknownWorkflow(
+          dbPath = unitOfWork.dbPath.toString(),
+          workflowId = workflowId,
+        )
+        val continuation =
+          engine.continueExistingWorkflow(
+            family,
+            record,
+            unitOfWork,
+            ContinueExistingWorkflowArgs(
+              validator = decompositionManifestValidator,
+              fileStore = decompositionManifestStore,
+              repoRoot = repositoryRoot.path,
+              manifestWriter = decompositionManifestWriter,
+            ),
+          )
+        pendingProjection = mergePendingProjection(pendingProjection, continuation)
+          ?: currentParentProjectionForChild(record, unitOfWork)
+        continuation.result
+      }
     pendingProjection?.let { pending ->
       reconcileDecompositionManifestProjectionAfterCommit(pending)
     }
@@ -399,8 +440,9 @@ class WorkflowService(
     continuation: ContinuationStepResult,
   ): PendingDecompositionProjection? {
     val artifactsJson = continuation.projectionArtifactsJson ?: return existing
-    val ownerWorkflowId = continuation.projectionOwnerWorkflowId?.takeIf(String::isNotBlank)
-      ?: return existing
+    val ownerWorkflowId =
+      continuation.projectionOwnerWorkflowId?.takeIf(String::isNotBlank)
+        ?: return existing
     return PendingDecompositionProjection(ownerWorkflowId, artifactsJson)
   }
 
@@ -409,11 +451,12 @@ class WorkflowService(
     unitOfWork: UnitOfWork,
   ): PendingDecompositionProjection? {
     if (!childRecord.isGoalContinuationChildWorkflow()) return null
-    val ownerWorkflowId = resolveDecompositionProjectionOwner(
-      childRecord,
-      unitOfWork,
-      decompositionManifestValidator,
-    )
+    val ownerWorkflowId =
+      resolveDecompositionProjectionOwner(
+        childRecord,
+        unitOfWork,
+        decompositionManifestValidator,
+      )
     if (ownerWorkflowId == null) {
       runtimeDiagnostics.warning(
         "seam=decomposition_projection_settlement value_expected=projection_owner_workflow_id " +
@@ -441,12 +484,13 @@ class WorkflowService(
       return
     }
     when (
-      val outcome = decompositionManifestWriter.writeProjectionFromWorkflowState(
-        repositoryRoot.path,
-        pending.artifactsJson,
-        decompositionManifestValidator,
-        decompositionManifestStore,
-      )
+      val outcome =
+        decompositionManifestWriter.writeProjectionFromWorkflowState(
+          repositoryRoot.path,
+          pending.artifactsJson,
+          decompositionManifestValidator,
+          decompositionManifestStore,
+        )
     ) {
       is DecompositionManifestProjectionOutcome.Written ->
         database.transaction { unitOfWork ->

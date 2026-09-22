@@ -6,20 +6,28 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
 interface ReadinessTreeIdentityGitOperations {
-  fun resolveReadinessTreeIdentity(repoRoot: Path, baseBranch: String, workflowId: String): WorkflowGitOperationResult
+  fun resolveReadinessTreeIdentity(
+    repoRoot: Path,
+    baseBranch: String,
+    workflowId: String,
+  ): WorkflowGitOperationResult
 
-  fun changedPathsAgainstBase(repoRoot: Path, baseBranch: String): WorkflowGitOperationResult
+  fun changedPathsAgainstBase(
+    repoRoot: Path,
+    baseBranch: String,
+  ): WorkflowGitOperationResult
 }
 
 fun WorkflowGitOperations.resolveReadinessTreeIdentityPayload(
   repoRoot: Path,
   baseBranch: String,
   workflowId: String,
-): WorkflowGitOperationResult = readinessTreeIdentityOperations.resolveReadinessTreeIdentity(
-  repoRoot,
-  baseBranch,
-  workflowId,
-)
+): WorkflowGitOperationResult =
+  readinessTreeIdentityOperations.resolveReadinessTreeIdentity(
+    repoRoot,
+    baseBranch,
+    workflowId,
+  )
 
 fun WorkflowGitOperations.resolveReadinessTreeIdentity(
   repoRoot: Path,

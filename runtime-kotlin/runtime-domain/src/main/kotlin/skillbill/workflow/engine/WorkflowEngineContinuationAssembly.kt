@@ -16,6 +16,7 @@ import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
+
 internal val workflowResumableStepStatuses =
   setOf(WorkflowStepStatus.RUNNING, WorkflowStepStatus.BLOCKED, WorkflowStepStatus.PENDING)
 
@@ -59,11 +60,12 @@ internal fun resolvedArtifactValue(
   definition: WorkflowDefinition,
   snapshot: WorkflowSnapshotView,
   key: String,
-): ResolvedRequiredArtifact = if (key in snapshot.artifacts) {
-  ResolvedRequiredArtifact(present = true, value = snapshot.artifacts[key])
-} else {
-  definition.requiredArtifactPresenceResolver.resolveRequiredArtifact(snapshot, key)
-}
+): ResolvedRequiredArtifact =
+  if (key in snapshot.artifacts) {
+    ResolvedRequiredArtifact(present = true, value = snapshot.artifacts[key])
+  } else {
+    definition.requiredArtifactPresenceResolver.resolveRequiredArtifact(snapshot, key)
+  }
 
 internal data class AssembledContinueTexts(
   val stepArtifactKeys: List<String>,
@@ -103,15 +105,18 @@ internal fun assembleContinueTexts(request: AssembleContinueTextsRequest): Assem
   val resume = context.resume
   val snapshot = context.snapshot
   val declaredProjection = context.declaredProjection
-  val stepArtifactKeys = declaredProjection?.artifacts?.keys?.toList()
-    ?: continueArtifactKeys(definition, resume.resumeStepId, snapshot)
-  val stepArtifacts = declaredProjection?.artifacts ?: stepArtifactKeys.associateWith { key ->
-    resolvedArtifactValue(definition, snapshot, key).value
-  }
-  val artifactKeys = ContinuationArtifactKeys(
-    currentStepArtifactKeys = resume.requiredArtifacts,
-    omittedArtifactKeys = resume.availableArtifacts.filterNot(resume.requiredArtifacts::contains),
-  )
+  val stepArtifactKeys =
+    declaredProjection?.artifacts?.keys?.toList()
+      ?: continueArtifactKeys(definition, resume.resumeStepId, snapshot)
+  val stepArtifacts =
+    declaredProjection?.artifacts ?: stepArtifactKeys.associateWith { key ->
+      resolvedArtifactValue(definition, snapshot, key).value
+    }
+  val artifactKeys =
+    ContinuationArtifactKeys(
+      currentStepArtifactKeys = resume.requiredArtifacts,
+      omittedArtifactKeys = resume.availableArtifacts.filterNot(resume.requiredArtifacts::contains),
+    )
   val extraFields =
     if (definition.usesFeatureTaskRuntimeContinuation) {
       implementExtraFields(snapshot.artifacts)
@@ -122,32 +127,35 @@ internal fun assembleContinueTexts(request: AssembleContinueTextsRequest): Assem
     stepArtifactKeys = stepArtifactKeys,
     stepArtifacts = stepArtifacts,
     extraFields = extraFields,
-    continuationBrief = continuationBrief(
-      ContinuationBriefRequest(
-        definition = definition,
-        workflowId = context.record.workflowId,
-        resumeStepId = resume.resumeStepId,
-        continueStatus = request.continueStatus,
-        nextAction = resume.nextAction,
-        artifactKeys = artifactKeys,
-      ),
-    ),
-    continuationEntryPrompt = continuationEntryPrompt(
-      ContinuationEntryPromptRequest(
-        definition = definition,
-        identity = ContinuationIdentity(
+    continuationBrief =
+      continuationBrief(
+        ContinuationBriefRequest(
+          definition = definition,
           workflowId = context.record.workflowId,
-          sessionId = context.record.sessionId.orEmpty(),
           resumeStepId = resume.resumeStepId,
           continueStatus = request.continueStatus,
           nextAction = resume.nextAction,
-          nextAttemptCount = request.nextAttemptCount,
+          artifactKeys = artifactKeys,
         ),
-        artifactKeys = artifactKeys,
-        sessionSummary = request.sessionSummary,
-        extraFields = extraFields,
       ),
-    ),
+    continuationEntryPrompt =
+      continuationEntryPrompt(
+        ContinuationEntryPromptRequest(
+          definition = definition,
+          identity =
+            ContinuationIdentity(
+              workflowId = context.record.workflowId,
+              sessionId = context.record.sessionId.orEmpty(),
+              resumeStepId = resume.resumeStepId,
+              continueStatus = request.continueStatus,
+              nextAction = resume.nextAction,
+              nextAttemptCount = request.nextAttemptCount,
+            ),
+          artifactKeys = artifactKeys,
+          sessionSummary = request.sessionSummary,
+          extraFields = extraFields,
+        ),
+      ),
   )
 }
 
@@ -156,50 +164,55 @@ internal fun buildContinueDecision(request: BuildContinueDecisionRequest): Workf
   val definition = context.definition
   val resume = context.resume
   val stepLabel = definition.stepLabels[resume.resumeStepId] ?: resume.resumeStepId
-  val stepDirective = definition.continuationDirectives[resume.resumeStepId]
-    ?: "Resume the workflow from the current step using the recovered artifacts as authoritative context."
-  val presentation = ContinueStepPresentation(
-    continueStatus = request.continueStatus,
-    workflowStatusBeforeContinue = request.workflowStatusBeforeContinue,
-    continueStepLabel = stepLabel,
-    continueStepDirective = stepDirective,
-  )
-  val assembled = assembleContinueTexts(
-    AssembleContinueTextsRequest(
-      context = context,
+  val stepDirective =
+    definition.continuationDirectives[resume.resumeStepId]
+      ?: "Resume the workflow from the current step using the recovered artifacts as authoritative context."
+  val presentation =
+    ContinueStepPresentation(
       continueStatus = request.continueStatus,
-      sessionSummary = request.sessionSummary,
-      nextAttemptCount = request.nextAttemptCount,
-    ),
-  )
-  val compact = compactContinueView(
-    CompactContinueViewRequest(
-      definition = definition,
-      snapshot = context.snapshot,
-      resume = resume,
-      presentation = presentation,
-      texts = ContinuePromptTexts(assembled.continuationBrief, assembled.continuationEntryPrompt),
-      declaredProjection = context.declaredProjection,
-    ),
-  )
-  return WorkflowContinueDecision(
-    view = WorkflowContinueView(
-      resume = resume,
-      skillName = definition.skillName,
       workflowStatusBeforeContinue = request.workflowStatusBeforeContinue,
-      continueStatus = request.continueStatus,
-      continueStepId = resume.resumeStepId,
       continueStepLabel = stepLabel,
       continueStepDirective = stepDirective,
-      referenceSections = definition.continuationReferenceSections[resume.resumeStepId].orEmpty(),
-      stepArtifactKeys = assembled.stepArtifactKeys,
-      stepArtifacts = WorkflowStepArtifactMap.from(assembled.stepArtifacts),
-      extraFields = WorkflowContinuationFieldMap.from(assembled.extraFields),
-      sessionSummary = request.sessionSummary,
-      continuationBrief = assembled.continuationBrief,
-      continuationEntryPrompt = assembled.continuationEntryPrompt,
-      compact = compact,
-    ),
+    )
+  val assembled =
+    assembleContinueTexts(
+      AssembleContinueTextsRequest(
+        context = context,
+        continueStatus = request.continueStatus,
+        sessionSummary = request.sessionSummary,
+        nextAttemptCount = request.nextAttemptCount,
+      ),
+    )
+  val compact =
+    compactContinueView(
+      CompactContinueViewRequest(
+        definition = definition,
+        snapshot = context.snapshot,
+        resume = resume,
+        presentation = presentation,
+        texts = ContinuePromptTexts(assembled.continuationBrief, assembled.continuationEntryPrompt),
+        declaredProjection = context.declaredProjection,
+      ),
+    )
+  return WorkflowContinueDecision(
+    view =
+      WorkflowContinueView(
+        resume = resume,
+        skillName = definition.skillName,
+        workflowStatusBeforeContinue = request.workflowStatusBeforeContinue,
+        continueStatus = request.continueStatus,
+        continueStepId = resume.resumeStepId,
+        continueStepLabel = stepLabel,
+        continueStepDirective = stepDirective,
+        referenceSections = definition.continuationReferenceSections[resume.resumeStepId].orEmpty(),
+        stepArtifactKeys = assembled.stepArtifactKeys,
+        stepArtifacts = WorkflowStepArtifactMap.from(assembled.stepArtifacts),
+        extraFields = WorkflowContinuationFieldMap.from(assembled.extraFields),
+        sessionSummary = request.sessionSummary,
+        continuationBrief = assembled.continuationBrief,
+        continuationEntryPrompt = assembled.continuationEntryPrompt,
+        compact = compact,
+      ),
     shouldReopen = request.actualContinueStatus == WorkflowContinueStatus.REOPENED,
     resumeStepId = resume.resumeStepId,
     nextAttemptCount = request.nextAttemptCount,

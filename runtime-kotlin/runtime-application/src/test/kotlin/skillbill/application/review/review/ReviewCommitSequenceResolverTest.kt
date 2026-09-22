@@ -17,32 +17,49 @@ import kotlin.test.assertTrue
 class ReviewCommitSequenceResolverTest {
   private val repoRoot: Path = Path.of(".")
 
-  private fun diffFor(path: String, line: String) = """
+  private fun diffFor(
+    path: String,
+    line: String,
+  ) = """
     diff --git a/$path b/$path
     --- a/$path
     +++ b/$path
     @@ -1,1 +1,2 @@
     +$line
-  """.trimIndent()
+    """.trimIndent()
 
   private class FakeGit(private val responses: Map<String, String?>) : DiffResolverPort {
     val invoked: MutableList<String> = mutableListOf()
-    override fun runProcess(args: List<String>, workDir: Path): String? {
+
+    override fun runProcess(
+      args: List<String>,
+      workDir: Path,
+    ): String? {
       val key = args.joinToString(" ")
       invoked += key
       return responses[key]
     }
 
-    override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
-      emptyMap<String, ReviewCheckpointFileIdentity>()
+    override fun reviewWorktreeFileIdentities(
+      root: Path,
+      paths: List<String>,
+    ) = emptyMap<String, ReviewCheckpointFileIdentity>()
 
-    override fun readDiff(path: Path, maxBytes: Long): String? = null
+    override fun readDiff(
+      path: Path,
+      maxBytes: Long,
+    ): String? = null
   }
 
-  private fun branchRepo(shas: List<String>, diffs: Map<String, String>, parents: Map<String, String>): FakeGit {
-    val responses = mutableMapOf<String, String?>(
-      "git rev-list --first-parent --reverse base..head" to shas.joinToString("\n"),
-    )
+  private fun branchRepo(
+    shas: List<String>,
+    diffs: Map<String, String>,
+    parents: Map<String, String>,
+  ): FakeGit {
+    val responses =
+      mutableMapOf<String, String?>(
+        "git rev-list --first-parent --reverse base..head" to shas.joinToString("\n"),
+      )
     shas.forEach { sha ->
       val parent = parents.getValue(sha)
       responses["git show -s --format=%P%n%s $sha"] = "$parent\nsubject $sha"
@@ -74,8 +91,9 @@ class ReviewCommitSequenceResolverTest {
   )
 
   @Test fun `a six commit branch resolves an ordered first-parent sequence`() {
-    val aggregate = (1..5).joinToString("\n") { diffFor("src/c$it.kt", "line-c$it") } +
-      "\n" + diffFor("src/head.kt", "line-head")
+    val aggregate =
+      (1..5).joinToString("\n") { diffFor("src/c$it.kt", "line-c$it") } +
+        "\n" + diffFor("src/head.kt", "line-head")
     val resolved = resolve(sixCommitRepo(), ParallelReviewScope.BRANCH, aggregate)
     assertEquals(listOf("c1", "c2", "c3", "c4", "c5", "head"), resolved.units.map { it.commitSha })
     assertEquals(listOf(0, 1, 2, 3, 4, 5), resolved.units.map { it.orderIndex })
@@ -88,22 +106,23 @@ class ReviewCommitSequenceResolverTest {
   @Test fun `a merge commit is traversed by first parent only`() {
     val mergeDiff = diffFor("src/Merged.kt", "merged")
     val headDiff = diffFor("src/head.kt", "line-head")
-    val responses = mutableMapOf<String, String?>(
-      "git rev-list --first-parent --reverse base..head" to "c1\nmerge\nhead",
-      "git show -s --format=%P%n%s c1" to "base\nsubject c1",
-      "git diff base c1" to diffFor("src/c1.kt", "line-c1"),
-
-      "git show -s --format=%P%n%s merge" to "c1 other\nMerge branch 'other'",
-      "git diff c1 merge" to mergeDiff,
-      "git show -s --format=%P%n%s head" to "merge\nsubject head",
-      "git diff merge head" to headDiff,
-    )
+    val responses =
+      mutableMapOf<String, String?>(
+        "git rev-list --first-parent --reverse base..head" to "c1\nmerge\nhead",
+        "git show -s --format=%P%n%s c1" to "base\nsubject c1",
+        "git diff base c1" to diffFor("src/c1.kt", "line-c1"),
+        "git show -s --format=%P%n%s merge" to "c1 other\nMerge branch 'other'",
+        "git diff c1 merge" to mergeDiff,
+        "git show -s --format=%P%n%s head" to "merge\nsubject head",
+        "git diff merge head" to headDiff,
+      )
     val git = FakeGit(responses)
-    val resolved = resolve(
-      git,
-      ParallelReviewScope.BRANCH,
-      diffFor("src/c1.kt", "line-c1") + "\n" + mergeDiff + "\n" + headDiff,
-    )
+    val resolved =
+      resolve(
+        git,
+        ParallelReviewScope.BRANCH,
+        diffFor("src/c1.kt", "line-c1") + "\n" + mergeDiff + "\n" + headDiff,
+      )
     assertEquals(listOf("c1", "merge", "head"), resolved.units.map { it.commitSha })
     assertEquals(listOf("base", "c1", "merge"), resolved.units.map { it.parentSha })
     assertTrue(git.invoked.none { it.startsWith("git diff other") })
@@ -112,11 +131,12 @@ class ReviewCommitSequenceResolverTest {
 
   @Test fun `a base outside the first-parent chain degrades instead of aborting the review`() {
     val headDiff = diffFor("src/head.kt", "line-head")
-    val git = branchRepo(
-      listOf("head"),
-      mapOf("head" to headDiff),
-      mapOf("head" to "branchpoint"),
-    )
+    val git =
+      branchRepo(
+        listOf("head"),
+        mapOf("head" to headDiff),
+        mapOf("head" to "branchpoint"),
+      )
     val resolved = resolve(git, ParallelReviewScope.BRANCH, headDiff)
     assertEquals(1, resolved.units.size)
     assertEquals(ReviewCommitSource.SYNTHETIC_AGGREGATE_PR_DIFF, resolved.units.single().source)
@@ -126,49 +146,55 @@ class ReviewCommitSequenceResolverTest {
 
   @Test fun `an empty commit stays in the sequence as a zero-hunk unit`() {
     val shas = listOf("c1", "head")
-    val git = branchRepo(
-      shas,
-      mapOf("c1" to "", "head" to diffFor("src/A.kt", "alpha")),
-      mapOf("c1" to "base", "head" to "c1"),
-    )
+    val git =
+      branchRepo(
+        shas,
+        mapOf("c1" to "", "head" to diffFor("src/A.kt", "alpha")),
+        mapOf("c1" to "base", "head" to "c1"),
+      )
     val resolved = resolve(git, ParallelReviewScope.BRANCH, diffFor("src/A.kt", "alpha"))
     assertEquals(2, resolved.units.size)
     assertEquals(emptyList(), resolved.units.first().hunks)
   }
 
   @Test fun `a sequence that omits a changed path fails loudly`() {
-    val git = branchRepo(
-      listOf("head"),
-      mapOf("head" to diffFor("src/A.kt", "alpha")),
-      mapOf("head" to "base"),
-    )
+    val git =
+      branchRepo(
+        listOf("head"),
+        mapOf("head" to diffFor("src/A.kt", "alpha")),
+        mapOf("head" to "base"),
+      )
     val aggregate = diffFor("src/A.kt", "alpha") + "\n" + diffFor("src/Dropped.kt", "gone")
-    val failure = assertFailsWith<DiffResolutionException> {
-      resolve(git, ParallelReviewScope.BRANCH, aggregate)
-    }
+    val failure =
+      assertFailsWith<DiffResolutionException> {
+        resolve(git, ParallelReviewScope.BRANCH, aggregate)
+      }
     assertTrue("src/Dropped.kt" in failure.message.orEmpty())
   }
 
   @Test fun `a duplicated commit fails loudly`() {
     val diff = diffFor("src/A.kt", "alpha")
-    val responses = mutableMapOf<String, String?>(
-      "git rev-list --first-parent --reverse base..head" to "head\nhead",
-      "git show -s --format=%P%n%s head" to "base\nsubject head",
-      "git diff base head" to diff,
-    )
-    val failure = assertFailsWith<DiffResolutionException> {
-      resolve(FakeGit(responses), ParallelReviewScope.BRANCH, diff)
-    }
+    val responses =
+      mutableMapOf<String, String?>(
+        "git rev-list --first-parent --reverse base..head" to "head\nhead",
+        "git show -s --format=%P%n%s head" to "base\nsubject head",
+        "git diff base head" to diff,
+      )
+    val failure =
+      assertFailsWith<DiffResolutionException> {
+        resolve(FakeGit(responses), ParallelReviewScope.BRANCH, diff)
+      }
     assertTrue("more than once" in failure.message.orEmpty())
   }
 
   @Test fun `identical hunks in two commits keep distinct commit-scoped identities`() {
     val duplicate = diffFor("src/A.kt", "alpha")
-    val git = branchRepo(
-      listOf("c1", "head"),
-      mapOf("c1" to duplicate, "head" to duplicate),
-      mapOf("c1" to "base", "head" to "c1"),
-    )
+    val git =
+      branchRepo(
+        listOf("c1", "head"),
+        mapOf("c1" to duplicate, "head" to duplicate),
+        mapOf("c1" to "base", "head" to "c1"),
+      )
     val resolved = resolve(git, ParallelReviewScope.BRANCH, duplicate)
     val ids = resolved.units.flatMap { it.hunkIds }
     assertEquals(2, ids.size)
@@ -176,18 +202,20 @@ class ReviewCommitSequenceResolverTest {
   }
 
   @Test fun `a failed rev-list fails loudly instead of degrading to a synthetic unit`() {
-    val failure = assertFailsWith<DiffResolutionException> {
-      resolve(FakeGit(emptyMap()), ParallelReviewScope.BRANCH, diffFor("src/A.kt", "alpha"))
-    }
+    val failure =
+      assertFailsWith<DiffResolutionException> {
+        resolve(FakeGit(emptyMap()), ParallelReviewScope.BRANCH, diffFor("src/A.kt", "alpha"))
+      }
     assertTrue("enumerate the commit sequence" in failure.message.orEmpty())
   }
 
   @Test fun `a sequence that does not reach head fails loudly`() {
-    val git = branchRepo(
-      listOf("c1"),
-      mapOf("c1" to diffFor("src/A.kt", "alpha")),
-      mapOf("c1" to "base"),
-    )
+    val git =
+      branchRepo(
+        listOf("c1"),
+        mapOf("c1" to diffFor("src/A.kt", "alpha")),
+        mapOf("c1" to "base"),
+      )
     assertFailsWith<DiffResolutionException> {
       resolve(git, ParallelReviewScope.BRANCH, diffFor("src/A.kt", "alpha"))
     }

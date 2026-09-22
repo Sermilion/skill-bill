@@ -6,12 +6,13 @@ data class TelemetryProxyBatchEvent(
   val properties: Map<String, Any?>,
   val timestamp: String,
 ) {
-  fun toPayload(): Map<String, Any?> = mapOf(
-    TelemetryProxyPayloadKeys.EVENT to event,
-    TelemetryProxyPayloadKeys.DISTINCT_ID to distinctId,
-    TelemetryProxyPayloadKeys.PROPERTIES to properties,
-    TelemetryProxyPayloadKeys.TIMESTAMP to timestamp,
-  )
+  fun toPayload(): Map<String, Any?> =
+    mapOf(
+      TelemetryProxyPayloadKeys.EVENT to event,
+      TelemetryProxyPayloadKeys.DISTINCT_ID to distinctId,
+      TelemetryProxyPayloadKeys.PROPERTIES to properties,
+      TelemetryProxyPayloadKeys.TIMESTAMP to timestamp,
+    )
 }
 
 data class TelemetryProxyBatchPayload(
@@ -26,12 +27,13 @@ data class RemoteStatsQueryPayload(
   val dateTo: String,
   val groupBy: String = "",
 ) {
-  fun toPayload(): Map<String, Any?> = buildMap {
-    put(TelemetryProxyPayloadKeys.WORKFLOW, workflow)
-    put(TelemetryProxyPayloadKeys.DATE_FROM, dateFrom)
-    put(TelemetryProxyPayloadKeys.DATE_TO, dateTo)
-    if (groupBy.isNotBlank()) {
-      put(TelemetryProxyPayloadKeys.GROUP_BY, groupBy)
+  fun toPayload(): Map<String, Any?> =
+    buildMap {
+      put(TelemetryProxyPayloadKeys.WORKFLOW, workflow)
+      put(TelemetryProxyPayloadKeys.DATE_FROM, dateFrom)
+      put(TelemetryProxyPayloadKeys.DATE_TO, dateTo)
+      if (groupBy.isNotBlank()) {
+        put(TelemetryProxyPayloadKeys.GROUP_BY, groupBy)
+      }
     }
-  }
 }

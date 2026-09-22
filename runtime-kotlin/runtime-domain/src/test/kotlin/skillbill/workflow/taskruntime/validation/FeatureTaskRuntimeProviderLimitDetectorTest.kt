@@ -7,11 +7,12 @@ import kotlin.test.assertTrue
 class FeatureTaskRuntimeProviderLimitDetectorTest {
   @Test
   fun `recognizes a session-limit refusal and keeps the provider's own reset statement`() {
-    val signal = requireNotNull(
-      FeatureTaskRuntimeProviderLimitDetector.detect(
-        "You've hit your session limit · resets 3:40am (Europe/Berlin)",
-      ),
-    )
+    val signal =
+      requireNotNull(
+        FeatureTaskRuntimeProviderLimitDetector.detect(
+          "You've hit your session limit · resets 3:40am (Europe/Berlin)",
+        ),
+      )
 
     assertEquals("You've hit your session limit · resets 3:40am (Europe/Berlin)", signal.evidence)
     assertEquals("3:40am (Europe/Berlin)", signal.resetHint)
@@ -26,12 +27,13 @@ class FeatureTaskRuntimeProviderLimitDetectorTest {
 
   @Test
   fun `inspects stderr before stdout`() {
-    val signal = requireNotNull(
-      FeatureTaskRuntimeProviderLimitDetector.detect(
-        "Error: quota exceeded for this organization",
-        "You've hit your usage limit",
-      ),
-    )
+    val signal =
+      requireNotNull(
+        FeatureTaskRuntimeProviderLimitDetector.detect(
+          "Error: quota exceeded for this organization",
+          "You've hit your usage limit",
+        ),
+      )
 
     assertEquals("Error: quota exceeded for this organization", signal.evidence)
   }
@@ -47,9 +49,10 @@ class FeatureTaskRuntimeProviderLimitDetectorTest {
 
   @Test
   fun `a limit phrase far above the failure tail does not classify the exit`() {
-    val output = "You've hit your session limit\n" +
-      "x".repeat(FeatureTaskRuntimeProviderLimitDetector.INSPECTED_TAIL_CHARS) +
-      "\nError: the child process crashed"
+    val output =
+      "You've hit your session limit\n" +
+        "x".repeat(FeatureTaskRuntimeProviderLimitDetector.INSPECTED_TAIL_CHARS) +
+        "\nError: the child process crashed"
 
     assertNull(
       FeatureTaskRuntimeProviderLimitDetector.detect(output),
@@ -59,9 +62,10 @@ class FeatureTaskRuntimeProviderLimitDetectorTest {
 
   @Test
   fun `evidence stays bounded`() {
-    val signal = requireNotNull(
-      FeatureTaskRuntimeProviderLimitDetector.detect("y".repeat(500) + " You've hit your session limit"),
-    )
+    val signal =
+      requireNotNull(
+        FeatureTaskRuntimeProviderLimitDetector.detect("y".repeat(500) + " You've hit your session limit"),
+      )
 
     assertTrue(signal.evidence.length <= 200, "evidence was ${signal.evidence.length} chars")
   }

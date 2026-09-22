@@ -26,14 +26,16 @@ data class FeatureTaskRuntimeDecomposeTerminal(
   }
 
   val subtaskCount: Int get() = subtaskSpecPaths.size
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    "reason" to reason,
-    DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecPath,
-    "decomposition_manifest_path" to decompositionManifestPath,
-    "subtask_spec_paths" to subtaskSpecPaths,
-    "subtask_count" to subtaskCount,
-    "guidance" to FEATURE_TASK_RUNTIME_DECOMPOSE_GUIDANCE,
-  )
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      "reason" to reason,
+      DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecPath,
+      "decomposition_manifest_path" to decompositionManifestPath,
+      "subtask_spec_paths" to subtaskSpecPaths,
+      "subtask_count" to subtaskCount,
+      "guidance" to FEATURE_TASK_RUNTIME_DECOMPOSE_GUIDANCE,
+    )
 
   companion object {
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal {

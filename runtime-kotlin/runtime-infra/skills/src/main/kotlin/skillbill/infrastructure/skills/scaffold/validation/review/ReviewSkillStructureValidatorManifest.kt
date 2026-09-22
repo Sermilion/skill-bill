@@ -2,29 +2,35 @@ package skillbill.infrastructure.skills.scaffold.validation.review
 import java.nio.file.Path
 
 internal object ReviewSkillStructureValidatorManifest {
-
-  fun manifestViolations(pack: Path, manifest: Map<*, *>): List<ReviewSkillStructureViolation> {
+  fun manifestViolations(
+    pack: Path,
+    manifest: Map<*, *>,
+  ): List<ReviewSkillStructureViolation> {
     val manifestFile = pack.resolve("platform.yaml")
     val declaredFiles = manifest["declared_files"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
     val areas = declaredFiles["areas"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
     val declaredContent = declaredContentFiles(declaredFiles, areas)
-    val actualContent = contentFiles(pack)
-      .map { pack.relativize(it).let(::portablePath) }
-      .toSet()
-    val declaredAreas = (manifest["declared_code_review_areas"] as? List<*>)
-      ?.map(Any?::toString)
-      ?.toSet()
-      .orEmpty()
+    val actualContent =
+      contentFiles(pack)
+        .map { pack.relativize(it).let(::portablePath) }
+        .toSet()
+    val declaredAreas =
+      (manifest["declared_code_review_areas"] as? List<*>)
+        ?.map(Any?::toString)
+        ?.toSet()
+        .orEmpty()
     val areaKeys = areas.keys.map(Any?::toString).toSet()
     val metadata = manifest["area_metadata"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
     val metadataKeys = metadata.keys.map(Any?::toString).toSet()
     val packLabel = (manifest["display_name"] ?: manifest["platform"]).toString()
-    val focuses = metadata.mapNotNull { (rawArea, rawMetadata) ->
-      val area = rawArea as? String ?: return@mapNotNull null
-      val focus = (rawMetadata as? Map<*, *>)?.get("focus") as? String
-        ?: return@mapNotNull null
-      area to focus
-    }
+    val focuses =
+      metadata.mapNotNull { (rawArea, rawMetadata) ->
+        val area = rawArea as? String ?: return@mapNotNull null
+        val focus =
+          (rawMetadata as? Map<*, *>)?.get("focus") as? String
+            ?: return@mapNotNull null
+        area to focus
+      }
     return buildList {
       if (declaredContent != actualContent) {
         add(violation(manifestFile, "manifest declares every review content file"))
@@ -40,20 +46,25 @@ internal object ReviewSkillStructureValidatorManifest {
     }
   }
 
-  private fun routingViolations(manifestFile: Path, manifest: Map<*, *>): List<ReviewSkillStructureViolation> {
+  private fun routingViolations(
+    manifestFile: Path,
+    manifest: Map<*, *>,
+  ): List<ReviewSkillStructureViolation> {
     val routing = manifest["routing_signals"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
     val strongSignals = (routing["strong"] as? List<*>)?.filterIsInstance<String>().orEmpty()
     val tieBreakers = (routing["tie_breakers"] as? List<*>)?.filterIsInstance<String>().orEmpty()
-    val fallbackOnly = (manifest["fallback_capabilities"] as? List<*>)
-      ?.filterIsInstance<String>()
-      ?.isNotEmpty() == true
+    val fallbackOnly =
+      (manifest["fallback_capabilities"] as? List<*>)
+        ?.filterIsInstance<String>()
+        ?.isNotEmpty() == true
     return buildList {
       strongSignals.filter { it.matches(Regex("\\*?\\.[A-Za-z0-9]+")) }.forEach { signal ->
-        val counterpart = if (signal.startsWith("*.")) {
-          signal.removePrefix("*")
-        } else {
-          "*$signal"
-        }
+        val counterpart =
+          if (signal.startsWith("*.")) {
+            signal.removePrefix("*")
+          } else {
+            "*$signal"
+          }
         if (counterpart !in strongSignals) {
           add(violation(manifestFile, "routing bare/glob pair"))
         }
@@ -78,13 +89,17 @@ internal object ReviewSkillStructureValidatorManifest {
     }
   }
 
-  private fun pointerViolations(manifestFile: Path, manifest: Map<*, *>): List<ReviewSkillStructureViolation> {
+  private fun pointerViolations(
+    manifestFile: Path,
+    manifest: Map<*, *>,
+  ): List<ReviewSkillStructureViolation> {
     val declaredFiles = manifest["declared_files"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
     val areas = declaredFiles["areas"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
     val pointers = manifest["pointers"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
-    val expected = declaredContentFiles(declaredFiles, areas)
-      .map { it.removeSuffix("/content.md") }
-      .toSet()
+    val expected =
+      declaredContentFiles(declaredFiles, areas)
+        .map { it.removeSuffix("/content.md") }
+        .toSet()
     val actual = pointers.keys.map(Any?::toString).filter { it.startsWith("code-review/") }.toSet()
     return if (actual == expected) {
       emptyList()

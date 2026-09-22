@@ -4,13 +4,15 @@ import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class ReviewCoverageReportTest {
   @Test fun `complete disposition with empty unreviewed units renders clean coverage`() {
-    val report = ReviewCoverageReport(
-      cleanLanes = listOf("security"),
-      incompleteLanes = emptyList(),
-      integrationCompleted = false,
-    )
+    val report =
+      ReviewCoverageReport(
+        cleanLanes = listOf("security"),
+        incompleteLanes = emptyList(),
+        integrationCompleted = false,
+      )
 
     val rendered = report.render()
 
@@ -21,18 +23,20 @@ class ReviewCoverageReportTest {
   }
 
   @Test fun `incomplete disposition renders not clean and names unreviewed units`() {
-    val report = ReviewCoverageReport(
-      cleanLanes = emptyList(),
-      incompleteLanes = listOf(
-        ReviewLaneAggregationInput(
-          lane = "security",
-          commitSequenceDigest = "a".repeat(64),
-          disposition = ReviewLaneReviewDisposition.INCOMPLETE,
-          unreviewedUnits = listOf("head@src/B.kt"),
-        ),
-      ),
-      integrationCompleted = false,
-    )
+    val report =
+      ReviewCoverageReport(
+        cleanLanes = emptyList(),
+        incompleteLanes =
+          listOf(
+            ReviewLaneAggregationInput(
+              lane = "security",
+              commitSequenceDigest = "a".repeat(64),
+              disposition = ReviewLaneReviewDisposition.INCOMPLETE,
+              unreviewedUnits = listOf("head@src/B.kt"),
+            ),
+          ),
+        integrationCompleted = false,
+      )
 
     val rendered = report.render()
 

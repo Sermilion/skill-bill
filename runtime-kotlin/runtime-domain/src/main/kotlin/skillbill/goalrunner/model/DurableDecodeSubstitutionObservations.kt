@@ -11,7 +11,12 @@ object DurableDecodeSubstitutionObservations {
   private val records = mutableListOf<DurableDecodeSubstitutionRecord>()
 
   @Synchronized
-  fun record(seam: String, valueUsed: String, expectedValue: String, reason: String) {
+  fun record(
+    seam: String,
+    valueUsed: String,
+    expectedValue: String,
+    reason: String,
+  ) {
     records.add(
       DurableDecodeSubstitutionRecord(
         seam = seam,
@@ -26,6 +31,11 @@ object DurableDecodeSubstitutionObservations {
   fun drain(): List<DurableDecodeSubstitutionRecord> = records.toList().also { records.clear() }
 }
 
-internal fun recordDurableDecodeSubstitution(seam: String, valueUsed: String, expectedValue: String, reason: String) {
+internal fun recordDurableDecodeSubstitution(
+  seam: String,
+  valueUsed: String,
+  expectedValue: String,
+  reason: String,
+) {
   DurableDecodeSubstitutionObservations.record(seam, valueUsed, expectedValue, reason)
 }

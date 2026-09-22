@@ -34,61 +34,75 @@ private fun expectedConsumerProjectionMatrix(): Map<String, Set<Pair<String, Str
   return mapOf(
     def.PHASE_PLAN to setOf(def.PHASE_PREPLAN to "feature_task_runtime.phase_prose"),
     def.PHASE_IMPLEMENT to setOf(def.PHASE_PLAN to "feature_task_runtime.phase_prose"),
-    def.PHASE_SIMPLIFY to setOf(
-      def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.CHANGE_RECEIPT,
-    ),
-    def.PHASE_AUDIT to setOf(
-      def.PHASE_PLAN to "feature_task_runtime.phase_prose",
-      def.PHASE_IMPLEMENT to "feature_task_runtime.phase_prose",
-      def.PHASE_SIMPLIFY to "feature_task_runtime.phase_prose",
-    ),
-    def.PHASE_IMPLEMENT_FIX to setOf(
-      def.PHASE_VERIFY_FINDINGS to
-        FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.REVIEW_REPAIR_REQUEST,
-    ),
-    def.PHASE_VERIFY_FINDINGS to setOf(
-      def.PHASE_REVIEW to
-        FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.FINDINGS_VERIFICATION_INPUT,
-    ),
+    def.PHASE_SIMPLIFY to
+      setOf(
+        def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.CHANGE_RECEIPT,
+      ),
+    def.PHASE_AUDIT to
+      setOf(
+        def.PHASE_PLAN to "feature_task_runtime.phase_prose",
+        def.PHASE_IMPLEMENT to "feature_task_runtime.phase_prose",
+        def.PHASE_SIMPLIFY to "feature_task_runtime.phase_prose",
+      ),
+    def.PHASE_IMPLEMENT_FIX to
+      setOf(
+        def.PHASE_VERIFY_FINDINGS to
+          FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.REVIEW_REPAIR_REQUEST,
+      ),
+    def.PHASE_VERIFY_FINDINGS to
+      setOf(
+        def.PHASE_REVIEW to
+          FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.FINDINGS_VERIFICATION_INPUT,
+      ),
     def.PHASE_REVIEW to emptySet(),
-    def.PHASE_VALIDATE to setOf(
-      def.PHASE_PLAN to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-      def.PHASE_PLAN to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_REQUEST,
-    ),
-    def.PHASE_BUILD to setOf(
-      def.PHASE_PLAN to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-      def.PHASE_PLAN to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_REQUEST,
-    ),
-    def.PHASE_WRITE_HISTORY to setOf(
-      def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-      def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.BOUNDARY_CANDIDATES,
-      def.PHASE_VALIDATE to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_RECEIPT,
-      def.PHASE_BUILD to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.BUILD_RECEIPT,
-    ),
-    def.PHASE_COMMIT_PUSH to setOf(
-      def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-      def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.COMMIT_REQUEST,
-      def.PHASE_VALIDATE to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_RECEIPT,
-      def.PHASE_BUILD to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.BUILD_RECEIPT,
-      def.PHASE_WRITE_HISTORY to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.HISTORY_RECEIPT,
-    ),
-    def.PHASE_PR to setOf(
-      def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-      def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PR_REQUEST,
-      def.PHASE_COMMIT_PUSH to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.COMMIT_RECEIPT,
-    ),
+    def.PHASE_VALIDATE to
+      setOf(
+        def.PHASE_PLAN to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
+        def.PHASE_PLAN to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_REQUEST,
+      ),
+    def.PHASE_BUILD to
+      setOf(
+        def.PHASE_PLAN to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
+        def.PHASE_PLAN to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_REQUEST,
+      ),
+    def.PHASE_WRITE_HISTORY to
+      setOf(
+        def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
+        def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.BOUNDARY_CANDIDATES,
+        def.PHASE_VALIDATE to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_RECEIPT,
+        def.PHASE_BUILD to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.BUILD_RECEIPT,
+      ),
+    def.PHASE_COMMIT_PUSH to
+      setOf(
+        def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
+        def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.COMMIT_REQUEST,
+        def.PHASE_VALIDATE to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_RECEIPT,
+        def.PHASE_BUILD to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.BUILD_RECEIPT,
+        def.PHASE_WRITE_HISTORY to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.HISTORY_RECEIPT,
+      ),
+    def.PHASE_PR to
+      setOf(
+        def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
+        def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PR_REQUEST,
+        def.PHASE_COMMIT_PUSH to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.COMMIT_RECEIPT,
+      ),
   )
 }
 
-private fun assertConsumerProjectionEdges(consumer: String, expectedEdges: Set<Pair<String, String>>) {
+private fun assertConsumerProjectionEdges(
+  consumer: String,
+  expectedEdges: Set<Pair<String, String>>,
+) {
   val def = FeatureTaskRuntimePhaseWorkflowDefinition
-  val upstream = def.phaseDeclarations.getValue(consumer).projectionDeclarations.filter {
-    it.sourceRef is FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput
-  }
-  val actual = upstream.map { declaration ->
-    val source = declaration.sourceRef as FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput
-    source.producingPhaseId to declaration.projectionContractId
-  }.toSet()
+  val upstream =
+    def.phaseDeclarations.getValue(consumer).projectionDeclarations.filter {
+      it.sourceRef is FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput
+    }
+  val actual =
+    upstream.map { declaration ->
+      val source = declaration.sourceRef as FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput
+      source.producingPhaseId to declaration.projectionContractId
+    }.toSet()
   assertEquals(expectedEdges, actual, consumer)
   assertTrue(
     def.phaseDeclarations.getValue(consumer).projectionDeclarations.none {
@@ -112,11 +126,12 @@ private fun assertConsumerProjectionEdges(consumer: String, expectedEdges: Set<P
     assertTrue("phase_output_receipt" !in declaration.declaredFieldNames)
     assertTrue(
       declaration.declaredFieldNames.none {
-        it in setOf(
-          "summary", "raw_payload", "payload", "raw_prompt", "prompt", "transcript",
-          "tool_output", "logs", "source_body", "diff_body", "telemetry", "prior_reports",
-          "repair_history",
-        )
+        it in
+          setOf(
+            "summary", "raw_payload", "payload", "raw_prompt", "prompt", "transcript",
+            "tool_output", "logs", "source_body", "diff_body", "telemetry", "prior_reports",
+            "repair_history",
+          )
       },
       "${declaration.projectionName} exposes forbidden context",
     )

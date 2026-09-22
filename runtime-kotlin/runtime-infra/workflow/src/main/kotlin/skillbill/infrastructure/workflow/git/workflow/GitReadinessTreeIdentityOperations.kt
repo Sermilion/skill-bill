@@ -15,32 +15,42 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
     repoRoot: Path,
     baseBranch: String,
     workflowId: String,
-  ): WorkflowGitOperationResult = identityInputFailure(baseBranch, workflowId)
-    ?: resolveIdentity(repoRoot, baseBranch, workflowId)
+  ): WorkflowGitOperationResult =
+    identityInputFailure(baseBranch, workflowId)
+      ?: resolveIdentity(repoRoot, baseBranch, workflowId)
 
-  private fun resolveIdentity(repoRoot: Path, baseBranch: String, workflowId: String): WorkflowGitOperationResult {
+  private fun resolveIdentity(
+    repoRoot: Path,
+    baseBranch: String,
+    workflowId: String,
+  ): WorkflowGitOperationResult {
     val head = resolveRequiredSha(repoRoot, "HEAD", "Readiness identity could not resolve HEAD.")
     if (head !is WorkflowGitOperationResult.Ok) return head
-    val baseRef = resolveRequiredSha(
-      repoRoot,
-      "origin/$baseBranch",
-      "Readiness identity could not resolve origin/$baseBranch.",
-    )
+    val baseRef =
+      resolveRequiredSha(
+        repoRoot,
+        "origin/$baseBranch",
+        "Readiness identity could not resolve origin/$baseBranch.",
+      )
     if (baseRef !is WorkflowGitOperationResult.Ok) return baseRef
     val tree = computeSourceTreeSha(repoRoot, workflowId)
     if (tree !is WorkflowGitOperationResult.Ok) return tree
     return WorkflowGitOperationResult.Ok(
-      value = ReadinessTreeIdentityPayloadCodec.encode(
-        ReadinessTreeIdentity(
-          sourceTreeSha = tree.value.orEmpty(),
-          baseRefSha = baseRef.value.orEmpty(),
-          headSha = head.value.orEmpty(),
+      value =
+        ReadinessTreeIdentityPayloadCodec.encode(
+          ReadinessTreeIdentity(
+            sourceTreeSha = tree.value.orEmpty(),
+            baseRefSha = baseRef.value.orEmpty(),
+            headSha = head.value.orEmpty(),
+          ),
         ),
-      ),
     )
   }
 
-  override fun changedPathsAgainstBase(repoRoot: Path, baseBranch: String): WorkflowGitOperationResult =
+  override fun changedPathsAgainstBase(
+    repoRoot: Path,
+    baseBranch: String,
+  ): WorkflowGitOperationResult =
     if (baseBranch.isBlank()) {
       WorkflowGitOperationResult.Failed(
         error = "Readiness changed-path discovery requires a non-blank base branch.",
@@ -49,7 +59,10 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
       discoverChangedPaths(repoRoot, baseBranch)
     }
 
-  private fun discoverChangedPaths(repoRoot: Path, baseBranch: String): WorkflowGitOperationResult {
+  private fun discoverChangedPaths(
+    repoRoot: Path,
+    baseBranch: String,
+  ): WorkflowGitOperationResult {
     val base = "origin/$baseBranch"
     val baseResolution = runGitCommand(repoRoot, "rev-parse", base)
     if (baseResolution !is WorkflowGitOperationResult.Ok) {
@@ -64,13 +77,17 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
     val trackedPaths = tracked.value.orEmpty().split('\u0000').filter(String::isNotBlank)
     val untrackedPaths = untracked.value.orEmpty().split('\u0000').filter(String::isNotBlank)
     return WorkflowGitOperationResult.Ok(
-      value = (trackedPaths + untrackedPaths)
-        .distinct()
-        .joinToString("\u0000"),
+      value =
+        (trackedPaths + untrackedPaths)
+          .distinct()
+          .joinToString("\u0000"),
     )
   }
 
-  internal fun computeSourceTreeSha(repoRoot: Path, workflowId: String): WorkflowGitOperationResult {
+  internal fun computeSourceTreeSha(
+    repoRoot: Path,
+    workflowId: String,
+  ): WorkflowGitOperationResult {
     val indexPath = runGitCommand(repoRoot, "rev-parse", "--git-path", "index")
     if (indexPath !is WorkflowGitOperationResult.Ok) return indexPath
     val resolvedIndex = repoRoot.resolve(indexPath.value.orEmpty().trim()).normalize()
@@ -117,28 +134,37 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
     listed.split('\u0000').filter(String::isNotBlank).forEach { entry ->
       val path = entry.substringAfter('\t', missingDelimiterValue = "").trim()
       if (failure == null && path.isNotBlank() && isExcludedFromSourceTree(path, runEvidencePrefix)) {
-        val removed = runGitCommand(
-          repoRoot,
-          environment,
-          "update-index",
-          "--force-remove",
-          path,
-        )
+        val removed =
+          runGitCommand(
+            repoRoot,
+            environment,
+            "update-index",
+            "--force-remove",
+            path,
+          )
         if (removed !is WorkflowGitOperationResult.Ok) failure = removed
       }
     }
     return failure
   }
 
-  private fun identityInputFailure(baseBranch: String, workflowId: String): WorkflowGitOperationResult? = when {
-    baseBranch.isBlank() ->
-      WorkflowGitOperationResult.Failed(error = "Readiness identity requires a non-blank base branch.")
-    workflowId.isBlank() ->
-      WorkflowGitOperationResult.Failed(error = "Readiness identity requires a non-blank workflow id.")
-    else -> null
-  }
+  private fun identityInputFailure(
+    baseBranch: String,
+    workflowId: String,
+  ): WorkflowGitOperationResult? =
+    when {
+      baseBranch.isBlank() ->
+        WorkflowGitOperationResult.Failed(error = "Readiness identity requires a non-blank base branch.")
+      workflowId.isBlank() ->
+        WorkflowGitOperationResult.Failed(error = "Readiness identity requires a non-blank workflow id.")
+      else -> null
+    }
 
-  private fun resolveRequiredSha(repoRoot: Path, reference: String, blankError: String): WorkflowGitOperationResult {
+  private fun resolveRequiredSha(
+    repoRoot: Path,
+    reference: String,
+    blankError: String,
+  ): WorkflowGitOperationResult {
     val result = runGitCommand(repoRoot, "rev-parse", reference)
     if (result !is WorkflowGitOperationResult.Ok) {
       return WorkflowGitOperationResult.Failed(
@@ -153,6 +179,8 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
     }
   }
 
-  internal fun isExcludedFromSourceTree(path: String, runEvidencePrefix: String): Boolean =
-    path.endsWith("agent/history.md") || path.startsWith(runEvidencePrefix)
+  internal fun isExcludedFromSourceTree(
+    path: String,
+    runEvidencePrefix: String,
+  ): Boolean = path.endsWith("agent/history.md") || path.startsWith(runEvidencePrefix)
 }

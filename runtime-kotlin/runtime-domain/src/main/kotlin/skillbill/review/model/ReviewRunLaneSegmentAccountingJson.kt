@@ -7,6 +7,7 @@ import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
 import java.math.BigDecimal
 import java.math.BigInteger
+
 object ReviewRunLaneSegmentAccountingJson {
   fun encode(segments: List<ReviewLaneSegmentAccounting>): String? {
     if (segments.isEmpty()) return null
@@ -26,21 +27,26 @@ object ReviewRunLaneSegmentAccountingJson {
     if (raw.isNullOrBlank()) return emptyList()
     val trimmed = raw.trim()
     if (trimmed == "[]") return emptyList()
-    val elements = try {
-      JsonCodec.parseJsonArrayStrict(trimmed)
-    } catch (error: MalformedJsonTextError) {
-      throw segmentAccountingSchemaError("Segment accounting JSON is malformed: ${error.message.orEmpty()}", error)
-    } catch (error: JsonWrongRootTypeError) {
-      throw segmentAccountingSchemaError("Segment accounting JSON is malformed: ${error.message.orEmpty()}", error)
-    }
+    val elements =
+      try {
+        JsonCodec.parseJsonArrayStrict(trimmed)
+      } catch (error: MalformedJsonTextError) {
+        throw segmentAccountingSchemaError("Segment accounting JSON is malformed: ${error.message.orEmpty()}", error)
+      } catch (error: JsonWrongRootTypeError) {
+        throw segmentAccountingSchemaError("Segment accounting JSON is malformed: ${error.message.orEmpty()}", error)
+      }
     return elements.mapIndexed { index, element ->
       decodeSegment(element, index)
     }
   }
 
-  private fun decodeSegment(element: Any?, index: Int): ReviewLaneSegmentAccounting {
-    val map = element as? Map<*, *>
-      ?: throw segmentAccountingSchemaError("Segment accounting entry [$index] must be an object.")
+  private fun decodeSegment(
+    element: Any?,
+    index: Int,
+  ): ReviewLaneSegmentAccounting {
+    val map =
+      element as? Map<*, *>
+        ?: throw segmentAccountingSchemaError("Segment accounting entry [$index] must be an object.")
     val segmentId = map.requiredSegmentString("segment_id", index, "is missing")
     val measuredBytes = map.requiredSegmentLong("measured_bytes", index)
     val entryCount = map.requiredSegmentInt("entry_count", index)
@@ -60,17 +66,32 @@ object ReviewRunLaneSegmentAccountingJson {
     }
   }
 
-  private fun Map<*, *>.requiredSegmentString(field: String, index: Int, failure: String): String =
+  private fun Map<*, *>.requiredSegmentString(
+    field: String,
+    index: Int,
+    failure: String,
+  ): String =
     this[field] as? String
       ?: throw segmentAccountingSchemaError("Segment accounting entry [$index] $failure $field.")
 
-  private fun Map<*, *>.requiredSegmentLong(field: String, index: Int): Long = this[field].asExactLongOrNull()
-    ?: throw segmentAccountingSchemaError("Segment accounting entry [$index].$field must be an integer.")
+  private fun Map<*, *>.requiredSegmentLong(
+    field: String,
+    index: Int,
+  ): Long =
+    this[field].asExactLongOrNull()
+      ?: throw segmentAccountingSchemaError("Segment accounting entry [$index].$field must be an integer.")
 
-  private fun Map<*, *>.requiredSegmentInt(field: String, index: Int): Int = this[field].asExactIntOrNull()
-    ?: throw segmentAccountingSchemaError("Segment accounting entry [$index].$field must be an integer.")
+  private fun Map<*, *>.requiredSegmentInt(
+    field: String,
+    index: Int,
+  ): Int =
+    this[field].asExactIntOrNull()
+      ?: throw segmentAccountingSchemaError("Segment accounting entry [$index].$field must be an integer.")
 
-  private fun segmentAccountingSchemaError(reason: String, cause: Throwable? = null): InvalidReviewContextSchemaError =
+  private fun segmentAccountingSchemaError(
+    reason: String,
+    cause: Throwable? = null,
+  ): InvalidReviewContextSchemaError =
     InvalidReviewContextSchemaError(
       sourceLabel = "review_run_lane_segment_accounting",
       reason = reason,
@@ -82,17 +103,19 @@ fun List<String>.toStoredSegmentIdList(): String = joinToString(",")
 
 fun String.toStoredSegmentIdList(): List<String> = split(',').map { it.trim() }.filter { it.isNotEmpty() }
 
-private fun Any?.asExactIntOrNull(): Int? = asExactLongOrNull()?.let { value ->
-  value.takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }?.toInt()
-}
+private fun Any?.asExactIntOrNull(): Int? =
+  asExactLongOrNull()?.let { value ->
+    value.takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }?.toInt()
+  }
 
-private fun Any?.asExactLongOrNull(): Long? = when (this) {
-  is Byte -> toLong()
-  is Short -> toLong()
-  is Int -> toLong()
-  is Long -> this
-  is BigInteger -> runCatching { longValueExact() }.getOrNull()
-  is BigDecimal -> runCatching { longValueExact() }.getOrNull()
-  is String -> toLongOrNull()
-  else -> null
-}
+private fun Any?.asExactLongOrNull(): Long? =
+  when (this) {
+    is Byte -> toLong()
+    is Short -> toLong()
+    is Int -> toLong()
+    is Long -> this
+    is BigInteger -> runCatching { longValueExact() }.getOrNull()
+    is BigDecimal -> runCatching { longValueExact() }.getOrNull()
+    is String -> toLongOrNull()
+    else -> null
+  }

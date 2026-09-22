@@ -1,8 +1,12 @@
 package skillbill.review.context.model.packet
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitUnit
+
 internal object ReviewContextPacketCommitEvidenceValidator {
-  fun validate(packet: ReviewContextPacket, ownedHunks: Set<String>) {
+  fun validate(
+    packet: ReviewContextPacket,
+    ownedHunks: Set<String>,
+  ) {
     validateCommitUnitsPresent(packet.commitUnits)
     validateCommitUnitIdentity(packet.commitUnits)
     validateCommitUnitOrder(packet.commitUnits)
@@ -29,7 +33,10 @@ internal object ReviewContextPacketCommitEvidenceValidator {
     }
   }
 
-  private fun validateCoverageFactCount(coverageFact: ReviewCommitCoverageFact, commitUnits: List<ReviewCommitUnit>) {
+  private fun validateCoverageFactCount(
+    coverageFact: ReviewCommitCoverageFact,
+    commitUnits: List<ReviewCommitUnit>,
+  ) {
     require(coverageFact.commitCount == commitUnits.size) {
       "Coverage fact counts ${coverageFact.commitCount} commits but the packet carries ${commitUnits.size}."
     }
@@ -54,7 +61,10 @@ internal object ReviewContextPacketCommitEvidenceValidator {
     }
   }
 
-  private fun validateHunkPartition(commitUnits: List<ReviewCommitUnit>, ownedHunks: Set<String>) {
+  private fun validateHunkPartition(
+    commitUnits: List<ReviewCommitUnit>,
+    ownedHunks: Set<String>,
+  ) {
     val ordered = commitUnits.sortedBy { it.orderIndex }
     val unitHunkIds = ordered.flatMap { it.hunkIds }
     require(unitHunkIds.distinct().size == unitHunkIds.size) {

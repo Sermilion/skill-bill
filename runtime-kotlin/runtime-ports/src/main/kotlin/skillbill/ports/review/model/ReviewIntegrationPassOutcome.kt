@@ -3,6 +3,7 @@ package skillbill.ports.review.model
 import skillbill.review.context.model.launch.ReviewIntegrationTerminalOutcome
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
+
 data class ReviewIntegrationPassOutcome(
   val commitSequenceDigest: String,
   val terminalOutcome: ReviewIntegrationTerminalOutcome,
@@ -32,7 +33,10 @@ data class ReviewIntegrationPassOutcome(
   val durable: Boolean get() = terminalOutcome.isDurablyComplete
 
   companion object {
-    fun skipped(commitSequenceDigest: String, reason: String): ReviewIntegrationPassOutcome =
+    fun skipped(
+      commitSequenceDigest: String,
+      reason: String,
+    ): ReviewIntegrationPassOutcome =
       ReviewIntegrationPassOutcome(
         commitSequenceDigest = commitSequenceDigest,
         terminalOutcome = ReviewIntegrationTerminalOutcome.SKIPPED_NOT_APPLICABLE,

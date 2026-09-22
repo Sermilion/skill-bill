@@ -12,23 +12,25 @@ import kotlin.test.assertTrue
 class GoalCliStatusWorktreeEditsTest {
   @Test
   fun `goal status and monitor render measured worktree edits and omit absent measurements`() {
-    val measured = GoalRunnerStatusProjection(
-      issueKey = "SKILL-355",
-      completeCount = 0,
-      pendingCount = 1,
-      blockedCount = 0,
-      currentSubtaskId = 1,
-      currentStep = "implement",
-      activeAgent = "claude",
-      latestWorktreeEdit = WorktreeEditSummary(
-        recordedAt = Instant.parse("2026-09-18T12:00:00Z"),
-        phaseId = "implement",
-        pathSample = listOf("a.kt", "b.kt", "c.kt"),
-        netInsertions = 4,
-        netDeletions = 1,
-      ),
-      auditAcRetryCount = 1,
-    )
+    val measured =
+      GoalRunnerStatusProjection(
+        issueKey = "SKILL-355",
+        completeCount = 0,
+        pendingCount = 1,
+        blockedCount = 0,
+        currentSubtaskId = 1,
+        currentStep = "implement",
+        activeAgent = "claude",
+        latestWorktreeEdit =
+          WorktreeEditSummary(
+            recordedAt = Instant.parse("2026-09-18T12:00:00Z"),
+            phaseId = "implement",
+            pathSample = listOf("a.kt", "b.kt", "c.kt"),
+            netInsertions = 4,
+            netDeletions = 1,
+          ),
+        auditAcRetryCount = 1,
+      )
 
     val full = measured.toGoalStatusCliMap("SKILL-355")
     val worktreeEdits = full[WorktreeEditJournalPayloadKeys.WORKTREE_EDITS] as Map<*, *>
@@ -54,15 +56,16 @@ class GoalCliStatusWorktreeEditsTest {
     assertTrue(monitorText.contains("audit_ac_retry_count: 1"))
     assertFalse(monitorText.contains("\npaths="))
 
-    val absent = GoalRunnerStatusProjection(
-      issueKey = "SKILL-355",
-      completeCount = 0,
-      pendingCount = 1,
-      blockedCount = 0,
-      currentSubtaskId = 1,
-      currentStep = "implement",
-      activeAgent = "claude",
-    )
+    val absent =
+      GoalRunnerStatusProjection(
+        issueKey = "SKILL-355",
+        completeCount = 0,
+        pendingCount = 1,
+        blockedCount = 0,
+        currentSubtaskId = 1,
+        currentStep = "implement",
+        activeAgent = "claude",
+      )
     val absentFull = absent.toGoalStatusCliMap("SKILL-355")
     val absentBounded = absent.toBoundedGoalStatusCliMap("SKILL-355")
     assertNull(absentFull[WorktreeEditJournalPayloadKeys.WORKTREE_EDITS])

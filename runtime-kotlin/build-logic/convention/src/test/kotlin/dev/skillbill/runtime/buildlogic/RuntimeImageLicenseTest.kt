@@ -13,9 +13,10 @@ class RuntimeImageLicenseTest {
     val absent = Files.createTempDirectory("skillbill-missing-license").resolve("LICENSE")
     val staged = Files.createTempDirectory("skillbill-staged-license").resolve("LICENSE")
 
-    val failure = assertThrows<IllegalArgumentException> {
-      RuntimeImageLicense.stage(absent, listOf(staged))
-    }
+    val failure =
+      assertThrows<IllegalArgumentException> {
+        RuntimeImageLicense.stage(absent, listOf(staged))
+      }
 
     assertEquals("Repository LICENSE is missing at $absent.", failure.message)
     assertFalse(Files.exists(staged))

@@ -52,12 +52,13 @@ class TelemetryService(
       TelemetrySyncRuntime.telemetryStatusPayload(
         dbPath = unitOfWork.dbPath,
         settings = settings,
-        outbox = TelemetryOutboxStatusSnapshot(
-          pendingEvents = unitOfWork.telemetryOutbox.pendingCount(),
-          latestError = unitOfWork.telemetryOutbox.latestError(),
-          lastSyncedAt = unitOfWork.telemetryOutbox.lastSyncedAt(),
-          blockedEvents = unitOfWork.telemetryOutbox.blockedCount(TELEMETRY_DELIVERY_ATTEMPT_BUDGET),
-        ),
+        outbox =
+          TelemetryOutboxStatusSnapshot(
+            pendingEvents = unitOfWork.telemetryOutbox.pendingCount(),
+            latestError = unitOfWork.telemetryOutbox.latestError(),
+            lastSyncedAt = unitOfWork.telemetryOutbox.lastSyncedAt(),
+            blockedEvents = unitOfWork.telemetryOutbox.blockedCount(TELEMETRY_DELIVERY_ATTEMPT_BUDGET),
+          ),
       )
     }
   }
@@ -115,12 +116,13 @@ class TelemetryService(
         if (!database.databaseExists()) {
           return@runCatching
         }
-        val level = runCatching { telemetrySettingsOrNull(settingsProvider, diagnostics)?.level }
-          .getOrElse { thrown ->
-            rethrowIfCooperative(thrown)
-            null
-          }
-          .orEmpty()
+        val level =
+          runCatching { telemetrySettingsOrNull(settingsProvider, diagnostics)?.level }
+            .getOrElse { thrown ->
+              rethrowIfCooperative(thrown)
+              null
+            }
+            .orEmpty()
         enqueueRuntimeException(
           sessionTelemetryOutboxRepository(database),
           "telemetry_background_sync",
@@ -141,9 +143,10 @@ class TelemetryService(
     return telemetryMutationResult(settings, clearedEvents)
   }
 
-  fun capabilities(): TelemetryProxyCapabilities = telemetryClient.fetchProxyCapabilities(
-    loadTelemetrySettings(settingsProvider),
-  )
+  fun capabilities(): TelemetryProxyCapabilities =
+    telemetryClient.fetchProxyCapabilities(
+      loadTelemetrySettings(settingsProvider),
+    )
 
   fun remoteStats(
     workflow: String,
@@ -151,32 +154,39 @@ class TelemetryService(
     dateFrom: String,
     dateTo: String,
     groupBy: String,
-  ): TelemetryRemoteStatsResult = remoteStats(
-    RemoteStatsRequest(mapWorkflow(workflow), since, dateFrom, dateTo, groupBy),
-  )
+  ): TelemetryRemoteStatsResult =
+    remoteStats(
+      RemoteStatsRequest(mapWorkflow(workflow), since, dateFrom, dateTo, groupBy),
+    )
 
   fun remoteStats(request: RemoteStatsRequest): TelemetryRemoteStatsResult =
     telemetryClient.fetchRemoteStats(loadTelemetrySettings(settingsProvider), request)
 
-  fun captureException(workflowPhase: String, error: Exception) {
+  fun captureException(
+    workflowPhase: String,
+    error: Exception,
+  ) {
     if (!database.databaseExists()) return
-    val level = runCatching { telemetrySettingsOrNull(settingsProvider, diagnostics)?.level }
-      .getOrElse { thrown ->
-        rethrowIfCooperative(thrown)
-        null
+    val level =
+      runCatching { telemetrySettingsOrNull(settingsProvider, diagnostics)?.level }
+        .getOrElse { thrown ->
+          rethrowIfCooperative(thrown)
+          null
+        }
+        .orEmpty()
+    val enqueueResult =
+      runCatching {
+        enqueueRuntimeException(sessionTelemetryOutboxRepository(database), workflowPhase, error, level)
       }
-      .orEmpty()
-    val enqueueResult = runCatching {
-      enqueueRuntimeException(sessionTelemetryOutboxRepository(database), workflowPhase, error, level)
-    }
     enqueueResult.exceptionOrNull()?.let(::rethrowIfCooperative)
   }
 
-  private fun rethrowIfCooperative(error: Throwable): Nothing? = when (error) {
-    is CancellationException -> throw error
-    is InterruptedException -> rethrowTelemetryInterrupted(error, interruptSignal)
-    else -> null
-  }
+  private fun rethrowIfCooperative(error: Throwable): Nothing? =
+    when (error) {
+      is CancellationException -> throw error
+      is InterruptedException -> rethrowTelemetryInterrupted(error, interruptSignal)
+      else -> null
+    }
 
   private fun reconcileBeforeSync(request: TelemetryReconciliationRequest) {
     if (!database.databaseExists()) return
@@ -197,7 +207,10 @@ class TelemetryService(
 
 private fun rethrowTelemetryFailure(error: Throwable): Nothing = throw error
 
-private fun rethrowTelemetryInterrupted(error: InterruptedException, interruptSignal: InterruptSignalPort): Nothing {
+private fun rethrowTelemetryInterrupted(
+  error: InterruptedException,
+  interruptSignal: InterruptSignalPort,
+): Nothing {
   runCatching { interruptSignal.restore() }.exceptionOrNull()?.let { restorationFailure ->
     if (restorationFailure !== error) {
       error.addSuppressed(restorationFailure)
@@ -208,8 +221,10 @@ private fun rethrowTelemetryInterrupted(error: InterruptedException, interruptSi
 
 private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): TelemetryOutboxRepository =
   object : TelemetryOutboxRepository {
-    override fun enqueue(eventName: String, payloadJson: String): Long =
-      database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.enqueue(eventName, payloadJson) }
+    override fun enqueue(
+      eventName: String,
+      payloadJson: String,
+    ): Long = database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.enqueue(eventName, payloadJson) }
 
     override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
       database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.claimPending(request) }
@@ -223,7 +238,10 @@ private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): 
 
     override fun lastSyncedAt(): String? = database.read { unitOfWork -> unitOfWork.telemetryOutbox.lastSyncedAt() }
 
-    override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
+    override fun markSynced(
+      eventIds: List<Long>,
+      claimToken: String,
+    ): TelemetryOutboxSettlementResult =
       database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.markSynced(eventIds, claimToken) }
 
     override fun markFailed(
@@ -237,10 +255,11 @@ private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): 
       eventIds: List<Long>,
       claimToken: String,
       lastError: String,
-    ): TelemetryOutboxSettlementResult = database.transaction {
-        unitOfWork ->
-      unitOfWork.telemetryOutbox.markUnconfirmed(eventIds, claimToken, lastError)
-    }
+    ): TelemetryOutboxSettlementResult =
+      database.transaction {
+          unitOfWork ->
+        unitOfWork.telemetryOutbox.markUnconfirmed(eventIds, claimToken, lastError)
+      }
 
     override fun clear(): Int = database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.clear() }
   }

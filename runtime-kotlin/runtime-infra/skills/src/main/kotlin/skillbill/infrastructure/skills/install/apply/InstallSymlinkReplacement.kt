@@ -10,15 +10,25 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.util.UUID
 
-internal fun createReplacementSymlinkWithGuidance(linkPath: Path, linkTarget: Path) {
+internal fun createReplacementSymlinkWithGuidance(
+  linkPath: Path,
+  linkTarget: Path,
+) {
   createManagedSymlinkWithGuidance(linkPath, linkTarget, replaceExisting = true)
 }
 
-internal fun createNewSymlinkWithGuidance(linkPath: Path, linkTarget: Path) {
+internal fun createNewSymlinkWithGuidance(
+  linkPath: Path,
+  linkTarget: Path,
+) {
   createManagedSymlinkWithGuidance(linkPath, linkTarget, replaceExisting = false)
 }
 
-private fun createManagedSymlinkWithGuidance(linkPath: Path, linkTarget: Path, replaceExisting: Boolean) {
+private fun createManagedSymlinkWithGuidance(
+  linkPath: Path,
+  linkTarget: Path,
+  replaceExisting: Boolean,
+) {
   val tempLink = linkPath.parent.resolve(".${linkPath.fileName}.tmp-${UUID.randomUUID()}").normalize()
   val oldTarget = if (replaceExisting) readSymlinkTargetOrNull(linkPath) else null
   try {
@@ -38,13 +48,20 @@ private fun createManagedSymlinkWithGuidance(linkPath: Path, linkTarget: Path, r
   }
 }
 
-private fun restoreOriginalLinkIfNeeded(replaceExisting: Boolean, oldTarget: Path?, linkPath: Path) {
+private fun restoreOriginalLinkIfNeeded(
+  replaceExisting: Boolean,
+  oldTarget: Path?,
+  linkPath: Path,
+) {
   if (replaceExisting && oldTarget != null && !Files.exists(linkPath, LinkOption.NOFOLLOW_LINKS)) {
     runCatching { createSymbolicLinkWithGuidance(linkPath, oldTarget) }
   }
 }
 
-private fun createSymbolicLinkWithGuidance(linkPath: Path, linkTarget: Path) {
+private fun createSymbolicLinkWithGuidance(
+  linkPath: Path,
+  linkTarget: Path,
+) {
   try {
     Files.createSymbolicLink(linkPath, linkTarget)
   } catch (error: UnsupportedOperationException) {
@@ -54,14 +71,18 @@ private fun createSymbolicLinkWithGuidance(linkPath: Path, linkTarget: Path) {
   }
 }
 
-private fun moveManagedLink(tempLink: Path, linkPath: Path) {
+private fun moveManagedLink(
+  tempLink: Path,
+  linkPath: Path,
+) {
   if (Files.exists(linkPath, LinkOption.NOFOLLOW_LINKS)) {
     throw FileAlreadyExistsException(linkPath.toString())
   }
   atomicMoveReplacing(tempLink, linkPath)
 }
 
-private fun readSymlinkTargetOrNull(linkPath: Path): Path? = runCatching {
-  val rawTarget = Files.readSymbolicLink(linkPath)
-  if (rawTarget.isAbsolute) rawTarget else linkPath.parent.resolve(rawTarget).toAbsolutePath().normalize()
-}.getOrNull()
+private fun readSymlinkTargetOrNull(linkPath: Path): Path? =
+  runCatching {
+    val rawTarget = Files.readSymbolicLink(linkPath)
+    if (rawTarget.isAbsolute) rawTarget else linkPath.parent.resolve(rawTarget).toAbsolutePath().normalize()
+  }.getOrNull()

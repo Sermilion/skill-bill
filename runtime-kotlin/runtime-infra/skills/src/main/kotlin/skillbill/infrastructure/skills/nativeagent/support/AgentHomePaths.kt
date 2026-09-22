@@ -14,7 +14,10 @@ private val CLAUDE_PROFILE_MARKERS: List<String> =
 private val CODEX_PROFILE_MARKERS: List<String> =
   listOf("config.toml", "history.jsonl", "installation_id", "router.config.toml")
 
-fun claudeConfigRoots(home: Path, environment: Map<String, String>): List<Path> {
+fun claudeConfigRoots(
+  home: Path,
+  environment: Map<String, String>,
+): List<Path> {
   val ordered = mutableListOf<Path>()
   val seen = mutableSetOf<Path>()
 
@@ -49,7 +52,10 @@ fun claudeConfigRoots(home: Path, environment: Map<String, String>): List<Path> 
   return ordered
 }
 
-internal fun codexAgentsTargets(home: Path, environment: Map<String, String>): List<Path> {
+internal fun codexAgentsTargets(
+  home: Path,
+  environment: Map<String, String>,
+): List<Path> {
   val resolvedHome = home
   val ordered = mutableListOf<Path>()
   val seen = mutableSetOf<Path>()
@@ -71,7 +77,10 @@ internal data class NativeAgentHomeTarget(
   val path: Path,
 )
 
-internal fun detectCodexAgentsTargets(home: Path, environment: Map<String, String>): List<NativeAgentHomeTarget> {
+internal fun detectCodexAgentsTargets(
+  home: Path,
+  environment: Map<String, String>,
+): List<NativeAgentHomeTarget> {
   val resolvedHome = home
   if (!codexAgentIsPresent(resolvedHome, environment)) {
     return emptyList()
@@ -80,7 +89,10 @@ internal fun detectCodexAgentsTargets(home: Path, environment: Map<String, Strin
     .map { path -> NativeAgentHomeTarget(SupportedAgent.CODEX.nativeAgentsKind, path) }
 }
 
-private fun codexConfigRoots(home: Path, environment: Map<String, String>): List<Path> {
+private fun codexConfigRoots(
+  home: Path,
+  environment: Map<String, String>,
+): List<Path> {
   val ordered = mutableListOf<Path>()
   val seen = mutableSetOf<Path>()
 
@@ -118,7 +130,10 @@ private fun codexConfigRoots(home: Path, environment: Map<String, String>): List
   return ordered
 }
 
-private fun codexConfigRoot(home: Path, environment: Map<String, String>): Path =
+private fun codexConfigRoot(
+  home: Path,
+  environment: Map<String, String>,
+): Path =
   environment[CODEX_HOME_ENV]?.takeIf { it.isNotBlank() }
     ?.let { Path.of(it).toAbsolutePath().normalize() }
     ?: defaultCodexRoot(home)
@@ -128,7 +143,10 @@ private fun defaultCodexRoot(home: Path): Path {
   return if (Files.exists(codexRoot)) codexRoot else home.resolve(".agents")
 }
 
-private fun codexAgentIsPresent(home: Path, environment: Map<String, String>): Boolean {
+private fun codexAgentIsPresent(
+  home: Path,
+  environment: Map<String, String>,
+): Boolean {
   val installPath = codexConfigRoot(home, environment).resolve("skills")
   if (Files.exists(installPath)) {
     return true

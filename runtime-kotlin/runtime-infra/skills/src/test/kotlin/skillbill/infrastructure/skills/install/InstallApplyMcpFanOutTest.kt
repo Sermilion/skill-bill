@@ -19,9 +19,10 @@ class InstallApplyMcpFanOutTest : InstallApplyTestSupport() {
     val work = fixture.home.resolve(".claude-work")
     Files.createDirectories(work)
     Files.createFile(work.resolve(".claude.json"))
-    val plan = planInstallForTest(
-      fixture.request(agents = setOf(InstallAgent.CLAUDE)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(agents = setOf(InstallAgent.CLAUDE)),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -47,9 +48,10 @@ class InstallApplyMcpFanOutTest : InstallApplyTestSupport() {
     val malformed = work.resolve(".claude.json")
     Files.writeString(malformed, "{ not valid json")
     val defaultConfig = fixture.home.resolve(".claude.json")
-    val plan = planInstallForTest(
-      fixture.request(agents = setOf(InstallAgent.CLAUDE)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(agents = setOf(InstallAgent.CLAUDE)),
+      )
 
     val result = applyInstallForTest(plan)
 

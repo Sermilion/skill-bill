@@ -25,7 +25,10 @@ internal class TelemetryOutboxStore(
   private val connection: Connection,
   private val version: String = SkillBillRuntimeVersion.VALUE,
 ) : TelemetryOutboxRepository {
-  override fun enqueue(eventName: String, payloadJson: String): Long {
+  override fun enqueue(
+    eventName: String,
+    payloadJson: String,
+  ): Long {
     connection.prepareStatement(
       """
       INSERT INTO telemetry_outbox (event_name, payload_json, skill_bill_version, event_uuid)
@@ -100,66 +103,73 @@ internal class TelemetryOutboxStore(
     }
   }
 
-  override fun pendingCount(): Int = connection.prepareStatement(
-    """
+  override fun pendingCount(): Int =
+    connection.prepareStatement(
+      """
       SELECT COUNT(*)
       FROM telemetry_outbox
       WHERE synced_at IS NULL
-    """.trimIndent(),
-  ).use { statement ->
-    statement.executeQuery().use { resultSet ->
-      resultSet.next()
-      resultSet.getInt(1)
+      """.trimIndent(),
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        resultSet.next()
+        resultSet.getInt(1)
+      }
     }
-  }
 
-  override fun blockedCount(attemptBudget: Int): Int = connection.prepareStatement(
-    """
+  override fun blockedCount(attemptBudget: Int): Int =
+    connection.prepareStatement(
+      """
       SELECT COUNT(*)
       FROM telemetry_outbox
       WHERE synced_at IS NULL AND delivery_attempts >= ?
-    """.trimIndent(),
-  ).use { statement ->
-    statement.bindAll(attemptBudget)
-    statement.executeQuery().use { resultSet ->
-      resultSet.next()
-      resultSet.getInt(1)
+      """.trimIndent(),
+    ).use { statement ->
+      statement.bindAll(attemptBudget)
+      statement.executeQuery().use { resultSet ->
+        resultSet.next()
+        resultSet.getInt(1)
+      }
     }
-  }
 
-  override fun latestError(): String? = connection.prepareStatement(
-    """
+  override fun latestError(): String? =
+    connection.prepareStatement(
+      """
       SELECT last_error
       FROM telemetry_outbox
       WHERE synced_at IS NULL AND last_error IS NOT NULL AND last_error != ''
       ORDER BY id DESC
       LIMIT 1
-    """.trimIndent(),
-  ).use { statement ->
-    statement.executeQuery().use { resultSet ->
-      if (!resultSet.next()) {
-        return null
+      """.trimIndent(),
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        if (!resultSet.next()) {
+          return null
+        }
+        resultSet.getString("last_error").orEmpty().ifBlank { null }
       }
-      resultSet.getString("last_error").orEmpty().ifBlank { null }
     }
-  }
 
-  override fun lastSyncedAt(): String? = connection.prepareStatement(
-    """
+  override fun lastSyncedAt(): String? =
+    connection.prepareStatement(
+      """
       SELECT MAX(synced_at)
       FROM telemetry_outbox
       WHERE synced_at IS NOT NULL
-    """.trimIndent(),
-  ).use { statement ->
-    statement.executeQuery().use { resultSet ->
-      if (!resultSet.next()) {
-        return null
+      """.trimIndent(),
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        if (!resultSet.next()) {
+          return null
+        }
+        resultSet.getString(1)
       }
-      resultSet.getString(1)
     }
-  }
 
-  fun markSynced(id: Long, syncedAt: String) {
+  fun markSynced(
+    id: Long,
+    syncedAt: String,
+  ) {
     connection.prepareStatement(
       """
       UPDATE telemetry_outbox
@@ -172,7 +182,10 @@ internal class TelemetryOutboxStore(
     }
   }
 
-  override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult {
+  override fun markSynced(
+    eventIds: List<Long>,
+    claimToken: String,
+  ): TelemetryOutboxSettlementResult {
     if (eventIds.isEmpty()) {
       return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
     }
@@ -180,9 +193,9 @@ internal class TelemetryOutboxStore(
     val updated =
       connection.prepareStatement(
         """
-      UPDATE telemetry_outbox
-      SET synced_at = CURRENT_TIMESTAMP, last_error = NULL, claim_token = NULL, claimed_at = NULL
-      WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
+        UPDATE telemetry_outbox
+        SET synced_at = CURRENT_TIMESTAMP, last_error = NULL, claim_token = NULL, claimed_at = NULL
+        WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
         """.trimIndent(),
       ).use { statement ->
         val values: List<Any?> = eventIds.map { it } + claimToken
@@ -192,7 +205,11 @@ internal class TelemetryOutboxStore(
     return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)
   }
 
-  fun markFailed(id: Long, claimToken: String, lastError: String) {
+  fun markFailed(
+    id: Long,
+    claimToken: String,
+    lastError: String,
+  ) {
     markFailed(listOf(id), claimToken, lastError)
   }
 
@@ -230,16 +247,17 @@ internal class TelemetryOutboxStore(
     val updated =
       connection.prepareStatement(
         """
-      UPDATE telemetry_outbox
-      SET $assignments
-      WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
+        UPDATE telemetry_outbox
+        SET $assignments
+        WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
         """.trimIndent(),
       ).use { statement ->
-        val values: List<Any?> = buildList {
-          add(lastError)
-          addAll(eventIds)
-          add(claimToken)
-        }
+        val values: List<Any?> =
+          buildList {
+            add(lastError)
+            addAll(eventIds)
+            add(claimToken)
+          }
         statement.bindAll(values)
         statement.executeUpdate()
       }
@@ -247,12 +265,13 @@ internal class TelemetryOutboxStore(
   }
 
   override fun clear(): Int {
-    val count = connection.createStatement().use { statement ->
-      statement.executeQuery("SELECT COUNT(*) FROM telemetry_outbox").use { resultSet ->
-        resultSet.next()
-        resultSet.getInt(1)
+    val count =
+      connection.createStatement().use { statement ->
+        statement.executeQuery("SELECT COUNT(*) FROM telemetry_outbox").use { resultSet ->
+          resultSet.next()
+          resultSet.getInt(1)
+        }
       }
-    }
     connection.createStatement().use { statement ->
       statement.executeUpdate("DELETE FROM telemetry_outbox")
     }
@@ -260,20 +279,21 @@ internal class TelemetryOutboxStore(
   }
 }
 
-private fun ResultSet.readOutboxRows(): List<TelemetryOutboxRecord> = buildList {
-  while (next()) {
-    add(
-      TelemetryOutboxRecord(
-        id = getLong("id"),
-        eventName = getString(SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME),
-        payloadJson = getString("payload_json"),
-        createdAt = getString("created_at"),
-        syncedAt = getString("synced_at"),
-        lastError = getString("last_error").orEmpty(),
-        skillBillVersion = getString("skill_bill_version"),
-        eventUuid = getString("event_uuid").orEmpty(),
-        deliveryAttempts = getInt("delivery_attempts"),
-      ),
-    )
+private fun ResultSet.readOutboxRows(): List<TelemetryOutboxRecord> =
+  buildList {
+    while (next()) {
+      add(
+        TelemetryOutboxRecord(
+          id = getLong("id"),
+          eventName = getString(SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME),
+          payloadJson = getString("payload_json"),
+          createdAt = getString("created_at"),
+          syncedAt = getString("synced_at"),
+          lastError = getString("last_error").orEmpty(),
+          skillBillVersion = getString("skill_bill_version"),
+          eventUuid = getString("event_uuid").orEmpty(),
+          deliveryAttempts = getInt("delivery_attempts"),
+        ),
+      )
+    }
   }
-}

@@ -11,14 +11,16 @@ fun stubGovernedReviewEvidenceEndpointBinder(root: Path): GovernedReviewEvidence
       lane: String,
       broker: ReviewEvidenceBroker,
       onEvidenceRead: (() -> Unit)?,
-    ): GovernedReviewEvidenceEndpointHandle = object : GovernedReviewEvidenceEndpointHandle {
-      override val descriptor = GovernedReviewEvidenceEndpointDescriptor(
-        lane = lane,
-        socketPath = root.resolve("evidence.sock"),
-        mcpConfigPath = root.resolve("mcp.json"),
-        token = "stub-token",
-      )
+    ): GovernedReviewEvidenceEndpointHandle =
+      object : GovernedReviewEvidenceEndpointHandle {
+        override val descriptor =
+          GovernedReviewEvidenceEndpointDescriptor(
+            lane = lane,
+            socketPath = root.resolve("evidence.sock"),
+            mcpConfigPath = root.resolve("mcp.json"),
+            token = "stub-token",
+          )
 
-      override fun close() = Unit
-    }
+        override fun close() = Unit
+      }
   }

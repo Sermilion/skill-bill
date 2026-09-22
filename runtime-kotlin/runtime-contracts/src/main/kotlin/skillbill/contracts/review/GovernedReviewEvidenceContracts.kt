@@ -27,9 +27,10 @@ class GovernedReviewWirePayload private constructor(
 class GovernedReviewToolSpecList private constructor(
   private val specs: List<GovernedReviewWirePayload>,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf(
-    GovernedReviewEvidencePayloadKeys.TOOLS to specs.map(GovernedReviewWirePayload::toPayload),
-  )
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf(
+      GovernedReviewEvidencePayloadKeys.TOOLS to specs.map(GovernedReviewWirePayload::toPayload),
+    )
 
   fun asToolPayloads(): List<Map<String, Any?>> = specs.map(GovernedReviewWirePayload::toPayload)
 

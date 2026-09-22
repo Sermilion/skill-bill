@@ -26,19 +26,21 @@ class ParallelCodeReviewRunnerRubricPlanning(
     routedManifests: List<PlatformManifest>,
     manifests: List<PlatformManifest>,
     ownedPathsBySlug: Map<String, Set<String>>,
-  ): List<PlannedReviewRubric> = if (routedManifests.isEmpty()) {
-    resolveWithoutRoutedManifests(evidence)
-  } else {
-    resolveWithRoutedManifests(evidence, routedManifests, manifests, ownedPathsBySlug)
-  }
+  ): List<PlannedReviewRubric> =
+    if (routedManifests.isEmpty()) {
+      resolveWithoutRoutedManifests(evidence)
+    } else {
+      resolveWithRoutedManifests(evidence, routedManifests, manifests, ownedPathsBySlug)
+    }
 
   private fun resolveWithoutRoutedManifests(evidence: ReviewDiffEvidence): List<PlannedReviewRubric> {
     val installed = installedPackCatalog.manifests()
     if (installed.isEmpty()) return horizontalPlannedRubrics(evidence)
-    val routing = ReviewStackRouting.route(
-      installed,
-      evidence.files.map { ReviewRoutingChangedFile(it.path, it.changedContent) },
-    )
+    val routing =
+      ReviewStackRouting.route(
+        installed,
+        evidence.files.map { ReviewRoutingChangedFile(it.path, it.changedContent) },
+      )
     return if (routing.routedSlugs.isEmpty()) {
       horizontalPlannedRubrics(evidence)
     } else {
@@ -57,25 +59,28 @@ class ParallelCodeReviewRunnerRubricPlanning(
     manifests: List<PlatformManifest>,
     ownedPathsBySlug: Map<String, Set<String>>,
   ): List<PlannedReviewRubric> {
-    val depthOffsets = ReviewCrossRootLaneReconciliation
-      .compositionDepthOffsets(routedManifests.map { it.slug }, manifests)
-    val rootLanes = routedManifests.map { root ->
-      val rootOwnedPaths = ownedPathsBySlug[root.slug].orEmpty()
-      val rootFiles = evidence.files.filter { it.path in rootOwnedPaths }
-      val selectedAreas = ReviewLaunchPlanPolicy.composedAreas(root.slug, manifests)
-      val lanes = ReviewLaunchPlanPolicy.flatten(root.slug, manifests, selectedAreas).lanes.also { lanes ->
-        require(lanes.isNotEmpty()) {
-          "Routed pack '${root.slug}' resolved no declared flattened specialist worker."
-        }
-      }.map { lane ->
-        val ownedPaths = if (lane.required) rootOwnedPaths.toList() else laneOwnedPaths(lane, rootFiles)
-        lane.copy(
-          ownedPaths = ownedPaths.distinct().sorted(),
-          changedHunkIds = evidence.hunks.filter { it.path in ownedPaths }.map { it.hunkId },
-        )
+    val depthOffsets =
+      ReviewCrossRootLaneReconciliation
+        .compositionDepthOffsets(routedManifests.map { it.slug }, manifests)
+    val rootLanes =
+      routedManifests.map { root ->
+        val rootOwnedPaths = ownedPathsBySlug[root.slug].orEmpty()
+        val rootFiles = evidence.files.filter { it.path in rootOwnedPaths }
+        val selectedAreas = ReviewLaunchPlanPolicy.composedAreas(root.slug, manifests)
+        val lanes =
+          ReviewLaunchPlanPolicy.flatten(root.slug, manifests, selectedAreas).lanes.also { lanes ->
+            require(lanes.isNotEmpty()) {
+              "Routed pack '${root.slug}' resolved no declared flattened specialist worker."
+            }
+          }.map { lane ->
+            val ownedPaths = if (lane.required) rootOwnedPaths.toList() else laneOwnedPaths(lane, rootFiles)
+            lane.copy(
+              ownedPaths = ownedPaths.distinct().sorted(),
+              changedHunkIds = evidence.hunks.filter { it.path in ownedPaths }.map { it.hunkId },
+            )
+          }
+        ReviewRootLanes(depthOffsets[root.slug] ?: 0, lanes)
       }
-      ReviewRootLanes(depthOffsets[root.slug] ?: 0, lanes)
-    }
     val exclusion = ReviewPerAreaFallbackExclusion.partition(rootLanes, manifests)
     return ReviewCrossRootLaneReconciliation
       .reconcile(exclusion.roots, exclusion.excludedFallbackLanesByArea)
@@ -97,13 +102,15 @@ class ParallelCodeReviewRunnerRubricPlanning(
       "Conflicting ownership for specialist '${lane.skillName}'."
     }
     val owner = manifests.single { it.slug == lane.packSlug }
-    val ownedEvidence = evidence.ownedFiles(lane.ownedPaths.toSet()).map {
-      ReviewOwnedFileEvidence(it.path, it.changedContent)
-    }
+    val ownedEvidence =
+      evidence.ownedFiles(lane.ownedPaths.toSet()).map {
+        ReviewOwnedFileEvidence(it.path, it.changedContent)
+      }
     val resolvedOwner = reviewRubricResolver.resolve(owner, ownedEvidence, lane.skillName)
-    val resolved = resolvedOwner
-      .specialists.singleOrNull { it.area == lane.area }
-      ?: resolvedOwner
+    val resolved =
+      resolvedOwner
+        .specialists.singleOrNull { it.area == lane.area }
+        ?: resolvedOwner
     return PlannedReviewRubric(
       descriptor = lane.copy(addOns = resolved.selectedAddOns),
       rubric = ReviewRubricProjection(lane.skillName, resolved.body, resolved.area ?: lane.area),
@@ -134,7 +141,10 @@ class ParallelCodeReviewRunnerRubricPlanning(
     )
   }
 
-  private fun laneOwnedPaths(lane: ReviewLaunchLane, files: List<ReviewChangedFileEvidence>): List<String> =
+  private fun laneOwnedPaths(
+    lane: ReviewLaunchLane,
+    files: List<ReviewChangedFileEvidence>,
+  ): List<String> =
     files.filter { file ->
       ReviewLaneInclusionPolicy.ownsChangedFile(lane, file.path, file.changedContent)
     }.map { it.path }

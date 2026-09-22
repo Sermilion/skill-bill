@@ -22,16 +22,24 @@ sealed interface WorkflowGitOperationResult {
   }
 
   companion object {
-    operator fun invoke(status: String, value: String = "", error: String = ""): WorkflowGitOperationResult =
-      fromWire(status, value, error)
+    operator fun invoke(
+      status: String,
+      value: String = "",
+      error: String = "",
+    ): WorkflowGitOperationResult = fromWire(status, value, error)
 
-    fun fromWire(status: String, value: String = "", error: String = ""): WorkflowGitOperationResult = when (
-      WorkflowGitOperationStatus.fromWire(status)
-    ) {
-      WorkflowGitOperationStatus.OK -> Ok(value = value, error = error)
-      WorkflowGitOperationStatus.ERROR -> Failed(error = error.ifBlank { status }, value = value)
-      null -> Failed(error = error.ifBlank { status }, value = value)
-    }
+    fun fromWire(
+      status: String,
+      value: String = "",
+      error: String = "",
+    ): WorkflowGitOperationResult =
+      when (
+        WorkflowGitOperationStatus.fromWire(status)
+      ) {
+        WorkflowGitOperationStatus.OK -> Ok(value = value, error = error)
+        WorkflowGitOperationStatus.ERROR -> Failed(error = error.ifBlank { status }, value = value)
+        null -> Failed(error = error.ifBlank { status }, value = value)
+      }
   }
 }
 
@@ -40,8 +48,9 @@ fun WorkflowGitOperationResult.recordsNothingToCommit(): Boolean {
   return NOTHING_TO_COMMIT_MARKERS.any { marker -> marker in text }
 }
 
-private val NOTHING_TO_COMMIT_MARKERS = listOf(
-  "no changes added to commit",
-  "nothing to commit",
-  "nothing added to commit",
-)
+private val NOTHING_TO_COMMIT_MARKERS =
+  listOf(
+    "no changes added to commit",
+    "nothing to commit",
+    "nothing added to commit",
+  )

@@ -67,9 +67,10 @@ class FileSystemReviewSnapshotGatewayTest {
     val directory = Files.createTempDirectory("snapshot-store")
     val live = directory.resolve("review-metrics.db")
     Files.writeString(live, "live store")
-    val snapshots = listOf("before-migration", "2026-07-02", "pre-skill-136").map { label ->
-      directory.resolve("review-metrics.$label.db").also { Files.writeString(it, "snapshot $label") }
-    }
+    val snapshots =
+      listOf("before-migration", "2026-07-02", "pre-skill-136").map { label ->
+        directory.resolve("review-metrics.$label.db").also { Files.writeString(it, "snapshot $label") }
+      }
     return live to snapshots
   }
 }

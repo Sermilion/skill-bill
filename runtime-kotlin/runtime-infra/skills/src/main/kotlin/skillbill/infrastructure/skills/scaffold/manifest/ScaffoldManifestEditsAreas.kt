@@ -1,6 +1,7 @@
 
 package skillbill.infrastructure.skills.scaffold.manifest
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+
 private val AREAS_EMPTY_INLINE_PATTERN =
   Regex("^declared_code_review_areas:\\s*\\[\\s*\\]\\s*$", RegexOption.MULTILINE)
 private val AREAS_LIST_PATTERN =
@@ -14,17 +15,21 @@ private val AREA_METADATA_EMPTY_INLINE_PATTERN =
 private val AREA_METADATA_BLOCK_PATTERN =
   Regex("^(area_metadata:\\n)((?:  [^\\n]+\\n|    [^\\n]+\\n)*)", RegexOption.MULTILINE)
 
-internal fun appendAreaToList(text: String, area: String): String {
+internal fun appendAreaToList(
+  text: String,
+  area: String,
+): String {
   if (AREAS_EMPTY_INLINE_PATTERN.containsMatchIn(text)) {
     return text.replace(
       AREAS_EMPTY_INLINE_PATTERN,
       "declared_code_review_areas:\n  - ${yamlScalar(area)}",
     )
   }
-  val match = AREAS_LIST_PATTERN.find(text)
-    ?: throw InvalidScaffoldPayloadError(
-      "Manifest is missing required 'declared_code_review_areas:' block; refusing to edit.",
-    )
+  val match =
+    AREAS_LIST_PATTERN.find(text)
+      ?: throw InvalidScaffoldPayloadError(
+        "Manifest is missing required 'declared_code_review_areas:' block; refusing to edit.",
+      )
   val body = match.groupValues[1]
   if (Regex("^[ \\t]+-\\s*(?:\"|')?${Regex.escape(area)}(?:\"|')?\\s*$", RegexOption.MULTILINE).containsMatchIn(body)) {
     return text
@@ -34,15 +39,21 @@ internal fun appendAreaToList(text: String, area: String): String {
   return text.replaceRange(match.range, "declared_code_review_areas:\n$body$insertion")
 }
 
-internal fun appendAreaToDeclaredFiles(text: String, area: String, relativePath: String): String {
+internal fun appendAreaToDeclaredFiles(
+  text: String,
+  area: String,
+  relativePath: String,
+): String {
   if (DECLARED_FILES_EMPTY_INLINE_PATTERN.containsMatchIn(text)) {
-    val match = DECLARED_FILES_EMPTY_INLINE_PATTERN.find(text)
-      ?: return text
+    val match =
+      DECLARED_FILES_EMPTY_INLINE_PATTERN.find(text)
+        ?: return text
     val prefix = match.groupValues[1]
     return text.replaceRange(match.range, prefix + "  areas:\n    $area: ${yamlScalar(relativePath)}\n")
   }
-  val match = AREAS_FILES_PATTERN.find(text)
-    ?: throw InvalidScaffoldPayloadError("Manifest is missing 'declared_files.areas:' block; refusing to edit.")
+  val match =
+    AREAS_FILES_PATTERN.find(text)
+      ?: throw InvalidScaffoldPayloadError("Manifest is missing 'declared_files.areas:' block; refusing to edit.")
   val prefix = match.groupValues[1]
   val header = match.groupValues[2]
   val body = match.groupValues[MANIFEST_AREAS_BODY_GROUP_INDEX]
@@ -56,7 +67,11 @@ internal fun appendAreaToDeclaredFiles(text: String, area: String, relativePath:
   return text.replaceRange(match.range, prefix + header + body + insertion)
 }
 
-internal fun appendAreaMetadata(text: String, area: String, areaFocus: String): String {
+internal fun appendAreaMetadata(
+  text: String,
+  area: String,
+  areaFocus: String,
+): String {
   if (Regex("^  ${Regex.escape(area)}:\\s*$", RegexOption.MULTILINE).containsMatchIn(text)) {
     return text
   }
@@ -66,8 +81,9 @@ internal fun appendAreaMetadata(text: String, area: String, areaFocus: String): 
       "area_metadata:\n  $area:\n    focus: ${yamlScalar(areaFocus)}",
     )
   }
-  val match = AREA_METADATA_BLOCK_PATTERN.find(text)
-    ?: throw InvalidScaffoldPayloadError("Manifest is missing 'area_metadata:' block; refusing to edit.")
+  val match =
+    AREA_METADATA_BLOCK_PATTERN.find(text)
+      ?: throw InvalidScaffoldPayloadError("Manifest is missing 'area_metadata:' block; refusing to edit.")
   val header = match.groupValues[1]
   val body = match.groupValues[2]
   val insertion = "  $area:\n    focus: ${yamlScalar(areaFocus)}\n"

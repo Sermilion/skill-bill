@@ -7,5 +7,9 @@ typealias ExperimentArmMeasurement = ExperimentArmMeasurementModel
 typealias ExperimentMeasuredValue = ExperimentMeasuredValueModel
 
 fun interface ExperimentArmMeasurementPort {
-  fun measure(pairId: String, armId: String, workflowId: String): ExperimentArmMeasurement
+  fun measure(
+    pairId: String,
+    armId: String,
+    workflowId: String,
+  ): ExperimentArmMeasurement
 }

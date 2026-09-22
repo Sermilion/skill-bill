@@ -39,53 +39,57 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class ScaffoldServiceParityTest {
   @Test
-  fun `horizontal subagent specialists emit runtime notes and native stubs`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val result =
-      scaffold(
-        payload(repo, "horizontal", "name" to "bill-foo-orchestrator") +
-          mapOf("subagent_specialists" to listOf("foo-arch", "foo-perf")),
-      )
-    val skillDir = repo.resolve("skills").resolve("bill-foo-orchestrator")
-    val content = Files.readString(skillDir.resolve("content.md"))
-    val rendered = renderAuthoringTarget(repo, "bill-foo-orchestrator").stdout
+  fun `horizontal subagent specialists emit runtime notes and native stubs`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val result =
+        scaffold(
+          payload(repo, "horizontal", "name" to "bill-foo-orchestrator") +
+            mapOf("subagent_specialists" to listOf("foo-arch", "foo-perf")),
+        )
+      val skillDir = repo.resolve("skills").resolve("bill-foo-orchestrator")
+      val content = Files.readString(skillDir.resolve("content.md"))
+      val rendered = renderAuthoringTarget(repo, "bill-foo-orchestrator").stdout
 
-    assertEquals("horizontal", result.kind)
-    assertFalse("Subagent Spawn Runtime Notes" in content)
-    assertContains(rendered, "### Subagent Spawn Runtime Notes")
+      assertEquals("horizontal", result.kind)
+      assertFalse("Subagent Spawn Runtime Notes" in content)
+      assertContains(rendered, "### Subagent Spawn Runtime Notes")
 
-    assertContains(rendered, "`foo-arch`")
+      assertContains(rendered, "`foo-arch`")
 
-    listOf("**On Claude", "**On Codex.**", "**On Cursor.**", "**On Junie.**").forEach { marker ->
-      assertContains(rendered, marker)
+      listOf("**On Claude", "**On Codex.**", "**On Cursor.**", "**On Junie.**").forEach { marker ->
+        assertContains(rendered, marker)
+      }
+      assertContains(rendered, "\"use the `foo-arch` subagent\" for that role in `bill-foo-orchestrator`")
+      assertSourceBundle(skillDir.resolve("native-agents/agents.yaml"), "foo-arch", "foo-perf")
+      assertFalse(Files.exists(skillDir.resolve("codex-agents")))
+      assertFalse(Files.exists(skillDir.resolve("opencode-agents")))
+      assertFalse(Files.exists(skillDir.resolve("junie-agents")))
+      assertNoGeneratedWrapperOrSupportingFiles(skillDir, "bill-foo-orchestrator")
+      assertTrue(result.notes.any { note -> "Subagent bundle emitted: 2 entries." in note }, result.notes.toString())
     }
-    assertContains(rendered, "\"use the `foo-arch` subagent\" for that role in `bill-foo-orchestrator`")
-    assertSourceBundle(skillDir.resolve("native-agents/agents.yaml"), "foo-arch", "foo-perf")
-    assertFalse(Files.exists(skillDir.resolve("codex-agents")))
-    assertFalse(Files.exists(skillDir.resolve("opencode-agents")))
-    assertFalse(Files.exists(skillDir.resolve("junie-agents")))
-    assertNoGeneratedWrapperOrSupportingFiles(skillDir, "bill-foo-orchestrator")
-    assertTrue(result.notes.any { note -> "Subagent bundle emitted: 2 entries." in note }, result.notes.toString())
-  }
 
   @Test
-  fun `horizontal scaffold creates content only without generated wrapper or source pointers`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val result = scaffold(payload(repo, "horizontal", "name" to "bill-pr-description"))
-    val skillDir = repo.resolve("skills").resolve("bill-pr-description")
+  fun `horizontal scaffold creates content only without generated wrapper or source pointers`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val result = scaffold(payload(repo, "horizontal", "name" to "bill-pr-description"))
+      val skillDir = repo.resolve("skills").resolve("bill-pr-description")
 
-    assertEquals("bill-pr-description", result.skillName)
-    assertNoGeneratedWrapperOrSupportingFiles(skillDir, "bill-pr-description")
-  }
+      assertEquals("bill-pr-description", result.skillName)
+      assertNoGeneratedWrapperOrSupportingFiles(skillDir, "bill-pr-description")
+    }
 
   @Test
-  fun `horizontal scaffold uses supplied description in content and README catalog`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    Files.writeString(
-      repo.resolve("README.md"),
-      """
+  fun `horizontal scaffold uses supplied description in content and README catalog`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      Files.writeString(
+        repo.resolve("README.md"),
+        """
         |# Skill Bill
         |
         || Skill | Purpose |
@@ -93,28 +97,28 @@ class ScaffoldServiceParityTest {
         || `/bill-code-check` | Stable quality-check entry point |
         || `/bill-pr-description` | Generate PR text |
         |
-      """.trimMargin(),
-    )
+        """.trimMargin(),
+      )
 
-    scaffold(
-      payload(
-        repo,
-        "horizontal",
-        "name" to "bill-code-hot-path",
-        "description" to "Use when triaging urgent production incidents.",
-      ),
-    )
+      scaffold(
+        payload(
+          repo,
+          "horizontal",
+          "name" to "bill-code-hot-path",
+          "description" to "Use when triaging urgent production incidents.",
+        ),
+      )
 
-    val content = Files.readString(repo.resolve("skills/bill-code-hot-path/content.md"))
-    val readme = Files.readString(repo.resolve("README.md"))
+      val content = Files.readString(repo.resolve("skills/bill-code-hot-path/content.md"))
+      val readme = Files.readString(repo.resolve("README.md"))
 
-    assertContains(content, "description: Use when triaging urgent production incidents.")
-    assertContains(content, "Use when triaging urgent production incidents.")
-    assertContains(
-      readme,
-      "| `/bill-code-hot-path` | Use when triaging urgent production incidents. |",
-    )
-  }
+      assertContains(content, "description: Use when triaging urgent production incidents.")
+      assertContains(content, "Use when triaging urgent production incidents.")
+      assertContains(
+        readme,
+        "| `/bill-code-hot-path` | Use when triaging urgent production incidents. |",
+      )
+    }
 
   @Test
   fun `standalone native agent source stub remains custom body markdown`() {
@@ -127,26 +131,28 @@ class ScaffoldServiceParityTest {
   }
 
   @Test
-  fun `horizontal scaffold rejects generated wrapper headings and rolls back`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val skillDir = repo.resolve("skills/bill-wrapper-shaped-horizontal")
-    val before = snapshotTree(repo)
+  fun `horizontal scaffold rejects generated wrapper headings and rolls back`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val skillDir = repo.resolve("skills/bill-wrapper-shaped-horizontal")
+      val before = snapshotTree(repo)
 
-    val error = assertFailsWith<MissingRequiredSectionError> {
-      scaffold(
-        payload(
-          repo,
-          "horizontal",
-          "name" to "bill-wrapper-shaped-horizontal",
-          "content_body" to "## Descriptor\n\nGenerated wrapper content must not be authored here.",
-        ),
-      )
+      val error =
+        assertFailsWith<MissingRequiredSectionError> {
+          scaffold(
+            payload(
+              repo,
+              "horizontal",
+              "name" to "bill-wrapper-shaped-horizontal",
+              "content_body" to "## Descriptor\n\nGenerated wrapper content must not be authored here.",
+            ),
+          )
+        }
+
+      assertContains(error.message.orEmpty(), "generated wrapper boilerplate heading '## Descriptor'")
+      assertEquals(before, snapshotTree(repo))
+      assertFalse(Files.exists(skillDir), "Rejected scaffold left a partial skill directory at $skillDir")
     }
-
-    assertContains(error.message.orEmpty(), "generated wrapper boilerplate heading '## Descriptor'")
-    assertEquals(before, snapshotTree(repo))
-    assertFalse(Files.exists(skillDir), "Rejected scaffold left a partial skill directory at $skillDir")
-  }
 
   @Test
   fun `horizontal scaffold validates planned content when skill name collides with platform pack target`() =
@@ -155,16 +161,17 @@ class ScaffoldServiceParityTest {
       val skillDir = repo.resolve("skills/bill-kotlin-code-review")
       val before = snapshotTree(repo)
 
-      val error = assertFailsWith<MissingRequiredSectionError> {
-        scaffold(
-          payload(
-            repo,
-            "horizontal",
-            "name" to "bill-kotlin-code-review",
-            "content_body" to "## Descriptor\n\nGenerated wrapper content must not be authored here.",
-          ),
-        )
-      }
+      val error =
+        assertFailsWith<MissingRequiredSectionError> {
+          scaffold(
+            payload(
+              repo,
+              "horizontal",
+              "name" to "bill-kotlin-code-review",
+              "content_body" to "## Descriptor\n\nGenerated wrapper content must not be authored here.",
+            ),
+          )
+        }
 
       assertContains(error.message.orEmpty(), "generated wrapper boilerplate heading '## Descriptor'")
       assertEquals(before, snapshotTree(repo))
@@ -174,122 +181,133 @@ class ScaffoldServiceParityTest {
 
 class PlatformPackScaffoldParityTest {
   @Test
-  fun `platform pack rejects custom subagent specialists before mutation`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val before = snapshotTree(repo)
+  fun `platform pack rejects custom subagent specialists before mutation`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val before = snapshotTree(repo)
 
-    val error = assertFailsWith<InvalidScaffoldPayloadError> {
-      scaffold(
-        payload(repo, "platform-pack", "platform" to "java") +
-          mapOf("subagent_specialists" to listOf("arch", "perf")),
-      )
+      val error =
+        assertFailsWith<InvalidScaffoldPayloadError> {
+          scaffold(
+            payload(repo, "platform-pack", "platform" to "java") +
+              mapOf("subagent_specialists" to listOf("arch", "perf")),
+          )
+        }
+
+      assertContains(error.message.orEmpty(), "exactly one manifest-derived native agent")
+      assertEquals(before, snapshotTree(repo))
     }
-
-    assertContains(error.message.orEmpty(), "exactly one manifest-derived native agent")
-    assertEquals(before, snapshotTree(repo))
-  }
 
   @Test
-  fun `platform pack generates all approved specialist areas and registers them`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val result = scaffold(payload(repo, "platform-pack", "platform" to "java"))
-    val manifest = Files.readString(repo.resolve("platform-packs/java/platform.yaml"))
+  fun `platform pack generates all approved specialist areas and registers them`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val result = scaffold(payload(repo, "platform-pack", "platform" to "java"))
+      val manifest = Files.readString(repo.resolve("platform-packs/java/platform.yaml"))
 
-    assertEquals("platform-pack", result.kind)
-    assertContains(
-      Files.readString(repo.resolve("platform-packs/java/code-review/bill-java-code-review/content.md")),
-      "internal-for: bill-code-review",
-    )
-    APPROVED_CODE_REVIEW_AREAS.sorted().forEach { area ->
-      assertTrue(
-        Files.isRegularFile(repo.resolve("platform-packs/java/code-review/bill-java-code-review-$area/content.md")),
-        "Missing generated specialist content.md for $area",
+      assertEquals("platform-pack", result.kind)
+      assertContains(
+        Files.readString(repo.resolve("platform-packs/java/code-review/bill-java-code-review/content.md")),
+        "internal-for: bill-code-review",
       )
-      assertContains(manifest, "  - \"$area\"")
-      assertContains(manifest, "$area: \"code-review/bill-java-code-review-$area/content.md\"")
-      val specialist = Files.readString(
-        repo.resolve("platform-packs/java/code-review/bill-java-code-review-$area/content.md"),
+      APPROVED_CODE_REVIEW_AREAS.sorted().forEach { area ->
+        assertTrue(
+          Files.isRegularFile(repo.resolve("platform-packs/java/code-review/bill-java-code-review-$area/content.md")),
+          "Missing generated specialist content.md for $area",
+        )
+        assertContains(manifest, "  - \"$area\"")
+        assertContains(manifest, "$area: \"code-review/bill-java-code-review-$area/content.md\"")
+        val specialist =
+          Files.readString(
+            repo.resolve("platform-packs/java/code-review/bill-java-code-review-$area/content.md"),
+          )
+        assertContains(specialist, "internal-for: bill-code-review")
+        assertContains(specialist, canonicalSeverityCloser(area))
+      }
+      assertComposedSourceBundle(
+        repo.resolve("platform-packs/java/code-review/bill-java-code-review/native-agents/agents.yaml"),
+        APPROVED_CODE_REVIEW_AREAS.associate { area ->
+          "bill-java-code-review-$area" to
+            "Java ${area.replace('-', ' ')} specialist — " +
+            "Java ${defaultAreaFocus(area)} across pom.xml, build.gradle, src/main/java signals."
+        },
       )
-      assertContains(specialist, "internal-for: bill-code-review")
-      assertContains(specialist, canonicalSeverityCloser(area))
+      assertDistinctProviderAgents(repo)
+      val pack = loadPlatformPack(repo.resolve("platform-packs/java"))
+      assertEquals(APPROVED_CODE_REVIEW_AREAS.sorted(), pack.declaredCodeReviewAreas.sorted())
+      APPROVED_CODE_REVIEW_AREAS.forEach { area ->
+        assertEquals(
+          repo.resolve("platform-packs/java/code-review/bill-java-code-review-$area/content.md"),
+          pack.declaredFiles.areas.getValue(area).toPath(),
+        )
+        assertNoGeneratedWrapperOrSupportingFiles(
+          repo.resolve("platform-packs/java/code-review/bill-java-code-review-$area"),
+          "bill-java-code-review-$area",
+        )
+      }
+      val subagentNote = result.notes.single { note -> note.startsWith("Subagent bundle emitted:") }
+      assertContains(subagentNote, "content.md files")
+      assertFalse("native-agents/agents.yaml" in subagentNote)
+      assertFalse("TODO" in subagentNote)
     }
-    assertComposedSourceBundle(
-      repo.resolve("platform-packs/java/code-review/bill-java-code-review/native-agents/agents.yaml"),
-      APPROVED_CODE_REVIEW_AREAS.associate { area ->
-        "bill-java-code-review-$area" to
-          "Java ${area.replace('-', ' ')} specialist — " +
-          "Java ${defaultAreaFocus(area)} across pom.xml, build.gradle, src/main/java signals."
-      },
-    )
-    assertDistinctProviderAgents(repo)
-    val pack = loadPlatformPack(repo.resolve("platform-packs/java"))
-    assertEquals(APPROVED_CODE_REVIEW_AREAS.sorted(), pack.declaredCodeReviewAreas.sorted())
-    APPROVED_CODE_REVIEW_AREAS.forEach { area ->
-      assertEquals(
-        repo.resolve("platform-packs/java/code-review/bill-java-code-review-$area/content.md"),
-        pack.declaredFiles.areas.getValue(area).toPath(),
-      )
-      assertNoGeneratedWrapperOrSupportingFiles(
-        repo.resolve("platform-packs/java/code-review/bill-java-code-review-$area"),
-        "bill-java-code-review-$area",
-      )
-    }
-    val subagentNote = result.notes.single { note -> note.startsWith("Subagent bundle emitted:") }
-    assertContains(subagentNote, "content.md files")
-    assertFalse("native-agents/agents.yaml" in subagentNote)
-    assertFalse("TODO" in subagentNote)
-  }
 
   @Test
-  fun `platform pack rejects no_subagents before mutation`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val before = snapshotTree(repo)
+  fun `platform pack rejects no_subagents before mutation`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val before = snapshotTree(repo)
 
-    val error = assertFailsWith<InvalidScaffoldPayloadError> {
-      scaffold(
-        payload(repo, "platform-pack", "platform" to "java") + mapOf("no_subagents" to true),
-      )
+      val error =
+        assertFailsWith<InvalidScaffoldPayloadError> {
+          scaffold(
+            payload(repo, "platform-pack", "platform" to "java") + mapOf("no_subagents" to true),
+          )
+        }
+
+      assertContains(error.message.orEmpty(), "exactly one manifest-derived native agent")
+      assertEquals(before, snapshotTree(repo))
     }
-
-    assertContains(error.message.orEmpty(), "exactly one manifest-derived native agent")
-    assertEquals(before, snapshotTree(repo))
-  }
 }
 
 class ScaffoldAuthoringParityTest {
   @Test
-  fun `code review area scaffold is rejected before mutation`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val before = snapshotTree(repo)
-    val error = assertFailsWith<RetiredScaffoldKindError> {
-      scaffold(
-        payload(
-          repo,
-          "code-review-area",
-          "platform" to "kotlin",
-          "area" to "performance",
-          "name" to "bill-kotlin-code-review-performance",
-        ),
-      )
+  fun `code review area scaffold is rejected before mutation`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val before = snapshotTree(repo)
+      val error =
+        assertFailsWith<RetiredScaffoldKindError> {
+          scaffold(
+            payload(
+              repo,
+              "code-review-area",
+              "platform" to "kotlin",
+              "area" to "performance",
+              "name" to "bill-kotlin-code-review-performance",
+            ),
+          )
+        }
+
+      assertContains(error.message.orEmpty(), "retired for new partial scaffold creation")
+      assertEquals(before, snapshotTree(repo))
     }
 
-    assertContains(error.message.orEmpty(), "retired for new partial scaffold creation")
-    assertEquals(before, snapshotTree(repo))
-  }
-
   @Test
-  fun `code review area scaffold with content_body is rejected before mutation`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val before = snapshotTree(repo)
-    val error = assertFailsWith<RetiredScaffoldKindError> {
-      scaffold(
-        payload(
-          repo,
-          "code-review-area",
-          "platform" to "kotlin",
-          "area" to "api-contracts",
-          "name" to "bill-kotlin-code-review-api-contracts",
-          "content_body" to """
+  fun `code review area scaffold with content_body is rejected before mutation`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val before = snapshotTree(repo)
+      val error =
+        assertFailsWith<RetiredScaffoldKindError> {
+          scaffold(
+            payload(
+              repo,
+              "code-review-area",
+              "platform" to "kotlin",
+              "area" to "api-contracts",
+              "name" to "bill-kotlin-code-review-api-contracts",
+              "content_body" to
+                """
             |## Focus
             |
             |Review API boundary regressions.
@@ -297,341 +315,360 @@ class ScaffoldAuthoringParityTest {
             |## Review Guidance
             |
             |- Prefer client-visible contract issues.
-          """.trimMargin(),
-        ),
-      )
+                """.trimMargin(),
+            ),
+          )
+        }
+
+      assertContains(error.message.orEmpty(), "platform-pack")
+      assertEquals(before, snapshotTree(repo))
     }
 
-    assertContains(error.message.orEmpty(), "platform-pack")
-    assertEquals(before, snapshotTree(repo))
-  }
-
   @Test
-  fun `code review area scaffold with generated wrapper headings is rejected before mutation`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val skillDir = repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review-security")
-    val before = snapshotTree(repo)
+  fun `code review area scaffold with generated wrapper headings is rejected before mutation`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val skillDir = repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review-security")
+      val before = snapshotTree(repo)
 
-    val error = assertFailsWith<RetiredScaffoldKindError> {
-      scaffold(
-        payload(
-          repo,
-          "code-review-area",
-          "platform" to "kotlin",
-          "area" to "security",
-          "name" to "bill-kotlin-code-review-security",
-          "content_body" to "## Descriptor\n\nGenerated wrapper content must not be authored here.",
-        ),
-      )
+      val error =
+        assertFailsWith<RetiredScaffoldKindError> {
+          scaffold(
+            payload(
+              repo,
+              "code-review-area",
+              "platform" to "kotlin",
+              "area" to "security",
+              "name" to "bill-kotlin-code-review-security",
+              "content_body" to "## Descriptor\n\nGenerated wrapper content must not be authored here.",
+            ),
+          )
+        }
+
+      assertContains(error.message.orEmpty(), "retired for new partial scaffold creation")
+      assertEquals(before, snapshotTree(repo))
+      assertFalse(Files.exists(skillDir), "Rejected scaffold left a partial skill directory at $skillDir")
     }
 
-    assertContains(error.message.orEmpty(), "retired for new partial scaffold creation")
-    assertEquals(before, snapshotTree(repo))
-    assertFalse(Files.exists(skillDir), "Rejected scaffold left a partial skill directory at $skillDir")
-  }
-
   @Test
-  fun `subagent payload validation rejects invalid combinations and leaf kinds`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    listOf(
-      mapOf("subagent_specialists" to "foo") to "list of strings",
-      mapOf("subagent_specialists" to listOf("")) to "non-empty strings",
-      mapOf("subagent_specialists" to listOf("foo", "foo")) to "duplicate",
-      mapOf("subagent_specialists" to listOf("../foo")) to "invalid name",
-      mapOf("no_subagents" to "yes") to "must be a boolean",
-      mapOf("subagent_specialists" to listOf("foo"), "no_subagents" to true) to "no_subagents=true",
-    ).forEach { (extraPayload, expected) ->
+  fun `subagent payload validation rejects invalid combinations and leaf kinds`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      listOf(
+        mapOf("subagent_specialists" to "foo") to "list of strings",
+        mapOf("subagent_specialists" to listOf("")) to "non-empty strings",
+        mapOf("subagent_specialists" to listOf("foo", "foo")) to "duplicate",
+        mapOf("subagent_specialists" to listOf("../foo")) to "invalid name",
+        mapOf("no_subagents" to "yes") to "must be a boolean",
+        mapOf("subagent_specialists" to listOf("foo"), "no_subagents" to true) to "no_subagents=true",
+      ).forEach { (extraPayload, expected) ->
+        assertContains(
+          assertFailsWith<InvalidScaffoldPayloadError> {
+            scaffold(payload(repo, "horizontal", "name" to "bill-mixed-orchestrator") + extraPayload)
+          }.message.orEmpty(),
+          expected,
+        )
+      }
+      assertFailsWith<RetiredScaffoldKindError> {
+        scaffold(
+          payload(repo, "code-review-area", "platform" to "kotlin", "area" to "performance") +
+            mapOf("name" to "bill-kotlin-code-review-performance", "subagent_specialists" to listOf("x")),
+        )
+      }
       assertContains(
         assertFailsWith<InvalidScaffoldPayloadError> {
-          scaffold(payload(repo, "horizontal", "name" to "bill-mixed-orchestrator") + extraPayload)
+          scaffold(
+            payload(repo, "add-on", "platform" to "kotlin", "name" to "review-helper") +
+              mapOf("subagent_specialists" to listOf("x")),
+          )
         }.message.orEmpty(),
-        expected,
+        "subagent_specialists is only valid for orchestrator kinds",
+      )
+      assertContains(
+        assertFailsWith<InvalidScaffoldPayloadError> {
+          scaffold(payload(repo, "platform-pack", "platform" to "java") + mapOf("specialist_areas" to listOf("mobile")))
+        }.message.orEmpty(),
+        "no longer supported",
       )
     }
-    assertFailsWith<RetiredScaffoldKindError> {
-      scaffold(
-        payload(repo, "code-review-area", "platform" to "kotlin", "area" to "performance") +
-          mapOf("name" to "bill-kotlin-code-review-performance", "subagent_specialists" to listOf("x")),
-      )
-    }
-    assertContains(
-      assertFailsWith<InvalidScaffoldPayloadError> {
+
+  @Test
+  fun `add-on scaffold registers generated pointer and addon usage in platform manifest`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val result =
         scaffold(
-          payload(repo, "add-on", "platform" to "kotlin", "name" to "review-helper") +
-            mapOf("subagent_specialists" to listOf("x")),
+          payload(
+            repo,
+            "add-on",
+            "platform" to "kotlin",
+            "name" to "review-helper",
+          ),
         )
-      }.message.orEmpty(),
-      "subagent_specialists is only valid for orchestrator kinds",
-    )
-    assertContains(
-      assertFailsWith<InvalidScaffoldPayloadError> {
-        scaffold(payload(repo, "platform-pack", "platform" to "java") + mapOf("specialist_areas" to listOf("mobile")))
-      }.message.orEmpty(),
-      "no longer supported",
-    )
-  }
+      val manifestPath = repo.resolve("platform-packs/kotlin/platform.yaml")
+      val manifest = Files.readString(manifestPath)
+      val addonBody = Files.readString(repo.resolve("platform-packs/kotlin/addons/review-helper.md"))
 
-  @Test
-  fun `add-on scaffold registers generated pointer and addon usage in platform manifest`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val result = scaffold(
-      payload(
-        repo,
-        "add-on",
-        "platform" to "kotlin",
-        "name" to "review-helper",
-      ),
-    )
-    val manifestPath = repo.resolve("platform-packs/kotlin/platform.yaml")
-    val manifest = Files.readString(manifestPath)
-    val addonBody = Files.readString(repo.resolve("platform-packs/kotlin/addons/review-helper.md"))
-
-    assertEquals(
-      listOf(repo.resolve("platform-packs/kotlin/addons/review-helper.md")),
-      result.createdFiles.map {
-        it.toPath()
-      },
-    )
-    assertEquals(listOf(manifestPath), result.manifestEdits.map { it.toPath() })
-    assertContains(addonBody, "# review-helper")
-    assertContains(addonBody, "TODO: replace this placeholder with the add-on guidance body.")
-    assertTrue(
-      result.notes.any { note -> "edit the generated add-on body" in note },
-      "Expected edit note in ${result.notes}",
-    )
-    assertContains(manifest, "pointers:")
-    assertContains(manifest, "  code-review/bill-kotlin-code-review:")
-    assertContains(manifest, "    - name: \"review-helper.md\"")
-    assertContains(manifest, "      target: \"platform-packs/kotlin/addons/review-helper.md\"")
-    assertContains(manifest, "addon_usage:")
-    assertContains(manifest, "    - slug: \"review-helper\"")
-    assertContains(manifest, "      entrypoint: \"review-helper.md\"")
-
-    loadPlatformPack(repo.resolve("platform-packs/kotlin"))
-    val rendered = renderAuthoringTarget(repo, "bill-kotlin-code-review").stdout
-    assertContains(rendered, "## Governed Add-Ons")
-    assertContains(rendered, "`review-helper`: entrypoint `review-helper.md`")
-  }
-
-  @Test
-  fun `add-on scaffold accepts explicit consumer skill dirs`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val specialist = repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review-testing")
-    Files.createDirectories(specialist)
-    Files.writeString(
-      specialist.resolve("content.md"),
-      renderContentBody(
-        TemplateContext("bill-kotlin-code-review-testing", "code-review", "kotlin", "testing", "Kotlin"),
-        "Use when reviewing Kotlin test coverage quality.",
-      ),
-    )
-    val manifestPath = repo.resolve("platform-packs/kotlin/platform.yaml")
-    appendCodeReviewArea(
-      manifestPath,
-      "testing",
-      "code-review/bill-kotlin-code-review-testing/content.md",
-      defaultAreaFocus("testing"),
-    )
-
-    scaffold(
-      payload(
-        repo,
-        "add-on",
-        "platform" to "kotlin",
-        "name" to "testing-helper",
-        "consumer_skill_dirs" to listOf("code-review/bill-kotlin-code-review-testing"),
-      ),
-    )
-    val manifest = Files.readString(manifestPath)
-
-    assertContains(manifest, "  code-review/bill-kotlin-code-review-testing:")
-    assertContains(manifest, "    - name: \"testing-helper.md\"")
-    assertContains(manifest, "    - slug: \"testing-helper\"")
-    assertFalse("  code-review/bill-kotlin-code-review:\n    - slug: \"testing-helper\"" in manifest)
-  }
-
-  @Test
-  fun `add-on scaffold preserves explicit scripted body`() = withIsolatedUserHome {
-    val repo = seedRepo()
-
-    scaffold(
-      payload(
-        repo,
-        "add-on",
-        "platform" to "kotlin",
-        "name" to "scripted-helper",
-        "body" to "# Scripted Helper\n\nUse this deterministic body.",
-      ),
-    )
-
-    assertEquals(
-      "# Scripted Helper\n\nUse this deterministic body.\n",
-      Files.readString(repo.resolve("platform-packs/kotlin/addons/scripted-helper.md")),
-    )
-  }
-
-  @Test
-  fun `add-on scaffold treats explicit blank scripted body as present`() = withIsolatedUserHome {
-    val repo = seedRepo()
-
-    scaffold(
-      payload(
-        repo,
-        "add-on",
-        "platform" to "kotlin",
-        "name" to "blank-helper",
-        "body" to "",
-      ),
-    )
-
-    assertEquals(
-      "\n",
-      Files.readString(repo.resolve("platform-packs/kotlin/addons/blank-helper.md")),
-    )
-  }
-
-  @Test
-  fun `authoring render preserves platform display name and base shell ceremony references`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val packSkill = repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/SKILL.md")
-    val packTarget =
-      AuthoringTarget(
-        skillName = "bill-kotlin-code-review",
-        packageName = "kotlin",
-        platform = "kotlin",
-        displayName = "Kotlin",
-        family = "code-review",
-        area = "",
-        skillFile = packSkill,
-        contentFile = packSkill.resolveSibling("content.md"),
+      assertEquals(
+        listOf(repo.resolve("platform-packs/kotlin/addons/review-helper.md")),
+        result.createdFiles.map {
+          it.toPath()
+        },
       )
-    val baseSkill = repo.resolve("skills/bill-code-review")
-    Files.createDirectories(baseSkill)
-    Files.writeString(
-      baseSkill.resolve("content.md"),
-      "---\nname: bill-code-review\ndescription: Base shell content.\n---\n\n" +
-        baselineReviewContent("Base shell content."),
-    )
-    val baseTarget =
-      AuthoringTarget(
-        skillName = "bill-code-review",
-        packageName = "base",
-        platform = "",
-        displayName = "code review",
-        family = "code-review",
-        area = "",
-        skillFile = baseSkill.resolve("SKILL.md"),
-        contentFile = baseSkill.resolve("content.md"),
+      assertEquals(listOf(manifestPath), result.manifestEdits.map { it.toPath() })
+      assertContains(addonBody, "# review-helper")
+      assertContains(addonBody, "TODO: replace this placeholder with the add-on guidance body.")
+      assertTrue(
+        result.notes.any { note -> "edit the generated add-on body" in note },
+        "Expected edit note in ${result.notes}",
+      )
+      assertContains(manifest, "pointers:")
+      assertContains(manifest, "  code-review/bill-kotlin-code-review:")
+      assertContains(manifest, "    - name: \"review-helper.md\"")
+      assertContains(manifest, "      target: \"platform-packs/kotlin/addons/review-helper.md\"")
+      assertContains(manifest, "addon_usage:")
+      assertContains(manifest, "    - slug: \"review-helper\"")
+      assertContains(manifest, "      entrypoint: \"review-helper.md\"")
+
+      loadPlatformPack(repo.resolve("platform-packs/kotlin"))
+      val rendered = renderAuthoringTarget(repo, "bill-kotlin-code-review").stdout
+      assertContains(rendered, "## Governed Add-Ons")
+      assertContains(rendered, "`review-helper`: entrypoint `review-helper.md`")
+    }
+
+  @Test
+  fun `add-on scaffold accepts explicit consumer skill dirs`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val specialist = repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review-testing")
+      Files.createDirectories(specialist)
+      Files.writeString(
+        specialist.resolve("content.md"),
+        renderContentBody(
+          TemplateContext("bill-kotlin-code-review-testing", "code-review", "kotlin", "testing", "Kotlin"),
+          "Use when reviewing Kotlin test coverage quality.",
+        ),
+      )
+      val manifestPath = repo.resolve("platform-packs/kotlin/platform.yaml")
+      appendCodeReviewArea(
+        manifestPath,
+        "testing",
+        "code-review/bill-kotlin-code-review-testing/content.md",
+        defaultAreaFocus("testing"),
       )
 
-    assertContains(renderWrapper(packTarget), "Platform pack: `kotlin` (Kotlin)")
-    val renderedBase = renderWrapper(baseTarget)
-
-    assertContains(renderedBase, "[shell-content-contract.md](shell-content-contract.md)")
-    assertFalse("[review-orchestrator.md](review-orchestrator.md)" in renderedBase)
-  }
-
-  @Test
-  fun `authoring render and loader share multi word platform display name fallback`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val result =
-      scaffold(
-        payload(repo, "platform-pack", "platform" to "foo-bar") +
-          mapOf("routing_signals" to mapOf("strong" to listOf(".foobar"))),
-      )
-    val target = resolveTarget(repo, "bill-foo-bar-code-review")
-    val rendered = renderWrapper(target)
-
-    assertEquals("platform-pack", result.kind)
-    assertContains(rendered, "Platform pack: `foo-bar` (Foo Bar)")
-    loadPlatformPack(repo.resolve("platform-packs/foo-bar"))
-  }
-
-  @Test
-  fun `feature verify render validates inline audit rubric content without source sidecars`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val skillDir = repo.resolve("skills/bill-feature-verify")
-    Files.createDirectories(skillDir)
-    val context = TemplateContext("bill-feature-verify", "feature-verify", "", "", "feature verify")
-    Files.writeString(
-      skillDir.resolve("content.md"),
-      "---\nname: bill-feature-verify\ndescription: Feature verify content.\n---\n\n" +
-        baselineReviewContent("Feature verify content."),
-    )
-    val target = resolveTarget(repo, "bill-feature-verify")
-    val rendered = renderWrapper(target)
-
-    assertFalse("audit-rubrics.md" in rendered)
-    assertNoGeneratedWrapperOrSupportingFiles(skillDir, "bill-feature-verify")
-    assertEquals(emptyList(), validateTarget(target, repo))
-  }
-
-  @Test
-  fun `feature verify override scaffold is rejected before mutation`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val before = snapshotTree(repo)
-    val error = assertFailsWith<RetiredScaffoldKindError> {
       scaffold(
         payload(
           repo,
-          "platform-override-piloted",
-          "platform" to "kmp",
-          "family" to "feature-verify",
-          "name" to "bill-kmp-feature-verify",
+          "add-on",
+          "platform" to "kotlin",
+          "name" to "testing-helper",
+          "consumer_skill_dirs" to listOf("code-review/bill-kotlin-code-review-testing"),
         ),
+      )
+      val manifest = Files.readString(manifestPath)
+
+      assertContains(manifest, "  code-review/bill-kotlin-code-review-testing:")
+      assertContains(manifest, "    - name: \"testing-helper.md\"")
+      assertContains(manifest, "    - slug: \"testing-helper\"")
+      assertFalse("  code-review/bill-kotlin-code-review:\n    - slug: \"testing-helper\"" in manifest)
+    }
+
+  @Test
+  fun `add-on scaffold preserves explicit scripted body`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+
+      scaffold(
+        payload(
+          repo,
+          "add-on",
+          "platform" to "kotlin",
+          "name" to "scripted-helper",
+          "body" to "# Scripted Helper\n\nUse this deterministic body.",
+        ),
+      )
+
+      assertEquals(
+        "# Scripted Helper\n\nUse this deterministic body.\n",
+        Files.readString(repo.resolve("platform-packs/kotlin/addons/scripted-helper.md")),
       )
     }
 
-    assertContains(error.message.orEmpty(), "retired for new partial scaffold creation")
-    assertEquals(before, snapshotTree(repo))
-  }
-
   @Test
-  fun `no subagents opt out skips stub emission`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    scaffold(payload(repo, "horizontal", "name" to "bill-bar-orchestrator") + mapOf("no_subagents" to true))
-    val skillDir = repo.resolve("skills").resolve("bill-bar-orchestrator")
+  fun `add-on scaffold treats explicit blank scripted body as present`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
 
-    assertFalse(Files.exists(skillDir.resolve("codex-agents")))
-    assertFalse(Files.exists(skillDir.resolve("opencode-agents")))
-    assertFalse(Files.exists(skillDir.resolve("junie-agents")))
-    assertFalse(Files.exists(skillDir.resolve("native-agents")))
-    assertFalse("## Subagent Spawn Runtime Notes" in Files.readString(skillDir.resolve("content.md")))
-  }
-
-  @Test
-  fun `quality check override scaffold is rejected before mutation`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val before = snapshotTree(repo)
-    val error = assertFailsWith<RetiredScaffoldKindError> {
       scaffold(
         payload(
           repo,
-          "platform-override-piloted",
+          "add-on",
           "platform" to "kotlin",
-          "family" to "quality-check",
-          "name" to "bill-kotlin-code-check",
+          "name" to "blank-helper",
+          "body" to "",
         ),
+      )
+
+      assertEquals(
+        "\n",
+        Files.readString(repo.resolve("platform-packs/kotlin/addons/blank-helper.md")),
       )
     }
 
-    assertContains(error.message.orEmpty(), "platform-pack")
-    assertEquals(before, snapshotTree(repo))
-  }
+  @Test
+  fun `authoring render preserves platform display name and base shell ceremony references`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val packSkill = repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/SKILL.md")
+      val packTarget =
+        AuthoringTarget(
+          skillName = "bill-kotlin-code-review",
+          packageName = "kotlin",
+          platform = "kotlin",
+          displayName = "Kotlin",
+          family = "code-review",
+          area = "",
+          skillFile = packSkill,
+          contentFile = packSkill.resolveSibling("content.md"),
+        )
+      val baseSkill = repo.resolve("skills/bill-code-review")
+      Files.createDirectories(baseSkill)
+      Files.writeString(
+        baseSkill.resolve("content.md"),
+        "---\nname: bill-code-review\ndescription: Base shell content.\n---\n\n" +
+          baselineReviewContent("Base shell content."),
+      )
+      val baseTarget =
+        AuthoringTarget(
+          skillName = "bill-code-review",
+          packageName = "base",
+          platform = "",
+          displayName = "code review",
+          family = "code-review",
+          area = "",
+          skillFile = baseSkill.resolve("SKILL.md"),
+          contentFile = baseSkill.resolve("content.md"),
+        )
+
+      assertContains(renderWrapper(packTarget), "Platform pack: `kotlin` (Kotlin)")
+      val renderedBase = renderWrapper(baseTarget)
+
+      assertContains(renderedBase, "[shell-content-contract.md](shell-content-contract.md)")
+      assertFalse("[review-orchestrator.md](review-orchestrator.md)" in renderedBase)
+    }
 
   @Test
-  fun `quality check override with content_body is rejected before mutation`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val before = snapshotTree(repo)
-    val error = assertFailsWith<RetiredScaffoldKindError> {
-      scaffold(
-        payload(
-          repo,
-          "platform-override-piloted",
-          "platform" to "kotlin",
-          "family" to "quality-check",
-          "name" to "bill-kotlin-code-check",
-          "content_body" to """
+  fun `authoring render and loader share multi word platform display name fallback`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val result =
+        scaffold(
+          payload(repo, "platform-pack", "platform" to "foo-bar") +
+            mapOf("routing_signals" to mapOf("strong" to listOf(".foobar"))),
+        )
+      val target = resolveTarget(repo, "bill-foo-bar-code-review")
+      val rendered = renderWrapper(target)
+
+      assertEquals("platform-pack", result.kind)
+      assertContains(rendered, "Platform pack: `foo-bar` (Foo Bar)")
+      loadPlatformPack(repo.resolve("platform-packs/foo-bar"))
+    }
+
+  @Test
+  fun `feature verify render validates inline audit rubric content without source sidecars`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val skillDir = repo.resolve("skills/bill-feature-verify")
+      Files.createDirectories(skillDir)
+      val context = TemplateContext("bill-feature-verify", "feature-verify", "", "", "feature verify")
+      Files.writeString(
+        skillDir.resolve("content.md"),
+        "---\nname: bill-feature-verify\ndescription: Feature verify content.\n---\n\n" +
+          baselineReviewContent("Feature verify content."),
+      )
+      val target = resolveTarget(repo, "bill-feature-verify")
+      val rendered = renderWrapper(target)
+
+      assertFalse("audit-rubrics.md" in rendered)
+      assertNoGeneratedWrapperOrSupportingFiles(skillDir, "bill-feature-verify")
+      assertEquals(emptyList(), validateTarget(target, repo))
+    }
+
+  @Test
+  fun `feature verify override scaffold is rejected before mutation`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val before = snapshotTree(repo)
+      val error =
+        assertFailsWith<RetiredScaffoldKindError> {
+          scaffold(
+            payload(
+              repo,
+              "platform-override-piloted",
+              "platform" to "kmp",
+              "family" to "feature-verify",
+              "name" to "bill-kmp-feature-verify",
+            ),
+          )
+        }
+
+      assertContains(error.message.orEmpty(), "retired for new partial scaffold creation")
+      assertEquals(before, snapshotTree(repo))
+    }
+
+  @Test
+  fun `no subagents opt out skips stub emission`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      scaffold(payload(repo, "horizontal", "name" to "bill-bar-orchestrator") + mapOf("no_subagents" to true))
+      val skillDir = repo.resolve("skills").resolve("bill-bar-orchestrator")
+
+      assertFalse(Files.exists(skillDir.resolve("codex-agents")))
+      assertFalse(Files.exists(skillDir.resolve("opencode-agents")))
+      assertFalse(Files.exists(skillDir.resolve("junie-agents")))
+      assertFalse(Files.exists(skillDir.resolve("native-agents")))
+      assertFalse("## Subagent Spawn Runtime Notes" in Files.readString(skillDir.resolve("content.md")))
+    }
+
+  @Test
+  fun `quality check override scaffold is rejected before mutation`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val before = snapshotTree(repo)
+      val error =
+        assertFailsWith<RetiredScaffoldKindError> {
+          scaffold(
+            payload(
+              repo,
+              "platform-override-piloted",
+              "platform" to "kotlin",
+              "family" to "quality-check",
+              "name" to "bill-kotlin-code-check",
+            ),
+          )
+        }
+
+      assertContains(error.message.orEmpty(), "platform-pack")
+      assertEquals(before, snapshotTree(repo))
+    }
+
+  @Test
+  fun `quality check override with content_body is rejected before mutation`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val before = snapshotTree(repo)
+      val error =
+        assertFailsWith<RetiredScaffoldKindError> {
+          scaffold(
+            payload(
+              repo,
+              "platform-override-piloted",
+              "platform" to "kotlin",
+              "family" to "quality-check",
+              "name" to "bill-kotlin-code-check",
+              "content_body" to
+                """
             |## Focus
             |
             |Run Kotlin checks with the governed quality-check ceremony.
@@ -639,14 +676,14 @@ class ScaffoldAuthoringParityTest {
             |## Failure Handling
             |
             |- Report root causes before repair steps.
-          """.trimMargin(),
-        ),
-      )
-    }
+                """.trimMargin(),
+            ),
+          )
+        }
 
-    assertContains(error.message.orEmpty(), "retired for new partial scaffold creation")
-    assertEquals(before, snapshotTree(repo))
-  }
+      assertContains(error.message.orEmpty(), "retired for new partial scaffold creation")
+      assertEquals(before, snapshotTree(repo))
+    }
 
   @Test
   fun `quality check override rejects generated wrapper headings and rolls back manifest byte identically`() =
@@ -657,18 +694,19 @@ class ScaffoldAuthoringParityTest {
       val before = snapshotTree(repo)
       val beforeManifest = Files.readAllBytes(manifestPath)
 
-      val error = assertFailsWith<RetiredScaffoldKindError> {
-        scaffold(
-          payload(
-            repo,
-            "platform-override-piloted",
-            "platform" to "kotlin",
-            "family" to "quality-check",
-            "name" to "bill-kotlin-code-check",
-            "content_body" to "## Descriptor\n\nGenerated wrapper content must not be authored here.",
-          ),
-        )
-      }
+      val error =
+        assertFailsWith<RetiredScaffoldKindError> {
+          scaffold(
+            payload(
+              repo,
+              "platform-override-piloted",
+              "platform" to "kotlin",
+              "family" to "quality-check",
+              "name" to "bill-kotlin-code-check",
+              "content_body" to "## Descriptor\n\nGenerated wrapper content must not be authored here.",
+            ),
+          )
+        }
 
       assertContains(error.message.orEmpty(), "retired for new partial scaffold creation")
       assertEquals(before, snapshotTree(repo))
@@ -680,107 +718,120 @@ class ScaffoldAuthoringParityTest {
     }
 
   @Test
-  fun `scaffold rollback restores manifest files symlinks and directories byte identically`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val unrelated = repo.resolve("notes/unrelated.txt")
-    Files.createDirectories(unrelated.parent)
-    Files.writeString(unrelated, "keep me")
-    Files.delete(repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/content.md"))
-    val before = snapshotTree(repo)
+  fun `scaffold rollback restores manifest files symlinks and directories byte identically`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val unrelated = repo.resolve("notes/unrelated.txt")
+      Files.createDirectories(unrelated.parent)
+      Files.writeString(unrelated, "keep me")
+      Files.delete(repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/content.md"))
+      val before = snapshotTree(repo)
 
-    assertFailsWith<RetiredScaffoldKindError> {
-      scaffold(
-        payload(
-          repo,
-          "code-review-area",
-          "platform" to "kotlin",
-          "area" to "performance",
-          "name" to "bill-kotlin-code-review-performance",
-        ),
-      )
+      assertFailsWith<RetiredScaffoldKindError> {
+        scaffold(
+          payload(
+            repo,
+            "code-review-area",
+            "platform" to "kotlin",
+            "area" to "performance",
+            "name" to "bill-kotlin-code-review-performance",
+          ),
+        )
+      }
+
+      assertEquals(before, snapshotTree(repo))
+      assertEquals("keep me", Files.readString(unrelated))
+      assertFalse(Files.exists(repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review-performance")))
     }
 
-    assertEquals(before, snapshotTree(repo))
-    assertEquals("keep me", Files.readString(unrelated))
-    assertFalse(Files.exists(repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review-performance")))
-  }
-
   @Test
-  fun `agent addon dry run plans two files and execute creates only governed sources`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    seedBaseSkill(repo, "bill-feature")
-    val request = payload(
-      repo,
-      "agent-addon",
-      "slug" to "review-helper",
-      "description" to "Review helper",
-      "agent_ids" to listOf("codex"),
-      "consumers" to listOf("bill-feature"),
-      "content_body" to "Use the review helper.\n",
-    )
-
-    val preview = scaffold(request, dryRun = true)
-    assertEquals(2, preview.createdFiles.size)
-    assertFalse(Files.exists(repo.resolve("agent-addons/review-helper")))
-
-    val result = scaffold(request)
-    val addonRoot = repo.resolve("agent-addons/review-helper")
-    assertEquals(2, result.createdFiles.size)
-    assertTrue(Files.isRegularFile(addonRoot.resolve("agent-addon.yaml")))
-    assertEquals("Use the review helper.\n", Files.readString(addonRoot.resolve("content.md")))
-    assertEquals(
-      setOf("agent-addon.yaml", "content.md"),
-      Files.list(addonRoot).use { files -> files.map { it.fileName.toString() }.toList().toSet() },
-    )
-  }
-
-  @Test
-  fun `agent addon rejects path traversal slug before filesystem mutation`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    seedBaseSkill(repo, "bill-feature")
-    val before = snapshotTree(repo)
-
-    assertFailsWith<InvalidAgentAddonSchemaError> {
-      scaffold(
+  fun `agent addon dry run plans two files and execute creates only governed sources`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      seedBaseSkill(repo, "bill-feature")
+      val request =
         payload(
           repo,
           "agent-addon",
-          "slug" to "../escaped",
+          "slug" to "review-helper",
           "description" to "Review helper",
           "agent_ids" to listOf("codex"),
           "consumers" to listOf("bill-feature"),
-        ),
+          "content_body" to "Use the review helper.\n",
+        )
+
+      val preview = scaffold(request, dryRun = true)
+      assertEquals(2, preview.createdFiles.size)
+      assertFalse(Files.exists(repo.resolve("agent-addons/review-helper")))
+
+      val result = scaffold(request)
+      val addonRoot = repo.resolve("agent-addons/review-helper")
+      assertEquals(2, result.createdFiles.size)
+      assertTrue(Files.isRegularFile(addonRoot.resolve("agent-addon.yaml")))
+      assertEquals("Use the review helper.\n", Files.readString(addonRoot.resolve("content.md")))
+      assertEquals(
+        setOf("agent-addon.yaml", "content.md"),
+        Files.list(addonRoot).use { files -> files.map { it.fileName.toString() }.toList().toSet() },
       )
     }
 
-    assertEquals(before, snapshotTree(repo))
-    assertFalse(Files.exists(repo.parent.resolve("escaped")))
-  }
+  @Test
+  fun `agent addon rejects path traversal slug before filesystem mutation`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      seedBaseSkill(repo, "bill-feature")
+      val before = snapshotTree(repo)
+
+      assertFailsWith<InvalidAgentAddonSchemaError> {
+        scaffold(
+          payload(
+            repo,
+            "agent-addon",
+            "slug" to "../escaped",
+            "description" to "Review helper",
+            "agent_ids" to listOf("codex"),
+            "consumers" to listOf("bill-feature"),
+          ),
+        )
+      }
+
+      assertEquals(before, snapshotTree(repo))
+      assertFalse(Files.exists(repo.parent.resolve("escaped")))
+    }
 }
 
 class PlatformPackNativeAgentScaffoldTest {
   @Test
-  fun `platform pack rejects an explicit body based canonical agent`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val before = snapshotTree(repo)
+  fun `platform pack rejects an explicit body based canonical agent`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val before = snapshotTree(repo)
 
-    val error = assertFailsWith<InvalidScaffoldPayloadError> {
-      scaffold(
-        payload(repo, "platform-pack", "platform" to "java") +
-          mapOf("subagent_specialists" to listOf("bill-java-code-review")),
-      )
+      val error =
+        assertFailsWith<InvalidScaffoldPayloadError> {
+          scaffold(
+            payload(repo, "platform-pack", "platform" to "java") +
+              mapOf("subagent_specialists" to listOf("bill-java-code-review")),
+          )
+        }
+
+      assertContains(error.message.orEmpty(), "exactly one manifest-derived native agent")
+      assertEquals(before, snapshotTree(repo))
     }
-
-    assertContains(error.message.orEmpty(), "exactly one manifest-derived native agent")
-    assertEquals(before, snapshotTree(repo))
-  }
 }
 
-private fun payload(repo: Path, kind: String, vararg pairs: Pair<String, Any?>): Map<String, Any?> =
+private fun payload(
+  repo: Path,
+  kind: String,
+  vararg pairs: Pair<String, Any?>,
+): Map<String, Any?> =
   mapOf("scaffold_payload_version" to "1.0", "kind" to kind, "repo_root" to repo.toString()) + pairs
 
-internal fun reviewStructurePayload(repo: Path, kind: String, vararg pairs: Pair<String, Any?>): Map<String, Any?> =
-  payload(repo, kind, *pairs)
+internal fun reviewStructurePayload(
+  repo: Path,
+  kind: String,
+  vararg pairs: Pair<String, Any?>,
+): Map<String, Any?> = payload(repo, kind, *pairs)
 
 private fun seedRepo(): Path {
   val repo = Files.createTempDirectory("skillbill-scaffold-repo")
@@ -798,7 +849,10 @@ private fun seedRepo(): Path {
 
 internal fun seedReviewStructureRepo(): Path = seedRepo()
 
-private fun seedBaseSkill(repo: Path, skillName: String) {
+private fun seedBaseSkill(
+  repo: Path,
+  skillName: String,
+) {
   val skillDir = repo.resolve("skills").resolve(skillName)
   Files.createDirectories(skillDir)
   Files.writeString(
@@ -858,7 +912,10 @@ private fun seedKmpPack(repo: Path) {
   )
 }
 
-private fun assertSourceBundle(path: Path, vararg names: String) {
+private fun assertSourceBundle(
+  path: Path,
+  vararg names: String,
+) {
   val text = Files.readString(path)
   names.forEach { name ->
     assertContains(text, "name: $name")
@@ -872,28 +929,34 @@ private fun assertSourceBundle(path: Path, vararg names: String) {
 }
 
 private fun assertDistinctProviderAgents(repo: Path) {
-  val generatedAgents = NativeAgentOperations.renderInstallArtifacts(
-    NativeAgentInstallRenderRequest(
-      platformPacksRoot = repo.resolve("platform-packs"),
-      skillsRoot = repo.resolve("skills"),
-      selectedPlatforms = listOf("java"),
-      provider = NativeAgentProvider.Codex,
-      home = Path.of(System.getProperty("user.home")),
-      compositionContext = testNativeAgentCompositionContext(repo),
-    ),
-  )
-  val generatedArchitecture = Files.readString(
-    generatedAgents.cacheRoot.resolve("codex-agents/bill-java-code-review-architecture.toml"),
-  )
-  val generatedSecurity = Files.readString(
-    generatedAgents.cacheRoot.resolve("codex-agents/bill-java-code-review-security.toml"),
-  )
+  val generatedAgents =
+    NativeAgentOperations.renderInstallArtifacts(
+      NativeAgentInstallRenderRequest(
+        platformPacksRoot = repo.resolve("platform-packs"),
+        skillsRoot = repo.resolve("skills"),
+        selectedPlatforms = listOf("java"),
+        provider = NativeAgentProvider.Codex,
+        home = Path.of(System.getProperty("user.home")),
+        compositionContext = testNativeAgentCompositionContext(repo),
+      ),
+    )
+  val generatedArchitecture =
+    Files.readString(
+      generatedAgents.cacheRoot.resolve("codex-agents/bill-java-code-review-architecture.toml"),
+    )
+  val generatedSecurity =
+    Files.readString(
+      generatedAgents.cacheRoot.resolve("codex-agents/bill-java-code-review-security.toml"),
+    )
   assertContains(generatedArchitecture, "architecture, boundaries, and dependency direction")
   assertContains(generatedSecurity, "secrets handling, auth, and sensitive-data exposure")
   assertFalse(generatedArchitecture == generatedSecurity, "provider-native agents must render distinct content")
 }
 
-private fun assertComposedSourceBundle(path: Path, descriptions: Map<String, String>) {
+private fun assertComposedSourceBundle(
+  path: Path,
+  descriptions: Map<String, String>,
+) {
   val text = Files.readString(path)
   assertContains(text, "agents:")
   descriptions.forEach { (name, description) ->
@@ -906,7 +969,10 @@ private fun assertComposedSourceBundle(path: Path, descriptions: Map<String, Str
   assertFalse("mode: subagent" in text)
 }
 
-private fun assertNoGeneratedWrapperOrSupportingFiles(skillDir: Path, skillName: String) {
+private fun assertNoGeneratedWrapperOrSupportingFiles(
+  skillDir: Path,
+  skillName: String,
+) {
   assertNoGeneratedWrapper(skillDir)
   val repoRoot = locateTestRepoRoot(skillDir)
   requiredSupportingFilesForSkill(skillName, repoRoot).forEach { fileName ->
@@ -961,11 +1027,12 @@ private fun snapshotTree(root: Path): Map<String, String> {
       .toList()
       .associate { path ->
         val key = root.relativize(path).toString()
-        val value = when {
-          Files.isSymbolicLink(path) -> "symlink:${Files.readSymbolicLink(path)}"
-          Files.isDirectory(path) -> "dir"
-          else -> "file:${Files.readString(path)}"
-        }
+        val value =
+          when {
+            Files.isSymbolicLink(path) -> "symlink:${Files.readSymbolicLink(path)}"
+            Files.isDirectory(path) -> "dir"
+            else -> "file:${Files.readString(path)}"
+          }
         key to value
       }
   }

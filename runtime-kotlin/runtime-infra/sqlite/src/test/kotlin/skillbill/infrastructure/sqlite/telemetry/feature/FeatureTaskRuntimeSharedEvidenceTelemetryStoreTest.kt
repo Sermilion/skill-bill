@@ -14,25 +14,27 @@ class FeatureTaskRuntimeSharedEvidenceTelemetryStoreTest {
     val dbPath = Files.createTempDirectory("shared-evidence-telemetry").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = LifecycleTelemetryStore(connection)
-      val record = FeatureTaskRuntimeSharedEvidenceMeasurement(
-        workflowId = "wftr-1",
-        checkpointFingerprint = "fp-1",
-        consumerPhaseId = "audit",
-        outcome = FeatureTaskRuntimeSharedEvidenceOutcome.DERIVATION,
-        fileIndexCount = 2,
-        hunkIndexCount = 4,
-      )
+      val record =
+        FeatureTaskRuntimeSharedEvidenceMeasurement(
+          workflowId = "wftr-1",
+          checkpointFingerprint = "fp-1",
+          consumerPhaseId = "audit",
+          outcome = FeatureTaskRuntimeSharedEvidenceOutcome.DERIVATION,
+          fileIndexCount = 2,
+          hunkIndexCount = 4,
+        )
 
       store.featureTaskRuntimeSharedEvidence(record)
 
-      val row = connection.prepareStatement(
-        "SELECT event_name, payload_json FROM telemetry_outbox ORDER BY id DESC LIMIT 1",
-      ).use { statement ->
-        statement.executeQuery().use { rs ->
-          require(rs.next())
-          rs.getString("event_name") to rs.getString("payload_json")
+      val row =
+        connection.prepareStatement(
+          "SELECT event_name, payload_json FROM telemetry_outbox ORDER BY id DESC LIMIT 1",
+        ).use { statement ->
+          statement.executeQuery().use { rs ->
+            require(rs.next())
+            rs.getString("event_name") to rs.getString("payload_json")
+          }
         }
-      }
       assertEquals("skillbill_feature_task_runtime_shared_evidence", row.first)
       assertTrue(row.second.contains("\"outcome\":\"derivation\""), row.second)
       assertTrue(row.second.contains("\"checkpoint_fingerprint\":\"fp-1\""), row.second)

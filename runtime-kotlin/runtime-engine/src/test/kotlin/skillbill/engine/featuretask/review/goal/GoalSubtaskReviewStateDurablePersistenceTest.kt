@@ -64,6 +64,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class GoalSubtaskReviewStateDurablePersistenceTest {
   private val workflowId = "wftr-skill142-1"
 
@@ -105,34 +106,38 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
     val engine = WorkflowEngine(featureTaskGitIntegrationSnapshotValidator)
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
-    val artifactsPatch = linkedMapOf<String, Any?>(
-      FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to FeatureTaskRuntimeGoalContinuationArtifact(
-        issueKey = "SKILL-142",
-        subtaskId = 5,
-        suppressPr = true,
-        goalBranch = goalBranch,
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toPersistenceWire(),
-      GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to state.passResults.associate { result ->
-        result.passNumber.toString() to """{"phase_id":"review","status":"completed"}"""
-      },
-    )
+    val artifactsPatch =
+      linkedMapOf<String, Any?>(
+        FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to
+          FeatureTaskRuntimeGoalContinuationArtifact(
+            issueKey = "SKILL-142",
+            subtaskId = 5,
+            suppressPr = true,
+            goalBranch = goalBranch,
+            codeReviewMode = CodeReviewExecutionMode.INLINE,
+          ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toPersistenceWire(),
+        GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to
+          state.passResults.associate { result ->
+            result.passNumber.toString() to """{"phase_id":"review","status":"completed"}"""
+          },
+      )
     if (checkpointIdentities.isNotEmpty()) {
       artifactsPatch[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY] =
         checkpointIdentities.asCheckpointIdentitiesArtifactEntry()
     }
-    val seeded = engine.updateRecord(
-      definition,
-      opened,
-      WorkflowUpdateInput(
-        workflowStatus = WorkflowStatus.RUNNING,
-        currentStepId = "review",
-        stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),
-        sessionId = "fis-001",
-      ),
-    ).toRecord()
+    val seeded =
+      engine.updateRecord(
+        definition,
+        opened,
+        WorkflowUpdateInput(
+          workflowStatus = WorkflowStatus.RUNNING,
+          currentStepId = "review",
+          stepUpdates = null,
+          artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),
+          sessionId = "fis-001",
+        ),
+      ).toRecord()
     repository.saveFeatureTaskRuntimeWorkflow(seeded)
     return FeatureTaskRuntimeGoalContinuationRecorder(
       FeatureTaskGitIntegrationDatabase(repository),
@@ -250,70 +255,83 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
     return UnreachableGitFixture(repoRoot, unreachable)
   }
 
-  private fun git(repoRoot: Path, vararg args: String): String {
-    val process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args.toList())
-      .redirectErrorStream(true)
-      .start()
+  private fun git(
+    repoRoot: Path,
+    vararg args: String,
+  ): String {
+    val process =
+      ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args.toList())
+        .redirectErrorStream(true)
+        .start()
     val output = process.inputStream.bufferedReader().readText().trim()
     val exitCode = process.waitFor()
     check(exitCode == 0) { "git ${args.joinToString(" ")} failed with $exitCode: $output" }
     return output
   }
 
-  private fun gitOpsWithoutBaselineRecovery(): WorkflowGitOperations = object : WorkflowGitOperations by realGitOps() {
-    override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
-      object : GoalSubtaskReviewGitOperations {
-        override fun captureBaseline(repoRoot: Path, expectedBranch: String): GoalSubtaskReviewBaselineResult =
-          GoalSubtaskReviewBaselineResult(status = WorkflowGitOperationStatus.ERROR, error = "unsupported")
+  private fun gitOpsWithoutBaselineRecovery(): WorkflowGitOperations =
+    object : WorkflowGitOperations by realGitOps() {
+      override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
+        object : GoalSubtaskReviewGitOperations {
+          override fun captureBaseline(
+            repoRoot: Path,
+            expectedBranch: String,
+          ): GoalSubtaskReviewBaselineResult =
+            GoalSubtaskReviewBaselineResult(status = WorkflowGitOperationStatus.ERROR, error = "unsupported")
 
-        override fun buildInput(
-          repoRoot: Path,
-          baseline: GoalSubtaskReviewBaseline,
-          expectedBranch: String,
-        ): GoalSubtaskReviewInputResult =
-          GoalSubtaskReviewInputResult(status = WorkflowGitOperationStatus.ERROR, error = "unsupported")
-      }
-  }
+          override fun buildInput(
+            repoRoot: Path,
+            baseline: GoalSubtaskReviewBaseline,
+            expectedBranch: String,
+          ): GoalSubtaskReviewInputResult =
+            GoalSubtaskReviewInputResult(status = WorkflowGitOperationStatus.ERROR, error = "unsupported")
+        }
+    }
 
   private fun realGitOps(): WorkflowGitOperations = GitWorkflowGitOperations()
 
   private fun pausedState(): GoalSubtaskReviewState {
-    val initial = GoalSubtaskReviewState.initial(
-      reviewBaseSha = "a".repeat(40),
-      baselineUntrackedPaths = listOf("scratch/untracked.txt"),
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    )
-    val passOne = initial.reserveNextPass().completeReservedPass(
-      verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
-      unresolvedFindingCount = 1,
-      findings = listOf(
-        GoalSubtaskReviewCompactFinding(
-          severity = "blocker",
-          label = "GoalRunnerPolicy",
-          text = "a Blocker the remediation pass must disposition",
-          findingId = "F-001",
-        ),
-      ),
-    )
+    val initial =
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = "a".repeat(40),
+        baselineUntrackedPaths = listOf("scratch/untracked.txt"),
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      )
+    val passOne =
+      initial.reserveNextPass().completeReservedPass(
+        verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+        unresolvedFindingCount = 1,
+        findings =
+          listOf(
+            GoalSubtaskReviewCompactFinding(
+              severity = "blocker",
+              label = "GoalRunnerPolicy",
+              text = "a Blocker the remediation pass must disposition",
+              findingId = "F-001",
+            ),
+          ),
+      )
     return passOne.copy(
       disposition = GoalSubtaskReviewDisposition.PAUSED,
-      blockerDispositions = listOf(
-        GoalSubtaskBlockerDisposition(
-          findingId = "F-001",
-          verdict = GoalSubtaskBlockerDispositionVerdict.UNRESOLVED,
-          evidence = listOf("still reproduces at the same seam"),
+      blockerDispositions =
+        listOf(
+          GoalSubtaskBlockerDisposition(
+            findingId = "F-001",
+            verdict = GoalSubtaskBlockerDispositionVerdict.UNRESOLVED,
+            evidence = listOf("still reproduces at the same seam"),
+          ),
         ),
-      ),
     )
   }
 
   @Test
   fun `a crash mid-remediation resumes the same reserved pass without allocating another`() {
-    val reserved = GoalSubtaskReviewState.initial(
-      reviewBaseSha = "a".repeat(40),
-      baselineUntrackedPaths = listOf("scratch/untracked.txt"),
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    ).reserveNextPass()
+    val reserved =
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = "a".repeat(40),
+        baselineUntrackedPaths = listOf("scratch/untracked.txt"),
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      ).reserveNextPass()
     val recorder = recorderWith(reserved)
 
     val reloaded = assertNotNull(recorder.reviewStateRecorder.reviewState(workflowId))
@@ -327,15 +345,16 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
 
   @Test
   fun `a completed pass carries forward instead of reserving pass one again`() {
-    val completed = GoalSubtaskReviewState.initial(
-      reviewBaseSha = "a".repeat(40),
-      baselineUntrackedPaths = emptyList(),
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    ).reserveNextPass().completeReservedPass(
-      verdict = FeatureTaskRuntimeVerdict.APPROVED,
-      unresolvedFindingCount = 0,
-      findings = emptyList(),
-    )
+    val completed =
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = "a".repeat(40),
+        baselineUntrackedPaths = emptyList(),
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      ).reserveNextPass().completeReservedPass(
+        verdict = FeatureTaskRuntimeVerdict.APPROVED,
+        unresolvedFindingCount = 0,
+        findings = emptyList(),
+      )
     val recorder = recorderWith(completed)
 
     val reservation = recorder.reserveGoalReviewPass(workflowId)
@@ -352,25 +371,28 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
     val fixture = skill15GitFixture()
     val orphaned = fixture.orphanedBase
     val parent = fixture.parent
-    val state = deepRemediationState(completedPasses = 1)
-      .copy(remediationBaseSha = orphaned)
+    val state =
+      deepRemediationState(completedPasses = 1)
+        .copy(remediationBaseSha = orphaned)
     val repository = FeatureTaskGitIntegrationWorkflowRepository()
     val recorder = recorderWith(state, repository, goalBranch = "feat/skill-15")
 
-    val prepared = recorder.buildGoalReviewInput(
-      workflowId,
-      realGitOps(),
-      fixture.repoRoot,
-    )
+    val prepared =
+      recorder.buildGoalReviewInput(
+        workflowId,
+        realGitOps(),
+        fixture.repoRoot,
+      )
 
     assertIs<GoalSubtaskReviewInputReady>(prepared, prepared.toString())
     val reloaded = assertNotNull(recorder.reviewStateRecorder.reviewState(workflowId))
     assertEquals(parent, reloaded.remediationBaseSha, "durable remediation_base_sha must repoint to the ancestor")
     assertEquals("a".repeat(40), reloaded.reviewBaseSha, "immutable review base must stay untouched")
     val artifacts = repository.taskRuntimeArtifacts(workflowId)
-    val evidence = requireNotNull(
-      JsonCodec.anyToStringAnyMapList(artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY]),
-    )
+    val evidence =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMapList(artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY]),
+      )
     val entry = evidence.single()
     assertEquals(orphaned, entry["original_sha"])
     assertEquals(parent, entry["replacement_sha"])
@@ -383,8 +405,9 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
   @Test
   fun `recovery gate allows completed passes and reserved remediation while refusing terminal dispositions`() {
     val fixture = skill15GitFixture()
-    val remediationState = deepRemediationState(completedPasses = 1)
-      .copy(remediationBaseSha = fixture.orphanedBase)
+    val remediationState =
+      deepRemediationState(completedPasses = 1)
+        .copy(remediationBaseSha = fixture.orphanedBase)
     assertIs<GoalSubtaskReviewInputReady>(
       recorderWith(remediationState, goalBranch = "feat/skill-15").buildGoalReviewInput(
         workflowId,
@@ -393,11 +416,12 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
       ),
     )
 
-    val zeroPassState = GoalSubtaskReviewState.initial(
-      reviewBaseSha = fixture.orphanedBase,
-      baselineUntrackedPaths = emptyList(),
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    ).reserveNextPass()
+    val zeroPassState =
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = fixture.orphanedBase,
+        baselineUntrackedPaths = emptyList(),
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      ).reserveNextPass()
     assertIs<GoalSubtaskReviewInputReady>(
       recorderWith(zeroPassState, goalBranch = "feat/skill-15").buildGoalReviewInput(
         workflowId,
@@ -415,20 +439,22 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
       ),
     )
 
-    val capped = deepRemediationState(completedPasses = 1).copy(
-      disposition = GoalSubtaskReviewDisposition.REVIEW_CAP_REACHED,
-      remediationBaseSha = fixture.orphanedBase,
-      passResults = listOf(
-        GoalSubtaskReviewPassResult(
-          passNumber = 1,
-          verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
-          reviewResultArtifact = "$GOAL_SUBTASK_REVIEW_RESULT_ARTIFACT_PREFIX.1",
-          unresolvedFindingCount = 1,
-          findings = listOf(GoalSubtaskReviewCompactFinding("major", "Service", "Missing behavior")),
-          executedMode = CodeReviewExecutionMode.INLINE,
-        ),
-      ),
-    )
+    val capped =
+      deepRemediationState(completedPasses = 1).copy(
+        disposition = GoalSubtaskReviewDisposition.REVIEW_CAP_REACHED,
+        remediationBaseSha = fixture.orphanedBase,
+        passResults =
+          listOf(
+            GoalSubtaskReviewPassResult(
+              passNumber = 1,
+              verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+              reviewResultArtifact = "$GOAL_SUBTASK_REVIEW_RESULT_ARTIFACT_PREFIX.1",
+              unresolvedFindingCount = 1,
+              findings = listOf(GoalSubtaskReviewCompactFinding("major", "Service", "Missing behavior")),
+              executedMode = CodeReviewExecutionMode.INLINE,
+            ),
+          ),
+      )
     assertIs<GoalSubtaskReviewInputBlocked>(
       recorderWith(capped, goalBranch = "feat/skill-15").buildGoalReviewInput(
         workflowId,
@@ -441,18 +467,21 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
   @Test
   fun `reachable bases take no recovery path and keep byte-identical review input`() {
     val fixture = skill15GitFixture()
-    val state = deepRemediationState(completedPasses = 1)
-      .copy(remediationBaseSha = fixture.parent)
+    val state =
+      deepRemediationState(completedPasses = 1)
+        .copy(remediationBaseSha = fixture.parent)
     val repository = FeatureTaskGitIntegrationWorkflowRepository()
     val recorder = recorderWith(state, repository, goalBranch = "feat/skill-15")
     val git = realGitOps()
 
-    val first = assertIs<GoalSubtaskReviewInputReady>(
-      recorder.buildGoalReviewInput(workflowId, git, fixture.repoRoot),
-    )
-    val second = assertIs<GoalSubtaskReviewInputReady>(
-      recorder.buildGoalReviewInput(workflowId, git, fixture.repoRoot),
-    )
+    val first =
+      assertIs<GoalSubtaskReviewInputReady>(
+        recorder.buildGoalReviewInput(workflowId, git, fixture.repoRoot),
+      )
+    val second =
+      assertIs<GoalSubtaskReviewInputReady>(
+        recorder.buildGoalReviewInput(workflowId, git, fixture.repoRoot),
+      )
 
     assertEquals(first.input.reviewText, second.input.reviewText)
     assertEquals(first.input.deltaDigest, second.input.deltaDigest)
@@ -468,25 +497,28 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
     val fixture = skill15GitFixture()
     val head = git(fixture.repoRoot, "rev-parse", "HEAD")
     assertTrue(head != fixture.orphanedBase, "fixture must leave the orphan unreachable from HEAD")
-    val state = deepRemediationState(completedPasses = 1)
-      .copy(remediationBaseSha = fixture.orphanedBase)
+    val state =
+      deepRemediationState(completedPasses = 1)
+        .copy(remediationBaseSha = fixture.orphanedBase)
     val repository = FeatureTaskGitIntegrationWorkflowRepository()
     val recorder = recorderWith(state, repository, goalBranch = "feat/skill-15")
     val gitOps = realGitOps()
 
-    val coherent = assertIs<RemediationBaseCoherent>(
-      recorder.remediationReconciler.reconcileRemediationBaseCoherence(workflowId, gitOps, fixture.repoRoot),
-    )
+    val coherent =
+      assertIs<RemediationBaseCoherent>(
+        recorder.remediationReconciler.reconcileRemediationBaseCoherence(workflowId, gitOps, fixture.repoRoot),
+      )
 
     assertEquals(fixture.parent, coherent.state?.remediationBaseSha)
     val persisted = recorder.reviewStateRecorder.reviewState(workflowId)?.remediationBaseSha
     assertEquals(fixture.parent, persisted)
     assertNotEquals(head, persisted)
-    val evidence = requireNotNull(
-      JsonCodec.anyToStringAnyMapList(
-        repository.taskRuntimeArtifacts(workflowId)[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY],
-      ),
-    )
+    val evidence =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMapList(
+          repository.taskRuntimeArtifacts(workflowId)[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY],
+        ),
+      )
     assertEquals("base_not_ancestor", evidence.first()["failure_reason"])
     assertEquals(fixture.orphanedBase, evidence.first()["original_sha"])
     assertEquals(fixture.parent, evidence.first()["replacement_sha"])
@@ -496,72 +528,80 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
   fun `resume coherence blocks when an orphaned base has no recoverable ancestor`() {
     val fixture = skill15GitFixture()
     val head = git(fixture.repoRoot, "rev-parse", "HEAD")
-    val state = deepRemediationState(completedPasses = 1)
-      .copy(remediationBaseSha = fixture.orphanedBase)
+    val state =
+      deepRemediationState(completedPasses = 1)
+        .copy(remediationBaseSha = fixture.orphanedBase)
     val repository = FeatureTaskGitIntegrationWorkflowRepository()
     val recorder = recorderWith(state, repository, goalBranch = "feat/skill-15")
 
-    val blocked = assertIs<RemediationBaseBlocked>(
-      recorder.remediationReconciler.reconcileRemediationBaseCoherence(
-        workflowId,
-        gitOpsWithoutBaselineRecovery(),
-        fixture.repoRoot,
-      ),
-    )
+    val blocked =
+      assertIs<RemediationBaseBlocked>(
+        recorder.remediationReconciler.reconcileRemediationBaseCoherence(
+          workflowId,
+          gitOpsWithoutBaselineRecovery(),
+          fixture.repoRoot,
+        ),
+      )
 
     assertContains(blocked.operatorGuidance, "feat/skill-15")
     assertEquals(fixture.orphanedBase, recorder.reviewStateRecorder.reviewState(workflowId)?.remediationBaseSha)
     assertNotEquals(head, recorder.reviewStateRecorder.reviewState(workflowId)?.remediationBaseSha)
-    val evidence = requireNotNull(
-      JsonCodec.anyToStringAnyMapList(
-        repository.taskRuntimeArtifacts(workflowId)[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY],
-      ),
-    )
+    val evidence =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMapList(
+          repository.taskRuntimeArtifacts(workflowId)[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY],
+        ),
+      )
     assertEquals("reconciliation_blocked", evidence.single()["failure_reason"])
   }
 
   @Test
   fun `resume coherence heals committed-but-unrecorded remediation checkpoint to the identity sha`() {
     val fixture = committedUnrecordedFixture()
-    val state = deepRemediationState(completedPasses = 1)
-      .reserveNextPass()
-      .copy(remediationBaseSha = fixture.parent)
+    val state =
+      deepRemediationState(completedPasses = 1)
+        .reserveNextPass()
+        .copy(remediationBaseSha = fixture.parent)
     val repository = FeatureTaskGitIntegrationWorkflowRepository()
-    val identity = FeatureTaskRuntimeCheckpointIdentity(
-      sequenceNumber = 0,
-      issueKey = "SKILL-176",
-      subtaskId = "15",
-      checkpointRef = "refs/skill-bill/checkpoints/SKILL-176/15/0",
-      branch = "feat/skill-15",
-      phaseId = "review",
-      generation = 1,
-      ownedPathDigest = "a".repeat(64),
-      ownedPathCount = 1,
-      commitSha = fixture.checkpointSha,
-      recordedAt = "2026-08-10T00:00:00Z",
-      loopId = "review_fix",
-      parentSha = fixture.parent,
-    )
-    val recorder = recorderWith(
-      state,
-      repository,
-      goalBranch = "feat/skill-15",
-      checkpointIdentities = listOf(identity),
-    )
+    val identity =
+      FeatureTaskRuntimeCheckpointIdentity(
+        sequenceNumber = 0,
+        issueKey = "SKILL-176",
+        subtaskId = "15",
+        checkpointRef = "refs/skill-bill/checkpoints/SKILL-176/15/0",
+        branch = "feat/skill-15",
+        phaseId = "review",
+        generation = 1,
+        ownedPathDigest = "a".repeat(64),
+        ownedPathCount = 1,
+        commitSha = fixture.checkpointSha,
+        recordedAt = "2026-08-10T00:00:00Z",
+        loopId = "review_fix",
+        parentSha = fixture.parent,
+      )
+    val recorder =
+      recorderWith(
+        state,
+        repository,
+        goalBranch = "feat/skill-15",
+        checkpointIdentities = listOf(identity),
+      )
     val gitOps = realGitOps()
     git(fixture.repoRoot, "update-ref", identity.checkpointRef, fixture.checkpointSha)
 
-    val healed = assertIs<RemediationBaseCoherent>(
-      recorder.remediationReconciler.reconcileRemediationBaseCoherence(workflowId, gitOps, fixture.repoRoot),
-    )
+    val healed =
+      assertIs<RemediationBaseCoherent>(
+        recorder.remediationReconciler.reconcileRemediationBaseCoherence(workflowId, gitOps, fixture.repoRoot),
+      )
 
     assertEquals(fixture.checkpointSha, healed.state?.remediationBaseSha)
     assertEquals(fixture.checkpointSha, git(fixture.repoRoot, "rev-parse", "HEAD"))
-    val evidence = requireNotNull(
-      JsonCodec.anyToStringAnyMapList(
-        repository.taskRuntimeArtifacts(workflowId)[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY],
-      ),
-    )
+    val evidence =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMapList(
+          repository.taskRuntimeArtifacts(workflowId)[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY],
+        ),
+      )
     assertEquals("committed_but_unrecorded", evidence.single()["failure_reason"])
   }
 
@@ -569,8 +609,9 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
   fun `resume coherence is a no-op when the recorded base already agrees with HEAD`() {
     val fixture = skill15GitFixture()
     val head = git(fixture.repoRoot, "rev-parse", "HEAD")
-    val state = deepRemediationState(completedPasses = 1)
-      .copy(remediationBaseSha = head)
+    val state =
+      deepRemediationState(completedPasses = 1)
+        .copy(remediationBaseSha = head)
     val repository = FeatureTaskGitIntegrationWorkflowRepository()
     val recorder = recorderWith(state, repository, goalBranch = "feat/skill-15")
 
@@ -583,34 +624,38 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
   @Test
   fun `resume coherence keeps a Skip-recorded descendant tip ahead of the review_fix identity`() {
     val fixture = skipRecordedDescendantFixture()
-    val state = deepRemediationState(completedPasses = 1)
-      .copy(remediationBaseSha = fixture.skipRecordedTip)
+    val state =
+      deepRemediationState(completedPasses = 1)
+        .copy(remediationBaseSha = fixture.skipRecordedTip)
     val repository = FeatureTaskGitIntegrationWorkflowRepository()
-    val identity = FeatureTaskRuntimeCheckpointIdentity(
-      sequenceNumber = 0,
-      issueKey = "SKILL-176",
-      subtaskId = "15",
-      checkpointRef = "refs/skill-bill/checkpoints/SKILL-176/15/0",
-      branch = "feat/skill-15",
-      phaseId = "review",
-      generation = 1,
-      ownedPathDigest = "a".repeat(64),
-      ownedPathCount = 1,
-      commitSha = fixture.checkpointSha,
-      recordedAt = "2026-08-10T00:00:00Z",
-      loopId = "review_fix",
-      parentSha = fixture.parent,
-    )
-    val recorder = recorderWith(
-      state,
-      repository,
-      goalBranch = "feat/skill-15",
-      checkpointIdentities = listOf(identity),
-    )
+    val identity =
+      FeatureTaskRuntimeCheckpointIdentity(
+        sequenceNumber = 0,
+        issueKey = "SKILL-176",
+        subtaskId = "15",
+        checkpointRef = "refs/skill-bill/checkpoints/SKILL-176/15/0",
+        branch = "feat/skill-15",
+        phaseId = "review",
+        generation = 1,
+        ownedPathDigest = "a".repeat(64),
+        ownedPathCount = 1,
+        commitSha = fixture.checkpointSha,
+        recordedAt = "2026-08-10T00:00:00Z",
+        loopId = "review_fix",
+        parentSha = fixture.parent,
+      )
+    val recorder =
+      recorderWith(
+        state,
+        repository,
+        goalBranch = "feat/skill-15",
+        checkpointIdentities = listOf(identity),
+      )
 
-    val after = assertIs<RemediationBaseCoherent>(
-      recorder.remediationReconciler.reconcileRemediationBaseCoherence(workflowId, realGitOps(), fixture.repoRoot),
-    )
+    val after =
+      assertIs<RemediationBaseCoherent>(
+        recorder.remediationReconciler.reconcileRemediationBaseCoherence(workflowId, realGitOps(), fixture.repoRoot),
+      )
 
     assertEquals(fixture.skipRecordedTip, after.state?.remediationBaseSha)
     assertEquals(fixture.skipRecordedTip, recorder.reviewStateRecorder.reviewState(workflowId)?.remediationBaseSha)
@@ -623,25 +668,29 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
 
   @Test
   fun `upserting a repair receipt for the same round replaces in place across a reload`() {
-    val first = FeatureTaskRuntimeRepairReceipt(
-      roundNumber = 1,
-      preFixCheckpointSha = "b".repeat(40),
-      entries = listOf(
-        FeatureTaskRuntimeRepairReceiptEntry(
-          outcome = FeatureTaskRuntimeRepairOutcome.NO_EDIT_REQUIRED,
-          findingId = "F-001",
-          noEditReason = "already present on the tree",
-        ),
-      ),
-    )
-    val replacement = first.copy(
-      entries = listOf(
-        FeatureTaskRuntimeRepairReceiptEntry(
-          outcome = FeatureTaskRuntimeRepairOutcome.ADDRESSED,
-          findingId = "F-001",
-        ),
-      ),
-    )
+    val first =
+      FeatureTaskRuntimeRepairReceipt(
+        roundNumber = 1,
+        preFixCheckpointSha = "b".repeat(40),
+        entries =
+          listOf(
+            FeatureTaskRuntimeRepairReceiptEntry(
+              outcome = FeatureTaskRuntimeRepairOutcome.NO_EDIT_REQUIRED,
+              findingId = "F-001",
+              noEditReason = "already present on the tree",
+            ),
+          ),
+      )
+    val replacement =
+      first.copy(
+        entries =
+          listOf(
+            FeatureTaskRuntimeRepairReceiptEntry(
+              outcome = FeatureTaskRuntimeRepairOutcome.ADDRESSED,
+              findingId = "F-001",
+            ),
+          ),
+      )
     val recorder = recorderWith(pausedState())
     recorder.updateReviewState(workflowId) { it.upsertRepairReceipt(first) }
     recorder.updateReviewState(workflowId) { it.upsertRepairReceipt(replacement) }
@@ -657,23 +706,26 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
   fun `an oversized unresolved_reason truncates without echoing producer payload on the parser surface`() {
     val oversized = "x".repeat(REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES + 1)
     val truncations = mutableListOf<String>()
-    val receipt = featureTaskRuntimeParseRepairReceiptOrNull(
-      mapOf(
-        "repair_receipt" to mapOf(
-          "contract_version" to "0.3",
-          "entries" to listOf(
+    val receipt =
+      featureTaskRuntimeParseRepairReceiptOrNull(
+        mapOf(
+          "repair_receipt" to
             mapOf(
-              "finding_id" to "F-001",
-              "outcome" to "attempted_unresolved",
-              "unresolved_reason" to oversized,
+              "contract_version" to "0.3",
+              "entries" to
+                listOf(
+                  mapOf(
+                    "finding_id" to "F-001",
+                    "outcome" to "attempted_unresolved",
+                    "unresolved_reason" to oversized,
+                  ),
+                ),
             ),
-          ),
         ),
-      ),
-      remediationBaseSha = "b".repeat(40),
-      roundNumber = 1,
-      recordTruncation = truncations::add,
-    )
+        remediationBaseSha = "b".repeat(40),
+        roundNumber = 1,
+        recordTruncation = truncations::add,
+      )
     val parsed = assertNotNull(receipt)
     assertTrue(truncations.isNotEmpty())
     assertTrue(truncations.none { it.contains(oversized) })
@@ -688,13 +740,15 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
   @Test
   fun `recovery that cannot find a reachable base blocks naming the sha and branch`() {
     val fixture = unreachableOnlyGitFixture()
-    val state = deepRemediationState(completedPasses = 1)
-      .copy(remediationBaseSha = fixture.unreachable)
-    val prepared = recorderWith(state, goalBranch = "feat/orphan-goal").buildGoalReviewInput(
-      workflowId,
-      realGitOps(),
-      fixture.repoRoot,
-    )
+    val state =
+      deepRemediationState(completedPasses = 1)
+        .copy(remediationBaseSha = fixture.unreachable)
+    val prepared =
+      recorderWith(state, goalBranch = "feat/orphan-goal").buildGoalReviewInput(
+        workflowId,
+        realGitOps(),
+        fixture.repoRoot,
+      )
     val blocked = assertIs<GoalSubtaskReviewInputBlocked>(prepared)
     assertContains(blocked.reason, fixture.unreachable)
     assertContains(blocked.reason, "feat/orphan-goal")
@@ -702,17 +756,19 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
 
   private fun deepRemediationState(completedPasses: Int): GoalSubtaskReviewState {
     require(completedPasses in 0..1) { "collapsed topology allows at most one completed review pass" }
-    var state = GoalSubtaskReviewState.initial(
-      reviewBaseSha = "a".repeat(40),
-      baselineUntrackedPaths = listOf("scratch/untracked.txt"),
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    )
-    repeat(completedPasses) {
-      state = state.reserveNextPass().completeReservedPass(
-        verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
-        unresolvedFindingCount = 1,
-        findings = emptyList(),
+    var state =
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = "a".repeat(40),
+        baselineUntrackedPaths = listOf("scratch/untracked.txt"),
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
       )
+    repeat(completedPasses) {
+      state =
+        state.reserveNextPass().completeReservedPass(
+          verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+          unresolvedFindingCount = 1,
+          findings = emptyList(),
+        )
     }
     return state
   }

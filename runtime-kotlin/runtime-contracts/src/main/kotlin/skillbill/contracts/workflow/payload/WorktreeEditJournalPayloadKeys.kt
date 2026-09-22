@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.payload
+
 object WorktreeEditJournalPayloadKeys {
   const val WORKTREE_EDITS: String = "worktree_edits"
   const val RECORDED_AT: String = "recorded_at"

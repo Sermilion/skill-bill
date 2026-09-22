@@ -4,9 +4,15 @@ import java.sql.Connection
 import java.util.concurrent.ConcurrentHashMap
 
 internal object InternalSqliteDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private val diagnosticsByConnection = ConcurrentHashMap<Connection, RuntimeDiagnostics>()

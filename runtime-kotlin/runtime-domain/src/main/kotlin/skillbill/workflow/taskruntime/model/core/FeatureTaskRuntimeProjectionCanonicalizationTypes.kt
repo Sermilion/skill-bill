@@ -29,33 +29,35 @@ const val MAX_CANONICALIZATION_RECORDS: Int = 256
 
 const val MAX_RECORDED_ID_LENGTH: Int = 128
 
-internal val FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS = setOf(
-  "affected_boundaries",
-  "patterns_and_decisions",
-  "risks",
-  "validation_strategy",
-  "unresolved_questions",
-  "evidence_refs",
-  "unresolved_items",
-  "target_paths_or_symbols",
-  "test_obligations",
-  "constraints",
-)
+internal val FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS =
+  setOf(
+    "affected_boundaries",
+    "patterns_and_decisions",
+    "risks",
+    "validation_strategy",
+    "unresolved_questions",
+    "evidence_refs",
+    "unresolved_items",
+    "target_paths_or_symbols",
+    "test_obligations",
+    "constraints",
+  )
 
 internal val FEATURE_TASK_RUNTIME_RECONCILIATION_EVIDENCE_KEYS = setOf("reconciled", "evidence")
 
 internal val FEATURE_TASK_RUNTIME_REPOSITORY_CHECKPOINT_KEYS =
   setOf("fingerprint", "base_ref", "head_ref", "working_tree_owned_paths")
 
-internal val FEATURE_TASK_RUNTIME_PLAN_TASK_KEYS = setOf(
-  "task_id",
-  DecompositionPlanningPayloadKeys.DEPENDS_ON,
-  "description",
-  "criterion_refs",
-  "target_paths_or_symbols",
-  "test_obligations",
-  "constraints",
-)
+internal val FEATURE_TASK_RUNTIME_PLAN_TASK_KEYS =
+  setOf(
+    "task_id",
+    DecompositionPlanningPayloadKeys.DEPENDS_ON,
+    "description",
+    "criterion_refs",
+    "target_paths_or_symbols",
+    "test_obligations",
+    "constraints",
+  )
 
 internal val FEATURE_TASK_RUNTIME_TASK_COMMITMENT_KEYS =
   setOf("task_id", "criterion_refs", "test_obligations", "constraints")

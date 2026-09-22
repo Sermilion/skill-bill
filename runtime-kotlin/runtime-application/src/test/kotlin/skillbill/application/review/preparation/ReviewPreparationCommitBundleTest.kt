@@ -32,7 +32,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-private fun focusedMatrix(scope: ReviewScopeFacts, lanes: List<String>) = ReviewCommitLaneRoutingMatrix(
+private fun focusedMatrix(
+  scope: ReviewScopeFacts,
+  lanes: List<String>,
+) = ReviewCommitLaneRoutingMatrix(
   scope.commitUnits.sortedBy { it.orderIndex }.map { it.commitSha },
   lanes,
   scope.commitUnits.sortedBy { it.orderIndex }.flatMap { unit ->
@@ -46,7 +49,10 @@ class ReviewPreparationCommitBundleTest {
   private val hunkA = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
   private val hunkB = ReviewChangedHunk("src/B.kt", 4, 1, 4, 1, "+beta")
 
-  private fun decision(lane: String, path: String) = ReviewLaneDecision(
+  private fun decision(
+    lane: String,
+    path: String,
+  ) = ReviewLaneDecision(
     lane = lane,
     included = true,
     reason = "routed",
@@ -56,7 +62,10 @@ class ReviewPreparationCommitBundleTest {
     specialistSkillName = "bill-kotlin-code-review-$lane",
   )
 
-  private fun service(scope: ReviewScopeFacts, decisions: List<ReviewLaneDecision>): ReviewPreparationService =
+  private fun service(
+    scope: ReviewScopeFacts,
+    decisions: List<ReviewLaneDecision>,
+  ): ReviewPreparationService =
     serviceWith(scope, decisions, focusedMatrix(scope, decisions.filter { it.included }.map { it.lane }))
 
   private fun serviceWith(
@@ -64,59 +73,74 @@ class ReviewPreparationCommitBundleTest {
     decisions: List<ReviewLaneDecision>,
     matrix: ReviewCommitLaneRoutingMatrix,
   ): ReviewPreparationService {
-    val ports = object :
-      ReviewScopeResolverPort,
-      ReviewStackRoutingPort,
-      ReviewGuidancePort,
-      ReviewLearningsPort,
-      ReviewBuildTestFactsPort,
-      ReviewLaneSelectionPort {
-      override fun resolveScope(reviewId: String) = scope
-      override fun resolveStackRouting(scope: ReviewScopeFacts) =
-        ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin"))
+    val ports =
+      object :
+        ReviewScopeResolverPort,
+        ReviewStackRoutingPort,
+        ReviewGuidancePort,
+        ReviewLearningsPort,
+        ReviewBuildTestFactsPort,
+        ReviewLaneSelectionPort {
+        override fun resolveScope(reviewId: String) = scope
 
-      override fun resolveMatchedRules(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts) =
-        emptyList<ReviewRuleReference>()
+        override fun resolveStackRouting(scope: ReviewScopeFacts) =
+          ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin"))
 
-      override fun resolveLearnings(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts) =
-        emptyList<ReviewLearningsReference>()
+        override fun resolveMatchedRules(
+          scope: ReviewScopeFacts,
+          routing: ReviewStackRoutingFacts,
+        ) = emptyList<ReviewRuleReference>()
 
-      override fun resolveBuildTestFacts(scope: ReviewScopeFacts) = emptyList<ReviewBuildTestFact>()
-      override fun decideLanes(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts) =
-        ReviewLaneSelection(decisions, matrix)
-    }
+        override fun resolveLearnings(
+          scope: ReviewScopeFacts,
+          routing: ReviewStackRoutingFacts,
+        ) = emptyList<ReviewLearningsReference>()
+
+        override fun resolveBuildTestFacts(scope: ReviewScopeFacts) = emptyList<ReviewBuildTestFact>()
+
+        override fun decideLanes(
+          scope: ReviewScopeFacts,
+          routing: ReviewStackRoutingFacts,
+        ) = ReviewLaneSelection(decisions, matrix)
+      }
     return ReviewPreparationService(
       ReviewFactPorts(ports, ports, ports, ports, ports, ports),
       object : ReviewContextEnvelopeValidator {
-        override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+        override fun validate(
+          envelope: ReviewContextWireMap,
+          sourceLabel: String,
+        ) = Unit
       },
     )
   }
 
-  private fun request() = ReviewPreparationRequest(
-    reviewId = "review",
-    reviewRevision = ReviewRevision("rvs", 1),
-    criteriaReferences = emptyMap(),
-  )
+  private fun request() =
+    ReviewPreparationRequest(
+      reviewId = "review",
+      reviewRevision = ReviewRevision("rvs", 1),
+      criteriaReferences = emptyMap(),
+    )
 
-  private val multiCommitScope = ReviewScopeFacts(
-    "acme/repo",
-    "base",
-    "head",
-    "clean",
-    listOf(hunkA, hunkB),
-    listOf(
-      ReviewCommitUnit("c1", "base", "first", 0, listOf(hunkA), ReviewCommitSource.COMMIT_RANGE),
-      ReviewCommitUnit("head", "c1", "second", 1, listOf(hunkB), ReviewCommitSource.COMMIT_RANGE),
-    ),
-    ReviewCommitCoverageFact("base", "head", 2, chainVerified = true, pathCoverageVerified = true),
-  )
+  private val multiCommitScope =
+    ReviewScopeFacts(
+      "acme/repo",
+      "base",
+      "head",
+      "clean",
+      listOf(hunkA, hunkB),
+      listOf(
+        ReviewCommitUnit("c1", "base", "first", 0, listOf(hunkA), ReviewCommitSource.COMMIT_RANGE),
+        ReviewCommitUnit("head", "c1", "second", 1, listOf(hunkB), ReviewCommitSource.COMMIT_RANGE),
+      ),
+      ReviewCommitCoverageFact("base", "head", 2, chainVerified = true, pathCoverageVerified = true),
+    )
 
   @Test fun `a multi-commit packet carries ordered units and per-lane bundles`() {
-    val result = service(
-      multiCommitScope,
-      listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt")),
-    ).prepare(request())
+    val result =
+      service(
+        multiCommitScope,
+        listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt")),
+      ).prepare(request())
 
     assertEquals(listOf("c1", "head"), result.packet.commitUnits.sortedBy { it.orderIndex }.map { it.commitSha })
     val security = result.assignments.single { it.lane == "security" }
@@ -133,24 +157,26 @@ class ReviewPreparationCommitBundleTest {
   }
 
   @Test fun `a staged-scope packet carries exactly one synthetic unit`() {
-    val scope = ReviewScopeFacts(
-      "acme/repo",
-      "base",
-      "head",
-      "staged",
-      listOf(hunkA, hunkB),
-      listOf(ReviewCommitUnit.synthetic(ReviewCommitSource.SYNTHETIC_WORKING_TREE, listOf(hunkA, hunkB))),
-      ReviewCommitCoverageFact(
+    val scope =
+      ReviewScopeFacts(
+        "acme/repo",
         "base",
         "head",
-        1,
-        chainVerified = false,
-        pathCoverageVerified = true,
-        degradedReason = "staged scope",
-      ),
-    )
-    val result = service(scope, listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt")))
-      .prepare(request())
+        "staged",
+        listOf(hunkA, hunkB),
+        listOf(ReviewCommitUnit.synthetic(ReviewCommitSource.SYNTHETIC_WORKING_TREE, listOf(hunkA, hunkB))),
+        ReviewCommitCoverageFact(
+          "base",
+          "head",
+          1,
+          chainVerified = false,
+          pathCoverageVerified = true,
+          degradedReason = "staged scope",
+        ),
+      )
+    val result =
+      service(scope, listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt")))
+        .prepare(request())
 
     assertEquals(1, result.packet.commitUnits.size)
     assertEquals(ReviewCommitSource.SYNTHETIC_WORKING_TREE, result.packet.commitUnits.single().source)
@@ -166,34 +192,37 @@ class ReviewPreparationCommitBundleTest {
     decisions: List<ReviewLaneDecision>,
     focusedByLane: Map<String, Set<String>>,
   ): ReviewPreparationService {
-    val matrix = ReviewCommitLaneRoutingMatrix(
-      scope.commitUnits.sortedBy { it.orderIndex }.map { it.commitSha },
-      decisions.filter { it.included }.map { it.lane },
-      scope.commitUnits.sortedBy { it.orderIndex }.flatMap { unit ->
-        decisions.filter { it.included }.map { decision ->
-          val focused = unit.commitSha in focusedByLane.getValue(decision.lane)
-          ReviewCommitLaneDecision(
-            unit.commitSha,
-            unit.orderIndex,
-            decision.lane,
-            if (focused) ReviewCommitLaneDisposition.FOCUSED else ReviewCommitLaneDisposition.SKIPPED,
-            if (focused) "focused" else "commit ${unit.commitSha} matched no ${decision.lane} signal",
-          )
-        }
-      },
-    )
+    val matrix =
+      ReviewCommitLaneRoutingMatrix(
+        scope.commitUnits.sortedBy { it.orderIndex }.map { it.commitSha },
+        decisions.filter { it.included }.map { it.lane },
+        scope.commitUnits.sortedBy { it.orderIndex }.flatMap { unit ->
+          decisions.filter { it.included }.map { decision ->
+            val focused = unit.commitSha in focusedByLane.getValue(decision.lane)
+            ReviewCommitLaneDecision(
+              unit.commitSha,
+              unit.orderIndex,
+              decision.lane,
+              if (focused) ReviewCommitLaneDisposition.FOCUSED else ReviewCommitLaneDisposition.SKIPPED,
+              if (focused) "focused" else "commit ${unit.commitSha} matched no ${decision.lane} signal",
+            )
+          }
+        },
+      )
     return serviceWith(scope, decisions, matrix)
   }
 
   @Test fun `a lane bundle carries only its focused commits' hunks in commit order`() {
     val hunkA2 = ReviewChangedHunk("src/A.kt", 9, 1, 9, 2, "+later alpha")
-    val scope = multiCommitScope.copy(
-      changedHunks = listOf(hunkA, hunkA2),
-      commitUnits = listOf(
-        ReviewCommitUnit("c1", "base", "first", 0, listOf(hunkA), ReviewCommitSource.COMMIT_RANGE),
-        ReviewCommitUnit("head", "c1", "second", 1, listOf(hunkA2), ReviewCommitSource.COMMIT_RANGE),
-      ),
-    )
+    val scope =
+      multiCommitScope.copy(
+        changedHunks = listOf(hunkA, hunkA2),
+        commitUnits =
+          listOf(
+            ReviewCommitUnit("c1", "base", "first", 0, listOf(hunkA), ReviewCommitSource.COMMIT_RANGE),
+            ReviewCommitUnit("head", "c1", "second", 1, listOf(hunkA2), ReviewCommitSource.COMMIT_RANGE),
+          ),
+      )
     val decisions = listOf(decision("security", "src/A.kt"))
     val result = sparseService(scope, decisions, mapOf("security" to setOf("c1"))).prepare(request())
 
@@ -210,34 +239,39 @@ class ReviewPreparationCommitBundleTest {
 
   @Test fun `validation rejects an assignment claiming a hunk from a commit skipped for its lane`() {
     val hunkA2 = ReviewChangedHunk("src/A.kt", 9, 1, 9, 2, "+later alpha")
-    val scope = multiCommitScope.copy(
-      changedHunks = listOf(hunkA, hunkA2),
-      commitUnits = listOf(
-        ReviewCommitUnit("c1", "base", "first", 0, listOf(hunkA), ReviewCommitSource.COMMIT_RANGE),
-        ReviewCommitUnit("head", "c1", "second", 1, listOf(hunkA2), ReviewCommitSource.COMMIT_RANGE),
-      ),
-    )
+    val scope =
+      multiCommitScope.copy(
+        changedHunks = listOf(hunkA, hunkA2),
+        commitUnits =
+          listOf(
+            ReviewCommitUnit("c1", "base", "first", 0, listOf(hunkA), ReviewCommitSource.COMMIT_RANGE),
+            ReviewCommitUnit("head", "c1", "second", 1, listOf(hunkA2), ReviewCommitSource.COMMIT_RANGE),
+          ),
+      )
     val decisions = listOf(decision("security", "src/A.kt"))
     val prepared = sparseService(scope, decisions, mapOf("security" to setOf("c1"))).prepare(request())
     val widened = prepared.assignments.map { it.copy(assignedHunks = listOf(hunkA.hunkId, hunkA2.hunkId)) }
 
-    val error = assertFailsWith<InvalidReviewContextSchemaError> {
-      sparseService(scope, decisions, mapOf("security" to setOf("c1")))
-        .validateAgainstPacket(prepared.packet, widened)
-    }
+    val error =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        sparseService(scope, decisions, mapOf("security" to setOf("c1")))
+          .validateAgainstPacket(prepared.packet, widened)
+      }
     assertTrue("skipped" in error.message.orEmpty(), error.message.orEmpty())
 
-    val bundled = assertFailsWith<IllegalArgumentException> {
-      prepared.assignments.single().copy(
-        assignedHunks = listOf(hunkA.hunkId, hunkA2.hunkId),
-        assignedBundle = ReviewLaneBundle(
-          listOf(
-            ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)),
-            ReviewLaneBundleEntry("head", 1, listOf(hunkA2.hunkId)),
-          ),
-        ),
-      )
-    }
+    val bundled =
+      assertFailsWith<IllegalArgumentException> {
+        prepared.assignments.single().copy(
+          assignedHunks = listOf(hunkA.hunkId, hunkA2.hunkId),
+          assignedBundle =
+            ReviewLaneBundle(
+              listOf(
+                ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)),
+                ReviewLaneBundleEntry("head", 1, listOf(hunkA2.hunkId)),
+              ),
+            ),
+        )
+      }
     assertTrue("skipped" in bundled.message.orEmpty(), bundled.message.orEmpty())
   }
 
@@ -245,29 +279,35 @@ class ReviewPreparationCommitBundleTest {
     val decisions = listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt"))
     val focused = mapOf("security" to setOf("c1"), "testing" to setOf("head"))
     val base = sparseService(multiCommitScope, decisions, focused).prepare(request())
-    val widened = sparseService(
-      multiCommitScope,
-      decisions,
-      mapOf("security" to setOf("c1", "head"), "testing" to setOf("head")),
-    ).prepare(request())
+    val widened =
+      sparseService(
+        multiCommitScope,
+        decisions,
+        mapOf("security" to setOf("c1", "head"), "testing" to setOf("head")),
+      ).prepare(request())
 
     assertTrue(base.packet.digest != widened.packet.digest, "a disposition flip left the packet digest unchanged")
 
-    val rephrased = base.packet.copy(
-      routingMatrix = base.packet.routingMatrix.copy(
-        decisions = base.packet.routingMatrix.decisions.map {
-          if (it.focused) it else it.copy(reason = "${it.reason} (restated)")
-        },
-      ),
-    )
+    val rephrased =
+      base.packet.copy(
+        routingMatrix =
+          base.packet.routingMatrix.copy(
+            decisions =
+              base.packet.routingMatrix.decisions.map {
+                if (it.focused) it else it.copy(reason = "${it.reason} (restated)")
+              },
+          ),
+      )
     assertTrue(base.packet.digest != rephrased.digest, "a skip-reason change left the packet digest unchanged")
 
     val securityAssignment = base.assignments.single { it.lane == "security" }
-    val restated = securityAssignment.copy(
-      laneRouting = securityAssignment.laneRouting.map {
-        if (it.focused) it else it.copy(reason = "${it.reason} (restated)")
-      },
-    )
+    val restated =
+      securityAssignment.copy(
+        laneRouting =
+          securityAssignment.laneRouting.map {
+            if (it.focused) it else it.copy(reason = "${it.reason} (restated)")
+          },
+      )
     assertTrue(
       securityAssignment.digest != restated.digest,
       "a skip-reason change left the assignment digest unchanged",
@@ -275,39 +315,46 @@ class ReviewPreparationCommitBundleTest {
   }
 
   @Test fun `validation rejects an assignment claiming a commit unit outside its packet`() {
-    val prepared = service(
-      multiCommitScope,
-      listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt")),
-    ).prepare(request())
-    val forged = prepared.assignments.map { assignment ->
-      if (assignment.lane != "security") {
-        assignment
-      } else {
-        assignment.copy(
-          assignedBundle = ReviewLaneBundle(
-            listOf(ReviewLaneBundleEntry("not-a-packet-commit", 0, listOf(hunkA.hunkId))),
-          ),
-        )
+    val prepared =
+      service(
+        multiCommitScope,
+        listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt")),
+      ).prepare(request())
+    val forged =
+      prepared.assignments.map { assignment ->
+        if (assignment.lane != "security") {
+          assignment
+        } else {
+          assignment.copy(
+            assignedBundle =
+              ReviewLaneBundle(
+                listOf(ReviewLaneBundleEntry("not-a-packet-commit", 0, listOf(hunkA.hunkId))),
+              ),
+          )
+        }
       }
-    }
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(multiCommitScope, prepared.packet.laneDecisions).validateAgainstPacket(prepared.packet, forged)
-    }
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(multiCommitScope, prepared.packet.laneDecisions).validateAgainstPacket(prepared.packet, forged)
+      }
     assertTrue("packet does not own" in failure.message.orEmpty(), failure.message.orEmpty())
   }
 
   @Test fun `a shuffled commitUnits input still yields bundle entries in packet commit order`() {
-    val shuffled = multiCommitScope.copy(
-      commitUnits = listOf(
-        ReviewCommitUnit("head", "c1", "second", 1, listOf(hunkB), ReviewCommitSource.COMMIT_RANGE),
-        ReviewCommitUnit("c1", "base", "first", 0, listOf(hunkA), ReviewCommitSource.COMMIT_RANGE),
-      ),
-    )
-    val result = sparseService(
-      shuffled,
-      listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt")),
-      mapOf("security" to setOf("c1", "head"), "testing" to setOf("c1", "head")),
-    ).prepare(request())
+    val shuffled =
+      multiCommitScope.copy(
+        commitUnits =
+          listOf(
+            ReviewCommitUnit("head", "c1", "second", 1, listOf(hunkB), ReviewCommitSource.COMMIT_RANGE),
+            ReviewCommitUnit("c1", "base", "first", 0, listOf(hunkA), ReviewCommitSource.COMMIT_RANGE),
+          ),
+      )
+    val result =
+      sparseService(
+        shuffled,
+        listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt")),
+        mapOf("security" to setOf("c1", "head"), "testing" to setOf("c1", "head")),
+      ).prepare(request())
 
     assertEquals(listOf(0, 1), result.packet.commitUnits.sortedBy { it.orderIndex }.map { it.orderIndex })
     result.assignments.forEach { assignment ->
@@ -324,30 +371,34 @@ class ReviewPreparationCommitBundleTest {
     val focused = mapOf("security" to setOf("c1"))
     val prepared = sparseService(multiCommitScope, decisions, focused).prepare(request())
     val security = prepared.assignments.single()
-    val retargeted = security.copy(
-      assignedHunks = listOf(hunkB.hunkId),
-      assignedBundle = ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkB.hunkId)))),
-    )
+    val retargeted =
+      security.copy(
+        assignedHunks = listOf(hunkB.hunkId),
+        assignedBundle = ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkB.hunkId)))),
+      )
 
     assertTrue(security.digest != retargeted.digest, "an owned-hunk change left the assignment digest unchanged")
   }
 
   @Test fun `sparse routing preserves lane order owning pack add-ons and origin chains`() {
-    val security = decision("security", "src/A.kt").copy(
-      orderIndex = 0,
-      addOns = listOf("auth-notes"),
-      originLayerChains = listOf(listOf("kmp", "kotlin")),
-    )
-    val testing = decision("testing", "src/B.kt").copy(
-      orderIndex = 1,
-      addOns = listOf("test-notes"),
-      originLayerChains = listOf(listOf("kotlin")),
-    )
-    val result = sparseService(
-      multiCommitScope,
-      listOf(security, testing),
-      mapOf("security" to setOf("c1"), "testing" to setOf("head")),
-    ).prepare(request())
+    val security =
+      decision("security", "src/A.kt").copy(
+        orderIndex = 0,
+        addOns = listOf("auth-notes"),
+        originLayerChains = listOf(listOf("kmp", "kotlin")),
+      )
+    val testing =
+      decision("testing", "src/B.kt").copy(
+        orderIndex = 1,
+        addOns = listOf("test-notes"),
+        originLayerChains = listOf(listOf("kotlin")),
+      )
+    val result =
+      sparseService(
+        multiCommitScope,
+        listOf(security, testing),
+        mapOf("security" to setOf("c1"), "testing" to setOf("head")),
+      ).prepare(request())
 
     assertEquals(listOf("security", "testing"), result.packet.selectedLanes)
     assertEquals(listOf("security", "testing"), result.assignments.map { it.lane })
@@ -360,26 +411,28 @@ class ReviewPreparationCommitBundleTest {
 
   @Test fun `staged and unstaged synthetic scopes keep inclusion-equivalent lane ownership`() {
     listOf("staged", "unstaged").forEach { status ->
-      val synthetic = ReviewCommitUnit.synthetic(
-        ReviewCommitSource.SYNTHETIC_WORKING_TREE,
-        listOf(hunkA, hunkB),
-      )
-      val scope = ReviewScopeFacts(
-        "acme/repo",
-        "base",
-        "head",
-        status,
-        listOf(hunkA, hunkB),
-        listOf(synthetic),
-        ReviewCommitCoverageFact(
+      val synthetic =
+        ReviewCommitUnit.synthetic(
+          ReviewCommitSource.SYNTHETIC_WORKING_TREE,
+          listOf(hunkA, hunkB),
+        )
+      val scope =
+        ReviewScopeFacts(
+          "acme/repo",
           "base",
           "head",
-          1,
-          chainVerified = false,
-          pathCoverageVerified = true,
-          degradedReason = "$status scope",
-        ),
-      )
+          status,
+          listOf(hunkA, hunkB),
+          listOf(synthetic),
+          ReviewCommitCoverageFact(
+            "base",
+            "head",
+            1,
+            chainVerified = false,
+            pathCoverageVerified = true,
+            degradedReason = "$status scope",
+          ),
+        )
       val decisions = listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt"))
       val result = service(scope, decisions).prepare(request())
 

@@ -40,7 +40,10 @@ class GateJvmResolver(
     return disposition
   }
 
-  private fun evaluateGuard(environment: Map<String, String>, rejectedCandidate: String): GateJvmDisposition {
+  private fun evaluateGuard(
+    environment: Map<String, String>,
+    rejectedCandidate: String,
+  ): GateJvmDisposition {
     val guard = materializeGuard()
     return try {
       dispositionOf(runGuard(guard, environment), rejectedCandidate)
@@ -50,25 +53,31 @@ class GateJvmResolver(
   }
 
   private fun materializeGuard(): Path {
-    val bytes = GateJvmResolver::class.java.classLoader
-      .getResourceAsStream(GUARD_CLASSPATH_RESOURCE)
-      ?.use { stream -> stream.readBytes() }
-      ?: throw GateJvmGuardResourceMissingException(GUARD_CLASSPATH_RESOURCE)
+    val bytes =
+      GateJvmResolver::class.java.classLoader
+        .getResourceAsStream(GUARD_CLASSPATH_RESOURCE)
+        ?.use { stream -> stream.readBytes() }
+        ?: throw GateJvmGuardResourceMissingException(GUARD_CLASSPATH_RESOURCE)
     val guard = Files.createTempFile("skill-bill-java-guard", ".sh", OWNER_ONLY)
     Files.write(guard, bytes)
     return guard
   }
 
-  private fun runGuard(guard: Path, environment: Map<String, String>): GuardEvaluation {
-    val builder = ProcessBuilder("sh", "-c", GUARD_PROGRAM, "sh", guard.toString())
-      .redirectError(ProcessBuilder.Redirect.DISCARD)
+  private fun runGuard(
+    guard: Path,
+    environment: Map<String, String>,
+  ): GuardEvaluation {
+    val builder =
+      ProcessBuilder("sh", "-c", GUARD_PROGRAM, "sh", guard.toString())
+        .redirectError(ProcessBuilder.Redirect.DISCARD)
     builder.environment().clear()
     builder.environment().putAll(environment)
-    val process = try {
-      builder.start()
-    } catch (error: IOException) {
-      throw GateJvmGuardExecutionException("no POSIX sh available to evaluate $guard", error)
-    }
+    val process =
+      try {
+        builder.start()
+      } catch (error: IOException) {
+        throw GateJvmGuardExecutionException("no POSIX sh available to evaluate $guard", error)
+      }
     process.outputStream.close()
     if (!process.waitFor(GUARD_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
       process.destroyForcibly()
@@ -78,7 +87,10 @@ class GateJvmResolver(
     return GuardEvaluation(status = process.exitValue(), stdout = stdout)
   }
 
-  private fun dispositionOf(evaluation: GuardEvaluation, rejectedCandidate: String): GateJvmDisposition {
+  private fun dispositionOf(
+    evaluation: GuardEvaluation,
+    rejectedCandidate: String,
+  ): GateJvmDisposition {
     val output = parseGuardOutput(evaluation)
     if (evaluation.status == GUARD_RESOLVED_EXIT) {
       return if (output.resolvedHome.isEmpty()) {
@@ -132,42 +144,51 @@ class GateJvmResolver(
 
     val OWNER_ONLY = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
 
-    val GUARD_PROGRAM = """
+    val GUARD_PROGRAM =
+      """
       trap 'skill_bill_gate_exit=${'$'}?
       printf "%s\n" "${'$'}{JAVA_HOME:-}"
       printf "%s\n" "${'$'}{skill_bill_required_java_major:-}"
       printf "%s\n" "${'$'}{skill_bill_java_unresolved:-}"
       exit ${'$'}skill_bill_gate_exit' EXIT
       . "${'$'}1" >/dev/null
-    """.trimIndent()
+      """.trimIndent()
 
-    fun rejectedCandidate(childEnvironment: Map<String, String>): String = GateJvmEnvironmentKeys.JAVA_HOME_CANDIDATES
-      .firstNotNullOfOrNull { key -> childEnvironment[key]?.takeIf(String::isNotBlank) }
-      ?: "<unset>"
+    fun rejectedCandidate(childEnvironment: Map<String, String>): String =
+      GateJvmEnvironmentKeys.JAVA_HOME_CANDIDATES
+        .firstNotNullOfOrNull { key -> childEnvironment[key]?.takeIf(String::isNotBlank) }
+        ?: "<unset>"
 
-    fun branchOf(sanitized: Map<String, String>, disposition: GateJvmDisposition): String = when (disposition) {
-      is GateJvmDisposition.Export -> when (disposition.javaHome) {
-        sanitized[GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME] -> "skill_bill_java_home"
-        sanitized[GateJvmEnvironmentKeys.JAVA_HOME] -> "inherited_java_home"
-        else -> "scan"
+    fun branchOf(
+      sanitized: Map<String, String>,
+      disposition: GateJvmDisposition,
+    ): String =
+      when (disposition) {
+        is GateJvmDisposition.Export ->
+          when (disposition.javaHome) {
+            sanitized[GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME] -> "skill_bill_java_home"
+            sanitized[GateJvmEnvironmentKeys.JAVA_HOME] -> "inherited_java_home"
+            else -> "scan"
+          }
+
+        GateJvmDisposition.LeaveUnset -> "path_java"
+        is GateJvmDisposition.Unresolved -> "unresolved"
       }
 
-      GateJvmDisposition.LeaveUnset -> "path_java"
-      is GateJvmDisposition.Unresolved -> "unresolved"
-    }
+    fun usedValueOf(disposition: GateJvmDisposition): String =
+      when (disposition) {
+        is GateJvmDisposition.Export -> disposition.javaHome
+        GateJvmDisposition.LeaveUnset -> "<unset>"
+        is GateJvmDisposition.Unresolved -> "<none>"
+      }
 
-    fun usedValueOf(disposition: GateJvmDisposition): String = when (disposition) {
-      is GateJvmDisposition.Export -> disposition.javaHome
-      GateJvmDisposition.LeaveUnset -> "<unset>"
-      is GateJvmDisposition.Unresolved -> "<none>"
-    }
+    fun unresolvedDetailOf(disposition: GateJvmDisposition): String =
+      when (disposition) {
+        is GateJvmDisposition.Unresolved ->
+          " rejected_candidate=${disposition.rejectedCandidate} expected=java_${disposition.requiredMajor}+"
 
-    fun unresolvedDetailOf(disposition: GateJvmDisposition): String = when (disposition) {
-      is GateJvmDisposition.Unresolved ->
-        " rejected_candidate=${disposition.rejectedCandidate} expected=java_${disposition.requiredMajor}+"
-
-      else -> ""
-    }
+        else -> ""
+      }
   }
 }
 
@@ -190,7 +211,10 @@ private fun hostsAJavaCompiler(home: Path): Boolean =
 
 private val JAVA_COMPILER_EXECUTABLES = listOf("javac", "javac.exe")
 
-internal fun dropRuntimeImageJava(environment: MutableMap<String, String>, imageRoot: Path?): List<String> {
+internal fun dropRuntimeImageJava(
+  environment: MutableMap<String, String>,
+  imageRoot: Path?,
+): List<String> {
   val dropped = mutableListOf<String>()
   GateJvmEnvironmentKeys.JAVA_HOME_CANDIDATES.forEach { key ->
     val value = environment[key]
@@ -208,7 +232,10 @@ internal fun dropRuntimeImageJava(environment: MutableMap<String, String>, image
   return dropped
 }
 
-private fun liesInside(value: String, imageRoot: Path?): Boolean {
+private fun liesInside(
+  value: String,
+  imageRoot: Path?,
+): Boolean {
   if (imageRoot == null || value.isBlank()) return false
   val candidate = runCatching { Path.of(value).toRealPath() }.getOrNull() ?: return false
   return candidate.startsWith(imageRoot)

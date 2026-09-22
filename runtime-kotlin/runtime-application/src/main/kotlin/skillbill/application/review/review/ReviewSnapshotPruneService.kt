@@ -21,12 +21,13 @@ class ReviewSnapshotPruneService(
     if (confirmed) {
       candidates.forEach { snapshot ->
 
-        val removed = try {
-          gateway.delete(snapshot)
-        } catch (error: IOException) {
-          diagnostics.warning("review snapshot prune: '${snapshot.path}' could not be deleted.", error)
-          false
-        }
+        val removed =
+          try {
+            gateway.delete(snapshot)
+          } catch (error: IOException) {
+            diagnostics.warning("review snapshot prune: '${snapshot.path}' could not be deleted.", error)
+            false
+          }
         if (removed) deleted += snapshot else failed += snapshot
       }
     }

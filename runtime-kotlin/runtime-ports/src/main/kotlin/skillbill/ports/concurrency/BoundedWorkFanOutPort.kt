@@ -17,7 +17,10 @@ package skillbill.ports.concurrency
  * wrap a whole unit.
  */
 interface BoundedWorkFanOutPort {
-  fun <T> runBounded(maxInFlight: Int, units: List<() -> T>): List<Result<T>>
+  fun <T> runBounded(
+    maxInFlight: Int,
+    units: List<() -> T>,
+  ): List<Result<T>>
 
   fun <T> runExclusively(action: () -> T): T
 }

@@ -15,24 +15,28 @@ internal object FeatureTaskRuntimeHandoffProjectionFinalization {
   ): Map<String, Any?> {
     val context = finalizationProjectionContext(inputs)
     return when (declaration.projectionContractId) {
-      FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_REQUEST -> mapOf(
-        "changed_paths" to context.changedPaths,
-        ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT to context.checkpoint,
-      )
-      FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.BOUNDARY_CANDIDATES -> mapOf(
-        "changed_paths" to context.changedPaths,
-        "boundary_candidates" to context.changedPaths
-          .map { it.substringBeforeLast('/', "") }
-          .filter(String::isNotBlank)
-          .distinct(),
-      )
-      FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.COMMIT_REQUEST -> mapOf(
-        "path_inventory" to context.changedPaths,
-        "required_inclusions" to context.changedPaths,
-        "branch_identity" to context.branch,
-        "gate_attestations" to listOf("audit", "review", "validate", "write_history"),
-        ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT to context.checkpoint,
-      )
+      FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.VALIDATION_REQUEST ->
+        mapOf(
+          "changed_paths" to context.changedPaths,
+          ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT to context.checkpoint,
+        )
+      FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.BOUNDARY_CANDIDATES ->
+        mapOf(
+          "changed_paths" to context.changedPaths,
+          "boundary_candidates" to
+            context.changedPaths
+              .map { it.substringBeforeLast('/', "") }
+              .filter(String::isNotBlank)
+              .distinct(),
+        )
+      FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.COMMIT_REQUEST ->
+        mapOf(
+          "path_inventory" to context.changedPaths,
+          "required_inclusions" to context.changedPaths,
+          "branch_identity" to context.branch,
+          "gate_attestations" to listOf("audit", "review", "validate", "write_history"),
+          ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT to context.checkpoint,
+        )
       FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PR_REQUEST ->
         prRequestProjection(context)
       else -> emptyMap()
@@ -40,10 +44,11 @@ internal object FeatureTaskRuntimeHandoffProjectionFinalization {
   }
 
   fun genericProducedOutputs(output: FeatureTaskRuntimePhaseOutput): Map<String, Any?> {
-    val envelope = output.normalizedOutput?.envelope
-      ?: JsonCodec.parseObjectOrNull(output.payload)?.let(JsonCodec::jsonElementToValue)
-        ?.let(JsonCodec::anyToStringAnyMap)
-      ?: return emptyMap()
+    val envelope =
+      output.normalizedOutput?.envelope
+        ?: JsonCodec.parseObjectOrNull(output.payload)?.let(JsonCodec::jsonElementToValue)
+          ?.let(JsonCodec::anyToStringAnyMap)
+        ?: return emptyMap()
     return JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS]).orEmpty()
   }
 
@@ -51,15 +56,18 @@ internal object FeatureTaskRuntimeHandoffProjectionFinalization {
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,
   ): FinalizationProjectionContext {
     val outputs = inputs.resolvedUpstream.outputsByPhaseId
-    val validation = outputs[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE]?.let {
-      genericProducedOutputs(it)
-    }.orEmpty()
-    val checkpoint = inputs.resolvedCheckpoint?.let {
-      mapOf(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT to it.fingerprint)
-    }
-    val changedPaths = inputs.resolvedCheckpoint?.workingTreeOwnedPaths.orEmpty()
-      .distinct()
-      .sorted()
+    val validation =
+      outputs[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE]?.let {
+        genericProducedOutputs(it)
+      }.orEmpty()
+    val checkpoint =
+      inputs.resolvedCheckpoint?.let {
+        mapOf(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT to it.fingerprint)
+      }
+    val changedPaths =
+      inputs.resolvedCheckpoint?.workingTreeOwnedPaths.orEmpty()
+        .distinct()
+        .sorted()
     return FinalizationProjectionContext(
       validation = validation,
       checkpoint = checkpoint,
@@ -70,17 +78,18 @@ internal object FeatureTaskRuntimeHandoffProjectionFinalization {
     )
   }
 
-  private fun prRequestProjection(context: FinalizationProjectionContext): Map<String, Any?> = mapOf(
-    "changed_paths" to context.changedPaths,
-    "validation_summary" to (
-      context.validation["validation_result"]
-        ?: context.validation["validation_summary"]
-        ?: context.validation[SharedPayloadKeys.SUMMARY]
-        ?: "completed"
+  private fun prRequestProjection(context: FinalizationProjectionContext): Map<String, Any?> =
+    mapOf(
+      "changed_paths" to context.changedPaths,
+      "validation_summary" to (
+        context.validation["validation_result"]
+          ?: context.validation["validation_summary"]
+          ?: context.validation[SharedPayloadKeys.SUMMARY]
+          ?: "completed"
       ),
-    DecompositionPlanningPayloadKeys.BASE_BRANCH to context.base,
-    "diff_reference" to (context.checkpointFingerprint ?: "repository-checkpoint-unavailable"),
-  )
+      DecompositionPlanningPayloadKeys.BASE_BRANCH to context.base,
+      "diff_reference" to (context.checkpointFingerprint ?: "repository-checkpoint-unavailable"),
+    )
 
   private data class FinalizationProjectionContext(
     val validation: Map<String, Any?>,

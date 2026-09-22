@@ -47,25 +47,27 @@ class FeatureTaskRuntimePlanningProjectionsSchemaContractVersionTest {
   @Test
   fun `legacy implementation_receipt payload fails the reject-all root`() {
     val validator = FeatureTaskRuntimePlanningProjectionSchemaValidator
-    val error = runCatching {
-      validator.validate(
-        mapOf(
-          "projection_kind" to "implementation_receipt",
-          "contract_version" to "0.2",
-          "completed_task_ids" to listOf("task-1"),
-          "changed_paths" to listOf("path/X.kt"),
-          "tests_executed" to emptyList<Any>(),
-          "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "ok"),
-        ),
-        "fixture#produced_outputs",
-      )
-    }.exceptionOrNull()
+    val error =
+      runCatching {
+        validator.validate(
+          mapOf(
+            "projection_kind" to "implementation_receipt",
+            "contract_version" to "0.2",
+            "completed_task_ids" to listOf("task-1"),
+            "changed_paths" to listOf("path/X.kt"),
+            "tests_executed" to emptyList<Any>(),
+            "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "ok"),
+          ),
+          "fixture#produced_outputs",
+        )
+      }.exceptionOrNull()
     assertNotNull(error, "legacy implementation_receipt must fail the quarantined schema")
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = FeatureTaskRuntimePlanningProjectionSchemaValidator::class.java.classLoader
-      .getResourceAsStream(FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      FeatureTaskRuntimePlanningProjectionSchemaValidator::class.java.classLoader
+        .getResourceAsStream(FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical feature-task-runtime planning-projections schema is missing from the classpath at " +

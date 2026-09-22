@@ -24,15 +24,17 @@ class FeatureTaskRuntimeResumeGateTest {
 
   @Test
   fun `runtime resume gate clears missing artifacts when upstream phase records are completed`() {
-    val record = runtimeSnapshot(
-      currentStepId = "implement",
-      stepsJson = stepsJson(
-        "preplan" to "completed",
-        "plan" to "completed",
-        "implement" to "pending",
-      ),
-      phaseRecordStatuses = mapOf("preplan" to "completed", "plan" to "completed"),
-    )
+    val record =
+      runtimeSnapshot(
+        currentStepId = "implement",
+        stepsJson =
+          stepsJson(
+            "preplan" to "completed",
+            "plan" to "completed",
+            "implement" to "pending",
+          ),
+        phaseRecordStatuses = mapOf("preplan" to "completed", "plan" to "completed"),
+      )
 
     val resume = engine.resumeView(runtimeDefinition, record)
 
@@ -44,12 +46,13 @@ class FeatureTaskRuntimeResumeGateTest {
 
   @Test
   fun `runtime compact continuation exposes completed upstream phase output under logical phase key`() {
-    val record = runtimeSnapshot(
-      currentStepId = "plan",
-      stepsJson = stepsJson("preplan" to "completed", "plan" to "running"),
-      phaseRecordStatuses = mapOf("preplan" to "completed"),
-      phaseRecordOutputs = mapOf("preplan" to """{"preplan_digest":"bounded"}"""),
-    )
+    val record =
+      runtimeSnapshot(
+        currentStepId = "plan",
+        stepsJson = stepsJson("preplan" to "completed", "plan" to "running"),
+        phaseRecordStatuses = mapOf("preplan" to "completed"),
+        phaseRecordOutputs = mapOf("preplan" to """{"preplan_digest":"bounded"}"""),
+      )
 
     val decision = engine.continueDecision(runtimeDefinition, record)
 
@@ -65,11 +68,12 @@ class FeatureTaskRuntimeResumeGateTest {
 
   @Test
   fun `runtime resume gate reports missing upstream when its phase record is not completed`() {
-    val record = runtimeSnapshot(
-      currentStepId = "plan",
-      stepsJson = stepsJson("preplan" to "running", "plan" to "pending"),
-      phaseRecordStatuses = mapOf("preplan" to "running"),
-    )
+    val record =
+      runtimeSnapshot(
+        currentStepId = "plan",
+        stepsJson = stepsJson("preplan" to "running", "plan" to "pending"),
+        phaseRecordStatuses = mapOf("preplan" to "running"),
+      )
 
     val resume = engine.resumeView(runtimeDefinition, record)
 
@@ -79,16 +83,18 @@ class FeatureTaskRuntimeResumeGateTest {
 
   @Test
   fun `crashed runtime run with completed preplan and plan resumes at implement not preplan`() {
-    val record = runtimeSnapshot(
-      currentStepId = "plan",
-      workflowStatus = WorkflowStatus.RUNNING,
-      stepsJson = stepsJson(
-        "preplan" to "completed",
-        "plan" to "completed",
-        "implement" to "pending",
-      ),
-      phaseRecordStatuses = mapOf("preplan" to "completed", "plan" to "completed"),
-    )
+    val record =
+      runtimeSnapshot(
+        currentStepId = "plan",
+        workflowStatus = WorkflowStatus.RUNNING,
+        stepsJson =
+          stepsJson(
+            "preplan" to "completed",
+            "plan" to "completed",
+            "implement" to "pending",
+          ),
+        phaseRecordStatuses = mapOf("preplan" to "completed", "plan" to "completed"),
+      )
 
     val resume = engine.resumeView(runtimeDefinition, record)
 
@@ -103,22 +109,25 @@ class FeatureTaskRuntimeResumeGateTest {
 
   @Test
   fun `completed run done next-action dereferences a terminal-summary artifact present in the snapshot`() {
-    val record = runtimeSnapshot(
-      currentStepId = "pr",
-      workflowStatus = WorkflowStatus.COMPLETED,
-      stepsJson = stepsJson(
-        "preplan" to "completed",
-        "plan" to "completed",
-        "implement" to "completed",
-        "pr" to "completed",
-      ),
-      phaseRecordStatuses = mapOf(
-        "preplan" to "completed",
-        "plan" to "completed",
-        "implement" to "completed",
-        "pr" to "completed",
-      ),
-    )
+    val record =
+      runtimeSnapshot(
+        currentStepId = "pr",
+        workflowStatus = WorkflowStatus.COMPLETED,
+        stepsJson =
+          stepsJson(
+            "preplan" to "completed",
+            "plan" to "completed",
+            "implement" to "completed",
+            "pr" to "completed",
+          ),
+        phaseRecordStatuses =
+          mapOf(
+            "preplan" to "completed",
+            "plan" to "completed",
+            "implement" to "completed",
+            "pr" to "completed",
+          ),
+      )
 
     val resume = engine.resumeView(runtimeDefinition, record)
 
@@ -137,16 +146,18 @@ class FeatureTaskRuntimeResumeGateTest {
   @Test
   fun `non-runtime family keeps default top-level key presence rule`() {
     val verify = FeatureVerifyWorkflowDefinition.definition
-    val firstRequiredStep = verify.stepIds.first { stepId ->
-      verify.requiredArtifactsByStep[stepId].orEmpty().isNotEmpty()
-    }
+    val firstRequiredStep =
+      verify.stepIds.first { stepId ->
+        verify.requiredArtifactsByStep[stepId].orEmpty().isNotEmpty()
+      }
     val requiredKeys = verify.requiredArtifactsByStep.getValue(firstRequiredStep)
 
-    val record = implementSnapshot(
-      definition = verify,
-      currentStepId = firstRequiredStep,
-      stepsJson = stepsJson(firstRequiredStep to "pending"),
-    )
+    val record =
+      implementSnapshot(
+        definition = verify,
+        currentStepId = firstRequiredStep,
+        stepsJson = stepsJson(firstRequiredStep to "pending"),
+      )
 
     val resume = engine.resumeView(verify, record)
     assertEquals(requiredKeys, resume.missingArtifacts)
@@ -168,20 +179,21 @@ class FeatureTaskRuntimeResumeGateTest {
       """{"feature_task_runtime_phase_records":{"preplan":""" +
         """{"phase_id":"preplan","status":"completed","attempt_count":1,""" +
         """"started_at":"2026-06-18T10:00:00Z"}}}"""
-    val record = WorkflowStateSnapshot(
-      workflowId = "wftr-test",
-      sessionId = "ftr-test",
-      workflowName = runtimeDefinition.workflowName,
-      contractVersion = runtimeDefinition.contractVersion,
-      workflowStatus = WorkflowStatus.RUNNING,
-      currentStepId = "plan",
-      stepsJson = stepsJson("preplan" to "completed", "plan" to "pending"),
-      artifactsJson = corruptArtifactsJson,
-      startedAt = "2026-06-18T10:00:00Z",
-      updatedAt = "2026-06-18T10:05:00Z",
-      finishedAt = null,
-      mode = runtimeDefinition.workflowMode,
-    )
+    val record =
+      WorkflowStateSnapshot(
+        workflowId = "wftr-test",
+        sessionId = "ftr-test",
+        workflowName = runtimeDefinition.workflowName,
+        contractVersion = runtimeDefinition.contractVersion,
+        workflowStatus = WorkflowStatus.RUNNING,
+        currentStepId = "plan",
+        stepsJson = stepsJson("preplan" to "completed", "plan" to "pending"),
+        artifactsJson = corruptArtifactsJson,
+        startedAt = "2026-06-18T10:00:00Z",
+        updatedAt = "2026-06-18T10:05:00Z",
+        finishedAt = null,
+        mode = runtimeDefinition.workflowMode,
+      )
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       engine.resumeView(runtimeDefinition, record)
@@ -190,30 +202,33 @@ class FeatureTaskRuntimeResumeGateTest {
 
   @Test
   fun `runtime resume gate loud-fails on malformed quality gate selection`() {
-    val snapshot = WorkflowSnapshotView(
-      workflowId = "wftr-test",
-      sessionId = "ftr-test",
-      workflowName = runtimeDefinition.workflowName,
-      contractVersion = runtimeDefinition.contractVersion,
-      workflowStatus = WorkflowStatus.RUNNING,
-      currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
-      steps = emptyList(),
-      artifacts = DurableWorkflowArtifacts.fromMap(
-        mapOf(
-          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to mapOf(
-            "issue_key" to "SKILL-351",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
-            "goal_branch" to "feat/SKILL-351",
-            "code_review_mode" to "inline",
-            "quality_gate_selection" to false,
+    val snapshot =
+      WorkflowSnapshotView(
+        workflowId = "wftr-test",
+        sessionId = "ftr-test",
+        workflowName = runtimeDefinition.workflowName,
+        contractVersion = runtimeDefinition.contractVersion,
+        workflowStatus = WorkflowStatus.RUNNING,
+        currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+        steps = emptyList(),
+        artifacts =
+          DurableWorkflowArtifacts.fromMap(
+            mapOf(
+              FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to
+                mapOf(
+                  "issue_key" to "SKILL-351",
+                  "subtask_id" to 1,
+                  "suppress_pr" to true,
+                  "goal_branch" to "feat/SKILL-351",
+                  "code_review_mode" to "inline",
+                  "quality_gate_selection" to false,
+                ),
+            ),
           ),
-        ),
-      ),
-      startedAt = "2026-06-18T10:00:00Z",
-      updatedAt = "2026-06-18T10:05:00Z",
-      finishedAt = "",
-    )
+        startedAt = "2026-06-18T10:00:00Z",
+        updatedAt = "2026-06-18T10:05:00Z",
+        finishedAt = "",
+      )
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimeRequiredArtifactPresenceResolver.missingRequiredArtifacts(
@@ -230,39 +245,41 @@ class FeatureTaskRuntimeResumeGateTest {
     phaseRecordStatuses: Map<String, String>,
     phaseRecordOutputs: Map<String, String> = emptyMap(),
     workflowStatus: WorkflowStatus = WorkflowStatus.RUNNING,
-  ): WorkflowStateSnapshot = WorkflowStateSnapshot(
-    workflowId = "wftr-test",
-    sessionId = "ftr-test",
-    workflowName = runtimeDefinition.workflowName,
-    contractVersion = runtimeDefinition.contractVersion,
-    workflowStatus = workflowStatus,
-    currentStepId = currentStepId,
-    stepsJson = stepsJson,
-    artifactsJson = phaseRecordsArtifactsJson(phaseRecordStatuses, phaseRecordOutputs),
-    startedAt = "2026-06-18T10:00:00Z",
-    updatedAt = "2026-06-18T10:05:00Z",
-    finishedAt = null,
-    mode = runtimeDefinition.workflowMode,
-  )
+  ): WorkflowStateSnapshot =
+    WorkflowStateSnapshot(
+      workflowId = "wftr-test",
+      sessionId = "ftr-test",
+      workflowName = runtimeDefinition.workflowName,
+      contractVersion = runtimeDefinition.contractVersion,
+      workflowStatus = workflowStatus,
+      currentStepId = currentStepId,
+      stepsJson = stepsJson,
+      artifactsJson = phaseRecordsArtifactsJson(phaseRecordStatuses, phaseRecordOutputs),
+      startedAt = "2026-06-18T10:00:00Z",
+      updatedAt = "2026-06-18T10:05:00Z",
+      finishedAt = null,
+      mode = runtimeDefinition.workflowMode,
+    )
 
   private fun implementSnapshot(
     definition: WorkflowDefinition,
     currentStepId: String,
     stepsJson: String,
-  ): WorkflowStateSnapshot = WorkflowStateSnapshot(
-    workflowId = "wfi-test",
-    sessionId = "impl-test",
-    workflowName = definition.workflowName,
-    contractVersion = definition.contractVersion,
-    workflowStatus = WorkflowStatus.RUNNING,
-    currentStepId = currentStepId,
-    stepsJson = stepsJson,
-    artifactsJson = "{}",
-    startedAt = "2026-06-18T10:00:00Z",
-    updatedAt = "2026-06-18T10:05:00Z",
-    finishedAt = null,
-    mode = definition.workflowMode,
-  )
+  ): WorkflowStateSnapshot =
+    WorkflowStateSnapshot(
+      workflowId = "wfi-test",
+      sessionId = "impl-test",
+      workflowName = definition.workflowName,
+      contractVersion = definition.contractVersion,
+      workflowStatus = WorkflowStatus.RUNNING,
+      currentStepId = currentStepId,
+      stepsJson = stepsJson,
+      artifactsJson = "{}",
+      startedAt = "2026-06-18T10:00:00Z",
+      updatedAt = "2026-06-18T10:05:00Z",
+      finishedAt = null,
+      mode = definition.workflowMode,
+    )
 
   private fun stepsJson(vararg stepStatuses: Pair<String, String>): String =
     stepStatuses.joinToString(prefix = "[", postfix = "]") { (stepId, status) ->
@@ -273,16 +290,18 @@ class FeatureTaskRuntimeResumeGateTest {
     phaseRecordStatuses: Map<String, String>,
     phaseRecordOutputs: Map<String, String> = emptyMap(),
   ): String {
-    val records = phaseRecordStatuses.entries.joinToString(",") { (phaseId, status) ->
-      val finishedAt = if (status == "completed") ""","finished_at":"2026-06-18T10:04:00Z"""" else ""
-      val outputArtifact = phaseRecordOutputs[phaseId]
-        ?.let { ""","output_artifact":${jsonStringLiteral(it)}""" }
-        .orEmpty()
-      """"$phaseId":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
-        """"phase_id":"$phaseId","status":"$status","attempt_count":1,""" +
-        """"started_at":"2026-06-18T10:00:00Z","first_started_at":"2026-06-18T10:00:00Z",""" +
-        """"resolved_agent_id":"agent-$phaseId","execution_origin":"agent-executed"$finishedAt$outputArtifact}"""
-    }
+    val records =
+      phaseRecordStatuses.entries.joinToString(",") { (phaseId, status) ->
+        val finishedAt = if (status == "completed") ""","finished_at":"2026-06-18T10:04:00Z"""" else ""
+        val outputArtifact =
+          phaseRecordOutputs[phaseId]
+            ?.let { ""","output_artifact":${jsonStringLiteral(it)}""" }
+            .orEmpty()
+        """"$phaseId":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
+          """"phase_id":"$phaseId","status":"$status","attempt_count":1,""" +
+          """"started_at":"2026-06-18T10:00:00Z","first_started_at":"2026-06-18T10:00:00Z",""" +
+          """"resolved_agent_id":"agent-$phaseId","execution_origin":"agent-executed"$finishedAt$outputArtifact}"""
+      }
     return """{"feature_task_runtime_phase_records":{$records}}"""
   }
 
@@ -290,6 +309,9 @@ class FeatureTaskRuntimeResumeGateTest {
     value.replace("\\", "\\\\").replace("\"", "\\\"").let { """"$it"""" }
 
   private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
-    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
   }
 }

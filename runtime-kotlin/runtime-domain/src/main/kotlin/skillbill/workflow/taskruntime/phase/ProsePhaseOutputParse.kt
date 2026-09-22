@@ -20,7 +20,10 @@ internal object ProsePhaseOutputParse {
     return null
   }
 
-  fun identityCompatible(parsed: Map<String, Any?>, phaseId: String): Boolean {
+  fun identityCompatible(
+    parsed: Map<String, Any?>,
+    phaseId: String,
+  ): Boolean {
     val parsedPhase = parsed[SharedPayloadKeys.PHASE_ID]?.toString()
     if (parsedPhase != null && parsedPhase != phaseId) return false
     val parsedStatus = parsed[SharedPayloadKeys.STATUS]?.toString()?.trim()?.lowercase()

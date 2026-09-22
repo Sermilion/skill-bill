@@ -5,6 +5,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowContinueView
 import skillbill.workflow.model.WorkflowContinueStatus
+
 internal fun standardContinueMap(
   view: WorkflowContinueView,
   dbPath: String,

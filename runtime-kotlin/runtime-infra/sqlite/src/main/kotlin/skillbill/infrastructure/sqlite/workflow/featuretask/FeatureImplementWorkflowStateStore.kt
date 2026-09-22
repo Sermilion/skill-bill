@@ -14,7 +14,6 @@ import java.sql.Connection
 internal class FeatureImplementWorkflowStateStore(
   private val connection: Connection,
 ) : FeatureImplementWorkflowStateRepository {
-
   override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
     throw ProseFeatureTaskWorkflowWriteRefusedError(row.workflowId)
   }

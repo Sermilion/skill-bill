@@ -38,20 +38,22 @@ import kotlin.test.assertTrue
 class WorkflowCliResultMappersTest {
   @Test
   fun `workflow update mapper emits compact acknowledgement without full state`() {
-    val mapped = WorkflowUpdateResult.Ok(
-      workflowId = "wfl-1",
-      dbPath = "/tmp/metrics.db",
-      acknowledgement = WorkflowUpdateAcknowledgementView(
-        status = "ok",
+    val mapped =
+      WorkflowUpdateResult.Ok(
         workflowId = "wfl-1",
-        workflowName = "bill-feature-task",
-        workflowStatus = WorkflowStatus.RUNNING,
-        currentStepId = "implement",
-        updatedStepIds = listOf("implement"),
-        updatedArtifactKeys = listOf("implementation_summary"),
-        readOnlyFullStateGuidance = "Use workflow show.",
-      ),
-    ).toPayload()
+        dbPath = "/tmp/metrics.db",
+        acknowledgement =
+          WorkflowUpdateAcknowledgementView(
+            status = "ok",
+            workflowId = "wfl-1",
+            workflowName = "bill-feature-task",
+            workflowStatus = WorkflowStatus.RUNNING,
+            currentStepId = "implement",
+            updatedStepIds = listOf("implement"),
+            updatedArtifactKeys = listOf("implementation_summary"),
+            readOnlyFullStateGuidance = "Use workflow show.",
+          ),
+      ).toPayload()
 
     assertEquals("ok", mapped["status"])
     assertEquals("wfl-1", mapped["workflow_id"])
@@ -68,25 +70,28 @@ class WorkflowCliResultMappersTest {
 
   @Test
   fun `workflow acknowledgement wire bytes remain identical to the captured baseline`() {
-    val acknowledgement = WorkflowUpdateAcknowledgementView(
-      status = "ok",
-      workflowId = "wf-1",
-      workflowName = "bill-feature",
-      workflowStatus = WorkflowStatus.RUNNING,
-      currentStepId = "implement",
-      updatedStepIds = listOf("implement"),
-      updatedArtifactKeys = emptyList(),
-      readOnlyFullStateGuidance = "guidance",
-    )
-    val actual = JsonCodec.mapToJsonString(
-      WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload(),
-    ) + "\n"
-    val expected = Files.readAllBytes(
-      cliCompatibilityRepositoryRoot().resolve(
-        ".feature-specs/done/SKILL-351-runtime-domain-boundaries-and-simplicity/" +
-          "baselines/workflow-update-ack-wire.json",
-      ),
-    )
+    val acknowledgement =
+      WorkflowUpdateAcknowledgementView(
+        status = "ok",
+        workflowId = "wf-1",
+        workflowName = "bill-feature",
+        workflowStatus = WorkflowStatus.RUNNING,
+        currentStepId = "implement",
+        updatedStepIds = listOf("implement"),
+        updatedArtifactKeys = emptyList(),
+        readOnlyFullStateGuidance = "guidance",
+      )
+    val actual =
+      JsonCodec.mapToJsonString(
+        WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload(),
+      ) + "\n"
+    val expected =
+      Files.readAllBytes(
+        cliCompatibilityRepositoryRoot().resolve(
+          ".feature-specs/done/SKILL-351-runtime-domain-boundaries-and-simplicity/" +
+            "baselines/workflow-update-ack-wire.json",
+        ),
+      )
 
     assertEquals(expected.toList(), actual.toByteArray().toList())
   }
@@ -95,41 +100,45 @@ class WorkflowCliResultMappersTest {
   fun `runtime continue mapper returns honest ok for a recoverable run instead of false missing artifacts error`() {
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
     val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
-    val record = WorkflowStateSnapshot(
-      workflowId = "wftr-crashed",
-      sessionId = "ftr-001",
-      workflowName = definition.workflowName,
-      contractVersion = definition.contractVersion,
-      workflowStatus = WorkflowStatus.RUNNING,
-      currentStepId = "plan",
-      stepsJson = """[{"step_id":"preplan","status":"completed","attempt_count":1},""" +
-        """{"step_id":"plan","status":"completed","attempt_count":1},""" +
-        """{"step_id":"implement","status":"pending","attempt_count":0}]""",
-      artifactsJson = """{"feature_task_runtime_phase_records":{""" +
-        """"preplan":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
-        """"phase_id":"preplan","status":"completed","attempt_count":1,""" +
-        """"started_at":"2026-06-18T10:00:00Z","first_started_at":"2026-06-18T10:00:00Z",""" +
-        """"finished_at":"2026-06-18T10:01:00Z","resolved_agent_id":"agent-preplan",""" +
-        """"execution_origin":"agent-executed"},""" +
-        """"plan":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
-        """"phase_id":"plan","status":"completed","attempt_count":1,""" +
-        """"started_at":"2026-06-18T10:02:00Z","first_started_at":"2026-06-18T10:02:00Z",""" +
-        """"finished_at":"2026-06-18T10:03:00Z","resolved_agent_id":"agent-plan",""" +
-        """"execution_origin":"agent-executed"}}}""",
-      startedAt = "2026-06-18T10:00:00Z",
-      updatedAt = "2026-06-18T10:03:00Z",
-      finishedAt = null,
-      mode = definition.workflowMode,
-    )
-    val decision = engine.continueDecision(
-      definition,
-      record,
-      WorkflowContinueSessionSummary(
-        acceptanceCriteriaCount = 3,
-        rolloutRelevant = true,
-        specSummary = "typed summary",
-      ),
-    )
+    val record =
+      WorkflowStateSnapshot(
+        workflowId = "wftr-crashed",
+        sessionId = "ftr-001",
+        workflowName = definition.workflowName,
+        contractVersion = definition.contractVersion,
+        workflowStatus = WorkflowStatus.RUNNING,
+        currentStepId = "plan",
+        stepsJson =
+          """[{"step_id":"preplan","status":"completed","attempt_count":1},""" +
+            """{"step_id":"plan","status":"completed","attempt_count":1},""" +
+            """{"step_id":"implement","status":"pending","attempt_count":0}]""",
+        artifactsJson =
+          """{"feature_task_runtime_phase_records":{""" +
+            """"preplan":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
+            """"phase_id":"preplan","status":"completed","attempt_count":1,""" +
+            """"started_at":"2026-06-18T10:00:00Z","first_started_at":"2026-06-18T10:00:00Z",""" +
+            """"finished_at":"2026-06-18T10:01:00Z","resolved_agent_id":"agent-preplan",""" +
+            """"execution_origin":"agent-executed"},""" +
+            """"plan":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
+            """"phase_id":"plan","status":"completed","attempt_count":1,""" +
+            """"started_at":"2026-06-18T10:02:00Z","first_started_at":"2026-06-18T10:02:00Z",""" +
+            """"finished_at":"2026-06-18T10:03:00Z","resolved_agent_id":"agent-plan",""" +
+            """"execution_origin":"agent-executed"}}}""",
+        startedAt = "2026-06-18T10:00:00Z",
+        updatedAt = "2026-06-18T10:03:00Z",
+        finishedAt = null,
+        mode = definition.workflowMode,
+      )
+    val decision =
+      engine.continueDecision(
+        definition,
+        record,
+        WorkflowContinueSessionSummary(
+          acceptanceCriteriaCount = 3,
+          rolloutRelevant = true,
+          specSummary = "typed summary",
+        ),
+      )
 
     val mapped = WorkflowContinueResult.Standard(dbPath = "/tmp/metrics.db", view = decision.view).toCliMap()
 
@@ -150,18 +159,20 @@ class WorkflowCliResultMappersTest {
   @Test
   fun `goal diff mapper exposes bounded selected hunk wire shape`() {
     val diffStat = GoalObservabilityDiffStat(filesChanged = 1, insertions = 2, deletions = 1).toGoalDiffStatCliMap()
-    val hunks = GoalObservabilitySelectedDiffHunks(
-      hunks = listOf(
-        GoalObservabilitySelectedDiffHunk(
-          path = "runtime.txt",
-          staged = false,
-          header = "@@ -1 +1 @@",
-          lines = listOf("-old", "+new"),
-          truncated = false,
-        ),
-      ),
-      truncated = false,
-    ).toGoalSelectedDiffHunksCliMap()
+    val hunks =
+      GoalObservabilitySelectedDiffHunks(
+        hunks =
+          listOf(
+            GoalObservabilitySelectedDiffHunk(
+              path = "runtime.txt",
+              staged = false,
+              header = "@@ -1 +1 @@",
+              lines = listOf("-old", "+new"),
+              truncated = false,
+            ),
+          ),
+        truncated = false,
+      ).toGoalSelectedDiffHunksCliMap()
 
     assertEquals(1, diffStat["files_changed"])
     assertEquals(2, diffStat["insertions"])
@@ -174,11 +185,12 @@ class WorkflowCliResultMappersTest {
 
   @Test
   fun `workflow mapper exposes compact goal observability summary without heavy fields`() {
-    val mapped = WorkflowGetResult.Ok(
-      workflowId = "wfl-1",
-      dbPath = "/tmp/metrics.db",
-      snapshot = snapshotWithObservability(),
-    ).toCliMap(testGoalObservabilityEventValidator)
+    val mapped =
+      WorkflowGetResult.Ok(
+        workflowId = "wfl-1",
+        dbPath = "/tmp/metrics.db",
+        snapshot = snapshotWithObservability(),
+      ).toCliMap(testGoalObservabilityEventValidator)
 
     val observability = mapped["goal_observability"] as Map<*, *>
     assertEquals("implement", observability["workflow_phase"])
@@ -189,172 +201,196 @@ class WorkflowCliResultMappersTest {
 
   @Test
   fun `workflow mapper loud-fails malformed goal observability latest event`() {
-    val error = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      WorkflowGetResult.Ok(
-        workflowId = "wfl-1",
-        dbPath = "/tmp/metrics.db",
-        snapshot = snapshotWithObservability(
-          event = mapOf(
-            "contract_version" to "0.2",
-            "subtask_id" to 1,
-            "workflow_phase" to "implement",
-            "worker_role" to "phase_subagent",
-            "liveness_class" to "durable_progress",
-            "activity_summary" to "editing",
-            "sequence_number" to 1,
-            "timestamp" to "2026-06-01T00:00:00Z",
-          ),
-        ),
-      ).toCliMap(testGoalObservabilityEventValidator)
-    }
+    val error =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        WorkflowGetResult.Ok(
+          workflowId = "wfl-1",
+          dbPath = "/tmp/metrics.db",
+          snapshot =
+            snapshotWithObservability(
+              event =
+                mapOf(
+                  "contract_version" to "0.2",
+                  "subtask_id" to 1,
+                  "workflow_phase" to "implement",
+                  "worker_role" to "phase_subagent",
+                  "liveness_class" to "durable_progress",
+                  "activity_summary" to "editing",
+                  "sequence_number" to 1,
+                  "timestamp" to "2026-06-01T00:00:00Z",
+                ),
+            ),
+        ).toCliMap(testGoalObservabilityEventValidator)
+      }
 
     assertEquals("", error.fieldPath)
   }
 
   @Test
   fun `workflow mapper loud-fails schema-invalid extra goal observability field`() {
-    val error = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      WorkflowGetResult.Ok(
-        workflowId = "wfl-1",
-        dbPath = "/tmp/metrics.db",
-        snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("unknown" to true)),
-      ).toCliMap(testGoalObservabilityEventValidator)
-    }
+    val error =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        WorkflowGetResult.Ok(
+          workflowId = "wfl-1",
+          dbPath = "/tmp/metrics.db",
+          snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("unknown" to true)),
+        ).toCliMap(testGoalObservabilityEventValidator)
+      }
 
     assertEquals("", error.fieldPath)
   }
 
   @Test
   fun `workflow mapper loud-fails malformed optional goal observability summary`() {
-    val error = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      WorkflowGetResult.Ok(
-        workflowId = "wfl-1",
-        dbPath = "/tmp/metrics.db",
-        snapshot = snapshotWithObservability(
-          event = snapshotWithObservabilityEvent() + ("changed_file_summary" to "not-an-object"),
-        ),
-      ).toCliMap(testGoalObservabilityEventValidator)
-    }
+    val error =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        WorkflowGetResult.Ok(
+          workflowId = "wfl-1",
+          dbPath = "/tmp/metrics.db",
+          snapshot =
+            snapshotWithObservability(
+              event = snapshotWithObservabilityEvent() + ("changed_file_summary" to "not-an-object"),
+            ),
+        ).toCliMap(testGoalObservabilityEventValidator)
+      }
 
     assertEquals("changed_file_summary", error.fieldPath)
   }
 
   @Test
   fun `workflow mapper loud-fails malformed optional goal observability arrays`() {
-    val changedFilesError = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      WorkflowGetResult.Ok(
-        workflowId = "wfl-1",
-        dbPath = "/tmp/metrics.db",
-        snapshot = snapshotWithObservability(
-          event = snapshotWithObservabilityEvent() + ("changed_files" to listOf(123)),
-        ),
-      ).toCliMap(testGoalObservabilityEventValidator)
-    }
+    val changedFilesError =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        WorkflowGetResult.Ok(
+          workflowId = "wfl-1",
+          dbPath = "/tmp/metrics.db",
+          snapshot =
+            snapshotWithObservability(
+              event = snapshotWithObservabilityEvent() + ("changed_files" to listOf(123)),
+            ),
+        ).toCliMap(testGoalObservabilityEventValidator)
+      }
     assertEquals("changed_files[0]", changedFilesError.fieldPath)
 
-    val samplePathsError = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      WorkflowGetResult.Ok(
-        workflowId = "wfl-1",
-        dbPath = "/tmp/metrics.db",
-        snapshot = snapshotWithObservability(
-          event = snapshotWithObservabilityEvent() + (
-            "changed_file_summary" to mapOf(
-              "total" to 1,
-              "added" to 0,
-              "modified" to 1,
-              "deleted" to 0,
-              "renamed" to 0,
-              "untracked" to 0,
-              "sample_paths" to "not-an-array",
-            )
+    val samplePathsError =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        WorkflowGetResult.Ok(
+          workflowId = "wfl-1",
+          dbPath = "/tmp/metrics.db",
+          snapshot =
+            snapshotWithObservability(
+              event =
+                snapshotWithObservabilityEvent() + (
+                  "changed_file_summary" to
+                    mapOf(
+                      "total" to 1,
+                      "added" to 0,
+                      "modified" to 1,
+                      "deleted" to 0,
+                      "renamed" to 0,
+                      "untracked" to 0,
+                      "sample_paths" to "not-an-array",
+                    )
+                ),
             ),
-        ),
-      ).toCliMap(testGoalObservabilityEventValidator)
-    }
+        ).toCliMap(testGoalObservabilityEventValidator)
+      }
     assertEquals("changed_file_summary.sample_paths", samplePathsError.fieldPath)
   }
 
   @Test
   fun `workflow mapper loud-fails schema-invalid scalar coercion`() {
-    val issueKeyError = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      WorkflowGetResult.Ok(
-        workflowId = "wfl-1",
-        dbPath = "/tmp/metrics.db",
-        snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("issue_key" to 61)),
-      ).toCliMap(testGoalObservabilityEventValidator)
-    }
+    val issueKeyError =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        WorkflowGetResult.Ok(
+          workflowId = "wfl-1",
+          dbPath = "/tmp/metrics.db",
+          snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("issue_key" to 61)),
+        ).toCliMap(testGoalObservabilityEventValidator)
+      }
     assertEquals("issue_key", issueKeyError.fieldPath)
 
-    val subtaskIdError = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      WorkflowGetResult.Ok(
-        workflowId = "wfl-1",
-        dbPath = "/tmp/metrics.db",
-        snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("subtask_id" to "1")),
-      ).toCliMap(testGoalObservabilityEventValidator)
-    }
+    val subtaskIdError =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        WorkflowGetResult.Ok(
+          workflowId = "wfl-1",
+          dbPath = "/tmp/metrics.db",
+          snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("subtask_id" to "1")),
+        ).toCliMap(testGoalObservabilityEventValidator)
+      }
     assertEquals("subtask_id", subtaskIdError.fieldPath)
 
-    val timestampError = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      WorkflowGetResult.Ok(
-        workflowId = "wfl-1",
-        dbPath = "/tmp/metrics.db",
-        snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("timestamp" to 20260601)),
-      ).toCliMap(testGoalObservabilityEventValidator)
-    }
+    val timestampError =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        WorkflowGetResult.Ok(
+          workflowId = "wfl-1",
+          dbPath = "/tmp/metrics.db",
+          snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("timestamp" to 20260601)),
+        ).toCliMap(testGoalObservabilityEventValidator)
+      }
     assertEquals("timestamp", timestampError.fieldPath)
   }
 
   @Test
   fun `workflow mapper loud-fails schema-only invalid heavy goal observability fields`() {
-    val error = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      WorkflowGetResult.Ok(
-        workflowId = "wfl-1",
-        dbPath = "/tmp/metrics.db",
-        snapshot = snapshotWithObservability(
-          event = snapshotWithObservabilityEvent() + ("changed_files" to List(501) { "file-$it.kt" }),
-        ),
-      ).toCliMap(testGoalObservabilityEventValidator)
-    }
+    val error =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        WorkflowGetResult.Ok(
+          workflowId = "wfl-1",
+          dbPath = "/tmp/metrics.db",
+          snapshot =
+            snapshotWithObservability(
+              event = snapshotWithObservabilityEvent() + ("changed_files" to List(501) { "file-$it.kt" }),
+            ),
+        ).toCliMap(testGoalObservabilityEventValidator)
+      }
 
     assertEquals("changed_files", error.fieldPath)
   }
 
   private fun snapshotWithObservability(
     event: Map<String, Any?> = snapshotWithObservabilityEvent(),
-  ): WorkflowSnapshotView = WorkflowSnapshotView(
-    workflowId = "wfl-1",
-    sessionId = "fis-1",
-    workflowName = "bill-feature-task",
-    contractVersion = "0.1",
-    workflowStatus = WorkflowStatus.RUNNING,
-    currentStepId = "implement",
-    steps = listOf(WorkflowStepState("implement", WorkflowStepStatus.RUNNING, 1)),
-    artifacts = DurableWorkflowArtifacts.fromMap(
-      mapOf(
-        "goal_observability_latest_event" to event,
-      ),
-    ),
-    startedAt = "2026-06-01 00:00:00",
-    updatedAt = "2026-06-01 00:00:00",
-    finishedAt = "",
-  )
+  ): WorkflowSnapshotView =
+    WorkflowSnapshotView(
+      workflowId = "wfl-1",
+      sessionId = "fis-1",
+      workflowName = "bill-feature-task",
+      contractVersion = "0.1",
+      workflowStatus = WorkflowStatus.RUNNING,
+      currentStepId = "implement",
+      steps = listOf(WorkflowStepState("implement", WorkflowStepStatus.RUNNING, 1)),
+      artifacts =
+        DurableWorkflowArtifacts.fromMap(
+          mapOf(
+            "goal_observability_latest_event" to event,
+          ),
+        ),
+      startedAt = "2026-06-01 00:00:00",
+      updatedAt = "2026-06-01 00:00:00",
+      finishedAt = "",
+    )
 
-  private fun snapshotWithObservabilityEvent(): Map<String, Any?> = mapOf(
-    "contract_version" to "0.2",
-    "issue_key" to "SKILL-61",
-    "subtask_id" to 1,
-    "workflow_phase" to "implement",
-    "worker_role" to "phase_subagent",
-    "liveness_class" to "durable_progress",
-    "activity_summary" to "editing",
-    "sequence_number" to 1,
-    "timestamp" to "2026-06-01T00:00:00Z",
-    "changed_files" to listOf("heavy.kt"),
-  )
+  private fun snapshotWithObservabilityEvent(): Map<String, Any?> =
+    mapOf(
+      "contract_version" to "0.2",
+      "issue_key" to "SKILL-61",
+      "subtask_id" to 1,
+      "workflow_phase" to "implement",
+      "worker_role" to "phase_subagent",
+      "liveness_class" to "durable_progress",
+      "activity_summary" to "editing",
+      "sequence_number" to 1,
+      "timestamp" to "2026-06-01T00:00:00Z",
+      "changed_files" to listOf("heavy.kt"),
+    )
 
   private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
     object : GoalObservabilityEventValidator {
-      override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
+      override fun validate(
+        kind: FeatureTaskRuntimeWireArtifactKind,
+        payload: Any,
+        sourceLabel: String,
+      ) {
         GoalObservabilityEventSchemaValidator.validate(
           requireNotNull(JsonCodec.anyToStringAnyMap(payload)),
           sourceLabel,
@@ -363,7 +399,10 @@ class WorkflowCliResultMappersTest {
     }
 
   private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
-    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
   }
 }
 

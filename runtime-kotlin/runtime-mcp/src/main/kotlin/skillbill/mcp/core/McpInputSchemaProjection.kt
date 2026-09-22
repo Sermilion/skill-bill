@@ -12,21 +12,24 @@ import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import skillbill.mcp.shared.McpProtocolFramer
 import skillbill.mcp.telemetry.TelemetryEventSchemaValidator
+
 internal object McpInputSchemaProjection {
   private val mapper: ObjectMapper = ObjectMapper()
 
   fun projectedInputSchema(toolName: String): Map<String, Any?> {
     val branch = branchForTool(toolName)
-    val defs = TelemetryEventSchemaValidator.canonicalSchemaDocument()
-      .path(McpProtocolFramer.SCHEMA_DEFS_KEY)
+    val defs =
+      TelemetryEventSchemaValidator.canonicalSchemaDocument()
+        .path(McpProtocolFramer.SCHEMA_DEFS_KEY)
     val inlined = inlineLocalRefs(branch.deepCopy(), defs)
     val stripped = stripAdvertisementEnvelope(inlined, toolName)
     return jsonObjectToMap(stripRuntimeOnlyEnumValues(stripped, toolName))
   }
 
   private fun branchForTool(toolName: String): JsonNode {
-    val defs = TelemetryEventSchemaValidator.canonicalSchemaDocument()
-      .path(McpProtocolFramer.SCHEMA_DEFS_KEY)
+    val defs =
+      TelemetryEventSchemaValidator.canonicalSchemaDocument()
+        .path(McpProtocolFramer.SCHEMA_DEFS_KEY)
     if (!defs.isObject) {
       throw InvalidTelemetryEventSchemaError(
         fieldPath = McpProtocolFramer.SCHEMA_DEFS_KEY,
@@ -35,10 +38,11 @@ internal object McpInputSchemaProjection {
       )
     }
     defs.fields().forEach { (_, defNode) ->
-      val eventName = defNode.path(McpProtocolFramer.SCHEMA_PROPERTIES_KEY)
-        .path(McpToolPayloadKeys.EVENT_NAME)
-        .path(McpProtocolFramer.SCHEMA_CONST_KEY)
-        .asText("")
+      val eventName =
+        defNode.path(McpProtocolFramer.SCHEMA_PROPERTIES_KEY)
+          .path(McpToolPayloadKeys.EVENT_NAME)
+          .path(McpProtocolFramer.SCHEMA_CONST_KEY)
+          .asText("")
       if (eventName == toolName) {
         return defNode
       }
@@ -50,7 +54,10 @@ internal object McpInputSchemaProjection {
     )
   }
 
-  private fun stripAdvertisementEnvelope(branch: JsonNode, toolName: String): ObjectNode {
+  private fun stripAdvertisementEnvelope(
+    branch: JsonNode,
+    toolName: String,
+  ): ObjectNode {
     val copy = branch.deepCopy() as ObjectNode
     val properties = copy.path(McpProtocolFramer.SCHEMA_PROPERTIES_KEY)
     if (!properties.isObject) {
@@ -85,7 +92,10 @@ internal object McpInputSchemaProjection {
     return envelopeKeys
   }
 
-  private fun stripRuntimeOnlyEnumValues(branch: ObjectNode, toolName: String): ObjectNode {
+  private fun stripRuntimeOnlyEnumValues(
+    branch: ObjectNode,
+    toolName: String,
+  ): ObjectNode {
     val propertyName: String
     val allowedValues: List<String>
     when (toolName) {
@@ -119,7 +129,10 @@ internal object McpInputSchemaProjection {
     return branch
   }
 
-  private fun inlineLocalRefs(node: JsonNode, defs: JsonNode): JsonNode {
+  private fun inlineLocalRefs(
+    node: JsonNode,
+    defs: JsonNode,
+  ): JsonNode {
     if (node.isObject) {
       val ref = node.path(McpProtocolFramer.SCHEMA_REF_KEY)
       if (!ref.isMissingNode && ref.isTextual) {

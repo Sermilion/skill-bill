@@ -16,11 +16,12 @@ enum class GoalRunnerTerminalStatus(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalRunnerTerminalStatus? = when (value) {
-      "complete", "completed" -> COMPLETE
-      "timeout", "timed_out" -> TIMEOUT
-      else -> entries.firstOrNull { it.wireValue == value }
-    }
+    fun fromWire(value: String): GoalRunnerTerminalStatus? =
+      when (value) {
+        "complete", "completed" -> COMPLETE
+        "timeout", "timed_out" -> TIMEOUT
+        else -> entries.firstOrNull { it.wireValue == value }
+      }
   }
 }
 
@@ -42,7 +43,6 @@ enum class GoalRunnerStopReason {
   ;
 
   companion object {
-
     val RESUMABLE_STOP_REASONS = setOf(RECONCILED_RESUMABLE, AWAITING_OPERATOR_DECISION, PAUSED)
   }
 }
@@ -85,7 +85,9 @@ enum class GoalRunnerSubtaskAction {
 
 sealed interface GoalRunnerSelection {
   data class Run(val decision: GoalRunnerSubtaskDecision) : GoalRunnerSelection
+
   data class Blocked(val subtask: DecompositionSubtask, val reason: String) : GoalRunnerSelection
+
   data object Done : GoalRunnerSelection
 }
 

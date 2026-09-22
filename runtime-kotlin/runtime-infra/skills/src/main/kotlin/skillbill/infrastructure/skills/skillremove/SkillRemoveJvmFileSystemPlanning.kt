@@ -42,7 +42,10 @@ internal class SkillRemoveJvmFileSystemPlanning(
     }
   }
 
-  fun resolveCascadeFilesystemPaths(request: SkillRemovalRequest, cascadedSkillNames: List<String>): List<String> =
+  fun resolveCascadeFilesystemPaths(
+    request: SkillRemovalRequest,
+    cascadedSkillNames: List<String>,
+  ): List<String> =
     when (val target = request.target) {
       is SkillRemovalTarget.HorizontalSkill -> horizontalCascadePaths(skillRemoveRepoRoot(request), cascadedSkillNames)
       is SkillRemovalTarget.PlatformPack -> platformPackCascadePaths(skillRemoveRepoRoot(request), target.platform)
@@ -56,7 +59,10 @@ internal class SkillRemoveJvmFileSystemPlanning(
       }
     }
 
-  fun planManifestEdits(request: SkillRemovalRequest, cascadedSkillNames: List<String>): List<ManifestEdit> {
+  fun planManifestEdits(
+    request: SkillRemovalRequest,
+    cascadedSkillNames: List<String>,
+  ): List<ManifestEdit> {
     require(cascadedSkillNames.size >= 0)
     return when (val target = request.target) {
       is SkillRemovalTarget.HorizontalSkill -> horizontalManifestEdits(skillRemoveRepoRoot(request), target.skillName)
@@ -69,14 +75,15 @@ internal class SkillRemoveJvmFileSystemPlanning(
   fun planAgentSymlinkUnlinks(
     request: SkillRemovalRequest,
     cascadedSkillNames: List<String>,
-  ): List<AgentSymlinkUnlink> = when (val target = request.target) {
-    is SkillRemovalTarget.HorizontalSkill ->
-      agentUnlinksForSkills(request, cascadedSkillNames)
-    is SkillRemovalTarget.PlatformPack ->
-      agentUnlinksForPlatform(request, target.platform)
-    is SkillRemovalTarget.AddOn -> emptyList()
-    is SkillRemovalTarget.ExternalAddOn -> emptyList()
-  }
+  ): List<AgentSymlinkUnlink> =
+    when (val target = request.target) {
+      is SkillRemovalTarget.HorizontalSkill ->
+        agentUnlinksForSkills(request, cascadedSkillNames)
+      is SkillRemovalTarget.PlatformPack ->
+        agentUnlinksForPlatform(request, target.platform)
+      is SkillRemovalTarget.AddOn -> emptyList()
+      is SkillRemovalTarget.ExternalAddOn -> emptyList()
+    }
 
   fun planReadmeCatalogEdits(request: SkillRemovalRequest): List<ReadmeCatalogEdit> {
     val target = request.target

@@ -23,8 +23,11 @@ const val FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE: String = "refs/skill-bi
 
 private const val CHECKPOINT_REF_PREFIX: String = FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
 
-fun featureTaskRuntimeCheckpointRefName(issueKey: String, subtaskId: String, sequenceNumber: Int): String =
-  "$CHECKPOINT_REF_PREFIX/$issueKey/$subtaskId/$sequenceNumber"
+fun featureTaskRuntimeCheckpointRefName(
+  issueKey: String,
+  subtaskId: String,
+  sequenceNumber: Int,
+): String = "$CHECKPOINT_REF_PREFIX/$issueKey/$subtaskId/$sequenceNumber"
 
 data class FeatureTaskRuntimeCheckpointIdentity(
   val sequenceNumber: Int,
@@ -80,22 +83,24 @@ data class FeatureTaskRuntimeCheckpointIdentity(
     }
     loopId?.let { id -> require(id.isNotBlank()) { "FeatureTaskRuntimeCheckpointIdentity.loopId must be non-blank." } }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    "sequence_number" to sequenceNumber,
-    SharedPayloadKeys.ISSUE_KEY to issueKey,
-    SharedPayloadKeys.SUBTASK_ID to subtaskId,
-    "checkpoint_ref" to checkpointRef,
-    DecompositionPlanningPayloadKeys.BRANCH to branch,
-    SharedPayloadKeys.PHASE_ID to phaseId,
-    "generation" to generation,
-    "owned_path_digest" to ownedPathDigest,
-    "owned_path_count" to ownedPathCount,
-    DecompositionManifestPayloadKeys.COMMIT_SHA to commitSha,
-    "recorded_at" to recordedAt,
-  ).apply {
-    loopId?.let { put("loop_id", it) }
-    parentSha?.let { put("parent_sha", it) }
-  }
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      "sequence_number" to sequenceNumber,
+      SharedPayloadKeys.ISSUE_KEY to issueKey,
+      SharedPayloadKeys.SUBTASK_ID to subtaskId,
+      "checkpoint_ref" to checkpointRef,
+      DecompositionPlanningPayloadKeys.BRANCH to branch,
+      SharedPayloadKeys.PHASE_ID to phaseId,
+      "generation" to generation,
+      "owned_path_digest" to ownedPathDigest,
+      "owned_path_count" to ownedPathCount,
+      DecompositionManifestPayloadKeys.COMMIT_SHA to commitSha,
+      "recorded_at" to recordedAt,
+    ).apply {
+      loopId?.let { put("loop_id", it) }
+      parentSha?.let { put("parent_sha", it) }
+    }
 
   companion object {
     private val DIGEST_PATTERN = Regex("^[0-9a-f]{64}$")
@@ -105,21 +110,22 @@ data class FeatureTaskRuntimeCheckpointIdentity(
       Regex("^$CHECKPOINT_REF_PREFIX/.+/($FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID|[0-9]+)/[0-9]+$")
     private const val CHECKPOINT_REF_MAX_LENGTH: Int = 255
 
-    private val ALLOWED_FIELDS = setOf(
-      "sequence_number",
-      SharedPayloadKeys.ISSUE_KEY,
-      SharedPayloadKeys.SUBTASK_ID,
-      "checkpoint_ref",
-      DecompositionPlanningPayloadKeys.BRANCH,
-      SharedPayloadKeys.PHASE_ID,
-      "generation",
-      "owned_path_digest",
-      "owned_path_count",
-      DecompositionManifestPayloadKeys.COMMIT_SHA,
-      "recorded_at",
-      "loop_id",
-      "parent_sha",
-    )
+    private val ALLOWED_FIELDS =
+      setOf(
+        "sequence_number",
+        SharedPayloadKeys.ISSUE_KEY,
+        SharedPayloadKeys.SUBTASK_ID,
+        "checkpoint_ref",
+        DecompositionPlanningPayloadKeys.BRANCH,
+        SharedPayloadKeys.PHASE_ID,
+        "generation",
+        "owned_path_digest",
+        "owned_path_count",
+        DecompositionManifestPayloadKeys.COMMIT_SHA,
+        "recorded_at",
+        "loop_id",
+        "parent_sha",
+      )
 
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeCheckpointIdentity {
       val unexpected = raw.keys - ALLOWED_FIELDS
@@ -158,23 +164,27 @@ data class FeatureTaskRuntimeCheckpointIdentity(
 fun featureTaskRuntimeOwnedPathDigest(ownedPaths: List<String>): String {
   val normalized = ownedPaths.filter(String::isNotBlank).distinct().sorted()
   val digest = MessageDigest.getInstance("SHA-256")
-  val framed = normalized.joinToString(OWNED_PATH_DIGEST_DELIMITER.toString()) { path ->
-    "${path.length}:$path"
-  }
+  val framed =
+    normalized.joinToString(OWNED_PATH_DIGEST_DELIMITER.toString()) { path ->
+      "${path.length}:$path"
+    }
   digest.update(framed.toByteArray())
   return digest.digest().joinToString("") { "%02x".format(it) }
 }
+
 internal fun featureTaskRuntimeCheckpointIdentitiesToArtifact(
   identities: List<FeatureTaskRuntimeCheckpointIdentity>,
-): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION,
-  "checkpoints" to identities.map { it.toArtifactMap() },
-)
+): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION,
+    "checkpoints" to identities.map { it.toArtifactMap() },
+  )
 
 internal fun featureTaskRuntimeCheckpointIdentitiesFromArtifact(raw: Any?): List<FeatureTaskRuntimeCheckpointIdentity> {
   if (raw == null) return emptyList()
-  val map = JsonCodec.anyToStringAnyMap(raw)
-    ?: checkpointIdentityError("Feature-task-runtime checkpoint-identity record must be an object.")
+  val map =
+    JsonCodec.anyToStringAnyMap(raw)
+      ?: checkpointIdentityError("Feature-task-runtime checkpoint-identity record must be an object.")
   val version = map[SharedPayloadKeys.CONTRACT_VERSION] as? String
   if (version != FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION) {
     throw InvalidFeatureTaskRuntimeCheckpointIdentityVersionError(
@@ -182,16 +192,18 @@ internal fun featureTaskRuntimeCheckpointIdentitiesFromArtifact(raw: Any?): List
       actualContractVersion = version.orEmpty(),
     )
   }
-  val checkpoints = map["checkpoints"] as? List<*>
-    ?: checkpointIdentityError(
-      "Feature-task-runtime checkpoint-identity record must carry a 'checkpoints' array.",
-    )
-  val decoded = checkpoints.map { entry ->
-    FeatureTaskRuntimeCheckpointIdentity.fromArtifactMap(
-      JsonCodec.anyToStringAnyMap(entry)
-        ?: checkpointIdentityError("Feature-task-runtime checkpoint-identity entry must be an object."),
-    )
-  }
+  val checkpoints =
+    map["checkpoints"] as? List<*>
+      ?: checkpointIdentityError(
+        "Feature-task-runtime checkpoint-identity record must carry a 'checkpoints' array.",
+      )
+  val decoded =
+    checkpoints.map { entry ->
+      FeatureTaskRuntimeCheckpointIdentity.fromArtifactMap(
+        JsonCodec.anyToStringAnyMap(entry)
+          ?: checkpointIdentityError("Feature-task-runtime checkpoint-identity entry must be an object."),
+      )
+    }
   val duplicateRefs = decoded.groupBy { it.checkpointRef }.filterValues { it.size > 1 }.keys
   if (duplicateRefs.isNotEmpty()) {
     checkpointIdentityError(

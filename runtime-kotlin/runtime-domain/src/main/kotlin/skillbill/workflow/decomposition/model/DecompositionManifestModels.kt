@@ -3,6 +3,7 @@ package skillbill.workflow.decomposition.model
 import skillbill.contracts.workflow.featuretask.DECOMPOSITION_MANIFEST_CONTRACT_VERSION
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
+
 enum class DecompositionExecutionModel(val wireValue: String) {
   SAME_BRANCH_COMMIT_PER_SUBTASK("same_branch_commit_per_subtask"),
   STACKED_BRANCHES("stacked_branches"),
@@ -38,12 +39,13 @@ data class DecompositionSubtask(
   val participatingAgentIds: List<String> = emptyList(),
   val dependencies: List<DecompositionDependency> = emptyList(),
 ) {
-  fun hasStarted(): Boolean = status.decompositionStatus() != DecompositionStatus.PENDING ||
-    branch != null ||
-    commitSha != null ||
-    workflowId != null ||
-    blockedReason != null ||
-    lastResumableStep != null
+  fun hasStarted(): Boolean =
+    status.decompositionStatus() != DecompositionStatus.PENDING ||
+      branch != null ||
+      commitSha != null ||
+      workflowId != null ||
+      blockedReason != null ||
+      lastResumableStep != null
 }
 
 data class DecompositionDependency(

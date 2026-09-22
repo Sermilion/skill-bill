@@ -15,7 +15,10 @@ class FileSystemReviewInputSource(
 
   private val resolvedContext = context.withProcessDefaults()
 
-  override fun readInput(inputPath: String, stdinText: String?): Pair<String, String?> {
+  override fun readInput(
+    inputPath: String,
+    stdinText: String?,
+  ): Pair<String, String?> {
     if (inputPath == "-") {
       require(stdinText != null) { "stdinText is required when inputPath is '-'." }
       return stdinText to null

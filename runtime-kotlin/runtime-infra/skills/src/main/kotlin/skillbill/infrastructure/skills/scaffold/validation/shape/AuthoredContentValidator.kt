@@ -6,10 +6,11 @@ import skillbill.scaffold.model.SkillClassManifest
 import java.nio.file.Path
 
 private val UNRESOLVED_PLACEHOLDER_PATTERN = Regex("""(?m)^\s*(?:[-*]\s*)?(?:TODO|FIXME)\b""")
-private val GOVERNED_SCAFFOLD_PROMPT_PATTERN = Regex(
-  """^\s*[-*]\s+TODO(?::|\s+rule\s+\d+\s+\()[^\n]*""" +
-    """(?:repository files|backticked repository-specific|mechanism for|failure ownership)[^\n]*$""",
-)
+private val GOVERNED_SCAFFOLD_PROMPT_PATTERN =
+  Regex(
+    """^\s*[-*]\s+TODO(?::|\s+rule\s+\d+\s+\()[^\n]*""" +
+      """(?:repository files|backticked repository-specific|mechanism for|failure ownership)[^\n]*$""",
+  )
 private val WRAPPER_BOILERPLATE_HEADING_PATTERN = Regex("""^##\s+(Descriptor|Execution|Ceremony)\s*$""")
 private val SELF_REFERENTIAL_CONTENT_POINTER_PATTERN =
   Regex("""Follow the instructions in\s+\[content\.md\]\(content\.md\)\.""", RegexOption.IGNORE_CASE)
@@ -44,7 +45,10 @@ private val GENERATED_SUPPORT_POINTER_PROSE_PATTERN =
     RegexOption.IGNORE_CASE,
   )
 
-internal fun validateAuthoredContent(contentFile: Path, text: String): List<String> {
+internal fun validateAuthoredContent(
+  contentFile: Path,
+  text: String,
+): List<String> {
   val body = markdownBodyAfterFrontmatter(text)
   val issues = mutableListOf<String>()
   val visibleLines = bodyVisibleLines(body)
@@ -63,9 +67,10 @@ internal fun validateAuthoredContent(contentFile: Path, text: String): List<Stri
       issues += "$contentFile: content.md must include authored guidance beyond the title heading"
     }
   }
-  val unresolvedPlaceholder = body.lineSequence().any { line ->
-    UNRESOLVED_PLACEHOLDER_PATTERN.containsMatchIn(line) && !GOVERNED_SCAFFOLD_PROMPT_PATTERN.matches(line)
-  }
+  val unresolvedPlaceholder =
+    body.lineSequence().any { line ->
+      UNRESOLVED_PLACEHOLDER_PATTERN.containsMatchIn(line) && !GOVERNED_SCAFFOLD_PROMPT_PATTERN.matches(line)
+    }
   if (unresolvedPlaceholder) {
     issues += "$contentFile: content.md contains an unresolved TODO/FIXME placeholder"
   }
@@ -109,11 +114,12 @@ private fun bodyVisibleLines(body: String): List<String> {
 }
 
 private fun guidanceLinesBeyondTitle(visibleLines: List<String>): List<String> {
-  val bodyAfterTitle = if (visibleLines.firstOrNull()?.let(TITLE_HEADING_PATTERN::matches) == true) {
-    visibleLines.drop(1)
-  } else {
-    visibleLines
-  }
+  val bodyAfterTitle =
+    if (visibleLines.firstOrNull()?.let(TITLE_HEADING_PATTERN::matches) == true) {
+      visibleLines.drop(1)
+    } else {
+      visibleLines
+    }
   return bodyAfterTitle.filterNot { line -> SELF_REFERENTIAL_CONTENT_POINTER_PATTERN.matches(line) }
 }
 
@@ -183,7 +189,10 @@ private fun generatedSupportPointerProse(body: String): List<String> {
   return phrases.toList()
 }
 
-private fun classSectionHeadingClashes(body: String, classHeadings: List<String>): List<String> {
+private fun classSectionHeadingClashes(
+  body: String,
+  classHeadings: List<String>,
+): List<String> {
   if (classHeadings.isEmpty()) return emptyList()
   val target = classHeadings.map { it.trim().lowercase() }.toSet()
   val seen = mutableSetOf<String>()

@@ -10,48 +10,52 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ReviewAttributionCanonicalizationTest {
-  private val packSkills = setOf(
-    "bill-code-review",
-    "bill-generic-code-review",
-    "bill-ios-code-review",
-    "bill-kmp-code-review",
-    "bill-kotlin-code-review",
-  )
+  private val packSkills =
+    setOf(
+      "bill-code-review",
+      "bill-generic-code-review",
+      "bill-ios-code-review",
+      "bill-kmp-code-review",
+      "bill-kotlin-code-review",
+    )
 
   @Test
   fun `observed routed skill prose variants collapse to one canonical pack id`() {
-    val observedVariants = listOf(
-      "bill-kmp-code-review",
-      "  bill-kmp-code-review  ",
-      "bill-kmp-code-review (parallel)",
-      "bill-kmp-code-review-persistence",
-      "Routed to bill-kmp-code-review for the KMP pack",
-      "skillbill:bill-kmp-code-review",
-      "bill-kmp-code-review — kmp platform pack",
-      "BILL-KMP-CODE-REVIEW",
-      "the review ran under bill-kmp-code-review.",
-      "bill-kmp-code-review [inline]",
-      "`bill-kmp-code-review`",
-      "bill-kmp-code-review-ui specialist",
-    )
+    val observedVariants =
+      listOf(
+        "bill-kmp-code-review",
+        "  bill-kmp-code-review  ",
+        "bill-kmp-code-review (parallel)",
+        "bill-kmp-code-review-persistence",
+        "Routed to bill-kmp-code-review for the KMP pack",
+        "skillbill:bill-kmp-code-review",
+        "bill-kmp-code-review — kmp platform pack",
+        "BILL-KMP-CODE-REVIEW",
+        "the review ran under bill-kmp-code-review.",
+        "bill-kmp-code-review [inline]",
+        "`bill-kmp-code-review`",
+        "bill-kmp-code-review-ui specialist",
+      )
 
-    val canonicals = observedVariants.map { raw ->
-      val resolved = resolveCanonicalRoutedSkill(raw, packSkills)
-      assertEquals(raw, resolved.raw, "The raw routed_skill text must be retained verbatim.")
-      resolved.canonical
-    }
+    val canonicals =
+      observedVariants.map { raw ->
+        val resolved = resolveCanonicalRoutedSkill(raw, packSkills)
+        assertEquals(raw, resolved.raw, "The raw routed_skill text must be retained verbatim.")
+        resolved.canonical
+      }
 
     assertEquals(setOf("bill-kmp-code-review"), canonicals.toSet())
   }
 
   @Test
   fun `composite and unknown routed skills are marked unresolved rather than bucketed`() {
-    val ambiguous = listOf(
-      "bill-kmp-code-review, bill-kotlin-code-review",
-      "`bill-kmp-code-review` and `bill-ios-code-review`",
-      "unknown routing",
-      "bill-rust-code-review",
-    )
+    val ambiguous =
+      listOf(
+        "bill-kmp-code-review, bill-kotlin-code-review",
+        "`bill-kmp-code-review` and `bill-ios-code-review`",
+        "unknown routing",
+        "bill-rust-code-review",
+      )
 
     ambiguous.forEach { raw ->
       val resolved = resolveCanonicalRoutedSkill(raw, packSkills)
@@ -79,9 +83,10 @@ class ReviewAttributionCanonicalizationTest {
 
   @Test
   fun `a malformed vocabulary entry raises the typed resolver contract failure`() {
-    val failure = assertFailsWith<ReviewAttributionResolutionError.MalformedVocabulary> {
-      resolveCanonicalRoutedSkill("bill-kmp-code-review", setOf("Bill KMP Code Review"))
-    }
+    val failure =
+      assertFailsWith<ReviewAttributionResolutionError.MalformedVocabulary> {
+        resolveCanonicalRoutedSkill("bill-kmp-code-review", setOf("Bill KMP Code Review"))
+      }
 
     assertEquals("bill-kmp-code-review", failure.rawValue)
     assertEquals("pack_skill_names", failure.vocabulary)
@@ -113,15 +118,16 @@ class ReviewAttributionCanonicalizationTest {
 
   @Test
   fun `each scope vocabulary member resolves from prose with the remainder kept as detail`() {
-    val cases = mapOf(
-      "working tree" to CanonicalScope.WORKING_TREE,
-      "unstaged changes (3 files)" to CanonicalScope.WORKING_TREE,
-      "staged changes (index)" to CanonicalScope.STAGED,
-      "commit range (main..HEAD)" to CanonicalScope.COMMIT_RANGE,
-      "branch diff (feat/x)" to CanonicalScope.COMMIT_RANGE,
-      "pull request (#204)" to CanonicalScope.PULL_REQUEST,
-      "repository (full sweep)" to CanonicalScope.OTHER,
-    )
+    val cases =
+      mapOf(
+        "working tree" to CanonicalScope.WORKING_TREE,
+        "unstaged changes (3 files)" to CanonicalScope.WORKING_TREE,
+        "staged changes (index)" to CanonicalScope.STAGED,
+        "commit range (main..HEAD)" to CanonicalScope.COMMIT_RANGE,
+        "branch diff (feat/x)" to CanonicalScope.COMMIT_RANGE,
+        "pull request (#204)" to CanonicalScope.PULL_REQUEST,
+        "repository (full sweep)" to CanonicalScope.OTHER,
+      )
 
     cases.forEach { (raw, expected) ->
       val resolved = resolveCanonicalScope(raw)
@@ -135,17 +141,18 @@ class ReviewAttributionCanonicalizationTest {
 
   @Test
   fun `every governed review-scope label from code-review-shell resolves`() {
-    val cases = mapOf(
-      "staged changes" to CanonicalScope.STAGED,
-      "unstaged changes" to CanonicalScope.WORKING_TREE,
-      "working tree" to CanonicalScope.WORKING_TREE,
-      "commit range" to CanonicalScope.COMMIT_RANGE,
-      "PR diff" to CanonicalScope.PULL_REQUEST,
-      "files" to CanonicalScope.OTHER,
-      "PR diff (origin/main...HEAD)" to CanonicalScope.PULL_REQUEST,
-      "PR diff (acme/acme-android#2981)" to CanonicalScope.PULL_REQUEST,
-      "PR diff #237 (main...a5db414a)" to CanonicalScope.PULL_REQUEST,
-    )
+    val cases =
+      mapOf(
+        "staged changes" to CanonicalScope.STAGED,
+        "unstaged changes" to CanonicalScope.WORKING_TREE,
+        "working tree" to CanonicalScope.WORKING_TREE,
+        "commit range" to CanonicalScope.COMMIT_RANGE,
+        "PR diff" to CanonicalScope.PULL_REQUEST,
+        "files" to CanonicalScope.OTHER,
+        "PR diff (origin/main...HEAD)" to CanonicalScope.PULL_REQUEST,
+        "PR diff (acme/acme-android#2981)" to CanonicalScope.PULL_REQUEST,
+        "PR diff #237 (main...a5db414a)" to CanonicalScope.PULL_REQUEST,
+      )
 
     cases.forEach { (raw, expected) ->
       assertEquals(expected.wireValue, resolveCanonicalScope(raw).canonical, "raw='$raw'")

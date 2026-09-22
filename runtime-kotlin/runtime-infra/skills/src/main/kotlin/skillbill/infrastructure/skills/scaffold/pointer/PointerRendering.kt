@@ -5,7 +5,11 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 
-fun renderPointer(repoRoot: Path, packRoot: Path, spec: PointerSpec): String {
+fun renderPointer(
+  repoRoot: Path,
+  packRoot: Path,
+  spec: PointerSpec,
+): String {
   val resolvedRepoRoot = repoRoot.toAbsolutePath().normalize()
   val resolvedPackRoot = packRoot.toAbsolutePath().normalize()
   val pointerDir = resolvedPackRoot.resolve(spec.skillRelativeDir).normalize()

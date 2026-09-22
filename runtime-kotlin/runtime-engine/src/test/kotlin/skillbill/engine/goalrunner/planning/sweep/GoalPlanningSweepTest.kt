@@ -115,19 +115,23 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+
 class GoalPlanningSweepMigrateTest {
   @Test
   fun `migrate projects 0_1 packets with platform_packs to the current version`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
-    val legacy = legacyV01Packet(
-      subtasks,
-      platformPacks = mapOf(
-        "platform-packs/kotlin/platform.yaml" to
-          "routing_signals: [kotlin]\ndeclared_code_review_areas: [architecture]\n",
-      ),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
+    val legacy =
+      legacyV01Packet(
+        subtasks,
+        platformPacks =
+          mapOf(
+            "platform-packs/kotlin/platform.yaml" to
+              "routing_signals: [kotlin]\ndeclared_code_review_areas: [architecture]\n",
+          ),
+      )
 
     val migrated = GoalPlanningSharedContextPacket.migrate(legacy)
 
@@ -150,17 +154,20 @@ class GoalPlanningSweepMigrateTest {
 
   @Test
   fun `migrate discards legacy prefix boundary memory from recovered 0_2 packets`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
-    val legacy = legacyV02Packet(
-      subtasks,
-      boundaryMemory = mapOf(
-        "platform-packs/kmp/agent/history.md" to "pack history",
-        "platform-packs/kotlin/agent/decisions.md" to "pack decision",
-        "runtime-kotlin/runtime-application/agent/history.md" to "module history",
-      ),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
+    val legacy =
+      legacyV02Packet(
+        subtasks,
+        boundaryMemory =
+          mapOf(
+            "platform-packs/kmp/agent/history.md" to "pack history",
+            "platform-packs/kotlin/agent/decisions.md" to "pack decision",
+            "runtime-kotlin/runtime-application/agent/history.md" to "module history",
+          ),
+      )
 
     val migrated = GoalPlanningSharedContextPacket.migrate(legacy)
 
@@ -181,30 +188,35 @@ class GoalPlanningSweepMigrateTest {
 
   @Test
   fun `migrate rejects tampered 0_2 integrity and unsupported versions`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
     val legacy = legacyV02Packet(subtasks, boundaryMemory = emptyMap())
 
-    val tampered = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
-      GoalPlanningSharedContextPacket.migrate(legacy + ("integrity_sha256" to "not-a-real-digest"))
-    }
+    val tampered =
+      assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
+        GoalPlanningSharedContextPacket.migrate(legacy + ("integrity_sha256" to "not-a-real-digest"))
+      }
     assertContains(tampered.message.orEmpty(), "integrity is invalid")
 
-    val unsupported = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
-      GoalPlanningSharedContextPacket.migrate(legacy + ("packet_version" to "0.9"))
-    }
+    val unsupported =
+      assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
+        GoalPlanningSharedContextPacket.migrate(legacy + ("packet_version" to "0.9"))
+      }
     assertContains(unsupported.message.orEmpty(), "unsupported")
   }
 
   @Test
   fun `migrate projects 0_1 packets with empty platform_packs to the current version`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
-    val migrated = GoalPlanningSharedContextPacket.migrate(
-      legacyV01Packet(subtasks, platformPacks = emptyMap()),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
+    val migrated =
+      GoalPlanningSharedContextPacket.migrate(
+        legacyV01Packet(subtasks, platformPacks = emptyMap()),
+      )
 
     assertFalse(migrated.containsKey("platform_packs"))
     GoalPlanningSharedContextPacket.validate(
@@ -218,20 +230,22 @@ class GoalPlanningSweepMigrateTest {
 
   @Test
   fun `validate rejects raw 0_1 packets without migrate`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
     val legacy = legacyV01Packet(subtasks, platformPacks = emptyMap())
 
-    val rawFailure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
-      GoalPlanningSharedContextPacket.validate(
-        packet = legacy,
-        repositoryIdentity = "repo-root-realpath-v1:/tmp/fixture",
-        normalizedIssueKey = "SKILL-172",
-        parentSpecPath = ".feature-specs/SKILL-172/spec.md",
-        subtasks = subtasks,
-      )
-    }
+    val rawFailure =
+      assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
+        GoalPlanningSharedContextPacket.validate(
+          packet = legacy,
+          repositoryIdentity = "repo-root-realpath-v1:/tmp/fixture",
+          normalizedIssueKey = "SKILL-172",
+          parentSpecPath = ".feature-specs/SKILL-172/spec.md",
+          subtasks = subtasks,
+        )
+      }
     assertTrue(
       rawFailure.message.orEmpty().contains("fields are invalid") ||
         rawFailure.message.orEmpty().contains("version is invalid"),
@@ -240,19 +254,22 @@ class GoalPlanningSweepMigrateTest {
 
   @Test
   fun `migrate rejects unknown versions and tampered 0_1 integrity`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
     val legacy = legacyV01Packet(subtasks, platformPacks = emptyMap())
 
-    val unknownFailure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
-      GoalPlanningSharedContextPacket.migrate(legacy + ("packet_version" to "0.0"))
-    }
+    val unknownFailure =
+      assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
+        GoalPlanningSharedContextPacket.migrate(legacy + ("packet_version" to "0.0"))
+      }
     assertContains(unknownFailure.message.orEmpty(), "unsupported")
 
-    val tamperedFailure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
-      GoalPlanningSharedContextPacket.migrate(legacy + ("integrity_sha256" to "not-a-real-digest"))
-    }
+    val tamperedFailure =
+      assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
+        GoalPlanningSharedContextPacket.migrate(legacy + ("integrity_sha256" to "not-a-real-digest"))
+      }
     assertContains(tamperedFailure.message.orEmpty(), "integrity is invalid")
   }
 
@@ -268,10 +285,11 @@ class GoalPlanningSweepMigrateTest {
           ("packet_version" to GoalPlanningSharedContextPacket.LEGACY_VERSION_0_1) +
           ("boundary_memory" to mapOf("runtime-kotlin/agent/history.md" to "legacy prefix excerpt")) +
           (
-            "platform_packs" to mapOf(
-              "platform-packs/kotlin/platform.yaml" to "routing_signals: [kotlin]\n",
-            )
-            )
+            "platform_packs" to
+              mapOf(
+                "platform-packs/kotlin/platform.yaml" to "routing_signals: [kotlin]\n",
+              )
+          )
       },
     )
 
@@ -295,13 +313,14 @@ class GoalPlanningSweepMigrateTest {
   @Test
   fun `preplan prose reaches the plan prompt`() {
     val prose = "Distinctive preplan prose for plan."
-    val harness = sweepHarness { phase, _, _ ->
-      if (phase == "preplan") {
-        launchFacts(stdout = preplanProsePayload(value = prose))
-      } else {
-        validPhaseOutcome(phase)
+    val harness =
+      sweepHarness { phase, _, _ ->
+        if (phase == "preplan") {
+          launchFacts(stdout = preplanProsePayload(value = prose))
+        } else {
+          validPhaseOutcome(phase)
+        }
       }
-    }
 
     harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -333,10 +352,11 @@ class GoalPlanningSweepMigrateTest {
         packet +
           ("packet_version" to GoalPlanningSharedContextPacket.LEGACY_VERSION_0_2) +
           (
-            "boundary_memory" to mapOf(
-              "platform-packs/kmp/agent/history.md" to "pack prefix excerpt",
-            )
-            )
+            "boundary_memory" to
+              mapOf(
+                "platform-packs/kmp/agent/history.md" to "pack prefix excerpt",
+              )
+          )
       },
     )
 
@@ -352,13 +372,15 @@ class GoalPlanningSweepMigrateTest {
 
   @Test
   fun `migrate discards legacy prefix boundary memory from recovered 0_3 packets`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
-    val legacy = legacyV03Packet(
-      subtasks,
-      boundaryMemory = mapOf("runtime-kotlin/agent/history.md" to "legacy prefix excerpt"),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
+    val legacy =
+      legacyV03Packet(
+        subtasks,
+        boundaryMemory = mapOf("runtime-kotlin/agent/history.md" to "legacy prefix excerpt"),
+      )
 
     val migrated = GoalPlanningSharedContextPacket.migrate(legacy)
 
@@ -379,9 +401,10 @@ class GoalPlanningSweepMigrateTest {
 
   @Test
   fun `validate rejects a malformed duplicated or oversized 0_4 catalog`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
     val base = GoalPlanningSharedContextPacket.migrate(legacyV03Packet(subtasks, boundaryMemory = emptyMap()))
 
     fun rejects(catalog: Map<String, Any?>): String {
@@ -398,12 +421,13 @@ class GoalPlanningSweepMigrateTest {
       }.message.orEmpty()
     }
 
-    val entry = linkedMapOf<String, Any?>(
-      "heading_id" to FIXTURE_HEADING_ID,
-      "source_path" to "runtime-kotlin/agent/history.md",
-      "kind" to "history",
-      "heading" to FIXTURE_HEADING,
-    )
+    val entry =
+      linkedMapOf<String, Any?>(
+        "heading_id" to FIXTURE_HEADING_ID,
+        "source_path" to "runtime-kotlin/agent/history.md",
+        "kind" to "history",
+        "heading" to FIXTURE_HEADING,
+      )
     assertContains(rejects(linkedMapOf("catalog" to listOf(entry - "kind"), "truncated" to false)), "invalid")
     assertContains(
       rejects(linkedMapOf("catalog" to listOf(entry, entry), "truncated" to false)),
@@ -412,9 +436,10 @@ class GoalPlanningSweepMigrateTest {
     assertContains(
       rejects(
         linkedMapOf(
-          "catalog" to (0..GoalPlanningContext.MAX_CATALOG_HEADINGS).map { index ->
-            entry + ("heading_id" to "runtime-kotlin/agent/history.md#$index-000000000000")
-          },
+          "catalog" to
+            (0..GoalPlanningContext.MAX_CATALOG_HEADINGS).map { index ->
+              entry + ("heading_id" to "runtime-kotlin/agent/history.md#$index-000000000000")
+            },
           "truncated" to false,
         ),
       ),
@@ -426,46 +451,55 @@ class GoalPlanningSweepMigrateTest {
 class GoalPlanningSweepPromptTest {
   @Test
   fun `migrate refuses to re-sign a tampered packet while dropping excluded entries`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
     val base = GoalPlanningSharedContextPacket.migrate(legacyV03Packet(subtasks, boundaryMemory = emptyMap()))
-    val excluded = linkedMapOf<String, Any?>(
-      "heading_id" to "platform-packs/kmp/agent/history.md#0-000000000000",
-      "source_path" to "platform-packs/kmp/agent/history.md",
-      "kind" to "history",
-      "heading" to FIXTURE_HEADING,
-    )
-    val body = (base - "integrity_sha256") +
-      ("boundary_memory" to linkedMapOf("catalog" to listOf(excluded), "truncated" to false))
+    val excluded =
+      linkedMapOf<String, Any?>(
+        "heading_id" to "platform-packs/kmp/agent/history.md#0-000000000000",
+        "source_path" to "platform-packs/kmp/agent/history.md",
+        "kind" to "history",
+        "heading" to FIXTURE_HEADING,
+      )
+    val body =
+      (base - "integrity_sha256") +
+        ("boundary_memory" to linkedMapOf("catalog" to listOf(excluded), "truncated" to false))
     val signed = body + ("integrity_sha256" to GoalPlanningSharedContextPacket.digest(body))
     val tampered = signed + ("validation_guidance" to "injected guidance the digest never covered")
 
-    val failure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
-      GoalPlanningSharedContextPacket.migrate(tampered)
-    }
+    val failure =
+      assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
+        GoalPlanningSharedContextPacket.migrate(tampered)
+      }
 
     assertContains(failure.message.orEmpty(), "integrity is invalid")
   }
 
   @Test
   fun `migrate drops newly excluded catalog entries instead of blocking the resume`() {
-    val subtasks = listOf(
-      DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(id = 1, name = "planning-context-discovery", specPath = "spec_subtask_1.md"),
+      )
     val base = GoalPlanningSharedContextPacket.migrate(legacyV03Packet(subtasks, boundaryMemory = emptyMap()))
-    val kept = linkedMapOf<String, Any?>(
-      "heading_id" to FIXTURE_HEADING_ID,
-      "source_path" to "runtime-kotlin/agent/history.md",
-      "kind" to "history",
-      "heading" to FIXTURE_HEADING,
-    )
-    val excluded = kept + mapOf(
-      "heading_id" to "platform-packs/kmp/agent/history.md#0-000000000000",
-      "source_path" to "platform-packs/kmp/agent/history.md",
-    )
-    val body = (base - "integrity_sha256") +
-      ("boundary_memory" to linkedMapOf("catalog" to listOf(kept, excluded), "truncated" to false))
+    val kept =
+      linkedMapOf<String, Any?>(
+        "heading_id" to FIXTURE_HEADING_ID,
+        "source_path" to "runtime-kotlin/agent/history.md",
+        "kind" to "history",
+        "heading" to FIXTURE_HEADING,
+      )
+    val excluded =
+      kept +
+        mapOf(
+          "heading_id" to "platform-packs/kmp/agent/history.md#0-000000000000",
+          "source_path" to "platform-packs/kmp/agent/history.md",
+        )
+    val body =
+      (base - "integrity_sha256") +
+        ("boundary_memory" to linkedMapOf("catalog" to listOf(kept, excluded), "truncated" to false))
     val stale = body + ("integrity_sha256" to GoalPlanningSharedContextPacket.digest(body))
 
     val migrated = GoalPlanningSharedContextPacket.migrate(stale)
@@ -485,9 +519,10 @@ class GoalPlanningSweepPromptTest {
   @Test
   fun `prepared sweep reports absent hydration context for a sibling added after preparation`() {
     val harness = sweepHarness { phase, _, _ -> validPhaseOutcome(phase) }
-    val prepared = assertIs<GoalPlanningSweepOutcome.PreparedAll>(
-      harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request()),
-    )
+    val prepared =
+      assertIs<GoalPlanningSweepOutcome.PreparedAll>(
+        harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request()),
+      )
 
     assertNotNull(prepared.hydrationFor(1))
     assertEquals(null, prepared.hydrationFor(2))
@@ -498,15 +533,17 @@ class GoalPlanningSweepPromptTest {
     val authorization = TrackingPlanningAuthorization()
     val openWhileAwaitingChild = mutableListOf<Boolean>()
     val store = AuthorizingGoalPlanningManifestStore(authorization)
-    val harness = sweepHarness(SweepHarnessConfig(manifestStore = store)) { phase, _, request ->
-      val spawnAuthorization = assertNotNull(
-        request.skillRunRequest.spawnAuthorization,
-        "a planning launch must carry its authorization into the spawn seam, not wrap the blocking launch",
-      )
-      spawnAuthorization.withAuthorization { }
-      openWhileAwaitingChild += authorization.open
-      validPhaseOutcome(phase)
-    }
+    val harness =
+      sweepHarness(SweepHarnessConfig(manifestStore = store)) { phase, _, request ->
+        val spawnAuthorization =
+          assertNotNull(
+            request.skillRunRequest.spawnAuthorization,
+            "a planning launch must carry its authorization into the spawn seam, not wrap the blocking launch",
+          )
+        spawnAuthorization.withAuthorization { }
+        openWhileAwaitingChild += authorization.open
+        validPhaseOutcome(phase)
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 2)), harness.request())
 
@@ -557,11 +594,12 @@ class GoalPlanningSweepPromptTest {
   @Test
   fun `shared repository and decomposition discovery happens exactly once across all sub_specs`() {
     val discovery = CountingContextDiscovery()
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        contextDiscovery = discovery,
-      ),
-    ) { phase, _, _ -> validPhaseOutcome(phase) }
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          contextDiscovery = discovery,
+        ),
+      ) { phase, _, _ -> validPhaseOutcome(phase) }
 
     harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 3)), harness.request())
 
@@ -598,11 +636,13 @@ class GoalPlanningSweepPromptTest {
     harness.sweep.prepare(harness.stateFor(initial), harness.request())
     harness.manifestFileStore.remove("spec_subtask_1.md")
     val launchCount = harness.launcher.requests.size
-    val resumed = initial.copy(
-      subtasks = initial.subtasks.map { subtask ->
-        if (subtask.id == 1) subtask.copy(status = "complete") else subtask
-      },
-    )
+    val resumed =
+      initial.copy(
+        subtasks =
+          initial.subtasks.map { subtask ->
+            if (subtask.id == 1) subtask.copy(status = "complete") else subtask
+          },
+      )
 
     val outcome = harness.sweep.prepare(harness.stateFor(resumed), harness.request())
 
@@ -617,13 +657,15 @@ class GoalPlanningSweepPromptTest {
     harness.sweep.prepare(harness.stateFor(initial), harness.request())
     val launchCount = harness.launcher.requests.size
     harness.manifestFileStore.replaceDecompositionManifest("runtime projection changed")
-    val advanced = initial.copy(
-      status = "in_progress",
-      currentSubtaskIntent = initial.currentSubtaskIntent.copy(action = "resume"),
-      subtasks = initial.subtasks.map {
-        it.copy(status = "skipped", workflowId = "wfl-child", commitSha = "abc123", lastResumableStep = "pr")
-      },
-    )
+    val advanced =
+      initial.copy(
+        status = "in_progress",
+        currentSubtaskIntent = initial.currentSubtaskIntent.copy(action = "resume"),
+        subtasks =
+          initial.subtasks.map {
+            it.copy(status = "skipped", workflowId = "wfl-child", commitSha = "abc123", lastResumableStep = "pr")
+          },
+      )
 
     val outcome = harness.sweep.prepare(harness.stateFor(advanced), harness.request())
 
@@ -638,13 +680,14 @@ class GoalPlanningSweepPromptTest {
     harness.sweep.prepare(state, harness.request())
     val launchCount = harness.launcher.requests.size
     val sharedBefore = requireNotNull(harness.fixtures.database.repository.findSharedPreplan(harness.identity()))
-    val planBefore = requireNotNull(
-      harness.fixtures.database.repository.findSubtaskPlan(
-        harness.identity(),
-        1,
-        ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
-      ),
-    )
+    val planBefore =
+      requireNotNull(
+        harness.fixtures.database.repository.findSubtaskPlan(
+          harness.identity(),
+          1,
+          ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
+        ),
+      )
     harness.manifestFileStore.replaceSpec("spec.md", "# Initial feature contract edited after planning")
 
     val outcome = harness.sweep.prepare(state, harness.request())
@@ -660,13 +703,14 @@ class GoalPlanningSweepPromptTest {
       sha256HexUtf8("# Initial feature contract edited after planning"),
       sharedAfter.provenance.parentSpecHash,
     )
-    val planAfter = requireNotNull(
-      harness.fixtures.database.repository.findSubtaskPlan(
-        harness.identity(),
-        1,
-        ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
-      ),
-    )
+    val planAfter =
+      requireNotNull(
+        harness.fixtures.database.repository.findSubtaskPlan(
+          harness.identity(),
+          1,
+          ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
+        ),
+      )
     assertEquals(planBefore.planPayload, planAfter.planPayload)
     assertEquals(sharedAfter.provenance, planAfter.provenance)
     assertEquals(0, harness.fixtures.database.repository.cascadeAfterRefreshCalls)
@@ -675,19 +719,21 @@ class GoalPlanningSweepPromptTest {
   @Test
   fun `resume refreshes and cascades via shared helper when prose content changes`() {
     var preplanLaunches = 0
-    val harness = sweepHarness { phase, _, _ ->
-      if (phase == "preplan") {
-        preplanLaunches += 1
-        val value = if (preplanLaunches == 1) {
-          "First preplan prose payload."
+    val harness =
+      sweepHarness { phase, _, _ ->
+        if (phase == "preplan") {
+          preplanLaunches += 1
+          val value =
+            if (preplanLaunches == 1) {
+              "First preplan prose payload."
+            } else {
+              "Refreshed preplan prose payload."
+            }
+          launchFacts(stdout = preplanProsePayload(value = value))
         } else {
-          "Refreshed preplan prose payload."
+          validPhaseOutcome(phase)
         }
-        launchFacts(stdout = preplanProsePayload(value = value))
-      } else {
-        validPhaseOutcome(phase)
       }
-    }
     val state = harness.stateFor(manifest(subtaskCount = 1))
     harness.sweep.prepare(state, harness.request())
     val launchCount = harness.launcher.requests.size
@@ -722,10 +768,11 @@ class GoalPlanningSweepPromptTest {
       ),
       "post-cascade plan regeneration must leave a settled plan row",
     )
-    val regenPlanPrompt = harness.launcher.requests
-      .drop(launchCount)
-      .single { harness.launcher.phaseOf(it) == "plan" }
-      .skillRunRequest.promptOverride.orEmpty()
+    val regenPlanPrompt =
+      harness.launcher.requests
+        .drop(launchCount)
+        .single { harness.launcher.phaseOf(it) == "plan" }
+        .skillRunRequest.promptOverride.orEmpty()
     assertContains(
       regenPlanPrompt,
       refreshedParentSpec,
@@ -736,23 +783,26 @@ class GoalPlanningSweepPromptTest {
   @Test
   fun `changed prose refresh preserves complete-with-commit sibling plan`() {
     val fixture = changedHeadingSetRefreshFixture()
-    val outcome = fixture.harness.sweep.prepare(
-      fixture.harness.stateFor(fixture.resumeManifest),
-      fixture.harness.request(),
-    )
+    val outcome =
+      fixture.harness.sweep.prepare(
+        fixture.harness.stateFor(fixture.resumeManifest),
+        fixture.harness.request(),
+      )
 
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(outcome)
-    val plan1After = requireNotNull(
-      fixture.harness.fixtures.database.repository.findSubtaskPlan(
-        fixture.harness.identity(),
-        1,
-        ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
-      ),
-    )
+    val plan1After =
+      requireNotNull(
+        fixture.harness.fixtures.database.repository.findSubtaskPlan(
+          fixture.harness.identity(),
+          1,
+          ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
+        ),
+      )
     assertEquals(fixture.plan1Before.planPayload, plan1After.planPayload)
-    val sharedAfter = requireNotNull(
-      fixture.harness.fixtures.database.repository.findSharedPreplan(fixture.harness.identity()),
-    )
+    val sharedAfter =
+      requireNotNull(
+        fixture.harness.fixtures.database.repository.findSharedPreplan(fixture.harness.identity()),
+      )
     assertEquals(sharedAfter.provenance, plan1After.provenance)
     assertEquals("complete", fixture.store.manifest.subtasks[0].status)
     assertEquals("sha-1", fixture.store.manifest.subtasks[0].commitSha)
@@ -785,37 +835,42 @@ class GoalPlanningSweepPromptTest {
   private fun changedHeadingSetRefreshFixture(): ChangedHeadingSetRefreshFixture {
     var preplanLaunches = 0
     val initial = manifest(subtaskCount = 2)
-    val resumeManifest = initial.copy(
-      subtasks = initial.subtasks.map { subtask ->
-        if (subtask.id == 1) {
-          subtask.copy(status = "complete", commitSha = "sha-1", workflowId = "wfl-1")
-        } else {
-          subtask
-        }
-      },
-    )
+    val resumeManifest =
+      initial.copy(
+        subtasks =
+          initial.subtasks.map { subtask ->
+            if (subtask.id == 1) {
+              subtask.copy(status = "complete", commitSha = "sha-1", workflowId = "wfl-1")
+            } else {
+              subtask
+            }
+          },
+      )
     val store = InMemoryGoalManifestStore(resumeManifest)
-    val harness = sweepHarness(SweepHarnessConfig(manifestStore = store)) { phase, _, _ ->
-      if (phase == "preplan") {
-        preplanLaunches += 1
-        val value = if (preplanLaunches == 1) {
-          "First preplan prose for cascade test."
+    val harness =
+      sweepHarness(SweepHarnessConfig(manifestStore = store)) { phase, _, _ ->
+        if (phase == "preplan") {
+          preplanLaunches += 1
+          val value =
+            if (preplanLaunches == 1) {
+              "First preplan prose for cascade test."
+            } else {
+              "Refreshed preplan prose for cascade test."
+            }
+          launchFacts(stdout = preplanProsePayload(value = value))
         } else {
-          "Refreshed preplan prose for cascade test."
+          validPhaseOutcome(phase)
         }
-        launchFacts(stdout = preplanProsePayload(value = value))
-      } else {
-        validPhaseOutcome(phase)
       }
-    }
     harness.sweep.prepare(harness.stateFor(initial), harness.request())
-    val plan1Before = requireNotNull(
-      harness.fixtures.database.repository.findSubtaskPlan(
-        harness.identity(),
-        1,
-        ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
-      ),
-    )
+    val plan1Before =
+      requireNotNull(
+        harness.fixtures.database.repository.findSubtaskPlan(
+          harness.identity(),
+          1,
+          ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
+        ),
+      )
     assertNotNull(
       harness.fixtures.database.repository.findSubtaskPlan(
         harness.identity(),
@@ -830,11 +885,12 @@ class GoalPlanningSweepPromptTest {
 
   @Test
   fun `refresh refuses while execution liveness is live`() {
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        refreshLiveness = GoalPlanningRefreshLiveness { _ -> ExecutionLiveness.LIVE },
-      ),
-    ) { phase, _, _ -> validPhaseOutcome(phase) }
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          refreshLiveness = GoalPlanningRefreshLiveness { _ -> ExecutionLiveness.LIVE },
+        ),
+      ) { phase, _, _ -> validPhaseOutcome(phase) }
     val state = harness.stateFor(manifest(subtaskCount = 1))
     harness.sweep.prepare(state, harness.request())
     val launchCount = harness.launcher.requests.size
@@ -856,11 +912,12 @@ class GoalPlanningSweepPromptTest {
 
   @Test
   fun `refresh refuses while execution liveness is unknown`() {
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        refreshLiveness = GoalPlanningRefreshLiveness { _ -> ExecutionLiveness.UNKNOWN },
-      ),
-    ) { phase, _, _ -> validPhaseOutcome(phase) }
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          refreshLiveness = GoalPlanningRefreshLiveness { _ -> ExecutionLiveness.UNKNOWN },
+        ),
+      ) { phase, _, _ -> validPhaseOutcome(phase) }
     val state = harness.stateFor(manifest(subtaskCount = 1))
     harness.sweep.prepare(state, harness.request())
     val launchCount = harness.launcher.requests.size
@@ -898,9 +955,10 @@ class GoalPlanningSweepPrepareAndResumeTest {
       "spec.md",
       "---\nstatus: Pending\n---\n\n# Initial feature contract",
     )
-    val prepared = assertIs<GoalPlanningSweepOutcome.PreparedAll>(
-      harness.sweep.prepare(state, harness.request()),
-    )
+    val prepared =
+      assertIs<GoalPlanningSweepOutcome.PreparedAll>(
+        harness.sweep.prepare(state, harness.request()),
+      )
     val launchCount = harness.launcher.requests.size
     harness.manifestFileStore.replaceSpec("spec.md", "# Initial feature contract")
 
@@ -938,13 +996,14 @@ class GoalPlanningSweepPrepareAndResumeTest {
   @Test
   fun `resume reuses saved planning when the fresh catalog no longer lists a referenced heading`() {
     val discovery = MutableContextDiscovery()
-    val harness = sweepHarness(SweepHarnessConfig(contextDiscovery = discovery)) { phase, _, _ ->
-      if (phase == "preplan") {
-        launchFacts(stdout = preplanProsePayload(value = "Preplan prose with catalog context."))
-      } else {
-        validPhaseOutcome(phase)
+    val harness =
+      sweepHarness(SweepHarnessConfig(contextDiscovery = discovery)) { phase, _, _ ->
+        if (phase == "preplan") {
+          launchFacts(stdout = preplanProsePayload(value = "Preplan prose with catalog context."))
+        } else {
+          validPhaseOutcome(phase)
+        }
       }
-    }
     val state = harness.stateFor(manifest(subtaskCount = 1))
     harness.sweep.prepare(state, harness.request())
     val sharedBefore = requireNotNull(harness.fixtures.database.repository.findSharedPreplan(harness.identity()))
@@ -967,12 +1026,13 @@ class GoalPlanningSweepPrepareAndResumeTest {
     val checkpoint = recoverabilityCheckpoint(parentSpec = parentSpec)
     val current = checkpoint.provenance.copy(parentSpecHash = sha256HexUtf8(parentSpec))
 
-    val result = classifyGoalPlanningProvenanceRecoverability(
-      existing = checkpoint,
-      current = current,
-      savedParentSpec = parentSpec,
-      currentParentSpec = parentSpec,
-    )
+    val result =
+      classifyGoalPlanningProvenanceRecoverability(
+        existing = checkpoint,
+        current = current,
+        savedParentSpec = parentSpec,
+        currentParentSpec = parentSpec,
+      )
 
     assertIs<GoalPlanningProvenanceRecoverability.Reuse>(result)
   }
@@ -984,12 +1044,13 @@ class GoalPlanningSweepPrepareAndResumeTest {
     val checkpoint = recoverabilityCheckpoint(parentSpec = savedParent)
     val current = checkpoint.provenance.copy(parentSpecHash = sha256HexUtf8(currentParent))
 
-    val result = classifyGoalPlanningProvenanceRecoverability(
-      existing = checkpoint,
-      current = current,
-      savedParentSpec = savedParent,
-      currentParentSpec = currentParent,
-    )
+    val result =
+      classifyGoalPlanningProvenanceRecoverability(
+        existing = checkpoint,
+        current = current,
+        savedParentSpec = savedParent,
+        currentParentSpec = currentParent,
+      )
 
     assertIs<GoalPlanningProvenanceRecoverability.StaleValid>(result)
   }
@@ -998,17 +1059,19 @@ class GoalPlanningSweepPrepareAndResumeTest {
   fun `recoverability classifier returns Invalid when decomposition manifest hash drifts`() {
     val parentSpec = "# Parent contract"
     val checkpoint = recoverabilityCheckpoint(parentSpec = parentSpec)
-    val current = checkpoint.provenance.copy(
-      parentSpecHash = sha256HexUtf8(parentSpec),
-      decompositionManifestHash = "drifted-manifest-hash",
-    )
+    val current =
+      checkpoint.provenance.copy(
+        parentSpecHash = sha256HexUtf8(parentSpec),
+        decompositionManifestHash = "drifted-manifest-hash",
+      )
 
-    val result = classifyGoalPlanningProvenanceRecoverability(
-      existing = checkpoint,
-      current = current,
-      savedParentSpec = parentSpec,
-      currentParentSpec = parentSpec,
-    )
+    val result =
+      classifyGoalPlanningProvenanceRecoverability(
+        existing = checkpoint,
+        current = current,
+        savedParentSpec = parentSpec,
+        currentParentSpec = parentSpec,
+      )
 
     assertIs<GoalPlanningProvenanceRecoverability.Irrecoverable>(result)
     assertEquals(GoalPlanningRecoveryKind.SCOPED_REPLAN, result.recoveryKind)
@@ -1018,20 +1081,22 @@ class GoalPlanningSweepPrepareAndResumeTest {
   fun `recoverability classifier returns Invalid when installed runtime schema ids drift`() {
     val parentSpec = "# Stable parent contract"
     val checkpoint = recoverabilityCheckpoint(parentSpec = parentSpec)
-    val current = checkpoint.provenance.copy(
-      parentSpecHash = sha256HexUtf8(parentSpec),
-      planningContractId = "https://installed.example/planning-schema",
-      planningContractVersion = "9.9",
-      phaseOutputContractId = "https://installed.example/phase-output-schema",
-      phaseOutputContractVersion = "9.9",
-    )
+    val current =
+      checkpoint.provenance.copy(
+        parentSpecHash = sha256HexUtf8(parentSpec),
+        planningContractId = "https://installed.example/planning-schema",
+        planningContractVersion = "9.9",
+        phaseOutputContractId = "https://installed.example/phase-output-schema",
+        phaseOutputContractVersion = "9.9",
+      )
 
-    val result = classifyGoalPlanningProvenanceRecoverability(
-      existing = checkpoint,
-      current = current,
-      savedParentSpec = parentSpec,
-      currentParentSpec = parentSpec,
-    )
+    val result =
+      classifyGoalPlanningProvenanceRecoverability(
+        existing = checkpoint,
+        current = current,
+        savedParentSpec = parentSpec,
+        currentParentSpec = parentSpec,
+      )
 
     assertIs<GoalPlanningProvenanceRecoverability.Irrecoverable>(result)
     assertEquals(GoalPlanningRecoveryKind.HARD_RESET, result.recoveryKind)
@@ -1043,12 +1108,13 @@ class GoalPlanningSweepPrepareAndResumeTest {
     val checkpoint = recoverabilityCheckpoint(parentSpec = parentSpec).copy(payloadSha256 = "0".repeat(64))
     val current = checkpoint.provenance.copy(parentSpecHash = sha256HexUtf8(parentSpec))
 
-    val result = classifyGoalPlanningProvenanceRecoverability(
-      existing = checkpoint,
-      current = current,
-      savedParentSpec = parentSpec,
-      currentParentSpec = parentSpec,
-    )
+    val result =
+      classifyGoalPlanningProvenanceRecoverability(
+        existing = checkpoint,
+        current = current,
+        savedParentSpec = parentSpec,
+        currentParentSpec = parentSpec,
+      )
 
     assertIs<GoalPlanningProvenanceRecoverability.Irrecoverable>(result)
   }
@@ -1080,11 +1146,13 @@ class GoalPlanningSweepPrepareAndResumeTest {
     harness.sweep.prepare(harness.stateFor(initial), harness.request())
     val launchCount = harness.launcher.requests.size
     harness.manifestFileStore.replaceSpec("spec_subtask_1.md", "# Subtask contract reconciled after completion")
-    val resumed = initial.copy(
-      subtasks = initial.subtasks.map { subtask ->
-        if (subtask.id == 1) subtask.copy(status = "complete") else subtask
-      },
-    )
+    val resumed =
+      initial.copy(
+        subtasks =
+          initial.subtasks.map { subtask ->
+            if (subtask.id == 1) subtask.copy(status = "complete") else subtask
+          },
+      )
 
     val outcome = harness.sweep.prepare(harness.stateFor(resumed), harness.request())
 
@@ -1099,11 +1167,13 @@ class GoalPlanningSweepPrepareAndResumeTest {
     harness.sweep.prepare(harness.stateFor(initial), harness.request())
     harness.manifestFileStore.remove("spec_subtask_1.md")
     val launchCount = harness.launcher.requests.size
-    val resumed = initial.copy(
-      subtasks = initial.subtasks.map { subtask ->
-        if (subtask.id == 1) subtask.copy(status = "complete") else subtask
-      },
-    )
+    val resumed =
+      initial.copy(
+        subtasks =
+          initial.subtasks.map { subtask ->
+            if (subtask.id == 1) subtask.copy(status = "complete") else subtask
+          },
+      )
 
     val outcome = harness.sweep.prepare(harness.stateFor(resumed), harness.request())
 
@@ -1114,9 +1184,10 @@ class GoalPlanningSweepPrepareAndResumeTest {
   @Test
   fun `non-skipped subtask with an allocated workflow remains planning eligible`() {
     val harness = sweepHarness { phase, _, _ -> validPhaseOutcome(phase) }
-    val allocated = manifest(subtaskCount = 1).let { manifest ->
-      manifest.copy(subtasks = manifest.subtasks.map { it.copy(workflowId = "wfl-child") })
-    }
+    val allocated =
+      manifest(subtaskCount = 1).let { manifest ->
+        manifest.copy(subtasks = manifest.subtasks.map { it.copy(workflowId = "wfl-child") })
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(allocated), harness.request())
 
@@ -1128,11 +1199,13 @@ class GoalPlanningSweepPrepareAndResumeTest {
   fun `planning emits a progress line per phase in caller order`() {
     val harness = sweepHarness { phase, _, _ -> validPhaseOutcome(phase) }
     val progress = mutableListOf<String>()
-    val request = harness.request().copy(
-      outputSink = AgentRunOutputSink { stream, text ->
-        if (stream == AgentRunOutputStream.STDERR) progress += text
-      },
-    )
+    val request =
+      harness.request().copy(
+        outputSink =
+          AgentRunOutputSink { stream, text ->
+            if (stream == AgentRunOutputStream.STDERR) progress += text
+          },
+      )
 
     harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 2)), request)
 
@@ -1150,24 +1223,28 @@ class GoalPlanningSweepPrepareAndResumeTest {
   fun `resume after a crash between plans continues at the next subtask without rediscovery`() {
     val fixtures = sharedSweepFixtures()
     val discovery = CountingContextDiscovery()
-    val runOneLauncher = SweepPlanningLauncher { phase, subtaskId, _ ->
-      if (subtaskId == 2 && phase == "plan") spawnBlockedOutcome() else validPhaseOutcome(phase)
-    }
+    val runOneLauncher =
+      SweepPlanningLauncher { phase, subtaskId, _ ->
+        if (subtaskId == 2 && phase == "plan") spawnBlockedOutcome() else validPhaseOutcome(phase)
+      }
     val runOne = crashResumeSweepDeps(fixtures, runOneLauncher, discovery)
     val initial = manifest(subtaskCount = 2).copy(specSource = SpecSource.LINEAR)
-    val stopped = assertIs<GoalPlanningSweepOutcome.Stopped>(
-      runOne.prepare(fixtures.stateFor(initial), fixtures.request()),
-    )
+    val stopped =
+      assertIs<GoalPlanningSweepOutcome.Stopped>(
+        runOne.prepare(fixtures.stateFor(initial), fixtures.request()),
+      )
     assertEquals(2, stopped.currentSubtaskId)
     assertEquals(1, fixtures.preparedCount())
     assertEquals(3, runOneLauncher.requests.size)
     val runTwoLauncher = SweepPlanningLauncher { phase, _, _ -> validPhaseOutcome(phase) }
     val runTwo = crashResumeSweepDeps(fixtures, runTwoLauncher, discovery)
-    val resumed = initial.copy(
-      subtasks = initial.subtasks.map { subtask ->
-        if (subtask.id == 1) subtask.copy(status = "complete") else subtask
-      },
-    )
+    val resumed =
+      initial.copy(
+        subtasks =
+          initial.subtasks.map { subtask ->
+            if (subtask.id == 1) subtask.copy(status = "complete") else subtask
+          },
+      )
     fixtures.manifestFileStore.remove("spec_subtask_1.md")
     val outcome = runTwo.prepare(fixtures.stateFor(resumed), fixtures.request())
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(outcome)
@@ -1181,30 +1258,32 @@ class GoalPlanningSweepPrepareAndResumeTest {
     fixtures: SweepFixtures,
     launcher: SweepPlanningLauncher,
     discovery: CountingContextDiscovery,
-  ): DefaultGoalPlanningSweep = testGoalPlanningSweepPorts(
-    GoalPlanningSweepPortsParams(
-      checkpoint = fixtures.checkpoint,
-      outputValidator = fixtures.outputValidator,
-      subtaskLauncher = launcher,
-      invariantsSource = fixtures.invariantsSource,
-      manifestFileStore = fixtures.manifestFileStore,
-      contextDiscovery = discovery,
-    ),
-  )
+  ): DefaultGoalPlanningSweep =
+    testGoalPlanningSweepPorts(
+      GoalPlanningSweepPortsParams(
+        checkpoint = fixtures.checkpoint,
+        outputValidator = fixtures.outputValidator,
+        subtaskLauncher = launcher,
+        invariantsSource = fixtures.invariantsSource,
+        manifestFileStore = fixtures.manifestFileStore,
+        contextDiscovery = discovery,
+      ),
+    )
 
   @Test
   fun `unexpected planning launch failure becomes a resumable stopped outcome`() {
     val attempts = mutableListOf<GoalPlanningAttemptRecord>()
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        planningAttemptRecorder = GoalPlanningAttemptRecorder { attempts += it },
-      ),
-    ) { phase, subtaskId, _ ->
-      if (phase == "plan" && subtaskId == 2) {
-        error("simulated planning launcher failure")
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          planningAttemptRecorder = GoalPlanningAttemptRecorder { attempts += it },
+        ),
+      ) { phase, subtaskId, _ ->
+        if (phase == "plan" && subtaskId == 2) {
+          error("simulated planning launcher failure")
+        }
+        validPhaseOutcome(phase)
       }
-      validPhaseOutcome(phase)
-    }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 2)), harness.request())
 
@@ -1240,9 +1319,10 @@ class GoalPlanningSweepPrepareAndResumeTest {
 
   @Test
   fun `schema valid blocked payload is never checkpointed as prepared`() {
-    val harness = sweepHarness { phase, _, _ ->
-      launchFacts(stdout = phasePayload(phase).replace("\"completed\"", "\"blocked\""))
-    }
+    val harness =
+      sweepHarness { phase, _, _ ->
+        launchFacts(stdout = phasePayload(phase).replace("\"completed\"", "\"blocked\""))
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1255,14 +1335,16 @@ class GoalPlanningSweepPrepareAndResumeTest {
   fun `plan failure resumes at plan while retaining the durable shared preplan`() {
     val discovery = CountingContextDiscovery()
     var failPlan = true
-    val harness = sweepHarness(SweepHarnessConfig(contextDiscovery = discovery)) { phase, _, _ ->
-      val payload = if (phase == "plan" && failPlan) {
-        phasePayload(phase).replace("\"completed\"", "\"failed\"")
-      } else {
-        phasePayload(phase)
+    val harness =
+      sweepHarness(SweepHarnessConfig(contextDiscovery = discovery)) { phase, _, _ ->
+        val payload =
+          if (phase == "plan" && failPlan) {
+            phasePayload(phase).replace("\"completed\"", "\"failed\"")
+          } else {
+            phasePayload(phase)
+          }
+        launchFacts(stdout = payload)
       }
-      launchFacts(stdout = payload)
-    }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1284,11 +1366,12 @@ class GoalPlanningSweepPrepareAndResumeTest {
   @Test
   fun `every planning launch streams for liveness and carries its own budget`() {
     val harness = sweepHarness { phase, _, _ -> validPhaseOutcome(phase) }
-    val request = harness.request().copy(
-      timeout = 5.minutes,
-      progressIdleTimeout = 10.minutes,
-      planningBudget = 45.minutes,
-    )
+    val request =
+      harness.request().copy(
+        timeout = 5.minutes,
+        progressIdleTimeout = 10.minutes,
+        planningBudget = 45.minutes,
+      )
 
     harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 2)), request)
 
@@ -1319,14 +1402,16 @@ class GoalPlanningSweepPrepareAndResumeTest {
 
   @Test
   fun `an exhausted planning budget names the budget and the flag that raises it`() {
-    val harness = sweepHarness { _, _, _ ->
-      launchFacts(stdout = "").copy(timedOut = true, exitStatus = null)
-    }
+    val harness =
+      sweepHarness { _, _, _ ->
+        launchFacts(stdout = "").copy(timedOut = true, exitStatus = null)
+      }
 
-    val outcome = harness.sweep.prepare(
-      harness.stateFor(manifest(subtaskCount = 1)),
-      harness.request().copy(planningBudget = 45.minutes),
-    )
+    val outcome =
+      harness.sweep.prepare(
+        harness.stateFor(manifest(subtaskCount = 1)),
+        harness.request().copy(planningBudget = 45.minutes),
+      )
 
     val stopped = assertIs<GoalPlanningSweepOutcome.Stopped>(outcome)
     assertTrue(stopped.blockedReason.contains("45m"), stopped.blockedReason)
@@ -1336,9 +1421,10 @@ class GoalPlanningSweepPrepareAndResumeTest {
 
   @Test
   fun `failed launch cannot pass output gate with stale stdout`() {
-    val harness = sweepHarness { phase, _, _ ->
-      launchFacts(stdout = phasePayload(phase)).copy(exitStatus = 1)
-    }
+    val harness =
+      sweepHarness { phase, _, _ ->
+        launchFacts(stdout = phasePayload(phase)).copy(exitStatus = 1)
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1349,13 +1435,14 @@ class GoalPlanningSweepPrepareAndResumeTest {
   @Test
   fun `malformed phase output retries with the schema correction before checkpointing`() {
     var attempts = 0
-    val harness = sweepHarness { phase, _, _ ->
-      if (phase == "preplan" && attempts++ == 0) {
-        launchFacts(stdout = "not a json object")
-      } else {
-        validPhaseOutcome(phase)
+    val harness =
+      sweepHarness { phase, _, _ ->
+        if (phase == "preplan" && attempts++ == 0) {
+          launchFacts(stdout = "not a json object")
+        } else {
+          validPhaseOutcome(phase)
+        }
       }
-    }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1370,10 +1457,11 @@ class GoalPlanningSweepPrepareAndResumeTest {
   @Test
   fun `empty provider turn on a clean exit is retried instead of blocking at once`() {
     var launches = 0
-    val harness = sweepHarness { phase, _, _ ->
-      launches += 1
-      if (launches == 1) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
-    }
+    val harness =
+      sweepHarness { phase, _, _ ->
+        launches += 1
+        if (launches == 1) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1385,10 +1473,11 @@ class GoalPlanningSweepPrepareAndResumeTest {
   @Test
   fun `empty provider turn retry does not tell the agent its prior output was schema-rejected`() {
     var launches = 0
-    val harness = sweepHarness { phase, _, _ ->
-      launches += 1
-      if (launches == 1) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
-    }
+    val harness =
+      sweepHarness { phase, _, _ ->
+        launches += 1
+        if (launches == 1) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
+      }
 
     harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1403,10 +1492,11 @@ class GoalPlanningSweepPrepareAndResumeTest {
   fun `an empty provider turn records launch facts rather than a schema verdict`() {
     var launches = 0
     val recorded = mutableListOf<GoalPlanningRejectionRecord>()
-    val harness = sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
-      launches += 1
-      if (launches == 1) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
-    }
+    val harness =
+      sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
+        launches += 1
+        if (launches == 1) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
+      }
 
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(
       harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request()),
@@ -1427,10 +1517,11 @@ class GoalPlanningSweepRejectionTest {
   fun `empty provider turns are retained as durable rejection evidence`() {
     var launches = 0
     val recorded = mutableListOf<GoalPlanningRejectionRecord>()
-    val harness = sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
-      launches += 1
-      if (launches <= 2) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
-    }
+    val harness =
+      sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
+        launches += 1
+        if (launches <= 2) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
+      }
 
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(
       harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request()),
@@ -1449,13 +1540,14 @@ class GoalPlanningSweepRejectionTest {
   @Test
   fun `a deliberate agent block reports the envelope's own account and retains it durably`() {
     val recorded = mutableListOf<GoalPlanningRejectionRecord>()
-    val harness = sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
-      if (phase == "preplan") {
-        validPhaseOutcome(phase)
-      } else {
-        launchFacts(stdout = blockedPhasePayload(phase, "spec names no persistence boundary to plan against"))
+    val harness =
+      sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
+        if (phase == "preplan") {
+          validPhaseOutcome(phase)
+        } else {
+          launchFacts(stdout = blockedPhasePayload(phase, "spec names no persistence boundary to plan against"))
+        }
       }
-    }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1470,18 +1562,19 @@ class GoalPlanningSweepRejectionTest {
   fun `a retryable decline relaunches instead of discarding every settled plan`() {
     val recorded = mutableListOf<GoalPlanningRejectionRecord>()
     var planLaunches = 0
-    val harness = sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
-      if (phase == "preplan") {
-        validPhaseOutcome(phase)
-      } else {
-        planLaunches += 1
-        if (planLaunches == 1) {
-          launchFacts(stdout = blockedPhasePayload(phase, "transient provider capacity", "retryable"))
-        } else {
+    val harness =
+      sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
+        if (phase == "preplan") {
           validPhaseOutcome(phase)
+        } else {
+          planLaunches += 1
+          if (planLaunches == 1) {
+            launchFacts(stdout = blockedPhasePayload(phase, "transient provider capacity", "retryable"))
+          } else {
+            validPhaseOutcome(phase)
+          }
         }
       }
-    }
 
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(
       harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request()),
@@ -1493,14 +1586,15 @@ class GoalPlanningSweepRejectionTest {
   @Test
   fun `a decline that never resolves stops instead of relaunching forever`() {
     var planLaunches = 0
-    val harness = sweepHarness { phase, _, _ ->
-      if (phase == "preplan") {
-        validPhaseOutcome(phase)
-      } else {
-        planLaunches += 1
-        launchFacts(stdout = blockedPhasePayload(phase, "transient provider capacity", "retryable"))
+    val harness =
+      sweepHarness { phase, _, _ ->
+        if (phase == "preplan") {
+          validPhaseOutcome(phase)
+        } else {
+          planLaunches += 1
+          launchFacts(stdout = blockedPhasePayload(phase, "transient provider capacity", "retryable"))
+        }
       }
-    }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1512,18 +1606,19 @@ class GoalPlanningSweepRejectionTest {
   @Test
   fun `a retryable decline retry is not told its prior output failed the schema gate`() {
     var planLaunches = 0
-    val harness = sweepHarness { phase, _, _ ->
-      if (phase == "preplan") {
-        validPhaseOutcome(phase)
-      } else {
-        planLaunches += 1
-        if (planLaunches == 1) {
-          launchFacts(stdout = blockedPhasePayload(phase, "transient provider capacity", "retryable"))
-        } else {
+    val harness =
+      sweepHarness { phase, _, _ ->
+        if (phase == "preplan") {
           validPhaseOutcome(phase)
+        } else {
+          planLaunches += 1
+          if (planLaunches == 1) {
+            launchFacts(stdout = blockedPhasePayload(phase, "transient provider capacity", "retryable"))
+          } else {
+            validPhaseOutcome(phase)
+          }
         }
       }
-    }
 
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(
       harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request()),
@@ -1539,14 +1634,15 @@ class GoalPlanningSweepRejectionTest {
   fun `each subtask's planning rejections stay independently addressable`() {
     val recorded = mutableListOf<GoalPlanningRejectionRecord>()
     var planLaunches = 0
-    val harness = sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
-      if (phase == "preplan") {
-        validPhaseOutcome(phase)
-      } else {
-        planLaunches += 1
-        if (planLaunches % 2 == 1) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
+    val harness =
+      sweepHarness(SweepHarnessConfig(planningRejectionRecorder = { recorded += it })) { phase, _, _ ->
+        if (phase == "preplan") {
+          validPhaseOutcome(phase)
+        } else {
+          planLaunches += 1
+          if (planLaunches % 2 == 1) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
+        }
       }
-    }
 
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(
       harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 2)), harness.request()),
@@ -1559,17 +1655,18 @@ class GoalPlanningSweepRejectionTest {
 
   @Test
   fun `a non-zero exit still blocks immediately rather than burning the retry budget`() {
-    val harness = sweepHarness { _, _, _ ->
-      AgentRunLaunchFacts(
-        agent = InstallAgent.CLAUDE,
-        exitStatus = 2,
-        stdout = "",
-        stderr = "boom",
-        timedOut = false,
-        interrupted = false,
-        spawnFailed = false,
-      )
-    }
+    val harness =
+      sweepHarness { _, _, _ ->
+        AgentRunLaunchFacts(
+          agent = InstallAgent.CLAUDE,
+          exitStatus = 2,
+          stdout = "",
+          stderr = "boom",
+          timedOut = false,
+          interrupted = false,
+          spawnFailed = false,
+        )
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1580,11 +1677,12 @@ class GoalPlanningSweepRejectionTest {
 
   @Test
   fun `persistence failure rolls back leaving no half pair and stops before mutation`() {
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        markPreparedThrows = true,
-      ),
-    ) { phase, _, _ -> validPhaseOutcome(phase) }
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          markPreparedThrows = true,
+        ),
+      ) { phase, _, _ -> validPhaseOutcome(phase) }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1598,19 +1696,24 @@ class GoalPlanningSweepRejectionTest {
     val fixtures = sharedSweepFixtures()
     settleSharedPreplanThenBlankProse(fixtures)
     val launcher = SweepPlanningLauncher { phase, _, _ -> validPhaseOutcome(phase) }
-    val stopped = assertIs<GoalPlanningSweepOutcome.Stopped>(
-      sweepFromFixtures(fixtures, launcher).prepare(fixtures.stateFor(manifest(subtaskCount = 1)), fixtures.request()),
-    )
+    val stopped =
+      assertIs<GoalPlanningSweepOutcome.Stopped>(
+        sweepFromFixtures(
+          fixtures,
+          launcher,
+        ).prepare(fixtures.stateFor(manifest(subtaskCount = 1)), fixtures.request()),
+      )
     assertBlankProsePlanLaunchStop(stopped, launcher)
   }
 
   @Test
   fun `plan checkpoint failure resumes at plan after retaining the shared preplan`() {
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        planCheckpointThrows = true,
-      ),
-    ) { phase, _, _ -> validPhaseOutcome(phase) }
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          planCheckpointThrows = true,
+        ),
+      ) { phase, _, _ -> validPhaseOutcome(phase) }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1623,34 +1726,37 @@ class GoalPlanningSweepRejectionTest {
   @Test
   fun `all plans gate blocks every child activation while a plan is missing`() {
     val fixtures = sharedSweepFixtures()
-    val sharedLauncher = SweepPlanningLauncher { phase, subtaskId, _ ->
-      if (subtaskId == 2) {
-        launchFacts(stdout = phasePayload(phase).replace("\"completed\"", "\"blocked\""))
-      } else {
-        validPhaseOutcome(phase)
+    val sharedLauncher =
+      SweepPlanningLauncher { phase, subtaskId, _ ->
+        if (subtaskId == 2) {
+          launchFacts(stdout = phasePayload(phase).replace("\"completed\"", "\"blocked\""))
+        } else {
+          validPhaseOutcome(phase)
+        }
       }
-    }
-    val sweep = testGoalPlanningSweepPorts(
-      GoalPlanningSweepPortsParams(
-        checkpoint = fixtures.checkpoint,
-        outputValidator = fixtures.outputValidator,
-        subtaskLauncher = sharedLauncher,
-        invariantsSource = fixtures.invariantsSource,
-        manifestFileStore = fixtures.manifestFileStore,
-        contextDiscovery = fakeContextDiscovery,
-      ),
-    )
+    val sweep =
+      testGoalPlanningSweepPorts(
+        GoalPlanningSweepPortsParams(
+          checkpoint = fixtures.checkpoint,
+          outputValidator = fixtures.outputValidator,
+          subtaskLauncher = sharedLauncher,
+          invariantsSource = fixtures.invariantsSource,
+          manifestFileStore = fixtures.manifestFileStore,
+          contextDiscovery = fakeContextDiscovery,
+        ),
+      )
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 2))
-    val runner = testGoalRunner(
-      goalRunnerDeps(
-        manifestStore = store,
-        subtaskLauncher = sharedLauncher,
-        outcomeStore = RecordingOutcomeStore(),
-        pullRequestPort = RecordingPullRequestPort(),
-      ).copy(
-        goalPlanningSweep = sweep,
-      ),
-    )
+    val runner =
+      testGoalRunner(
+        goalRunnerDeps(
+          manifestStore = store,
+          subtaskLauncher = sharedLauncher,
+          outcomeStore = RecordingOutcomeStore(),
+          pullRequestPort = RecordingPullRequestPort(),
+        ).copy(
+          goalPlanningSweep = sweep,
+        ),
+      )
 
     val report = runner.run(fixtures.request())
 
@@ -1668,21 +1774,24 @@ class GoalPlanningSweepRejectionTest {
 
   @Test
   fun `planning payloads are persisted as strict canonical json even when the agent fences output with prose`() {
-    val harness = sweepHarness(SweepHarnessConfig(outputValidator = FenceAwarePhaseOutputValidator())) { phase, _, _ ->
-      launchFacts(stdout = fencedPhasePayload(phase))
-    }
+    val harness =
+      sweepHarness(SweepHarnessConfig(outputValidator = FenceAwarePhaseOutputValidator())) { phase, _, _ ->
+        launchFacts(stdout = fencedPhasePayload(phase))
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(outcome)
     val record = harness.recordFor(1)
     assertNotNull(record, "the shared preplan and subtask plan must be persisted")
-    val preplanMap = JsonCodec.parseObjectOrNull(record.preplanPayload)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
-    val planMap = JsonCodec.parseObjectOrNull(record.planPayload)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
+    val preplanMap =
+      JsonCodec.parseObjectOrNull(record.preplanPayload)
+        ?.let(JsonCodec::jsonElementToValue)
+        ?.let(JsonCodec::anyToStringAnyMap)
+    val planMap =
+      JsonCodec.parseObjectOrNull(record.planPayload)
+        ?.let(JsonCodec::jsonElementToValue)
+        ?.let(JsonCodec::anyToStringAnyMap)
     assertNotNull(preplanMap, "preplan payload must be strict JSON, not fenced prose")
     assertNotNull(planMap, "plan payload must be strict JSON, not fenced prose")
     assertFalse(record.preplanPayload.contains("```") || record.preplanPayload.contains("Here is"))
@@ -1695,33 +1804,37 @@ class GoalPlanningSweepRejectionTest {
   fun `missing or unreadable shared governed spec stops before mutation with a clear pre sweep state`() {
     val outputValidator = FakePhaseOutputValidator()
     val database = InMemoryPreparationDatabase()
-    val checkpoint = GoalPlanningPreparationCheckpoint(
-      database = database,
-      envelopeValidator = NoopGoalPlanningPreparationEnvelopeValidator,
-      phaseOutputValidator = outputValidator,
-      planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
-    )
+    val checkpoint =
+      GoalPlanningPreparationCheckpoint(
+        database = database,
+        envelopeValidator = NoopGoalPlanningPreparationEnvelopeValidator,
+        phaseOutputValidator = outputValidator,
+        planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
+      )
     val launcher = SweepPlanningLauncher { phase, _, _ -> validPhaseOutcome(phase) }
-    val sweep = testGoalPlanningSweepPorts(
-      GoalPlanningSweepPortsParams(
-        checkpoint = checkpoint,
-        outputValidator = outputValidator,
-        subtaskLauncher = launcher,
-        invariantsSource = FakeInvariantsSource(),
-        manifestFileStore = ThrowingManifestFileStore(),
-        contextDiscovery = fakeContextDiscovery,
-      ),
-    )
-    val state = GoalRunnerManifestState(
-      parentWorkflowId = "wfl-parent",
-      dbPath = "/fake/goal-planning-sweep-preparations.db",
-      manifest = manifest(subtaskCount = 2),
-    )
-    val request = GoalRunnerRunRequest(
-      issueKey = "SKILL-56",
-      repoRoot = Files.createTempDirectory("goal-planning-sweep"),
-      invokedAgentId = "claude",
-    )
+    val sweep =
+      testGoalPlanningSweepPorts(
+        GoalPlanningSweepPortsParams(
+          checkpoint = checkpoint,
+          outputValidator = outputValidator,
+          subtaskLauncher = launcher,
+          invariantsSource = FakeInvariantsSource(),
+          manifestFileStore = ThrowingManifestFileStore(),
+          contextDiscovery = fakeContextDiscovery,
+        ),
+      )
+    val state =
+      GoalRunnerManifestState(
+        parentWorkflowId = "wfl-parent",
+        dbPath = "/fake/goal-planning-sweep-preparations.db",
+        manifest = manifest(subtaskCount = 2),
+      )
+    val request =
+      GoalRunnerRunRequest(
+        issueKey = "SKILL-56",
+        repoRoot = Files.createTempDirectory("goal-planning-sweep"),
+        invokedAgentId = "claude",
+      )
 
     val outcome = sweep.prepare(state, request)
 
@@ -1857,19 +1970,20 @@ class GoalPlanningSweepTimingTest {
   @Test
   fun `a plan child that first omits value relaunches once and checkpoints only the valid plan`() {
     var planAttempts = 0
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        outputValidator = realFeatureTaskRuntimePhaseOutputValidator,
-        planningProjectionValidator = realPlanningProjectionValidator,
-      ),
-    ) { phase, _, _ ->
-      if (phase != "plan") {
-        validPhaseOutcome(phase)
-      } else {
-        planAttempts += 1
-        if (planAttempts == 1) launchFacts(stdout = missingValuePlanPayload()) else validPhaseOutcome(phase)
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          outputValidator = realFeatureTaskRuntimePhaseOutputValidator,
+          planningProjectionValidator = realPlanningProjectionValidator,
+        ),
+      ) { phase, _, _ ->
+        if (phase != "plan") {
+          validPhaseOutcome(phase)
+        } else {
+          planAttempts += 1
+          if (planAttempts == 1) launchFacts(stdout = missingValuePlanPayload()) else validPhaseOutcome(phase)
+        }
       }
-    }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1891,24 +2005,26 @@ class GoalPlanningSweepTimingTest {
   fun `planning projection retries are recorded with durable attempt outcomes`() {
     val attempts = mutableListOf<String>()
     var launchCount = 0
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        outputValidator = realFeatureTaskRuntimePhaseOutputValidator,
-        planningProjectionValidator = realPlanningProjectionValidator,
-        planningAttemptRecorder = GoalPlanningAttemptRecorder { record ->
-          if (record.eventKind == GoalProgressEventKind.OPERATION_COMPLETED) {
-            attempts += "${record.phaseId}:${record.subtaskId}:${record.attempt}:${record.outcome.wireValue}"
-          }
-        },
-      ),
-    ) { phase, _, _ ->
-      launchCount += 1
-      if (phase == "plan" && launchCount == 2) {
-        launchFacts(stdout = missingValuePlanPayload())
-      } else {
-        validPhaseOutcome(phase)
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          outputValidator = realFeatureTaskRuntimePhaseOutputValidator,
+          planningProjectionValidator = realPlanningProjectionValidator,
+          planningAttemptRecorder =
+            GoalPlanningAttemptRecorder { record ->
+              if (record.eventKind == GoalProgressEventKind.OPERATION_COMPLETED) {
+                attempts += "${record.phaseId}:${record.subtaskId}:${record.attempt}:${record.outcome.wireValue}"
+              }
+            },
+        ),
+      ) { phase, _, _ ->
+        launchCount += 1
+        if (phase == "plan" && launchCount == 2) {
+          launchFacts(stdout = missingValuePlanPayload())
+        } else {
+          validPhaseOutcome(phase)
+        }
       }
-    }
 
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(
       harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request()),
@@ -1926,20 +2042,26 @@ class GoalPlanningSweepTimingTest {
   @Test
   fun `preplan settles without consulting the planning projection producer gate`() {
     val labels = mutableListOf<String>()
-    val validator = object : FeatureTaskRuntimeWireArtifactValidator {
-      override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
-        if (kind == FeatureTaskRuntimeWireArtifactKind.PLANNING_PROJECTION) {
-          labels += sourceLabel
+    val validator =
+      object : FeatureTaskRuntimeWireArtifactValidator {
+        override fun validate(
+          kind: FeatureTaskRuntimeWireArtifactKind,
+          payload: Any,
+          sourceLabel: String,
+        ) {
+          if (kind == FeatureTaskRuntimeWireArtifactKind.PLANNING_PROJECTION) {
+            labels += sourceLabel
+          }
         }
       }
-    }
-    val harness = sweepHarness(SweepHarnessConfig(planningProjectionValidator = validator)) { phase, _, _ ->
-      if (phase == "plan") {
-        launchFacts(stdout = phasePayload(phase).replace("\"completed\"", "\"blocked\""))
-      } else {
-        validPhaseOutcome(phase)
+    val harness =
+      sweepHarness(SweepHarnessConfig(planningProjectionValidator = validator)) { phase, _, _ ->
+        if (phase == "plan") {
+          launchFacts(stdout = phasePayload(phase).replace("\"completed\"", "\"blocked\""))
+        } else {
+          validPhaseOutcome(phase)
+        }
       }
-    }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1953,20 +2075,22 @@ class GoalPlanningSweepTimingTest {
 
   @Test
   fun `preplan repair evidence survives enrichment and checkpoint persistence`() {
-    val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
-      format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-      originalDigest = sha256HexUtf8(RAW_REPAIRED_PREPLAN),
-      repairedDigest = sha256HexUtf8(REPAIRED_PREPLAN_PAYLOAD),
-      operation = FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
-      sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("preplan", 0, 1, 1),
-    )
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        outputValidator = RepairingPreplanOutputValidator(evidence),
-      ),
-    ) { phase, _, _ ->
-      if (phase == "preplan") launchFacts(stdout = RAW_REPAIRED_PREPLAN) else validPhaseOutcome(phase)
-    }
+    val evidence =
+      FeatureTaskRuntimePhaseOutputRepairEvidence(
+        format = FeatureTaskRuntimePhaseOutputFormat.JSON,
+        originalDigest = sha256HexUtf8(RAW_REPAIRED_PREPLAN),
+        repairedDigest = sha256HexUtf8(REPAIRED_PREPLAN_PAYLOAD),
+        operation = FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
+        sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("preplan", 0, 1, 1),
+      )
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          outputValidator = RepairingPreplanOutputValidator(evidence),
+        ),
+      ) { phase, _, _ ->
+        if (phase == "preplan") launchFacts(stdout = RAW_REPAIRED_PREPLAN) else validPhaseOutcome(phase)
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -1979,17 +2103,19 @@ class GoalPlanningSweepTimingTest {
   @Test
   fun `empty provider turn backoff waits grow before attempts two and three`() {
     val timing = RecordingRuntimeTimingPort()
-    val schedule = GoalPlanningBurstSchedule(
-      planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,
-      emptyTurnBackoffBase = 30.seconds,
-      emptyTurnBackoffFactor = 2,
-      waitSlice = 60.seconds,
-    )
+    val schedule =
+      GoalPlanningBurstSchedule(
+        planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,
+        emptyTurnBackoffBase = 30.seconds,
+        emptyTurnBackoffFactor = 2,
+        waitSlice = 60.seconds,
+      )
     var launches = 0
-    val harness = sweepHarness(SweepHarnessConfig(timingPort = timing, burstSchedule = schedule)) { phase, _, _ ->
-      launches += 1
-      if (launches <= 2) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
-    }
+    val harness =
+      sweepHarness(SweepHarnessConfig(timingPort = timing, burstSchedule = schedule)) { phase, _, _ ->
+        launches += 1
+        if (launches <= 2) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -2000,20 +2126,22 @@ class GoalPlanningSweepTimingTest {
   @Test
   fun `a pause requested while a wave is in flight returns PAUSED and dispatches no further wave`() {
     val pauseStore = MutablePauseGoalPlanningManifestStore()
-    val harness = sweepHarness(
-      SweepHarnessConfig(
-        manifestStore = pauseStore,
-        burstSchedule = GoalPlanningBurstSchedule(
-          planFanOutCap = 2,
-          emptyTurnBackoffBase = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_BASE,
-          emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
-          waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
+    val harness =
+      sweepHarness(
+        SweepHarnessConfig(
+          manifestStore = pauseStore,
+          burstSchedule =
+            GoalPlanningBurstSchedule(
+              planFanOutCap = 2,
+              emptyTurnBackoffBase = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_BASE,
+              emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
+              waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
+            ),
         ),
-      ),
-    ) { phase, subtaskId, _ ->
-      if (phase == "plan" && subtaskId == 1) pauseStore.pauseRequested = true
-      validPhaseOutcome(phase)
-    }
+      ) { phase, subtaskId, _ ->
+        if (phase == "plan" && subtaskId == 1) pauseStore.pauseRequested = true
+        validPhaseOutcome(phase)
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 4)), harness.request())
 
@@ -2030,10 +2158,11 @@ class GoalPlanningSweepTimingTest {
   fun `an interrupt during wait stops with the launch-interrupt terminal shape`() {
     val timing = RecordingRuntimeTimingPort(result = RuntimeWaitResult.INTERRUPTED)
     var launches = 0
-    val harness = sweepHarness(SweepHarnessConfig(timingPort = timing)) { phase, _, _ ->
-      launches += 1
-      if (launches == 2) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
-    }
+    val harness =
+      sweepHarness(SweepHarnessConfig(timingPort = timing)) { phase, _, _ ->
+        launches += 1
+        if (launches == 2) emptyProviderTurnOutcome() else validPhaseOutcome(phase)
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
@@ -2080,13 +2209,14 @@ class GoalPlanningSweepFanOutTest {
   fun `a blocked wave member leaves its siblings checkpointed and resume replans only the gap`() {
     val fanOut = BarrierFanOutPort()
     var blockThird = true
-    val harness = sweepHarness(SweepHarnessConfig(fanOutPort = fanOut)) { phase, subtaskId, _ ->
-      if (phase == "plan" && subtaskId == 3 && blockThird) {
-        launchFacts(stdout = blockedPhasePayload(phase, "subtask three names no boundary to plan against"))
-      } else {
-        validPhaseOutcome(phase)
+    val harness =
+      sweepHarness(SweepHarnessConfig(fanOutPort = fanOut)) { phase, subtaskId, _ ->
+        if (phase == "plan" && subtaskId == 3 && blockThird) {
+          launchFacts(stdout = blockedPhasePayload(phase, "subtask three names no boundary to plan against"))
+        } else {
+          validPhaseOutcome(phase)
+        }
       }
-    }
     val state = harness.stateFor(manifest(subtaskCount = 4))
 
     val stopped = assertIs<GoalPlanningSweepOutcome.Stopped>(harness.sweep.prepare(state, harness.request()))
@@ -2105,7 +2235,10 @@ class GoalPlanningSweepFanOutTest {
 
   @Test
   fun `two blocked units in one wave stop on the same subtask whichever finishes first`() {
-    fun harnessFor(order: FanOutBodyOrder, rejections: MutableList<GoalPlanningRejectionRecord>) = sweepHarness(
+    fun harnessFor(
+      order: FanOutBodyOrder,
+      rejections: MutableList<GoalPlanningRejectionRecord>,
+    ) = sweepHarness(
       SweepHarnessConfig(
         planningRejectionRecorder = { record -> synchronized(rejections) { rejections += record } },
         fanOutPort = BarrierFanOutPort(order),
@@ -2120,13 +2253,15 @@ class GoalPlanningSweepFanOutTest {
 
     val forwardRejections = mutableListOf<GoalPlanningRejectionRecord>()
     val forwardHarness = harnessFor(FanOutBodyOrder.FORWARD, forwardRejections)
-    val forward = assertIs<GoalPlanningSweepOutcome.Stopped>(
-      forwardHarness.sweep.prepare(forwardHarness.stateFor(manifest(subtaskCount = 4)), forwardHarness.request()),
-    )
+    val forward =
+      assertIs<GoalPlanningSweepOutcome.Stopped>(
+        forwardHarness.sweep.prepare(forwardHarness.stateFor(manifest(subtaskCount = 4)), forwardHarness.request()),
+      )
     val reversedHarness = harnessFor(FanOutBodyOrder.REVERSED, mutableListOf())
-    val reversed = assertIs<GoalPlanningSweepOutcome.Stopped>(
-      reversedHarness.sweep.prepare(reversedHarness.stateFor(manifest(subtaskCount = 4)), reversedHarness.request()),
-    )
+    val reversed =
+      assertIs<GoalPlanningSweepOutcome.Stopped>(
+        reversedHarness.sweep.prepare(reversedHarness.stateFor(manifest(subtaskCount = 4)), reversedHarness.request()),
+      )
 
     assertEquals(2, forward.currentSubtaskId, "the stop must come from the lowest failing subtask in input order")
     assertEquals(forward.currentSubtaskId, reversed.currentSubtaskId)
@@ -2143,16 +2278,17 @@ class GoalPlanningSweepFanOutTest {
   fun `concurrent units forward only whole attributed lines to the shared sink`() {
     val written = mutableListOf<String>()
     val interleave = CountDownLatch(3)
-    val harness = sweepHarness(SweepHarnessConfig(fanOutPort = BarrierFanOutPort())) { phase, subtaskId, request ->
-      if (phase == "plan") {
-        val unitSink = request.skillRunRequest.outputSink
-        unitSink.write(AgentRunOutputStream.STDOUT, "chunk-a-$subtaskId ")
-        interleave.countDown()
-        check(interleave.await(FAN_OUT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) { "units never interleaved" }
-        unitSink.write(AgentRunOutputStream.STDOUT, "chunk-b-$subtaskId\n")
+    val harness =
+      sweepHarness(SweepHarnessConfig(fanOutPort = BarrierFanOutPort())) { phase, subtaskId, request ->
+        if (phase == "plan") {
+          val unitSink = request.skillRunRequest.outputSink
+          unitSink.write(AgentRunOutputStream.STDOUT, "chunk-a-$subtaskId ")
+          interleave.countDown()
+          check(interleave.await(FAN_OUT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) { "units never interleaved" }
+          unitSink.write(AgentRunOutputStream.STDOUT, "chunk-b-$subtaskId\n")
+        }
+        validPhaseOutcome(phase)
       }
-      validPhaseOutcome(phase)
-    }
     val sink = AgentRunOutputSink { _, text -> synchronized(written) { written += text } }
 
     harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 3)), harness.request(sink))
@@ -2164,15 +2300,17 @@ class GoalPlanningSweepFanOutTest {
 
   @Test
   fun `a wave unit that raises outside the attempt gate stops on its own subtask`() {
-    val harness = sweepHarness(SweepHarnessConfig(fanOutPort = BarrierFanOutPort())) { phase, subtaskId, request ->
-      if (phase == "plan" && subtaskId == 2) {
-        request.skillRunRequest.outputSink.write(AgentRunOutputStream.STDOUT, "tail chunk with no newline")
+    val harness =
+      sweepHarness(SweepHarnessConfig(fanOutPort = BarrierFanOutPort())) { phase, subtaskId, request ->
+        if (phase == "plan" && subtaskId == 2) {
+          request.skillRunRequest.outputSink.write(AgentRunOutputStream.STDOUT, "tail chunk with no newline")
+        }
+        validPhaseOutcome(phase)
       }
-      validPhaseOutcome(phase)
-    }
-    val sink = AgentRunOutputSink { _, text ->
-      if ("[subtask 2]" in text) error("plan output stream closed")
-    }
+    val sink =
+      AgentRunOutputSink { _, text ->
+        if ("[subtask 2]" in text) error("plan output stream closed")
+      }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 3)), harness.request(sink))
 
@@ -2188,15 +2326,16 @@ class GoalPlanningSweepFanOutTest {
     val fanOut = BarrierFanOutPort()
     var preplanLaunches = 0
     var wavesAtLastPreplan = -1
-    val harness = sweepHarness(SweepHarnessConfig(fanOutPort = fanOut)) { phase, _, _ ->
-      if (phase == "preplan") {
-        preplanLaunches += 1
-        wavesAtLastPreplan = fanOut.waveSizes.size
-        launchFacts(stdout = preplanProsePayload(value = "Preplan prose revision $preplanLaunches."))
-      } else {
-        validPhaseOutcome(phase)
+    val harness =
+      sweepHarness(SweepHarnessConfig(fanOutPort = fanOut)) { phase, _, _ ->
+        if (phase == "preplan") {
+          preplanLaunches += 1
+          wavesAtLastPreplan = fanOut.waveSizes.size
+          launchFacts(stdout = preplanProsePayload(value = "Preplan prose revision $preplanLaunches."))
+        } else {
+          validPhaseOutcome(phase)
+        }
       }
-    }
     val state = harness.stateFor(manifest(subtaskCount = 2))
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(harness.sweep.prepare(state, harness.request()))
     assertEquals(listOf(2), fanOut.waveSizes)
@@ -2230,31 +2369,36 @@ private class BarrierFanOutPort(
 
   val maxObservedConcurrency: Int get() = peak.get()
 
-  override fun <T> runBounded(maxInFlight: Int, units: List<() -> T>): List<Result<T>> {
+  override fun <T> runBounded(
+    maxInFlight: Int,
+    units: List<() -> T>,
+  ): List<Result<T>> {
     runExclusively {
       requestedCaps += maxInFlight
       waveSizes += units.size
     }
     val entered = CountDownLatch(units.size)
-    val order = when (bodyOrder) {
-      FanOutBodyOrder.CONCURRENT -> null
-      FanOutBodyOrder.FORWARD -> units.indices.toList()
-      FanOutBodyOrder.REVERSED -> units.indices.reversed().toList()
-    }
+    val order =
+      when (bodyOrder) {
+        FanOutBodyOrder.CONCURRENT -> null
+        FanOutBodyOrder.FORWARD -> units.indices.toList()
+        FanOutBodyOrder.REVERSED -> units.indices.reversed().toList()
+      }
     val turnstiles = order?.associateWith { CountDownLatch(1) }
     val successor = order?.zipWithNext()?.toMap()
     val results = MutableList<Result<T>?>(units.size) { null }
-    val threads = units.mapIndexed { index, unit ->
-      Thread {
-        peak.accumulateAndGet(inFlight.incrementAndGet()) { a, b -> maxOf(a, b) }
-        entered.countDown()
-        awaitFanOut(entered, "wave never fully entered")
-        turnstiles?.getValue(index)?.let { awaitFanOut(it, "unit $index was never released") }
-        results[index] = runCatching { unit() }
-        successor?.get(index)?.let { turnstiles?.getValue(it)?.countDown() }
-        inFlight.decrementAndGet()
+    val threads =
+      units.mapIndexed { index, unit ->
+        Thread {
+          peak.accumulateAndGet(inFlight.incrementAndGet()) { a, b -> maxOf(a, b) }
+          entered.countDown()
+          awaitFanOut(entered, "wave never fully entered")
+          turnstiles?.getValue(index)?.let { awaitFanOut(it, "unit $index was never released") }
+          results[index] = runCatching { unit() }
+          successor?.get(index)?.let { turnstiles?.getValue(it)?.countDown() }
+          inFlight.decrementAndGet()
+        }
       }
-    }
     threads.forEach(Thread::start)
     order?.firstOrNull()?.let { turnstiles?.getValue(it)?.countDown() }
     threads.forEach { it.join(FAN_OUT_TIMEOUT_SECONDS * MILLIS_PER_SECOND) }
@@ -2265,7 +2409,10 @@ private class BarrierFanOutPort(
 
   override fun <T> runExclusively(action: () -> T): T = synchronized(exclusion) { action() }
 
-  private fun awaitFanOut(latch: CountDownLatch, failure: String) {
+  private fun awaitFanOut(
+    latch: CountDownLatch,
+    failure: String,
+  ) {
     check(latch.await(FAN_OUT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) { failure }
   }
 
@@ -2303,7 +2450,10 @@ private class RepairingPreplanOutputValidator(
     )
   }
 
-  override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
+  override fun validatePhaseOutputText(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ) {
     validatePhaseOutput(phaseOutputText, sourceLabel)
   }
 }
@@ -2312,20 +2462,22 @@ private fun legacyV01Packet(
   subtasks: List<DecompositionSubtask>,
   platformPacks: Map<String, String>,
 ): Map<String, Any?> {
-  val body = linkedMapOf<String, Any?>(
-    "packet_version" to GoalPlanningSharedContextPacket.LEGACY_VERSION_0_1,
-    "repository_identity" to "repo-root-realpath-v1:/tmp/fixture",
-    "normalized_issue_key" to "SKILL-172",
-    "parent_spec_path" to ".feature-specs/SKILL-172/spec.md",
-    "parent_spec" to "parent body",
-    "decomposition_manifest" to "contract_version: \"0.1\"\nissue_key: SKILL-172\n",
-    "platform_packs" to platformPacks,
-    "boundary_memory" to mapOf(
-      "platform-packs/kotlin/agent/history.md" to "prior decision",
-    ),
-    "validation_guidance" to "repo conventions",
-    "ordered_subtasks" to GoalPlanningSharedContextPacket.orderedSubtasks(subtasks),
-  )
+  val body =
+    linkedMapOf<String, Any?>(
+      "packet_version" to GoalPlanningSharedContextPacket.LEGACY_VERSION_0_1,
+      "repository_identity" to "repo-root-realpath-v1:/tmp/fixture",
+      "normalized_issue_key" to "SKILL-172",
+      "parent_spec_path" to ".feature-specs/SKILL-172/spec.md",
+      "parent_spec" to "parent body",
+      "decomposition_manifest" to "contract_version: \"0.1\"\nissue_key: SKILL-172\n",
+      "platform_packs" to platformPacks,
+      "boundary_memory" to
+        mapOf(
+          "platform-packs/kotlin/agent/history.md" to "prior decision",
+        ),
+      "validation_guidance" to "repo conventions",
+      "ordered_subtasks" to GoalPlanningSharedContextPacket.orderedSubtasks(subtasks),
+    )
   return body + ("integrity_sha256" to GoalPlanningSharedContextPacket.digest(body))
 }
 
@@ -2333,17 +2485,18 @@ private fun legacyV02Packet(
   subtasks: List<DecompositionSubtask>,
   boundaryMemory: Map<String, String>,
 ): Map<String, Any?> {
-  val body = linkedMapOf<String, Any?>(
-    "packet_version" to GoalPlanningSharedContextPacket.LEGACY_VERSION_0_2,
-    "repository_identity" to "repo-root-realpath-v1:/tmp/fixture",
-    "normalized_issue_key" to "SKILL-172",
-    "parent_spec_path" to ".feature-specs/SKILL-172/spec.md",
-    "parent_spec" to "parent body",
-    "decomposition_manifest" to "contract_version: \"0.1\"\nissue_key: SKILL-172\n",
-    "boundary_memory" to boundaryMemory,
-    "validation_guidance" to "repo conventions",
-    "ordered_subtasks" to GoalPlanningSharedContextPacket.orderedSubtasks(subtasks),
-  )
+  val body =
+    linkedMapOf<String, Any?>(
+      "packet_version" to GoalPlanningSharedContextPacket.LEGACY_VERSION_0_2,
+      "repository_identity" to "repo-root-realpath-v1:/tmp/fixture",
+      "normalized_issue_key" to "SKILL-172",
+      "parent_spec_path" to ".feature-specs/SKILL-172/spec.md",
+      "parent_spec" to "parent body",
+      "decomposition_manifest" to "contract_version: \"0.1\"\nissue_key: SKILL-172\n",
+      "boundary_memory" to boundaryMemory,
+      "validation_guidance" to "repo conventions",
+      "ordered_subtasks" to GoalPlanningSharedContextPacket.orderedSubtasks(subtasks),
+    )
   return body + ("integrity_sha256" to GoalPlanningSharedContextPacket.digest(body))
 }
 
@@ -2351,25 +2504,27 @@ private fun legacyV03Packet(
   subtasks: List<DecompositionSubtask>,
   boundaryMemory: Map<String, String>,
 ): Map<String, Any?> {
-  val body = linkedMapOf<String, Any?>(
-    "packet_version" to GoalPlanningSharedContextPacket.LEGACY_VERSION_0_3,
-    "repository_identity" to "repo-root-realpath-v1:/tmp/fixture",
-    "normalized_issue_key" to "SKILL-172",
-    "parent_spec_path" to ".feature-specs/SKILL-172/spec.md",
-    "parent_spec" to "parent body",
-    "decomposition_manifest" to "contract_version: \"0.1\"\nissue_key: SKILL-172\n",
-    "boundary_memory" to boundaryMemory,
-    "validation_guidance" to "repo conventions",
-    "ordered_subtasks" to GoalPlanningSharedContextPacket.orderedSubtasks(subtasks),
-  )
+  val body =
+    linkedMapOf<String, Any?>(
+      "packet_version" to GoalPlanningSharedContextPacket.LEGACY_VERSION_0_3,
+      "repository_identity" to "repo-root-realpath-v1:/tmp/fixture",
+      "normalized_issue_key" to "SKILL-172",
+      "parent_spec_path" to ".feature-specs/SKILL-172/spec.md",
+      "parent_spec" to "parent body",
+      "decomposition_manifest" to "contract_version: \"0.1\"\nissue_key: SKILL-172\n",
+      "boundary_memory" to boundaryMemory,
+      "validation_guidance" to "repo conventions",
+      "ordered_subtasks" to GoalPlanningSharedContextPacket.orderedSubtasks(subtasks),
+    )
   return body + ("integrity_sha256" to GoalPlanningSharedContextPacket.digest(body))
 }
 
 private fun normalizedPlanningOutput(payload: String): NormalizedFeatureTaskRuntimePhaseOutput {
-  val envelope = JsonCodec.parseObjectOrNull(payload)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?: error("fixture phase output is not an object")
+  val envelope =
+    JsonCodec.parseObjectOrNull(payload)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?: error("fixture phase output is not an object")
   return NormalizedFeatureTaskRuntimePhaseOutput(
     canonicalJson = JsonCodec.mapToJsonString(envelope),
     envelope = envelope,
@@ -2383,13 +2538,15 @@ private fun GoalPlanningPreparationRecord.withSharedPacket(
   val produced = requireNotNull(JsonCodec.anyToStringAnyMap(root["produced_outputs"]))
   val packet = requireNotNull(JsonCodec.anyToStringAnyMap(produced["_goal_planning_shared_context"]))
   val transformed = transform(packet - "integrity_sha256")
-  val packetWithIntegrity = transformed + (
-    "integrity_sha256" to sha256HexUtf8(JsonCodec.mapToJsonString(transformed))
+  val packetWithIntegrity =
+    transformed + (
+      "integrity_sha256" to sha256HexUtf8(JsonCodec.mapToJsonString(transformed))
     )
   return copy(
-    preplanPayload = JsonCodec.mapToJsonString(
-      root + ("produced_outputs" to (produced + ("_goal_planning_shared_context" to packetWithIntegrity))),
-    ),
+    preplanPayload =
+      JsonCodec.mapToJsonString(
+        root + ("produced_outputs" to (produced + ("_goal_planning_shared_context" to packetWithIntegrity))),
+      ),
   )
 }
 
@@ -2407,39 +2564,48 @@ private fun GoalPlanningPreparationRecord.preplanRoot(): Map<String, Any?> =
 
 private fun validPhaseOutcome(phase: String): AgentRunLaunchOutcome = launchFacts(stdout = phasePayload(phase))
 
-private fun emptyProviderTurnOutcome(): AgentRunLaunchOutcome = AgentRunLaunchFacts(
-  agent = InstallAgent.CLAUDE,
-  exitStatus = 0,
-  stdout = "",
-  stderr = "",
-  timedOut = false,
-  interrupted = false,
-  spawnFailed = false,
-  assistantEventCount = 0,
-  rawOutputPreview = "{\"type\":\"result\",\"result\":\"\"}",
-)
+private fun emptyProviderTurnOutcome(): AgentRunLaunchOutcome =
+  AgentRunLaunchFacts(
+    agent = InstallAgent.CLAUDE,
+    exitStatus = 0,
+    stdout = "",
+    stderr = "",
+    timedOut = false,
+    interrupted = false,
+    spawnFailed = false,
+    assistantEventCount = 0,
+    rawOutputPreview = "{\"type\":\"result\",\"result\":\"\"}",
+  )
 
-private fun spawnBlockedOutcome(): AgentRunLaunchOutcome = AgentRunLaunchFacts(
-  agent = InstallAgent.CLAUDE,
-  exitStatus = null,
-  stdout = "",
-  stderr = "planning agent could not start",
-  timedOut = false,
-  interrupted = false,
-  spawnFailed = true,
-)
+private fun spawnBlockedOutcome(): AgentRunLaunchOutcome =
+  AgentRunLaunchFacts(
+    agent = InstallAgent.CLAUDE,
+    exitStatus = null,
+    stdout = "",
+    stderr = "planning agent could not start",
+    timedOut = false,
+    interrupted = false,
+    spawnFailed = true,
+  )
 
 private fun phasePayload(phaseId: String): String =
   """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"$phaseId",""" +
     """"status":"completed","summary":"s","produced_outputs":""" +
     (PlanningProjectionFixtures.producedOutputsOrNull(phaseId) ?: """{"result":"$phaseId"}""") + "}"
 
-private fun blockedPhasePayload(phaseId: String, summary: String, disposition: String = "needs_user_action"): String =
+private fun blockedPhasePayload(
+  phaseId: String,
+  summary: String,
+  disposition: String = "needs_user_action",
+): String =
   """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"$phaseId",""" +
     """"status":"blocked","failure_disposition":"$disposition","summary":"$summary",""" +
     """"produced_outputs":{"result":"$phaseId"}}"""
 
-private fun preplanProsePayload(value: String = "Fixture preplan prose.", prompt: String? = null): String {
+private fun preplanProsePayload(
+  value: String = "Fixture preplan prose.",
+  prompt: String? = null,
+): String {
   val promptPart = prompt?.let { ""","prompt":"$it"""" } ?: ""
   val produced = """{"value":"$value"$promptPart}"""
   return """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"preplan",""" +
@@ -2507,11 +2673,15 @@ private class CountingManifestFileStore : DecompositionManifestStore {
   override fun deleteIfExists(target: Path): Unit =
     error("CountingManifestFileStore is read-only in goal planning sweep tests.")
 
-  override fun writeTextAtomically(target: Path, content: String): Unit =
-    error("CountingManifestFileStore is read-only in goal planning sweep tests.")
+  override fun writeTextAtomically(
+    target: Path,
+    content: String,
+  ): Unit = error("CountingManifestFileStore is read-only in goal planning sweep tests.")
 
-  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T =
-    error("CountingManifestFileStore is read-only in goal planning sweep tests.")
+  override fun <T> writeBundleAtomically(
+    writes: List<Pair<Path, String>>,
+    verify: () -> T,
+  ): T = error("CountingManifestFileStore is read-only in goal planning sweep tests.")
 
   override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     error("CountingManifestFileStore is read-only in goal planning sweep tests.")
@@ -2526,7 +2696,10 @@ private class CountingManifestFileStore : DecompositionManifestStore {
     decompositionManifest = content
   }
 
-  fun replaceSpec(fileName: String, content: String) {
+  fun replaceSpec(
+    fileName: String,
+    content: String,
+  ) {
     specContents[fileName] = content
   }
 }
@@ -2550,31 +2723,40 @@ private class ThrowingManifestFileStore : DecompositionManifestStore {
   override fun deleteIfExists(target: Path): Unit =
     error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 
-  override fun writeTextAtomically(target: Path, content: String): Unit =
-    error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
+  override fun writeTextAtomically(
+    target: Path,
+    content: String,
+  ): Unit = error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 
-  override fun <T> writeBundleAtomically(writes: List<Pair<Path, String>>, verify: () -> T): T =
-    error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
+  override fun <T> writeBundleAtomically(
+    writes: List<Pair<Path, String>>,
+    verify: () -> T,
+  ): T = error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 
   override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 }
 
 private class FakeInvariantsSource : FeatureTaskRuntimeRunInvariantsSource {
-  override fun read(specPath: Path): FeatureTaskRuntimeRunInvariants = FeatureTaskRuntimeRunInvariants(
-    specReference = specPath.toString(),
-    featureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
-    acceptanceCriteria = listOf("The sweep produces a schema-valid plan for this sub-spec."),
-    mandatesAndOverrides = emptyList(),
-  )
+  override fun read(specPath: Path): FeatureTaskRuntimeRunInvariants =
+    FeatureTaskRuntimeRunInvariants(
+      specReference = specPath.toString(),
+      featureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
+      acceptanceCriteria = listOf("The sweep produces a schema-valid plan for this sub-spec."),
+      mandatesAndOverrides = emptyList(),
+    )
 }
 
 private class FakePhaseOutputValidator : FeatureTaskRuntimePhaseOutputTestValidator() {
-  override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
-    val output = JsonCodec.parseObjectOrNull(phaseOutputText)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?: throw malformed(sourceLabel, "Phase output root must be a single JSON object.")
+  override fun validatePhaseOutputText(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ) {
+    val output =
+      JsonCodec.parseObjectOrNull(phaseOutputText)
+        ?.let(JsonCodec::jsonElementToValue)
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?: throw malformed(sourceLabel, "Phase output root must be a single JSON object.")
     val contractVersion = output["contract_version"]?.toString()
     val phaseId = output["phase_id"]?.toString()
     val status = output["status"]?.toString()
@@ -2598,28 +2780,39 @@ private class FakePhaseOutputValidator : FeatureTaskRuntimePhaseOutputTestValida
     sourceLabel: String,
   ): NormalizedFeatureTaskRuntimePhaseOutput = normalizedPlanningOutput(phaseOutputText)
 
-  private fun malformed(sourceLabel: String, reason: String): InvalidFeatureTaskRuntimePhaseOutputSchemaError =
+  private fun malformed(
+    sourceLabel: String,
+    reason: String,
+  ): InvalidFeatureTaskRuntimePhaseOutputSchemaError =
     InvalidFeatureTaskRuntimePhaseOutputSchemaError(sourceLabel = sourceLabel, reason = reason)
 }
 
 private class FenceAwarePhaseOutputValidator : FeatureTaskRuntimePhaseOutputTestValidator() {
-  override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
+  override fun validatePhaseOutputText(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ) {
     validateAndReadPhaseOutput(phaseOutputText, sourceLabel)
   }
 
-  override fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Map<String, Any?> {
-    val candidate = firstJsonObject(phaseOutputText)
-      ?: throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = sourceLabel,
-        reason = "Phase output root must contain a single JSON object.",
-      )
-    val output = JsonCodec.parseObjectOrNull(candidate)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?: throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = sourceLabel,
-        reason = "Phase output root must be a single JSON object.",
-      )
+  override fun validateAndReadPhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): Map<String, Any?> {
+    val candidate =
+      firstJsonObject(phaseOutputText)
+        ?: throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+          sourceLabel = sourceLabel,
+          reason = "Phase output root must contain a single JSON object.",
+        )
+    val output =
+      JsonCodec.parseObjectOrNull(candidate)
+        ?.let(JsonCodec::jsonElementToValue)
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?: throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+          sourceLabel = sourceLabel,
+          reason = "Phase output root must be a single JSON object.",
+        )
     when {
       output["contract_version"]?.toString() != FEATURE_TASK_RUNTIME_CONTRACT_VERSION ->
         throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
@@ -2646,8 +2839,9 @@ private class FenceAwarePhaseOutputValidator : FeatureTaskRuntimePhaseOutputTest
   }
 
   private fun firstJsonObject(text: String): String? {
-    val fenced = Regex("```[A-Za-z]*\\s*\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
-      .find(text)?.groupValues?.get(1)
+    val fenced =
+      Regex("```[A-Za-z]*\\s*\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
+        .find(text)?.groupValues?.get(1)
     val candidate = (fenced ?: text).trim()
     val open = candidate.indexOf('{')
     val close = candidate.lastIndexOf('}')
@@ -2744,13 +2938,19 @@ private class InMemoryPreparationRepository(
     plans[checkpoint.subtaskId] = checkpoint
   }
 
-  override fun deleteSubtaskPlan(parentGoalWorkflowId: String, subtaskId: Int): Int {
+  override fun deleteSubtaskPlan(
+    parentGoalWorkflowId: String,
+    subtaskId: Int,
+  ): Int {
     val removed = plans.remove(subtaskId) != null
     records.remove(subtaskId)
     return if (removed) 1 else 0
   }
 
-  override fun deleteSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int {
+  override fun deleteSharedPreplan(
+    identity: GoalPlanningIdentity,
+    expectedPayloadSha256: String,
+  ): Int {
     val shared = sharedPreplan
     if (shared == null ||
       shared.identity.parentGoalWorkflowId != identity.parentGoalWorkflowId ||
@@ -2768,7 +2968,10 @@ private class InMemoryPreparationRepository(
     return 1
   }
 
-  override fun invalidateSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int {
+  override fun invalidateSharedPreplan(
+    identity: GoalPlanningIdentity,
+    expectedPayloadSha256: String,
+  ): Int {
     val shared = sharedPreplan
     if (shared == null ||
       shared.identity.parentGoalWorkflowId != identity.parentGoalWorkflowId ||
@@ -2780,10 +2983,11 @@ private class InMemoryPreparationRepository(
         "shared preplan changed after it was observed for discard",
       )
     }
-    sharedPreplan = shared.copy(
-      payloadSha256 = sha256HexUtf8("shared-preplan-discarded"),
-      preplanPayload = "shared-preplan-discarded",
-    )
+    sharedPreplan =
+      shared.copy(
+        payloadSha256 = sha256HexUtf8("shared-preplan-discarded"),
+        preplanPayload = "shared-preplan-discarded",
+      )
     return 1
   }
 
@@ -2794,19 +2998,21 @@ private class InMemoryPreparationRepository(
 
   fun overwriteSharedPreplanPayload(preplanPayload: String) {
     val shared = requireNotNull(sharedPreplan)
-    sharedPreplan = shared.copy(
-      payloadSha256 = sha256HexUtf8(preplanPayload),
-      preplanPayload = preplanPayload,
-    )
+    sharedPreplan =
+      shared.copy(
+        payloadSha256 = sha256HexUtf8(preplanPayload),
+        preplanPayload = preplanPayload,
+      )
   }
 
   fun blankSettledPreplanValue(identity: GoalPlanningIdentity) {
     val settled = requireNotNull(findSharedPreplan(identity))
-    val root = requireNotNull(
-      JsonCodec.parseObjectOrNull(settled.preplanPayload)
-        ?.let(JsonCodec::jsonElementToValue)
-        ?.let(JsonCodec::anyToStringAnyMap),
-    )
+    val root =
+      requireNotNull(
+        JsonCodec.parseObjectOrNull(settled.preplanPayload)
+          ?.let(JsonCodec::jsonElementToValue)
+          ?.let(JsonCodec::anyToStringAnyMap),
+      )
     val produced = requireNotNull(JsonCodec.anyToStringAnyMap(root["produced_outputs"]))
     overwriteSharedPreplanPayload(
       JsonCodec.mapToJsonString(root + ("produced_outputs" to (produced + ("value" to "   ")))),
@@ -2819,23 +3025,25 @@ private class InMemoryPreparationRepository(
   override fun checkpointSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint) {
     plans[checkpoint.subtaskId] = checkpoint
     val shared = requireNotNull(sharedPreplan)
-    records[checkpoint.subtaskId] = GoalPlanningPreparationRecord(
-      parentGoalWorkflowId = checkpoint.identity.parentGoalWorkflowId,
-      normalizedIssueKey = checkpoint.identity.normalizedIssueKey,
-      repositoryIdentity = checkpoint.identity.repositoryIdentity,
-      subtaskId = checkpoint.subtaskId,
-      governedSubSpecPath = checkpoint.governedSubSpecPath,
-      preparationStatus = checkpoint.preparationStatus,
-      provenance = GoalPlanningPreparationProvenance(
-        parentSpecHash = checkpoint.provenance.parentSpecHash,
-        subSpecHash = checkpoint.subSpecHash,
-        decompositionManifestHash = checkpoint.provenance.decompositionManifestHash,
-        phaseOutputContractId = checkpoint.provenance.phaseOutputContractId,
-        phaseOutputContractVersion = checkpoint.provenance.phaseOutputContractVersion,
-      ),
-      preplanPayload = shared.preplanPayload,
-      planPayload = checkpoint.planPayload,
-    )
+    records[checkpoint.subtaskId] =
+      GoalPlanningPreparationRecord(
+        parentGoalWorkflowId = checkpoint.identity.parentGoalWorkflowId,
+        normalizedIssueKey = checkpoint.identity.normalizedIssueKey,
+        repositoryIdentity = checkpoint.identity.repositoryIdentity,
+        subtaskId = checkpoint.subtaskId,
+        governedSubSpecPath = checkpoint.governedSubSpecPath,
+        preparationStatus = checkpoint.preparationStatus,
+        provenance =
+          GoalPlanningPreparationProvenance(
+            parentSpecHash = checkpoint.provenance.parentSpecHash,
+            subSpecHash = checkpoint.subSpecHash,
+            decompositionManifestHash = checkpoint.provenance.decompositionManifestHash,
+            phaseOutputContractId = checkpoint.provenance.phaseOutputContractId,
+            phaseOutputContractVersion = checkpoint.provenance.phaseOutputContractVersion,
+          ),
+        preplanPayload = shared.preplanPayload,
+        planPayload = checkpoint.planPayload,
+      )
     if (markPreparedThrows) {
       plans.remove(checkpoint.subtaskId)
       records.remove(checkpoint.subtaskId)
@@ -2848,8 +3056,11 @@ private class InMemoryPreparationRepository(
     }
   }
 
-  override fun findSubtaskPlan(expectedIdentity: GoalPlanningIdentity, subtaskId: Int, governedSubSpecPath: String) =
-    plans[subtaskId]?.takeIf { it.identity == expectedIdentity && it.governedSubSpecPath == governedSubSpecPath }
+  override fun findSubtaskPlan(
+    expectedIdentity: GoalPlanningIdentity,
+    subtaskId: Int,
+    governedSubSpecPath: String,
+  ) = plans[subtaskId]?.takeIf { it.identity == expectedIdentity && it.governedSubSpecPath == governedSubSpecPath }
 
   override fun listSubtaskPlansOrdered(
     expectedIdentity: GoalPlanningIdentity,
@@ -2858,32 +3069,36 @@ private class InMemoryPreparationRepository(
 
   override fun markPrepared(record: GoalPlanningPreparationRecord) {
     records[record.subtaskId] = record
-    val identity = GoalPlanningIdentity(
-      record.parentGoalWorkflowId,
-      record.normalizedIssueKey,
-      record.repositoryIdentity,
-    )
-    val provenance = GoalPlanningContractProvenance(
-      record.provenance.parentSpecHash,
-      record.provenance.decompositionManifestHash,
-      GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
-    )
-    sharedPreplan = SharedGoalPreplanCheckpoint(
-      identity = identity,
-      provenance = provenance,
-      payloadSha256 = sha256HexUtf8(record.preplanPayload),
-      preplanPayload = record.preplanPayload,
-    )
-    plans[record.subtaskId] = GoalSubtaskPlanCheckpoint(
-      identity = identity,
-      subtaskId = record.subtaskId,
-      manifestOrder = record.subtaskId - 1,
-      governedSubSpecPath = record.governedSubSpecPath,
-      subSpecHash = record.provenance.subSpecHash,
-      provenance = provenance,
-      payloadSha256 = sha256HexUtf8(record.planPayload),
-      planPayload = record.planPayload,
-    )
+    val identity =
+      GoalPlanningIdentity(
+        record.parentGoalWorkflowId,
+        record.normalizedIssueKey,
+        record.repositoryIdentity,
+      )
+    val provenance =
+      GoalPlanningContractProvenance(
+        record.provenance.parentSpecHash,
+        record.provenance.decompositionManifestHash,
+        GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+      )
+    sharedPreplan =
+      SharedGoalPreplanCheckpoint(
+        identity = identity,
+        provenance = provenance,
+        payloadSha256 = sha256HexUtf8(record.preplanPayload),
+        preplanPayload = record.preplanPayload,
+      )
+    plans[record.subtaskId] =
+      GoalSubtaskPlanCheckpoint(
+        identity = identity,
+        subtaskId = record.subtaskId,
+        manifestOrder = record.subtaskId - 1,
+        governedSubSpecPath = record.governedSubSpecPath,
+        subSpecHash = record.provenance.subSpecHash,
+        provenance = provenance,
+        payloadSha256 = sha256HexUtf8(record.planPayload),
+        planPayload = record.planPayload,
+      )
     if (markPreparedThrows) {
       records.remove(record.subtaskId)
       plans.remove(record.subtaskId)
@@ -2892,26 +3107,34 @@ private class InMemoryPreparationRepository(
     }
   }
 
-  override fun findByGoalAndSubtask(parentGoalWorkflowId: String, subtaskId: Int): GoalPlanningPreparationRecord? =
-    records[subtaskId]
+  override fun findByGoalAndSubtask(
+    parentGoalWorkflowId: String,
+    subtaskId: Int,
+  ): GoalPlanningPreparationRecord? = records[subtaskId]
 
   override fun listPreparedByGoalOrdered(parentGoalWorkflowId: String): List<GoalPlanningPreparationRecord> =
     records.values.toList().sortedBy { it.subtaskId }
 
   override fun preparedCount(parentGoalWorkflowId: String): Int = records.size
 
-  override fun firstMissingOrIncompleteSubtask(parentGoalWorkflowId: String, orderedSubtaskIds: List<Int>): Int? =
-    orderedSubtaskIds.firstOrNull { id -> id !in records }
+  override fun firstMissingOrIncompleteSubtask(
+    parentGoalWorkflowId: String,
+    orderedSubtaskIds: List<Int>,
+  ): Int? = orderedSubtaskIds.firstOrNull { id -> id !in records }
 
-  override fun preparedStatus(parentGoalWorkflowId: String, subtaskId: Int): GoalPlanningPreparationStatus? =
+  override fun preparedStatus(
+    parentGoalWorkflowId: String,
+    subtaskId: Int,
+  ): GoalPlanningPreparationStatus? =
     records[subtaskId]?.let { record ->
       GoalPlanningPreparationStatus(parentGoalWorkflowId, subtaskId, record.preparationStatus, record.provenance)
     }
 
   override fun deleteByGoal(parentGoalWorkflowId: String): Int {
-    val matchingIds = records.values
-      .filter { record -> record.parentGoalWorkflowId == parentGoalWorkflowId }
-      .map(GoalPlanningPreparationRecord::subtaskId)
+    val matchingIds =
+      records.values
+        .filter { record -> record.parentGoalWorkflowId == parentGoalWorkflowId }
+        .map(GoalPlanningPreparationRecord::subtaskId)
     matchingIds.forEach(records::remove)
     return matchingIds.size
   }
@@ -2927,6 +3150,7 @@ private class InMemoryPreparationDatabase(
   private val dbPath = Path.of("/fake/goal-planning-sweep-preparations.db")
 
   override fun resolveDbPath(): Path = dbPath
+
   override fun databaseExists(): Boolean = true
 
   @Synchronized
@@ -2938,19 +3162,20 @@ private class InMemoryPreparationDatabase(
   @Synchronized
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unitOfWork())
 
-  private fun unitOfWork(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = this@InMemoryPreparationDatabase.dbPath
-    override val reviews: ReviewRepository get() = error("unused by goal planning sweep tests")
-    override val learnings: LearningRepository get() = error("unused by goal planning sweep tests")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository get() = error("unused by goal planning sweep tests")
-    override val telemetryReconciliation: TelemetryReconciliationRepository
-      get() = error("unused by goal planning sweep tests")
-    override val telemetryOutbox: TelemetryOutboxRepository get() = error("unused by goal planning sweep tests")
-    override val workflowStates: WorkflowStateRepository get() = error("unused by goal planning sweep tests")
-    override val workList = EmptyWorkListRepository
-    override val goalPlanningPreparations: GoalPlanningPreparationRepository = repository
-    override val goalRunnerControls = EmptyGoalRunnerControlRepository
-  }
+  private fun unitOfWork(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = this@InMemoryPreparationDatabase.dbPath
+      override val reviews: ReviewRepository get() = error("unused by goal planning sweep tests")
+      override val learnings: LearningRepository get() = error("unused by goal planning sweep tests")
+      override val lifecycleTelemetry: LifecycleTelemetryRepository get() = error("unused by goal planning sweep tests")
+      override val telemetryReconciliation: TelemetryReconciliationRepository
+        get() = error("unused by goal planning sweep tests")
+      override val telemetryOutbox: TelemetryOutboxRepository get() = error("unused by goal planning sweep tests")
+      override val workflowStates: WorkflowStateRepository get() = error("unused by goal planning sweep tests")
+      override val workList = EmptyWorkListRepository
+      override val goalPlanningPreparations: GoalPlanningPreparationRepository = repository
+      override val goalRunnerControls = EmptyGoalRunnerControlRepository
+    }
 }
 
 private data class SweepFixtures(
@@ -2962,18 +3187,20 @@ private data class SweepFixtures(
   val repoRoot: Path,
   val databasePath: String,
 ) {
-  fun stateFor(manifest: DecompositionManifest): GoalRunnerManifestState = GoalRunnerManifestState(
-    parentWorkflowId = "wfl-parent",
-    dbPath = databasePath,
-    manifest = manifest,
-  )
+  fun stateFor(manifest: DecompositionManifest): GoalRunnerManifestState =
+    GoalRunnerManifestState(
+      parentWorkflowId = "wfl-parent",
+      dbPath = databasePath,
+      manifest = manifest,
+    )
 
-  fun request(outputSink: AgentRunOutputSink = AgentRunOutputSink.NONE): GoalRunnerRunRequest = GoalRunnerRunRequest(
-    issueKey = "SKILL-56",
-    repoRoot = repoRoot,
-    invokedAgentId = "claude",
-    outputSink = outputSink,
-  )
+  fun request(outputSink: AgentRunOutputSink = AgentRunOutputSink.NONE): GoalRunnerRunRequest =
+    GoalRunnerRunRequest(
+      issueKey = "SKILL-56",
+      repoRoot = repoRoot,
+      invokedAgentId = "claude",
+      outputSink = outputSink,
+    )
 
   fun preparedCount(): Int = database.repository.count()
 }
@@ -2983,16 +3210,18 @@ private fun sharedSweepFixtures(
   planCheckpointThrows: Boolean = false,
   outputValidator: FeatureTaskRuntimePhaseOutputValidator = FakePhaseOutputValidator(),
 ): SweepFixtures {
-  val database = InMemoryPreparationDatabase(
-    markPreparedThrows = markPreparedThrows,
-    planCheckpointThrows = planCheckpointThrows,
-  )
-  val checkpoint = GoalPlanningPreparationCheckpoint(
-    database = database,
-    envelopeValidator = NoopGoalPlanningPreparationEnvelopeValidator,
-    phaseOutputValidator = outputValidator,
-    planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
-  )
+  val database =
+    InMemoryPreparationDatabase(
+      markPreparedThrows = markPreparedThrows,
+      planCheckpointThrows = planCheckpointThrows,
+    )
+  val checkpoint =
+    GoalPlanningPreparationCheckpoint(
+      database = database,
+      envelopeValidator = NoopGoalPlanningPreparationEnvelopeValidator,
+      phaseOutputValidator = outputValidator,
+      planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
+    )
   return SweepFixtures(
     database = database,
     checkpoint = checkpoint,
@@ -3010,16 +3239,22 @@ private class SweepHarness(
   val sweep: DefaultGoalPlanningSweep,
 ) {
   fun stateFor(manifest: DecompositionManifest): GoalRunnerManifestState = fixtures.stateFor(manifest)
+
   fun request(outputSink: AgentRunOutputSink = AgentRunOutputSink.NONE): GoalRunnerRunRequest =
     fixtures.request(outputSink)
+
   fun preparedCount(): Int = fixtures.preparedCount()
-  fun identity(): GoalPlanningIdentity = GoalPlanningIdentity(
-    "wfl-parent",
-    "SKILL-56",
-    "repo-root-realpath-v1:${fixtures.repoRoot.toRealPath()}",
-  )
+
+  fun identity(): GoalPlanningIdentity =
+    GoalPlanningIdentity(
+      "wfl-parent",
+      "SKILL-56",
+      "repo-root-realpath-v1:${fixtures.repoRoot.toRealPath()}",
+    )
+
   fun recordFor(subtaskId: Int): GoalPlanningPreparationRecord? =
     fixtures.database.repository.findByGoalAndSubtask("wfl-parent", subtaskId)
+
   val manifestFileStore: CountingManifestFileStore get() = fixtures.manifestFileStore
 }
 
@@ -3035,16 +3270,20 @@ private data class SweepHarnessConfig(
   val planningRejectionRecorder: GoalPlanningRejectionRecorder = GoalPlanningRejectionRecorder.NONE,
   val timingPort: RuntimeTimingPort = NoopRuntimeTimingPort,
   val fanOutPort: BoundedWorkFanOutPort = SequentialBoundedWorkFanOutPort,
-  val burstSchedule: GoalPlanningBurstSchedule = GoalPlanningBurstSchedule(
-    planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,
-    emptyTurnBackoffBase = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_BASE,
-    emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
-    waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
-  ),
+  val burstSchedule: GoalPlanningBurstSchedule =
+    GoalPlanningBurstSchedule(
+      planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,
+      emptyTurnBackoffBase = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_BASE,
+      emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
+      waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
+    ),
   val refreshLiveness: GoalPlanningRefreshLiveness = GoalPlanningRefreshLiveness.IDLE,
 )
 
-private fun sweepFromFixtures(fixtures: SweepFixtures, launcher: SweepPlanningLauncher): DefaultGoalPlanningSweep =
+private fun sweepFromFixtures(
+  fixtures: SweepFixtures,
+  launcher: SweepPlanningLauncher,
+): DefaultGoalPlanningSweep =
   testGoalPlanningSweepPorts(
     GoalPlanningSweepPortsParams(
       checkpoint = fixtures.checkpoint,
@@ -3057,16 +3296,17 @@ private fun sweepFromFixtures(fixtures: SweepFixtures, launcher: SweepPlanningLa
   )
 
 private fun settleSharedPreplanThenBlankProse(fixtures: SweepFixtures) {
-  val settledPreplan = sweepFromFixtures(
-    fixtures,
-    SweepPlanningLauncher { phase, _, _ ->
-      if (phase == "plan") {
-        launchFacts(stdout = phasePayload(phase).replace("\"completed\"", "\"blocked\""))
-      } else {
-        validPhaseOutcome(phase)
-      }
-    },
-  )
+  val settledPreplan =
+    sweepFromFixtures(
+      fixtures,
+      SweepPlanningLauncher { phase, _, _ ->
+        if (phase == "plan") {
+          launchFacts(stdout = phasePayload(phase).replace("\"completed\"", "\"blocked\""))
+        } else {
+          validPhaseOutcome(phase)
+        }
+      },
+    )
   assertIs<GoalPlanningSweepOutcome.Stopped>(
     settledPreplan.prepare(fixtures.stateFor(manifest(subtaskCount = 1)), fixtures.request()),
   )
@@ -3080,7 +3320,10 @@ private fun settleSharedPreplanThenBlankProse(fixtures: SweepFixtures) {
   )
 }
 
-private fun assertBlankProsePlanLaunchStop(stopped: GoalPlanningSweepOutcome.Stopped, launcher: SweepPlanningLauncher) {
+private fun assertBlankProsePlanLaunchStop(
+  stopped: GoalPlanningSweepOutcome.Stopped,
+  launcher: SweepPlanningLauncher,
+) {
   assertEquals("plan", stopped.lastResumableStep)
   assertEquals(1, stopped.currentSubtaskId)
   assertTrue(stopped.blockedReason.contains("rejected a declared bounded projection at the launch seam"))
@@ -3100,30 +3343,32 @@ private fun sweepHarness(
   config: SweepHarnessConfig = SweepHarnessConfig(),
   behavior: (phase: String, subtaskId: Int, request: GoalRunnerSubtaskLaunchRequest) -> AgentRunLaunchOutcome,
 ): SweepHarness {
-  val fixtures = sharedSweepFixtures(
-    markPreparedThrows = config.markPreparedThrows,
-    planCheckpointThrows = config.planCheckpointThrows,
-    outputValidator = config.outputValidator,
-  )
+  val fixtures =
+    sharedSweepFixtures(
+      markPreparedThrows = config.markPreparedThrows,
+      planCheckpointThrows = config.planCheckpointThrows,
+      outputValidator = config.outputValidator,
+    )
   val launcher = SweepPlanningLauncher(behavior)
-  val sweep = testGoalPlanningSweepPorts(
-    GoalPlanningSweepPortsParams(
-      checkpoint = fixtures.checkpoint,
-      outputValidator = fixtures.outputValidator,
-      subtaskLauncher = launcher,
-      invariantsSource = fixtures.invariantsSource,
-      manifestFileStore = fixtures.manifestFileStore,
-      contextDiscovery = config.contextDiscovery,
-      planningProjectionValidator = config.planningProjectionValidator,
-      planningAttemptRecorder = config.planningAttemptRecorder,
-      manifestStore = config.manifestStore,
-      planningRejectionRecorder = config.planningRejectionRecorder,
-      timingPort = config.timingPort,
-      fanOutPort = config.fanOutPort,
-      burstSchedule = config.burstSchedule,
-      refreshLiveness = config.refreshLiveness,
-    ),
-  )
+  val sweep =
+    testGoalPlanningSweepPorts(
+      GoalPlanningSweepPortsParams(
+        checkpoint = fixtures.checkpoint,
+        outputValidator = fixtures.outputValidator,
+        subtaskLauncher = launcher,
+        invariantsSource = fixtures.invariantsSource,
+        manifestFileStore = fixtures.manifestFileStore,
+        contextDiscovery = config.contextDiscovery,
+        planningProjectionValidator = config.planningProjectionValidator,
+        planningAttemptRecorder = config.planningAttemptRecorder,
+        manifestStore = config.manifestStore,
+        planningRejectionRecorder = config.planningRejectionRecorder,
+        timingPort = config.timingPort,
+        fanOutPort = config.fanOutPort,
+        burstSchedule = config.burstSchedule,
+        refreshLiveness = config.refreshLiveness,
+      ),
+    )
   return SweepHarness(fixtures, launcher, sweep)
 }
 
@@ -3143,7 +3388,10 @@ private class RecordingRuntimeTimingPort(
 private class MutablePauseGoalPlanningManifestStore : GoalRunnerManifestStoreDefaults() {
   var pauseRequested: Boolean = false
 
-  override fun loadByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? = null
+  override fun loadByIssueKey(
+    issueKey: String,
+    repoRoot: Path?,
+  ): GoalRunnerManifestState? = null
 
   override fun save(state: GoalRunnerManifestState): GoalRunnerManifestState = state
 
@@ -3156,39 +3404,55 @@ private class MutablePauseGoalPlanningManifestStore : GoalRunnerManifestStoreDef
     expectedOwnerToken: String?,
   ): Boolean = true
 
-  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = true
+  override fun heartbeatExecutionLease(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+  ): Boolean = true
 
-  override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = true
+  override fun releaseExecutionLease(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean = true
 }
 
 internal const val FIXTURE_HEADING_ID = "runtime-kotlin/agent/history.md#0-000000000000"
 internal const val FIXTURE_HEADING = "## [2026-08-01] fixture-entry"
 internal const val FIXTURE_BODY = "distinctive fixture body sentence"
 
-private val fakeContextDiscovery = object : GoalPlanningContextDiscovery {
-  override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext = GoalPlanningContext(
-    boundaryCatalog = listOf(
-      GoalPlanningBoundaryHeading(
-        headingId = FIXTURE_HEADING_ID,
-        sourcePath = "runtime-kotlin/agent/history.md",
-        kind = GoalPlanningContext.KIND_HISTORY,
-        heading = FIXTURE_HEADING,
-      ),
-    ),
-    boundaryCatalogTruncated = false,
-    validationGuidance = "Run focused Gradle checks.",
-  )
+private val fakeContextDiscovery =
+  object : GoalPlanningContextDiscovery {
+    override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext =
+      GoalPlanningContext(
+        boundaryCatalog =
+          listOf(
+            GoalPlanningBoundaryHeading(
+              headingId = FIXTURE_HEADING_ID,
+              sourcePath = "runtime-kotlin/agent/history.md",
+              kind = GoalPlanningContext.KIND_HISTORY,
+              heading = FIXTURE_HEADING,
+            ),
+          ),
+        boundaryCatalogTruncated = false,
+        validationGuidance = "Run focused Gradle checks.",
+      )
 
-  override fun discoverForFindingPaths(repoRoot: Path, findingPaths: List<String>, loudFailOnCapExceeded: Boolean) =
-    GoalVerificationBoundaryDiscovery(
+    override fun discoverForFindingPaths(
+      repoRoot: Path,
+      findingPaths: List<String>,
+      loudFailOnCapExceeded: Boolean,
+    ) = GoalVerificationBoundaryDiscovery(
       boundaryCatalog = loadPlanningContext(repoRoot).boundaryCatalog,
       boundaryCatalogTruncated = false,
       boundaryContextUnavailable = findingPaths.isEmpty(),
     )
-}
+  }
 
 private object NoopGoalPlanningManifestStore : GoalRunnerManifestStoreDefaults() {
-  override fun loadByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? = null
+  override fun loadByIssueKey(
+    issueKey: String,
+    repoRoot: Path?,
+  ): GoalRunnerManifestState? = null
 
   override fun save(state: GoalRunnerManifestState): GoalRunnerManifestState = state
 
@@ -3198,9 +3462,16 @@ private object NoopGoalPlanningManifestStore : GoalRunnerManifestStoreDefaults()
     expectedOwnerToken: String?,
   ): Boolean = true
 
-  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = true
+  override fun heartbeatExecutionLease(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+  ): Boolean = true
 
-  override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = true
+  override fun releaseExecutionLease(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean = true
 }
 
 private class TrackingPlanningAuthorization : AgentRunSpawnAuthorization {
@@ -3223,7 +3494,10 @@ private class TrackingPlanningAuthorization : AgentRunSpawnAuthorization {
 private class AuthorizingGoalPlanningManifestStore(
   private val authorization: AgentRunSpawnAuthorization,
 ) : GoalRunnerManifestStoreDefaults() {
-  override fun loadByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? = null
+  override fun loadByIssueKey(
+    issueKey: String,
+    repoRoot: Path?,
+  ): GoalRunnerManifestState? = null
 
   override fun save(state: GoalRunnerManifestState): GoalRunnerManifestState = state
 
@@ -3233,9 +3507,16 @@ private class AuthorizingGoalPlanningManifestStore(
     expectedOwnerToken: String?,
   ): Boolean = true
 
-  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = true
+  override fun heartbeatExecutionLease(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+  ): Boolean = true
 
-  override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = true
+  override fun releaseExecutionLease(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean = true
 
   override fun authorizePlanningLaunch(parentWorkflowId: String): AgentRunSpawnAuthorization = authorization
 }
@@ -3249,21 +3530,25 @@ private class CountingContextDiscovery : GoalPlanningContextDiscovery {
     return fakeContextDiscovery.loadPlanningContext(repoRoot)
   }
 
-  override fun discoverForFindingPaths(repoRoot: Path, findingPaths: List<String>, loudFailOnCapExceeded: Boolean) =
-    fakeContextDiscovery.discoverForFindingPaths(repoRoot, findingPaths, loudFailOnCapExceeded)
+  override fun discoverForFindingPaths(
+    repoRoot: Path,
+    findingPaths: List<String>,
+    loudFailOnCapExceeded: Boolean,
+  ) = fakeContextDiscovery.discoverForFindingPaths(repoRoot, findingPaths, loudFailOnCapExceeded)
 }
 
 private class MutableContextDiscovery : GoalPlanningContextDiscovery {
   var calls: Int = 0
     private set
-  private var catalog: List<GoalPlanningBoundaryHeading> = listOf(
-    GoalPlanningBoundaryHeading(
-      headingId = FIXTURE_HEADING_ID,
-      sourcePath = "runtime-kotlin/agent/history.md",
-      kind = GoalPlanningContext.KIND_HISTORY,
-      heading = FIXTURE_HEADING,
-    ),
-  )
+  private var catalog: List<GoalPlanningBoundaryHeading> =
+    listOf(
+      GoalPlanningBoundaryHeading(
+        headingId = FIXTURE_HEADING_ID,
+        sourcePath = "runtime-kotlin/agent/history.md",
+        kind = GoalPlanningContext.KIND_HISTORY,
+        heading = FIXTURE_HEADING,
+      ),
+    )
 
   fun clearCatalog() {
     catalog = emptyList()
@@ -3278,24 +3563,28 @@ private class MutableContextDiscovery : GoalPlanningContextDiscovery {
     )
   }
 
-  override fun discoverForFindingPaths(repoRoot: Path, findingPaths: List<String>, loudFailOnCapExceeded: Boolean) =
-    GoalVerificationBoundaryDiscovery(
-      boundaryCatalog = catalog,
-      boundaryCatalogTruncated = false,
-      boundaryContextUnavailable = findingPaths.isEmpty(),
-    )
+  override fun discoverForFindingPaths(
+    repoRoot: Path,
+    findingPaths: List<String>,
+    loudFailOnCapExceeded: Boolean,
+  ) = GoalVerificationBoundaryDiscovery(
+    boundaryCatalog = catalog,
+    boundaryCatalogTruncated = false,
+    boundaryContextUnavailable = findingPaths.isEmpty(),
+  )
 }
 
 private fun recoverabilityCheckpoint(
   parentSpec: String,
   preplanPayload: String = phasePayload("preplan"),
 ): SharedGoalPreplanCheckpoint {
-  val provenance = GoalPlanningContractProvenance(
-    parentSpecHash = sha256HexUtf8(parentSpec),
-    decompositionManifestHash = "manifest-hash",
-    planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
-    phaseOutputContractId = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
-  )
+  val provenance =
+    GoalPlanningContractProvenance(
+      parentSpecHash = sha256HexUtf8(parentSpec),
+      decompositionManifestHash = "manifest-hash",
+      planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+      phaseOutputContractId = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
+    )
   return SharedGoalPreplanCheckpoint(
     identity = GoalPlanningIdentity("wfl-parent", "SKILL-56", "repo-root-realpath-v1:/tmp/fixture"),
     provenance = provenance,

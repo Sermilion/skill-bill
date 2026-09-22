@@ -15,7 +15,10 @@ internal object FileSystemValidationGateGradleSpotlessStdoutParsers {
     Regex("""Execution failed for task '?([^']+)'?\.""")
   private val TASK_RULE_IDS = setOf("spotlessCheck", "spotlessKotlinCheck")
 
-  fun parseGradleSpotlessStdout(repoRoot: Path, stdout: String): List<ValidationGateFinding> {
+  fun parseGradleSpotlessStdout(
+    repoRoot: Path,
+    stdout: String,
+  ): List<ValidationGateFinding> {
     val repo = repoRoot.toAbsolutePath().normalize()
     val lines = stdout.lineSequence().map { it.trimEnd() }.toList()
     val findings = mutableListOf<ValidationGateFinding>()
@@ -36,15 +39,17 @@ internal object FileSystemValidationGateGradleSpotlessStdoutParsers {
   fun enrichSpotlessTaskHeaderFindings(
     findings: List<ValidationGateFinding>,
     stdout: String,
-  ): List<ValidationGateFinding> = findings.map { finding ->
-    if (finding.location != null || finding.ruleOrTestId !in TASK_RULE_IDS) {
-      finding
-    } else {
-      val excerpt = FileSystemValidationGateGradleSpotlessExcerpts.excerpt(stdout)
-        ?: return@map finding
-      finding.copy(message = "${finding.message} | spotless detail: $excerpt")
+  ): List<ValidationGateFinding> =
+    findings.map { finding ->
+      if (finding.location != null || finding.ruleOrTestId !in TASK_RULE_IDS) {
+        finding
+      } else {
+        val excerpt =
+          FileSystemValidationGateGradleSpotlessExcerpts.excerpt(stdout)
+            ?: return@map finding
+        finding.copy(message = "${finding.message} | spotless detail: $excerpt")
+      }
     }
-  }
 
   private data class Step(
     val stepName: String,
@@ -61,12 +66,18 @@ internal object FileSystemValidationGateGradleSpotlessStdoutParsers {
 
   private sealed interface Action {
     data object Stop : Action
+
     data object Skip : Action
+
     data class SetLocation(val location: String) : Action
+
     data class AppendMessage(val text: String) : Action
   }
 
-  private fun matchStep(line: String, repo: Path): Step? {
+  private fun matchStep(
+    line: String,
+    repo: Path,
+  ): Step? {
     val match = STEP_PROBLEM.matchEntire(line) ?: return null
     val stepName = match.groupValues[1]
     val rawPath = match.groupValues[2].replace('\\', '/')
@@ -79,16 +90,22 @@ internal object FileSystemValidationGateGradleSpotlessStdoutParsers {
     )
   }
 
-  private fun Step.toFinding(body: Body): ValidationGateFinding = ValidationGateFinding(
-    module = module,
-    ruleOrTestId = "spotless",
-    message = body.messageParts.joinToString(" ").ifBlank {
-      "Step '$stepName' found problem in '$rawPath'"
-    },
-    location = body.location ?: relative,
-  )
+  private fun Step.toFinding(body: Body): ValidationGateFinding =
+    ValidationGateFinding(
+      module = module,
+      ruleOrTestId = "spotless",
+      message =
+        body.messageParts.joinToString(" ").ifBlank {
+          "Step '$stepName' found problem in '$rawPath'"
+        },
+      location = body.location ?: relative,
+    )
 
-  private fun readBody(lines: List<String>, startIndex: Int, relative: String): Body {
+  private fun readBody(
+    lines: List<String>,
+    startIndex: Int,
+    relative: String,
+  ): Body {
     var location: String? = null
     val messageParts = mutableListOf<String>()
     var index = startIndex
@@ -111,13 +128,19 @@ internal object FileSystemValidationGateGradleSpotlessStdoutParsers {
     return Body(location = location, messageParts = messageParts, nextIndex = index)
   }
 
-  private fun classifyLine(line: String, relative: String, location: String?): Action {
-    val errorLocation = ERROR_LINE.matchEntire(line)?.let { match ->
-      "$relative:${match.groupValues[1]}:${match.groupValues[2]}"
-    }
-    val assertionLocation = ASSERTION_ERROR.matchEntire(line)?.let { match ->
-      "$relative:${match.groupValues[1]}:${match.groupValues[2]}"
-    }
+  private fun classifyLine(
+    line: String,
+    relative: String,
+    location: String?,
+  ): Action {
+    val errorLocation =
+      ERROR_LINE.matchEntire(line)?.let { match ->
+        "$relative:${match.groupValues[1]}:${match.groupValues[2]}"
+      }
+    val assertionLocation =
+      ASSERTION_ERROR.matchEntire(line)?.let { match ->
+        "$relative:${match.groupValues[1]}:${match.groupValues[2]}"
+      }
     return when {
       line.isEmpty() -> Action.Skip
       STEP_PROBLEM.matches(line) || TASK_FAILURE_HEADER.matches(line) -> Action.Stop
@@ -127,12 +150,13 @@ internal object FileSystemValidationGateGradleSpotlessStdoutParsers {
     }
   }
 
-  private fun classifyMessage(line: String): Action = when {
-    line.startsWith("rule:") -> Action.AppendMessage(line)
-    line.startsWith("at ") || line.startsWith(">") || line.contains("diffplug.spotless") -> Action.Stop
-    line.startsWith("java.lang.") || line.startsWith("Caused by:") -> Action.Skip
-    else -> Action.AppendMessage(line)
-  }
+  private fun classifyMessage(line: String): Action =
+    when {
+      line.startsWith("rule:") -> Action.AppendMessage(line)
+      line.startsWith("at ") || line.startsWith(">") || line.contains("diffplug.spotless") -> Action.Stop
+      line.startsWith("java.lang.") || line.startsWith("Caused by:") -> Action.Skip
+      else -> Action.AppendMessage(line)
+    }
 
   private fun moduleFromRelative(relative: String): String {
     val normalized = relative.replace('\\', '/')

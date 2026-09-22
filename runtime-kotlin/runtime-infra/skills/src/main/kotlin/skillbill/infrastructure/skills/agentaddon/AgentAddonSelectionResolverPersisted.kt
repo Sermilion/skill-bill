@@ -11,6 +11,7 @@ import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.Path
+
 internal fun verifyPersistedAgentAddonSelection(
   request: PersistedAgentAddonSelectionVerifyRequest,
 ): HydratedAgentAddonSelection {
@@ -70,8 +71,9 @@ private fun hydratePersistedAgentAddonEntry(
   }
   return HydratedAgentAddonSelectionEntry(
     persisted = recorded,
-    description = values["description"] as? String
-      ?: invalidAgentAddonSelection("Selected agent add-on '${recorded.slug}' has no description."),
+    description =
+      values["description"] as? String
+        ?: invalidAgentAddonSelection("Selected agent add-on '${recorded.slug}' has no description."),
     content = bytes.toString(Charsets.UTF_8),
   )
 }

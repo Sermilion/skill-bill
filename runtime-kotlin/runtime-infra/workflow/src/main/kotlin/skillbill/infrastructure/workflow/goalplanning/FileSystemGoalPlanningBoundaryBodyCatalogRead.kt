@@ -4,6 +4,7 @@ import skillbill.error.shellcontent.GoalVerificationBoundaryCapExceededError
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryBody
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import java.nio.file.Path
+
 internal data class BoundaryBodyResolutionState(
   val bodies: MutableList<GoalPlanningBoundaryBody>,
   val unresolved: MutableList<String>,
@@ -86,9 +87,13 @@ private fun entryForBoundary(
   return parsedByPath.getOrPut(sourcePath) { boundaryEntriesOf(repoRoot, sourcePath) }[headingId]
 }
 
-private fun boundaryEntriesOf(repoRoot: Path, sourcePath: String): Map<String, BoundaryMemoryEntry> {
+private fun boundaryEntriesOf(
+  repoRoot: Path,
+  sourcePath: String,
+): Map<String, BoundaryMemoryEntry> {
   val canonical = GoalPlanningRepositoryScope.includedRegularFile(repoRoot, sourcePath) ?: return emptyMap()
-  val read = goalPlanningReadFileOrNull(canonical, GoalPlanningContext.MAX_BOUNDARY_FILE_BYTES)
-    ?: return emptyMap()
+  val read =
+    goalPlanningReadFileOrNull(canonical, GoalPlanningContext.MAX_BOUNDARY_FILE_BYTES)
+      ?: return emptyMap()
   return BoundaryMemoryHeadingParser.parse(sourcePath, read.text).associateBy(BoundaryMemoryEntry::headingId)
 }

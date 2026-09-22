@@ -17,6 +17,7 @@ import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.Path
 import skillbill.infrastructure.skills.nativeagent.support.detectCodexAgentsTargets as nativeDetectCodexAgentsTargets
+
 internal val SUPPORTED_AGENTS: List<SupportedAgent> = SupportedAgent.entries
 
 internal val CODEX_AGENTS_KIND: String = SupportedAgent.CODEX.nativeAgentsKind
@@ -29,22 +30,35 @@ internal data class InstallConfigRoots(
   val codex: Path,
 )
 
-internal fun installConfigRoots(home: Path, environment: Map<String, String>): InstallConfigRoots = InstallConfigRoots(
-  claude = claudeConfigRoot(home, environment),
-  codex = codexConfigRoot(home, environment),
-)
+internal fun installConfigRoots(
+  home: Path,
+  environment: Map<String, String>,
+): InstallConfigRoots =
+  InstallConfigRoots(
+    claude = claudeConfigRoot(home, environment),
+    codex = codexConfigRoot(home, environment),
+  )
 
-internal fun agentPaths(home: Path, configRoots: InstallConfigRoots): Map<SupportedAgent, Path> = mapOf(
-  SupportedAgent.CLAUDE to configRoots.claude.resolve("skills"),
-  SupportedAgent.JUNIE to home.resolve(SupportedAgent.JUNIE.simpleHomeDirectory!!).resolve("skills"),
-  SupportedAgent.CURSOR to home.resolve(SupportedAgent.CURSOR.simpleHomeDirectory!!).resolve("skills"),
-  SupportedAgent.CODEX to configRoots.codex.resolve("skills"),
-)
+internal fun agentPaths(
+  home: Path,
+  configRoots: InstallConfigRoots,
+): Map<SupportedAgent, Path> =
+  mapOf(
+    SupportedAgent.CLAUDE to configRoots.claude.resolve("skills"),
+    SupportedAgent.JUNIE to home.resolve(SupportedAgent.JUNIE.simpleHomeDirectory!!).resolve("skills"),
+    SupportedAgent.CURSOR to home.resolve(SupportedAgent.CURSOR.simpleHomeDirectory!!).resolve("skills"),
+    SupportedAgent.CODEX to configRoots.codex.resolve("skills"),
+  )
 
-internal fun codexAgentsPath(home: Path, environment: Map<String, String>): Path =
-  codexConfigRoot(home, environment).resolve("agents")
+internal fun codexAgentsPath(
+  home: Path,
+  environment: Map<String, String>,
+): Path = codexConfigRoot(home, environment).resolve("agents")
 
-internal fun detectAgents(home: Path, environment: Map<String, String>): List<AgentTarget> {
+internal fun detectAgents(
+  home: Path,
+  environment: Map<String, String>,
+): List<AgentTarget> {
   val configRoots = installConfigRoots(home, environment)
   val paths = agentPaths(home, configRoots)
   return SUPPORTED_AGENTS.flatMap { agent ->
@@ -64,7 +78,10 @@ internal fun detectAgents(home: Path, environment: Map<String, String>): List<Ag
   }
 }
 
-internal fun detectCodexAgentsTargets(home: Path, environment: Map<String, String>): List<AgentTarget> {
+internal fun detectCodexAgentsTargets(
+  home: Path,
+  environment: Map<String, String>,
+): List<AgentTarget> {
   val configRoots = installConfigRoots(home, environment)
   val paths = agentPaths(home, configRoots)
   if (!agentIsPresent(home, SupportedAgent.CODEX, paths.getValue(SupportedAgent.CODEX), configRoots)) {
@@ -106,18 +123,19 @@ internal fun installSkill(
         "their parent's installed directory. Install the parent skill instead.",
     )
   }
-  val symlinkTarget = resolveStagedSymlinkTarget(
-    StagedSymlinkTargetInput(
-      resolvedSkill = resolvedSkill,
-      repoRoot = context.repoRoot,
-      home = context.home,
-      manifests = context.manifests,
-      selectedPackSkills = context.selectedPackSkills,
-      selectedPlatformSlugs = context.selectedPlatformSlugs,
-      environment = context.environment,
-      catalogLoader = context.catalogLoader,
-    ),
-  )
+  val symlinkTarget =
+    resolveStagedSymlinkTarget(
+      StagedSymlinkTargetInput(
+        resolvedSkill = resolvedSkill,
+        repoRoot = context.repoRoot,
+        home = context.home,
+        manifests = context.manifests,
+        selectedPackSkills = context.selectedPackSkills,
+        selectedPlatformSlugs = context.selectedPlatformSlugs,
+        environment = context.environment,
+        catalogLoader = context.catalogLoader,
+      ),
+    )
   val created = mutableListOf<Path>()
   var currentTransaction = transaction
   for (target in agentTargets) {
@@ -175,14 +193,15 @@ private fun agentIsPresent(
   if (Files.exists(installPath)) {
     return true
   }
-  val roots = when (agent) {
-    SupportedAgent.CLAUDE -> listOf(configRoots.claude)
-    SupportedAgent.JUNIE,
-    SupportedAgent.CURSOR,
-    -> listOf(home.resolve(requireNotNull(agent.simpleHomeDirectory)))
-    SupportedAgent.CODEX -> {
-      listOf(configRoots.codex)
+  val roots =
+    when (agent) {
+      SupportedAgent.CLAUDE -> listOf(configRoots.claude)
+      SupportedAgent.JUNIE,
+      SupportedAgent.CURSOR,
+      -> listOf(home.resolve(requireNotNull(agent.simpleHomeDirectory)))
+      SupportedAgent.CODEX -> {
+        listOf(configRoots.codex)
+      }
     }
-  }
   return roots.any(Files::exists)
 }

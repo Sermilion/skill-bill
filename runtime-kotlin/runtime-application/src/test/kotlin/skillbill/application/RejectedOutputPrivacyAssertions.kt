@@ -4,7 +4,11 @@ import kotlin.test.assertContains
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-internal fun assertPrivateDiagnosticRejection(rendered: String, rule: String, vararg privateDetails: String) {
+internal fun assertPrivateDiagnosticRejection(
+  rendered: String,
+  rule: String,
+  vararg privateDetails: String,
+) {
   assertContains(rendered, "Rejected output violated '$rule'")
   assertContains(rendered, "Inspect the private diagnostic for the exact response.")
   privateDetails.forEach { detail ->
@@ -12,13 +16,19 @@ internal fun assertPrivateDiagnosticRejection(rendered: String, rule: String, va
   }
 }
 
-internal fun assertGateBlockNamesRule(blockedReason: String, rule: String) {
+internal fun assertGateBlockNamesRule(
+  blockedReason: String,
+  rule: String,
+) {
   assertContains(blockedReason, "exhausted the bounded output-gate correction budget")
   assertContains(blockedReason, "cap=1")
   assertContains(blockedReason, "Rejected output violated '$rule'")
 }
 
-internal fun assertDiagnosticNamesConstraint(reason: String, vararg constraintFragments: String) {
+internal fun assertDiagnosticNamesConstraint(
+  reason: String,
+  vararg constraintFragments: String,
+) {
   constraintFragments.forEach { fragment ->
     assertContains(
       reason,
@@ -28,7 +38,11 @@ internal fun assertDiagnosticNamesConstraint(reason: String, vararg constraintFr
   }
 }
 
-internal fun assertRetryPromptNamesConstraint(prompt: String, rule: String, vararg constraintFragments: String) {
+internal fun assertRetryPromptNamesConstraint(
+  prompt: String,
+  rule: String,
+  vararg constraintFragments: String,
+) {
   assertContains(prompt, "Rejected output violated '$rule'")
   assertContains(prompt, "Violated constraint: ")
   constraintFragments.forEach { fragment ->
@@ -47,7 +61,10 @@ internal fun assertRetryPromptWithholdsResponseDerivedDetail(
   }
 }
 
-internal fun assertNoRawResponseSpan(rendered: String, vararg rawSpans: String) {
+internal fun assertNoRawResponseSpan(
+  rendered: String,
+  vararg rawSpans: String,
+) {
   rawSpans.forEach { span ->
     assertFalse(
       rendered.contains(span),
@@ -61,7 +78,10 @@ private const val AUTHORIZED_REPAIR_SECTION_TITLE: String =
 private const val AUTHORIZED_FALLBACK_SECTION_TITLE: String =
   "## Rejected response body not included in this prompt"
 
-internal fun assertNoRawResponseSpanOutsideAuthorizedRepairSection(prompt: String, vararg rawSpans: String) {
+internal fun assertNoRawResponseSpanOutsideAuthorizedRepairSection(
+  prompt: String,
+  vararg rawSpans: String,
+) {
   val start = prompt.indexOf(AUTHORIZED_REPAIR_SECTION_TITLE)
   assertTrue(start >= 0, "authorized repair section title missing from corrective prompt")
   val closePrefix = "<<<END_CORRECTIVE_REPAIR_RESPONSE"
@@ -87,7 +107,10 @@ internal fun assertNoRawResponseSpanOutsideAuthorizedRepairSection(prompt: Strin
   }
 }
 
-internal fun assertOmitsAuthorizedRepairSection(prompt: String, vararg forbiddenSpans: String) {
+internal fun assertOmitsAuthorizedRepairSection(
+  prompt: String,
+  vararg forbiddenSpans: String,
+) {
   assertFalse(
     prompt.contains(AUTHORIZED_REPAIR_SECTION_TITLE),
     "non-corrective launch must omit the authorized repair section",

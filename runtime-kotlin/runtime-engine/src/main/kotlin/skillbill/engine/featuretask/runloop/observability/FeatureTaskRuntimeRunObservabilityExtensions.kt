@@ -4,6 +4,7 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+
 fun FeatureTaskRuntimeRunObservability.fixLoopIteration(
   phaseId: String,
   resolvedAgentId: String,
@@ -49,7 +50,11 @@ internal fun FeatureTaskRuntimeRunObservability.continuation(
   )
 }
 
-fun FeatureTaskRuntimeRunObservability.completedEvent(phaseId: String, resolvedAgentId: String, attemptCount: Int) {
+fun FeatureTaskRuntimeRunObservability.completedEvent(
+  phaseId: String,
+  resolvedAgentId: String,
+  attemptCount: Int,
+) {
   emitSafely(
     FeatureTaskRuntimeRunEvent.PhaseCompleted(
       workflowId = observabilityRequest.workflowId,
@@ -138,9 +143,10 @@ fun FeatureTaskRuntimeRunObservability.loopEdge(
       attemptCount = 1,
       loopId = loopId,
       edgeIteration = edgeIteration,
-      blockedReason = "${FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX}" +
-        "${FeatureTaskRuntimeContinuationKind.VERIFIER_REENTRY.wireValue} " +
-        "driving_verdict=${drivingVerdict.wireValue}",
+      blockedReason =
+        "${FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX}" +
+          "${FeatureTaskRuntimeContinuationKind.VERIFIER_REENTRY.wireValue} " +
+          "driving_verdict=${drivingVerdict.wireValue}",
     ),
   )
 }
@@ -165,6 +171,7 @@ fun FeatureTaskRuntimeRunObservability.loopCapExhausted(
 }
 
 val FeatureTaskRuntimeRunObservability.observabilityRequest get() = request
+
 fun FeatureTaskRuntimeRunObservability.emitSafely(event: FeatureTaskRuntimeRunEvent) {
   emitFeatureTaskRuntimeEventSafely(
     diagnostics = observabilityDiagnostics,

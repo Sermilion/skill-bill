@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask.phase.core
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeImplementationContinuation
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.FeatureTaskRuntimeImplementationAttempt
+
 internal data class FeatureTaskRuntimeImplementationObligations(
   val plannedTaskIds: List<String>,
   val carriedRepairItemIds: List<String>,
@@ -13,9 +14,10 @@ internal fun featureTaskRuntimeImplementationContinuationFrom(
   attempts: List<FeatureTaskRuntimeImplementationAttempt>,
   obligations: FeatureTaskRuntimeImplementationObligations,
 ): FeatureTaskRuntimeImplementationContinuation? {
-  val phaseAttempts = attempts.filter {
-    it.phaseId == phaseId && it.loopId == obligations.loopId && it.edgeIteration == obligations.edgeIteration
-  }
+  val phaseAttempts =
+    attempts.filter {
+      it.phaseId == phaseId && it.loopId == obligations.loopId && it.edgeIteration == obligations.edgeIteration
+    }
   if (phaseAttempts.isEmpty()) return null
   val priorSegments = phaseAttempts.map { it.value }
   val latest = phaseAttempts.maxByOrNull { it.sequenceNumber } ?: return null

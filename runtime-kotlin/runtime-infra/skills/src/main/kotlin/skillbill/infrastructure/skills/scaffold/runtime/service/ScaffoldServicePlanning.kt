@@ -59,7 +59,10 @@ internal fun executeScaffold(
   )
 }
 
-internal fun resolveRepoRoot(payload: Map<String, Any?>, hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path {
+internal fun resolveRepoRoot(
+  payload: Map<String, Any?>,
+  hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+): Path {
   val repoRootRaw = payload["repo_root"] as? String ?: return defaultRepoRoot(hostPlatform)
   if (repoRootRaw.isBlank()) {
     throw InvalidScaffoldPayloadError(
@@ -75,32 +78,36 @@ internal fun planScaffold(
   kind: String,
   adapters: ScaffoldAdapterSeams,
   userHome: Path = resolveUserHome(null),
-): ScaffoldPlan = when (kind) {
-  SKILL_KIND_HORIZONTAL -> {
-    policyRejectBaselineLayersForNonPlatformPack(payload, kind)
-    planHorizontal(payload, repoRoot)
+): ScaffoldPlan =
+  when (kind) {
+    SKILL_KIND_HORIZONTAL -> {
+      policyRejectBaselineLayersForNonPlatformPack(payload, kind)
+      planHorizontal(payload, repoRoot)
+    }
+    SKILL_KIND_PLATFORM_OVERRIDE_PILOTED -> {
+      policyRejectBaselineLayersForNonPlatformPack(payload, kind)
+      planPlatformOverridePiloted(payload, repoRoot)
+    }
+    SKILL_KIND_PLATFORM_PACK -> planPlatformPack(payload, repoRoot, adapters, userHome)
+    SKILL_KIND_CODE_REVIEW_AREA -> {
+      policyRejectBaselineLayersForNonPlatformPack(payload, kind)
+      planCodeReviewArea(payload, repoRoot)
+    }
+    SKILL_KIND_ADD_ON -> {
+      policyRejectBaselineLayersForNonPlatformPack(payload, kind)
+      planAddOn(payload, repoRoot, adapters)
+    }
+    SKILL_KIND_AGENT_ADDON -> {
+      policyRejectBaselineLayersForNonPlatformPack(payload, kind)
+      planAgentAddon(payload, repoRoot)
+    }
+    else -> throw UnknownSkillKindError("Scaffold payload declares unsupported kind '$kind'.")
   }
-  SKILL_KIND_PLATFORM_OVERRIDE_PILOTED -> {
-    policyRejectBaselineLayersForNonPlatformPack(payload, kind)
-    planPlatformOverridePiloted(payload, repoRoot)
-  }
-  SKILL_KIND_PLATFORM_PACK -> planPlatformPack(payload, repoRoot, adapters, userHome)
-  SKILL_KIND_CODE_REVIEW_AREA -> {
-    policyRejectBaselineLayersForNonPlatformPack(payload, kind)
-    planCodeReviewArea(payload, repoRoot)
-  }
-  SKILL_KIND_ADD_ON -> {
-    policyRejectBaselineLayersForNonPlatformPack(payload, kind)
-    planAddOn(payload, repoRoot, adapters)
-  }
-  SKILL_KIND_AGENT_ADDON -> {
-    policyRejectBaselineLayersForNonPlatformPack(payload, kind)
-    planAgentAddon(payload, repoRoot)
-  }
-  else -> throw UnknownSkillKindError("Scaffold payload declares unsupported kind '$kind'.")
-}
 
-internal fun planHorizontal(payload: Map<String, Any?>, repoRoot: Path): ScaffoldPlan {
+internal fun planHorizontal(
+  payload: Map<String, Any?>,
+  repoRoot: Path,
+): ScaffoldPlan {
   val name = requireString(payload, "name")
   val skillPath = repoRoot.resolve("skills").resolve(name)
   val subagents = policyOptionalSpecialistSubagents(payload, SKILL_KIND_HORIZONTAL)
@@ -122,7 +129,10 @@ internal fun planHorizontal(payload: Map<String, Any?>, repoRoot: Path): Scaffol
   )
 }
 
-internal fun planPlatformOverridePiloted(payload: Map<String, Any?>, repoRoot: Path): ScaffoldPlan {
+internal fun planPlatformOverridePiloted(
+  payload: Map<String, Any?>,
+  repoRoot: Path,
+): ScaffoldPlan {
   val platform = requireString(payload, "platform")
   val family = requireString(payload, "family")
   val name = canonicalName(payload, defaultName = defaultPlatformOverrideName(platform, family))
@@ -149,11 +159,12 @@ internal fun planPlatformPack(
   val defaults = policyResolvePlatformPackDefaults(payload, platform)
   val registration = normalizeExternalPackRegistration(payload["pack_registration"])
   val externalRoot = (payload["pack_location_path"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
-  val packRoot = if (externalRoot != null) {
-    resolveExternalPlatformPackSourcePath(userHome, externalRoot)
-  } else {
-    repoRoot.resolve("platform-packs").resolve(platform)
-  }
+  val packRoot =
+    if (externalRoot != null) {
+      resolveExternalPlatformPackSourcePath(userHome, externalRoot)
+    } else {
+      repoRoot.resolve("platform-packs").resolve(platform)
+    }
   if (externalRoot != null && registration == PACK_REGISTRATION_REGISTER) {
     requireExistingExternalPack(packRoot, platform)
   } else if (Files.exists(packRoot, LinkOption.NOFOLLOW_LINKS)) {
@@ -162,9 +173,10 @@ internal fun planPlatformPack(
         "Remove it or pick a new platform slug before retrying.",
     )
   }
-  val plan = buildPlatformPackScaffoldPlan(
-    PlatformPackScaffoldPlanArgs(payload, repoRoot, adapters, platform, defaults, packRoot),
-  )
+  val plan =
+    buildPlatformPackScaffoldPlan(
+      PlatformPackScaffoldPlanArgs(payload, repoRoot, adapters, platform, defaults, packRoot),
+    )
   if (externalRoot == null) {
     return plan
   }
@@ -188,7 +200,10 @@ internal fun normalizeExternalPackRegistration(raw: Any?): String {
   return value
 }
 
-private fun requireExistingExternalPack(packRoot: Path, platform: String) {
+private fun requireExistingExternalPack(
+  packRoot: Path,
+  platform: String,
+) {
   val manifestPath = packRoot.resolve("platform.yaml")
   if (!Files.isDirectory(packRoot, LinkOption.NOFOLLOW_LINKS) ||
     !Files.isRegularFile(manifestPath, LinkOption.NOFOLLOW_LINKS)
@@ -213,10 +228,16 @@ internal fun rejectPlatformPackSubagentOverrides(payload: Map<String, Any?>) {
   )
 }
 
-internal fun specialistFocus(displayName: String, area: String, routingSignals: List<String>): String =
-  "$displayName ${defaultAreaFocus(area)} across ${routingSignals.joinToString(", ")} signals"
+internal fun specialistFocus(
+  displayName: String,
+  area: String,
+  routingSignals: List<String>,
+): String = "$displayName ${defaultAreaFocus(area)} across ${routingSignals.joinToString(", ")} signals"
 
-internal fun planCodeReviewArea(payload: Map<String, Any?>, repoRoot: Path): ScaffoldPlan {
+internal fun planCodeReviewArea(
+  payload: Map<String, Any?>,
+  repoRoot: Path,
+): ScaffoldPlan {
   policyRejectLeafSubagentSpecialists(payload, SKILL_KIND_CODE_REVIEW_AREA)
   val platform = requireString(payload, "platform")
   val area = requireString(payload, "area")

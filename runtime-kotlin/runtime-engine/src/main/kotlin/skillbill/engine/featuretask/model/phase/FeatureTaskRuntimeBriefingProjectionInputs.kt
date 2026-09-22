@@ -3,6 +3,7 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactV
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseHandoff
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeSharedReviewEvidenceReference
+
 data class FeatureTaskRuntimeBriefingProjectionInputs(
   val handoff: FeatureTaskRuntimePhaseHandoff,
   val declarations: List<PhaseHandoffProjectionDeclaration>,

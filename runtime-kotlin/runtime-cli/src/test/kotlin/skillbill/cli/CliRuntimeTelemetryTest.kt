@@ -115,11 +115,11 @@ class CliRuntimeTelemetryTest {
     val context =
       CliRuntimeContext(
         environment =
-        mapOf(
-          CONFIG_ENVIRONMENT_KEY to configPath.toString(),
-          TELEMETRY_PROXY_URL_ENVIRONMENT_KEY to "https://telemetry.example.dev/ingest",
-          TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY to "stats-token-123",
-        ),
+          mapOf(
+            CONFIG_ENVIRONMENT_KEY to configPath.toString(),
+            TELEMETRY_PROXY_URL_ENVIRONMENT_KEY to "https://telemetry.example.dev/ingest",
+            TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY to "stats-token-123",
+          ),
         requester = statsRequester(capturedRequests),
       )
 

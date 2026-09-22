@@ -30,8 +30,9 @@ class FeatureTaskRuntimeSharedEvidenceProjectionReadValidationTest {
   @Test
   fun `a schema-invalid stored payload degrades to re-derivation rather than failing the run`() {
     store.resolve(request("fp-invalid"), CountingDeriver())
-    val envelope = artifactDir(request("fp-invalid"))
-      .resolve(FileSystemFeatureTaskRuntimeSharedEvidenceStore.ENVELOPE_FILE_NAME)
+    val envelope =
+      artifactDir(request("fp-invalid"))
+        .resolve(FileSystemFeatureTaskRuntimeSharedEvidenceStore.ENVELOPE_FILE_NAME)
     val payloadSize = Files.size(artifactDir(request("fp-invalid")).resolve("diff.patch"))
 
     Files.writeString(
@@ -58,13 +59,15 @@ class FeatureTaskRuntimeSharedEvidenceProjectionReadValidationTest {
   @Test
   fun `a fingerprint that contradicts the addressed location loud-fails and names both fingerprints`() {
     store.resolve(request("fp-addressed"), CountingDeriver())
-    val envelope = artifactDir(request("fp-addressed"))
-      .resolve(FileSystemFeatureTaskRuntimeSharedEvidenceStore.ENVELOPE_FILE_NAME)
+    val envelope =
+      artifactDir(request("fp-addressed"))
+        .resolve(FileSystemFeatureTaskRuntimeSharedEvidenceStore.ENVELOPE_FILE_NAME)
     Files.writeString(envelope, Files.readString(envelope).replace("\"fp-addressed\"", "\"fp-recorded\""))
 
-    val error = assertFailsWith<FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError> {
-      store.resolve(request("fp-addressed"), ThrowingDeriver)
-    }
+    val error =
+      assertFailsWith<FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError> {
+        store.resolve(request("fp-addressed"), ThrowingDeriver)
+      }
 
     assertTrue(error.message!!.contains("fp-addressed"), error.message)
     assertTrue(error.message!!.contains("fp-recorded"), error.message)
@@ -81,9 +84,10 @@ class FeatureTaskRuntimeSharedEvidenceProjectionReadValidationTest {
     assertEquals(FeatureTaskRuntimeSharedEvidenceResolveOutcome.CHECKPOINT_CHANGE_REDERIVATION, resolution.outcome)
   }
 
-  private fun request(fingerprint: String) = FeatureTaskRuntimeSharedEvidenceRequest(
-    repoRoot = repoRoot,
-    workflowId = "wf-1",
-    checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(fingerprint),
-  )
+  private fun request(fingerprint: String) =
+    FeatureTaskRuntimeSharedEvidenceRequest(
+      repoRoot = repoRoot,
+      workflowId = "wf-1",
+      checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(fingerprint),
+    )
 }

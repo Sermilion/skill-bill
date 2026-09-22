@@ -17,6 +17,7 @@ import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 const val BRANCH_SETUP_AGENT_SENTINEL = "branch-setup"
 const val GOAL_PLANNING_IMPORT_AGENT_SENTINEL = "goal-planning-import"
 
@@ -43,9 +44,10 @@ fun completedGoalContinuationOutcome(
       status = GoalRunnerTerminalStatus.BLOCKED,
       commitSha = null,
       workflowId = request.workflowId,
-      blockedReason = "commit_push completed under suppress_pr but no commit SHA could be captured " +
-        "from the phase payload or measured from git HEAD; the per-subtask commit invariant cannot " +
-        "be satisfied.",
+      blockedReason =
+        "commit_push completed under suppress_pr but no commit SHA could be captured " +
+          "from the phase payload or measured from git HEAD; the per-subtask commit invariant cannot " +
+          "be satisfied.",
       lastResumableStep = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
     )
   }
@@ -55,17 +57,21 @@ fun completeSubtaskOutcome(
   request: FeatureTaskRuntimeRunRequest,
   context: FeatureTaskRuntimeGoalContinuationContext,
   commitSha: String?,
-): FeatureTaskRuntimeSubtaskOutcome = FeatureTaskRuntimeSubtaskOutcome(
-  issueKey = context.parentIssueKey,
-  subtaskId = context.subtaskId,
-  status = GoalRunnerTerminalStatus.COMPLETE,
-  commitSha = commitSha,
-  workflowId = request.workflowId,
-  blockedReason = null,
-  lastResumableStep = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
-)
+): FeatureTaskRuntimeSubtaskOutcome =
+  FeatureTaskRuntimeSubtaskOutcome(
+    issueKey = context.parentIssueKey,
+    subtaskId = context.subtaskId,
+    status = GoalRunnerTerminalStatus.COMPLETE,
+    commitSha = commitSha,
+    workflowId = request.workflowId,
+    blockedReason = null,
+    lastResumableStep = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
+  )
 
-fun measuredHeadSha(gitOperations: WorkflowGitOperations, request: FeatureTaskRuntimeRunRequest): String? {
+fun measuredHeadSha(
+  gitOperations: WorkflowGitOperations,
+  request: FeatureTaskRuntimeRunRequest,
+): String? {
   val result = gitOperations.headCommitSha(request.repoRoot)
   return result.value.trim().takeIf { result is WorkflowGitOperationResult.Ok && it.isNotBlank() }
 }
@@ -79,9 +85,10 @@ internal fun agentAttributionFromPhaseState(
   recorder: FeatureTaskRuntimePhaseRecorder,
   workflowId: String,
 ): SubtaskAgentAttribution {
-  val ledger = recorder.loadPhaseLedger(workflowId)
-    .orEmpty()
-    .sortedBy { it.sequenceNumber }
+  val ledger =
+    recorder.loadPhaseLedger(workflowId)
+      .orEmpty()
+      .sortedBy { it.sequenceNumber }
   val records = recorder.loadPhaseRecords(workflowId).orEmpty()
 
   val participating = LinkedHashSet<String>()
@@ -94,13 +101,14 @@ internal fun agentAttributionFromPhaseState(
       ?.let(participating::add)
   }
 
-  val finalizingFromLedger = ledger.lastOrNull { entry ->
-    (
-      entry.action == FeatureTaskRuntimePhaseLedgerAction.COMPLETE ||
-        entry.action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED
+  val finalizingFromLedger =
+    ledger.lastOrNull { entry ->
+      (
+        entry.action == FeatureTaskRuntimePhaseLedgerAction.COMPLETE ||
+          entry.action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED
       ) &&
-      entry.resolvedAgentId?.isRuntimeAgentId() == true
-  }?.resolvedAgentId
+        entry.resolvedAgentId?.isRuntimeAgentId() == true
+    }?.resolvedAgentId
   val finalizingAgentId = finalizingFromLedger ?: terminalRecordAgentId(records)
 
   return SubtaskAgentAttribution(
@@ -124,13 +132,15 @@ fun commitShaFromPhaseRecords(
   recorder: FeatureTaskRuntimePhaseRecorder,
   request: FeatureTaskRuntimeRunRequest,
 ): String? {
-  val commitOutput = recorder.loadPhaseRecords(request.workflowId)
-    .orEmpty()[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH]
-    ?.outputArtifact
-  val payload = commitOutput
-    ?.let(JsonCodec::parseObjectOrNull)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
+  val commitOutput =
+    recorder.loadPhaseRecords(request.workflowId)
+      .orEmpty()[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH]
+      ?.outputArtifact
+  val payload =
+    commitOutput
+      ?.let(JsonCodec::parseObjectOrNull)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
   return payload?.commitShaFromPhasePayload()
 }
 
@@ -140,14 +150,14 @@ fun Map<String, Any?>.commitShaFromPhasePayload(): String? {
     this["commit_push_result"] as? Map<
       *,
       *,
-      >
-    )?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.takeIf(String::isNotBlank)
+    >
+  )?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.takeIf(String::isNotBlank)
     ?: (
       producedOutputs?.get("commit_push_result") as? Map<
         *,
         *,
-        >
-      )?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()
+      >
+    )?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()
       ?.takeIf(String::isNotBlank)
     ?: producedOutputs?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.takeIf(String::isNotBlank)
     ?: (this[DecompositionManifestPayloadKeys.COMMIT_SHA]?.toString()?.takeIf(String::isNotBlank))
@@ -156,12 +166,13 @@ fun Map<String, Any?>.commitShaFromPhasePayload(): String? {
 fun remediationBaseCoherenceBlockedReport(
   request: FeatureTaskRuntimeRunRequest,
   operatorGuidance: String,
-): FeatureTaskRuntimeRunReport.Blocked = FeatureTaskRuntimeRunReport.Blocked(
-  issueKey = request.issueKey,
-  workflowId = request.workflowId,
-  featureSize = request.runInvariants.featureSize.name,
-  lastIncompletePhase = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
-  blockedReason = operatorGuidance,
-  completedPhaseIds = emptyList(),
-  resolvedBranch = request.goalContinuation?.goalBranch,
-)
+): FeatureTaskRuntimeRunReport.Blocked =
+  FeatureTaskRuntimeRunReport.Blocked(
+    issueKey = request.issueKey,
+    workflowId = request.workflowId,
+    featureSize = request.runInvariants.featureSize.name,
+    lastIncompletePhase = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
+    blockedReason = operatorGuidance,
+    completedPhaseIds = emptyList(),
+    resolvedBranch = request.goalContinuation?.goalBranch,
+  )

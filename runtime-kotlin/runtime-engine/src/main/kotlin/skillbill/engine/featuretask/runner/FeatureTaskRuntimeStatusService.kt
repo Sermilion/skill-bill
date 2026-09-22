@@ -26,6 +26,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerE
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 @Inject
 class FeatureTaskRuntimeStatusService(
   val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -44,13 +45,14 @@ class FeatureTaskRuntimeStatusService(
   fun ledgerBlockedPhaseIds(
     ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
     durableBlockedPhaseIds: Set<String>,
-  ): Set<String> = ledger
-    .groupBy { it.phaseId }
-    .filterKeys { it !in durableBlockedPhaseIds }
-    .filterValues { entries ->
-      entries.maxByOrNull { it.sequenceNumber }?.action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED
-    }
-    .keys
+  ): Set<String> =
+    ledger
+      .groupBy { it.phaseId }
+      .filterKeys { it !in durableBlockedPhaseIds }
+      .filterValues { entries ->
+        entries.maxByOrNull { it.sequenceNumber }?.action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED
+      }
+      .keys
 }
 
 fun FeatureTaskRuntimeStatusService.buildStatusProjection(
@@ -62,27 +64,31 @@ fun FeatureTaskRuntimeStatusService.buildStatusProjection(
   val statelessAuditInputs = FeatureTaskRuntimeRunStateReconstruction.normalizeForStatelessAudit(records, ledger)
   val normalizedRecords = statelessAuditInputs.records
   val normalizedLedger = statelessAuditInputs.ledger
-  val durableBlockedPhaseIds = normalizedRecords
-    .filterValues { record ->
-      record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
-    }
-    .keys
-  val blockedPhaseIds = (
-    durableBlockedPhaseIds +
-      ledgerBlockedPhaseIds(normalizedLedger, durableBlockedPhaseIds)
+  val durableBlockedPhaseIds =
+    normalizedRecords
+      .filterValues { record ->
+        record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
+      }
+      .keys
+  val blockedPhaseIds =
+    (
+      durableBlockedPhaseIds +
+        ledgerBlockedPhaseIds(normalizedLedger, durableBlockedPhaseIds)
     ).toSet()
   val phases = phaseStatuses(normalizedRecords, blockedPhaseIds, normalizedLedger)
   val terminalDecomposeRecorded = decomposeTerminal != null
-  val qualityGateSelection = recorder
-    .loadGoalContinuationQualityGateSelection(request.workflowId)
-    .orLegacyValidate()
-  val currentPhaseId = resolveCurrentPhaseId(
-    terminalDecomposeRecorded,
-    normalizedRecords,
-    phases,
-    normalizedLedger,
-    qualityGateSelection,
-  )
+  val qualityGateSelection =
+    recorder
+      .loadGoalContinuationQualityGateSelection(request.workflowId)
+      .orLegacyValidate()
+  val currentPhaseId =
+    resolveCurrentPhaseId(
+      terminalDecomposeRecorded,
+      normalizedRecords,
+      phases,
+      normalizedLedger,
+      qualityGateSelection,
+    )
   val gateRunCount = gateRunCountFor(request, currentPhaseId)
   return statusProjectionFrom(
     StatusProjectionParts(
@@ -120,36 +126,40 @@ private fun FeatureTaskRuntimeStatusService.statusProjectionFrom(
     featureSize = runInvariantsStore.resolve(request.workflowId)?.featureSize?.name,
     phases = phases,
     completeCount = phases.count { it.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED },
-    pendingCount = if (terminalDecomposeRecorded) {
-      0
-    } else {
-      phases.count {
-        it.status.workflowStepStatus()?.let(PHASE_TERMINAL_STATUSES::contains) != true
-      }
-    },
-    blockedCount = if (terminalDecomposeRecorded) {
-      0
-    } else {
-      phases.count { it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED }
-    },
+    pendingCount =
+      if (terminalDecomposeRecorded) {
+        0
+      } else {
+        phases.count {
+          it.status.workflowStepStatus()?.let(PHASE_TERMINAL_STATUSES::contains) != true
+        }
+      },
+    blockedCount =
+      if (terminalDecomposeRecorded) {
+        0
+      } else {
+        phases.count { it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED }
+      },
     currentPhaseId = parts.currentPhaseId,
     resolvedBranch = recorder.loadResolvedBranch(request.workflowId)?.branch,
-    finalizingAgentId = agentAttributionFromPhaseState(
-      recorder,
-      request.workflowId,
-    ).finalizingAgentId,
+    finalizingAgentId =
+      agentAttributionFromPhaseState(
+        recorder,
+        request.workflowId,
+      ).finalizingAgentId,
     decomposeTerminal = decomposeTerminalStatus(parts.decomposeTerminal),
     gateRunCount = parts.gateRunCount,
     validationGateExecutionEvidence = validationGateExecutionEvidence(parts.records),
-    currentPhaseExecution = currentPhaseExecutionDeriver.derive(
-      FeatureTaskRuntimeCurrentPhaseExecutionContext(
-        currentPhaseId = parts.currentPhaseId,
-        records = parts.records,
-        phases = parts.phases,
-        ledger = parts.ledger,
-        gateRunCount = parts.gateRunCount,
+    currentPhaseExecution =
+      currentPhaseExecutionDeriver.derive(
+        FeatureTaskRuntimeCurrentPhaseExecutionContext(
+          currentPhaseId = parts.currentPhaseId,
+          records = parts.records,
+          phases = parts.phases,
+          ledger = parts.ledger,
+          gateRunCount = parts.gateRunCount,
+        ),
       ),
-    ),
     degradedDiagnostic = degradedDiagnosticStatus(request.workflowId),
     operatorDecisionPause = operatorDecisionPause(parts.records),
   )
@@ -182,10 +192,12 @@ private fun FeatureTaskRuntimeStatusService.gateRunCountFor(
   request: FeatureTaskRuntimeStatusRequest,
   currentPhaseId: String?,
 ): Int? {
-  val validationGateRunCount = recorder.loadValidationGateProgress(request.workflowId)
-    ?.gateRunCount
-  val buildGateRunCount = recorder.loadBuildGateProgress(request.workflowId)
-    ?.gateRunCount
+  val validationGateRunCount =
+    recorder.loadValidationGateProgress(request.workflowId)
+      ?.gateRunCount
+  val buildGateRunCount =
+    recorder.loadBuildGateProgress(request.workflowId)
+      ?.gateRunCount
   return when (currentPhaseId) {
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD -> buildGateRunCount
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE -> validationGateRunCount
@@ -208,11 +220,12 @@ fun FeatureTaskRuntimeStatusService.degradedDiagnosticStatus(
 
 fun FeatureTaskRuntimeStatusService.decomposeTerminalStatus(
   terminal: FeatureTaskRuntimeDecomposeTerminal?,
-): FeatureTaskRuntimeDecomposeTerminalStatus? = terminal?.let {
-  FeatureTaskRuntimeDecomposeTerminalStatus(
-    reason = it.reason,
-    parentSpecPath = it.parentSpecPath,
-    decompositionManifestPath = it.decompositionManifestPath,
-    subtaskSpecPaths = it.subtaskSpecPaths,
-  )
-}
+): FeatureTaskRuntimeDecomposeTerminalStatus? =
+  terminal?.let {
+    FeatureTaskRuntimeDecomposeTerminalStatus(
+      reason = it.reason,
+      parentSpecPath = it.parentSpecPath,
+      decompositionManifestPath = it.decompositionManifestPath,
+      subtaskSpecPaths = it.subtaskSpecPaths,
+    )
+  }

@@ -37,11 +37,12 @@ internal object TelemetryOutboxLastErrorMigration {
     }
   }
 
-  private fun needsMigration(connection: Connection): Boolean = connection.prepareStatement(
-    "SELECT \"notnull\" FROM pragma_table_info('telemetry_outbox') WHERE name = 'last_error'",
-  ).use { statement ->
-    statement.executeQuery().use { resultSet ->
-      resultSet.next() && resultSet.getInt("notnull") != 0
+  private fun needsMigration(connection: Connection): Boolean =
+    connection.prepareStatement(
+      "SELECT \"notnull\" FROM pragma_table_info('telemetry_outbox') WHERE name = 'last_error'",
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        resultSet.next() && resultSet.getInt("notnull") != 0
+      }
     }
-  }
 }

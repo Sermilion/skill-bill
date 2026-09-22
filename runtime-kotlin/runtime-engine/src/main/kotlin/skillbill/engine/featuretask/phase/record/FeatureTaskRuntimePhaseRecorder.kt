@@ -45,205 +45,252 @@ import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperat
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
 import java.time.Clock
-class FeatureTaskRuntimePhaseRecorder @Inject constructor(
-  database: DatabaseSessionFactory,
-  workflowSnapshotValidator: WorkflowSnapshotValidator,
-  wireArtifactValidator: FeatureTaskRuntimeWireArtifactValidator,
-  rejectedOutputDiagnosticMetadataValidator: RejectedOutputDiagnosticMetadataValidator,
-  producerOutputEvidenceValidator: ProducerOutputEvidenceValidator,
-  diagnostics: RuntimeDiagnostics,
-  clock: Clock,
-) : FeatureTaskRuntimePhaseEvidenceApi by FeatureTaskRuntimePhaseEvidenceApiDelegate(
-  database,
-  workflowSnapshotValidator,
-  wireArtifactValidator,
-  clock,
-),
-  FeatureTaskRuntimeReadinessEvidencePort by FeatureTaskRuntimeGateProgressRecorder(
-    database,
-    FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator),
-  ) {
-  private val workflowPersistence = FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator)
-  private val runtimeOwnedPersistence = RuntimeOwnedPersistenceBoundary(database, diagnostics)
-  private val rejectedOutput = FeatureTaskRuntimeRejectedOutputRecorder(
-    database,
-    workflowPersistence,
-    rejectedOutputDiagnosticMetadataValidator,
-    producerOutputEvidenceValidator,
-    clock,
-  )
-  private val phaseState = FeatureTaskRuntimePhaseStateRecorder(
-    database,
-    workflowPersistence,
-    runtimeOwnedPersistence,
-    wireArtifactValidator,
-    clock,
-  )
-  private val reviewCheckpoint = FeatureTaskRuntimeReviewCheckpointRecorder(
-    database,
-    workflowPersistence,
-    runtimeOwnedPersistence,
-  )
-  private val goalReviewCompletion = FeatureTaskRuntimeGoalReviewCompletionRecorder(
-    database,
-    workflowPersistence,
-    clock,
-  )
-  private val briefingRecorder = FeatureTaskRuntimePhaseBriefingRecorder(
-    database,
-    workflowPersistence,
-    wireArtifactValidator,
-  )
-  private val gateProgress = FeatureTaskRuntimeGateProgressRecorder(database, workflowPersistence)
-  fun existingWorkflowMode(workflowId: String): FeatureTaskWorkflowMode? =
-    workflowPersistence.existingWorkflowMode(workflowId)
 
-  fun workerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership? =
-    workflowPersistence.workerOwnership(workflowId)
+class FeatureTaskRuntimePhaseRecorder
+  @Inject
+  constructor(
+    database: DatabaseSessionFactory,
+    workflowSnapshotValidator: WorkflowSnapshotValidator,
+    wireArtifactValidator: FeatureTaskRuntimeWireArtifactValidator,
+    rejectedOutputDiagnosticMetadataValidator: RejectedOutputDiagnosticMetadataValidator,
+    producerOutputEvidenceValidator: ProducerOutputEvidenceValidator,
+    diagnostics: RuntimeDiagnostics,
+    clock: Clock,
+  ) : FeatureTaskRuntimePhaseEvidenceApi by FeatureTaskRuntimePhaseEvidenceApiDelegate(
+      database,
+      workflowSnapshotValidator,
+      wireArtifactValidator,
+      clock,
+    ),
+    FeatureTaskRuntimeReadinessEvidencePort by FeatureTaskRuntimeGateProgressRecorder(
+      database,
+      FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator),
+    ) {
+    private val workflowPersistence = FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator)
+    private val runtimeOwnedPersistence = RuntimeOwnedPersistenceBoundary(database, diagnostics)
+    private val rejectedOutput =
+      FeatureTaskRuntimeRejectedOutputRecorder(
+        database,
+        workflowPersistence,
+        rejectedOutputDiagnosticMetadataValidator,
+        producerOutputEvidenceValidator,
+        clock,
+      )
+    private val phaseState =
+      FeatureTaskRuntimePhaseStateRecorder(
+        database,
+        workflowPersistence,
+        runtimeOwnedPersistence,
+        wireArtifactValidator,
+        clock,
+      )
+    private val reviewCheckpoint =
+      FeatureTaskRuntimeReviewCheckpointRecorder(
+        database,
+        workflowPersistence,
+        runtimeOwnedPersistence,
+      )
+    private val goalReviewCompletion =
+      FeatureTaskRuntimeGoalReviewCompletionRecorder(
+        database,
+        workflowPersistence,
+        clock,
+      )
+    private val briefingRecorder =
+      FeatureTaskRuntimePhaseBriefingRecorder(
+        database,
+        workflowPersistence,
+        wireArtifactValidator,
+      )
+    private val gateProgress = FeatureTaskRuntimeGateProgressRecorder(database, workflowPersistence)
 
-  fun ensureWorkflowOpen(workflowId: String, sessionId: String, issueKey: String? = null): Boolean =
-    workflowPersistence.ensureWorkflowOpen(workflowId, sessionId, issueKey)
+    fun existingWorkflowMode(workflowId: String): FeatureTaskWorkflowMode? =
+      workflowPersistence.existingWorkflowMode(workflowId)
 
-  internal fun recordRejectedOutput(
-    request: RejectedOutputDiagnosticRequest,
-    producerGeneration: Int = 0,
-  ): FeatureTaskRuntimeRejectedOutputWrite = rejectedOutput.recordRejectedOutput(request, producerGeneration)
+    fun workerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership? =
+      workflowPersistence.workerOwnership(workflowId)
 
-  fun retainProducerOutput(evidence: ProducerOutputEvidence) = rejectedOutput.retainProducerOutput(evidence)
+    fun ensureWorkflowOpen(
+      workflowId: String,
+      sessionId: String,
+      issueKey: String? = null,
+    ): Boolean = workflowPersistence.ensureWorkflowOpen(workflowId, sessionId, issueKey)
 
-  fun producerOutput(args: ProducerOutputQueryArgs): FeatureTaskRuntimeProducerOutputRead =
-    rejectedOutput.producerOutput(args)
+    internal fun recordRejectedOutput(
+      request: RejectedOutputDiagnosticRequest,
+      producerGeneration: Int = 0,
+    ): FeatureTaskRuntimeRejectedOutputWrite = rejectedOutput.recordRejectedOutput(request, producerGeneration)
 
-  fun loadDiagnosticSignals(workflowId: String): List<FeatureTaskRuntimeDiagnosticSignal> =
-    rejectedOutput.loadDiagnosticSignals(workflowId)
+    fun retainProducerOutput(evidence: ProducerOutputEvidence) = rejectedOutput.retainProducerOutput(evidence)
 
-  fun recordPhaseState(request: FeatureTaskRuntimePhaseStateRequest): Boolean = phaseState.recordPhaseState(request)
+    fun producerOutput(args: ProducerOutputQueryArgs): FeatureTaskRuntimeProducerOutputRead =
+      rejectedOutput.producerOutput(args)
 
-  fun recordCompletedPhase(request: FeatureTaskRuntimePhaseStateRequest): Boolean =
-    phaseState.recordCompletedPhase(request)
+    fun loadDiagnosticSignals(workflowId: String): List<FeatureTaskRuntimeDiagnosticSignal> =
+      rejectedOutput.loadDiagnosticSignals(workflowId)
 
-  fun recordIncompleteImplementationAttempt(request: FeatureTaskRuntimePhaseStateRequest): Boolean =
-    phaseState.recordIncompleteImplementationAttempt(request)
+    fun recordPhaseState(request: FeatureTaskRuntimePhaseStateRequest): Boolean = phaseState.recordPhaseState(request)
 
-  fun loadImplementationAttempts(workflowId: String): List<FeatureTaskRuntimeImplementationAttempt>? =
-    phaseState.loadImplementationAttempts(workflowId)
+    fun recordCompletedPhase(request: FeatureTaskRuntimePhaseStateRequest): Boolean =
+      phaseState.recordCompletedPhase(request)
 
-  fun clearBackwardEdgeContext(workflowId: String, phaseIds: Collection<String>): Boolean =
-    phaseState.clearBackwardEdgeContext(workflowId, phaseIds)
+    fun recordIncompleteImplementationAttempt(request: FeatureTaskRuntimePhaseStateRequest): Boolean =
+      phaseState.recordIncompleteImplementationAttempt(request)
 
-  fun loadPhaseRecords(workflowId: String): Map<String, FeatureTaskRuntimePhaseRecord>? =
-    phaseState.loadPhaseRecords(workflowId)
+    fun loadImplementationAttempts(workflowId: String): List<FeatureTaskRuntimeImplementationAttempt>? =
+      phaseState.loadImplementationAttempts(workflowId)
 
-  fun loadOperatorBlockRetry(workflowId: String): FeatureTaskRuntimeOperatorBlockRetry? =
-    phaseState.loadOperatorBlockRetry(workflowId)
+    fun clearBackwardEdgeContext(
+      workflowId: String,
+      phaseIds: Collection<String>,
+    ): Boolean = phaseState.clearBackwardEdgeContext(workflowId, phaseIds)
 
-  fun loadPhaseLedger(workflowId: String): List<FeatureTaskRuntimePhaseLedgerEntry>? =
-    phaseState.loadPhaseLedger(workflowId)
+    fun loadPhaseRecords(workflowId: String): Map<String, FeatureTaskRuntimePhaseRecord>? =
+      phaseState.loadPhaseRecords(workflowId)
 
-  fun completeGoalReviewPhase(completion: GoalReviewPhaseCompletionRequest): Boolean =
-    goalReviewCompletion.completeGoalReviewPhase(completion)
+    fun loadOperatorBlockRetry(workflowId: String): FeatureTaskRuntimeOperatorBlockRetry? =
+      phaseState.loadOperatorBlockRetry(workflowId)
 
-  fun persistReviewGenerationInvalidation(workflowId: String): Int? =
-    reviewCheckpoint.persistReviewGenerationInvalidation(workflowId)
+    fun loadPhaseLedger(workflowId: String): List<FeatureTaskRuntimePhaseLedgerEntry>? =
+      phaseState.loadPhaseLedger(workflowId)
 
-  fun reconcileReviewGeneration(workflowId: String): Int = reviewCheckpoint.reconcileReviewGeneration(workflowId)
+    fun completeGoalReviewPhase(completion: GoalReviewPhaseCompletionRequest): Boolean =
+      goalReviewCompletion.completeGoalReviewPhase(completion)
 
-  fun invalidateQuarantinedProducerRecord(
-    workflowId: String,
-    producerPhaseId: String,
-    loopId: String,
-    edgeIteration: Int,
-  ): Boolean = reviewCheckpoint.invalidateQuarantinedProducerRecord(workflowId, producerPhaseId, loopId, edgeIteration)
+    fun persistReviewGenerationInvalidation(workflowId: String): Int? =
+      reviewCheckpoint.persistReviewGenerationInvalidation(workflowId)
 
-  fun recordedFindingVerdicts(output: Map<String, Any?>): List<ReviewFindingVerdict> =
-    reviewCheckpoint.recordedFindingVerdicts(output)
+    fun reconcileReviewGeneration(workflowId: String): Int = reviewCheckpoint.reconcileReviewGeneration(workflowId)
 
-  fun fetchUnaddressedLedger(workflowId: String): List<UnaddressedFinding> =
-    reviewCheckpoint.fetchUnaddressedLedger(workflowId)
+    fun invalidateQuarantinedProducerRecord(
+      workflowId: String,
+      producerPhaseId: String,
+      loopId: String,
+      edgeIteration: Int,
+    ): Boolean =
+      reviewCheckpoint.invalidateQuarantinedProducerRecord(
+        workflowId,
+        producerPhaseId,
+        loopId,
+        edgeIteration,
+      )
 
-  fun appendRejectedVerificationFindings(workflowId: String, passNumber: Int, rejected: List<UnaddressedFinding>) =
-    reviewCheckpoint.appendRejectedVerificationFindings(workflowId, passNumber, rejected)
+    fun recordedFindingVerdicts(output: Map<String, Any?>): List<ReviewFindingVerdict> =
+      reviewCheckpoint.recordedFindingVerdicts(output)
 
-  fun loadFindingVerificationCheckpoint(workflowId: String): List<FeatureTaskRuntimeFindingVerificationDisposition>? =
-    reviewCheckpoint.loadFindingVerificationCheckpoint(workflowId)
+    fun fetchUnaddressedLedger(workflowId: String): List<UnaddressedFinding> =
+      reviewCheckpoint.fetchUnaddressedLedger(workflowId)
 
-  fun loadFindingVerificationBoundarySelection(
-    workflowId: String,
-  ): Map<String, List<FeatureTaskRuntimeVerificationBoundaryHeadingProvenance>>? =
-    reviewCheckpoint.loadFindingVerificationBoundarySelection(workflowId)
+    fun appendRejectedVerificationFindings(
+      workflowId: String,
+      passNumber: Int,
+      rejected: List<UnaddressedFinding>,
+    ) = reviewCheckpoint.appendRejectedVerificationFindings(workflowId, passNumber, rejected)
 
-  fun persistFindingVerificationBoundarySelection(
-    workflowId: String,
-    selections: Map<String, List<FeatureTaskRuntimeVerificationBoundaryHeadingProvenance>>,
-  ): Boolean = reviewCheckpoint.persistFindingVerificationBoundarySelection(workflowId, selections)
+    fun loadFindingVerificationCheckpoint(workflowId: String): List<FeatureTaskRuntimeFindingVerificationDisposition>? =
+      reviewCheckpoint.loadFindingVerificationCheckpoint(workflowId)
 
-  fun loadFindingVerificationDispositions(workflowId: String): List<FeatureTaskRuntimeFindingVerificationDisposition>? =
-    reviewCheckpoint.loadFindingVerificationDispositions(workflowId)
+    fun loadFindingVerificationBoundarySelection(
+      workflowId: String,
+    ): Map<String, List<FeatureTaskRuntimeVerificationBoundaryHeadingProvenance>>? =
+      reviewCheckpoint.loadFindingVerificationBoundarySelection(workflowId)
 
-  fun persistFindingVerificationCheckpoint(
-    workflowId: String,
-    dispositions: List<FeatureTaskRuntimeFindingVerificationDisposition>,
-  ): Boolean = reviewCheckpoint.persistFindingVerificationCheckpoint(workflowId, dispositions)
+    fun persistFindingVerificationBoundarySelection(
+      workflowId: String,
+      selections: Map<String, List<FeatureTaskRuntimeVerificationBoundaryHeadingProvenance>>,
+    ): Boolean = reviewCheckpoint.persistFindingVerificationBoundarySelection(workflowId, selections)
 
-  fun clearFindingVerificationCheckpoint(workflowId: String): Boolean =
-    reviewCheckpoint.clearFindingVerificationCheckpoint(workflowId)
+    fun loadFindingVerificationDispositions(
+      workflowId: String,
+    ): List<FeatureTaskRuntimeFindingVerificationDisposition>? =
+      reviewCheckpoint.loadFindingVerificationDispositions(workflowId)
 
-  fun recordPhaseBriefing(
-    workflowId: String,
-    briefing: FeatureTaskRuntimePhaseLaunchBriefing,
-    sharedEvidenceMeasurement: FeatureTaskRuntimeSharedEvidenceMeasurement? = null,
-  ): Boolean = briefingRecorder.recordPhaseBriefing(workflowId, briefing, sharedEvidenceMeasurement)
+    fun persistFindingVerificationCheckpoint(
+      workflowId: String,
+      dispositions: List<FeatureTaskRuntimeFindingVerificationDisposition>,
+    ): Boolean = reviewCheckpoint.persistFindingVerificationCheckpoint(workflowId, dispositions)
 
-  fun recordProjectionRejection(
-    workflowId: String,
-    consumerPhaseId: String,
-    error: InvalidFeatureTaskRuntimeHandoffProjectionError,
-    repositoryCheckpointFingerprint: String?,
-  ): Boolean = briefingRecorder.recordProjectionRejection(
-    workflowId,
-    consumerPhaseId,
-    error,
-    repositoryCheckpointFingerprint,
-  )
+    fun clearFindingVerificationCheckpoint(workflowId: String): Boolean =
+      reviewCheckpoint.clearFindingVerificationCheckpoint(workflowId)
 
-  fun recordProjectionRejection(rejection: FeatureTaskRuntimeProjectionRejection): Boolean =
-    briefingRecorder.recordProjectionRejection(rejection)
+    fun recordPhaseBriefing(
+      workflowId: String,
+      briefing: FeatureTaskRuntimePhaseLaunchBriefing,
+      sharedEvidenceMeasurement: FeatureTaskRuntimeSharedEvidenceMeasurement? = null,
+    ): Boolean = briefingRecorder.recordPhaseBriefing(workflowId, briefing, sharedEvidenceMeasurement)
 
-  fun validateHandoffDeclarations(declarations: List<PhaseHandoffProjectionDeclaration>) =
-    briefingRecorder.validateHandoffDeclarations(declarations)
+    fun recordProjectionRejection(
+      workflowId: String,
+      consumerPhaseId: String,
+      error: InvalidFeatureTaskRuntimeHandoffProjectionError,
+      repositoryCheckpointFingerprint: String?,
+    ): Boolean =
+      briefingRecorder.recordProjectionRejection(
+        workflowId,
+        consumerPhaseId,
+        error,
+        repositoryCheckpointFingerprint,
+      )
 
-  fun loadPhaseBriefings(workflowId: String): Map<String, FeatureTaskRuntimePhaseLaunchBriefing>? =
-    briefingRecorder.loadPhaseBriefings(workflowId)
+    fun recordProjectionRejection(rejection: FeatureTaskRuntimeProjectionRejection): Boolean =
+      briefingRecorder.recordProjectionRejection(rejection)
 
-  fun loadDeliveredProjections(workflowId: String): Map<String, FeatureTaskRuntimeDeliveredProjectionRecord>? =
-    briefingRecorder.loadDeliveredProjections(workflowId)
+    fun validateHandoffDeclarations(declarations: List<PhaseHandoffProjectionDeclaration>) =
+      briefingRecorder.validateHandoffDeclarations(declarations)
 
-  fun loadValidationGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
-    gateProgress.loadValidationGateProgress(workflowId)
+    fun loadPhaseBriefings(workflowId: String): Map<String, FeatureTaskRuntimePhaseLaunchBriefing>? =
+      briefingRecorder.loadPhaseBriefings(workflowId)
 
-  fun persistValidationGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) =
-    gateProgress.persistValidationGateProgress(workflowId, progress)
+    fun loadDeliveredProjections(workflowId: String): Map<String, FeatureTaskRuntimeDeliveredProjectionRecord>? =
+      briefingRecorder.loadDeliveredProjections(workflowId)
 
-  fun loadBuildGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
-    gateProgress.loadBuildGateProgress(workflowId)
+    fun loadValidationGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
+      gateProgress.loadValidationGateProgress(workflowId)
 
-  fun loadGoalContinuationQualityGateSelection(workflowId: String): FeatureTaskRuntimeQualityGateSelection? =
-    gateProgress.loadGoalContinuationQualityGateSelection(workflowId)
+    fun persistValidationGateProgress(
+      workflowId: String,
+      progress: FeatureTaskRuntimeValidationGateProgress,
+    ) = gateProgress.persistValidationGateProgress(workflowId, progress)
 
-  fun persistBuildGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) =
-    gateProgress.persistBuildGateProgress(workflowId, progress)
-}
+    fun loadBuildGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
+      gateProgress.loadBuildGateProgress(workflowId)
+
+    fun loadGoalContinuationQualityGateSelection(workflowId: String): FeatureTaskRuntimeQualityGateSelection? =
+      gateProgress.loadGoalContinuationQualityGateSelection(workflowId)
+
+    fun persistBuildGateProgress(
+      workflowId: String,
+      progress: FeatureTaskRuntimeValidationGateProgress,
+    ) = gateProgress.persistBuildGateProgress(workflowId, progress)
+  }
 
 private interface FeatureTaskRuntimePhaseEvidenceApi {
   fun appendLedgerEntry(request: FeatureTaskRuntimePhaseLedgerRequest): Boolean
-  fun appendQuarantineEntry(workflowId: String, entry: FeatureTaskRuntimeQuarantineEntry): Boolean
+
+  fun appendQuarantineEntry(
+    workflowId: String,
+    entry: FeatureTaskRuntimeQuarantineEntry,
+  ): Boolean
+
   fun loadQuarantinedRecords(workflowId: String): List<FeatureTaskRuntimeQuarantineEntry>?
-  fun recordResolvedBranch(workflowId: String, resolvedBranch: FeatureTaskRuntimeResolvedBranch): Boolean
+
+  fun recordResolvedBranch(
+    workflowId: String,
+    resolvedBranch: FeatureTaskRuntimeResolvedBranch,
+  ): Boolean
+
   fun loadResolvedBranch(workflowId: String): FeatureTaskRuntimeResolvedBranch?
+
   fun appendCheckpointIdentity(args: AppendCheckpointIdentityArgs): Boolean
+
   fun loadCheckpointIdentities(workflowId: String): List<FeatureTaskRuntimeCheckpointIdentity>?
+
   fun quarantineCheckpointIdentities(workflowId: String): Boolean
-  fun recordWorkflowOwnedPaths(workflowId: String, ownedPaths: List<String>): Boolean
+
+  fun recordWorkflowOwnedPaths(
+    workflowId: String,
+    ownedPaths: List<String>,
+  ): Boolean
 }
 
 private class FeatureTaskRuntimePhaseEvidenceApiDelegate(
@@ -252,24 +299,29 @@ private class FeatureTaskRuntimePhaseEvidenceApiDelegate(
   wireArtifactValidator: FeatureTaskRuntimeWireArtifactValidator,
   clock: Clock,
 ) : FeatureTaskRuntimePhaseEvidenceApi {
-  private val evidence = FeatureTaskRuntimePhaseEvidenceRecorder(
-    database,
-    FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator),
-    wireArtifactValidator,
-    clock,
-  )
+  private val evidence =
+    FeatureTaskRuntimePhaseEvidenceRecorder(
+      database,
+      FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator),
+      wireArtifactValidator,
+      clock,
+    )
 
   override fun appendLedgerEntry(request: FeatureTaskRuntimePhaseLedgerRequest): Boolean =
     evidence.appendLedgerEntry(request)
 
-  override fun appendQuarantineEntry(workflowId: String, entry: FeatureTaskRuntimeQuarantineEntry): Boolean =
-    evidence.appendQuarantineEntry(workflowId, entry)
+  override fun appendQuarantineEntry(
+    workflowId: String,
+    entry: FeatureTaskRuntimeQuarantineEntry,
+  ): Boolean = evidence.appendQuarantineEntry(workflowId, entry)
 
   override fun loadQuarantinedRecords(workflowId: String): List<FeatureTaskRuntimeQuarantineEntry>? =
     evidence.loadQuarantinedRecords(workflowId)
 
-  override fun recordResolvedBranch(workflowId: String, resolvedBranch: FeatureTaskRuntimeResolvedBranch): Boolean =
-    evidence.recordResolvedBranch(workflowId, resolvedBranch)
+  override fun recordResolvedBranch(
+    workflowId: String,
+    resolvedBranch: FeatureTaskRuntimeResolvedBranch,
+  ): Boolean = evidence.recordResolvedBranch(workflowId, resolvedBranch)
 
   override fun loadResolvedBranch(workflowId: String): FeatureTaskRuntimeResolvedBranch? =
     evidence.loadResolvedBranch(workflowId)
@@ -283,6 +335,8 @@ private class FeatureTaskRuntimePhaseEvidenceApiDelegate(
   override fun quarantineCheckpointIdentities(workflowId: String): Boolean =
     evidence.quarantineCheckpointIdentities(workflowId)
 
-  override fun recordWorkflowOwnedPaths(workflowId: String, ownedPaths: List<String>): Boolean =
-    evidence.recordWorkflowOwnedPaths(workflowId, ownedPaths)
+  override fun recordWorkflowOwnedPaths(
+    workflowId: String,
+    ownedPaths: List<String>,
+  ): Boolean = evidence.recordWorkflowOwnedPaths(workflowId, ownedPaths)
 }

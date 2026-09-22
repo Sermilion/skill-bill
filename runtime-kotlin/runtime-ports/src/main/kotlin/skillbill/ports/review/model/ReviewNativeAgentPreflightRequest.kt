@@ -8,9 +8,10 @@ data class ReviewNativeAgentPreflightRequest(
 ) {
   constructor(repoRoot: Path, agentIds: List<String>, logicalNames: List<String>) : this(
     repoRoot = repoRoot,
-    assignments = agentIds.flatMap { agentId ->
-      logicalNames.map { logicalName -> ReviewNativeAgentAssignment(agentId, logicalName) }
-    },
+    assignments =
+      agentIds.flatMap { agentId ->
+        logicalNames.map { logicalName -> ReviewNativeAgentAssignment(agentId, logicalName) }
+      },
   )
 }
 

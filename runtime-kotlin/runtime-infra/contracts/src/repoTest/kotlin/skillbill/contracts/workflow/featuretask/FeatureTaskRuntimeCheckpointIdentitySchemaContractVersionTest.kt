@@ -26,11 +26,12 @@ class FeatureTaskRuntimeCheckpointIdentitySchemaContractVersionTest {
 
   @Test
   fun `bundled classpath schema matches the canonical repository schema`() {
-    val stream = checkNotNull(
-      javaClass.classLoader.getResourceAsStream(
-        FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
-      ),
-    )
+    val stream =
+      checkNotNull(
+        javaClass.classLoader.getResourceAsStream(
+          FeatureTaskRuntimeCheckpointIdentitySchemaPaths.CLASSPATH_RESOURCE,
+        ),
+      )
     val bundled = stream.use { YAMLMapper().readTree(it) }
 
     assertEquals(YAMLMapper().readTree(Files.readString(repositorySchemaFile())), bundled)

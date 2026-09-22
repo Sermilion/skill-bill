@@ -15,7 +15,6 @@ class FileSystemInstalledWorkspaceBaselineStatus(
   private val baselinePersistence: BaselineManifestPersistencePort,
   private val catalogLoader: PlatformPackCatalogLoader,
 ) : InstalledWorkspaceBaselineStatusPort {
-
   override fun modifiedSkillRelativePaths(
     request: InstalledWorkspaceBaselineStatusRequest,
   ): InstalledWorkspaceBaselineStatusResult {
@@ -24,17 +23,19 @@ class FileSystemInstalledWorkspaceBaselineStatus(
     if (!read.existed) return InstalledWorkspaceBaselineStatusResult(emptySet())
     val baseline = read.manifest
 
-    val roots = ReconcileSourceRoots(
-      repoRoot = installRoot,
-      skillsRoot = installRoot.resolve("skills"),
-      platformPacksRoot = installRoot.resolve("platform-packs"),
-      catalogLoader = catalogLoader,
-    )
+    val roots =
+      ReconcileSourceRoots(
+        repoRoot = installRoot,
+        skillsRoot = installRoot.resolve("skills"),
+        platformPacksRoot = installRoot.resolve("platform-packs"),
+        catalogLoader = catalogLoader,
+      )
     val live = enumerateSkills(roots, home = request.installHome, sourceSide = ReconcileSourceSide.LOCAL)
-    val modified = live.asSequence()
-      .filter { (skillRelativePath, entry) -> baseline.hashFor(skillRelativePath) != entry.hash }
-      .map { (skillRelativePath, _) -> skillRelativePath }
-      .toSet()
+    val modified =
+      live.asSequence()
+        .filter { (skillRelativePath, entry) -> baseline.hashFor(skillRelativePath) != entry.hash }
+        .map { (skillRelativePath, _) -> skillRelativePath }
+        .toSet()
     return InstalledWorkspaceBaselineStatusResult(modified)
   }
 }

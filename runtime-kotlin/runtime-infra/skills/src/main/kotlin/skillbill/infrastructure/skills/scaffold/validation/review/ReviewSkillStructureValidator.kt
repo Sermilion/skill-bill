@@ -10,7 +10,10 @@ import java.nio.file.Path
 import kotlin.io.path.name
 
 internal object ReviewSkillStructureValidator {
-  fun validate(pack: Path, packRootsBySlug: Map<String, Path> = emptyMap()) {
+  fun validate(
+    pack: Path,
+    packRootsBySlug: Map<String, Path> = emptyMap(),
+  ) {
     val violations = violations(pack, packRootsBySlug)
     if (violations.isNotEmpty()) {
       throw InvalidReviewSkillStructureError(
@@ -23,15 +26,19 @@ internal object ReviewSkillStructureValidator {
     }
   }
 
-  fun violations(pack: Path, packRootsBySlug: Map<String, Path> = emptyMap()): List<ReviewSkillStructureViolation> {
+  fun violations(
+    pack: Path,
+    packRootsBySlug: Map<String, Path> = emptyMap(),
+  ): List<ReviewSkillStructureViolation> {
     if (pack.name == "platform-packs") {
       return Files.list(pack).use { packDirectories ->
         packDirectories.filter(Files::isDirectory).toList().flatMap { child -> violations(child, packRootsBySlug) }
       }
     }
-    val manifest = manifest(pack) ?: return listOf(
-      ReviewSkillStructureViolation(pack.resolve("platform.yaml"), "platform manifest mapping"),
-    )
+    val manifest =
+      manifest(pack) ?: return listOf(
+        ReviewSkillStructureViolation(pack.resolve("platform.yaml"), "platform manifest mapping"),
+      )
     val reviewFiles = contentFiles(pack)
     val hasReviewSurface =
       declaredBaseline(manifest) != null ||
@@ -68,9 +75,10 @@ internal fun validateReviewSkillStructure(pack: PlatformManifest) {
 
   val actualAgents = parseNativeAgentBundle(bundle)
   val actualNames = actualAgents.map { it.name }
-  val specialistNames = pack.declaredCodeReviewAreas
-    .map { area -> pack.declaredFiles.areas.getValue(area).toPath().parent.fileName.toString() }
-    .toSet()
+  val specialistNames =
+    pack.declaredCodeReviewAreas
+      .map { area -> pack.declaredFiles.areas.getValue(area).toPath().parent.fileName.toString() }
+      .toSet()
   val baselineName = baseline.toPath().parent.fileName.toString()
   val expectedNames = specialistNames + baselineName
   val actualNameSet = actualNames.toSet()

@@ -23,36 +23,39 @@ internal class SharedDeclaredProgressStore {
   @Synchronized
   fun record(emission: AgentRunProgressEmission) {
     recorded += emission
-    latest = GoalProgressEvent(
-      eventKind = emission.eventKind,
-      workflowId = "wfl-child",
-      workflowPhase = "goal_runner_supervision",
-      processAlive = emission.processAlive,
-      sequenceNumber = sequence++,
-      timestamp = "2026-06-02T10:00:00Z",
-      operationName = emission.operationName,
-      operationKind = emission.operationKind,
-      expectedLong = emission.expectedLong,
-      outcome = emission.outcome,
-    )
+    latest =
+      GoalProgressEvent(
+        eventKind = emission.eventKind,
+        workflowId = "wfl-child",
+        workflowPhase = "goal_runner_supervision",
+        processAlive = emission.processAlive,
+        sequenceNumber = sequence++,
+        timestamp = "2026-06-02T10:00:00Z",
+        operationName = emission.operationName,
+        operationKind = emission.operationKind,
+        expectedLong = emission.expectedLong,
+        outcome = emission.outcome,
+      )
   }
 
   @Synchronized
-  fun snapshot(): AgentRunDeclaredProgressSnapshot? = latest?.let { event ->
-    AgentRunDeclaredProgressSnapshot(latestEvent = event, processAlive = event.processAlive)
-  }
+  fun snapshot(): AgentRunDeclaredProgressSnapshot? =
+    latest?.let { event ->
+      AgentRunDeclaredProgressSnapshot(latestEvent = event, processAlive = event.processAlive)
+    }
 }
 
 internal fun skillRunRequest(
   issueKey: String = "SKILL-56",
   goalContinuation: SkillRunGoalContinuationContext? = goalContinuationContext(),
-): SkillRunRequest = SkillRunRequest(
-  issueKey = issueKey,
-  repoRoot = Path.of("/tmp/skillbill-agent-run"),
-  subtaskId = 2,
-  timeout = 3.seconds,
-  goalContinuation = goalContinuation,
-)
+): SkillRunRequest =
+  SkillRunRequest(
+    issueKey = issueKey,
+    repoRoot = Path.of("/tmp/skillbill-agent-run"),
+    subtaskId = 2,
+    timeout = 3.seconds,
+    goalContinuation = goalContinuation,
+  )
 
 internal fun goalContinuationContext(childWorkflowId: String? = null): SkillRunGoalContinuationContext =
   SkillRunGoalContinuationContext(

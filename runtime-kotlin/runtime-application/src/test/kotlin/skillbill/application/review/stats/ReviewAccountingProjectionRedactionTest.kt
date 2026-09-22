@@ -98,27 +98,30 @@ class ReviewAccountingProjectionRedactionTest {
 
   @Test fun `lane nodes project bundle composition and segment accounting`() {
     val digest = "a".repeat(64)
-    val summary = ReviewTreeAccounting.summarize(
-      "review-id",
-      "packet-digest",
-      ReviewAccountingInput(
-        lane = "parent",
-        assignmentDigest = "assignment-digest",
-        children = listOf(
-          ReviewAccountingInput(
-            lane = "architecture",
-            assignmentDigest = "architecture-digest",
-            terminalOutcome = ReviewAccountingTerminalOutcome.INCOMPLETE,
-            bundleCompositionDigest = digest,
-            segmentAccounting = listOf(ReviewLaneSegmentAccounting("seg-000", 128, 2, digest)),
-            unreviewedSegmentIds = listOf("unreviewable"),
-          ),
+    val summary =
+      ReviewTreeAccounting.summarize(
+        "review-id",
+        "packet-digest",
+        ReviewAccountingInput(
+          lane = "parent",
+          assignmentDigest = "assignment-digest",
+          children =
+            listOf(
+              ReviewAccountingInput(
+                lane = "architecture",
+                assignmentDigest = "architecture-digest",
+                terminalOutcome = ReviewAccountingTerminalOutcome.INCOMPLETE,
+                bundleCompositionDigest = digest,
+                segmentAccounting = listOf(ReviewLaneSegmentAccounting("seg-000", 128, 2, digest)),
+                unreviewedSegmentIds = listOf("unreviewable"),
+              ),
+            ),
         ),
-      ),
-    )
-    val lane = requireNotNull(
-      JsonCodec.anyToStringAnyMapList(summary.toBoundedPayload()[ReviewAccountingPayloadKeys.LANES]),
-    ).single()
+      )
+    val lane =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMapList(summary.toBoundedPayload()[ReviewAccountingPayloadKeys.LANES]),
+      ).single()
     assertEquals(digest, lane[ReviewAccountingPayloadKeys.BUNDLE_COMPOSITION_DIGEST])
     assertEquals(listOf("unreviewable"), lane[ReviewAccountingPayloadKeys.UNREVIEWED_SEGMENT_IDS])
     val segments = requireNotNull(JsonCodec.anyToStringAnyMapList(lane[ReviewAccountingPayloadKeys.SEGMENT_ACCOUNTING]))
@@ -129,27 +132,30 @@ class ReviewAccountingProjectionRedactionTest {
 
   @Test fun `incomplete broker-refusal accounting projects refused segment ids only`() {
     val digest = "a".repeat(64)
-    val summary = ReviewTreeAccounting.summarize(
-      "review-id",
-      "packet-digest",
-      ReviewAccountingInput(
-        lane = "parent",
-        assignmentDigest = "assignment-digest",
-        children = listOf(
-          ReviewAccountingInput(
-            lane = "architecture",
-            assignmentDigest = "architecture-digest",
-            terminalOutcome = ReviewAccountingTerminalOutcome.INCOMPLETE,
-            bundleCompositionDigest = digest,
-            segmentAccounting = listOf(ReviewLaneSegmentAccounting("seg-000", 128, 2, digest)),
-            unreviewedSegmentIds = listOf("seg-evidence-refused"),
-          ),
+    val summary =
+      ReviewTreeAccounting.summarize(
+        "review-id",
+        "packet-digest",
+        ReviewAccountingInput(
+          lane = "parent",
+          assignmentDigest = "assignment-digest",
+          children =
+            listOf(
+              ReviewAccountingInput(
+                lane = "architecture",
+                assignmentDigest = "architecture-digest",
+                terminalOutcome = ReviewAccountingTerminalOutcome.INCOMPLETE,
+                bundleCompositionDigest = digest,
+                segmentAccounting = listOf(ReviewLaneSegmentAccounting("seg-000", 128, 2, digest)),
+                unreviewedSegmentIds = listOf("seg-evidence-refused"),
+              ),
+            ),
         ),
-      ),
-    )
-    val lane = requireNotNull(
-      JsonCodec.anyToStringAnyMapList(summary.toBoundedPayload()[ReviewAccountingPayloadKeys.LANES]),
-    ).single()
+      )
+    val lane =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMapList(summary.toBoundedPayload()[ReviewAccountingPayloadKeys.LANES]),
+      ).single()
     assertEquals(listOf("seg-evidence-refused"), lane[ReviewAccountingPayloadKeys.UNREVIEWED_SEGMENT_IDS])
     assertFalse(lane.toString().contains("evidence-unreviewable"))
   }
@@ -168,56 +174,61 @@ class ReviewAccountingProjectionRedactionTest {
   @Test fun `durable record rejects an accounting payload carrying content`() {
     val leaking = summary().toBoundedPayload() + ("prompt" to "PROMPT_SECRET")
 
-    val failure = runCatching {
-      validateReviewContextPayload(leaking, "review-accounting-leak")
-    }.exceptionOrNull()
+    val failure =
+      runCatching {
+        validateReviewContextPayload(leaking, "review-accounting-leak")
+      }.exceptionOrNull()
 
     assertTrue(failure != null, "Content-bearing accounting payload must fail schema validation.")
   }
 
   private fun recordedReview(): Pair<ReviewRecorder, ReviewAccountingSummary> {
     val recorder = ReviewRecorder()
-    val result = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-        diff = diffForPaths("src/DIFF_SECRET.kt"),
-        response = {
-          RecordedWorkerResponse(
-            stdout = "TOOL_OUTPUT_SECRET ".repeat(8),
-          )
-        },
-        rubricBody = { "RUBRIC_SECRET ".repeat(8) },
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        prelaunchExpansions = listOf(
-          ReviewPrelaunchExpansion(
-            "parallel-code-review",
-            "src/DIFF_SECRET.kt",
-            "The redaction test measures one explicitly authorized complete-file expansion.",
-          ),
+    val result =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+          diff = diffForPaths("src/DIFF_SECRET.kt"),
+          response = {
+            RecordedWorkerResponse(
+              stdout = "TOOL_OUTPUT_SECRET ".repeat(8),
+            )
+          },
+          rubricBody = { "RUBRIC_SECRET ".repeat(8) },
         ),
-      ),
-    )
+        recorder,
+      ).run(
+        harnessRequest(
+          prelaunchExpansions =
+            listOf(
+              ReviewPrelaunchExpansion(
+                "parallel-code-review",
+                "src/DIFF_SECRET.kt",
+                "The redaction test measures one explicitly authorized complete-file expansion.",
+              ),
+            ),
+        ),
+      )
 
     return recorder to assertNotNull(result.accountingSummary)
   }
 
-  private fun summary() = ReviewTreeAccounting.summarize(
-    "review-id",
-    "packet-digest",
-    ReviewAccountingInput(
-      lane = "parent",
-      assignmentDigest = "assignment-digest",
-      counters = ReviewAccountingCounters(10, 20, 30, 1, 2, 3),
-      children = listOf(
-        ReviewAccountingInput(
-          lane = "architecture",
-          assignmentDigest = "architecture-digest",
-          counters = ReviewAccountingCounters(11, 22, 33, 1, 1, 1),
-        ),
+  private fun summary() =
+    ReviewTreeAccounting.summarize(
+      "review-id",
+      "packet-digest",
+      ReviewAccountingInput(
+        lane = "parent",
+        assignmentDigest = "assignment-digest",
+        counters = ReviewAccountingCounters(10, 20, 30, 1, 2, 3),
+        children =
+          listOf(
+            ReviewAccountingInput(
+              lane = "architecture",
+              assignmentDigest = "architecture-digest",
+              counters = ReviewAccountingCounters(11, 22, 33, 1, 1, 1),
+            ),
+          ),
       ),
-    ),
-  )
+    )
 }

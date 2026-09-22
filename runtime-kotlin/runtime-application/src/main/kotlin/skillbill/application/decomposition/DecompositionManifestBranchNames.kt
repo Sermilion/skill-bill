@@ -9,9 +9,11 @@ fun defaultFeatureBranch(parentSpecPath: Path): String {
   return "feat/$issueKey-$featureName"
 }
 
-fun branchName(branchArtifact: Any?): String = when (branchArtifact) {
-  is Map<*, *> -> branchArtifact["branch_name"]?.toString().orEmpty()
-    .ifBlank { branchArtifact[DecompositionPlanningPayloadKeys.BRANCH]?.toString().orEmpty() }
-  is String -> branchArtifact
-  else -> ""
-}
+fun branchName(branchArtifact: Any?): String =
+  when (branchArtifact) {
+    is Map<*, *> ->
+      branchArtifact["branch_name"]?.toString().orEmpty()
+        .ifBlank { branchArtifact[DecompositionPlanningPayloadKeys.BRANCH]?.toString().orEmpty() }
+    is String -> branchArtifact
+    else -> ""
+  }

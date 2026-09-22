@@ -30,17 +30,19 @@ internal fun reviewFinishedPayload(
   val learningsSection = buildLearningsSection(connection, reviewSummary.reviewSessionId.orEmpty(), level)
   val normalizedStack = normalizeStackLabel(reviewSummary.detectedStack)
   val normalizedRoutedSkill = normalizeRoutedSkill(reviewSummary.routedSkill)
-  val normalizedPlatformSlug = reviewPlatformSlug(
-    reviewSummary.detectedStack,
-    normalizedRoutedSkill,
-    routedSkillPlatformSlugs,
-  )
+  val normalizedPlatformSlug =
+    reviewPlatformSlug(
+      reviewSummary.detectedStack,
+      normalizedRoutedSkill,
+      routedSkillPlatformSlugs,
+    )
   val detectedStackDetail = normalizedStack.detail?.takeIf { it != normalizedPlatformSlug }
-  val stageMetrics = aggregateReviewStageMetrics(
-    connection = connection,
-    reviewRunId = reviewSummary.reviewRunId,
-    runFindingCount = stats.totalFindings,
-  )
+  val stageMetrics =
+    aggregateReviewStageMetrics(
+      connection = connection,
+      reviewRunId = reviewSummary.reviewRunId,
+      runFindingCount = stats.totalFindings,
+    )
   return ReviewFinishedTelemetry(
     findingStats = stats,
     reviewRunId = reviewSummary.reviewRunId,
@@ -62,7 +64,10 @@ internal fun reviewFinishedPayload(
   )
 }
 
-internal fun filterReviewFinishedSummary(summary: ReviewFindingStats, level: String): ReviewFinishedFindingStats =
+internal fun filterReviewFinishedSummary(
+  summary: ReviewFindingStats,
+  level: String,
+): ReviewFinishedFindingStats =
   ReviewFinishedFindingStats(
     totalFindings = summary.totalFindings,
     acceptedFindings = summary.acceptedFindings,
@@ -88,10 +93,11 @@ internal fun buildLearningsSection(
     }
   val learningsEntries =
     learningsEntries(
-      entries = (
-        learningsData?.get(
-          SqliteReviewTelemetryPayloadKeys.LEARNINGS,
-        ) as? List<*>
+      entries =
+        (
+          learningsData?.get(
+            SqliteReviewTelemetryPayloadKeys.LEARNINGS,
+          ) as? List<*>
         )?.filterIsInstance<Map<String, Any?>>() ?: emptyList(),
       includeText = level == "full",
     )
@@ -102,24 +108,28 @@ internal fun buildLearningsSection(
         ?.mapKeys { it.key as String }
         ?.mapValues { entry -> (entry.value as? Number)?.toInt() ?: 0 }
         ?: emptyMap()
-      )
+    )
   return ReviewLearningsSummary(
-    appliedCount = (
-      learningsData?.get(
-        SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_COUNT,
-      ) as? Number
+    appliedCount =
+      (
+        learningsData?.get(
+          SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_COUNT,
+        ) as? Number
       )?.toInt() ?: 0,
     appliedReferences =
-    (learningsData?.get(SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_REFERENCES) as? List<*>)
-      ?.mapNotNull { it?.toString() }
-      ?: emptyList(),
+      (learningsData?.get(SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_REFERENCES) as? List<*>)
+        ?.mapNotNull { it?.toString() }
+        ?: emptyList(),
     appliedSummary = learningsData?.get(SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNINGS)?.toString() ?: "none",
     scopeCounts = scopeCounts,
     entries = learningsEntries,
   )
 }
 
-internal fun learningsEntries(entries: List<Map<String, Any?>>, includeText: Boolean): List<ReviewLearningEntry> =
+internal fun learningsEntries(
+  entries: List<Map<String, Any?>>,
+  includeText: Boolean,
+): List<ReviewLearningEntry> =
   entries.map { entry ->
     if (includeText) {
       ReviewLearningEntry(
@@ -136,7 +146,10 @@ internal fun learningsEntries(entries: List<Map<String, Any?>>, includeText: Boo
     }
   }
 
-internal fun reviewFindingDetails(details: List<ReviewFindingDetail>, includeText: Boolean): List<ReviewFindingDetail> =
+internal fun reviewFindingDetails(
+  details: List<ReviewFindingDetail>,
+  includeText: Boolean,
+): List<ReviewFindingDetail> =
   details.map { detail ->
     if (includeText) {
       detail
@@ -154,13 +167,16 @@ internal fun parseSpecialistReviews(rawValue: String?): List<String> =
 
 internal fun normalizeReviewScope(detectedScope: String?): String = detectedScope.orEmpty().substringBefore("(").trim()
 
-internal fun fetchSessionLearnings(connection: Connection, reviewSessionId: String): Map<String, Any?>? {
+internal fun fetchSessionLearnings(
+  connection: Connection,
+  reviewSessionId: String,
+): Map<String, Any?>? {
   val rawJson =
     connection.prepareStatement(
       """
-    SELECT learnings_json
-    FROM session_learnings
-    WHERE review_session_id = ?
+      SELECT learnings_json
+      FROM session_learnings
+      WHERE review_session_id = ?
       """.trimIndent(),
     ).use { statement ->
       statement.bindAll(reviewSessionId)
@@ -175,6 +191,7 @@ internal fun fetchSessionLearnings(connection: Connection, reviewSessionId: Stri
   return rawJson?.let(::decodeSessionLearnings)
 }
 
-private fun decodeSessionLearnings(rawJson: String): Map<String, Any?>? = JsonCodec.parseObjectOrNull(rawJson)?.let {
-  JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
-}
+private fun decodeSessionLearnings(rawJson: String): Map<String, Any?>? =
+  JsonCodec.parseObjectOrNull(rawJson)?.let {
+    JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
+  }

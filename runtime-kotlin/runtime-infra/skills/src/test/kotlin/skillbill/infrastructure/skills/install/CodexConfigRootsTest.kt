@@ -12,7 +12,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class CodexConfigRootsTest {
-  private fun markedProfile(home: Path, name: String): Path {
+  private fun markedProfile(
+    home: Path,
+    name: String,
+  ): Path {
     val root = home.resolve(name)
     Files.createDirectories(root)
     Files.writeString(root.resolve("config.toml"), "model = \"test\"\n")

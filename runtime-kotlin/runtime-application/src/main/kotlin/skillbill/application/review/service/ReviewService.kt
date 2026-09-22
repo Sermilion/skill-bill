@@ -31,7 +31,10 @@ class ReviewService(
   private val reviewAttributionPort: ReviewAttributionPort,
   private val diagnostics: RuntimeDiagnostics,
 ) {
-  fun previewImport(input: String, stdinText: String? = null): ReviewPreviewResult {
+  fun previewImport(
+    input: String,
+    stdinText: String? = null,
+  ): ReviewPreviewResult {
     val (text) = reviewInputSource.readInput(input, stdinText ?: context.stdinText)
     val review = ReviewParser.parseReview(text)
     return review.toReviewPreviewResult()
@@ -44,10 +47,11 @@ class ReviewService(
   ): ImportedReviewResult {
     val (text, sourcePath) = reviewInputSource.readInput(input, stdinText ?: context.stdinText)
     val (knownPackSkillNames, knownPlatformSlugs) = canonicalAttributionPorts(reviewAttributionPort)
-    val parsed = ReviewParser.parseReview(text).withCanonicalAttribution(
-      knownPackSkillNames = knownPackSkillNames,
-      knownPlatformSlugs = knownPlatformSlugs,
-    )
+    val parsed =
+      ReviewParser.parseReview(text).withCanonicalAttribution(
+        knownPackSkillNames = knownPackSkillNames,
+        knownPlatformSlugs = knownPlatformSlugs,
+      )
     val review = parsed.copy(planLanes = composedRunLanes(parsed, reviewAttributionPort, diagnostics))
     return database.transaction { unitOfWork ->
       unitOfWork.reviews.saveImportedReview(review, sourcePath)
@@ -71,17 +75,23 @@ class ReviewService(
     }
   }
 
-  fun reviewFinishedTelemetryPayload(runId: String): ReviewFinishedTelemetry? = database.transaction { unitOfWork ->
-    val settings = telemetrySettingsOrNull(settingsProvider, diagnostics)
-    unitOfWork.reviews.updateReviewFinishedTelemetryState(
-      runId = runId,
-      enabled = settings?.enabled ?: false,
-      level = settings?.level ?: "off",
-      routedSkillPlatformSlugs = reviewAttributionPort.routedSkillPlatformSlugs(),
-    )
-  }
+  fun reviewFinishedTelemetryPayload(runId: String): ReviewFinishedTelemetry? =
+    database.transaction { unitOfWork ->
+      val settings = telemetrySettingsOrNull(settingsProvider, diagnostics)
+      unitOfWork.reviews.updateReviewFinishedTelemetryState(
+        runId = runId,
+        enabled = settings?.enabled ?: false,
+        level = settings?.level ?: "off",
+        routedSkillPlatformSlugs = reviewAttributionPort.routedSkillPlatformSlugs(),
+      )
+    }
 
-  fun recordFeedback(runId: String, event: String, findings: List<String>, note: String): ReviewFeedbackResult =
+  fun recordFeedback(
+    runId: String,
+    event: String,
+    findings: List<String>,
+    note: String,
+  ): ReviewFeedbackResult =
     database.transaction { unitOfWork ->
       unitOfWork.reviews.recordFeedback(
         FeedbackRequest(runId, findings, event, note),
@@ -101,18 +111,19 @@ class ReviewService(
     decisions: List<String>,
     listOnly: Boolean,
     listWhenNoDecisions: Boolean = true,
-  ): TriageResult = triageReview(
-    TriageReviewRequest(
-      database = database,
-      settingsProvider = settingsProvider,
-      diagnostics = diagnostics,
-      runId = runId,
-      decisions = decisions,
-      listOnly = listOnly,
-      listWhenNoDecisions = listWhenNoDecisions,
-      routedSkillPlatformSlugs = reviewAttributionPort.routedSkillPlatformSlugs(),
-    ),
-  )
+  ): TriageResult =
+    triageReview(
+      TriageReviewRequest(
+        database = database,
+        settingsProvider = settingsProvider,
+        diagnostics = diagnostics,
+        runId = runId,
+        decisions = decisions,
+        listOnly = listOnly,
+        listWhenNoDecisions = listWhenNoDecisions,
+        routedSkillPlatformSlugs = reviewAttributionPort.routedSkillPlatformSlugs(),
+      ),
+    )
 
   fun reviewStats(runId: String?): ReviewStatsResult =
     reviewStatsResult(database) { reviewRepository -> reviewRepository.reviewStats(runId) }

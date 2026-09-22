@@ -8,7 +8,10 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import java.nio.file.Path
 
 interface GoalSubtaskReviewGitOperations {
-  fun captureBaseline(repoRoot: Path, expectedBranch: String): GoalSubtaskReviewBaselineResult
+  fun captureBaseline(
+    repoRoot: Path,
+    expectedBranch: String,
+  ): GoalSubtaskReviewBaselineResult
 
   fun buildInput(
     repoRoot: Path,
@@ -20,10 +23,11 @@ interface GoalSubtaskReviewGitOperations {
     repoRoot: Path,
     request: GoalSubtaskReviewBaselineRecoveryRequest,
     expectedBranch: String,
-  ): GoalSubtaskReviewBaselineResult = GoalSubtaskReviewBaselineResult(
-    status = WorkflowGitOperationStatus.ERROR,
-    error = "Goal-subtask review baseline recovery is not supported by this git adapter.",
-  )
+  ): GoalSubtaskReviewBaselineResult =
+    GoalSubtaskReviewBaselineResult(
+      status = WorkflowGitOperationStatus.ERROR,
+      error = "Goal-subtask review baseline recovery is not supported by this git adapter.",
+    )
 }
 
 fun WorkflowGitOperations.captureGoalSubtaskReviewBaseline(

@@ -16,6 +16,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDe
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 internal class ValidationSettlementState(
   completed: Set<String>,
   val initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
@@ -32,9 +33,10 @@ internal class ValidationSettlementState(
     get() = gateInvalidatedState.toSet()
 
   internal fun invalidateValidationPhase() {
-    val invalidated = transitions.forwardPhaseIds
-      .dropWhile { it != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE }
-      .filter(completedState::contains) + FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+    val invalidated =
+      transitions.forwardPhaseIds
+        .dropWhile { it != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE }
+        .filter(completedState::contains) + FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
     completedState.removeAll(invalidated.toSet())
     gateInvalidatedState.addAll(invalidated)
   }
@@ -58,9 +60,8 @@ internal fun requirePassedValidationResult(
   run: PhaseRun,
   envelope: Map<
     String,
-
     Any?,
-    >,
+  >,
 ) {
   if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return
   if ((envelope[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return
@@ -89,9 +90,10 @@ internal fun validationEvidenceFromEnvelope(
   sourceLabel: String,
 ): FeatureTaskRuntimeValidationEvidence? {
   val produced = JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
-  val result = JsonCodec.anyToStringAnyMap(
-    produced?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
-  )
+  val result =
+    JsonCodec.anyToStringAnyMap(
+      produced?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
+    )
   return JsonCodec.anyToStringAnyMap(
     result?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
   )?.let { raw -> decodeValidationEvidenceFromArtifact(raw, sourceLabel) }
@@ -103,15 +105,17 @@ internal fun invalidateIncompleteValidationSettlement(
 ) {
   if (FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE !in state.completed) return
   val record = state.initialRecords[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE] ?: return
-  val output = try {
-    validation.validatedRecordToOutput(record)
-  } catch (_: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
-    null
-  }
+  val output =
+    try {
+      validation.validatedRecordToOutput(record)
+    } catch (_: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
+      null
+    }
   val envelope = output?.normalizedOutput?.envelopeWireMap()
-  val valid = envelope != null &&
-    (envelope[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() == WorkflowStepStatus.COMPLETED &&
-    validationPassedFromEnvelope(envelope) == true
+  val valid =
+    envelope != null &&
+      (envelope[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() == WorkflowStepStatus.COMPLETED &&
+      validationPassedFromEnvelope(envelope) == true
   if (!valid) {
     state.invalidateValidationPhase()
     state.invalidateUnsatisfiedGateSuccessors(validation.durableVerdictFor)

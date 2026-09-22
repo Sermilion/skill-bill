@@ -19,6 +19,7 @@ import skillbill.engine.work.IdeStatusService
 import skillbill.engine.work.model.IdeStatusRequest
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+
 @Inject
 class WorkTopLevelCommands(
   list: WorkListCommand,
@@ -56,9 +57,9 @@ class WorkStatusCommand(
   private val service: IdeStatusService,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
-  "status",
-  "Emit one schema-valid IDE status snapshot for an explicit repository root.",
-) {
+    "status",
+    "Emit one schema-valid IDE status snapshot for an explicit repository root.",
+  ) {
   private val repoRoot by option(
     "--repo-root",
     help = "Repository root to resolve canonical repo-root-realpath-v1 identity.",
@@ -67,11 +68,12 @@ class WorkStatusCommand(
 
   override fun run() {
     require(format == "json") { "--format must be json for work status." }
-    val result = service.status(
-      IdeStatusRequest(
-        repoRoot = repoRoot,
-      ),
-    )
+    val result =
+      service.status(
+        IdeStatusRequest(
+          repoRoot = repoRoot,
+        ),
+      )
     state.complete(
       service.toWireMap(result.snapshot),
       CliFormat.JSON,
@@ -80,39 +82,45 @@ class WorkStatusCommand(
   }
 }
 
-private fun WorkListResult.toPayload(): Map<String, Any?> = mapOf(
-  "work" to work.map(WorkListItem::toPayload),
-)
+private fun WorkListResult.toPayload(): Map<String, Any?> =
+  mapOf(
+    "work" to work.map(WorkListItem::toPayload),
+  )
 
-private fun WorkListItem.toPayload(): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.ISSUE_KEY to issueKey,
-  "workflow_kind" to workflowKind.wireValue,
-  SharedPayloadKeys.WORKFLOW_ID to workflowId,
-  "started_at" to startedAt.toString(),
-  "current_state" to currentState,
-  "state_entered_at" to stateEnteredAt.toString(),
-  "state_entered_at_estimated" to stateEnteredAtEstimated,
-)
+private fun WorkListItem.toPayload(): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.ISSUE_KEY to issueKey,
+    "workflow_kind" to workflowKind.wireValue,
+    SharedPayloadKeys.WORKFLOW_ID to workflowId,
+    "started_at" to startedAt.toString(),
+    "current_state" to currentState,
+    "state_entered_at" to stateEnteredAt.toString(),
+    "state_entered_at_estimated" to stateEnteredAtEstimated,
+  )
 
 private fun WorkListResult.toTable(): String {
   val headers = listOf("ISSUE", "KIND", "WORKFLOW", "STARTED", "STATE", "STATE SINCE")
   val formatter = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss z").withZone(ZoneId.systemDefault())
-  val rows = work.map { item ->
-    listOf(
-      item.issueKey?.toTerminalSafeIssueKey() ?: "-",
-      item.workflowKind.wireValue,
-      item.workflowId.toTerminalSafeText(),
-      formatter.format(item.startedAt),
-      item.currentState,
-      formatter.format(item.stateEnteredAt) + if (item.stateEnteredAtEstimated) "~" else "",
-    )
-  }
-  val widths = headers.indices.map { index ->
-    maxOf(terminalDisplayWidth(headers[index]), rows.maxOfOrNull { terminalDisplayWidth(it[index]) } ?: 0)
-  }
-  fun render(values: List<String>): String = values.indices.joinToString("  ") { index ->
-    values[index].padTerminalEnd(widths[index])
-  }
+  val rows =
+    work.map { item ->
+      listOf(
+        item.issueKey?.toTerminalSafeIssueKey() ?: "-",
+        item.workflowKind.wireValue,
+        item.workflowId.toTerminalSafeText(),
+        formatter.format(item.startedAt),
+        item.currentState,
+        formatter.format(item.stateEnteredAt) + if (item.stateEnteredAtEstimated) "~" else "",
+      )
+    }
+  val widths =
+    headers.indices.map { index ->
+      maxOf(terminalDisplayWidth(headers[index]), rows.maxOfOrNull { terminalDisplayWidth(it[index]) } ?: 0)
+    }
+
+  fun render(values: List<String>): String =
+    values.indices.joinToString("  ") { index ->
+      values[index].padTerminalEnd(widths[index])
+    }
   return buildString {
     appendLine(render(headers))
     rows.forEach { appendLine(render(it)) }
@@ -125,11 +133,12 @@ internal fun String.toTerminalSafeIssueKey(): String {
 }
 
 internal fun String.toTerminalSafeText(): String {
-  val sanitized = buildString(length) {
-    this@toTerminalSafeText.codePoints().forEach { codePoint ->
-      appendCodePoint(if (Character.isISOControl(codePoint)) REPLACEMENT_CODE_POINT else codePoint)
+  val sanitized =
+    buildString(length) {
+      this@toTerminalSafeText.codePoints().forEach { codePoint ->
+        appendCodePoint(if (Character.isISOControl(codePoint)) REPLACEMENT_CODE_POINT else codePoint)
+      }
     }
-  }
   return sanitized
 }
 
@@ -158,37 +167,40 @@ internal fun String.truncateTerminalDisplayWidth(maxWidth: Int): String {
 internal fun String.padTerminalEnd(width: Int): String =
   this + " ".repeat((width - terminalDisplayWidth(this)).coerceAtLeast(0))
 
-private fun terminalDisplayWidth(codePoint: Int): Int = when {
-  Character.isISOControl(codePoint) -> 1
-  Character.getType(codePoint) in ZERO_WIDTH_CHARACTER_TYPES -> 0
-  WIDE_CODE_POINT_RANGES.any { codePoint in it } -> 2
-  else -> 1
-}
+private fun terminalDisplayWidth(codePoint: Int): Int =
+  when {
+    Character.isISOControl(codePoint) -> 1
+    Character.getType(codePoint) in ZERO_WIDTH_CHARACTER_TYPES -> 0
+    WIDE_CODE_POINT_RANGES.any { codePoint in it } -> 2
+    else -> 1
+  }
 
-private val ZERO_WIDTH_CHARACTER_TYPES: Set<Int> = setOf(
-  Character.NON_SPACING_MARK.toInt(),
-  Character.COMBINING_SPACING_MARK.toInt(),
-  Character.ENCLOSING_MARK.toInt(),
-  Character.FORMAT.toInt(),
-)
+private val ZERO_WIDTH_CHARACTER_TYPES: Set<Int> =
+  setOf(
+    Character.NON_SPACING_MARK.toInt(),
+    Character.COMBINING_SPACING_MARK.toInt(),
+    Character.ENCLOSING_MARK.toInt(),
+    Character.FORMAT.toInt(),
+  )
 
-private val WIDE_CODE_POINT_RANGES: List<IntRange> = listOf(
-  "1100..115F",
-  "2329..232A",
-  "2E80..A4CF",
-  "AC00..D7A3",
-  "F900..FAFF",
-  "FE10..FE19",
-  "FE30..FE6F",
-  "FF00..FF60",
-  "FFE0..FFE6",
-  "1B000..1B12F",
-  "1B170..1B2FF",
-  "1F200..1F251",
-  "1F300..1FAFF",
-  "1FC00..1FFFD",
-  "20000..3FFFD",
-).map(::parseHexadecimalRange)
+private val WIDE_CODE_POINT_RANGES: List<IntRange> =
+  listOf(
+    "1100..115F",
+    "2329..232A",
+    "2E80..A4CF",
+    "AC00..D7A3",
+    "F900..FAFF",
+    "FE10..FE19",
+    "FE30..FE6F",
+    "FF00..FF60",
+    "FFE0..FFE6",
+    "1B000..1B12F",
+    "1B170..1B2FF",
+    "1F200..1F251",
+    "1F300..1FAFF",
+    "1FC00..1FFFD",
+    "20000..3FFFD",
+  ).map(::parseHexadecimalRange)
 
 private fun parseHexadecimalRange(value: String): IntRange {
   val (start, end) = value.split("..")

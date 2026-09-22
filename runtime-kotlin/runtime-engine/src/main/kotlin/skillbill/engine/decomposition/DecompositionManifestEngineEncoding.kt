@@ -21,10 +21,11 @@ internal fun findMatchingDecompositionManifests(
   fileStore: DecompositionManifestStore,
   validator: DecompositionManifestValidator,
   recoverPending: Boolean = true,
-): List<DecompositionManifestFileCandidate> = applicationFindMatchingDecompositionManifests(
-  repoRoot = repoRoot,
-  issueKey = issueKey,
-  fileStore = fileStore,
-  validator = validator,
-  recoverPending = recoverPending,
-)
+): List<DecompositionManifestFileCandidate> =
+  applicationFindMatchingDecompositionManifests(
+    repoRoot = repoRoot,
+    issueKey = issueKey,
+    fileStore = fileStore,
+    validator = validator,
+    recoverPending = recoverPending,
+  )

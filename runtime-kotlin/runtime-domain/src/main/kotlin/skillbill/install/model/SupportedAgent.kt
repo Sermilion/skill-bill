@@ -1,5 +1,6 @@
 package skillbill.install.model
 import skillbill.error.core.InvalidAgentAddonAgentIdError
+
 enum class SupportedAgent(
   val wireValue: String,
   val nativeAgentsKind: String,
@@ -29,7 +30,10 @@ enum class SupportedAgent(
 
     fun fromId(id: String): SupportedAgent = fromWire(id)
 
-    fun fromNormalizedId(id: String, label: String = "agent"): SupportedAgent {
+    fun fromNormalizedId(
+      id: String,
+      label: String = "agent",
+    ): SupportedAgent {
       val normalized = id.trim().lowercase()
       require(normalized.isNotBlank()) { "$label is required. Supported agents: ${supportedIds.joinToString(", ")}." }
       return fromWire(normalized)

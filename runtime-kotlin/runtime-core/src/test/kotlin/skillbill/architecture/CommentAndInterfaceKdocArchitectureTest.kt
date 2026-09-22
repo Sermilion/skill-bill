@@ -8,9 +8,10 @@ import kotlin.test.assertTrue
 class CommentAndInterfaceKdocArchitectureTest {
   @Test
   fun `authored Kotlin under scan roots contains no forbidden comments or non-interface KDoc`() {
-    val violations = ArchitectureScanSupport.commentAndInterfaceKdocViolations(
-      scanRoots = PrincipleEnforcementInventory.inlineFqnScanRoots,
-    )
+    val violations =
+      ArchitectureScanSupport.commentAndInterfaceKdocViolations(
+        scanRoots = PrincipleEnforcementInventory.inlineFqnScanRoots,
+      )
     assertEquals(
       emptyList(),
       violations,
@@ -216,11 +217,11 @@ class CommentAndInterfaceKdocArchitectureTest {
           Files.writeString(
             path,
             """
-              package example
+            package example
 
-              class Dirty {
-                fun x() = 1 // forbidden if scanned
-              }
+            class Dirty {
+              fun x() = 1 // forbidden if scanned
+            }
             """.trimIndent(),
           )
         }

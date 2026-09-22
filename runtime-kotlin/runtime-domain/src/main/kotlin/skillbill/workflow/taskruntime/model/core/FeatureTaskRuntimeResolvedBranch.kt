@@ -35,21 +35,22 @@ data class FeatureTaskRuntimeResolvedBranch(
       "FeatureTaskRuntimeResolvedBranch.boundaryHistoryRoots must not contain blanks."
     }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    DecompositionPlanningPayloadKeys.BRANCH to branch,
-    "created" to created,
-  ).apply {
-    baseBranch?.let { put(DecompositionPlanningPayloadKeys.BASE_BRANCH, it) }
-    reviewBaseSha?.let { put("review_base_sha", it) }
-    if (baselineUntrackedPaths.isNotEmpty()) put("baseline_untracked_paths", baselineUntrackedPaths)
-    put("baseline_owned_paths", baselineOwnedPaths)
-    put("workflow_owned_paths", workflowOwnedPaths)
-    put("boundary_history_paths", boundaryHistoryPaths)
-    put("boundary_history_roots", boundaryHistoryRoots)
-  }
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      DecompositionPlanningPayloadKeys.BRANCH to branch,
+      "created" to created,
+    ).apply {
+      baseBranch?.let { put(DecompositionPlanningPayloadKeys.BASE_BRANCH, it) }
+      reviewBaseSha?.let { put("review_base_sha", it) }
+      if (baselineUntrackedPaths.isNotEmpty()) put("baseline_untracked_paths", baselineUntrackedPaths)
+      put("baseline_owned_paths", baselineOwnedPaths)
+      put("workflow_owned_paths", workflowOwnedPaths)
+      put("boundary_history_paths", boundaryHistoryPaths)
+      put("boundary_history_roots", boundaryHistoryRoots)
+    }
 
   companion object {
-
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch {
       val reader = durableArtifactMapReader(raw)
       return try {

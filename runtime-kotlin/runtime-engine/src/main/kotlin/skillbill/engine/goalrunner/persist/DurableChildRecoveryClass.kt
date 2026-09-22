@@ -10,8 +10,10 @@ import skillbill.engine.recovery.staleChildPlanningRecoveryCommand as recoverySt
 
 internal typealias DurableChildRecoveryClass = RecoveryDurableChildClass
 
-fun scopedChildRecoveryCommand(issueKey: String, subtaskId: Int): String =
-  recoveryScopedChildRecoveryCommand(issueKey, subtaskId)
+fun scopedChildRecoveryCommand(
+  issueKey: String,
+  subtaskId: Int,
+): String = recoveryScopedChildRecoveryCommand(issueKey, subtaskId)
 
 fun recommendedDurableChildRecoveryCommand(
   issueKey: String,
@@ -20,8 +22,10 @@ fun recommendedDurableChildRecoveryCommand(
   childProgress: GoalRunnerWorkflowProgress?,
 ): String = recoveryRecommendedDurableChildRecoveryCommand(issueKey, subtaskId, subtaskStatus, childProgress)
 
-fun staleChildPlanningRecoveryCommand(issueKey: String, subtaskId: Int): String =
-  recoveryStaleChildPlanningRecoveryCommand(issueKey, subtaskId)
+fun staleChildPlanningRecoveryCommand(
+  issueKey: String,
+  subtaskId: Int,
+): String = recoveryStaleChildPlanningRecoveryCommand(issueKey, subtaskId)
 
 internal fun classifyDurableChild(progress: GoalRunnerWorkflowProgress?): DurableChildRecoveryClass =
   recoveryClassifyDurableChild(progress)

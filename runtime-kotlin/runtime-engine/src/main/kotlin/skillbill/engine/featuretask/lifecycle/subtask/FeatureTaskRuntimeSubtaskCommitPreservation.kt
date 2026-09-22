@@ -8,6 +8,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.resolveCheckpointRef
 import skillbill.ports.workflow.gitops.updateCheckpointRef
 import java.nio.file.Path
+
 internal fun WorkflowGitOperations.writeSubtaskCommitPreservingHistory(
   request: SubtaskCommitPreservationRequest,
 ): WorkflowGitOperationResult {
@@ -52,11 +53,12 @@ private fun preservePreAmendCheckpoint(
   refName: String,
   ownedHeadSha: String,
 ): WorkflowGitOperationResult? {
-  val existing = gitOperations.resolveCheckpointRef(
-    request.repoRoot,
-    ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
-    refName,
-  )
+  val existing =
+    gitOperations.resolveCheckpointRef(
+      request.repoRoot,
+      ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
+      refName,
+    )
   if (existing !is WorkflowGitOperationResult.Ok) {
     return preAmendPreservationFailure(
       refName,
@@ -66,12 +68,13 @@ private fun preservePreAmendCheckpoint(
   val occupant = existing.value.orEmpty().trim()
   val sweepFailure = sweepForeignOccupant(gitOperations, request, refName, occupant, ownedHeadSha)
   if (sweepFailure != null) return sweepFailure
-  val written = gitOperations.updateCheckpointRef(
-    request.repoRoot,
-    ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
-    refName,
-    ownedHeadSha,
-  )
+  val written =
+    gitOperations.updateCheckpointRef(
+      request.repoRoot,
+      ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
+      refName,
+      ownedHeadSha,
+    )
   if (written !is WorkflowGitOperationResult.Ok) return preAmendPreservationFailure(refName, written.error)
   return verifyPreservedCheckpoint(gitOperations, request.repoRoot, refName, ownedHeadSha)
 }
@@ -95,11 +98,12 @@ private fun sweepForeignOccupant(
   val prefix =
     "${ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot)}/" +
       "${request.identity.issueKey.trim()}/${request.identity.subtaskId}/"
-  val swept = gitOperations.deleteCheckpointRefsUnderPrefix(
-    request.repoRoot,
-    ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
-    prefix,
-  )
+  val swept =
+    gitOperations.deleteCheckpointRefsUnderPrefix(
+      request.repoRoot,
+      ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
+      prefix,
+    )
   if (swept !is WorkflowGitOperationResult.Ok) {
     return preAmendPreservationFailure(
       refName,
@@ -121,11 +125,12 @@ private fun verifyPreservedCheckpoint(
   refName: String,
   ownedHeadSha: String,
 ): WorkflowGitOperationResult? {
-  val resolved = gitOperations.resolveCheckpointRef(
-    repoRoot,
-    ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
-    refName,
-  )
+  val resolved =
+    gitOperations.resolveCheckpointRef(
+      repoRoot,
+      ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
+      refName,
+    )
   val preserved = resolved.value.orEmpty().trim()
   if (resolved !is WorkflowGitOperationResult.Ok || preserved != ownedHeadSha) {
     return preAmendPreservationFailure(
@@ -137,7 +142,11 @@ private fun verifyPreservedCheckpoint(
   return null
 }
 
-private fun preAmendPreservationFailure(refName: String, error: String) = WorkflowGitOperationResult.Failed(
-  error = "the pre-amend checkpoint commit could not be preserved at '$refName' ($error); the amend " +
-    "did not run and HEAD is unchanged",
+private fun preAmendPreservationFailure(
+  refName: String,
+  error: String,
+) = WorkflowGitOperationResult.Failed(
+  error =
+    "the pre-amend checkpoint commit could not be preserved at '$refName' ($error); the amend " +
+      "did not run and HEAD is unchanged",
 )

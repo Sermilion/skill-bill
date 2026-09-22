@@ -17,7 +17,11 @@ import skillbill.review.model.ReviewStageReached
 import java.sql.Connection
 import java.time.Clock
 
-internal fun recordFindingVerdicts(connection: Connection, reviewRunId: String, verdicts: List<ReviewFindingVerdict>) {
+internal fun recordFindingVerdicts(
+  connection: Connection,
+  reviewRunId: String,
+  verdicts: List<ReviewFindingVerdict>,
+) {
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement(
     """
@@ -64,7 +68,10 @@ internal fun recordFindingVerdicts(connection: Connection, reviewRunId: String, 
   }
 }
 
-internal fun fetchFindingVerdicts(connection: Connection, reviewRunId: String): List<ReviewFindingVerdict> =
+internal fun fetchFindingVerdicts(
+  connection: Connection,
+  reviewRunId: String,
+): List<ReviewFindingVerdict> =
   connection.prepareStatement(
     """
     SELECT finding_id, stage, claim_verdict, scope_disposition, citations,
@@ -86,17 +93,19 @@ internal fun fetchFindingVerdicts(connection: Connection, reviewRunId: String): 
               stage = ReviewStage.fromWire(resultSet.getString("stage")),
               findingRef = resultSet.getString(ReviewFindingPayloadKeys.FINDING_ID),
               claimVerdict = ReviewClaimVerdict.fromWire(resultSet.getString(ReviewFindingPayloadKeys.CLAIM_VERDICT)),
-              scopeDisposition = resultSet.getString(ReviewFindingPayloadKeys.SCOPE_DISPOSITION)
-                ?.let(ReviewScopeDisposition::fromWire),
+              scopeDisposition =
+                resultSet.getString(ReviewFindingPayloadKeys.SCOPE_DISPOSITION)
+                  ?.let(ReviewScopeDisposition::fromWire),
               citations = decodeCitations(resultSet.getString(ReviewFindingPayloadKeys.CITATIONS)),
-              severityAdjustment = if (direction == null || justification == null) {
-                null
-              } else {
-                ReviewSeverityAdjustment(
-                  ReviewSeverityAdjustmentDirection.fromWire(direction),
-                  justification,
-                )
-              },
+              severityAdjustment =
+                if (direction == null || justification == null) {
+                  null
+                } else {
+                  ReviewSeverityAdjustment(
+                    ReviewSeverityAdjustmentDirection.fromWire(direction),
+                    justification,
+                  )
+                },
               recordedAt = resultSet.getString("recorded_at"),
               contractVersion = resultSet.getString(SharedPayloadKeys.CONTRACT_VERSION),
               rejectionReason = resultSet.getString("rejection_reason"),
@@ -134,7 +143,10 @@ internal fun recordReviewPassClaims(
   }
 }
 
-internal fun fetchReviewPassClaims(connection: Connection, reviewRunId: String): ReviewPassClaimSnapshot? =
+internal fun fetchReviewPassClaims(
+  connection: Connection,
+  reviewRunId: String,
+): ReviewPassClaimSnapshot? =
   connection.prepareStatement(
     """
     SELECT claims_json
@@ -149,7 +161,11 @@ internal fun fetchReviewPassClaims(connection: Connection, reviewRunId: String):
     }
   }
 
-internal fun recordStageBoundary(connection: Connection, reviewRunId: String, boundary: ReviewStageBoundary) {
+internal fun recordStageBoundary(
+  connection: Connection,
+  reviewRunId: String,
+  boundary: ReviewStageBoundary,
+) {
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement(
     """
@@ -173,7 +189,10 @@ internal fun recordStageBoundary(connection: Connection, reviewRunId: String, bo
   }
 }
 
-internal fun fetchStageBoundaries(connection: Connection, reviewRunId: String): List<ReviewStageBoundary> =
+internal fun fetchStageBoundaries(
+  connection: Connection,
+  reviewRunId: String,
+): List<ReviewStageBoundary> =
   connection.prepareStatement(
     """
     SELECT stage, reached, recorded_at, contract_version
@@ -230,7 +249,10 @@ internal fun recordSpecProjectionReference(
   }
 }
 
-internal fun fetchSpecProjectionReference(connection: Connection, reviewRunId: String): ReviewSpecProjectionReference? =
+internal fun fetchSpecProjectionReference(
+  connection: Connection,
+  reviewRunId: String,
+): ReviewSpecProjectionReference? =
   connection.prepareStatement(
     """
     SELECT spec_path, content_digest, absence_reason

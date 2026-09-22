@@ -8,20 +8,23 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
+
 class FeatureTaskRuntimeReviewCheckpointRecorder(
   database: DatabaseSessionFactory,
   workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,
   runtimeOwnedPersistence: RuntimeOwnedPersistenceBoundary,
 ) {
-  private val reviewGeneration = FeatureTaskRuntimeReviewGenerationRecorder(
-    database,
-    workflowPersistence,
-    runtimeOwnedPersistence,
-  )
-  private val findingVerification = FeatureTaskRuntimeFindingVerificationRecorder(
-    database,
-    workflowPersistence,
-  )
+  private val reviewGeneration =
+    FeatureTaskRuntimeReviewGenerationRecorder(
+      database,
+      workflowPersistence,
+      runtimeOwnedPersistence,
+    )
+  private val findingVerification =
+    FeatureTaskRuntimeFindingVerificationRecorder(
+      database,
+      workflowPersistence,
+    )
 
   fun persistReviewGenerationInvalidation(workflowId: String): Int? =
     reviewGeneration.persistReviewGenerationInvalidation(workflowId)
@@ -41,8 +44,11 @@ class FeatureTaskRuntimeReviewCheckpointRecorder(
   fun fetchUnaddressedLedger(workflowId: String): List<UnaddressedFinding> =
     reviewGeneration.fetchUnaddressedLedger(workflowId)
 
-  fun appendRejectedVerificationFindings(workflowId: String, passNumber: Int, rejected: List<UnaddressedFinding>) =
-    reviewGeneration.appendRejectedVerificationFindings(workflowId, passNumber, rejected)
+  fun appendRejectedVerificationFindings(
+    workflowId: String,
+    passNumber: Int,
+    rejected: List<UnaddressedFinding>,
+  ) = reviewGeneration.appendRejectedVerificationFindings(workflowId, passNumber, rejected)
 
   fun loadFindingVerificationCheckpoint(workflowId: String): List<FeatureTaskRuntimeFindingVerificationDisposition>? =
     findingVerification.loadFindingVerificationCheckpoint(workflowId)

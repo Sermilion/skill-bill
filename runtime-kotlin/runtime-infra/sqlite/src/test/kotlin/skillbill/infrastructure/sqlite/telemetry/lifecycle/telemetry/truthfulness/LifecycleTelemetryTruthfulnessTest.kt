@@ -203,17 +203,18 @@ class LifecycleTelemetryTruthfulnessTest {
 
   @Test
   fun `corrupt agent id arrays report incomplete availability instead of absent durable state`() {
-    val payload = featureTaskRuntimeFinishedPayload(
-      mapOf(
-        "session_id" to "ftr-truth",
-        "workflow_id" to RUNTIME_WORKFLOW_ID,
-        "issue_key" to ISSUE_KEY,
-        LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to "{not-an-array}",
-        LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to "{not-an-array}",
-      ),
-      level = "full",
-      salt = "salt",
-    )
+    val payload =
+      featureTaskRuntimeFinishedPayload(
+        mapOf(
+          "session_id" to "ftr-truth",
+          "workflow_id" to RUNTIME_WORKFLOW_ID,
+          "issue_key" to ISSUE_KEY,
+          LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to "{not-an-array}",
+          LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to "{not-an-array}",
+        ),
+        level = "full",
+        salt = "salt",
+      )
     assertEquals(
       TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE.wireValue,
       payload[LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_AVAILABILITY],
@@ -226,17 +227,18 @@ class LifecycleTelemetryTruthfulnessTest {
 
   @Test
   fun `whitespace formatted empty agent and model arrays remain valid unavailable measurements`() {
-    val payload = featureTaskRuntimeFinishedPayload(
-      mapOf(
-        "session_id" to "ftr-whitespace",
-        "workflow_id" to RUNTIME_WORKFLOW_ID,
-        "issue_key" to ISSUE_KEY,
-        LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to "[ ]",
-        LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to "[ ]",
-      ),
-      level = "full",
-      salt = "salt",
-    )
+    val payload =
+      featureTaskRuntimeFinishedPayload(
+        mapOf(
+          "session_id" to "ftr-whitespace",
+          "workflow_id" to RUNTIME_WORKFLOW_ID,
+          "issue_key" to ISSUE_KEY,
+          LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to "[ ]",
+          LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to "[ ]",
+        ),
+        level = "full",
+        salt = "salt",
+      )
 
     assertEquals(
       TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE.wireValue,
@@ -256,11 +258,12 @@ class LifecycleTelemetryTruthfulnessTest {
       store.featureTaskRuntimeFinished(finishedRuntimeSession(), "anonymous")
       clearAvailabilityColumns(connection)
 
-      val payload = featureTaskRuntimeFinishedPayload(
-        sessionRow(connection, "ftr-truth"),
-        level = "anonymous",
-        salt = "salt",
-      )
+      val payload =
+        featureTaskRuntimeFinishedPayload(
+          sessionRow(connection, "ftr-truth"),
+          level = "anonymous",
+          salt = "salt",
+        )
       listOf(
         LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED_AVAILABILITY,
         LifecycleTelemetryPayloadKeys.AUDIT_GAP_AVAILABILITY,
@@ -339,55 +342,60 @@ class LifecycleTelemetryTruthfulnessTest {
     }
   }
 
-  private fun startedQualityCheck(): QualityCheckStartedRecord = QualityCheckStartedRecord(
-    sessionId = "qc-stale",
-    routedSkill = "bill-kotlin-code-check",
-    detectedStack = "kotlin",
-    fallback = false,
-    fallbackReason = null,
-    scopeType = "branch_diff",
-    initialFailureCount = 4,
-  )
+  private fun startedQualityCheck(): QualityCheckStartedRecord =
+    QualityCheckStartedRecord(
+      sessionId = "qc-stale",
+      routedSkill = "bill-kotlin-code-check",
+      detectedStack = "kotlin",
+      fallback = false,
+      fallbackReason = null,
+      scopeType = "branch_diff",
+      initialFailureCount = 4,
+    )
 
-  private fun finishedQualityCheck(): QualityCheckFinishedRecord = QualityCheckFinishedRecord(
-    sessionId = "qc-stale",
-    routedSkill = "bill-kotlin-code-check",
-    detectedStack = "kotlin",
-    fallback = false,
-    fallbackReason = null,
-    scopeType = "branch_diff",
-    initialFailureCount = 4,
-    finalFailureCount = 0,
-    iterations = 2,
-    result = "pass",
-    failingCheckNames = emptyList(),
-    unsupportedReason = "",
-  )
+  private fun finishedQualityCheck(): QualityCheckFinishedRecord =
+    QualityCheckFinishedRecord(
+      sessionId = "qc-stale",
+      routedSkill = "bill-kotlin-code-check",
+      detectedStack = "kotlin",
+      fallback = false,
+      fallbackReason = null,
+      scopeType = "branch_diff",
+      initialFailureCount = 4,
+      finalFailureCount = 0,
+      iterations = 2,
+      result = "pass",
+      failingCheckNames = emptyList(),
+      unsupportedReason = "",
+    )
 
-  private fun startedRuntimeSession(): FeatureTaskRuntimeStartedRecord = FeatureTaskRuntimeStartedRecord(
-    sessionId = "ftr-truth",
-    featureSize = "MEDIUM",
-    issueKey = ISSUE_KEY,
-    featureName = "telemetry truth",
-    workflowId = "$ISSUE_KEY:subtask:2",
-    goalParentWorkflowId = "$ISSUE_KEY:parent",
-    goalSubtaskId = 2,
-  )
+  private fun startedRuntimeSession(): FeatureTaskRuntimeStartedRecord =
+    FeatureTaskRuntimeStartedRecord(
+      sessionId = "ftr-truth",
+      featureSize = "MEDIUM",
+      issueKey = ISSUE_KEY,
+      featureName = "telemetry truth",
+      workflowId = "$ISSUE_KEY:subtask:2",
+      goalParentWorkflowId = "$ISSUE_KEY:parent",
+      goalSubtaskId = 2,
+    )
 
-  private fun goalChildRuntimeSession(): FeatureTaskRuntimeStartedRecord = startedRuntimeSession().copy(
-    workflowId = RUNTIME_WORKFLOW_ID,
-    goalParentWorkflowId = "wftr-20260915-084500-parent",
-  )
+  private fun goalChildRuntimeSession(): FeatureTaskRuntimeStartedRecord =
+    startedRuntimeSession().copy(
+      workflowId = RUNTIME_WORKFLOW_ID,
+      goalParentWorkflowId = "wftr-20260915-084500-parent",
+    )
 
-  private fun finishedRuntimeSession(): FeatureTaskRuntimeFinishedRecord = FeatureTaskRuntimeFinishedRecord(
-    sessionId = "ftr-truth",
-    completionStatus = "completed",
-    completedPhaseIds = listOf("implement"),
-    phaseOutcomes = mapOf("implement" to "completed"),
-    lastIncompletePhase = "completed",
-    blockedReason = "",
-    resolvedBranch = "codex/$ISSUE_KEY",
-  )
+  private fun finishedRuntimeSession(): FeatureTaskRuntimeFinishedRecord =
+    FeatureTaskRuntimeFinishedRecord(
+      sessionId = "ftr-truth",
+      completionStatus = "completed",
+      completedPhaseIds = listOf("implement"),
+      phaseOutcomes = mapOf("implement" to "completed"),
+      lastIncompletePhase = "completed",
+      blockedReason = "",
+      resolvedBranch = "codex/$ISSUE_KEY",
+    )
 
   private fun clearAvailabilityColumns(connection: Connection) {
     connection.createStatement().use { statement ->
@@ -403,7 +411,10 @@ class LifecycleTelemetryTruthfulnessTest {
     }
   }
 
-  private fun sessionRow(connection: Connection, sessionId: String): Map<String, Any?> =
+  private fun sessionRow(
+    connection: Connection,
+    sessionId: String,
+  ): Map<String, Any?> =
     connection.prepareStatement("SELECT * FROM feature_task_runtime_sessions WHERE session_id = ?").use { statement ->
       statement.bindAll(sessionId)
       statement.executeQuery().use { resultSet ->
@@ -423,7 +434,10 @@ class LifecycleTelemetryTruthfulnessTest {
     }
   }
 
-  private fun payloadFor(connection: Connection, eventName: String): Map<String, Any?> =
+  private fun payloadFor(
+    connection: Connection,
+    eventName: String,
+  ): Map<String, Any?> =
     connection.prepareStatement("SELECT payload_json FROM telemetry_outbox WHERE event_name = ? ORDER BY id DESC")
       .use { statement ->
         statement.bindAll(eventName)

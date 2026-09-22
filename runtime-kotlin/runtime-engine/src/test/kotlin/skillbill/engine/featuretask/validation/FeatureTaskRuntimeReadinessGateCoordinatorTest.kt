@@ -24,33 +24,38 @@ import kotlin.test.assertTrue
 class FeatureTaskRuntimeReadinessGateCoordinatorTest {
   @Test
   fun `Detekt edit after validate does not select a pack collect-all check`() {
-    val selection = ReadinessCheckSelection(
-      GitHubPullRequestCheckDiscovery(),
-    )
-    val selected = assertIs<ReadinessCheckSelectionResult.Selected>(
-      selection.select(validationGateTestRepoRoot, listOf("runtime-kotlin/runtime-engine/Foo.kt")),
-    ).checks
-    val invalidated = selection.invalidatedCheckIds(
-      selected,
-      listOf("runtime-kotlin/runtime-engine/DetektEdit.kt"),
-    )
+    val selection =
+      ReadinessCheckSelection(
+        GitHubPullRequestCheckDiscovery(),
+      )
+    val selected =
+      assertIs<ReadinessCheckSelectionResult.Selected>(
+        selection.select(validationGateTestRepoRoot, listOf("runtime-kotlin/runtime-engine/Foo.kt")),
+      ).checks
+    val invalidated =
+      selection.invalidatedCheckIds(
+        selected,
+        listOf("runtime-kotlin/runtime-engine/DetektEdit.kt"),
+      )
     assertTrue(selected.none { it.checkId == READINESS_PACK_COLLECT_ALL_CHECK_ID })
     assertTrue(READINESS_PACK_COLLECT_ALL_CHECK_ID !in invalidated)
   }
 
   @Test
   fun `goal child commit_push omits pr phase but still lists commit_push`() {
-    val request = minimalRequest().copy(
-      goalContinuation = FeatureTaskRuntimeGoalContinuationContext(
-        parentIssueKey = "SKILL-364",
-        subtaskId = 1,
-        subtaskName = "readiness",
-        goalBranch = "feat/skill-364",
-        parentWorkflowId = "parent-wf",
-        suppressPr = true,
-        reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
-      ),
-    )
+    val request =
+      minimalRequest().copy(
+        goalContinuation =
+          FeatureTaskRuntimeGoalContinuationContext(
+            parentIssueKey = "SKILL-364",
+            subtaskId = 1,
+            subtaskName = "readiness",
+            goalBranch = "feat/skill-364",
+            parentWorkflowId = "parent-wf",
+            suppressPr = true,
+            reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
+          ),
+      )
     val phases = phasesFor(request)
     assertFalse(phases.contains(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR))
     assertTrue(phases.contains(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH))
@@ -60,18 +65,19 @@ class FeatureTaskRuntimeReadinessGateCoordinatorTest {
   fun `commit_push stays ready when the validate source tree fingerprint drifted`() {
     val captured = ReadinessTreeIdentity("1".repeat(40), "b".repeat(40), "c".repeat(40))
     val current = captured.copy(sourceTreeSha = "2".repeat(40))
-    val store = MemoryReadinessEvidence().apply {
-      persistReadinessEvidence(
-        WORKFLOW_ID,
-        FeatureTaskRuntimeReadinessEvidence(
-          sourceTreeSha = captured.sourceTreeSha,
-          baseRefSha = captured.baseRefSha,
-          headSha = captured.headSha,
-          selectedChecks = emptyList(),
-          checkResults = emptyList(),
-        ),
-      )
-    }
+    val store =
+      MemoryReadinessEvidence().apply {
+        persistReadinessEvidence(
+          WORKFLOW_ID,
+          FeatureTaskRuntimeReadinessEvidence(
+            sourceTreeSha = captured.sourceTreeSha,
+            baseRefSha = captured.baseRefSha,
+            headSha = captured.headSha,
+            selectedChecks = emptyList(),
+            checkResults = emptyList(),
+          ),
+        )
+      }
     val result = coordinator(store).settleBeforeCommitPush(settleRequest(current))
 
     assertIs<ReadinessCommitPushSettleResult.Ready>(result)
@@ -82,18 +88,19 @@ class FeatureTaskRuntimeReadinessGateCoordinatorTest {
   fun `commit_push stays ready when HEAD identity drifted after a local commit`() {
     val captured = ReadinessTreeIdentity("1".repeat(40), "b".repeat(40), "c".repeat(40))
     val current = captured.copy(sourceTreeSha = "2".repeat(40), headSha = "d".repeat(40))
-    val store = MemoryReadinessEvidence().apply {
-      persistReadinessEvidence(
-        WORKFLOW_ID,
-        FeatureTaskRuntimeReadinessEvidence(
-          sourceTreeSha = captured.sourceTreeSha,
-          baseRefSha = captured.baseRefSha,
-          headSha = captured.headSha,
-          selectedChecks = emptyList(),
-          checkResults = emptyList(),
-        ),
-      )
-    }
+    val store =
+      MemoryReadinessEvidence().apply {
+        persistReadinessEvidence(
+          WORKFLOW_ID,
+          FeatureTaskRuntimeReadinessEvidence(
+            sourceTreeSha = captured.sourceTreeSha,
+            baseRefSha = captured.baseRefSha,
+            headSha = captured.headSha,
+            selectedChecks = emptyList(),
+            checkResults = emptyList(),
+          ),
+        )
+      }
     val result = coordinator(store).settleBeforeCommitPush(settleRequest(current))
 
     assertIs<ReadinessCommitPushSettleResult.Ready>(result)
@@ -105,18 +112,19 @@ class FeatureTaskRuntimeReadinessGateCoordinatorTest {
   fun `commit_push still blocks when the base ref identity drifted`() {
     val captured = ReadinessTreeIdentity("1".repeat(40), "b".repeat(40), "c".repeat(40))
     val current = captured.copy(baseRefSha = "d".repeat(40))
-    val store = MemoryReadinessEvidence().apply {
-      persistReadinessEvidence(
-        WORKFLOW_ID,
-        FeatureTaskRuntimeReadinessEvidence(
-          sourceTreeSha = captured.sourceTreeSha,
-          baseRefSha = captured.baseRefSha,
-          headSha = captured.headSha,
-          selectedChecks = emptyList(),
-          checkResults = emptyList(),
-        ),
-      )
-    }
+    val store =
+      MemoryReadinessEvidence().apply {
+        persistReadinessEvidence(
+          WORKFLOW_ID,
+          FeatureTaskRuntimeReadinessEvidence(
+            sourceTreeSha = captured.sourceTreeSha,
+            baseRefSha = captured.baseRefSha,
+            headSha = captured.headSha,
+            selectedChecks = emptyList(),
+            checkResults = emptyList(),
+          ),
+        )
+      }
     val result = coordinator(store).settleBeforeCommitPush(settleRequest(current))
 
     val blocked = assertIs<ReadinessCommitPushSettleResult.Blocked>(result)
@@ -127,25 +135,27 @@ class FeatureTaskRuntimeReadinessGateCoordinatorTest {
   fun `bind after commit adopts a drifted source tree fingerprint`() {
     val captured = ReadinessTreeIdentity("1".repeat(40), "b".repeat(40), "c".repeat(40))
     val committed = captured.copy(sourceTreeSha = "2".repeat(40), headSha = "e".repeat(40))
-    val store = MemoryReadinessEvidence().apply {
-      persistReadinessEvidence(
-        WORKFLOW_ID,
-        FeatureTaskRuntimeReadinessEvidence(
-          sourceTreeSha = captured.sourceTreeSha,
-          baseRefSha = captured.baseRefSha,
-          headSha = captured.headSha,
-          selectedChecks = emptyList(),
-          checkResults = emptyList(),
-        ),
+    val store =
+      MemoryReadinessEvidence().apply {
+        persistReadinessEvidence(
+          WORKFLOW_ID,
+          FeatureTaskRuntimeReadinessEvidence(
+            sourceTreeSha = captured.sourceTreeSha,
+            baseRefSha = captured.baseRefSha,
+            headSha = captured.headSha,
+            selectedChecks = emptyList(),
+            checkResults = emptyList(),
+          ),
+        )
+      }
+    val result =
+      coordinator(store).bindCommittedHead(
+        workflowId = WORKFLOW_ID,
+        repoRoot = validationGateTestRepoRoot,
+        baseBranch = "main",
+        gitOperations = RecordingWorkflowGitOperations().apply { readinessTreeIdentity = committed },
+        commitSha = committed.headSha,
       )
-    }
-    val result = coordinator(store).bindCommittedHead(
-      workflowId = WORKFLOW_ID,
-      repoRoot = validationGateTestRepoRoot,
-      baseBranch = "main",
-      gitOperations = RecordingWorkflowGitOperations().apply { readinessTreeIdentity = committed },
-      commitSha = committed.headSha,
-    )
 
     assertIs<ReadinessCommitPushSettleResult.Ready>(result)
     assertEquals(committed.sourceTreeSha, store.stored?.sourceTreeSha)
@@ -164,8 +174,10 @@ private fun coordinator(store: FeatureTaskRuntimeReadinessEvidencePort): Feature
       },
     ),
     object : PrCheckProcessRunner {
-      override fun run(command: String, repoRoot: Path): PrCheckRunResult =
-        error("readiness must not execute checks when none are selected")
+      override fun run(
+        command: String,
+        repoRoot: Path,
+      ): PrCheckRunResult = error("readiness must not execute checks when none are selected")
     },
     store,
     NoopRuntimeDiagnostics,
@@ -185,7 +197,10 @@ private class MemoryReadinessEvidence : FeatureTaskRuntimeReadinessEvidencePort 
 
   override fun loadReadinessEvidence(workflowId: String): FeatureTaskRuntimeReadinessEvidence? = stored
 
-  override fun persistReadinessEvidence(workflowId: String, evidence: FeatureTaskRuntimeReadinessEvidence) {
+  override fun persistReadinessEvidence(
+    workflowId: String,
+    evidence: FeatureTaskRuntimeReadinessEvidence,
+  ) {
     stored = evidence
   }
 }

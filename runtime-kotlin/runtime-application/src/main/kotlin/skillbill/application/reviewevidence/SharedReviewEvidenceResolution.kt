@@ -11,6 +11,7 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryChe
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceFileEntry
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceHunkEntry
 import java.nio.file.Path
+
 private const val KEY_SEPARATOR: String = "\u0000"
 
 internal data class SharedReviewEvidenceQuery(
@@ -33,8 +34,9 @@ class SharedReviewEvidenceResolution(
       val aggregateDiff = resolveAggregateDiff()
       SharedReviewEvidenceRecord(
         aggregateDiff = aggregateDiff,
-        sequence = SharedReviewEvidenceAssembler(diffResolver)
-          .assemble(query.scope, query.repoRoot, query.range, query.suppliedDiff),
+        sequence =
+          SharedReviewEvidenceAssembler(diffResolver)
+            .assemble(query.scope, query.repoRoot, query.range, query.suppliedDiff),
       )
     }
     val checkpoint = checkpoint(query)
@@ -42,11 +44,12 @@ class SharedReviewEvidenceResolution(
       return persistAlreadyDerived(query, derive())
     }
     var derived: SharedReviewEvidenceRecord? = null
-    val resolution = sharedEvidenceResolver.resolve(
-      FeatureTaskRuntimeSharedEvidenceRequest(query.repoRoot, query.workflowId, checkpoint),
-    ) {
-      derive().also { derived = it }.let(::derivationOf)
-    }
+    val resolution =
+      sharedEvidenceResolver.resolve(
+        FeatureTaskRuntimeSharedEvidenceRequest(query.repoRoot, query.workflowId, checkpoint),
+      ) {
+        derive().also { derived = it }.let(::derivationOf)
+      }
     val record = derived ?: SharedReviewEvidenceCodec.decode(resolution.diffPayload) ?: derive()
     return record.copy(storePath = resolution.storePath)
   }
@@ -55,16 +58,18 @@ class SharedReviewEvidenceResolution(
     query: SharedReviewEvidenceQuery,
     record: SharedReviewEvidenceRecord,
   ): SharedReviewEvidenceRecord {
-    val checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(
-      fingerprint = sha256HexUtf8(record.aggregateDiff),
-      baseRef = query.range.baseRevision,
-      headRef = query.range.headRevision,
-    )
-    val resolution = sharedEvidenceResolver.resolve(
-      FeatureTaskRuntimeSharedEvidenceRequest(query.repoRoot, query.workflowId, checkpoint),
-    ) {
-      derivationOf(record)
-    }
+    val checkpoint =
+      FeatureTaskRuntimeRepositoryCheckpoint(
+        fingerprint = sha256HexUtf8(record.aggregateDiff),
+        baseRef = query.range.baseRevision,
+        headRef = query.range.headRevision,
+      )
+    val resolution =
+      sharedEvidenceResolver.resolve(
+        FeatureTaskRuntimeSharedEvidenceRequest(query.repoRoot, query.workflowId, checkpoint),
+      ) {
+        derivationOf(record)
+      }
     return record.copy(storePath = resolution.storePath)
   }
 
@@ -86,20 +91,26 @@ class SharedReviewEvidenceResolution(
     return FeatureTaskRuntimeSharedEvidenceDerivation(
       baseRef = record.sequence.baseRevision,
       headRef = record.sequence.headRevision,
-      files = evidence?.files.orEmpty().map {
-        FeatureTaskRuntimeSharedEvidenceFileEntry(it.path, changeKind(it.oldPath, it.newPath))
-      },
-      hunks = evidence?.hunks.orEmpty().map {
-        FeatureTaskRuntimeSharedEvidenceHunkEntry(it.path, it.content.lineSequence().first().ifBlank { "@@" })
-      },
+      files =
+        evidence?.files.orEmpty().map {
+          FeatureTaskRuntimeSharedEvidenceFileEntry(it.path, changeKind(it.oldPath, it.newPath))
+        },
+      hunks =
+        evidence?.hunks.orEmpty().map {
+          FeatureTaskRuntimeSharedEvidenceHunkEntry(it.path, it.content.lineSequence().first().ifBlank { "@@" })
+        },
       diffPayload = SharedReviewEvidenceCodec.encode(record),
     )
   }
 
-  private fun changeKind(oldPath: String?, newPath: String?): String = when {
-    oldPath == null -> "added"
-    newPath == null -> "deleted"
-    oldPath != newPath -> "renamed"
-    else -> "modified"
-  }
+  private fun changeKind(
+    oldPath: String?,
+    newPath: String?,
+  ): String =
+    when {
+      oldPath == null -> "added"
+      newPath == null -> "deleted"
+      oldPath != newPath -> "renamed"
+      else -> "modified"
+    }
 }

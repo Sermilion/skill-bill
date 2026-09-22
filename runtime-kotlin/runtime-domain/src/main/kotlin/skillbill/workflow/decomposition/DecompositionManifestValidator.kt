@@ -5,9 +5,18 @@ import skillbill.workflow.decomposition.model.DecompositionManifestValidationRes
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 
 interface DecompositionManifestValidator {
-  fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String)
+  fun validate(
+    manifest: DecompositionManifestWireMap,
+    sourceLabel: String,
+  )
 
-  fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest
+  fun validateYamlText(
+    yamlText: String,
+    sourceLabel: String,
+  ): DecompositionManifest
 
-  fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult
+  fun validateYamlTextResult(
+    yamlText: String,
+    sourceLabel: String,
+  ): DecompositionManifestValidationResult
 }

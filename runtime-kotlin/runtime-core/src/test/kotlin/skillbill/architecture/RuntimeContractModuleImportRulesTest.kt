@@ -54,10 +54,14 @@ class RuntimeContractModuleImportRulesTest {
     )
   }
 
-  private fun forbiddenImportViolations(module: String, forbiddenPrefixes: List<String>): List<String> {
-    val root = runtimeRoot.resolve(
-      "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(module)}/src/main",
-    )
+  private fun forbiddenImportViolations(
+    module: String,
+    forbiddenPrefixes: List<String>,
+  ): List<String> {
+    val root =
+      runtimeRoot.resolve(
+        "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(module)}/src/main",
+      )
     if (!Files.isDirectory(root)) return emptyList()
     return Files.walk(root).use { paths ->
       paths.filter { Files.isRegularFile(it) && it.extension == "kt" }.toList()
@@ -66,7 +70,11 @@ class RuntimeContractModuleImportRulesTest {
     }.sorted()
   }
 
-  private fun forbiddenImportsIn(fileName: String, source: String, forbiddenPrefixes: List<String>): List<String> =
+  private fun forbiddenImportsIn(
+    fileName: String,
+    source: String,
+    forbiddenPrefixes: List<String>,
+  ): List<String> =
     source.lineSequence()
       .filter { line -> line.startsWith("import ") }
       .filter { line -> forbiddenPrefixes.any { prefix -> line.removePrefix("import ").startsWith(prefix) } }
@@ -74,19 +82,21 @@ class RuntimeContractModuleImportRulesTest {
       .toList()
 
   private companion object {
-    val DOMAIN_FORBIDDEN_IMPORT_PREFIXES = listOf(
-      "com.fasterxml.",
-      "java.io.",
-      "java.nio.",
-      "kotlinx.serialization.",
-      "org.yaml.",
-    )
-    val PORTS_FORBIDDEN_IMPORT_PREFIXES = listOf(
-      "java.io.",
-      "java.nio.file.Files",
-      "kotlinx.serialization.",
-      "me.tatarka.inject.",
-      "org.yaml.",
-    )
+    val DOMAIN_FORBIDDEN_IMPORT_PREFIXES =
+      listOf(
+        "com.fasterxml.",
+        "java.io.",
+        "java.nio.",
+        "kotlinx.serialization.",
+        "org.yaml.",
+      )
+    val PORTS_FORBIDDEN_IMPORT_PREFIXES =
+      listOf(
+        "java.io.",
+        "java.nio.file.Files",
+        "kotlinx.serialization.",
+        "me.tatarka.inject.",
+        "org.yaml.",
+      )
   }
 }

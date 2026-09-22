@@ -21,19 +21,21 @@ class ParallelReviewCrossRootLanePlanTest {
   private val kmpAreas = listOf("architecture", "platform-correctness")
 
   private val kotlin = reviewPack("kotlin", kotlinAreas, routingSignals = listOf("*.kt"))
-  private val kmp = reviewPack(
-    "kmp",
-    kmpAreas,
-    layers = listOf(reviewLayer("kotlin")),
-    routingSignals = listOf("commonMain"),
-    contentSignals = listOf("expect"),
-  )
+  private val kmp =
+    reviewPack(
+      "kmp",
+      kmpAreas,
+      layers = listOf(reviewLayer("kotlin")),
+      routingSignals = listOf("commonMain"),
+      contentSignals = listOf("expect"),
+    )
   private val manifests = listOf(kotlin, kmp)
 
-  private val crossRootDiff = diffForChanges(
-    "src/commonMain/kotlin/App.kt" to "expect fun platformName(): String",
-    "src/main/kotlin/Repo.kt" to "class Repo",
-  )
+  private val crossRootDiff =
+    diffForChanges(
+      "src/commonMain/kotlin/App.kt" to "expect fun platformName(): String",
+      "src/main/kotlin/Repo.kt" to "class Repo",
+    )
 
   @Test fun `a cross-root plan carries one lane per area owned by the nearest composing pack`() {
     val lanes = run(manifests, crossRootDiff).durableLanes
@@ -81,15 +83,17 @@ class ParallelReviewCrossRootLanePlanTest {
   @Test fun `two non-composing routed packs tying on one area abort planning instead of launching both lanes`() {
     val swift = reviewPack("swift", listOf("architecture", "ui"), routingSignals = listOf("*.swift"))
     val recorder = ReviewRecorder()
-    val diff = diffForChanges(
-      "src/main/kotlin/Repo.kt" to "class Repo",
-      "Sources/App/View.swift" to "struct View",
-    )
+    val diff =
+      diffForChanges(
+        "src/main/kotlin/Repo.kt" to "class Repo",
+        "Sources/App/View.swift" to "struct View",
+      )
 
-    val error = assertFailsWith<AmbiguousLaneOwnershipError> {
-      reviewHarness(ReviewHarnessConfig(manifests = listOf(kotlin, swift), diff = diff), recorder)
-        .run(harnessRequest(reviewRunId = "cross-root-ambiguous", codeReviewMode = CodeReviewExecutionMode.DELEGATED))
-    }
+    val error =
+      assertFailsWith<AmbiguousLaneOwnershipError> {
+        reviewHarness(ReviewHarnessConfig(manifests = listOf(kotlin, swift), diff = diff), recorder)
+          .run(harnessRequest(reviewRunId = "cross-root-ambiguous", codeReviewMode = CodeReviewExecutionMode.DELEGATED))
+      }
 
     assertTrue(
       listOf("architecture", "kotlin", "swift").all { it in error.message.orEmpty() },
@@ -101,7 +105,10 @@ class ParallelReviewCrossRootLanePlanTest {
     )
   }
 
-  private fun run(packs: List<PlatformManifest>, diff: String): ReviewRecorder {
+  private fun run(
+    packs: List<PlatformManifest>,
+    diff: String,
+  ): ReviewRecorder {
     val recorder = ReviewRecorder()
     reviewHarness(ReviewHarnessConfig(manifests = packs, diff = diff), recorder)
       .run(harnessRequest(reviewRunId = "cross-root-lane-plan", codeReviewMode = CodeReviewExecutionMode.DELEGATED))

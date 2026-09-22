@@ -51,8 +51,9 @@ class FeatureTaskRuntimeContinuationKindTest {
 
   @Test
   fun `a loop-edge detail carrying trailing attributes still resolves its kind`() {
-    val detail = "${FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX}" +
-      "${FeatureTaskRuntimeContinuationKind.VERIFIER_REENTRY.wireValue} driving_verdict=gaps_found"
+    val detail =
+      "${FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX}" +
+        "${FeatureTaskRuntimeContinuationKind.VERIFIER_REENTRY.wireValue} driving_verdict=gaps_found"
 
     assertEquals(
       FeatureTaskRuntimeContinuationKind.VERIFIER_REENTRY,

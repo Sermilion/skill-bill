@@ -7,12 +7,13 @@ enum class SettlementStatus(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): SettlementStatus? = when (value) {
-      "complete" -> COMPLETED
-      "block" -> BLOCKED
-      "fail" -> FAILED
-      else -> entries.firstOrNull { it.wireValue == value }
-    }
+    fun fromWire(value: String): SettlementStatus? =
+      when (value) {
+        "complete" -> COMPLETED
+        "block" -> BLOCKED
+        "fail" -> FAILED
+        else -> entries.firstOrNull { it.wireValue == value }
+      }
   }
 }
 

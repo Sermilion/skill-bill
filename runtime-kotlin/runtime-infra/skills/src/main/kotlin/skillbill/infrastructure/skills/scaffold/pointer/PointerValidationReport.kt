@@ -10,6 +10,7 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.relativeTo
+
 private const val POINTER_FILE_MAX_BYTES: Long = 500L
 private val POINTER_CONTENT_PATTERN: Regex = Regex("^(\\.{1,2}/)+[^\\s]+\\.md$")
 
@@ -36,19 +37,21 @@ internal fun validatePlatformPackPointers(repoRoot: Path): PointerValidationRepo
 }
 
 private fun loadValidPlatformPackManifests(packsRoot: Path): List<PlatformManifest> {
-  val packDirs = Files.list(packsRoot).use { stream ->
-    stream
-      .filter { it.isDirectory() && !it.fileName.toString().startsWith(".") }
-      .toList()
-  }
+  val packDirs =
+    Files.list(packsRoot).use { stream ->
+      stream
+        .filter { it.isDirectory() && !it.fileName.toString().startsWith(".") }
+        .toList()
+    }
   return packDirs.mapNotNull { dir -> tryLoadPlatformManifest(dir) }
 }
 
-private fun tryLoadPlatformManifest(dir: Path): PlatformManifest? = try {
-  loadPlatformManifest(dir)
-} catch (_: ShellContentContractException) {
-  null
-}
+private fun tryLoadPlatformManifest(dir: Path): PlatformManifest? =
+  try {
+    loadPlatformManifest(dir)
+  } catch (_: ShellContentContractException) {
+    null
+  }
 
 private fun validatePackPointersDriftAndMissing(
   repoRoot: Path,
@@ -60,8 +63,9 @@ private fun validatePackPointersDriftAndMissing(
     val pointerFile = pack.packRoot.resolve(spec.skillRelativeDir).resolve(spec.name).toPath().normalize()
     declaredFiles.add(pointerFile)
 
-    val pointerExists = Files.isSymbolicLink(pointerFile) ||
-      Files.isRegularFile(pointerFile, LinkOption.NOFOLLOW_LINKS)
+    val pointerExists =
+      Files.isSymbolicLink(pointerFile) ||
+        Files.isRegularFile(pointerFile, LinkOption.NOFOLLOW_LINKS)
     if (!pointerExists) {
       issues += "${displayPointer(repoRoot, pointerFile)}: declared pointer is missing on disk"
       return@forEach
@@ -74,11 +78,12 @@ private fun validatePackPointersDriftAndMissing(
 
         val expected = rendered.trimEnd('\n', '\r')
 
-        val actual = if (Files.isSymbolicLink(pointerFile)) {
-          Files.readSymbolicLink(pointerFile).toString().replace(File.separatorChar, '/')
-        } else {
-          Files.readString(pointerFile).trimEnd('\n', '\r')
-        }
+        val actual =
+          if (Files.isSymbolicLink(pointerFile)) {
+            Files.readSymbolicLink(pointerFile).toString().replace(File.separatorChar, '/')
+          } else {
+            Files.readString(pointerFile).trimEnd('\n', '\r')
+          }
         if (expected != actual) {
           issues += "${displayPointer(repoRoot, pointerFile)}: pointer drifted from manifest " +
             "(expected '$expected', found '$actual')"
@@ -93,11 +98,12 @@ private fun validatePackPointersOrphans(
   declaredFiles: Set<Path>,
   issues: MutableList<String>,
 ) {
-  val packDirs = Files.list(packsRoot).use { stream ->
-    stream
-      .filter { it.isDirectory() && !it.fileName.toString().startsWith(".") }
-      .toList()
-  }
+  val packDirs =
+    Files.list(packsRoot).use { stream ->
+      stream
+        .filter { it.isDirectory() && !it.fileName.toString().startsWith(".") }
+        .toList()
+    }
   packDirs.forEach { packDir ->
     discoverPointerCandidates(packDir).forEach { candidate ->
       reportIfOrphan(repoRoot, candidate, declaredFiles, issues)
@@ -117,14 +123,22 @@ private fun discoverPointerCandidates(packDir: Path): List<Path> {
   }
 }
 
-private fun isInsideExcludedSubtree(packDir: Path, candidate: Path): Boolean {
+private fun isInsideExcludedSubtree(
+  packDir: Path,
+  candidate: Path,
+): Boolean {
   val resolvedCandidate = candidate.toAbsolutePath().normalize()
   val relative = if (resolvedCandidate.startsWith(packDir)) packDir.relativize(resolvedCandidate) else null
   val firstSegment = relative?.takeIf { it.nameCount > 0 }?.getName(0)?.toString()
   return firstSegment == "addons" || firstSegment == "native-agents"
 }
 
-private fun reportIfOrphan(repoRoot: Path, candidate: Path, declaredFiles: Set<Path>, issues: MutableList<String>) {
+private fun reportIfOrphan(
+  repoRoot: Path,
+  candidate: Path,
+  declaredFiles: Set<Path>,
+  issues: MutableList<String>,
+) {
   val resolved = candidate.normalize()
   if (resolved !in declaredFiles) {
     issues += "${displayPointer(repoRoot, resolved)}: orphan pointer file is not declared in any " +
@@ -137,17 +151,21 @@ private fun looksLikePointerFile(path: Path): Boolean {
     return true
   }
   val size = runCatching { Files.size(path) }.getOrNull() ?: 0L
-  val text = if (size in 1..POINTER_FILE_MAX_BYTES) {
-    runCatching { Files.readString(path) }.getOrNull().orEmpty()
-  } else {
-    ""
-  }
+  val text =
+    if (size in 1..POINTER_FILE_MAX_BYTES) {
+      runCatching { Files.readString(path) }.getOrNull().orEmpty()
+    } else {
+      ""
+    }
   return text.isNotEmpty() &&
     text.count { it == '\n' } <= 1 &&
     POINTER_CONTENT_PATTERN.matches(text.trim())
 }
 
-private fun displayPointer(repoRoot: Path, path: Path): String {
+private fun displayPointer(
+  repoRoot: Path,
+  path: Path,
+): String {
   val resolvedRoot = repoRoot.toAbsolutePath().normalize()
   val resolvedPath = path.toAbsolutePath().normalize()
   return runCatching { resolvedPath.relativeTo(resolvedRoot).toString().replace('\\', '/') }

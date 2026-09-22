@@ -5,16 +5,16 @@ class InvalidAgentAddonSchemaError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Agent add-on '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation: $reason",
-  cause,
-)
+    "Agent add-on '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation: $reason",
+    cause,
+  )
 
 class MissingAgentAddonDeclarationError(
   val slug: String,
   val expectedRoot: String,
 ) : ShellContentContractException(
-  "Required agent add-on '$slug' was not found under '$expectedRoot'.",
-)
+    "Required agent add-on '$slug' was not found under '$expectedRoot'.",
+  )
 
 class InvalidAgentAddonDeliveryTargetError(
   val slug: String,
@@ -32,5 +32,5 @@ class AgentAddonSelectionDriftError(
   val slug: String,
   val sourceIdentity: String,
 ) : ShellContentContractException(
-  "Selected agent add-on '$slug' changed at '$sourceIdentity'; start a new run to accept the new content.",
-)
+    "Selected agent add-on '$slug' changed at '$sourceIdentity'; start a new run to accept the new content.",
+  )

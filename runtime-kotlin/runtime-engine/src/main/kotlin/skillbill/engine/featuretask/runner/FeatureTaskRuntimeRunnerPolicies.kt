@@ -9,6 +9,7 @@ import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 const val STATUS_RUNNING = "running"
 const val STATUS_COMPLETED = "completed"
 const val STATUS_BLOCKED = "blocked"
@@ -19,16 +20,18 @@ const val STATUS_ABANDONED = "abandoned"
 const val BRANCH_SETUP_AGENT_ID = "branch-setup"
 const val SCHEMA_GATE_DETAIL_MAX_CHARS = 500
 
-val NON_FILE_MUTATING_PHASES = setOf(
-  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
-  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-)
+val NON_FILE_MUTATING_PHASES =
+  setOf(
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
+  )
 
 fun serializeTokenData(accumulator: Map<String, Pair<Int, Int>>): Pair<String?, Int?> {
   if (accumulator.isEmpty()) return null to null
-  val breakdown = accumulator.mapValues { (_, pair) ->
-    mapOf("estimated_input_tokens" to pair.first, "estimated_output_tokens" to pair.second)
-  }
+  val breakdown =
+    accumulator.mapValues { (_, pair) ->
+      mapOf("estimated_input_tokens" to pair.first, "estimated_output_tokens" to pair.second)
+    }
   val total = accumulator.values.sumOf { (input, output) -> input + output }
   return JsonCodec.mapToJsonString(breakdown) to total
 }
@@ -39,17 +42,19 @@ fun transitionsFor(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeTra
   request.transitionsOverride ?: phasesFor(request).let { phases ->
     FeatureTaskRuntimeTransitionDeclaration(
       forwardPhaseIds = phases,
-
-      backwardEdges = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges
-        .filter { it.fromPhaseId in phases && it.destinationPhaseId in phases },
-      loopOnlyPhaseIds = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlyPhaseIds
-        .filter { it in phases }.toSet(),
-
-      entryGates = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.entryGates
-        .filter { it.phaseId in phases && it.requiredPhaseId in phases },
-      loopOnlySuccessors = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlySuccessors
-        .filterKeys { it in phases }
-        .filterValues { it in phases },
+      backwardEdges =
+        FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges
+          .filter { it.fromPhaseId in phases && it.destinationPhaseId in phases },
+      loopOnlyPhaseIds =
+        FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlyPhaseIds
+          .filter { it in phases }.toSet(),
+      entryGates =
+        FeatureTaskRuntimePhaseWorkflowDefinition.transitions.entryGates
+          .filter { it.phaseId in phases && it.requiredPhaseId in phases },
+      loopOnlySuccessors =
+        FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlySuccessors
+          .filterKeys { it in phases }
+          .filterValues { it in phases },
     )
   }
 
@@ -94,8 +99,10 @@ fun boundedSchemaGateDetail(validationReason: String): String =
     validationReason.take(SCHEMA_GATE_DETAIL_MAX_CHARS) + "… [truncated]"
   }
 
-fun withSchemaGateDetail(policyReason: String, validationReason: String): String =
-  "$policyReason Last schema-gate failure: ${boundedSchemaGateDetail(validationReason)}"
+fun withSchemaGateDetail(
+  policyReason: String,
+  validationReason: String,
+): String = "$policyReason Last schema-gate failure: ${boundedSchemaGateDetail(validationReason)}"
 
 fun nonRetryingPhaseSchemaBlockReason(phaseId: String): String =
   "Phase '$phaseId' produced schema-invalid output and does not participate in a fix loop; " +

@@ -14,6 +14,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffAssemblyRequest
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowQueries
+
 internal fun DefaultGoalPlanningSweep.launchPlanningAttempt(
   phase: GoalPlanningPhaseContext,
   prompt: String,
@@ -26,46 +27,51 @@ internal fun DefaultGoalPlanningSweep.launchPlanningAttempt(
     GoalRunnerSubtaskLaunchRequest(
       invokedAgentId = shared.invokedAgentId,
       configuredAgentOverrideId = shared.configuredAgentOverrideId,
-      skillRunRequest = SkillRunRequest(
-        issueKey = request.issueKey,
-        repoRoot = shared.repoRoot,
-        subtaskId = phase.subtask?.id,
-        timeout = request.planningBudget,
-        progressIdleTimeout = request.progressIdleTimeout,
-        outputSink = sink,
-        promptOverride = prompt,
-        streamOutputForLiveness = true,
-        spawnAuthorization = manifestStore.authorizePlanningLaunch(shared.parentWorkflowId),
-      ),
+      skillRunRequest =
+        SkillRunRequest(
+          issueKey = request.issueKey,
+          repoRoot = shared.repoRoot,
+          subtaskId = phase.subtask?.id,
+          timeout = request.planningBudget,
+          progressIdleTimeout = request.progressIdleTimeout,
+          outputSink = sink,
+          promptOverride = prompt,
+          streamOutputForLiveness = true,
+          spawnAuthorization = manifestStore.authorizePlanningLaunch(shared.parentWorkflowId),
+        ),
     ),
   )
 }
 
 internal fun DefaultGoalPlanningSweep.composePlanningPrompt(args: GoalPlanningProduceAttemptArgs): String {
   val phase = args.phase
-  val handoff = FeatureTaskRuntimeHandoffContract.assembleHandoff(
-    FeatureTaskRuntimeHandoffAssemblyRequest(
-      declaration = FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclaration(
-        phase.phaseId,
-        phase.runInvariants.featureSize,
+  val handoff =
+    FeatureTaskRuntimeHandoffContract.assembleHandoff(
+      FeatureTaskRuntimeHandoffAssemblyRequest(
+        declaration =
+          FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclaration(
+            phase.phaseId,
+            phase.runInvariants.featureSize,
+          ),
+        runInvariants = phase.runInvariants,
+        recordedOutputs = args.recordedOutputs,
       ),
-      runInvariants = phase.runInvariants,
-      recordedOutputs = args.recordedOutputs,
-    ),
-  )
-  val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
-    handoff,
-    planningProjectionValidator = planningProjectionValidator,
-    agentAddonSelection = phase.request.agentAddonSelection,
-  )
-  val basePrompt = FeatureTaskRuntimePhasePromptComposer.compose(
-    FeatureTaskRuntimePhasePromptComposeInputs(
-      issueKey = phase.request.issueKey,
-      briefing = briefing,
-      suppressDecomposition = true,
-      priorSchemaFailure = args.priorSchemaFailure,
-    ),
-  )
+    )
+  val briefing =
+    FeatureTaskRuntimePhaseBriefingAssembler.assemble(
+      handoff,
+      planningProjectionValidator = planningProjectionValidator,
+      agentAddonSelection = phase.request.agentAddonSelection,
+    )
+  val basePrompt =
+    FeatureTaskRuntimePhasePromptComposer.compose(
+      FeatureTaskRuntimePhasePromptComposeInputs(
+        issueKey = phase.request.issueKey,
+        briefing = briefing,
+        suppressDecomposition = true,
+        priorSchemaFailure = args.priorSchemaFailure,
+      ),
+    )
   return GoalPlanningContextPromptFormatter.append(
     basePrompt,
     phase.shared.planningPacket,

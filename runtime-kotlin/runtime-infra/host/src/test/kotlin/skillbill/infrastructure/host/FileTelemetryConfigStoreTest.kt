@@ -43,7 +43,9 @@ class FileTelemetryConfigStoreTest {
   }
 
   @Test
-  fun `config path defaults to durable home-relative config dir for fresh installs`(@TempDir tempDir: Path) {
+  fun `config path defaults to durable home-relative config dir for fresh installs`(
+    @TempDir tempDir: Path,
+  ) {
     val resolved = resolveTelemetryConfigPath(emptyMap(), tempDir)
 
     assertEquals(
@@ -53,7 +55,9 @@ class FileTelemetryConfigStoreTest {
   }
 
   @Test
-  fun `config path prefers existing durable config over legacy`(@TempDir tempDir: Path) {
+  fun `config path prefers existing durable config over legacy`(
+    @TempDir tempDir: Path,
+  ) {
     val durable = tempDir.resolve(".config/skill-bill/config.json")
     Files.createDirectories(durable.parent)
     Files.writeString(durable, "{}\n")
@@ -64,7 +68,9 @@ class FileTelemetryConfigStoreTest {
   }
 
   @Test
-  fun `config path falls back to legacy path when only legacy exists`(@TempDir tempDir: Path) {
+  fun `config path falls back to legacy path when only legacy exists`(
+    @TempDir tempDir: Path,
+  ) {
     val legacy = tempDir.resolve(".skill-bill/config.json")
     Files.createDirectories(legacy.parent)
     Files.writeString(legacy, "{}\n")
@@ -73,7 +79,9 @@ class FileTelemetryConfigStoreTest {
   }
 
   @Test
-  fun `config path ignores XDG_CONFIG_HOME and stays home-relative`(@TempDir tempDir: Path) {
+  fun `config path ignores XDG_CONFIG_HOME and stays home-relative`(
+    @TempDir tempDir: Path,
+  ) {
     val resolved = resolveTelemetryConfigPath(mapOf("XDG_CONFIG_HOME" to "/some/global/xdg"), tempDir)
 
     assertEquals(
@@ -83,7 +91,9 @@ class FileTelemetryConfigStoreTest {
   }
 
   @Test
-  fun `explicit config env override wins over durable and legacy paths`(@TempDir tempDir: Path) {
+  fun `explicit config env override wins over durable and legacy paths`(
+    @TempDir tempDir: Path,
+  ) {
     Files.createDirectories(tempDir.resolve(".config/skill-bill"))
     Files.writeString(tempDir.resolve(".config/skill-bill/config.json"), "{}\n")
     val pinned = tempDir.resolve("pinned/config.json")
@@ -95,30 +105,39 @@ class FileTelemetryConfigStoreTest {
   }
 
   @Test
-  fun `ensure prefers the injected install id env value when none is persisted`(@TempDir tempDir: Path) {
+  fun `ensure prefers the injected install id env value when none is persisted`(
+    @TempDir tempDir: Path,
+  ) {
     val configPath = tempDir.resolve("config.json")
 
-    val document = ensureTelemetryConfigFile(
-      configPath,
-      mapOf(INSTALL_ID_ENVIRONMENT_KEY to "  env-install-id  "),
-    )
+    val document =
+      ensureTelemetryConfigFile(
+        configPath,
+        mapOf(INSTALL_ID_ENVIRONMENT_KEY to "  env-install-id  "),
+      )
 
     assertEquals("env-install-id", document.payload["install_id"])
   }
 
   @Test
-  fun `ensure mints a fresh uuid when neither env nor persisted install id exist`(@TempDir tempDir: Path) {
-    val first = ensureTelemetryConfigFile(tempDir.resolve("first.json"), emptyMap())
-      .payload["install_id"] as String
-    val second = ensureTelemetryConfigFile(tempDir.resolve("second.json"), emptyMap())
-      .payload["install_id"] as String
+  fun `ensure mints a fresh uuid when neither env nor persisted install id exist`(
+    @TempDir tempDir: Path,
+  ) {
+    val first =
+      ensureTelemetryConfigFile(tempDir.resolve("first.json"), emptyMap())
+        .payload["install_id"] as String
+    val second =
+      ensureTelemetryConfigFile(tempDir.resolve("second.json"), emptyMap())
+        .payload["install_id"] as String
 
     assertTrue(first.isNotBlank(), "Minted install id must be non-blank.")
     assertNotEquals(first, second, "Each fresh install id must be distinct.")
   }
 
   @Test
-  fun `ensure prefers an existing persisted install id over the fallback`(@TempDir tempDir: Path) {
+  fun `ensure prefers an existing persisted install id over the fallback`(
+    @TempDir tempDir: Path,
+  ) {
     val configPath = tempDir.resolve("config.json")
     Files.writeString(
       configPath,
@@ -132,7 +151,9 @@ class FileTelemetryConfigStoreTest {
   }
 
   @Test
-  fun `ensure uses the env fallback install id when none is persisted`(@TempDir tempDir: Path) {
+  fun `ensure uses the env fallback install id when none is persisted`(
+    @TempDir tempDir: Path,
+  ) {
     val configPath = tempDir.resolve("config.json")
     val store = storeFor(tempDir, configPath, installIdEnv = "env-fallback-id")
 
@@ -149,14 +170,19 @@ class FileTelemetryConfigStoreTest {
     )
   }
 
-  private fun storeFor(tempDir: Path, configPath: Path, installIdEnv: String): FileTelemetryConfigStore =
+  private fun storeFor(
+    tempDir: Path,
+    configPath: Path,
+    installIdEnv: String,
+  ): FileTelemetryConfigStore =
     FileTelemetryConfigStore(
       EnvironmentContext(
-        environment = mapOf(
-          CONFIG_ENVIRONMENT_KEY to configPath.toString(),
-          STATE_DIR_ENVIRONMENT_KEY to tempDir.toString(),
-          INSTALL_ID_ENVIRONMENT_KEY to installIdEnv,
-        ),
+        environment =
+          mapOf(
+            CONFIG_ENVIRONMENT_KEY to configPath.toString(),
+            STATE_DIR_ENVIRONMENT_KEY to tempDir.toString(),
+            INSTALL_ID_ENVIRONMENT_KEY to installIdEnv,
+          ),
         userHome = tempDir,
       ),
     )

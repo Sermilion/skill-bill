@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class StaleSessionReconcilerTest {
   @Test
   fun `ordinary duplicate finishes enqueue one terminal event for every lifecycle family`() {
@@ -51,12 +52,13 @@ class StaleSessionReconcilerTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       seedStaleLifecycleSessions(connection)
       val now = Instant.parse("2030-01-01T00:00:00Z")
-      val request = TelemetryReconciliationRequest(
-        level = "full",
-        cadenceSeconds = 300,
-        maximumBatchSize = 2,
-        now = now,
-      )
+      val request =
+        TelemetryReconciliationRequest(
+          level = "full",
+          cadenceSeconds = 300,
+          maximumBatchSize = 2,
+          now = now,
+        )
 
       assertEquals(2, reconcileStaleTelemetrySessions(connection, request).processedCandidates)
       assertTrue(reconcileStaleTelemetrySessions(connection, request).skippedByCadence)
@@ -83,12 +85,13 @@ class StaleSessionReconcilerTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       seedStaleLifecycleSessions(connection)
       val now = Instant.parse("2030-01-02T00:00:00Z")
-      val request = TelemetryReconciliationRequest(
-        level = "full",
-        cadenceSeconds = 0,
-        maximumBatchSize = 2,
-        now = now,
-      )
+      val request =
+        TelemetryReconciliationRequest(
+          level = "full",
+          cadenceSeconds = 0,
+          maximumBatchSize = 2,
+          now = now,
+        )
 
       val first = reconcileStaleTelemetrySessions(connection, request)
       assertEquals(2, first.processedCandidates)
@@ -280,7 +283,8 @@ class StaleSessionReconcilerTest {
     }
   }
 
-  private fun abandonedGoalRunSegmentsSql(): String = """
+  private fun abandonedGoalRunSegmentsSql(): String =
+    """
     INSERT INTO goal_run_sessions (
       workflow_id, issue_key, subtask_total, resumed, started_at, status,
       finished_at, finished_duration_ms, subtasks_complete, subtasks_blocked, subtasks_skipped, mode
@@ -297,7 +301,7 @@ class StaleSessionReconcilerTest {
         'other-parent:seg:1', 'SKILL-109', 3, 0, datetime('now', '-1 days'), 'completed',
         datetime('now', '-1 days'), 1000, 3, 0, 0, 'runtime'
       )
-  """.trimIndent()
+    """.trimIndent()
 
   @Test
   fun `recent workflow activity prevents age-only stale reconciliation`() {
@@ -394,33 +398,38 @@ class StaleSessionReconcilerTest {
       estimatedTotalTokens = null,
     )
 
-  private fun featureVerifyFinishedRecord(sessionId: String): FeatureVerifyFinishedRecord = FeatureVerifyFinishedRecord(
-    sessionId = sessionId,
-    featureFlagAuditPerformed = true,
-    reviewIterations = 1,
-    auditResult = "all_pass",
-    completionStatus = "completed",
-    historyRelevance = "medium",
-    historyHelpfulness = "medium",
-    gapsFound = emptyList(),
-  )
+  private fun featureVerifyFinishedRecord(sessionId: String): FeatureVerifyFinishedRecord =
+    FeatureVerifyFinishedRecord(
+      sessionId = sessionId,
+      featureFlagAuditPerformed = true,
+      reviewIterations = 1,
+      auditResult = "all_pass",
+      completionStatus = "completed",
+      historyRelevance = "medium",
+      historyHelpfulness = "medium",
+      gapsFound = emptyList(),
+    )
 
-  private fun qualityCheckFinishedRecord(sessionId: String): QualityCheckFinishedRecord = QualityCheckFinishedRecord(
-    sessionId = sessionId,
-    routedSkill = "bill-code-check",
-    detectedStack = "kotlin",
-    fallback = false,
-    fallbackReason = null,
-    scopeType = "branch_diff",
-    initialFailureCount = 0,
-    finalFailureCount = 0,
-    iterations = 1,
-    result = "pass",
-    failingCheckNames = emptyList(),
-    unsupportedReason = "",
-  )
+  private fun qualityCheckFinishedRecord(sessionId: String): QualityCheckFinishedRecord =
+    QualityCheckFinishedRecord(
+      sessionId = sessionId,
+      routedSkill = "bill-code-check",
+      detectedStack = "kotlin",
+      fallback = false,
+      fallbackReason = null,
+      scopeType = "branch_diff",
+      initialFailureCount = 0,
+      finalFailureCount = 0,
+      iterations = 1,
+      result = "pass",
+      failingCheckNames = emptyList(),
+      unsupportedReason = "",
+    )
 
-  private fun eventCount(connection: Connection, eventName: String): Int =
+  private fun eventCount(
+    connection: Connection,
+    eventName: String,
+  ): Int =
     connection.prepareStatement("SELECT COUNT(*) FROM telemetry_outbox WHERE event_name = ?").use { statement ->
       statement.setString(1, eventName)
       statement.executeQuery().use { resultSet ->
@@ -429,13 +438,19 @@ class StaleSessionReconcilerTest {
       }
     }
 
-  private fun terminalLifecycleEventCount(connection: Connection): Int = listOf(
-    "skillbill_feature_task_runtime_finished",
-    "skillbill_feature_verify_finished",
-    "skillbill_quality_check_finished",
-  ).sumOf { eventCount(connection, it) }
+  private fun terminalLifecycleEventCount(connection: Connection): Int =
+    listOf(
+      "skillbill_feature_task_runtime_finished",
+      "skillbill_feature_verify_finished",
+      "skillbill_quality_check_finished",
+    ).sumOf { eventCount(connection, it) }
 
-  private fun columnValue(connection: Connection, tableName: String, sessionId: String, columnName: String): Any? =
+  private fun columnValue(
+    connection: Connection,
+    tableName: String,
+    sessionId: String,
+    columnName: String,
+  ): Any? =
     connection.prepareStatement("SELECT $columnName FROM $tableName WHERE session_id = ?").use { statement ->
       statement.setString(1, sessionId)
       statement.executeQuery().use { resultSet ->
@@ -444,7 +459,11 @@ class StaleSessionReconcilerTest {
       }
     }
 
-  private fun goalColumnValue(connection: Connection, issueKey: String, columnName: String): Any? =
+  private fun goalColumnValue(
+    connection: Connection,
+    issueKey: String,
+    columnName: String,
+  ): Any? =
     connection.prepareStatement("SELECT $columnName FROM goal_issue_progress WHERE issue_key = ?").use { statement ->
       statement.setString(1, issueKey)
       statement.executeQuery().use { resultSet ->
@@ -453,7 +472,11 @@ class StaleSessionReconcilerTest {
       }
     }
 
-  private fun payload(connection: Connection, eventName: String, issueKey: String? = null): Map<String, Any?> {
+  private fun payload(
+    connection: Connection,
+    eventName: String,
+    issueKey: String? = null,
+  ): Map<String, Any?> {
     val issueFilter = if (issueKey == null) "" else "AND json_extract(payload_json, '$.issue_key') = ?"
     return connection.prepareStatement(
       """

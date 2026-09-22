@@ -20,46 +20,51 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+
 class WorkflowIssueKeyPersistenceTest {
   @Test
   fun `opening every issue keyed workflow persists its normalized issue key in workflow metadata`() {
     val workflows = InMemoryWorkflowStates()
-    val service = WorkflowService(
-      database = FakeDatabaseSessionFactory(workflows),
-      gitOperations = NoopWorkflowGitOperations,
-      decompositionManifestStore = UnavailableDecompositionManifestStore,
-      workflowSnapshotValidator = testWorkflowSnapshotValidator,
-      decompositionManifestValidator = testDecompositionManifestValidator,
-      decompositionManifestWriter = testDecompositionManifestWriter,
-      repositoryRoot = testRepositoryRoot,
-      goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-      runtimeDiagnostics = NoopRuntimeDiagnostics,
-      clock = Clock.systemUTC(),
-    )
+    val service =
+      WorkflowService(
+        database = FakeDatabaseSessionFactory(workflows),
+        gitOperations = NoopWorkflowGitOperations,
+        decompositionManifestStore = UnavailableDecompositionManifestStore,
+        workflowSnapshotValidator = testWorkflowSnapshotValidator,
+        decompositionManifestValidator = testDecompositionManifestValidator,
+        decompositionManifestWriter = testDecompositionManifestWriter,
+        repositoryRoot = testRepositoryRoot,
+        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        runtimeDiagnostics = NoopRuntimeDiagnostics,
+        clock = Clock.systemUTC(),
+      )
 
-    val firstRuntime = assertIs<WorkflowOpenResult.Ok>(
-      service.openFeatureTask(
-        WorkflowServiceOpenFeatureTaskArgs(
-          kind = WorkflowFamilyKind.TASK_RUNTIME,
-          issueKey = "  SKILL-117  ",
-          repositoryIdentity = "repo-root-realpath-v1:/test/repository",
-          governedSpecPath = ".feature-specs/SKILL-117/spec.md",
+    val firstRuntime =
+      assertIs<WorkflowOpenResult.Ok>(
+        service.openFeatureTask(
+          WorkflowServiceOpenFeatureTaskArgs(
+            kind = WorkflowFamilyKind.TASK_RUNTIME,
+            issueKey = "  SKILL-117  ",
+            repositoryIdentity = "repo-root-realpath-v1:/test/repository",
+            governedSpecPath = ".feature-specs/SKILL-117/spec.md",
+          ),
         ),
-      ),
-    )
-    val secondRuntime = assertIs<WorkflowOpenResult.Ok>(
-      service.openFeatureTask(
-        WorkflowServiceOpenFeatureTaskArgs(
-          kind = WorkflowFamilyKind.TASK_RUNTIME,
-          issueKey = " SKILL-118 ",
-          repositoryIdentity = "repo-root-realpath-v1:/test/repository",
-          governedSpecPath = ".feature-specs/SKILL-118/spec.md",
+      )
+    val secondRuntime =
+      assertIs<WorkflowOpenResult.Ok>(
+        service.openFeatureTask(
+          WorkflowServiceOpenFeatureTaskArgs(
+            kind = WorkflowFamilyKind.TASK_RUNTIME,
+            issueKey = " SKILL-118 ",
+            repositoryIdentity = "repo-root-realpath-v1:/test/repository",
+            governedSpecPath = ".feature-specs/SKILL-118/spec.md",
+          ),
         ),
-      ),
-    )
-    val verify = assertIs<WorkflowOpenResult.Ok>(
-      service.open(WorkflowServiceOpenArgs(kind = WorkflowFamilyKind.VERIFY, issueKey = " SKILL-119 ")),
-    )
+      )
+    val verify =
+      assertIs<WorkflowOpenResult.Ok>(
+        service.open(WorkflowServiceOpenArgs(kind = WorkflowFamilyKind.VERIFY, issueKey = " SKILL-119 ")),
+      )
 
     assertEquals("SKILL-117", assertNotNull(workflows.getFeatureTaskRuntimeWorkflow(firstRuntime.workflowId)).issueKey)
     assertEquals("SKILL-118", assertNotNull(workflows.getFeatureTaskRuntimeWorkflow(secondRuntime.workflowId)).issueKey)
@@ -69,18 +74,19 @@ class WorkflowIssueKeyPersistenceTest {
   @Test
   fun `opening a workflow rejects control-bearing and oversized issue keys`() {
     val workflows = InMemoryWorkflowStates()
-    val service = WorkflowService(
-      database = FakeDatabaseSessionFactory(workflows),
-      gitOperations = NoopWorkflowGitOperations,
-      decompositionManifestStore = UnavailableDecompositionManifestStore,
-      workflowSnapshotValidator = testWorkflowSnapshotValidator,
-      decompositionManifestValidator = testDecompositionManifestValidator,
-      decompositionManifestWriter = testDecompositionManifestWriter,
-      repositoryRoot = testRepositoryRoot,
-      goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-      runtimeDiagnostics = NoopRuntimeDiagnostics,
-      clock = Clock.systemUTC(),
-    )
+    val service =
+      WorkflowService(
+        database = FakeDatabaseSessionFactory(workflows),
+        gitOperations = NoopWorkflowGitOperations,
+        decompositionManifestStore = UnavailableDecompositionManifestStore,
+        workflowSnapshotValidator = testWorkflowSnapshotValidator,
+        decompositionManifestValidator = testDecompositionManifestValidator,
+        decompositionManifestWriter = testDecompositionManifestWriter,
+        repositoryRoot = testRepositoryRoot,
+        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        runtimeDiagnostics = NoopRuntimeDiagnostics,
+        clock = Clock.systemUTC(),
+      )
 
     assertFailsWith<InvalidFeatureTaskExecutionIdentitySchemaError> {
       service.openFeatureTask(
@@ -107,12 +113,13 @@ class WorkflowIssueKeyPersistenceTest {
   @Test
   fun `runtime workflow reopen heals a missing issue key and rejects a conflicting normalized key`() {
     val workflows = InMemoryWorkflowStates()
-    val recorder = testPhaseRecorder(
-      database = FakeDatabaseSessionFactory(workflows),
-      workflowSnapshotValidator = testWorkflowSnapshotValidator,
-      handoffEnvelopeValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
-      handoffFoundationValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
-    )
+    val recorder =
+      testPhaseRecorder(
+        database = FakeDatabaseSessionFactory(workflows),
+        workflowSnapshotValidator = testWorkflowSnapshotValidator,
+        handoffEnvelopeValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        handoffFoundationValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      )
 
     recorder.ensureWorkflowOpen("wftr-117", "session-117")
     recorder.ensureWorkflowOpen("wftr-117", "session-117", issueKey = " SKILL-117 ")
@@ -121,9 +128,10 @@ class WorkflowIssueKeyPersistenceTest {
     val healed = assertNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-117"))
     assertEquals("SKILL-117", healed.issueKey)
 
-    val conflict = assertFailsWith<WorkflowIssueKeyConflictError> {
-      recorder.ensureWorkflowOpen("wftr-117", "session-117", issueKey = "SKILL-118")
-    }
+    val conflict =
+      assertFailsWith<WorkflowIssueKeyConflictError> {
+        recorder.ensureWorkflowOpen("wftr-117", "session-117", issueKey = "SKILL-118")
+      }
     assertEquals("wftr-117", conflict.workflowId)
     assertEquals("SKILL-117", conflict.persistedIssueKey)
     assertEquals("SKILL-118", conflict.requestedIssueKey)

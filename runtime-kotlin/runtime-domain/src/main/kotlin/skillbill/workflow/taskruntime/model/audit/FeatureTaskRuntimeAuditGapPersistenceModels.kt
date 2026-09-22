@@ -29,9 +29,10 @@ data class FeatureTaskRuntimeAuditGapPause(
     operatorDecision: String? = null,
     grantConsumed: Boolean = false,
   ) : this(
-    pauseKind = requireNotNull(FeatureTaskRuntimeAuditGapPauseKind.fromWire(pauseKind)) {
-      "FeatureTaskRuntimeAuditGapPause.pauseKind must be no_progress or warn_threshold, was '$pauseKind'."
-    },
+    pauseKind =
+      requireNotNull(FeatureTaskRuntimeAuditGapPauseKind.fromWire(pauseKind)) {
+        "FeatureTaskRuntimeAuditGapPause.pauseKind must be no_progress or warn_threshold, was '$pauseKind'."
+      },
     reason = reason,
     edgeIteration = edgeIteration,
     operatorDecision = operatorDecision,
@@ -55,6 +56,7 @@ data class FeatureTaskRuntimeAuditGapPause(
   companion object {
     const val AUDIT_GAP_PAUSE_DECISION_RETRY_FIX: String = "retry_fix"
     const val AUDIT_GAP_PAUSE_DECISION_ABANDON_SUBTASK: String = "abandon_subtask"
+
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeAuditGapPause {
       requireExactAuditGapPauseFields(raw)
       if (raw[SharedPayloadKeys.CONTRACT_VERSION] != FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION) {
@@ -70,9 +72,10 @@ data class FeatureTaskRuntimeAuditGapPause(
       }
       val reader = durableArtifactMapReader(raw)
       return FeatureTaskRuntimeAuditGapPause(
-        pauseKind = requireNotNull(FeatureTaskRuntimeAuditGapPauseKind.fromWire(reader.requiredString("pause_kind"))) {
-          "Unknown FeatureTaskRuntimeAuditGapPause.pauseKind."
-        },
+        pauseKind =
+          requireNotNull(FeatureTaskRuntimeAuditGapPauseKind.fromWire(reader.requiredString("pause_kind"))) {
+            "Unknown FeatureTaskRuntimeAuditGapPause.pauseKind."
+          },
         reason = reader.requiredString("reason"),
         edgeIteration = reader.requiredInt("edge_iteration"),
         operatorDecision = reader.optionalString("operator_decision"),
@@ -81,15 +84,16 @@ data class FeatureTaskRuntimeAuditGapPause(
     }
 
     private fun requireExactAuditGapPauseFields(raw: Map<String, Any?>) {
-      val expected = setOf(
-        SharedPayloadKeys.CONTRACT_VERSION,
-        "record_kind",
-        "pause_kind",
-        "reason",
-        "edge_iteration",
-        "operator_decision",
-        "grant_consumed",
-      )
+      val expected =
+        setOf(
+          SharedPayloadKeys.CONTRACT_VERSION,
+          "record_kind",
+          "pause_kind",
+          "reason",
+          "edge_iteration",
+          "operator_decision",
+          "grant_consumed",
+        )
       val unexpected = raw.keys - expected
       if (unexpected.isNotEmpty()) {
         throw InvalidWorkflowStateSchemaError(
@@ -113,6 +117,7 @@ data class FeatureTaskRuntimeAuditGapProgress(
 
   companion object {
     const val HAD_GAPS_MARKER: String = "gaps_found"
+
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeAuditGapProgress {
       requireExactAuditGapProgressFields(raw)
       if (raw[SharedPayloadKeys.CONTRACT_VERSION] != FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION) {
@@ -134,12 +139,13 @@ data class FeatureTaskRuntimeAuditGapProgress(
     }
 
     private fun requireExactAuditGapProgressFields(raw: Map<String, Any?>) {
-      val expected = setOf(
-        SharedPayloadKeys.CONTRACT_VERSION,
-        "record_kind",
-        "previous_criterion_refs",
-        "previous_repository_fingerprint",
-      )
+      val expected =
+        setOf(
+          SharedPayloadKeys.CONTRACT_VERSION,
+          "record_kind",
+          "previous_criterion_refs",
+          "previous_repository_fingerprint",
+        )
       val unexpected = raw.keys - expected
       if (unexpected.isNotEmpty()) {
         throw InvalidWorkflowStateSchemaError(

@@ -10,6 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class DecompositionManifestCodecTest {
   @Test
   fun `codec decodes manifest wire values without schema validation`() {
@@ -22,17 +23,19 @@ class DecompositionManifestCodecTest {
 
   @Test
   fun `codec round-trips spec_source and per-subtask linear_issue_id`() {
-    val manifest = validManifest().copy(
-      specSource = SpecSource.LINEAR,
-      subtasks = listOf(
-        DecompositionSubtask(
-          id = 1,
-          name = "Foundation",
-          specPath = ".feature-specs/SKILL-51-decomposition/spec_subtask_1_foundation.md",
-          linearIssueId = "SKILL-512",
-        ),
-      ),
-    )
+    val manifest =
+      validManifest().copy(
+        specSource = SpecSource.LINEAR,
+        subtasks =
+          listOf(
+            DecompositionSubtask(
+              id = 1,
+              name = "Foundation",
+              specPath = ".feature-specs/SKILL-51-decomposition/spec_subtask_1_foundation.md",
+              linearIssueId = "SKILL-512",
+            ),
+          ),
+      )
 
     val decoded = DecompositionManifestWireCodec.decode(manifest.toWireMap())
 
@@ -68,9 +71,10 @@ class DecompositionManifestCodecTest {
     val wireMap = validManifest().toWireMap().toMutableMap()
     wireMap["spec_source"] = "github"
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestWireCodec.decode(wireMap, "codec-spec-source")
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        DecompositionManifestWireCodec.decode(wireMap, "codec-spec-source")
+      }
     assertContains(error.reason, "spec_source 'github' is not supported")
   }
 
@@ -79,27 +83,30 @@ class DecompositionManifestCodecTest {
     val wireMap = validManifest().toWireMap().toMutableMap()
     wireMap["issue_key"] = 42
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestWireCodec.decode(wireMap, "codec-type-mapping")
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        DecompositionManifestWireCodec.decode(wireMap, "codec-type-mapping")
+      }
     assertContains(error.reason, "issue_key")
     assertContains(error.reason, "string")
   }
 
   @Test
   fun `codec round-trips per-subtask agent attribution`() {
-    val manifest = validManifest().copy(
-      subtasks = listOf(
-        DecompositionSubtask(
-          id = 1,
-          name = "Foundation",
-          specPath = ".feature-specs/SKILL-89-attribution/spec_subtask_1_foundation.md",
-          status = "complete",
-          finalizingAgentId = "claude",
-          participatingAgentIds = listOf("codex", "claude"),
-        ),
-      ),
-    )
+    val manifest =
+      validManifest().copy(
+        subtasks =
+          listOf(
+            DecompositionSubtask(
+              id = 1,
+              name = "Foundation",
+              specPath = ".feature-specs/SKILL-89-attribution/spec_subtask_1_foundation.md",
+              status = "complete",
+              finalizingAgentId = "claude",
+              participatingAgentIds = listOf("codex", "claude"),
+            ),
+          ),
+      )
 
     val decoded = DecompositionManifestWireCodec.decode(manifest.toWireMap())
 
@@ -111,12 +118,13 @@ class DecompositionManifestCodecTest {
   @Test
   fun `codec loads a legacy manifest without agent attribution fields, defaulting to null and empty`() {
     val wireMap = validManifest().toWireMap().toMutableMap()
-    val subtasks = requireNotNull(JsonCodec.anyToStringAnyMapList((wireMap["subtasks"]))).map { subtask ->
-      subtask.toMutableMap().apply {
-        remove("finalizing_agent_id")
-        remove("participating_agent_ids")
+    val subtasks =
+      requireNotNull(JsonCodec.anyToStringAnyMapList((wireMap["subtasks"]))).map { subtask ->
+        subtask.toMutableMap().apply {
+          remove("finalizing_agent_id")
+          remove("participating_agent_ids")
+        }
       }
-    }
     wireMap["subtasks"] = subtasks
 
     val decoded = DecompositionManifestWireCodec.decode(wireMap)
@@ -131,66 +139,73 @@ class DecompositionManifestCodecTest {
   @Test
   fun `codec rejects a non-string participating agent element`() {
     val wireMap = validManifest().toWireMap().toMutableMap()
-    val subtasks = requireNotNull(JsonCodec.anyToStringAnyMapList((wireMap["subtasks"]))).map { subtask ->
-      subtask.toMutableMap().apply { put("participating_agent_ids", listOf("codex", 7)) }
-    }
+    val subtasks =
+      requireNotNull(JsonCodec.anyToStringAnyMapList((wireMap["subtasks"]))).map { subtask ->
+        subtask.toMutableMap().apply { put("participating_agent_ids", listOf("codex", 7)) }
+      }
     wireMap["subtasks"] = subtasks
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestWireCodec.decode(wireMap, "codec-agent-attribution")
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        DecompositionManifestWireCodec.decode(wireMap, "codec-agent-attribution")
+      }
     assertContains(error.reason, "participating_agent_ids must be a list of strings")
   }
 
   @Test
   fun `codec rejects a blank-string element in participating_agent_ids`() {
     val wireMap = validManifest().toWireMap().toMutableMap()
-    val subtasks = requireNotNull(JsonCodec.anyToStringAnyMapList((wireMap["subtasks"]))).map { subtask ->
-      subtask.toMutableMap().apply { put("participating_agent_ids", listOf("codex", "")) }
-    }
+    val subtasks =
+      requireNotNull(JsonCodec.anyToStringAnyMapList((wireMap["subtasks"]))).map { subtask ->
+        subtask.toMutableMap().apply { put("participating_agent_ids", listOf("codex", "")) }
+      }
     wireMap["subtasks"] = subtasks
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestWireCodec.decode(wireMap, "codec-blank-agent-element")
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        DecompositionManifestWireCodec.decode(wireMap, "codec-blank-agent-element")
+      }
     assertContains(error.reason, "participating_agent_ids must be a list of non-blank strings")
   }
 
   @Test
   fun `manifest exposes next sibling subtask id without schema changes`() {
-    val manifest = validManifest().copy(
-      subtasks = listOf(
-        DecompositionSubtask(
-          id = 1,
-          name = "Foundation",
-          specPath = ".feature-specs/SKILL-51-decomposition/spec_subtask_1_foundation.md",
-        ),
-        DecompositionSubtask(
-          id = 3,
-          name = "Follow up",
-          specPath = ".feature-specs/SKILL-51-decomposition/spec_subtask_3_follow_up.md",
-        ),
-      ),
-    )
+    val manifest =
+      validManifest().copy(
+        subtasks =
+          listOf(
+            DecompositionSubtask(
+              id = 1,
+              name = "Foundation",
+              specPath = ".feature-specs/SKILL-51-decomposition/spec_subtask_1_foundation.md",
+            ),
+            DecompositionSubtask(
+              id = 3,
+              name = "Follow up",
+              specPath = ".feature-specs/SKILL-51-decomposition/spec_subtask_3_follow_up.md",
+            ),
+          ),
+      )
 
     assertEquals(4, manifest.nextSubtaskId())
     assertEquals(manifest, DecompositionManifestWireCodec.decode(manifest.toWireMap()))
   }
 
-  private fun validManifest(): DecompositionManifest = DecompositionManifest(
-    issueKey = "SKILL-51",
-    featureName = "decomposition",
-    parentSpecPath = ".feature-specs/SKILL-51-decomposition/spec.md",
-    baseBranch = "main",
-    featureBranch = "feature/SKILL-51-decomposition",
-    currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "start"),
-    subtasks =
-    listOf(
-      DecompositionSubtask(
-        id = 1,
-        name = "Foundation",
-        specPath = ".feature-specs/SKILL-51-decomposition/spec_subtask_1_foundation.md",
-      ),
-    ),
-  )
+  private fun validManifest(): DecompositionManifest =
+    DecompositionManifest(
+      issueKey = "SKILL-51",
+      featureName = "decomposition",
+      parentSpecPath = ".feature-specs/SKILL-51-decomposition/spec.md",
+      baseBranch = "main",
+      featureBranch = "feature/SKILL-51-decomposition",
+      currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "start"),
+      subtasks =
+        listOf(
+          DecompositionSubtask(
+            id = 1,
+            name = "Foundation",
+            specPath = ".feature-specs/SKILL-51-decomposition/spec_subtask_1_foundation.md",
+          ),
+        ),
+    )
 }

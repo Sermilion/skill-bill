@@ -23,12 +23,13 @@ class DecompositionManifestProjectionOutcomeTest {
   @Test
   fun `workflow-state projection returns absent when runtime artifact is missing`() {
     val repoRoot = Files.createTempDirectory("skillbill-projection-absent")
-    val outcome = testDecompositionManifestWriter.writeProjectionFromWorkflowState(
-      repoRoot = repoRoot,
-      artifactsJson = JsonCodec.mapToJsonString(emptyMap()),
-      validator = testDecompositionManifestValidator,
-      fileStore = TestDecompositionManifestStore,
-    )
+    val outcome =
+      testDecompositionManifestWriter.writeProjectionFromWorkflowState(
+        repoRoot = repoRoot,
+        artifactsJson = JsonCodec.mapToJsonString(emptyMap()),
+        validator = testDecompositionManifestValidator,
+        fileStore = TestDecompositionManifestStore,
+      )
     assertEquals(DecompositionManifestProjectionOutcome.Absent, outcome)
   }
 
@@ -38,27 +39,31 @@ class DecompositionManifestProjectionOutcomeTest {
     val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningResult(
-          parentSpecPath = parentSpecPath.toString(),
-          subtasks = listOf(
-            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = parentSpecPath.toString()),
-          ),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult =
+            decompositionPlanningResult(
+              parentSpecPath = parentSpecPath.toString(),
+              subtasks =
+                listOf(
+                  decompositionPlanningSubtask(id = 1, name = "foundation", specPath = parentSpecPath.toString()),
+                ),
+            ),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
+      )
     assertNotNull(initial)
-    val outcome = testDecompositionManifestWriter.writeProjectionFromWorkflowState(
-      repoRoot = repoRoot,
-      artifactsJson = durableRuntimeArtifactsJson(initial.manifest),
-      validator = testDecompositionManifestValidator,
-      fileStore = TestDecompositionManifestStore,
-    )
+    val outcome =
+      testDecompositionManifestWriter.writeProjectionFromWorkflowState(
+        repoRoot = repoRoot,
+        artifactsJson = durableRuntimeArtifactsJson(initial.manifest),
+        validator = testDecompositionManifestValidator,
+        fileStore = TestDecompositionManifestStore,
+      )
     val written = assertIs<DecompositionManifestProjectionOutcome.Written>(outcome)
     assertEquals(initial.manifestPath, written.result.manifestPath)
   }
@@ -69,42 +74,51 @@ class DecompositionManifestProjectionOutcomeTest {
     val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningResult(
-          parentSpecPath = parentSpecPath.toString(),
-          subtasks = listOf(
-            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = parentSpecPath.toString()),
-          ),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult =
+            decompositionPlanningResult(
+              parentSpecPath = parentSpecPath.toString(),
+              subtasks =
+                listOf(
+                  decompositionPlanningSubtask(id = 1, name = "foundation", specPath = parentSpecPath.toString()),
+                ),
+            ),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
+      )
     assertNotNull(initial)
     val manifestPath = initial.manifestPath.toPath()
-    val failingStore = object : DecompositionManifestStore by TestDecompositionManifestStore {
-      override fun writeTextAtomically(target: Path, content: String) {
-        if (target == manifestPath) throw IOException("simulated projection write failure")
-        TestDecompositionManifestStore.writeTextAtomically(target, content)
+    val failingStore =
+      object : DecompositionManifestStore by TestDecompositionManifestStore {
+        override fun writeTextAtomically(
+          target: Path,
+          content: String,
+        ) {
+          if (target == manifestPath) throw IOException("simulated projection write failure")
+          TestDecompositionManifestStore.writeTextAtomically(target, content)
+        }
       }
-    }
-    val outcome = testDecompositionManifestWriter.writeProjectionFromWorkflowState(
-      repoRoot = repoRoot,
-      artifactsJson = durableRuntimeArtifactsJson(initial.manifest),
-      validator = testDecompositionManifestValidator,
-      fileStore = failingStore,
-    )
+    val outcome =
+      testDecompositionManifestWriter.writeProjectionFromWorkflowState(
+        repoRoot = repoRoot,
+        artifactsJson = durableRuntimeArtifactsJson(initial.manifest),
+        validator = testDecompositionManifestValidator,
+        fileStore = failingStore,
+      )
     val failed = assertIs<DecompositionManifestProjectionOutcome.Failed>(outcome)
     assertEquals(DecompositionManifestProjectionOperations.WRITE_PROJECTION_FROM_WORKFLOW_STATE, failed.operation)
     assertEquals(manifestPath.toString(), failed.targetPath)
   }
 
-  private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest): String = JsonCodec.mapToJsonString(
-    mapOf(
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
-    ),
-  )
+  private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest): String =
+    JsonCodec.mapToJsonString(
+      mapOf(
+        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+      ),
+    )
 }

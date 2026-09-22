@@ -28,26 +28,30 @@ internal fun registerPlannedExternalPlatformPack(
   if (mode != PACK_REGISTRATION_CREATE && mode != PACK_REGISTRATION_REGISTER) {
     return
   }
-  val loader = runtime.catalogLoader ?: throw ExternalPlatformPackConfigError(
-    "External platform pack registration requires a catalog loader.",
-  )
-  val store = runtime.packSourceConfig ?: throw ExternalPlatformPackConfigError(
-    "External platform pack registration requires a source config store.",
-  )
+  val loader =
+    runtime.catalogLoader ?: throw ExternalPlatformPackConfigError(
+      "External platform pack registration requires a catalog loader.",
+    )
+  val store =
+    runtime.packSourceConfig ?: throw ExternalPlatformPackConfigError(
+      "External platform pack registration requires a source config store.",
+    )
   val normalizedRoot = root.toAbsolutePath().normalize()
   loader.assertRegistrableExternalPack(
     ExternalPlatformPackRootRequest(
       packRoot = normalizedRoot,
-      catalog = PlatformPackCatalogRequest(
-        repoRoot = repoRoot,
-        userHome = runtime.userHome,
-        environment = runtime.environment,
-      ),
+      catalog =
+        PlatformPackCatalogRequest(
+          repoRoot = repoRoot,
+          userHome = runtime.userHome,
+          environment = runtime.environment,
+        ),
     ),
   )
-  val before = store.readExternalPlatformPackSources(
-    ExternalPlatformPackSourceConfigRequest(userHome = runtime.userHome, environment = runtime.environment),
-  ).sources
+  val before =
+    store.readExternalPlatformPackSources(
+      ExternalPlatformPackSourceConfigRequest(userHome = runtime.userHome, environment = runtime.environment),
+    ).sources
   val source = ExternalPlatformPackSource(normalizedRoot.toFileLocation())
   store.registerExternalPlatformPackSource(
     ExternalPlatformPackSourceRegistrationRequest(
@@ -56,9 +60,10 @@ internal fun registerPlannedExternalPlatformPack(
       source = source,
     ),
   )
-  val alreadyPresent = before.any { existing ->
-    existing.path.toPath().toAbsolutePath().normalize() == normalizedRoot
-  }
+  val alreadyPresent =
+    before.any { existing ->
+      existing.path.toPath().toAbsolutePath().normalize() == normalizedRoot
+    }
   if (!alreadyPresent) {
     txn.registeredExternalPackRoot = normalizedRoot
     txn.externalPackConfigHome = runtime.userHome
@@ -67,19 +72,23 @@ internal fun registerPlannedExternalPlatformPack(
   }
 }
 
-internal fun rollbackRegisteredExternalPlatformPack(txn: ScaffoldTransaction, errors: MutableList<String>) {
+internal fun rollbackRegisteredExternalPlatformPack(
+  txn: ScaffoldTransaction,
+  errors: MutableList<String>,
+) {
   val root = txn.registeredExternalPackRoot ?: return
   val home = txn.externalPackConfigHome ?: return
   val store = txn.packSourceConfig ?: return
-  val failure = runCatching {
-    store.unregisterExternalPlatformPackSource(
-      ExternalPlatformPackSourceUnregisterRequest(
-        userHome = home,
-        environment = txn.externalPackConfigEnvironment,
-        source = ExternalPlatformPackSource(root.toFileLocation()),
-      ),
-    )
-  }.exceptionOrNull() ?: return
+  val failure =
+    runCatching {
+      store.unregisterExternalPlatformPackSource(
+        ExternalPlatformPackSourceUnregisterRequest(
+          userHome = home,
+          environment = txn.externalPackConfigEnvironment,
+          source = ExternalPlatformPackSource(root.toFileLocation()),
+        ),
+      )
+    }.exceptionOrNull() ?: return
   if (failure is CancellationException) throw failure
   errors += "external platform pack registration $root: ${failure.message}"
 }

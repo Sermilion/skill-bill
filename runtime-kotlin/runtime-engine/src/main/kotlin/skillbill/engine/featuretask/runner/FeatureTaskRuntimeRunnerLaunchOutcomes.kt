@@ -31,7 +31,11 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDispo
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowQueries
 import skillbill.workflow.taskruntime.validation.FeatureTaskRuntimeProviderLimitDetector
-internal fun terminalBlockedReasonFrom(phaseId: String, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? {
+
+internal fun terminalBlockedReasonFrom(
+  phaseId: String,
+  outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
+): String? {
   val status = outputMap[SharedPayloadKeys.STATUS] as? String
   if (status.workflowStepStatus() != WorkflowStepStatus.BLOCKED &&
     status.workflowStepStatus() != WorkflowStepStatus.FAILED
@@ -39,32 +43,35 @@ internal fun terminalBlockedReasonFrom(phaseId: String, outputMap: FeatureTaskRu
     return null
   }
   val summary = (outputMap[SharedPayloadKeys.SUMMARY] as? String).orEmpty().trim()
-  val blockingReasons = (outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS] as? Map<*, *>)
-    ?.get("blocking_reasons")
-    ?.let { value ->
-      when (value) {
-        is List<*> -> value.mapNotNull { it as? String }
-        is String -> listOf(value)
-        else -> emptyList()
+  val blockingReasons =
+    (outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS] as? Map<*, *>)
+      ?.get("blocking_reasons")
+      ?.let { value ->
+        when (value) {
+          is List<*> -> value.mapNotNull { it as? String }
+          is String -> listOf(value)
+          else -> emptyList()
+        }
       }
-    }
-    .orEmpty()
-  val detail = (listOf(summary) + blockingReasons)
-    .filter(String::isNotBlank)
-    .joinToString("; ")
+      .orEmpty()
+  val detail =
+    (listOf(summary) + blockingReasons)
+      .filter(String::isNotBlank)
+      .joinToString("; ")
   val disposition = FeatureTaskRuntimePhaseSafetyPolicy.dispositionForTerminalOutput(phaseId, outputMap)
   val operatorTerminalQualityGate =
     disposition == FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION &&
       (
         phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ||
           phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
-        )
-  val prefix = when {
-    operatorTerminalQualityGate -> "Phase output reported status '$status'."
-    phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ->
-      "Validation phase reported status '$status'; retrying so the agent can fix failures."
-    else -> "Phase output reported status '$status'."
-  }
+      )
+  val prefix =
+    when {
+      operatorTerminalQualityGate -> "Phase output reported status '$status'."
+      phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ->
+        "Validation phase reported status '$status'; retrying so the agent can fix failures."
+      else -> "Phase output reported status '$status'."
+    }
   return prefix + detail.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
 }
 
@@ -76,39 +83,43 @@ fun persistGoalContinuationOutcome(
   report: FeatureTaskRuntimeRunReport,
 ): FeatureTaskRuntimeRunReport {
   val context = request.goalContinuation ?: return report
-  val outcome = goalContinuationOutcomeFor(phaseRecorder, gitOperations, request, context, report)?.let { base ->
-    val attribution = agentAttributionFromPhaseState(phaseRecorder, request.workflowId)
-    base.copy(
-      finalizingAgentId = attribution.finalizingAgentId,
-      participatingAgentIds = attribution.participatingAgentIds,
-    )
-  }
+  val outcome =
+    goalContinuationOutcomeFor(phaseRecorder, gitOperations, request, context, report)?.let { base ->
+      val attribution = agentAttributionFromPhaseState(phaseRecorder, request.workflowId)
+      base.copy(
+        finalizingAgentId = attribution.finalizingAgentId,
+        participatingAgentIds = attribution.participatingAgentIds,
+      )
+    }
   outcome?.let { terminal ->
     goalContinuationRecorder.recordGoalContinuationState(
-      request = GoalContinuationStateRecordRequest(
-        workflowId = request.workflowId,
-        outcome = FeatureTaskRuntimeGoalContinuationOutcome(
-          issueKey = terminal.issueKey,
-          subtaskId = terminal.subtaskId,
-          status = terminal.status,
-          workflowId = terminal.workflowId,
-          commitSha = terminal.commitSha,
-          blockedReason = terminal.blockedReason,
-          lastResumableStep = terminal.lastResumableStep,
-          finalizingAgentId = terminal.finalizingAgentId,
-          participatingAgentIds = terminal.participatingAgentIds,
+      request =
+        GoalContinuationStateRecordRequest(
+          workflowId = request.workflowId,
+          outcome =
+            FeatureTaskRuntimeGoalContinuationOutcome(
+              issueKey = terminal.issueKey,
+              subtaskId = terminal.subtaskId,
+              status = terminal.status,
+              workflowId = terminal.workflowId,
+              commitSha = terminal.commitSha,
+              blockedReason = terminal.blockedReason,
+              lastResumableStep = terminal.lastResumableStep,
+              finalizingAgentId = terminal.finalizingAgentId,
+              participatingAgentIds = terminal.participatingAgentIds,
+            ),
+          workflowStatus =
+            when (terminal.status) {
+              GoalRunnerTerminalStatus.COMPLETE -> "completed"
+              GoalRunnerTerminalStatus.PAUSED -> FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
+              GoalRunnerTerminalStatus.FAILED,
+              GoalRunnerTerminalStatus.BLOCKED,
+              GoalRunnerTerminalStatus.TIMEOUT,
+              GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME,
+              GoalRunnerTerminalStatus.RECONCILABLE,
+              -> "blocked"
+            },
         ),
-        workflowStatus = when (terminal.status) {
-          GoalRunnerTerminalStatus.COMPLETE -> "completed"
-          GoalRunnerTerminalStatus.PAUSED -> FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
-          GoalRunnerTerminalStatus.FAILED,
-          GoalRunnerTerminalStatus.BLOCKED,
-          GoalRunnerTerminalStatus.TIMEOUT,
-          GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME,
-          GoalRunnerTerminalStatus.RECONCILABLE,
-          -> "blocked"
-        },
-      ),
     )
   }
   return when {
@@ -125,45 +136,52 @@ private fun goalContinuationOutcomeFor(
   request: FeatureTaskRuntimeRunRequest,
   context: FeatureTaskRuntimeGoalContinuationContext,
   report: FeatureTaskRuntimeRunReport,
-): FeatureTaskRuntimeSubtaskOutcome? = when (report) {
-  is FeatureTaskRuntimeRunReport.Completed ->
-    completedGoalContinuationOutcome(recorder, gitOperations, request, context)
-  is FeatureTaskRuntimeRunReport.Blocked -> FeatureTaskRuntimeSubtaskOutcome(
-    issueKey = context.parentIssueKey,
-    subtaskId = context.subtaskId,
-    status = GoalRunnerTerminalStatus.BLOCKED,
-    commitSha = null,
-    workflowId = request.workflowId,
-    blockedReason = report.blockedReason,
-    lastResumableStep = report.lastIncompletePhase,
-  )
-  is FeatureTaskRuntimeRunReport.Paused -> FeatureTaskRuntimeSubtaskOutcome(
-    issueKey = context.parentIssueKey,
-    subtaskId = context.subtaskId,
-    status = GoalRunnerTerminalStatus.PAUSED,
-    commitSha = null,
-    workflowId = request.workflowId,
-    blockedReason = report.pauseReason,
-    lastResumableStep = report.resumableStep,
-  )
-  is FeatureTaskRuntimeRunReport.Decomposed -> null
-}
+): FeatureTaskRuntimeSubtaskOutcome? =
+  when (report) {
+    is FeatureTaskRuntimeRunReport.Completed ->
+      completedGoalContinuationOutcome(recorder, gitOperations, request, context)
+    is FeatureTaskRuntimeRunReport.Blocked ->
+      FeatureTaskRuntimeSubtaskOutcome(
+        issueKey = context.parentIssueKey,
+        subtaskId = context.subtaskId,
+        status = GoalRunnerTerminalStatus.BLOCKED,
+        commitSha = null,
+        workflowId = request.workflowId,
+        blockedReason = report.blockedReason,
+        lastResumableStep = report.lastIncompletePhase,
+      )
+    is FeatureTaskRuntimeRunReport.Paused ->
+      FeatureTaskRuntimeSubtaskOutcome(
+        issueKey = context.parentIssueKey,
+        subtaskId = context.subtaskId,
+        status = GoalRunnerTerminalStatus.PAUSED,
+        commitSha = null,
+        workflowId = request.workflowId,
+        blockedReason = report.pauseReason,
+        lastResumableStep = report.resumableStep,
+      )
+    is FeatureTaskRuntimeRunReport.Decomposed -> null
+  }
 
-fun infraFailureReason(phaseId: String, facts: AgentRunLaunchFacts): String? = when {
-  facts.spawnFailed -> {
-    val base = "Feature-task-runtime phase '$phaseId' failed to launch: the agent process could not be spawned."
-    val excerpt = agentFailureExcerpt(facts.stderr, facts.stdout, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
-    if (excerpt != null) "$base\n$excerpt" else base
+fun infraFailureReason(
+  phaseId: String,
+  facts: AgentRunLaunchFacts,
+): String? =
+  when {
+    facts.spawnFailed -> {
+      val base = "Feature-task-runtime phase '$phaseId' failed to launch: the agent process could not be spawned."
+      val excerpt = agentFailureExcerpt(facts.stderr, facts.stdout, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
+      if (excerpt != null) "$base\n$excerpt" else base
+    }
+    facts.timedOut -> "Feature-task-runtime phase '$phaseId' launch timed out before the agent produced an output."
+    facts.interrupted -> "Feature-task-runtime phase '$phaseId' launch was interrupted before completion."
+    facts.exitStatus != null && facts.exitStatus != 0 -> {
+      val base = "Feature-task-runtime phase '$phaseId' agent exited with non-zero status ${facts.exitStatus}."
+      val excerpt = agentFailureExcerpt(facts.stderr, facts.stdout, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
+      if (excerpt != null) "$base\n$excerpt" else base
+    }
+    else -> null
   }
-  facts.timedOut -> "Feature-task-runtime phase '$phaseId' launch timed out before the agent produced an output."
-  facts.interrupted -> "Feature-task-runtime phase '$phaseId' launch was interrupted before completion."
-  facts.exitStatus != null && facts.exitStatus != 0 -> {
-    val base = "Feature-task-runtime phase '$phaseId' agent exited with non-zero status ${facts.exitStatus}."
-    val excerpt = agentFailureExcerpt(facts.stderr, facts.stdout, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
-    if (excerpt != null) "$base\n$excerpt" else base
-  }
-  else -> null
-}
 
 fun providerLimitSignal(facts: AgentRunLaunchFacts): FeatureTaskRuntimeProviderLimitSignal? {
   val carriesProviderVerdict = !facts.spawnFailed && !facts.timedOut && !facts.interrupted
@@ -172,24 +190,31 @@ fun providerLimitSignal(facts: AgentRunLaunchFacts): FeatureTaskRuntimeProviderL
   return FeatureTaskRuntimeProviderLimitDetector.detect(facts.stderr, facts.stdout)
 }
 
-fun providerLimitPauseReason(phaseId: String, signal: FeatureTaskRuntimeProviderLimitSignal): String {
+fun providerLimitPauseReason(
+  phaseId: String,
+  signal: FeatureTaskRuntimeProviderLimitSignal,
+): String {
   val reset = signal.resetHint?.let { " Access resets $it." }.orEmpty()
   return "Feature-task-runtime phase '$phaseId' stopped because the agent provider refused the request at a " +
     "usage limit.$reset The phase produced no output and consumed no repair attempt; the run is paused and " +
     "resumes at '$phaseId'. Provider said: ${signal.evidence}"
 }
 
-fun isProcessFailureBlockReason(phaseId: String, reason: String): Boolean =
+fun isProcessFailureBlockReason(
+  phaseId: String,
+  reason: String,
+): Boolean =
   reason.startsWith("Feature-task-runtime phase '$phaseId' ") &&
     PROCESS_FAILURE_REASON_MARKERS.any(reason::contains)
 
-private val PROCESS_FAILURE_REASON_MARKERS: List<String> = listOf(
-  "agent exited with non-zero status",
-  "failed to launch:",
-  "launch timed out",
-  "launch was interrupted",
-  "could not launch an agent",
-)
+private val PROCESS_FAILURE_REASON_MARKERS: List<String> =
+  listOf(
+    "agent exited with non-zero status",
+    "failed to launch:",
+    "launch timed out",
+    "launch was interrupted",
+    "could not launch an agent",
+  )
 
 fun invalidateLegacyPlanWithoutPreplan(completed: MutableSet<String>) {
   val plan = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
@@ -203,26 +228,28 @@ fun phaseDeclaration(
   phaseId: String,
   featureSize: FeatureTaskRuntimeFeatureSize,
   qualityGateSelection: FeatureTaskRuntimeQualityGateSelection = FeatureTaskRuntimeQualityGateSelection.VALIDATE,
-): FeatureTaskRuntimePhaseDeclaration = if (
-  phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY ||
-  phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH
-) {
-  FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationForQualityGate(
-    phaseId,
-    featureSize,
-    qualityGateSelection,
-  )
-} else {
-  FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclaration(phaseId, featureSize)
-}
+): FeatureTaskRuntimePhaseDeclaration =
+  if (
+    phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY ||
+    phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH
+  ) {
+    FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationForQualityGate(
+      phaseId,
+      featureSize,
+      qualityGateSelection,
+    )
+  } else {
+    FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclaration(phaseId, featureSize)
+  }
 
 fun missingUpstream(
   declaration: FeatureTaskRuntimePhaseDeclaration,
   recordedOutputs: List<FeatureTaskRuntimePhaseOutput>,
 ): List<String>? {
-  val resolved = FeatureTaskRuntimeHandoffContract
-    .resolveUpstreamOutputs(declaration, recordedOutputs)
-    .outputsByPhaseId
-    .keys
+  val resolved =
+    FeatureTaskRuntimeHandoffContract
+      .resolveUpstreamOutputs(declaration, recordedOutputs)
+      .outputsByPhaseId
+      .keys
   return declaration.consumedUpstreamPhaseIds.filterNot(resolved::contains).takeIf { it.isNotEmpty() }
 }

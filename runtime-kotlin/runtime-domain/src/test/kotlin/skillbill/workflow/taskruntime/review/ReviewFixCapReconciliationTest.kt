@@ -13,29 +13,34 @@ import kotlin.test.assertTrue
 class ReviewFixCapReconciliationTest {
   private val transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions
 
-  private val reviewFixEdge = transitions.backwardEdges.single { edge ->
-    edge.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
-  }
+  private val reviewFixEdge =
+    transitions.backwardEdges.single { edge ->
+      edge.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
+    }
 
-  private fun transitionAt(iteration: Int, verdict: FeatureTaskRuntimeVerdict) =
-    FeatureTaskRuntimeTransitionFunction.nextTransition(
-      declaration = transitions,
-      currentPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-      verdict = verdict,
-      edgeIterationCount = iteration,
-      context = FeatureTaskRuntimeTransitionContext(
-        settledVerdictsByPhaseId = buildMap {
-          put(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT, FeatureTaskRuntimeVerdict.SATISFIED)
-          put(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW, FeatureTaskRuntimeVerdict.APPROVED)
-          if (verdict == FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED) {
-            put(
-              FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-              FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
-            )
-          }
-        },
+  private fun transitionAt(
+    iteration: Int,
+    verdict: FeatureTaskRuntimeVerdict,
+  ) = FeatureTaskRuntimeTransitionFunction.nextTransition(
+    declaration = transitions,
+    currentPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+    verdict = verdict,
+    edgeIterationCount = iteration,
+    context =
+      FeatureTaskRuntimeTransitionContext(
+        settledVerdictsByPhaseId =
+          buildMap {
+            put(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT, FeatureTaskRuntimeVerdict.SATISFIED)
+            put(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW, FeatureTaskRuntimeVerdict.APPROVED)
+            if (verdict == FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED) {
+              put(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+                FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
+              )
+            }
+          },
       ),
-    )
+  )
 
   @Test
   fun `the review fix edge declares cap one with advance exhaustion`() {
@@ -58,18 +63,20 @@ class ReviewFixCapReconciliationTest {
 
   @Test
   fun `a second findings_verified advances to validate without re-review`() {
-    val next = assertIs<FeatureTaskRuntimeNextPhase.Next>(
-      transitionAt(1, FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED),
-    )
+    val next =
+      assertIs<FeatureTaskRuntimeNextPhase.Next>(
+        transitionAt(1, FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED),
+      )
     assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE, next.phaseId)
     assertEquals(null, next.loopId)
   }
 
   @Test
   fun `no_findings_verified advances to validate`() {
-    val next = assertIs<FeatureTaskRuntimeNextPhase.Next>(
-      transitionAt(0, FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED),
-    )
+    val next =
+      assertIs<FeatureTaskRuntimeNextPhase.Next>(
+        transitionAt(0, FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED),
+      )
     assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE, next.phaseId)
   }
 

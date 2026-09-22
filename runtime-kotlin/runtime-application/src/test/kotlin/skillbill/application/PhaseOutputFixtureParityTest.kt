@@ -5,6 +5,7 @@ import skillbill.workflow.taskruntime.artifact.validatePlanningProjection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.fail
+
 class PhaseOutputFixtureParityTest {
   private data class PhaseOutputFixture(
     val id: String,
@@ -60,10 +61,12 @@ class PhaseOutputFixtureParityTest {
       "the exemption list drifted; every non-producing phase must be named and justified, never skipped",
     )
   }
+
   private fun parsedOutputs(producedOutputs: String): Map<String, Any?> {
-    val json = requireNotNull(JsonCodec.parseObjectOrNull(producedOutputs)) {
-      "fixture produced_outputs must be a JSON object"
-    }
+    val json =
+      requireNotNull(JsonCodec.parseObjectOrNull(producedOutputs)) {
+        "fixture produced_outputs must be a JSON object"
+      }
     return requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(json)))
   }
 }

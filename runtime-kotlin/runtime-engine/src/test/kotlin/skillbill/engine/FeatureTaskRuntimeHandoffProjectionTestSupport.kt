@@ -3,6 +3,7 @@ import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBri
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffProjectionValidator
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionValue
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
+
 internal fun FeatureTaskRuntimePhaseLaunchBriefing.upstreamReceipt(producingPhaseId: String): String? =
   handoffEnvelope.projections
     .firstOrNull { projection ->
@@ -42,11 +43,12 @@ internal object PlanningProjectionFixtures {
   const val IMPLEMENT_PROSE_FIELDS: String =
     """"value":"Fixture implement prose for downstream audit.","""
 
-  fun producedOutputsOrNull(phaseId: String): String? = when (phaseId) {
-    "preplan" -> PREPLAN_DIGEST
-    "plan" -> PLAN_PROSE
-    "implement" -> IMPLEMENT_PROSE
-    "simplify" -> SIMPLIFY_PROSE
-    else -> null
-  }
+  fun producedOutputsOrNull(phaseId: String): String? =
+    when (phaseId) {
+      "preplan" -> PREPLAN_DIGEST
+      "plan" -> PLAN_PROSE
+      "implement" -> IMPLEMENT_PROSE
+      "simplify" -> SIMPLIFY_PROSE
+      else -> null
+    }
 }

@@ -14,13 +14,14 @@ internal fun shippedTransition(
   verdict: FeatureTaskRuntimeVerdict,
   edgeIterationCount: Int = 0,
   settledVerdicts: Map<String, FeatureTaskRuntimeVerdict>,
-): FeatureTaskRuntimeNextPhase = FeatureTaskRuntimeTransitionFunction.nextTransition(
-  declaration = declaration,
-  currentPhaseId = currentPhaseId,
-  verdict = verdict,
-  edgeIterationCount = edgeIterationCount,
-  context = FeatureTaskRuntimeTransitionContext(settledVerdictsByPhaseId = settledVerdicts),
-)
+): FeatureTaskRuntimeNextPhase =
+  FeatureTaskRuntimeTransitionFunction.nextTransition(
+    declaration = declaration,
+    currentPhaseId = currentPhaseId,
+    verdict = verdict,
+    edgeIterationCount = edgeIterationCount,
+    context = FeatureTaskRuntimeTransitionContext(settledVerdictsByPhaseId = settledVerdicts),
+  )
 
 private fun assertReviewFixLoopDeclaration(shipped: FeatureTaskRuntimeTransitionDeclaration) {
   val def = FeatureTaskRuntimePhaseWorkflowDefinition
@@ -35,15 +36,16 @@ private fun assertFindingsVerifiedRoutesToImplementFix(
   findingsVerifiedSettled: Map<String, FeatureTaskRuntimeVerdict>,
 ) {
   val def = FeatureTaskRuntimePhaseWorkflowDefinition
-  val fix = assertIs<FeatureTaskRuntimeNextPhase.Next>(
-    shippedTransition(
-      shipped,
-      def.PHASE_VERIFY_FINDINGS,
-      FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
-      edgeIterationCount = 0,
-      settledVerdicts = findingsVerifiedSettled,
-    ),
-  )
+  val fix =
+    assertIs<FeatureTaskRuntimeNextPhase.Next>(
+      shippedTransition(
+        shipped,
+        def.PHASE_VERIFY_FINDINGS,
+        FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
+        edgeIterationCount = 0,
+        settledVerdicts = findingsVerifiedSettled,
+      ),
+    )
   assertEquals(def.PHASE_IMPLEMENT_FIX, fix.phaseId)
   assertEquals(def.REVIEW_FIX_LOOP_ID, fix.loopId)
   assertEquals(1, fix.edgeIteration)
@@ -54,15 +56,16 @@ private fun assertFindingsVerifiedCapExhaustionAdvancesToValidate(
   findingsVerifiedSettled: Map<String, FeatureTaskRuntimeVerdict>,
 ) {
   val def = FeatureTaskRuntimePhaseWorkflowDefinition
-  val capExhausted = assertIs<FeatureTaskRuntimeNextPhase.Next>(
-    shippedTransition(
-      shipped,
-      def.PHASE_VERIFY_FINDINGS,
-      FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
-      edgeIterationCount = 1,
-      settledVerdicts = findingsVerifiedSettled,
-    ),
-  )
+  val capExhausted =
+    assertIs<FeatureTaskRuntimeNextPhase.Next>(
+      shippedTransition(
+        shipped,
+        def.PHASE_VERIFY_FINDINGS,
+        FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
+        edgeIterationCount = 1,
+        settledVerdicts = findingsVerifiedSettled,
+      ),
+    )
   assertEquals(def.PHASE_VALIDATE, capExhausted.phaseId)
   assertEquals(null, capExhausted.loopId)
 }
@@ -72,14 +75,15 @@ private fun assertNoFindingsVerifiedAdvancesToValidate(
   noFindingsSettled: Map<String, FeatureTaskRuntimeVerdict>,
 ) {
   val def = FeatureTaskRuntimePhaseWorkflowDefinition
-  val noFindings = assertIs<FeatureTaskRuntimeNextPhase.Next>(
-    shippedTransition(
-      shipped,
-      def.PHASE_VERIFY_FINDINGS,
-      FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED,
-      settledVerdicts = noFindingsSettled,
-    ),
-  )
+  val noFindings =
+    assertIs<FeatureTaskRuntimeNextPhase.Next>(
+      shippedTransition(
+        shipped,
+        def.PHASE_VERIFY_FINDINGS,
+        FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED,
+        settledVerdicts = noFindingsSettled,
+      ),
+    )
   assertEquals(def.PHASE_VALIDATE, noFindings.phaseId)
   assertEquals(null, noFindings.loopId)
 }
@@ -102,14 +106,18 @@ internal fun assertVerifyFindingsRemediationRouting(
       ),
     ).phaseId,
   )
-  val findingsVerifiedSettled = reviewApproved + mapOf(
-    def.PHASE_VERIFY_FINDINGS to FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
-  )
+  val findingsVerifiedSettled =
+    reviewApproved +
+      mapOf(
+        def.PHASE_VERIFY_FINDINGS to FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
+      )
   assertFindingsVerifiedRoutesToImplementFix(shipped, findingsVerifiedSettled)
   assertFindingsVerifiedCapExhaustionAdvancesToValidate(shipped, findingsVerifiedSettled)
-  val noFindingsSettled = reviewApproved + mapOf(
-    def.PHASE_VERIFY_FINDINGS to FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED,
-  )
+  val noFindingsSettled =
+    reviewApproved +
+      mapOf(
+        def.PHASE_VERIFY_FINDINGS to FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED,
+      )
   assertNoFindingsVerifiedAdvancesToValidate(shipped, noFindingsSettled)
   assertEquals(
     def.PHASE_VALIDATE,

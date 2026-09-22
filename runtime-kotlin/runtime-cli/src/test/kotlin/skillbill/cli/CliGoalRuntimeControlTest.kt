@@ -36,29 +36,31 @@ class CliGoalRuntimeControlTest {
   fun `goal preflight emits one json verdict without launching a child`() {
     val fixture = goalFixture(subtaskCount = 2, seedWorkflow = false)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "preflight",
-        "SKILL-901",
-        "--agent",
-        "codex",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--format",
-        "json",
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "preflight",
+          "SKILL-901",
+          "--agent",
+          "codex",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--format",
+          "json",
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
-    val payload = requireNotNull(
-      JsonCodec.anyToStringAnyMap(
-        JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(result.stdout))),
-      ),
-    ) { "Expected preflight JSON object but got: ${result.stdout}" }
+    val payload =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMap(
+          JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(result.stdout))),
+        ),
+      ) { "Expected preflight JSON object but got: ${result.stdout}" }
     assertEquals("new_work", payload["verdict"])
     assertEquals("SKILL-901", payload["issue_key"])
     assertEquals(true, payload["manifest_missing"])
@@ -76,10 +78,11 @@ class CliGoalRuntimeControlTest {
     seedTelemetryOutbox(fixture.dbPath, "skillbill_fixture_event")
     assertEquals(1, pendingTelemetryOutboxCount(fixture.dbPath))
 
-    val result = CliRuntime.run(
-      fixture.goalCommand(),
-      fixture.context(launcher = GoalFixtureAgentRunLauncher(fixture), requester = requester),
-    )
+    val result =
+      CliRuntime.run(
+        fixture.goalCommand(),
+        fixture.context(launcher = GoalFixtureAgentRunLauncher(fixture), requester = requester),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "goal SKILL-901: finished")
@@ -93,18 +96,20 @@ class CliGoalRuntimeControlTest {
     val fixture = goalFixture(subtaskCount = 2)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
-    val result = CliRuntime.run(
-      fixture.goalCommand(extra = listOf("--stop-after-subtask", "1")),
-      fixture.context(launcher = launcher),
-    )
+    val result =
+      CliRuntime.run(
+        fixture.goalCommand(extra = listOf("--stop-after-subtask", "1")),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(2, result.exitCode, result.stdout)
     assertContains(result.stdout, "goal SKILL-901: paused")
     assertEquals(listOf(1), launcher.childLaunches.map { it.skillRunRequest.subtaskId })
-    val status = CliRuntime.run(
-      listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
-      fixture.context(launcher = launcher),
-    )
+    val status =
+      CliRuntime.run(
+        listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
+        fixture.context(launcher = launcher),
+      )
     assertContains(status.stdout, "paused: true")
     assertContains(status.stdout, "stop_after_subtask: 1")
     assertContains(status.stdout, "complete: 1")
@@ -113,26 +118,29 @@ class CliGoalRuntimeControlTest {
   @Test
   fun `goal run rejects missing and non-positive stop-after subtask values`() {
     val missingFixture = goalFixture(subtaskCount = 1)
-    val missing = CliRuntime.run(
-      missingFixture.goalCommand(extra = listOf("--stop-after-subtask")),
-      missingFixture.context(launcher = GoalFixtureAgentRunLauncher(missingFixture)),
-    )
+    val missing =
+      CliRuntime.run(
+        missingFixture.goalCommand(extra = listOf("--stop-after-subtask")),
+        missingFixture.context(launcher = GoalFixtureAgentRunLauncher(missingFixture)),
+      )
     assertEquals(1, missing.exitCode, missing.stdout)
     assertContains(missing.stdout, "option --stop-after-subtask requires a value")
 
     val zeroFixture = goalFixture(subtaskCount = 1)
-    val zero = CliRuntime.run(
-      zeroFixture.goalCommand(extra = listOf("--stop-after-subtask", "0")),
-      zeroFixture.context(launcher = GoalFixtureAgentRunLauncher(zeroFixture)),
-    )
+    val zero =
+      CliRuntime.run(
+        zeroFixture.goalCommand(extra = listOf("--stop-after-subtask", "0")),
+        zeroFixture.context(launcher = GoalFixtureAgentRunLauncher(zeroFixture)),
+      )
     assertEquals(1, zero.exitCode, zero.stdout)
     assertContains(zero.stdout, "--stop-after-subtask must be a positive integer")
 
     val unknownFixture = goalFixture(subtaskCount = 1)
-    val unknown = CliRuntime.run(
-      unknownFixture.goalCommand(extra = listOf("--stop-after-subtask", "99")),
-      unknownFixture.context(launcher = GoalFixtureAgentRunLauncher(unknownFixture)),
-    )
+    val unknown =
+      CliRuntime.run(
+        unknownFixture.goalCommand(extra = listOf("--stop-after-subtask", "99")),
+        unknownFixture.context(launcher = GoalFixtureAgentRunLauncher(unknownFixture)),
+      )
     assertEquals(1, unknown.exitCode, unknown.stdout)
     assertContains(unknown.stdout, "has no subtask '99'")
   }
@@ -141,15 +149,16 @@ class CliGoalRuntimeControlTest {
   fun `goal pause is consumed at an unlaunched boundary and remains idempotent`() {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
-    val command = listOf(
-      "--db",
-      fixture.dbPath.toString(),
-      "goal",
-      "pause",
-      "SKILL-901",
-      "--repo-root",
-      fixture.tempDir.toString(),
-    )
+    val command =
+      listOf(
+        "--db",
+        fixture.dbPath.toString(),
+        "goal",
+        "pause",
+        "SKILL-901",
+        "--repo-root",
+        fixture.tempDir.toString(),
+      )
 
     val first = CliRuntime.run(command, fixture.context(launcher = launcher))
     val second = CliRuntime.run(command, fixture.context(launcher = launcher))
@@ -192,10 +201,11 @@ class CliGoalRuntimeControlTest {
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
     CliRuntime.run(goalControlCommand(fixture, "stop"), fixture.context(launcher = launcher))
-    val status = CliRuntime.run(
-      listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
-      fixture.context(launcher = launcher),
-    )
+    val status =
+      CliRuntime.run(
+        listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
+        fixture.context(launcher = launcher),
+      )
 
     assertContains(status.stdout, "paused: true")
     assertEquals(emptyList(), launcher.childLaunches)
@@ -206,18 +216,19 @@ class CliGoalRuntimeControlTest {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "stop",
-        "SKILL-404",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "stop",
+          "SKILL-404",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(1, result.exitCode, result.stdout)
     assertEquals("not_found", result.payload?.get("status"))
@@ -234,10 +245,11 @@ class CliGoalRuntimeControlTest {
     forcePendingPauseRequest(fixture.dbPath)
     val resumed = CliRuntime.run(resumeCommand, fixture.context(launcher = launcher))
     val again = CliRuntime.run(resumeCommand, fixture.context(launcher = launcher))
-    val status = CliRuntime.run(
-      listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
-      fixture.context(launcher = launcher),
-    )
+    val status =
+      CliRuntime.run(
+        listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(0, resumed.exitCode, resumed.stdout)
     assertContains(resumed.stdout, "goal SKILL-901: resumed")
@@ -258,10 +270,11 @@ class CliGoalRuntimeControlTest {
     forcePendingPauseRequest(fixture.dbPath)
 
     val result = CliRuntime.run(fixture.goalCommand(), fixture.context(launcher = launcher))
-    val status = CliRuntime.run(
-      listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
-      fixture.context(launcher = launcher),
-    )
+    val status =
+      CliRuntime.run(
+        listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals(listOf(1), launcher.childLaunches.map { it.skillRunRequest.subtaskId })
@@ -286,20 +299,21 @@ class CliGoalRuntimeControlTest {
       fixture.context(launcher = launcher),
     ).also { result -> assertEquals(0, result.exitCode, result.stdout) }
 
-    val watch = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "watch",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--interval-seconds",
-        "0",
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val watch =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "watch",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--interval-seconds",
+          "0",
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(0, watch.exitCode, watch.stdout)
     assertEquals(1, watch.payload?.get("refresh_count"))
@@ -313,22 +327,23 @@ class CliGoalRuntimeControlTest {
     CliRuntime.run(goalControlCommand(fixture, "pause"), fixture.context(launcher = launcher))
     forcePendingPauseRequest(fixture.dbPath)
 
-    val watch = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "watch",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--interval-seconds",
-        "0",
-        "--max-refreshes",
-        "1",
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val watch =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "watch",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--interval-seconds",
+          "0",
+          "--max-refreshes",
+          "1",
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(0, watch.exitCode, watch.stdout)
     assertEquals("max_refreshes", watch.payload?.get("stop_reason"))

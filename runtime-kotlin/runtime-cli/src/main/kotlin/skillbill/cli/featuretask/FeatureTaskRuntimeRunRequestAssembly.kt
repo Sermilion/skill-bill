@@ -20,6 +20,7 @@ import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
+
 internal fun FeatureTaskRuntimePhaseAgentCommand.prepareRuntimeRun(
   deps: FeatureTaskRuntimeRunDependencies,
   resolvedRepoRoot: Path = resolveCliRepositoryRoot(repoRoot, deps.inputs),
@@ -30,40 +31,46 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.prepareRuntimeRun(
   val operatorDecision = requestedOperatorDecision()
   val invokedAgentId = resolveInvokedRuntimeAgentId(agent, environment)
   val phaseAgentMap = parsePhaseAgents(phaseAgents).toMutableMap()
-  val agentAssignment = FeatureTaskRuntimeAgentAssignment(
-    perPhaseAgentIds = phaseAgentMap,
-    override = agentOverride?.takeIf(String::isNotBlank),
-  )
-  val modelAssignment = FeatureTaskRuntimeModelAssignment(
-    perPhaseDirectives = parsePhaseModels(phaseModels),
-    matrix = deps.configResolutionService.resolveExecutionMatrix(),
-  )
+  val agentAssignment =
+    FeatureTaskRuntimeAgentAssignment(
+      perPhaseAgentIds = phaseAgentMap,
+      override = agentOverride?.takeIf(String::isNotBlank),
+    )
+  val modelAssignment =
+    FeatureTaskRuntimeModelAssignment(
+      perPhaseDirectives = parsePhaseModels(phaseModels),
+      matrix = deps.configResolutionService.resolveExecutionMatrix(),
+    )
   val compactionSettings = deps.configResolutionService.resolveCompactionSettings()
-  val resolvedAgentIds = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.associateWith { phaseId ->
-    FeatureTaskRuntimeAgentResolver.resolve(phaseId, agentAssignment, invokedAgentId).resolvedAgentId
-  }
-  val directives = resolvedAgentIds.mapNotNull { (phaseId, resolvedAgentId) ->
-    FeatureTaskRuntimeModelResolver.resolve(phaseId, resolvedAgentId, modelAssignment)?.let { directive ->
-      phaseId to directive
+  val resolvedAgentIds =
+    FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.associateWith { phaseId ->
+      FeatureTaskRuntimeAgentResolver.resolve(phaseId, agentAssignment, invokedAgentId).resolvedAgentId
     }
-  }.toMap()
+  val directives =
+    resolvedAgentIds.mapNotNull { (phaseId, resolvedAgentId) ->
+      FeatureTaskRuntimeModelResolver.resolve(phaseId, resolvedAgentId, modelAssignment)?.let { directive ->
+        phaseId to directive
+      }
+    }.toMap()
   refuseUnsupportedModelDirectives(directives, resolvedAgentIds)
-  val receivingAgents = buildList {
-    addAll(resolvedAgentIds.values)
-    addAll(parsePhaseAgents(phaseAgents).values)
-    agentOverride?.takeIf(String::isNotBlank)?.let(::add)
-  }.distinct()
+  val receivingAgents =
+    buildList {
+      addAll(resolvedAgentIds.values)
+      addAll(parsePhaseAgents(phaseAgents).values)
+      agentOverride?.takeIf(String::isNotBlank)?.let(::add)
+    }.distinct()
   refuseUnavailableAgentLaunchers(receivingAgents, deps.executableLookup)
   val persistedSelection = parseAgentAddonSelection(agentAddonSelectionJson)
-  val hydratedSelection = if (persistedSelection.entries.isEmpty()) {
-    HydratedAgentAddonSelection()
-  } else {
-    deps.agentAddonSelectionPort.verifyPersisted(
-      persistedSelection,
-      AgentAddonConsumer.BILL_FEATURE,
-      receivingAgents,
-    )
-  }
+  val hydratedSelection =
+    if (persistedSelection.entries.isEmpty()) {
+      HydratedAgentAddonSelection()
+    } else {
+      deps.agentAddonSelectionPort.verifyPersisted(
+        persistedSelection,
+        AgentAddonConsumer.BILL_FEATURE,
+        receivingAgents,
+      )
+    }
   return PreparedRuntimeRun(
     resolvedRepoRoot,
     invokedAgentId,
@@ -81,8 +88,9 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.parseGoalContinuationContext(
   requestedReviewMode: CodeReviewExecutionMode?,
   environment: Map<String, String>,
 ): FeatureTaskRuntimeGoalContinuationContext? {
-  val supplied = listOf(goalParentIssueKey, goalSubtaskId, goalBranch).count { it != null } +
-    if (suppressPr) 1 else 0
+  val supplied =
+    listOf(goalParentIssueKey, goalSubtaskId, goalBranch).count { it != null } +
+      if (suppressPr) 1 else 0
   if (supplied == 0) {
     return null
   }
@@ -100,33 +108,36 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.parseGoalContinuationContext(
     codeReviewMode = requestedReviewMode,
     validationDepth = ValidationDepth.FULL,
     qualityGateSelection = requestedQualityGateSelection(environment),
-    reviewBaseline = requireNotNull(goalReviewBaseSha?.takeIf(String::isNotBlank)) {
-      "--goal-review-base-sha is required with goal-continuation options."
-    }.let { base ->
-      GoalSubtaskReviewBaseline(base, goalBaselineUntrackedPaths.distinct().sorted())
-    },
+    reviewBaseline =
+      requireNotNull(goalReviewBaseSha?.takeIf(String::isNotBlank)) {
+        "--goal-review-base-sha is required with goal-continuation options."
+      }.let { base ->
+        GoalSubtaskReviewBaseline(base, goalBaselineUntrackedPaths.distinct().sorted())
+      },
   )
 }
 
 internal fun FeatureTaskRuntimePhaseAgentCommand.requestedQualityGateSelection(
   environment: Map<String, String>,
 ): FeatureTaskRuntimeQualityGateSelection {
-  val fromEnv = environment["SKILL_BILL_QUALITY_GATE_SELECTION"]
-    ?.takeIf(String::isNotBlank)
-    ?.let(FeatureTaskRuntimeQualityGateSelection::fromWire)
-  val fromCli = when (qualityGateSelections.size) {
-    0 -> null
-    1 -> FeatureTaskRuntimeQualityGateSelection.fromWire(qualityGateSelections.single())
-    else -> {
-      val raw = qualityGateSelections.joinToString(", ")
-      if (qualityGateSelections.distinct().size == 1) {
-        throw UsageError("Duplicate --quality-gate-selection '$raw' is not allowed; supply it at most once.")
+  val fromEnv =
+    environment["SKILL_BILL_QUALITY_GATE_SELECTION"]
+      ?.takeIf(String::isNotBlank)
+      ?.let(FeatureTaskRuntimeQualityGateSelection::fromWire)
+  val fromCli =
+    when (qualityGateSelections.size) {
+      0 -> null
+      1 -> FeatureTaskRuntimeQualityGateSelection.fromWire(qualityGateSelections.single())
+      else -> {
+        val raw = qualityGateSelections.joinToString(", ")
+        if (qualityGateSelections.distinct().size == 1) {
+          throw UsageError("Duplicate --quality-gate-selection '$raw' is not allowed; supply it at most once.")
+        }
+        throw UsageError(
+          "Conflicting --quality-gate-selection values '$raw' are not allowed; supply exactly one selection.",
+        )
       }
-      throw UsageError(
-        "Conflicting --quality-gate-selection values '$raw' are not allowed; supply exactly one selection.",
-      )
     }
-  }
   return fromCli ?: fromEnv ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
 }
 
@@ -146,37 +157,40 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.requestedOperatorDecision(): Go
   }
 }
 
-internal fun FeatureTaskRuntimePhaseAgentCommand.requestedCodeReviewMode() = run {
-  val modes = codeReviewModes.map(::parseRequestedCodeReviewMode)
-  when (modes.size) {
-    0 -> null
-    1 -> modes.single()
-    else -> {
-      val rawModes = codeReviewModes.joinToString(", ")
-      if (modes.distinct().size == 1) {
+internal fun FeatureTaskRuntimePhaseAgentCommand.requestedCodeReviewMode() =
+  run {
+    val modes = codeReviewModes.map(::parseRequestedCodeReviewMode)
+    when (modes.size) {
+      0 -> null
+      1 -> modes.single()
+      else -> {
+        val rawModes = codeReviewModes.joinToString(", ")
+        if (modes.distinct().size == 1) {
+          throw UsageError(
+            "Duplicate --code-review-mode '$rawModes' is not allowed; supply it at most once.",
+          )
+        }
         throw UsageError(
-          "Duplicate --code-review-mode '$rawModes' is not allowed; supply it at most once.",
+          "Conflicting --code-review-mode values '$rawModes' are not allowed; supply exactly one mode.",
         )
       }
-      throw UsageError(
-        "Conflicting --code-review-mode values '$rawModes' are not allowed; supply exactly one mode.",
-      )
     }
   }
-}
 
-internal fun FeatureTaskRuntimePhaseAgentCommand.parseRequestedCodeReviewMode(raw: String) = try {
-  RuntimeOwnedReviewMode.parse(raw)
-} catch (error: IllegalArgumentException) {
-  throw UsageError(error.message ?: "Unknown code-review execution mode.").also { usage ->
-    runCatching { usage.initCause(error) }
+internal fun FeatureTaskRuntimePhaseAgentCommand.parseRequestedCodeReviewMode(raw: String) =
+  try {
+    RuntimeOwnedReviewMode.parse(raw)
+  } catch (error: IllegalArgumentException) {
+    throw UsageError(error.message ?: "Unknown code-review execution mode.").also { usage ->
+      runCatching { usage.initCause(error) }
+    }
   }
-}
 
-internal fun FeatureTaskRuntimePhaseAgentCommand.goalContinuationMissingFields(): List<String> = buildList {
-  if (goalParentIssueKey.isNullOrBlank()) add("--goal-parent-issue-key is")
-  if (goalSubtaskId == null) add("--goal-subtask-id is")
-  if (goalBranch.isNullOrBlank()) add("--goal-branch is")
-  if (goalReviewBaseSha.isNullOrBlank()) add("--goal-review-base-sha is")
-  if (!suppressPr) add("--suppress-pr is")
-}
+internal fun FeatureTaskRuntimePhaseAgentCommand.goalContinuationMissingFields(): List<String> =
+  buildList {
+    if (goalParentIssueKey.isNullOrBlank()) add("--goal-parent-issue-key is")
+    if (goalSubtaskId == null) add("--goal-subtask-id is")
+    if (goalBranch.isNullOrBlank()) add("--goal-branch is")
+    if (goalReviewBaseSha.isNullOrBlank()) add("--goal-review-base-sha is")
+    if (!suppressPr) add("--suppress-pr is")
+  }

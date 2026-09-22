@@ -13,16 +13,18 @@ internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations 
     allowUnchangedIndex: Boolean,
   ): WorkflowGitOperationResult {
     val expected = expectedOwnedHeadSha.trim()
-    val precondition = gitCheckpointProtectedBranchFailure(repoRoot)
-      ?: gitCheckpointOwnedHeadFailure(repoRoot, expected)
-      ?: if (allowUnchangedIndex) null else gitCheckpointStagedContentFailure(repoRoot, expected)
+    val precondition =
+      gitCheckpointProtectedBranchFailure(repoRoot)
+        ?: gitCheckpointOwnedHeadFailure(repoRoot, expected)
+        ?: if (allowUnchangedIndex) null else gitCheckpointStagedContentFailure(repoRoot, expected)
     precondition?.let { return it }
     val message = replacementMessage?.trim()
-    val amendArgs = if (message.isNullOrBlank()) {
-      listOf("commit", "--amend", "--no-edit")
-    } else {
-      listOf("commit", "--amend", "-m", message)
-    }
+    val amendArgs =
+      if (message.isNullOrBlank()) {
+        listOf("commit", "--amend", "--no-edit")
+      } else {
+        listOf("commit", "--amend", "-m", message)
+      }
     val amended = runGitCommand(repoRoot, amendArgs)
     if (amended !is WorkflowGitOperationResult.Ok) return amended
     return runGitCommand(repoRoot, "rev-parse", "HEAD")
@@ -40,8 +42,9 @@ internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations 
     refName: String,
     targetSha: String,
   ): WorkflowGitOperationResult {
-    val ref = gitCheckpointValidatedRef(namespacePrefix, refName)
-      ?: return gitCheckpointRejectedRef(namespacePrefix, refName)
+    val ref =
+      gitCheckpointValidatedRef(namespacePrefix, refName)
+        ?: return gitCheckpointRejectedRef(namespacePrefix, refName)
     val target = targetSha.trim()
     if (target.isBlank()) {
       return WorkflowGitOperationResult.Failed(error = "A target sha is required to write ref '$ref'.")
@@ -49,9 +52,14 @@ internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations 
     return runGitCommand(repoRoot, "update-ref", ref, target).withValue(ref)
   }
 
-  override fun resolveRef(repoRoot: Path, namespacePrefix: String, refName: String): WorkflowGitOperationResult {
-    val ref = gitCheckpointValidatedRef(namespacePrefix, refName)
-      ?: return gitCheckpointRejectedRef(namespacePrefix, refName)
+  override fun resolveRef(
+    repoRoot: Path,
+    namespacePrefix: String,
+    refName: String,
+  ): WorkflowGitOperationResult {
+    val ref =
+      gitCheckpointValidatedRef(namespacePrefix, refName)
+        ?: return gitCheckpointRejectedRef(namespacePrefix, refName)
     val resolved = runGitCommand(repoRoot, "for-each-ref", "--format=%(objectname)", ref)
     if (resolved !is WorkflowGitOperationResult.Ok) {
       return WorkflowGitOperationResult.Failed(
@@ -61,7 +69,10 @@ internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations 
     return WorkflowGitOperationResult.Ok(value = resolved.value.orEmpty().trim())
   }
 
-  override fun listRefs(repoRoot: Path, namespacePrefix: String): WorkflowGitOperationResult {
+  override fun listRefs(
+    repoRoot: Path,
+    namespacePrefix: String,
+  ): WorkflowGitOperationResult {
     val prefix = namespacePrefix.trim()
     if (prefix.isBlank()) {
       return WorkflowGitOperationResult.Failed(error = "A ref namespace prefix is required.")
@@ -74,9 +85,14 @@ internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations 
     )
   }
 
-  override fun deleteRef(repoRoot: Path, namespacePrefix: String, refName: String): WorkflowGitOperationResult {
-    val ref = gitCheckpointValidatedRef(namespacePrefix, refName)
-      ?: return gitCheckpointRejectedRef(namespacePrefix, refName)
+  override fun deleteRef(
+    repoRoot: Path,
+    namespacePrefix: String,
+    refName: String,
+  ): WorkflowGitOperationResult {
+    val ref =
+      gitCheckpointValidatedRef(namespacePrefix, refName)
+        ?: return gitCheckpointRejectedRef(namespacePrefix, refName)
     val existing = runGitCommand(repoRoot, "rev-parse", "--verify", "--quiet", ref)
     if (existing !is WorkflowGitOperationResult.Ok || existing.value.orEmpty().isBlank()) {
       return WorkflowGitOperationResult.Ok(value = ref)

@@ -16,16 +16,17 @@ class CompactionSettingsModelsTest {
 
   @Test
   fun `parses a full settings block with a phase override`() {
-    val parsed = assertIs<CompactionSettingsParse.Valid>(
-      parseCompactionSettings(
-        mapOf(
-          "enabled" to true,
-          "window_tokens" to 400_000,
-          "trigger_pct" to 70,
-          "phases" to mapOf("implement" to mapOf("window_tokens" to 600_000, "trigger_pct" to 80)),
+    val parsed =
+      assertIs<CompactionSettingsParse.Valid>(
+        parseCompactionSettings(
+          mapOf(
+            "enabled" to true,
+            "window_tokens" to 400_000,
+            "trigger_pct" to 70,
+            "phases" to mapOf("implement" to mapOf("window_tokens" to 600_000, "trigger_pct" to 80)),
+          ),
         ),
-      ),
-    )
+      )
 
     assertEquals(PhaseCompactionDirective(600_000, 80), parsed.settings.directiveFor("implement"))
     assertEquals(PhaseCompactionDirective(400_000, 70), parsed.settings.directiveFor("audit"))
@@ -33,11 +34,12 @@ class CompactionSettingsModelsTest {
 
   @Test
   fun `a phase override inherits unspecified fields from the top level`() {
-    val parsed = assertIs<CompactionSettingsParse.Valid>(
-      parseCompactionSettings(
-        mapOf("window_tokens" to 500_000, "phases" to mapOf("audit" to mapOf("trigger_pct" to 90))),
-      ),
-    )
+    val parsed =
+      assertIs<CompactionSettingsParse.Valid>(
+        parseCompactionSettings(
+          mapOf("window_tokens" to 500_000, "phases" to mapOf("audit" to mapOf("trigger_pct" to 90))),
+        ),
+      )
 
     assertEquals(PhaseCompactionDirective(500_000, 90), parsed.settings.directiveFor("audit"))
   }
@@ -52,9 +54,10 @@ class CompactionSettingsModelsTest {
 
   @Test
   fun `a trigger below the thrash floor is rejected`() {
-    val parsed = assertIs<CompactionSettingsParse.Invalid>(
-      parseCompactionSettings(mapOf("window_tokens" to 150_000, "trigger_pct" to 60)),
-    )
+    val parsed =
+      assertIs<CompactionSettingsParse.Invalid>(
+        parseCompactionSettings(mapOf("window_tokens" to 150_000, "trigger_pct" to 60)),
+      )
 
     assertEquals("compaction.window_tokens", parsed.keyPath)
     assertEquals(true, parsed.reason.contains("thrashing"))
@@ -62,20 +65,22 @@ class CompactionSettingsModelsTest {
 
   @Test
   fun `a large window cannot smuggle a thrashing trigger through a small percentage`() {
-    val parsed = assertIs<CompactionSettingsParse.Invalid>(
-      parseCompactionSettings(mapOf("window_tokens" to 1_000_000, "trigger_pct" to 10)),
-    )
+    val parsed =
+      assertIs<CompactionSettingsParse.Invalid>(
+        parseCompactionSettings(mapOf("window_tokens" to 1_000_000, "trigger_pct" to 10)),
+      )
 
     assertEquals("compaction.window_tokens", parsed.keyPath)
   }
 
   @Test
   fun `a thrashing phase override is rejected even when the top level is sane`() {
-    val parsed = assertIs<CompactionSettingsParse.Invalid>(
-      parseCompactionSettings(
-        mapOf("window_tokens" to 400_000, "phases" to mapOf("implement" to mapOf("window_tokens" to 100_000))),
-      ),
-    )
+    val parsed =
+      assertIs<CompactionSettingsParse.Invalid>(
+        parseCompactionSettings(
+          mapOf("window_tokens" to 400_000, "phases" to mapOf("implement" to mapOf("window_tokens" to 100_000))),
+        ),
+      )
 
     assertEquals("compaction.phases.implement.window_tokens", parsed.keyPath)
   }

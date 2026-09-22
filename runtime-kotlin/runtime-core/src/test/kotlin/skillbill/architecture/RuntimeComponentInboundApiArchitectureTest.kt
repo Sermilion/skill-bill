@@ -11,9 +11,10 @@ class RuntimeComponentInboundApiArchitectureTest {
 
   @Test
   fun `RuntimeComponent abstract service property set matches the pinned inventory`() {
-    val source = ArchitectureScanSupport.runtimeRoot
-      .resolve(PrincipleEnforcementInventory.RUNTIME_COMPONENT_SOURCE)
-      .readText()
+    val source =
+      ArchitectureScanSupport.runtimeRoot
+        .resolve(PrincipleEnforcementInventory.RUNTIME_COMPONENT_SOURCE)
+        .readText()
     assertPinnedServiceProperties(source)
   }
 
@@ -41,13 +42,14 @@ class RuntimeComponentInboundApiArchitectureTest {
     )
   }
 
-  private fun componentSource(properties: Set<String>): String = buildString {
-    appendLine("abstract class RuntimeComponent {")
-    properties.forEach { property ->
-      appendLine("  abstract val $property: Service")
+  private fun componentSource(properties: Set<String>): String =
+    buildString {
+      appendLine("abstract class RuntimeComponent {")
+      properties.forEach { property ->
+        appendLine("  abstract val $property: Service")
+      }
+      appendLine("}")
     }
-    appendLine("}")
-  }
 
   @Test
   fun `composition surface exposes only classified public callables`() {
@@ -57,7 +59,8 @@ class RuntimeComponentInboundApiArchitectureTest {
 
   @Test
   fun `abstract property scanner reports added abstract properties across modifier forms`() {
-    val source = """
+    val source =
+      """
       package skillbill.di
 
       abstract class RuntimeComponent {
@@ -69,7 +72,7 @@ class RuntimeComponentInboundApiArchitectureTest {
         abstract var mutableSurface: MutableSurface
         fun helper(): Int = 1
       }
-    """.trimIndent()
+      """.trimIndent()
     assertEquals(
       setOf(
         "goalRunner",
@@ -85,18 +88,20 @@ class RuntimeComponentInboundApiArchitectureTest {
 
   @Test
   fun `public callable scanner fails when RuntimeComponent adds a helper with unchanged abstract properties`() {
-    val source = """
+    val source =
+      """
       package skillbill.di
 
       abstract class RuntimeComponent {
         abstract val goalRunner: GoalRunner
         fun extraHelper(): Int = 1
       }
-    """.trimIndent()
-    val violations = ArchitectureScanSupport.runtimeComponentPublicCallableViolationsInSource(
-      PrincipleEnforcementInventory.RUNTIME_COMPONENT_SOURCE,
-      source,
-    )
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.runtimeComponentPublicCallableViolationsInSource(
+        PrincipleEnforcementInventory.RUNTIME_COMPONENT_SOURCE,
+        source,
+      )
     assertEquals(
       listOf(
         "${PrincipleEnforcementInventory.RUNTIME_COMPONENT_SOURCE} exposes public function " +
@@ -108,7 +113,8 @@ class RuntimeComponentInboundApiArchitectureTest {
 
   @Test
   fun `public callable scanner fails when a provider mixin adds a helper`() {
-    val source = """
+    val source =
+      """
       package skillbill.di
 
       internal interface RuntimeExampleProvides {
@@ -117,11 +123,12 @@ class RuntimeComponentInboundApiArchitectureTest {
 
         fun mixinHelper(): Int = 1
       }
-    """.trimIndent()
-    val violations = ArchitectureScanSupport.runtimeComponentPublicCallableViolationsInSource(
-      "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeExampleProvides.kt",
-      source,
-    )
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.runtimeComponentPublicCallableViolationsInSource(
+        "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeExampleProvides.kt",
+        source,
+      )
     assertEquals(
       listOf(
         "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeExampleProvides.kt exposes public " +
@@ -133,7 +140,8 @@ class RuntimeComponentInboundApiArchitectureTest {
 
   @Test
   fun `public callable scanner allows only Provides methods including runtimeContext and databaseSessionFactory`() {
-    val source = """
+    val source =
+      """
       package skillbill.di
 
       abstract class RuntimeComponent {
@@ -144,7 +152,7 @@ class RuntimeComponentInboundApiArchitectureTest {
         fun databaseSessionFactory(context: EnvironmentContext): DatabaseSessionFactory =
           RuntimeBootstrapBindings.databaseSessionFactory(context)
       }
-    """.trimIndent()
+      """.trimIndent()
     assertTrue(ArchitectureScanSupport.runtimeComponentPublicCallableViolationsInSource("example.kt", source).isEmpty())
   }
 }

@@ -1,7 +1,10 @@
 package skillbill.architecture
 
 object AuthoredSuppressionScanner {
-  fun scan(relativePath: String, lines: Sequence<String>): List<ArchitectureScanSupport.AuthoredSuppression> {
+  fun scan(
+    relativePath: String,
+    lines: Sequence<String>,
+  ): List<ArchitectureScanSupport.AuthoredSuppression> {
     val state = ScanState(relativePath)
     lines.forEach { rawLine -> state.handleLine(rawLine.trim()) }
     state.flushPending()
@@ -63,7 +66,10 @@ object AuthoredSuppressionScanner {
       maybeFlushPendingOnAnchor(trimmed, matches)
     }
 
-    private fun applyDeclarationContext(trimmed: String, matches: DeclarationMatches) {
+    private fun applyDeclarationContext(
+      trimmed: String,
+      matches: DeclarationMatches,
+    ) {
       val declarationMatch = matches.topLevel
       if (declarationMatch != null && trimmed.startsWith(declarationMatch.value.trim())) {
         topLevelSymbol = declarationMatch.groupValues[2]
@@ -75,7 +81,10 @@ object AuthoredSuppressionScanner {
       }
     }
 
-    private fun maybeFlushPendingOnAnchor(trimmed: String, matches: DeclarationMatches) {
+    private fun maybeFlushPendingOnAnchor(
+      trimmed: String,
+      matches: DeclarationMatches,
+    ) {
       if (pendingRules.isEmpty()) return
       val anchored = matches.function != null || matches.topLevel != null || trimmed.contains('=')
       if (!anchored) return
@@ -109,9 +118,10 @@ object AuthoredSuppressionScanner {
       INLINE_SUPPRESS_PATTERN.containsMatchIn(trimmed)
   }
 
-  private fun suppressionRules(annotationLine: String): List<String> = SUPPRESS_RULE_PATTERN.findAll(annotationLine)
-    .map { match -> match.groupValues[1] }
-    .toList()
+  private fun suppressionRules(annotationLine: String): List<String> =
+    SUPPRESS_RULE_PATTERN.findAll(annotationLine)
+      .map { match -> match.groupValues[1] }
+      .toList()
 
   private fun String.withoutCommentText(): String {
     var remaining = this
@@ -123,11 +133,12 @@ object AuthoredSuppressionScanner {
         remaining = ""
       } else {
         output.append(remaining.take(next.start))
-        remaining = if (next.isLineComment) {
-          ""
-        } else {
-          remaining.drop(next.endExclusive)
-        }
+        remaining =
+          if (next.isLineComment) {
+            ""
+          } else {
+            remaining.drop(next.endExclusive)
+          }
       }
     }
     return output.toString()

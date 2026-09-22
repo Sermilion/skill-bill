@@ -12,12 +12,18 @@ import java.sql.Connection
 internal class LifecycleTelemetryFeatureTaskSessionAdapter(
   private val connection: Connection,
 ) : FeatureTaskRuntimeLifecycleTelemetryRepository {
-  override fun featureTaskRuntimeStarted(record: FeatureTaskRuntimeStartedRecord, level: String) {
+  override fun featureTaskRuntimeStarted(
+    record: FeatureTaskRuntimeStartedRecord,
+    level: String,
+  ) {
     saveFeatureTaskRuntimeStarted(connection, record)
     emitFeatureTaskRuntimeStarted(connection, record.sessionId, level)
   }
 
-  override fun featureTaskRuntimeFinished(record: FeatureTaskRuntimeFinishedRecord, level: String) {
+  override fun featureTaskRuntimeFinished(
+    record: FeatureTaskRuntimeFinishedRecord,
+    level: String,
+  ) {
     if (saveFeatureTaskRuntimeFinished(connection, record) == TerminalSaveOutcome.FIRST_TERMINAL) {
       emitFeatureTaskRuntimeFinished(connection, record.sessionId, level)
     }

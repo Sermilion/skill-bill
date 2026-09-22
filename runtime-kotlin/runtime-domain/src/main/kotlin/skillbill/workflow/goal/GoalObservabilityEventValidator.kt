@@ -8,9 +8,10 @@ fun invalidGoalObservabilityEvent(
   fieldPath: String,
   reason: String,
   cause: Throwable? = null,
-): InvalidGoalObservabilityEventSchemaError = InvalidGoalObservabilityEventSchemaError(
-  sourceLabel = sourceLabel,
-  fieldPath = fieldPath,
-  reason = reason,
-  cause = cause,
-)
+): InvalidGoalObservabilityEventSchemaError =
+  InvalidGoalObservabilityEventSchemaError(
+    sourceLabel = sourceLabel,
+    fieldPath = fieldPath,
+    reason = reason,
+    cause = cause,
+  )

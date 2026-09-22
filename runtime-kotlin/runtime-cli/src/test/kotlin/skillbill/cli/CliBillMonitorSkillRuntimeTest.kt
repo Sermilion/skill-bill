@@ -14,19 +14,20 @@ class CliBillMonitorSkillRuntimeTest {
     val fixture = goalFixture(subtaskCount = 2)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "status",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--monitor",
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "status",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--monitor",
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals(
@@ -58,33 +59,35 @@ class CliBillMonitorSkillRuntimeTest {
   fun `monitor reports a durable pause in the bounded resumable state`() {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
-    val pause = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "pause",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val pause =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "pause",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = launcher),
+      )
     assertEquals(0, pause.exitCode, pause.stdout)
 
-    val monitor = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "status",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--monitor",
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val monitor =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "status",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--monitor",
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(0, monitor.exitCode, monitor.stdout)
     assertEquals("paused", monitor.payload?.get("resumable_state"))
@@ -97,19 +100,20 @@ class CliBillMonitorSkillRuntimeTest {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "status",
-        "skill-901\nspoofed",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--monitor",
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "status",
+          "skill-901\nspoofed",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--monitor",
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(1, result.exitCode)
     assertContains(result.stdout, "Monitor requires a non-blank issue key")
@@ -121,19 +125,20 @@ class CliBillMonitorSkillRuntimeTest {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "status",
-        "SKILL-999",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--monitor",
-      ),
-      fixture.context(launcher = launcher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "status",
+          "SKILL-999",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--monitor",
+        ),
+        fixture.context(launcher = launcher),
+      )
 
     assertEquals(1, result.exitCode)
     assertEquals(setOf("status", "issue_key", "resumable_state"), result.payload!!.keys)

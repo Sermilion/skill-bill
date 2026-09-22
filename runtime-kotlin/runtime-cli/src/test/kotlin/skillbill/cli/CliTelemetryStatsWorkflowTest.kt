@@ -64,11 +64,11 @@ class CliTelemetryStatsWorkflowTest {
     val context =
       CliRuntimeContext(
         environment =
-        mapOf(
-          CONFIG_ENVIRONMENT_KEY to configPath.toString(),
-          TELEMETRY_PROXY_URL_ENVIRONMENT_KEY to "https://telemetry.example.dev/ingest",
-          TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY to "stats-token-123",
-        ),
+          mapOf(
+            CONFIG_ENVIRONMENT_KEY to configPath.toString(),
+            TELEMETRY_PROXY_URL_ENVIRONMENT_KEY to "https://telemetry.example.dev/ingest",
+            TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY to "stats-token-123",
+          ),
         requester = runtimeStatsRequester(capturedRequests),
       )
 
@@ -109,38 +109,38 @@ private fun runtimeStatsRequester(capturedRequests: MutableList<Map<String, Any?
         RemoteTransportResponse(
           statusCode = 200,
           body =
-          """
-          {
-            "contract_version": "1",
-            "source": "custom_capabilities",
-            "supports_ingest": true,
-            "supports_stats": true,
-            "supported_workflows": ["bill-feature-verify", "feature-task-runtime"],
-            "region": "eu"
-          }
-          """.trimIndent(),
+            """
+            {
+              "contract_version": "1",
+              "source": "custom_capabilities",
+              "supports_ingest": true,
+              "supports_stats": true,
+              "supported_workflows": ["bill-feature-verify", "feature-task-runtime"],
+              "region": "eu"
+            }
+            """.trimIndent(),
         )
       url.endsWith("/stats") ->
         RemoteTransportResponse(
           statusCode = 200,
           body =
-          """
-          {
-            "status": "ok",
-            "workflow": "feature-task-runtime",
-            "date_from": "2026-04-01",
-            "date_to": "2026-04-22",
-            "source": "remote_proxy",
-            "started_runs": 14,
-            "finished_runs": 12,
-            "in_progress_runs": 2,
-            "capabilities": {
-              "source": "stats_inline",
-              "supports_stats": true,
-              "inline_only": true
+            """
+            {
+              "status": "ok",
+              "workflow": "feature-task-runtime",
+              "date_from": "2026-04-01",
+              "date_to": "2026-04-22",
+              "source": "remote_proxy",
+              "started_runs": 14,
+              "finished_runs": 12,
+              "in_progress_runs": 2,
+              "capabilities": {
+                "source": "stats_inline",
+                "supports_stats": true,
+                "inline_only": true
+              }
             }
-          }
-          """.trimIndent(),
+            """.trimIndent(),
         )
       else -> error("unexpected request $url")
     }

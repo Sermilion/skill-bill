@@ -53,17 +53,23 @@ internal class FeatureTaskWorkflowStateStore(
   override fun terminalizeLegacyProseFeatureTaskWorkflow(row: WorkflowStateRecord) =
     rows.terminalizeLegacyProseFeatureTaskWorkflow(row)
 
-  override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) =
-    rows.saveFeatureTaskWorkflow(row, mode)
+  override fun saveFeatureTaskWorkflow(
+    row: WorkflowStateRecord,
+    mode: FeatureTaskWorkflowMode,
+  ) = rows.saveFeatureTaskWorkflow(row, mode)
 
   override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
     rows.getFeatureTaskWorkflow(workflowId)
 
-  override fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
-    rows.getFeatureTaskWorkflowAsMode(workflowId, mode)
+  override fun getFeatureTaskWorkflowAsMode(
+    workflowId: String,
+    mode: FeatureTaskWorkflowMode,
+  ): WorkflowStateRecord? = rows.getFeatureTaskWorkflowAsMode(workflowId, mode)
 
-  override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
-    rows.listFeatureTaskWorkflows(mode, limit)
+  override fun listFeatureTaskWorkflows(
+    mode: FeatureTaskWorkflowMode,
+    limit: Int,
+  ): List<WorkflowStateRecord> = rows.listFeatureTaskWorkflows(mode, limit)
 
   override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
     rows.latestFeatureTaskWorkflow(mode)

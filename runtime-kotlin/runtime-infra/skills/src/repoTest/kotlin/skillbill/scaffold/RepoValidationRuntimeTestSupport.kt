@@ -7,27 +7,38 @@ import skillbill.infrastructure.skills.scaffold.runtime.service.support.required
 import skillbill.testsupport.SkillClassFixtures
 import java.nio.file.Files
 import java.nio.file.Path
+
 internal fun completeMitLicense(): String = Files.readString(repositoryRoot().resolve("LICENSE"))
 
-internal fun repositoryRoot(): Path = generateSequence(Path.of("").toAbsolutePath().normalize()) { it.parent }
-  .first { Files.isRegularFile(it.resolve("LICENSE")) }
+internal fun repositoryRoot(): Path =
+  generateSequence(Path.of("").toAbsolutePath().normalize()) { it.parent }
+    .first { Files.isRegularFile(it.resolve("LICENSE")) }
 
-internal fun seedInternalSkill(repoRoot: Path, name: String, internalFor: String?) {
+internal fun seedInternalSkill(
+  repoRoot: Path,
+  name: String,
+  internalFor: String?,
+) {
   val skillDir = repoRoot.resolve("skills/$name")
   Files.createDirectories(skillDir)
-  val frontmatter = buildString {
-    appendLine("---")
-    appendLine("name: $name")
-    appendLine("description: $name skill.")
-    if (internalFor != null) {
-      appendLine("internal-for: $internalFor")
+  val frontmatter =
+    buildString {
+      appendLine("---")
+      appendLine("name: $name")
+      appendLine("description: $name skill.")
+      if (internalFor != null) {
+        appendLine("internal-for: $internalFor")
+      }
+      appendLine("---")
     }
-    appendLine("---")
-  }
   Files.writeString(skillDir.resolve("content.md"), "$frontmatter\n# $name\n\nBody.\n")
 }
 
-internal fun seedPlatformReviewPack(repoRoot: Path, slug: String, body: String) {
+internal fun seedPlatformReviewPack(
+  repoRoot: Path,
+  slug: String,
+  body: String,
+) {
   val skillName = "bill-$slug-code-review"
   val contentFile = repoRoot.resolve("platform-packs/$slug/code-review/$skillName/content.md")
   Files.createDirectories(contentFile.parent)
@@ -67,14 +78,14 @@ internal fun createRepoValidationSkillFixture(
   Files.writeString(
     skillDir.resolve("content.md"),
     """
-      ---
-      name: bill-code-review
-      description: Review code.
-      ---
+    ---
+    name: bill-code-review
+    description: Review code.
+    ---
 
-      # Code Review Content
+    # Code Review Content
 
-      Authored review guidance for the code-review baseline skill fixture.
+    Authored review guidance for the code-review baseline skill fixture.
     """.trimIndent(),
   )
   if (!writeSidecars) {
@@ -92,7 +103,10 @@ internal fun createRepoValidationSkillFixture(
   }
 }
 
-internal fun writeNativeAgentFixture(skillDir: Path, name: String) {
+internal fun writeNativeAgentFixture(
+  skillDir: Path,
+  name: String,
+) {
   val source = NativeAgentSource(name = name, description = "Review changed code.", body = "# Worker\n\nReview it.")
   val sourcePath = skillDir.resolve("native-agents/$name.md")
   Files.createDirectories(sourcePath.parent)

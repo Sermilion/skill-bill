@@ -25,7 +25,10 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 
 fun interface GoalPlanningSweep {
-  fun prepare(state: GoalRunnerManifestState, request: GoalRunnerRunRequest): GoalPlanningSweepOutcome
+  fun prepare(
+    state: GoalRunnerManifestState,
+    request: GoalRunnerRunRequest,
+  ): GoalPlanningSweepOutcome
 
   companion object {
     val NONE: GoalPlanningSweep = GoalPlanningSweep { _, _ -> GoalPlanningSweepOutcome.PreparedAll() }
@@ -53,16 +56,21 @@ class DefaultGoalPlanningSweep(
   val burstSchedule = launchBoundaries.burstSchedule
   val refreshLiveness = launchBoundaries.refreshLiveness
 
-  override fun prepare(state: GoalRunnerManifestState, request: GoalRunnerRunRequest): GoalPlanningSweepOutcome {
-    val identity = GoalPlanningIdentity(
-      state.parentWorkflowId,
-      state.manifest.issueKey.trim().uppercase(),
-      "repo-root-realpath-v1:${canonicalRepository(request.repoRoot, repositoryEnclosingRootPort)}",
-    )
-    val existingShared = runCatching { checkpoint.findSharedPreplan(identity) }
-      .getOrElse { error ->
-        return preSweepStopped(request, preparationStateReadReason(error, request.issueKey, 0))
-      }
+  override fun prepare(
+    state: GoalRunnerManifestState,
+    request: GoalRunnerRunRequest,
+  ): GoalPlanningSweepOutcome {
+    val identity =
+      GoalPlanningIdentity(
+        state.parentWorkflowId,
+        state.manifest.issueKey.trim().uppercase(),
+        "repo-root-realpath-v1:${canonicalRepository(request.repoRoot, repositoryEnclosingRootPort)}",
+      )
+    val existingShared =
+      runCatching { checkpoint.findSharedPreplan(identity) }
+        .getOrElse { error ->
+          return preSweepStopped(request, preparationStateReadReason(error, request.issueKey, 0))
+        }
     val recoveredPacket = existingShared?.let(::planningPacketFrom)
     if (existingShared != null && recoveredPacket == null) {
       return preSweepStopped(
@@ -73,8 +81,9 @@ class DefaultGoalPlanningSweep(
         ),
       )
     }
-    val gathered = runCatching { gatherSharedContext(this, state, request, recoveredPacket) }
-      .getOrElse { error -> return preSweepStopped(request, sharedContextReason(error)) }
+    val gathered =
+      runCatching { gatherSharedContext(this, state, request, recoveredPacket) }
+        .getOrElse { error -> return preSweepStopped(request, sharedContextReason(error)) }
     return continueAfterSharedContext(state, request, identity, existingShared, gathered)
   }
 
@@ -86,20 +95,22 @@ class DefaultGoalPlanningSweep(
     gathered: GoalPlanningSharedContext,
   ): GoalPlanningSweepOutcome {
     var shared = gathered
-    val activeSubtasks = state.manifest.subtasks.filter {
-      it.id in GoalPlanningSharedContextPacket.includedSubtaskIds(shared.planningPacket)
-    }
+    val activeSubtasks =
+      state.manifest.subtasks.filter {
+        it.id in GoalPlanningSharedContextPacket.includedSubtaskIds(shared.planningPacket)
+      }
     return when (
-      val settled = settleSharedPreplan(
-        SharedPreplanSettlementArgs(
-          existingShared = existingShared,
-          currentProvenance = currentProvenance(shared),
-          shared = shared,
-          state = state,
-          request = request,
-          identity = identity,
-        ),
-      )
+      val settled =
+        settleSharedPreplan(
+          SharedPreplanSettlementArgs(
+            existingShared = existingShared,
+            currentProvenance = currentProvenance(shared),
+            shared = shared,
+            state = state,
+            request = request,
+            identity = identity,
+          ),
+        )
     ) {
       is SharedPreplanSettlement.Halt -> settled.outcome
       is SharedPreplanSettlement.Ready -> {

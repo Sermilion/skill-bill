@@ -38,29 +38,32 @@ class ReviewContextModelsTest {
     assertNotEquals(slash.hunkId, delimiter.hunkId)
 
     val packet = launchPacket(path = "odd|name\\tab\t.kt")
-    val launch = GovernedReviewLaunch(
-      launchAssignment(packet),
-      packet,
-      "contract",
-      "rubric",
-      "broker",
-      ReviewContextBudgetPolicy.DEFAULT,
-    )
+    val launch =
+      GovernedReviewLaunch(
+        launchAssignment(packet),
+        packet,
+        "contract",
+        "rubric",
+        "broker",
+        ReviewContextBudgetPolicy.DEFAULT,
+      )
     assertTrue("  - \"odd|name\\\\tab\\t.kt\"" in launch.canonicalPayload)
   }
 
   @Test fun `parent canonical bytes exclude hunk body size`() {
     val tiny = ReviewChangedHunk("A.kt", 1, 1, 1, 2, "+tiny")
     val huge = ReviewChangedHunk("A.kt", 1, 1, 1, 2, "+" + "x".repeat(1_048_576))
-    fun packetFor(hunk: ReviewChangedHunk) = ReviewContextPacket(
-      "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(), listOf("security"),
-      listOf(hunk),
-      commitUnits = listOf(syntheticUnit(listOf(hunk))),
-      coverageFact = fact(),
-      routingMatrix = focusedMatrix(listOf(syntheticUnit(listOf(hunk))), listOf("security")),
-      reviewRevision = revision(),
-      laneDecisions = listOf(lane("security", listOf("A.kt"))),
-    )
+
+    fun packetFor(hunk: ReviewChangedHunk) =
+      ReviewContextPacket(
+        "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(), listOf("security"),
+        listOf(hunk),
+        commitUnits = listOf(syntheticUnit(listOf(hunk))),
+        coverageFact = fact(),
+        routingMatrix = focusedMatrix(listOf(syntheticUnit(listOf(hunk))), listOf("security")),
+        reviewRevision = revision(),
+        laneDecisions = listOf(lane("security", listOf("A.kt"))),
+      )
     val growth = packetFor(huge).canonicalBytes - packetFor(tiny).canonicalBytes
     assertTrue(growth < 1_048_576)
     assertNotEquals(tiny.hunkId, huge.hunkId)
@@ -76,7 +79,12 @@ class ReviewContextModelsTest {
     assertFailsWith<IllegalArgumentException> { requireRepositoryRelativePath("runtime-kotlin\\..\\secret.kt") }
     requireRepositoryRelativePath("A|b\\c\\t.kt")
   }
-  private fun lane(name: String, paths: List<String>, reason: String = "routed") = ReviewLaneDecision(
+
+  private fun lane(
+    name: String,
+    paths: List<String>,
+    reason: String = "routed",
+  ) = ReviewLaneDecision(
     name,
     true,
     reason,
@@ -86,14 +94,20 @@ class ReviewContextModelsTest {
     specialistSkillName = "bill-kotlin-code-review-$name",
   )
 
-  private fun revision(session: String = "review", run: Int = 1) = ReviewRevision(session, run)
+  private fun revision(
+    session: String = "review",
+    run: Int = 1,
+  ) = ReviewRevision(session, run)
 
   private val launchHunk = ReviewChangedHunk("A.kt", 1, 1, 1, 2, "+alpha")
 
   private fun syntheticUnit(hunks: List<ReviewChangedHunk>) =
     ReviewCommitUnit.synthetic(ReviewCommitSource.SYNTHETIC_WORKING_TREE, hunks)
 
-  private fun focusedMatrix(units: List<ReviewCommitUnit>, lanes: List<String>) = ReviewCommitLaneRoutingMatrix(
+  private fun focusedMatrix(
+    units: List<ReviewCommitUnit>,
+    lanes: List<String>,
+  ) = ReviewCommitLaneRoutingMatrix(
     units.sortedBy { it.orderIndex }.map { it.commitSha },
     lanes,
     units.sortedBy { it.orderIndex }.flatMap { unit ->
@@ -103,42 +117,47 @@ class ReviewContextModelsTest {
     },
   )
 
-  private fun fact(count: Int = 1) = ReviewCommitCoverageFact(
-    "base",
-    "head",
-    count,
-    chainVerified = false,
-    pathCoverageVerified = true,
-    degradedReason = "synthetic working-tree unit",
-  )
+  private fun fact(count: Int = 1) =
+    ReviewCommitCoverageFact(
+      "base",
+      "head",
+      count,
+      chainVerified = false,
+      pathCoverageVerified = true,
+      degradedReason = "synthetic working-tree unit",
+    )
 
-  private fun launchPacket(path: String = "A.kt") = ReviewContextPacket(
-    "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(), listOf("security"),
-    listOf(if (path == launchHunk.path) launchHunk else launchHunk.copy(path = path)),
-    commitUnits = listOf(
-      syntheticUnit(listOf(if (path == launchHunk.path) launchHunk else launchHunk.copy(path = path))),
-    ),
-    coverageFact = fact(),
-    routingMatrix = focusedMatrix(
-      listOf(syntheticUnit(listOf(if (path == launchHunk.path) launchHunk else launchHunk.copy(path = path)))),
-      listOf("security"),
-    ),
-    reviewRevision = revision(),
-    laneDecisions = listOf(lane("security", listOf(path))),
-  )
+  private fun launchPacket(path: String = "A.kt") =
+    ReviewContextPacket(
+      "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(), listOf("security"),
+      listOf(if (path == launchHunk.path) launchHunk else launchHunk.copy(path = path)),
+      commitUnits =
+        listOf(
+          syntheticUnit(listOf(if (path == launchHunk.path) launchHunk else launchHunk.copy(path = path))),
+        ),
+      coverageFact = fact(),
+      routingMatrix =
+        focusedMatrix(
+          listOf(syntheticUnit(listOf(if (path == launchHunk.path) launchHunk else launchHunk.copy(path = path)))),
+          listOf("security"),
+        ),
+      reviewRevision = revision(),
+      laneDecisions = listOf(lane("security", listOf(path))),
+    )
 
   private fun launchAssignment(
     packet: ReviewContextPacket,
     hunks: List<String> = packet.changedHunks.map { it.hunkId },
   ) = ReviewAssignment(
     "review", packet.digest, "security", "base", "head", packet.changedHunks.map { it.path }, hunks,
-    assignedBundle = ReviewLaneBundle(
-      packet.commitUnits.sortedBy { it.orderIndex }.mapNotNull { unit ->
-        unit.hunkIds.filter { it in hunks }
-          .takeIf { it.isNotEmpty() }
-          ?.let { ReviewLaneBundleEntry(unit.commitSha, unit.orderIndex, it) }
-      },
-    ),
+    assignedBundle =
+      ReviewLaneBundle(
+        packet.commitUnits.sortedBy { it.orderIndex }.mapNotNull { unit ->
+          unit.hunkIds.filter { it in hunks }
+            .takeIf { it.isNotEmpty() }
+            ?.let { ReviewLaneBundleEntry(unit.commitSha, unit.orderIndex, it) }
+        },
+      ),
     laneRouting = packet.routingMatrix.decisionsFor("security"),
     reviewRevision = revision(), laneDecision = lane("security", packet.changedHunks.map { it.path }),
     baselineUntrackedPolicy = packet.baselineUntrackedPolicy,
@@ -155,7 +174,10 @@ class ReviewContextModelsTest {
   }
 
   @Test fun `assignment digest is stable`() {
-    fun value(paths: List<String>, criteria: List<String>) = ReviewAssignment(
+    fun value(
+      paths: List<String>,
+      criteria: List<String>,
+    ) = ReviewAssignment(
       "review", "a".repeat(64), "security", "base", "head", paths, listOf("hunk"),
       criteriaReferences = criteria,
       reviewRevision = revision(), laneDecision = lane("security", paths),
@@ -167,10 +189,11 @@ class ReviewContextModelsTest {
   }
 
   @Test fun `assignment digest tracks revision lane decision and dependency allowlist`() {
-    val base = ReviewAssignment(
-      "review", "a".repeat(64), "security", "base", "head", listOf("A.kt"), listOf("b".repeat(64)),
-      reviewRevision = revision(), laneDecision = lane("security", listOf("A.kt")),
-    )
+    val base =
+      ReviewAssignment(
+        "review", "a".repeat(64), "security", "base", "head", listOf("A.kt"), listOf("b".repeat(64)),
+        reviewRevision = revision(), laneDecision = lane("security", listOf("A.kt")),
+      )
     assertEquals(base.digest, base.copy(assignedPaths = listOf("A.kt")).digest)
     assertTrue(base.digest != base.copy(reviewRevision = ReviewRevision("review", 2)).digest)
     assertTrue(
@@ -221,15 +244,19 @@ class ReviewContextModelsTest {
   }
 
   @Test fun `packet digest preserves repository identity while normalizing ordering and line endings`() {
-    fun packet(path: String, status: String) = ReviewContextPacket(
+    fun packet(
+      path: String,
+      status: String,
+    ) = ReviewContextPacket(
       "review", "repo", "base", "head", status, "kotlin", "kotlin", listOf("z", "a"), listOf("testing"),
       listOf(ReviewChangedHunk(path, 1, 1, 1, 1, "+line\r\n")),
       commitUnits = listOf(syntheticUnit(listOf(ReviewChangedHunk(path, 1, 1, 1, 1, "+line\r\n")))),
       coverageFact = fact(),
-      routingMatrix = focusedMatrix(
-        listOf(syntheticUnit(listOf(ReviewChangedHunk(path, 1, 1, 1, 1, "+line\r\n")))),
-        listOf("testing"),
-      ),
+      routingMatrix =
+        focusedMatrix(
+          listOf(syntheticUnit(listOf(ReviewChangedHunk(path, 1, 1, 1, 1, "+line\r\n")))),
+          listOf("testing"),
+        ),
       reviewRevision = revision(),
       laneDecisions = listOf(lane("testing", listOf(path))),
     )
@@ -240,46 +267,52 @@ class ReviewContextModelsTest {
   @Test fun `packet digest is deterministic for hunks tied on path and new start`() {
     val first = ReviewChangedHunk("A.kt", 1, 1, 5, 1, "+first")
     val second = ReviewChangedHunk("A.kt", 3, 1, 5, 2, "+second")
-    fun packet(hunks: List<ReviewChangedHunk>) = ReviewContextPacket(
-      "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(), listOf("security"), hunks,
-      commitUnits = listOf(syntheticUnit(hunks.sortedBy { it.hunkId })),
-      coverageFact = fact(),
-      routingMatrix = focusedMatrix(listOf(syntheticUnit(hunks.sortedBy { it.hunkId })), listOf("security")),
-      reviewRevision = revision(),
-      laneDecisions = listOf(lane("security", listOf("A.kt"))),
-    )
+
+    fun packet(hunks: List<ReviewChangedHunk>) =
+      ReviewContextPacket(
+        "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(), listOf("security"), hunks,
+        commitUnits = listOf(syntheticUnit(hunks.sortedBy { it.hunkId })),
+        coverageFact = fact(),
+        routingMatrix = focusedMatrix(listOf(syntheticUnit(hunks.sortedBy { it.hunkId })), listOf("security")),
+        reviewRevision = revision(),
+        laneDecisions = listOf(lane("security", listOf("A.kt"))),
+      )
     assertEquals(packet(listOf(first, second)).digest, packet(listOf(second, first)).digest)
   }
 
   @Test fun `baseline untracked policy is digest bound and mutually exclusive`() {
-    val included = ReviewBaselineUntrackedPolicy(
-      includedPaths = listOf("src/New.kt"),
-      excludedPaths = listOf("docs/old.md"),
-    )
+    val included =
+      ReviewBaselineUntrackedPolicy(
+        includedPaths = listOf("src/New.kt"),
+        excludedPaths = listOf("docs/old.md"),
+      )
     val packet = launchPacket().copy(baselineUntrackedPolicy = included)
-    val changedPolicy = packet.copy(
-      baselineUntrackedPolicy = ReviewBaselineUntrackedPolicy(excludedPaths = listOf("src/New.kt")),
-    )
+    val changedPolicy =
+      packet.copy(
+        baselineUntrackedPolicy = ReviewBaselineUntrackedPolicy(excludedPaths = listOf("src/New.kt")),
+      )
     assertNotEquals(packet.digest, changedPolicy.digest)
     assertNotEquals(packet.digest, packet.copy(baseRevision = "other-base").digest)
     assertNotEquals(packet.digest, packet.copy(headRevision = "other-head").digest)
-    val launch = GovernedReviewLaunch(
-      launchAssignment(packet),
-      packet,
-      "contract",
-      "rubric",
-      "broker",
-      ReviewContextBudgetPolicy.DEFAULT,
-    )
+    val launch =
+      GovernedReviewLaunch(
+        launchAssignment(packet),
+        packet,
+        "contract",
+        "rubric",
+        "broker",
+        ReviewContextBudgetPolicy.DEFAULT,
+      )
     assertTrue("baseline_untracked_policy" in launch.canonicalPayload)
     assertTrue("src/New.kt" in launch.canonicalPayload)
     assertTrue("docs/old.md" in launch.canonicalPayload)
     assertFailsWith<IllegalArgumentException> {
       ReviewBaselineUntrackedPolicy(listOf("src/New.kt"), listOf("src/New.kt"))
     }
-    val forgedAssignment = launchAssignment(packet).copy(
-      baselineUntrackedPolicy = ReviewBaselineUntrackedPolicy.EMPTY,
-    )
+    val forgedAssignment =
+      launchAssignment(packet).copy(
+        baselineUntrackedPolicy = ReviewBaselineUntrackedPolicy.EMPTY,
+      )
     assertFailsWith<IllegalArgumentException> {
       GovernedReviewLaunch(forgedAssignment, packet, "contract", "rubric", "broker", ReviewContextBudgetPolicy.DEFAULT)
     }
@@ -287,14 +320,15 @@ class ReviewContextModelsTest {
 
   @Test fun `governed Codex launches reject inherited and omitted turns`() {
     val packet = launchPacket()
-    val launch = GovernedReviewLaunch(
-      launchAssignment(packet),
-      packet,
-      "contract",
-      "rubric",
-      "broker",
-      ReviewContextBudgetPolicy.DEFAULT,
-    )
+    val launch =
+      GovernedReviewLaunch(
+        launchAssignment(packet),
+        packet,
+        "contract",
+        "rubric",
+        "broker",
+        ReviewContextBudgetPolicy.DEFAULT,
+      )
     launch.requireCodexForkTurns("none")
     assertFailsWith<IllegalArgumentException> { launch.requireCodexForkTurns(null) }
     assertFailsWith<IllegalArgumentException> { launch.requireCodexForkTurns("all") }
@@ -333,9 +367,10 @@ class ReviewContextModelsTest {
     assertFailsWith<IllegalArgumentException> {
       GovernedReviewLaunch(changedDecision, packet, "contract", "rubric", "broker", ReviewContextBudgetPolicy.DEFAULT)
     }
-    val escapingDependency = launchAssignment(packet).copy(
-      dependencyAllowlist = ReviewDependencyAllowlist(listOf("Elsewhere.kt")),
-    )
+    val escapingDependency =
+      launchAssignment(packet).copy(
+        dependencyAllowlist = ReviewDependencyAllowlist(listOf("Elsewhere.kt")),
+      )
     assertFailsWith<IllegalArgumentException> {
       GovernedReviewLaunch(
         escapingDependency,
@@ -351,28 +386,31 @@ class ReviewContextModelsTest {
   @Test fun `assignment-scaled lane evidence budgets differ when bundle content bytes differ`() {
     val small = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+a")
     val large = ReviewChangedHunk("src/B.kt", 1, 1, 1, 2, "+" + "x".repeat(100_000))
-    val packet = ReviewContextPacket(
-      "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(),
-      listOf("security", "testing"),
-      listOf(small, large),
-      commitUnits = listOf(syntheticUnit(listOf(small, large))),
-      coverageFact = fact(),
-      routingMatrix = focusedMatrix(listOf(syntheticUnit(listOf(small, large))), listOf("security", "testing")),
-      reviewRevision = revision(),
-      laneDecisions = listOf(lane("security", listOf("src/A.kt")), lane("testing", listOf("src/B.kt"))),
-    )
-    val narrow = launchAssignment(packet, listOf(small.hunkId)).copy(
-      lane = "security",
-      assignedPaths = listOf("src/A.kt"),
-      laneDecision = lane("security", listOf("src/A.kt")),
-      laneRouting = packet.routingMatrix.decisionsFor("security"),
-    )
-    val broad = launchAssignment(packet, listOf(large.hunkId)).copy(
-      lane = "testing",
-      assignedPaths = listOf("src/B.kt"),
-      laneDecision = lane("testing", listOf("src/B.kt")),
-      laneRouting = packet.routingMatrix.decisionsFor("testing"),
-    )
+    val packet =
+      ReviewContextPacket(
+        "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(),
+        listOf("security", "testing"),
+        listOf(small, large),
+        commitUnits = listOf(syntheticUnit(listOf(small, large))),
+        coverageFact = fact(),
+        routingMatrix = focusedMatrix(listOf(syntheticUnit(listOf(small, large))), listOf("security", "testing")),
+        reviewRevision = revision(),
+        laneDecisions = listOf(lane("security", listOf("src/A.kt")), lane("testing", listOf("src/B.kt"))),
+      )
+    val narrow =
+      launchAssignment(packet, listOf(small.hunkId)).copy(
+        lane = "security",
+        assignedPaths = listOf("src/A.kt"),
+        laneDecision = lane("security", listOf("src/A.kt")),
+        laneRouting = packet.routingMatrix.decisionsFor("security"),
+      )
+    val broad =
+      launchAssignment(packet, listOf(large.hunkId)).copy(
+        lane = "testing",
+        assignedPaths = listOf("src/B.kt"),
+        laneDecision = lane("testing", listOf("src/B.kt")),
+        laneRouting = packet.routingMatrix.decisionsFor("testing"),
+      )
     val base = ReviewContextBudgetPolicy.DEFAULT
     val narrowBudget = ReviewContextBudgetPolicy.deriveLaneEvidenceBytes(base, narrow, packet)
     val broadBudget = ReviewContextBudgetPolicy.deriveLaneEvidenceBytes(base, broad, packet)
@@ -383,16 +421,17 @@ class ReviewContextModelsTest {
   @Test fun `derived lane evidence budget satisfies policy init`() {
     val small = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+a")
     val large = ReviewChangedHunk("src/B.kt", 1, 1, 1, 2, "+" + "x".repeat(100_000))
-    val packet = ReviewContextPacket(
-      "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(),
-      listOf("security"),
-      listOf(small, large),
-      commitUnits = listOf(syntheticUnit(listOf(small, large))),
-      coverageFact = fact(),
-      routingMatrix = focusedMatrix(listOf(syntheticUnit(listOf(small, large))), listOf("security")),
-      reviewRevision = revision(),
-      laneDecisions = listOf(lane("security", listOf("src/A.kt"))),
-    )
+    val packet =
+      ReviewContextPacket(
+        "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(),
+        listOf("security"),
+        listOf(small, large),
+        commitUnits = listOf(syntheticUnit(listOf(small, large))),
+        coverageFact = fact(),
+        routingMatrix = focusedMatrix(listOf(syntheticUnit(listOf(small, large))), listOf("security")),
+        reviewRevision = revision(),
+        laneDecisions = listOf(lane("security", listOf("src/A.kt"))),
+      )
     val assignment = launchAssignment(packet, listOf(small.hunkId))
     val base = ReviewContextBudgetPolicy.DEFAULT
     val derived = ReviewContextBudgetPolicy.deriveLaneEvidenceBytes(base, assignment, packet)
@@ -405,31 +444,35 @@ class ReviewContextModelsTest {
   @Test fun `parent merged evidence allowance matches sum of per-lane derived caps`() {
     val small = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+a")
     val large = ReviewChangedHunk("src/B.kt", 1, 1, 1, 2, "+" + "x".repeat(100_000))
-    val packet = ReviewContextPacket(
-      "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(),
-      listOf("security", "testing"),
-      listOf(small, large),
-      commitUnits = listOf(syntheticUnit(listOf(small, large))),
-      coverageFact = fact(),
-      routingMatrix = focusedMatrix(listOf(syntheticUnit(listOf(small, large))), listOf("security", "testing")),
-      reviewRevision = revision(),
-      laneDecisions = listOf(lane("security", listOf("src/A.kt")), lane("testing", listOf("src/B.kt"))),
-    )
+    val packet =
+      ReviewContextPacket(
+        "review", "repo", "base", "head", "clean", "kotlin", "kotlin", emptyList(),
+        listOf("security", "testing"),
+        listOf(small, large),
+        commitUnits = listOf(syntheticUnit(listOf(small, large))),
+        coverageFact = fact(),
+        routingMatrix = focusedMatrix(listOf(syntheticUnit(listOf(small, large))), listOf("security", "testing")),
+        reviewRevision = revision(),
+        laneDecisions = listOf(lane("security", listOf("src/A.kt")), lane("testing", listOf("src/B.kt"))),
+      )
     val base = ReviewContextBudgetPolicy.DEFAULT
-    val narrow = launchAssignment(packet, listOf(small.hunkId)).copy(
-      lane = "security",
-      assignedPaths = listOf("src/A.kt"),
-      laneDecision = lane("security", listOf("src/A.kt")),
-      laneRouting = packet.routingMatrix.decisionsFor("security"),
-    )
-    val broad = launchAssignment(packet, listOf(large.hunkId)).copy(
-      lane = "testing",
-      assignedPaths = listOf("src/B.kt"),
-      laneDecision = lane("testing", listOf("src/B.kt")),
-      laneRouting = packet.routingMatrix.decisionsFor("testing"),
-    )
-    val mergedSum = ReviewContextBudgetPolicy.deriveLaneEvidenceBytes(base, narrow, packet) +
-      ReviewContextBudgetPolicy.deriveLaneEvidenceBytes(base, broad, packet)
+    val narrow =
+      launchAssignment(packet, listOf(small.hunkId)).copy(
+        lane = "security",
+        assignedPaths = listOf("src/A.kt"),
+        laneDecision = lane("security", listOf("src/A.kt")),
+        laneRouting = packet.routingMatrix.decisionsFor("security"),
+      )
+    val broad =
+      launchAssignment(packet, listOf(large.hunkId)).copy(
+        lane = "testing",
+        assignedPaths = listOf("src/B.kt"),
+        laneDecision = lane("testing", listOf("src/B.kt")),
+        laneRouting = packet.routingMatrix.decisionsFor("testing"),
+      )
+    val mergedSum =
+      ReviewContextBudgetPolicy.deriveLaneEvidenceBytes(base, narrow, packet) +
+        ReviewContextBudgetPolicy.deriveLaneEvidenceBytes(base, broad, packet)
     assertNotEquals(base.maxLaneEvidenceBytes * 2, mergedSum)
   }
 

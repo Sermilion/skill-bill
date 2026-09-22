@@ -12,10 +12,12 @@ data class FeatureTaskRuntimeValidationCommandResult(
   init {
     require(command.isNotBlank()) { "Validation command must be non-blank." }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    ValidationEvidencePayloadKeys.COMMAND to command,
-    ValidationEvidencePayloadKeys.EXIT_CODE to exitCode,
-  )
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      ValidationEvidencePayloadKeys.COMMAND to command,
+      ValidationEvidencePayloadKeys.EXIT_CODE to exitCode,
+    )
 }
 
 data class FeatureTaskRuntimeValidationEvidence(
@@ -27,20 +29,23 @@ data class FeatureTaskRuntimeValidationEvidence(
       "Validation evidence cannot contain more than $MAX_VALIDATION_RESULTS results."
     }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    ValidationEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
-    ValidationEvidencePayloadKeys.RESULTS to results.map(FeatureTaskRuntimeValidationCommandResult::toArtifactMap),
-  )
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      ValidationEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
+      ValidationEvidencePayloadKeys.RESULTS to results.map(FeatureTaskRuntimeValidationCommandResult::toArtifactMap),
+    )
 
   fun requireSuccessfulCommand(
     requiredCommand: String,
     sourceLabel: String,
   ): FeatureTaskRuntimeValidationCommandResult {
-    val result = results.lastOrNull { it.command == requiredCommand }
-      ?: throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
-        sourceLabel,
-        "missing required validation command result '$requiredCommand'.",
-      )
+    val result =
+      results.lastOrNull { it.command == requiredCommand }
+        ?: throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
+          sourceLabel,
+          "missing required validation command result '$requiredCommand'.",
+        )
     if (result.exitCode != 0) {
       throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
         sourceLabel,
@@ -51,11 +56,12 @@ data class FeatureTaskRuntimeValidationEvidence(
   }
 
   fun requireSuccessfulResult(sourceLabel: String): FeatureTaskRuntimeValidationCommandResult {
-    val result = results.lastOrNull()
-      ?: throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
-        sourceLabel,
-        "validation evidence has no command results.",
-      )
+    val result =
+      results.lastOrNull()
+        ?: throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
+          sourceLabel,
+          "validation evidence has no command results.",
+        )
     if (result.exitCode != 0) {
       throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
         sourceLabel,
@@ -66,15 +72,20 @@ data class FeatureTaskRuntimeValidationEvidence(
   }
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>, sourceLabel: String): FeatureTaskRuntimeValidationEvidence {
-      val allowed = setOf(
-        ValidationEvidencePayloadKeys.CONTRACT_VERSION,
-        ValidationEvidencePayloadKeys.RESULTS,
-      )
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      sourceLabel: String,
+    ): FeatureTaskRuntimeValidationEvidence {
+      val allowed =
+        setOf(
+          ValidationEvidencePayloadKeys.CONTRACT_VERSION,
+          ValidationEvidencePayloadKeys.RESULTS,
+        )
       val unknown = raw.keys - allowed
       if (unknown.isNotEmpty()) invalid(sourceLabel, "unknown keys ${unknown.sorted()}.")
-      val version = raw[ValidationEvidencePayloadKeys.CONTRACT_VERSION] as? String
-        ?: invalid(sourceLabel, "contract_version is missing.")
+      val version =
+        raw[ValidationEvidencePayloadKeys.CONTRACT_VERSION] as? String
+          ?: invalid(sourceLabel, "contract_version is missing.")
       if (version != FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION) {
         invalid(
           sourceLabel,
@@ -82,20 +93,24 @@ data class FeatureTaskRuntimeValidationEvidence(
             "'$FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION'.",
         )
       }
-      val rawResults = raw[ValidationEvidencePayloadKeys.RESULTS] as? List<*>
-        ?: invalid(sourceLabel, "results must be a list.")
-      val results = rawResults.mapIndexed { index, item ->
-        val result = item as? Map<*, *> ?: invalid(sourceLabel, "results[$index] must be a mapping.")
-        if (result.keys.any { it !is String }) {
-          invalid(sourceLabel, "results[$index] has a non-string key.")
+      val rawResults =
+        raw[ValidationEvidencePayloadKeys.RESULTS] as? List<*>
+          ?: invalid(sourceLabel, "results must be a list.")
+      val results =
+        rawResults.mapIndexed { index, item ->
+          val result = item as? Map<*, *> ?: invalid(sourceLabel, "results[$index] must be a mapping.")
+          if (result.keys.any { it !is String }) {
+            invalid(sourceLabel, "results[$index] has a non-string key.")
+          }
+          val command =
+            result[ValidationEvidencePayloadKeys.COMMAND] as? String
+              ?: invalid(sourceLabel, "results[$index].command must be a string.")
+          val exitCode =
+            result[ValidationEvidencePayloadKeys.EXIT_CODE].asIntegerOrNull()
+              ?: invalid(sourceLabel, "results[$index].exit_code must be an integer.")
+          if (command.isBlank()) invalid(sourceLabel, "results[$index].command must be non-blank.")
+          FeatureTaskRuntimeValidationCommandResult(command, exitCode)
         }
-        val command = result[ValidationEvidencePayloadKeys.COMMAND] as? String
-          ?: invalid(sourceLabel, "results[$index].command must be a string.")
-        val exitCode = result[ValidationEvidencePayloadKeys.EXIT_CODE].asIntegerOrNull()
-          ?: invalid(sourceLabel, "results[$index].exit_code must be an integer.")
-        if (command.isBlank()) invalid(sourceLabel, "results[$index].command must be non-blank.")
-        FeatureTaskRuntimeValidationCommandResult(command, exitCode)
-      }
       return try {
         FeatureTaskRuntimeValidationEvidence(results)
       } catch (error: IllegalArgumentException) {
@@ -103,15 +118,18 @@ data class FeatureTaskRuntimeValidationEvidence(
       }
     }
 
-    private fun invalid(sourceLabel: String, reason: String): Nothing =
-      throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(sourceLabel, reason)
+    private fun invalid(
+      sourceLabel: String,
+      reason: String,
+    ): Nothing = throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(sourceLabel, reason)
   }
 }
 
-private fun Any?.asIntegerOrNull(): Int? = when (this) {
-  is Int -> this
-  is Long -> toInt().takeIf { it.toLong() == this }
-  is Short -> toInt()
-  is Byte -> toInt()
-  else -> null
-}
+private fun Any?.asIntegerOrNull(): Int? =
+  when (this) {
+    is Int -> this
+    is Long -> toInt().takeIf { it.toLong() == this }
+    is Short -> toInt()
+    is Byte -> toInt()
+    else -> null
+  }

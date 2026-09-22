@@ -4,18 +4,20 @@ import skillbill.error.core.InvalidFeatureSpecPreparationRequestError
 import skillbill.featurespec.model.FeatureSpecPreparationDecision
 import skillbill.featurespec.model.FeatureSpecPreparationIntake
 import skillbill.featurespec.model.FeatureSpecPreparationMode
+
 object FeatureSpecPreparationPolicy {
-  private val decomposedHints = listOf(
-    "decompose",
-    "decomposed",
-    "subtask",
-    "subtasks",
-    "resumable",
-    "milestone",
-    "milestones",
-    "multi-step",
-    "multi step",
-  )
+  private val decomposedHints =
+    listOf(
+      "decompose",
+      "decomposed",
+      "subtask",
+      "subtasks",
+      "resumable",
+      "milestone",
+      "milestones",
+      "multi-step",
+      "multi step",
+    )
 
   fun prepare(intake: FeatureSpecPreparationIntake): FeatureSpecPreparationDecision {
     val issueKey = intake.issueKey.trim()
@@ -28,16 +30,18 @@ object FeatureSpecPreparationPolicy {
       invalidRequest("intended_outcome", "intended outcome is required.")
     }
 
-    val acceptanceCriteria = normalizeRequiredList(
-      values = intake.acceptanceCriteria,
-      fieldPath = "acceptance_criteria",
-      emptyReason = "at least one acceptance criterion is required.",
-    )
-    val constraints = normalizeRequiredList(
-      values = intake.constraints,
-      fieldPath = "constraints",
-      emptyReason = "at least one constraint is required.",
-    )
+    val acceptanceCriteria =
+      normalizeRequiredList(
+        values = intake.acceptanceCriteria,
+        fieldPath = "acceptance_criteria",
+        emptyReason = "at least one acceptance criterion is required.",
+      )
+    val constraints =
+      normalizeRequiredList(
+        values = intake.constraints,
+        fieldPath = "constraints",
+        emptyReason = "at least one constraint is required.",
+      )
     val nonGoals = normalizeOptionalList(intake.nonGoals, "non_goals")
 
     return FeatureSpecPreparationDecision(
@@ -59,13 +63,14 @@ object FeatureSpecPreparationPolicy {
     if (explicit != null) {
       return explicit
     }
-    val flattenedSignals = buildString {
-      append(intendedOutcome.lowercase())
-      append(' ')
-      append(acceptanceCriteria.joinToString(" ").lowercase())
-      append(' ')
-      append(constraints.joinToString(" ").lowercase())
-    }
+    val flattenedSignals =
+      buildString {
+        append(intendedOutcome.lowercase())
+        append(' ')
+        append(acceptanceCriteria.joinToString(" ").lowercase())
+        append(' ')
+        append(constraints.joinToString(" ").lowercase())
+      }
     return if (decomposedHints.any { hint -> flattenedSignals.contains(hint) }) {
       FeatureSpecPreparationMode.DECOMPOSED
     } else {
@@ -73,7 +78,11 @@ object FeatureSpecPreparationPolicy {
     }
   }
 
-  private fun normalizeRequiredList(values: List<String>, fieldPath: String, emptyReason: String): List<String> {
+  private fun normalizeRequiredList(
+    values: List<String>,
+    fieldPath: String,
+    emptyReason: String,
+  ): List<String> {
     if (values.isEmpty()) {
       invalidRequest(fieldPath, emptyReason)
     }
@@ -83,12 +92,17 @@ object FeatureSpecPreparationPolicy {
     }
   }
 
-  private fun normalizeOptionalList(values: List<String>, fieldPath: String): List<String> =
+  private fun normalizeOptionalList(
+    values: List<String>,
+    fieldPath: String,
+  ): List<String> =
     values.mapIndexed { index, value ->
       value.trim().takeIf(String::isNotBlank)
         ?: invalidRequest("$fieldPath[$index]", "value must be non-blank.")
     }
 
-  private fun invalidRequest(fieldPath: String, reason: String): Nothing =
-    throw InvalidFeatureSpecPreparationRequestError(fieldPath = fieldPath, reason = reason)
+  private fun invalidRequest(
+    fieldPath: String,
+    reason: String,
+  ): Nothing = throw InvalidFeatureSpecPreparationRequestError(fieldPath = fieldPath, reason = reason)
 }

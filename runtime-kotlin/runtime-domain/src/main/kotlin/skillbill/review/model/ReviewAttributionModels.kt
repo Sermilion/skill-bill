@@ -1,5 +1,6 @@
 package skillbill.review.model
 import skillbill.review.attribution.UNRESOLVED_ATTRIBUTION
+
 enum class CanonicalScope(val wireValue: String) {
   WORKING_TREE("working_tree"),
   STAGED("staged"),
@@ -22,7 +23,7 @@ sealed class ReviewAttributionResolutionError(message: String) : IllegalArgument
     val vocabulary: String,
     val offendingEntry: String,
   ) : ReviewAttributionResolutionError(
-    "Review attribution vocabulary '$vocabulary' contains the malformed entry '$offendingEntry' " +
-      "while resolving '${rawValue.orEmpty()}'.",
-  )
+      "Review attribution vocabulary '$vocabulary' contains the malformed entry '$offendingEntry' " +
+        "while resolving '${rawValue.orEmpty()}'.",
+    )
 }

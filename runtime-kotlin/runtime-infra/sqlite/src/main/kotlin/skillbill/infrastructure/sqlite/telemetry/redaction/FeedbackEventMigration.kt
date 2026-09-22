@@ -22,21 +22,22 @@ internal object FeedbackEventMigration {
     }
   }
 
-  private fun feedbackEventsCreateSql(connection: Connection): String? = connection.prepareStatement(
-    """
+  private fun feedbackEventsCreateSql(connection: Connection): String? =
+    connection.prepareStatement(
+      """
       SELECT sql
       FROM sqlite_master
       WHERE type = 'table' AND name = 'feedback_events'
-    """.trimIndent(),
-  ).use { statement ->
-    statement.executeQuery().use { resultSet ->
-      if (resultSet.next()) {
-        resultSet.getString("sql").orEmpty()
-      } else {
-        null
+      """.trimIndent(),
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        if (resultSet.next()) {
+          resultSet.getString("sql").orEmpty()
+        } else {
+          null
+        }
       }
     }
-  }
 
   private fun feedbackEventsNeedMigration(createSql: String): Boolean {
     val hasCurrentSchema = FindingOutcomeType.entries.all { eventType -> "'${eventType.wireValue}'" in createSql }

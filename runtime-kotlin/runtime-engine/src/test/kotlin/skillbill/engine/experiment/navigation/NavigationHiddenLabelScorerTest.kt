@@ -9,16 +9,18 @@ import kotlin.test.assertNull
 class NavigationHiddenLabelScorerTest {
   @Test
   fun `hidden labels score settled reads and keep precision unavailable without exhaustive annotations`() {
-    val score = NavigationHiddenLabelScorer.score(
-      acceptanceCriteria = listOf("one", "two"),
-      hiddenLabels = mapOf("one" to setOf("src/One.kt")),
-      reads = listOf(
-        ExperimentNavigationReadReceipt("src/One.kt", "discovery"),
-        ExperimentNavigationReadReceipt("src/Other.kt", "discovery"),
-      ),
-      deliveredPaths = listOf("src/One.kt"),
-      annotationsExhaustive = false,
-    )
+    val score =
+      NavigationHiddenLabelScorer.score(
+        acceptanceCriteria = listOf("one", "two"),
+        hiddenLabels = mapOf("one" to setOf("src/One.kt")),
+        reads =
+          listOf(
+            ExperimentNavigationReadReceipt("src/One.kt", "discovery"),
+            ExperimentNavigationReadReceipt("src/Other.kt", "discovery"),
+          ),
+        deliveredPaths = listOf("src/One.kt"),
+        annotationsExhaustive = false,
+      )
 
     assertEquals(1, score.coverage.labelledCriteria)
     assertEquals(2, score.coverage.totalCriteria)
@@ -29,13 +31,14 @@ class NavigationHiddenLabelScorerTest {
 
   @Test
   fun `partial annotations cannot claim exhaustive precision`() {
-    val score = NavigationHiddenLabelScorer.score(
-      acceptanceCriteria = listOf("one", "two"),
-      hiddenLabels = mapOf("one" to setOf("src/One.kt")),
-      reads = listOf(ExperimentNavigationReadReceipt("src/One.kt", "discovery")),
-      deliveredPaths = listOf("src/One.kt"),
-      annotationsExhaustive = true,
-    )
+    val score =
+      NavigationHiddenLabelScorer.score(
+        acceptanceCriteria = listOf("one", "two"),
+        hiddenLabels = mapOf("one" to setOf("src/One.kt")),
+        reads = listOf(ExperimentNavigationReadReceipt("src/One.kt", "discovery")),
+        deliveredPaths = listOf("src/One.kt"),
+        annotationsExhaustive = true,
+      )
 
     assertFalse(score.coverage.precisionAvailable)
     assertNull(score.precision)

@@ -5,6 +5,7 @@ import skillbill.error.core.InvalidGovernedReviewEvidenceRequestError
 import skillbill.ports.review.model.ReviewEvidenceRequest
 import skillbill.review.context.model.hunk.ReviewEvidenceLimits
 import skillbill.review.context.model.packet.ReviewExpansionRecord
+
 internal object GovernedReviewEvidenceCodecWireParsing {
   fun evidenceRequest(
     lane: String,
@@ -16,12 +17,13 @@ internal object GovernedReviewEvidenceCodecWireParsing {
       throw InvalidGovernedReviewEvidenceRequestError("review-evidence", "Unknown read selector field.")
     }
     val expansionId = optionalString(map, "expansion_id")
-    val authorized = expansionId?.let { id ->
-      expansionById(id) ?: throw InvalidGovernedReviewEvidenceRequestError(
-        "review-evidence",
-        "Unknown expansion id for this assignment.",
-      )
-    }
+    val authorized =
+      expansionId?.let { id ->
+        expansionById(id) ?: throw InvalidGovernedReviewEvidenceRequestError(
+          "review-evidence",
+          "Unknown expansion id for this assignment.",
+        )
+      }
     return ReviewEvidenceRequest(
       lane = lane,
       selector = optionalString(map, "selector"),
@@ -31,7 +33,10 @@ internal object GovernedReviewEvidenceCodecWireParsing {
     )
   }
 
-  fun requiredString(source: Map<String, Any?>, key: String): String {
+  fun requiredString(
+    source: Map<String, Any?>,
+    key: String,
+  ): String {
     val value = source[key] as? String
     if (value.isNullOrBlank()) {
       throw InvalidGovernedReviewEvidenceRequestError(
@@ -43,14 +48,19 @@ internal object GovernedReviewEvidenceCodecWireParsing {
     return value
   }
 
-  private fun asMap(raw: Any?): Map<String, Any?> = raw?.let(JsonCodec::anyToStringAnyMap)
-    ?: throw InvalidGovernedReviewEvidenceRequestError("review-evidence", "Each read selector must be an object.")
+  private fun asMap(raw: Any?): Map<String, Any?> =
+    raw?.let(JsonCodec::anyToStringAnyMap)
+      ?: throw InvalidGovernedReviewEvidenceRequestError("review-evidence", "Each read selector must be an object.")
 
-  private fun optionalString(source: Map<String, Any?>, key: String): String? = source[key]?.let { value ->
-    (value as? String)?.takeIf(String::isNotBlank)?.also(ReviewEvidenceLimits::field)
-      ?: throw InvalidGovernedReviewEvidenceRequestError(
-        "review-evidence",
-        "Optional selector must be a nonblank string.",
-      )
-  }
+  private fun optionalString(
+    source: Map<String, Any?>,
+    key: String,
+  ): String? =
+    source[key]?.let { value ->
+      (value as? String)?.takeIf(String::isNotBlank)?.also(ReviewEvidenceLimits::field)
+        ?: throw InvalidGovernedReviewEvidenceRequestError(
+          "review-evidence",
+          "Optional selector must be a nonblank string.",
+        )
+    }
 }

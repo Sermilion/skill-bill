@@ -9,10 +9,11 @@ import skillbill.review.context.model.launch.CodeReviewExecutionMode
 fun GoalRunnerManifestStore.effectiveAgentAddonSelection(
   parentWorkflowId: String,
   request: GoalRunnerRunRequest,
-): AgentAddonSelection = request.agentAddonSelection.persisted
-  .takeUnless { it.entries.isEmpty() }
-  ?: reviewPolicy(parentWorkflowId)?.agentAddonSelection
-  ?: AgentAddonSelection()
+): AgentAddonSelection =
+  request.agentAddonSelection.persisted
+    .takeUnless { it.entries.isEmpty() }
+    ?: reviewPolicy(parentWorkflowId)?.agentAddonSelection
+    ?: AgentAddonSelection()
 
 internal data class GoalRunnerEffectiveReviewPolicy(
   val codeReviewMode: CodeReviewExecutionMode,
@@ -21,19 +22,22 @@ internal data class GoalRunnerEffectiveReviewPolicy(
 internal fun effectiveGoalRunnerReviewPolicy(
   requestedReviewMode: CodeReviewExecutionMode?,
   persisted: GoalRunnerReviewPolicy?,
-): GoalRunnerEffectiveReviewPolicy = GoalRunnerEffectiveReviewPolicy(
-  codeReviewMode = requestedReviewMode
-    ?: persisted?.codeReviewMode
-    ?: CodeReviewExecutionMode.DEFAULT,
-)
+): GoalRunnerEffectiveReviewPolicy =
+  GoalRunnerEffectiveReviewPolicy(
+    codeReviewMode =
+      requestedReviewMode
+        ?: persisted?.codeReviewMode
+        ?: CodeReviewExecutionMode.DEFAULT,
+  )
 
 fun goalRunnerReviewPolicyMismatch(
   parentWorkflowId: String,
   requestedReviewMode: CodeReviewExecutionMode?,
   persisted: GoalRunnerReviewPolicy,
-): String? = when {
-  requestedReviewMode != null && persisted.codeReviewMode != requestedReviewMode ->
-    "Cannot change code-review mode on goal resume: parent workflow '$parentWorkflowId' " +
-      "is pinned to '${persisted.codeReviewMode.wireValue}', not '${requestedReviewMode.wireValue}'."
-  else -> null
-}
+): String? =
+  when {
+    requestedReviewMode != null && persisted.codeReviewMode != requestedReviewMode ->
+      "Cannot change code-review mode on goal resume: parent workflow '$parentWorkflowId' " +
+        "is pinned to '${persisted.codeReviewMode.wireValue}', not '${requestedReviewMode.wireValue}'."
+    else -> null
+  }

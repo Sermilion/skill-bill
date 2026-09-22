@@ -35,7 +35,10 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class ReviewPacketProjectionTest {
-  private fun includedDecision(lane: String, paths: List<String>) = ReviewLaneDecision(
+  private fun includedDecision(
+    lane: String,
+    paths: List<String>,
+  ) = ReviewLaneDecision(
     lane,
     true,
     "routed",
@@ -44,23 +47,26 @@ class ReviewPacketProjectionTest {
     owningPack = "kotlin",
     specialistSkillName = "bill-kotlin-code-review-$lane",
   )
+
   private val hunkA = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
   private val hunkB = ReviewChangedHunk("src/B.kt", 4, 1, 4, 1, "+beta")
-  private val rule = ReviewRuleReference(
-    "rule-1",
-    "AGENTS.md",
-    "Prefer named strategies.",
-    ReviewRuleReference.digestOf("Prefer named strategies."),
-  )
+  private val rule =
+    ReviewRuleReference(
+      "rule-1",
+      "AGENTS.md",
+      "Prefer named strategies.",
+      ReviewRuleReference.digestOf("Prefer named strategies."),
+    )
   private val learning = ReviewLearningsReference("learn-1", "telemetry", "c".repeat(64))
   private val revision = ReviewRevision("rvs-1", 3)
 
   private fun packet(
     hunks: List<ReviewChangedHunk> = listOf(hunkA, hunkB),
     lanes: List<String> = listOf("security", "testing"),
-    decisions: List<ReviewLaneDecision> = lanes.map { lane ->
-      includedDecision(lane, hunks.map { it.path }.distinct())
-    },
+    decisions: List<ReviewLaneDecision> =
+      lanes.map { lane ->
+        includedDecision(lane, hunks.map { it.path }.distinct())
+      },
     allowlist: ReviewDependencyAllowlist = ReviewDependencyAllowlist(listOf("src/Dep.kt")),
   ) = ReviewContextPacket(
     reviewId = "review",
@@ -85,20 +91,22 @@ class ReviewPacketProjectionTest {
     evidenceTargets = listOf(ReviewEvidenceTarget("src/A.kt", "src/A.kt", listOf(hunkA.hunkId))),
   )
 
-  private fun commitUnit(hunks: List<ReviewChangedHunk>) = ReviewCommitUnit(
-    commitSha = "head",
-    parentSha = "base",
-    subject = "single commit",
-    orderIndex = 0,
-    hunks = hunks.sortedBy { it.path },
-    source = ReviewCommitSource.COMMIT_RANGE,
-  )
+  private fun commitUnit(hunks: List<ReviewChangedHunk>) =
+    ReviewCommitUnit(
+      commitSha = "head",
+      parentSha = "base",
+      subject = "single commit",
+      orderIndex = 0,
+      hunks = hunks.sortedBy { it.path },
+      source = ReviewCommitSource.COMMIT_RANGE,
+    )
 
-  private fun focusedMatrix(lanes: List<String>) = ReviewCommitLaneRoutingMatrix(
-    listOf("head"),
-    lanes,
-    lanes.map { ReviewCommitLaneDecision("head", 0, it, ReviewCommitLaneDisposition.FOCUSED, "focused") },
-  )
+  private fun focusedMatrix(lanes: List<String>) =
+    ReviewCommitLaneRoutingMatrix(
+      listOf("head"),
+      lanes,
+      lanes.map { ReviewCommitLaneDecision("head", 0, it, ReviewCommitLaneDisposition.FOCUSED, "focused") },
+    )
 
   private fun bundle(vararg hunkIds: String) =
     ReviewLaneBundle(listOf(ReviewLaneBundleEntry("head", 0, hunkIds.toList())))
@@ -146,13 +154,15 @@ class ReviewPacketProjectionTest {
     assertFailsWith<IllegalArgumentException> {
       packet(decisions = listOf(includedDecision("security", listOf("src/A.kt"))))
     }
-    val withExclusion = packet(
-      lanes = listOf("security"),
-      decisions = listOf(
-        includedDecision("security", listOf("src/A.kt")),
-        ReviewLaneDecision("testing", false, "no test files changed"),
-      ),
-    )
+    val withExclusion =
+      packet(
+        lanes = listOf("security"),
+        decisions =
+          listOf(
+            includedDecision("security", listOf("src/A.kt")),
+            ReviewLaneDecision("testing", false, "no test files changed"),
+          ),
+      )
     assertEquals(listOf("security"), withExclusion.selectedLanes)
   }
 
@@ -204,21 +214,22 @@ class ReviewPacketProjectionTest {
 
   @Test fun `assignment envelope omits its own digest from the digest input`() {
     val base = packet()
-    val assignment = ReviewAssignment(
-      reviewId = base.reviewId,
-      packetDigest = base.digest,
-      lane = "security",
-      baseRevision = base.baseRevision,
-      headRevision = base.headRevision,
-      assignedPaths = listOf("src/A.kt", "src/B.kt"),
-      assignedHunks = listOf(hunkB.hunkId, hunkA.hunkId),
-      assignedBundle = bundle(hunkA.hunkId, hunkB.hunkId),
-      matchedRules = listOf(rule),
-      evidenceTargets = base.evidenceTargets,
-      reviewRevision = revision,
-      laneDecision = includedDecision("security", listOf("src/A.kt", "src/B.kt")),
-      dependencyAllowlist = base.dependencyAllowlist,
-    )
+    val assignment =
+      ReviewAssignment(
+        reviewId = base.reviewId,
+        packetDigest = base.digest,
+        lane = "security",
+        baseRevision = base.baseRevision,
+        headRevision = base.headRevision,
+        assignedPaths = listOf("src/A.kt", "src/B.kt"),
+        assignedHunks = listOf(hunkB.hunkId, hunkA.hunkId),
+        assignedBundle = bundle(hunkA.hunkId, hunkB.hunkId),
+        matchedRules = listOf(rule),
+        evidenceTargets = base.evidenceTargets,
+        reviewRevision = revision,
+        laneDecision = includedDecision("security", listOf("src/A.kt", "src/B.kt")),
+        dependencyAllowlist = base.dependencyAllowlist,
+      )
     val envelope = assignment.toAssignmentEnvelope().asWireMap()
     assertEquals(assignment.digest, envelope["assignment_digest"])
     assertEquals(listOf(hunkA.hunkId, hunkB.hunkId).sorted(), envelope["assigned_hunks"])
@@ -228,22 +239,23 @@ class ReviewPacketProjectionTest {
 
   @Test fun `launch envelope carries the closed world lane projection`() {
     val base = packet()
-    val assignment = ReviewAssignment(
-      reviewId = base.reviewId,
-      packetDigest = base.digest,
-      lane = "security",
-      baseRevision = base.baseRevision,
-      headRevision = base.headRevision,
-      assignedPaths = listOf("src/A.kt", "src/B.kt"),
-      assignedHunks = listOf(hunkA.hunkId, hunkB.hunkId),
-      assignedBundle = bundle(hunkA.hunkId, hunkB.hunkId),
-      laneRouting = base.routingMatrix.decisionsFor("security"),
-      reviewRevision = revision,
-      laneDecision = base.laneDecisions.first { it.lane == "security" },
-      matchedRules = base.matchedRules,
-      evidenceTargets = base.evidenceTargets,
-      dependencyAllowlist = base.dependencyAllowlist,
-    )
+    val assignment =
+      ReviewAssignment(
+        reviewId = base.reviewId,
+        packetDigest = base.digest,
+        lane = "security",
+        baseRevision = base.baseRevision,
+        headRevision = base.headRevision,
+        assignedPaths = listOf("src/A.kt", "src/B.kt"),
+        assignedHunks = listOf(hunkA.hunkId, hunkB.hunkId),
+        assignedBundle = bundle(hunkA.hunkId, hunkB.hunkId),
+        laneRouting = base.routingMatrix.decisionsFor("security"),
+        reviewRevision = revision,
+        laneDecision = base.laneDecisions.first { it.lane == "security" },
+        matchedRules = base.matchedRules,
+        evidenceTargets = base.evidenceTargets,
+        dependencyAllowlist = base.dependencyAllowlist,
+      )
     val envelope =
       GovernedReviewLaunch(assignment, base, "contract", "rubric", "broker", ReviewContextBudgetPolicy.DEFAULT)
         .toLaunchEnvelope().asWireMap()
@@ -273,34 +285,37 @@ class ReviewPacketProjectionTest {
 
   @Test fun `launch envelope bundle matches canonical payload bundle content`() {
     val base = packet()
-    val assignment = ReviewAssignment(
-      reviewId = base.reviewId,
-      packetDigest = base.digest,
-      lane = "security",
-      baseRevision = base.baseRevision,
-      headRevision = base.headRevision,
-      assignedPaths = listOf("src/A.kt", "src/B.kt"),
-      assignedHunks = listOf(hunkA.hunkId, hunkB.hunkId),
-      assignedBundle = bundle(hunkA.hunkId, hunkB.hunkId),
-      laneRouting = base.routingMatrix.decisionsFor("security"),
-      reviewRevision = revision,
-      laneDecision = base.laneDecisions.first { it.lane == "security" },
-      matchedRules = base.matchedRules,
-      evidenceTargets = base.evidenceTargets,
-      dependencyAllowlist = base.dependencyAllowlist,
-    )
+    val assignment =
+      ReviewAssignment(
+        reviewId = base.reviewId,
+        packetDigest = base.digest,
+        lane = "security",
+        baseRevision = base.baseRevision,
+        headRevision = base.headRevision,
+        assignedPaths = listOf("src/A.kt", "src/B.kt"),
+        assignedHunks = listOf(hunkA.hunkId, hunkB.hunkId),
+        assignedBundle = bundle(hunkA.hunkId, hunkB.hunkId),
+        laneRouting = base.routingMatrix.decisionsFor("security"),
+        reviewRevision = revision,
+        laneDecision = base.laneDecisions.first { it.lane == "security" },
+        matchedRules = base.matchedRules,
+        evidenceTargets = base.evidenceTargets,
+        dependencyAllowlist = base.dependencyAllowlist,
+      )
     val launch =
       GovernedReviewLaunch(assignment, base, "contract", "rubric", "broker", ReviewContextBudgetPolicy.DEFAULT)
     val envelope = launch.toLaunchEnvelope().asWireMap()
-    val envelopeEntries = requireNotNull(
-      JsonCodec.anyToStringAnyMapList(
-        requireNotNull(JsonCodec.anyToStringAnyMap((envelope["bundle"])))["entries"],
-      ),
-    )
-    val payloadHunkIds = Regex("""hunk_id: ([a-f0-9]{64})""")
-      .findAll(launch.canonicalPayload)
-      .map { it.groupValues[1] }
-      .toSet()
+    val envelopeEntries =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMapList(
+          requireNotNull(JsonCodec.anyToStringAnyMap((envelope["bundle"])))["entries"],
+        ),
+      )
+    val payloadHunkIds =
+      Regex("""hunk_id: ([a-f0-9]{64})""")
+        .findAll(launch.canonicalPayload)
+        .map { it.groupValues[1] }
+        .toSet()
     assertEquals(envelopeEntries.map { it["hunk_id"] }.toSet(), payloadHunkIds)
     assertEquals(launch.assembledBundle.compositionDigest, (envelope["bundle"] as Map<*, *>)["composition_digest"])
   }
@@ -338,19 +353,23 @@ class ReviewPacketProjectionTest {
     }
   }
 
-  private fun integrationLaunch(base: ReviewContextPacket, lane: String = "security") = GovernedReviewIntegrationLaunch(
+  private fun integrationLaunch(
+    base: ReviewContextPacket,
+    lane: String = "security",
+  ) = GovernedReviewIntegrationLaunch(
     packet = base,
-    specialistSummaries = listOf(
-      ReviewSpecialistSummary(
-        lane = lane,
-        assignmentDigest = "a".repeat(64),
-        disposition = ReviewLaneReviewDisposition.COMPLETE,
-        assignedPaths = listOf("src/A.kt"),
-        commitShas = listOf("head"),
-        findingCount = 1,
-        summary = "Reviewed one bundle in one pass.",
+    specialistSummaries =
+      listOf(
+        ReviewSpecialistSummary(
+          lane = lane,
+          assignmentDigest = "a".repeat(64),
+          disposition = ReviewLaneReviewDisposition.COMPLETE,
+          assignedPaths = listOf("src/A.kt"),
+          commitShas = listOf("head"),
+          findingCount = 1,
+          summary = "Reviewed one bundle in one pass.",
+        ),
       ),
-    ),
     integrationContract = ReviewPacketConsumerContract.INTEGRATION_CONTRACT,
     brokerId = "broker",
     budget = ReviewContextBudgetPolicy.DEFAULT,

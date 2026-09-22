@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.core
+
 data class FeatureTaskRuntimeAgentAssignment(
   val perPhaseAgentIds: Map<String, String> = emptyMap(),
   val override: String? = null,
@@ -25,7 +26,6 @@ data class FeatureTaskRuntimeResolvedPhaseAgent(
   val invokedAgentId: String,
   val configuredAgentOverrideId: String?,
 ) {
-
   val resolvedAgentId: String = configuredAgentOverrideId ?: invokedAgentId
 
   init {

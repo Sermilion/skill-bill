@@ -17,14 +17,15 @@ data class RepoValidationReport(
 ) {
   val passed: Boolean = issues.isEmpty()
 
-  fun toPayload(): Map<String, Any?> = mapOf(
-    SharedPayloadKeys.STATUS to if (passed) "passed" else "failed",
-    "skill_count" to skillCount,
-    "governed_addon_count" to addonCount,
-    "platform_pack_count" to platformPackCount,
-    "native_agent_count" to nativeAgentCount,
-    "issues" to issues,
-  )
+  fun toPayload(): Map<String, Any?> =
+    mapOf(
+      SharedPayloadKeys.STATUS to if (passed) "passed" else "failed",
+      "skill_count" to skillCount,
+      "governed_addon_count" to addonCount,
+      "platform_pack_count" to platformPackCount,
+      "native_agent_count" to nativeAgentCount,
+      "issues" to issues,
+    )
 }
 
 data class RepoValidationIssue(
@@ -73,19 +74,21 @@ data class ReleaseRefMetadata(
   val prereleaseIdentifier: String?,
   val buildMetadata: String?,
 ) {
-  fun toPayload(): Map<String, Any?> = mapOf(
-    "tag" to tag,
-    "version" to version,
-    "major" to major,
-    "minor" to minor,
-    "patch" to patch,
-    "prerelease" to prerelease,
-    "prerelease_identifier" to prereleaseIdentifier,
-    "build_metadata" to buildMetadata,
-  )
+  fun toPayload(): Map<String, Any?> =
+    mapOf(
+      "tag" to tag,
+      "version" to version,
+      "major" to major,
+      "minor" to minor,
+      "patch" to patch,
+      "prerelease" to prerelease,
+      "prerelease_identifier" to prereleaseIdentifier,
+      "build_metadata" to buildMetadata,
+    )
 }
 
 internal class ReleaseLicensePolicyError(message: String) : IllegalArgumentException(message)
+
 object RepoValidationRuntime {
   internal fun validateRepo(
     repoRoot: Path,
@@ -103,7 +106,10 @@ object RepoValidationRuntime {
     )
   }
 
-  internal fun extractSecondLevelHeading(text: String, heading: String): String {
+  internal fun extractSecondLevelHeading(
+    text: String,
+    heading: String,
+  ): String {
     val normalized = text.replace("\r\n", "\n")
     val startMarker = "## $heading"
     val start = normalized.indexOf(startMarker)
@@ -115,10 +121,16 @@ object RepoValidationRuntime {
   fun parseReleaseRef(rawValue: String): ReleaseRefMetadata =
     RepoValidationRuntimeReleasePolicy.parseReleaseRef(rawValue)
 
-  fun validateReleaseRef(repoRoot: Path, rawValue: String, forcePrerelease: Boolean = false): ReleaseRefMetadata =
-    RepoValidationRuntimeReleasePolicy.validateReleaseRef(repoRoot, rawValue, forcePrerelease)
+  fun validateReleaseRef(
+    repoRoot: Path,
+    rawValue: String,
+    forcePrerelease: Boolean = false,
+  ): ReleaseRefMetadata = RepoValidationRuntimeReleasePolicy.validateReleaseRef(repoRoot, rawValue, forcePrerelease)
 
-  fun appendGithubOutput(outputPath: Path, metadata: ReleaseRefMetadata) {
+  fun appendGithubOutput(
+    outputPath: Path,
+    metadata: ReleaseRefMetadata,
+  ) {
     Files.writeString(
       outputPath,
       buildString {

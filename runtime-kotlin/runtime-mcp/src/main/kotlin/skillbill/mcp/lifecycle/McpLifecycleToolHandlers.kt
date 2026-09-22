@@ -15,7 +15,10 @@ import skillbill.mcp.shared.optionalString
 import skillbill.mcp.shared.string
 import skillbill.mcp.shared.stringList
 
-internal fun qualityCheckStarted(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> {
+internal fun qualityCheckStarted(
+  arguments: Map<String, Any?>,
+  component: McpComponent,
+): Map<String, Any?> {
   return McpRuntimeLifecycle.qualityCheckStarted(
     QualityCheckStartedRequest(
       routedSkill = arguments.string(McpToolPayloadKeys.ROUTED_SKILL),
@@ -30,7 +33,10 @@ internal fun qualityCheckStarted(arguments: Map<String, Any?>, component: McpCom
   )
 }
 
-internal fun qualityCheckFinished(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> {
+internal fun qualityCheckFinished(
+  arguments: Map<String, Any?>,
+  component: McpComponent,
+): Map<String, Any?> {
   return McpRuntimeLifecycle.qualityCheckFinished(
     QualityCheckFinishedRequest(
       finalFailureCount = arguments.int(McpToolPayloadKeys.FINAL_FAILURE_COUNT, 0),
@@ -52,7 +58,10 @@ internal fun qualityCheckFinished(arguments: Map<String, Any?>, component: McpCo
   )
 }
 
-internal fun featureVerifyStarted(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
+internal fun featureVerifyStarted(
+  arguments: Map<String, Any?>,
+  component: McpComponent,
+): Map<String, Any?> =
   McpRuntimeLifecycle.featureVerifyStarted(
     FeatureVerifyStartedRequest(
       acceptanceCriteriaCount = arguments.int(McpToolPayloadKeys.ACCEPTANCE_CRITERIA_COUNT, 0),
@@ -63,7 +72,10 @@ internal fun featureVerifyStarted(arguments: Map<String, Any?>, component: McpCo
     component,
   )
 
-internal fun featureVerifyFinished(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
+internal fun featureVerifyFinished(
+  arguments: Map<String, Any?>,
+  component: McpComponent,
+): Map<String, Any?> =
   McpRuntimeLifecycle.featureVerifyFinished(
     FeatureVerifyFinishedRequest(
       featureFlagAuditPerformed = arguments.boolean(McpToolPayloadKeys.FEATURE_FLAG_AUDIT_PERFORMED),
@@ -71,9 +83,10 @@ internal fun featureVerifyFinished(arguments: Map<String, Any?>, component: McpC
       auditResult = arguments.string(McpToolPayloadKeys.AUDIT_RESULT),
       completionStatus = arguments.string(McpToolPayloadKeys.COMPLETION_STATUS),
       historyRelevance = arguments.optionalString(McpToolPayloadKeys.HISTORY_RELEVANCE) ?: historySignalValues.first(),
-      historyHelpfulness = arguments.optionalString(
-        McpToolPayloadKeys.HISTORY_HELPFULNESS,
-      ) ?: historySignalValues.first(),
+      historyHelpfulness =
+        arguments.optionalString(
+          McpToolPayloadKeys.HISTORY_HELPFULNESS,
+        ) ?: historySignalValues.first(),
       sessionId = arguments.string(McpToolPayloadKeys.SESSION_ID),
       gapsFound = arguments.stringList(McpToolPayloadKeys.GAPS_FOUND),
       orchestrated = arguments.boolean(McpToolPayloadKeys.ORCHESTRATED),
@@ -85,7 +98,10 @@ internal fun featureVerifyFinished(arguments: Map<String, Any?>, component: McpC
     component,
   )
 
-internal fun prDescriptionGenerated(arguments: Map<String, Any?>, component: McpComponent): Map<String, Any?> =
+internal fun prDescriptionGenerated(
+  arguments: Map<String, Any?>,
+  component: McpComponent,
+): Map<String, Any?> =
   McpRuntimeLifecycle.prDescriptionGenerated(
     PrDescriptionGeneratedRequest(
       commitCount = arguments.int(McpToolPayloadKeys.COMMIT_COUNT, 0),

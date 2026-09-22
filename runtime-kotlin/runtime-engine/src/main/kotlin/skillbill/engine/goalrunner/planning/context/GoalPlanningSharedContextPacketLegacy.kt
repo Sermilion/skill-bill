@@ -39,7 +39,7 @@ object GoalPlanningSharedContextPacketLegacy {
     return withoutLegacy + (
       GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to
         GoalPlanningSharedContextPacketValidation.digest(withoutLegacy)
-      )
+    )
   }
 
   fun migrateFromPacketVersion2(packet: Map<String, Any?>): Map<String, Any?> {
@@ -79,7 +79,7 @@ object GoalPlanningSharedContextPacketLegacy {
     return migrated + (
       GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to
         GoalPlanningSharedContextPacketValidation.digest(migrated)
-      )
+    )
   }
 
   fun migrateFromPacketVersion3(packet: Map<String, Any?>): Map<String, Any?> {
@@ -121,6 +121,6 @@ object GoalPlanningSharedContextPacketLegacy {
     return migrated + (
       GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to
         GoalPlanningSharedContextPacketValidation.digest(migrated)
-      )
+    )
   }
 }

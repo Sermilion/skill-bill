@@ -6,37 +6,41 @@ import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 
-internal fun renderAgentAddonManifest(plan: ScaffoldPlan): String = buildString {
-  appendLine("contract_version: \"1.0\"")
-  appendLine("slug: ${plan.skillName}")
-  appendLine("description: ${yamlScalar(plan.description)}")
-  appendLine("agent_ids:")
-  plan.agentIds.forEach { appendLine("  - $it") }
-  appendLine("consumers:")
-  plan.agentAddonConsumers.forEach { appendLine("  - $it") }
-}
+internal fun renderAgentAddonManifest(plan: ScaffoldPlan): String =
+  buildString {
+    appendLine("contract_version: \"1.0\"")
+    appendLine("slug: ${plan.skillName}")
+    appendLine("description: ${yamlScalar(plan.description)}")
+    appendLine("agent_ids:")
+    plan.agentIds.forEach { appendLine("  - $it") }
+    appendLine("consumers:")
+    plan.agentAddonConsumers.forEach { appendLine("  - $it") }
+  }
 
 internal fun yamlScalar(value: String): String = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
-internal fun renderContentSheet(plan: ScaffoldPlan): String = renderContentBody(
-  skillContext(plan),
-  description = effectiveDescription(plan),
-  contentBody = plan.contentBody,
-)
+internal fun renderContentSheet(plan: ScaffoldPlan): String =
+  renderContentBody(
+    skillContext(plan),
+    description = effectiveDescription(plan),
+    contentBody = plan.contentBody,
+  )
 
-internal fun renderDeclaredPackContentSheet(plan: ScaffoldPlan): String = renderContentBody(
-  skillContext(plan),
-  description = effectiveDescription(plan),
-  contentBody = plan.contentBody,
-)
+internal fun renderDeclaredPackContentSheet(plan: ScaffoldPlan): String =
+  renderContentBody(
+    skillContext(plan),
+    description = effectiveDescription(plan),
+    contentBody = plan.contentBody,
+  )
 
-internal fun skillContext(plan: ScaffoldPlan): TemplateContext = TemplateContext(
-  skillName = plan.skillName,
-  family = plan.family,
-  platform = plan.platform,
-  area = plan.area,
-  displayName = plan.displayName.ifBlank { deriveDisplayName(plan.platform) },
-)
+internal fun skillContext(plan: ScaffoldPlan): TemplateContext =
+  TemplateContext(
+    skillName = plan.skillName,
+    family = plan.family,
+    platform = plan.platform,
+    area = plan.area,
+    displayName = plan.displayName.ifBlank { deriveDisplayName(plan.platform) },
+  )
 
 internal fun areaFocus(plan: ScaffoldPlan): String =
   plan.area.takeIf { it.isNotBlank() }?.let(::defaultAreaFocus).orEmpty()

@@ -10,6 +10,7 @@ import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
+
 object GoalPlanningSharedContextPacket {
   const val VERSION = "0.4"
   const val LEGACY_VERSION_0_3 = "0.3"
@@ -18,40 +19,45 @@ object GoalPlanningSharedContextPacket {
   const val MAX_GOVERNED_CONTEXT_CHARS = 65_536
   private const val MAX_PACKET_CHARS = 524_288
 
-  val PACKET_FIELDS = setOf(
-    GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION,
-    GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY,
-    GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY,
-    GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC_PATH,
-    GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC,
-    GoalPlanningSharedContextPacketPayloadKeys.DECOMPOSITION_MANIFEST,
-    GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY,
-    GoalPlanningSharedContextPacketPayloadKeys.VALIDATION_GUIDANCE,
-    GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS,
-    GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256,
-  )
+  val PACKET_FIELDS =
+    setOf(
+      GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION,
+      GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY,
+      GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY,
+      GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC_PATH,
+      GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC,
+      GoalPlanningSharedContextPacketPayloadKeys.DECOMPOSITION_MANIFEST,
+      GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY,
+      GoalPlanningSharedContextPacketPayloadKeys.VALIDATION_GUIDANCE,
+      GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS,
+      GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256,
+    )
   val LEGACY_V01_FIELDS = PACKET_FIELDS + GoalPlanningSharedContextPacketPayloadKeys.PLATFORM_PACKS
 
-  fun migrate(packet: Map<String, Any?>): Map<String, Any?> = when (
-    val version = packet[GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION]
-  ) {
-    VERSION -> withoutExcludedCatalogEntries(packet)
-    LEGACY_VERSION_0_3 -> GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion3(packet)
-    LEGACY_VERSION_0_2 -> GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion3(
-      GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion2(packet),
-    )
-    LEGACY_VERSION_0_1 -> GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion3(
-      GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion2(
-        GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion1(packet),
-      ),
-    )
-    else -> throw InvalidGoalPlanningPreparationSchemaError(
-      sourceLabel = "_goal_planning_shared_context",
-      fieldPath = GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION,
-      reason = "shared context packet version '$version' is unsupported; expected '$VERSION', " +
-        "'$LEGACY_VERSION_0_3', '$LEGACY_VERSION_0_2', or '$LEGACY_VERSION_0_1'",
-    )
-  }
+  fun migrate(packet: Map<String, Any?>): Map<String, Any?> =
+    when (
+      val version = packet[GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION]
+    ) {
+      VERSION -> withoutExcludedCatalogEntries(packet)
+      LEGACY_VERSION_0_3 -> GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion3(packet)
+      LEGACY_VERSION_0_2 ->
+        GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion3(
+          GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion2(packet),
+        )
+      LEGACY_VERSION_0_1 ->
+        GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion3(
+          GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion2(
+            GoalPlanningSharedContextPacketLegacy.migrateFromPacketVersion1(packet),
+          ),
+        )
+      else -> throw InvalidGoalPlanningPreparationSchemaError(
+        sourceLabel = "_goal_planning_shared_context",
+        fieldPath = GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION,
+        reason =
+          "shared context packet version '$version' is unsupported; expected '$VERSION', " +
+            "'$LEGACY_VERSION_0_3', '$LEGACY_VERSION_0_2', or '$LEGACY_VERSION_0_1'",
+      )
+    }
 
   fun validate(
     packet: Map<String, Any?>,
@@ -127,12 +133,17 @@ object GoalPlanningSharedContextPacket {
     }
   }
 
-  private fun validateTopology(packet: Map<String, Any?>, subtasks: List<DecompositionSubtask>) {
-    val recoveredTopology = GoalPlanningSharedContextPacketValidation.normalizedSubtasks(
-      packet[GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS],
-    ).map { it - GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION }
-    val expectedTopology = GoalPlanningSharedContextPacketValidation.normalizedSubtasks(orderedSubtasks(subtasks))
-      .map { it - GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION }
+  private fun validateTopology(
+    packet: Map<String, Any?>,
+    subtasks: List<DecompositionSubtask>,
+  ) {
+    val recoveredTopology =
+      GoalPlanningSharedContextPacketValidation.normalizedSubtasks(
+        packet[GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS],
+      ).map { it - GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION }
+    val expectedTopology =
+      GoalPlanningSharedContextPacketValidation.normalizedSubtasks(orderedSubtasks(subtasks))
+        .map { it - GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION }
     if (recoveredTopology != expectedTopology) {
       invalidGoalPlanningSharedContextPacket(
         GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS,
@@ -156,12 +167,14 @@ object GoalPlanningSharedContextPacket {
   }
 
   private fun withoutExcludedCatalogEntries(packet: Map<String, Any?>): Map<String, Any?> {
-    val catalog = (packet[GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY] as? Map<*, *>)
-      ?.get(GoalPlanningSharedContextPacketPayloadKeys.CATALOG) as? List<*> ?: return packet
-    val retained = catalog.filter { entry ->
-      val sourcePath = (entry as? Map<*, *>)?.get(GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH) as? String
-      sourcePath != null && !GoalPlanningDiscoveryExclusions.isExcluded(sourcePath)
-    }
+    val catalog =
+      (packet[GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY] as? Map<*, *>)
+        ?.get(GoalPlanningSharedContextPacketPayloadKeys.CATALOG) as? List<*> ?: return packet
+    val retained =
+      catalog.filter { entry ->
+        val sourcePath = (entry as? Map<*, *>)?.get(GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH) as? String
+        sourcePath != null && !GoalPlanningDiscoveryExclusions.isExcluded(sourcePath)
+      }
     if (retained.size == catalog.size) return packet
     if (packet[GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256] !=
       digest(packet - GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256)
@@ -180,68 +193,77 @@ object GoalPlanningSharedContextPacket {
     migrated.remove(GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256)
     return migrated + (
       GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to digest(migrated)
-      )
+    )
   }
 
-  fun emptyCatalog(): Map<String, Any?> = linkedMapOf(
-    GoalPlanningSharedContextPacketPayloadKeys.CATALOG to emptyList<Map<String, Any?>>(),
-    GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED to false,
-  )
-
-  fun discardedCatalog(): Map<String, Any?> = linkedMapOf(
-    GoalPlanningSharedContextPacketPayloadKeys.CATALOG to emptyList<Map<String, Any?>>(),
-    GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED to true,
-  )
-
-  fun catalogHeadingIds(packet: Map<String, Any?>): Set<String> = (
-    (packet[GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY] as? Map<*, *>)
-      ?.get(GoalPlanningSharedContextPacketPayloadKeys.CATALOG) as? List<*>
-    )
-    .orEmpty()
-    .mapNotNull {
-        entry ->
-      (entry as? Map<*, *>)?.get(GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID) as? String
-    }
-    .toSet()
-
-  fun catalog(context: GoalPlanningContext): Map<String, Any?> = linkedMapOf(
-    GoalPlanningSharedContextPacketPayloadKeys.CATALOG to context.boundaryCatalog.map { heading ->
-      linkedMapOf<String, Any?>(
-        GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID to heading.headingId,
-        GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH to heading.sourcePath,
-        GoalPlanningSharedContextPacketPayloadKeys.KIND to heading.kind.wireValue,
-        GoalPlanningSharedContextPacketPayloadKeys.HEADING to heading.heading,
-      )
-    },
-    GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED to context.boundaryCatalogTruncated,
-  )
-
-  fun orderedSubtasks(subtasks: List<DecompositionSubtask>): List<Map<String, Any?>> = subtasks.map { subtask ->
+  fun emptyCatalog(): Map<String, Any?> =
     linkedMapOf(
-      DecompositionPlanningPayloadKeys.ID to subtask.id,
-      DecompositionPlanningPayloadKeys.NAME to subtask.name,
-      DecompositionPlanningPayloadKeys.SPEC_PATH to subtask.specPath,
-      GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION to if (
-        subtask.status.decompositionStatus() == DecompositionStatus.SKIPPED
-      ) {
-        DecompositionStatus.SKIPPED.wireValue
-      } else {
-        "included"
-      },
-      DecompositionPlanningPayloadKeys.DEPENDENCIES to subtask.dependencies.map { dependency ->
-        linkedMapOf(
-          SharedPayloadKeys.SUBTASK_ID to dependency.subtaskId,
-          DecompositionPlanningPayloadKeys.OPTIONAL to dependency.optional,
-          DecompositionPlanningPayloadKeys.SKIPPED to dependency.skipped,
-        )
-      },
+      GoalPlanningSharedContextPacketPayloadKeys.CATALOG to emptyList<Map<String, Any?>>(),
+      GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED to false,
     )
-  }
+
+  fun discardedCatalog(): Map<String, Any?> =
+    linkedMapOf(
+      GoalPlanningSharedContextPacketPayloadKeys.CATALOG to emptyList<Map<String, Any?>>(),
+      GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED to true,
+    )
+
+  fun catalogHeadingIds(packet: Map<String, Any?>): Set<String> =
+    (
+      (packet[GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY] as? Map<*, *>)
+        ?.get(GoalPlanningSharedContextPacketPayloadKeys.CATALOG) as? List<*>
+    )
+      .orEmpty()
+      .mapNotNull {
+          entry ->
+        (entry as? Map<*, *>)?.get(GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID) as? String
+      }
+      .toSet()
+
+  fun catalog(context: GoalPlanningContext): Map<String, Any?> =
+    linkedMapOf(
+      GoalPlanningSharedContextPacketPayloadKeys.CATALOG to
+        context.boundaryCatalog.map { heading ->
+          linkedMapOf<String, Any?>(
+            GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID to heading.headingId,
+            GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH to heading.sourcePath,
+            GoalPlanningSharedContextPacketPayloadKeys.KIND to heading.kind.wireValue,
+            GoalPlanningSharedContextPacketPayloadKeys.HEADING to heading.heading,
+          )
+        },
+      GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED to context.boundaryCatalogTruncated,
+    )
+
+  fun orderedSubtasks(subtasks: List<DecompositionSubtask>): List<Map<String, Any?>> =
+    subtasks.map { subtask ->
+      linkedMapOf(
+        DecompositionPlanningPayloadKeys.ID to subtask.id,
+        DecompositionPlanningPayloadKeys.NAME to subtask.name,
+        DecompositionPlanningPayloadKeys.SPEC_PATH to subtask.specPath,
+        GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION to
+          if (
+            subtask.status.decompositionStatus() == DecompositionStatus.SKIPPED
+          ) {
+            DecompositionStatus.SKIPPED.wireValue
+          } else {
+            "included"
+          },
+        DecompositionPlanningPayloadKeys.DEPENDENCIES to
+          subtask.dependencies.map { dependency ->
+            linkedMapOf(
+              SharedPayloadKeys.SUBTASK_ID to dependency.subtaskId,
+              DecompositionPlanningPayloadKeys.OPTIONAL to dependency.optional,
+              DecompositionPlanningPayloadKeys.SKIPPED to dependency.skipped,
+            )
+          },
+      )
+    }
 
   fun includedSubtaskIds(packet: Map<String, Any?>): Set<Int> {
-    val subtasks = GoalPlanningSharedContextPacketValidation.normalizedSubtasks(
-      packet[GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS],
-    )
+    val subtasks =
+      GoalPlanningSharedContextPacketValidation.normalizedSubtasks(
+        packet[GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS],
+      )
     return subtasks.mapNotNull { subtask ->
       (subtask[DecompositionPlanningPayloadKeys.ID] as Int).takeIf {
         subtask[GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION] == "included"
@@ -256,12 +278,13 @@ internal fun invalidGoalPlanningSharedContextPacket(
   fieldPath: String,
   reason: String,
   cause: Throwable? = null,
-): Nothing = throw InvalidGoalPlanningPreparationSchemaError(
-  sourceLabel = "_goal_planning_shared_context",
-  fieldPath = fieldPath,
-  reason = reason,
-  cause = cause,
-)
+): Nothing =
+  throw InvalidGoalPlanningPreparationSchemaError(
+    sourceLabel = "_goal_planning_shared_context",
+    fieldPath = fieldPath,
+    reason = reason,
+    cause = cause,
+  )
 
 object GoalPlanningSpecCanonicalization {
   private const val FRONTMATTER_FENCE = "---"
@@ -283,7 +306,10 @@ object GoalPlanningSpecCanonicalization {
     }
   }
 
-  private fun <T> List<T>.indexOfFirstFrom(startIndex: Int, predicate: (T) -> Boolean): Int {
+  private fun <T> List<T>.indexOfFirstFrom(
+    startIndex: Int,
+    predicate: (T) -> Boolean,
+  ): Int {
     for (index in startIndex until size) {
       if (predicate(this[index])) return index
     }

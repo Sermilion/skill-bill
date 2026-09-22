@@ -8,10 +8,14 @@ import java.nio.file.Path
 
 internal data class RenderedAgent(val targetName: String, val contents: ByteArray) {
   override fun equals(other: Any?): Boolean = this === other
+
   override fun hashCode(): Int = System.identityHashCode(this)
 }
 
-internal fun listOrphanRenderCandidates(providerRoot: Path, rendered: List<RenderedAgent>): List<Path> =
+internal fun listOrphanRenderCandidates(
+  providerRoot: Path,
+  rendered: List<RenderedAgent>,
+): List<Path> =
   Files.list(providerRoot).use { stream ->
     stream.filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
       .filter { path -> path.fileName.toString() !in rendered.map { it.targetName }.toSet() }
@@ -22,17 +26,19 @@ internal fun buildNativeAgentInstallRenderResult(
   generated: List<Path>,
   provider: NativeAgentProvider,
   cacheRoot: Path,
-): NativeAgentInstallRenderResult = NativeAgentInstallRenderResult(
-  generatedFiles = generated.sortedBy { it.toString() },
-  artifacts = generated.map { path ->
-    NativeAgentRenderedArtifact(
-      logicalName = path.fileName.toString().removeSuffix(".${provider.extension}"),
-      path = path,
-      contentDigest = sha256Hex(Files.readAllBytes(path)),
-    )
-  }.sortedBy { it.path.toString() },
-  cacheRoot = cacheRoot,
-)
+): NativeAgentInstallRenderResult =
+  NativeAgentInstallRenderResult(
+    generatedFiles = generated.sortedBy { it.toString() },
+    artifacts =
+      generated.map { path ->
+        NativeAgentRenderedArtifact(
+          logicalName = path.fileName.toString().removeSuffix(".${provider.extension}"),
+          path = path,
+          contentDigest = sha256Hex(Files.readAllBytes(path)),
+        )
+      }.sortedBy { it.path.toString() },
+    cacheRoot = cacheRoot,
+  )
 
 internal fun stageAndPromoteNativeAgentRenders(
   request: NativeAgentRenderPromotionRequest,
@@ -40,13 +46,14 @@ internal fun stageAndPromoteNativeAgentRenders(
   request.rendered.forEach { entry ->
     Files.write(request.staging.resolve(entry.targetName), entry.contents)
   }
-  val generated = promoteStagedRenders(
-    request.providerRoot,
-    request.staging,
-    request.rendered,
-    request.orphanCandidates,
-    request.beforeMutation,
-  )
+  val generated =
+    promoteStagedRenders(
+      request.providerRoot,
+      request.staging,
+      request.rendered,
+      request.orphanCandidates,
+      request.beforeMutation,
+    )
   return buildNativeAgentInstallRenderResult(generated, request.provider, request.cacheRoot)
 }
 
@@ -68,7 +75,10 @@ internal fun promoteStagedRenders(
   }
 }
 
-internal fun pruneOrphanArtifacts(orphanCandidates: List<Path>, beforeMutation: (Path) -> Unit) {
+internal fun pruneOrphanArtifacts(
+  orphanCandidates: List<Path>,
+  beforeMutation: (Path) -> Unit,
+) {
   orphanCandidates.forEach { path ->
     beforeMutation(path)
     Files.deleteIfExists(path)

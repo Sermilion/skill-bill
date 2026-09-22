@@ -15,28 +15,31 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class QualityCheckRoutingTest {
   private val isolatedConfigHome: Path = Files.createTempDirectory("skillbill-quality-routing-home")
 
-  private fun routeRepo(evidence: Collection<String>) = routeQualityCheck(
-    repoRootFromTest(),
-    evidence,
-    isolatedConfigHome,
-    catalogLoader = PlatformPackCatalogLoader(FileExternalPlatformPackSourceConfigStore()),
-  )
+  private fun routeRepo(evidence: Collection<String>) =
+    routeQualityCheck(
+      repoRootFromTest(),
+      evidence,
+      isolatedConfigHome,
+      catalogLoader = PlatformPackCatalogLoader(FileExternalPlatformPackSourceConfigStore()),
+    )
 
   @Test
   fun `every maintained dominant stack routes to bill-code-check with pack slug unchanged`() {
-    val cases = listOf(
-      Triple("go", "services/orders/main.go", "bill-code-check"),
-      Triple("ios", "App.xcodeproj/project.pbxproj", "bill-code-check"),
-      Triple("kotlin", "config/detekt.yml", "bill-code-check"),
-      Triple("kmp", "shared/src/commonMain/kotlin/App.kt org.jetbrains.kotlin.multiplatform", "bill-code-check"),
-      Triple("php", "composer.json", "bill-code-check"),
-      Triple("python", "pyproject.toml", "bill-code-check"),
-      Triple("rust", "Cargo.toml", "bill-code-check"),
-      Triple("typescript", "tsconfig.json", "bill-code-check"),
-    )
+    val cases =
+      listOf(
+        Triple("go", "services/orders/main.go", "bill-code-check"),
+        Triple("ios", "App.xcodeproj/project.pbxproj", "bill-code-check"),
+        Triple("kotlin", "config/detekt.yml", "bill-code-check"),
+        Triple("kmp", "shared/src/commonMain/kotlin/App.kt org.jetbrains.kotlin.multiplatform", "bill-code-check"),
+        Triple("php", "composer.json", "bill-code-check"),
+        Triple("python", "pyproject.toml", "bill-code-check"),
+        Triple("rust", "Cargo.toml", "bill-code-check"),
+        Triple("typescript", "tsconfig.json", "bill-code-check"),
+      )
 
     cases.forEach { (stack, evidence, routedSkill) ->
       val route = assertNotNull(routeRepo(listOf(evidence)))
@@ -49,14 +52,15 @@ class QualityCheckRoutingTest {
 
   @Test
   fun `ordinary Kotlin and multiplatform paths apply adjacent-pack dominance`() {
-    val cases = listOf(
-      "Feature.kt" to "kotlin",
-      "src/main/kotlin/example/Feature.kt" to "kotlin",
-      "shared/src/commonMain/kotlin/example/Feature.kt" to "kmp",
-      "shared/src/androidMain/kotlin/example/Feature.kt" to "kmp",
-      "shared/src/iosMain/kotlin/example/Feature.kt" to "kmp",
-      "plugins { kotlin(\"multiplatform\") }" to "kmp",
-    )
+    val cases =
+      listOf(
+        "Feature.kt" to "kotlin",
+        "src/main/kotlin/example/Feature.kt" to "kotlin",
+        "shared/src/commonMain/kotlin/example/Feature.kt" to "kmp",
+        "shared/src/androidMain/kotlin/example/Feature.kt" to "kmp",
+        "shared/src/iosMain/kotlin/example/Feature.kt" to "kmp",
+        "plugins { kotlin(\"multiplatform\") }" to "kmp",
+      )
 
     cases.forEach { (evidence, expected) ->
       assertEquals(expected, assertNotNull(routeRepo(listOf(evidence))).detectedStack)
@@ -65,17 +69,18 @@ class QualityCheckRoutingTest {
 
   @Test
   fun `mixed Kotlin and KMP ownership routes through the KMP pack with bill-code-check`() {
-    val route = assertNotNull(
-      routeRepo(
-        listOf(
-          "server/src/main/kotlin/App.kt",
-          "server/build.gradle.kts",
-          "settings.gradle.kts",
-          "config/detekt.yml",
-          "shared/src/commonMain/kotlin/Shared.kt",
+    val route =
+      assertNotNull(
+        routeRepo(
+          listOf(
+            "server/src/main/kotlin/App.kt",
+            "server/build.gradle.kts",
+            "settings.gradle.kts",
+            "config/detekt.yml",
+            "shared/src/commonMain/kotlin/Shared.kt",
+          ),
         ),
-      ),
-    )
+      )
 
     assertEquals("kmp", route.detectedStack)
     assertEquals("bill-code-check", route.routedSkill)
@@ -93,9 +98,10 @@ class QualityCheckRoutingTest {
 
   @Test
   fun `dominant pack without validation_gate throws typed missing-gate error`() {
-    val error = assertFailsWith<MissingValidationGateError> {
-      routeRepo(listOf("manifest-declared code-review fallback"))
-    }
+    val error =
+      assertFailsWith<MissingValidationGateError> {
+        routeRepo(listOf("manifest-declared code-review fallback"))
+      }
     assertContains(error.message.orEmpty(), "generic")
   }
 
@@ -108,9 +114,10 @@ class QualityCheckRoutingTest {
 
   @Test
   fun `unresolved mixed-stack evidence does not select by pack ordering`() {
-    val failure = assertFailsWith<IllegalArgumentException> {
-      routeRepo(listOf("src/main.go", "src/main.rs"))
-    }
+    val failure =
+      assertFailsWith<IllegalArgumentException> {
+        routeRepo(listOf("src/main.go", "src/main.rs"))
+      }
 
     assertTrue(failure.message.orEmpty().contains("ambiguous"))
   }

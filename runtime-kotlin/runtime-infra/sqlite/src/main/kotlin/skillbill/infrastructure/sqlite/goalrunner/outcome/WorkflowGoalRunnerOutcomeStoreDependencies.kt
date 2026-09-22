@@ -12,16 +12,18 @@ import skillbill.workflow.goal.GoalProgressEventValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.time.Clock
 
-class WorkflowGoalRunnerOutcomeStoreDependencies @Inject constructor(
-  val workflowSnapshotValidator: WorkflowSnapshotValidator,
-  val goalObservabilityEventValidator: GoalObservabilityEventValidator,
-  val goalProgressEventValidator: GoalProgressEventValidator,
-  val gitOperations: WorkflowGitOperations,
-  val phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
-  val clock: Clock,
-  val decompositionManifestValidator: DecompositionManifestValidator,
-  val decompositionManifestStore: DecompositionManifestStore,
-  val decompositionManifestWriter: DecompositionManifestProjectionWriter,
-  val childRepairExecutor: GoalRunnerChildRepairRunnerPort,
-)
+class WorkflowGoalRunnerOutcomeStoreDependencies
+  @Inject
+  constructor(
+    val workflowSnapshotValidator: WorkflowSnapshotValidator,
+    val goalObservabilityEventValidator: GoalObservabilityEventValidator,
+    val goalProgressEventValidator: GoalProgressEventValidator,
+    val gitOperations: WorkflowGitOperations,
+    val phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
+    val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
+    val clock: Clock,
+    val decompositionManifestValidator: DecompositionManifestValidator,
+    val decompositionManifestStore: DecompositionManifestStore,
+    val decompositionManifestWriter: DecompositionManifestProjectionWriter,
+    val childRepairExecutor: GoalRunnerChildRepairRunnerPort,
+  )

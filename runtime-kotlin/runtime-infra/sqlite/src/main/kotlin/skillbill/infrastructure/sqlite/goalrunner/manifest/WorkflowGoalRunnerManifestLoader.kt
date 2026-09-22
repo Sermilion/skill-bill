@@ -38,39 +38,45 @@ internal class WorkflowGoalRunnerManifestLoader(
   private val parentProjection: GoalParentProjectionWriter,
   private val clock: Clock,
 ) {
-  fun findProjectedManifest(repoRoot: Path, issueKey: String, recoverPending: Boolean = true) =
-    resolveDecompositionManifest(
-      repoRoot = repoRoot,
-      issueKey = issueKey,
-      fileStore = decompositionManifestStore,
-      validator = decompositionManifestValidator,
-      recoverPending = recoverPending,
-    )
+  fun findProjectedManifest(
+    repoRoot: Path,
+    issueKey: String,
+    recoverPending: Boolean = true,
+  ) = resolveDecompositionManifest(
+    repoRoot = repoRoot,
+    issueKey = issueKey,
+    fileStore = decompositionManifestStore,
+    validator = decompositionManifestValidator,
+    recoverPending = recoverPending,
+  )
 
   fun loadFromWorkflowStore(
     issueKey: String,
     currentProjectedManifest: DecompositionManifest? = null,
-  ): GoalRunnerManifestState? = database.read { unitOfWork ->
-    loadFromWorkflowUnitOfWork(unitOfWork, issueKey, currentProjectedManifest)
-  }
+  ): GoalRunnerManifestState? =
+    database.read { unitOfWork ->
+      loadFromWorkflowUnitOfWork(unitOfWork, issueKey, currentProjectedManifest)
+    }
 
   fun loadFromWorkflowStoreIfPresent(
     issueKey: String,
     currentProjectedManifest: DecompositionManifest? = null,
-  ): GoalRunnerManifestState? = database.readIfPresent { unitOfWork ->
-    loadFromWorkflowUnitOfWork(unitOfWork, issueKey, currentProjectedManifest)
-  }
+  ): GoalRunnerManifestState? =
+    database.readIfPresent { unitOfWork ->
+      loadFromWorkflowUnitOfWork(unitOfWork, issueKey, currentProjectedManifest)
+    }
 
   fun loadFromWorkflowUnitOfWork(
     unitOfWork: UnitOfWork,
     issueKey: String,
     currentProjectedManifest: DecompositionManifest?,
   ): GoalRunnerManifestState? {
-    val record = unitOfWork.workflowStates.findDecomposedParentWorkflow(
-      issueKey,
-      decompositionManifestValidator,
-      currentProjectedManifest,
-    ) ?: return null
+    val record =
+      unitOfWork.workflowStates.findDecomposedParentWorkflow(
+        issueKey,
+        decompositionManifestValidator,
+        currentProjectedManifest,
+      ) ?: return null
     val snapshot = record.toSnapshot()
     val manifest = snapshot.decompositionRuntime(decompositionManifestValidator) ?: return null
     return GoalRunnerManifestState(
@@ -83,48 +89,52 @@ internal class WorkflowGoalRunnerManifestLoader(
 
   fun importFromManifestProjection(manifest: DecompositionManifest): GoalRunnerManifestState? =
     database.transaction { unitOfWork ->
-      val existingRecord = unitOfWork.workflowStates.findDecomposedParentOrCorruptFallback(
-        manifest.issueKey,
-        decompositionManifestValidator,
-        manifest,
-      )
+      val existingRecord =
+        unitOfWork.workflowStates.findDecomposedParentOrCorruptFallback(
+          manifest.issueKey,
+          decompositionManifestValidator,
+          manifest,
+        )
       existingRecord?.requireRuntimeModeForEngineWrite()
       val existing = existingRecord?.toSnapshot()
-      val base = existing ?: engine.openRecord(
-        WorkflowFamily.TASK_RUNTIME.definition,
-        generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, Random.Default),
-        WorkflowFamily.TASK_RUNTIME.definition.defaultSessionPrefix,
-        "plan",
-      )
-      val imported = engine.updateRecord(
-        WorkflowFamily.TASK_RUNTIME.definition,
-        base,
-        WorkflowUpdateInput(
-          workflowStatus = WorkflowStatus.PAUSED,
-          currentStepId = "plan",
-          stepUpdates = if (existing != null) {
-            null
-          } else {
-            WorkflowStepUpdates.from(
-              listOf(
-                mapOf(
-                  SharedPayloadKeys.STEP_ID to "preplan",
-                  SharedPayloadKeys.STATUS to "completed",
-                  "attempt_count" to 1,
-                ),
-                mapOf(
-                  SharedPayloadKeys.STEP_ID to "plan",
-                  SharedPayloadKeys.STATUS to "completed",
-                  "attempt_count" to 1,
-                ),
-              ),
-            )
-          },
-          artifactsPatch = WorkflowArtifactPatch.from(parentProjection.artifacts(manifest, base.artifactsJson)),
-          sessionId = base.sessionId.orEmpty(),
-          replaceArtifacts = true,
-        ),
-      )
+      val base =
+        existing ?: engine.openRecord(
+          WorkflowFamily.TASK_RUNTIME.definition,
+          generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, Random.Default),
+          WorkflowFamily.TASK_RUNTIME.definition.defaultSessionPrefix,
+          "plan",
+        )
+      val imported =
+        engine.updateRecord(
+          WorkflowFamily.TASK_RUNTIME.definition,
+          base,
+          WorkflowUpdateInput(
+            workflowStatus = WorkflowStatus.PAUSED,
+            currentStepId = "plan",
+            stepUpdates =
+              if (existing != null) {
+                null
+              } else {
+                WorkflowStepUpdates.from(
+                  listOf(
+                    mapOf(
+                      SharedPayloadKeys.STEP_ID to "preplan",
+                      SharedPayloadKeys.STATUS to "completed",
+                      "attempt_count" to 1,
+                    ),
+                    mapOf(
+                      SharedPayloadKeys.STEP_ID to "plan",
+                      SharedPayloadKeys.STATUS to "completed",
+                      "attempt_count" to 1,
+                    ),
+                  ),
+                )
+              },
+            artifactsPatch = WorkflowArtifactPatch.from(parentProjection.artifacts(manifest, base.artifactsJson)),
+            sessionId = base.sessionId.orEmpty(),
+            replaceArtifacts = true,
+          ),
+        )
       WorkflowFamily.TASK_RUNTIME.saveRecord(
         unitOfWork.workflowStates,
         imported.toRecord().copy(issueKey = normalizeRequiredIssueKey(manifest.issueKey)),
@@ -142,28 +152,32 @@ internal class WorkflowGoalRunnerManifestLoader(
     stored: GoalRunnerManifestState?,
     projected: DecompositionManifest?,
     repoRoot: Path?,
-  ): GoalRunnerManifestState? = when {
-    shouldRefreshFromCompleteProjection(stored, projected) -> requireNotNull(stored).copy(
-      manifest = requireNotNull(projected),
-      repoRoot = repoRoot,
-    )
-    stored != null -> stored.copy(repoRoot = repoRoot)
-    projected != null -> GoalRunnerManifestState(
-      parentWorkflowId = "",
-      dbPath = "",
-      manifest = projected,
-      repoRoot = repoRoot,
-    )
-    else -> null
-  }
+  ): GoalRunnerManifestState? =
+    when {
+      shouldRefreshFromCompleteProjection(stored, projected) ->
+        requireNotNull(stored).copy(
+          manifest = requireNotNull(projected),
+          repoRoot = repoRoot,
+        )
+      stored != null -> stored.copy(repoRoot = repoRoot)
+      projected != null ->
+        GoalRunnerManifestState(
+          parentWorkflowId = "",
+          dbPath = "",
+          manifest = projected,
+          repoRoot = repoRoot,
+        )
+      else -> null
+    }
 
   fun shouldRefreshFromCompleteProjection(
     stored: GoalRunnerManifestState?,
     projected: DecompositionManifest?,
-  ): Boolean = stored != null &&
-    projected != null &&
-    projected.isCompleteGoalProjection() &&
-    !stored.manifest.isCompleteGoalProjection()
+  ): Boolean =
+    stored != null &&
+      projected != null &&
+      projected.isCompleteGoalProjection() &&
+      !stored.manifest.isCompleteGoalProjection()
 }
 
 internal fun mergeConcurrentGoalProgress(
@@ -171,17 +185,18 @@ internal fun mergeConcurrentGoalProgress(
   incoming: DecompositionManifest,
 ): DecompositionManifest {
   val persistedById = persisted.subtasks.associateBy { it.id }
-  val mergedSubtasks = incoming.subtasks.map { candidate ->
-    val current = persistedById[candidate.id]
-    if (
-      current?.status.decompositionStatus() == DecompositionStatus.COMPLETE &&
-      candidate.status.decompositionStatus() != DecompositionStatus.COMPLETE
-    ) {
-      current ?: candidate
-    } else {
-      candidate
+  val mergedSubtasks =
+    incoming.subtasks.map { candidate ->
+      val current = persistedById[candidate.id]
+      if (
+        current?.status.decompositionStatus() == DecompositionStatus.COMPLETE &&
+        candidate.status.decompositionStatus() != DecompositionStatus.COMPLETE
+      ) {
+        current ?: candidate
+      } else {
+        candidate
+      }
     }
-  }
   val merged = incoming.copy(subtasks = mergedSubtasks)
   return if (
     persisted.currentSubtaskIntent.subtaskId > 0 &&
@@ -197,7 +212,8 @@ internal fun mergeConcurrentGoalProgress(
 
 private fun DecompositionManifest.isCompleteGoalProjection(): Boolean =
   status.decompositionStatus() == DecompositionStatus.COMPLETE &&
-    currentSubtaskIntent.action == "complete" && subtasks.all { subtask ->
+    currentSubtaskIntent.action == "complete" &&
+    subtasks.all { subtask ->
       subtask.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED) &&
         (subtask.status.decompositionStatus() == DecompositionStatus.SKIPPED || !subtask.commitSha.isNullOrBlank())
     }

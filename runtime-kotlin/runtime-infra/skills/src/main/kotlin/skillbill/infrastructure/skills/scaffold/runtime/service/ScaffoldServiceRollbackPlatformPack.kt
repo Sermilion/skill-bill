@@ -10,7 +10,11 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
 import java.nio.file.Path
 import skillbill.scaffold.policy.platformpack.renderPlatformPackManifestContent as renderPackManifest
 
-internal fun renderPlatformPackManifestContent(plan: ScaffoldPlan, repoRoot: Path, baselineSkillPath: Path): String {
+internal fun renderPlatformPackManifestContent(
+  plan: ScaffoldPlan,
+  repoRoot: Path,
+  baselineSkillPath: Path,
+): String {
   val packRoot = plan.manifestPath?.parent ?: repoRoot.resolve("platform-packs").resolve(plan.platform)
   return renderPackManifest(
     PlatformPackManifestContentRenderRequest(
@@ -54,7 +58,11 @@ internal fun stagePlatformPackSkills(
   return symlinks
 }
 
-internal fun stagePlatformPackArea(txn: ScaffoldTransaction, plan: ScaffoldPlan, area: String): List<Path> {
+internal fun stagePlatformPackArea(
+  txn: ScaffoldTransaction,
+  plan: ScaffoldPlan,
+  area: String,
+): List<Path> {
   val areaPath = plan.specialistSkillPaths.getValue(area)
   val areaName = plan.specialistSkillNames.getValue(area)
   val areaContext = TemplateContext(areaName, "code-review", plan.platform, area, plan.displayName)
@@ -67,15 +75,16 @@ internal fun stagePlatformPackArea(txn: ScaffoldTransaction, plan: ScaffoldPlan,
   return emptyList()
 }
 
-internal fun previewPlatformPackCreatedFiles(plan: ScaffoldPlan): List<Path> = buildList {
-  plan.manifestPath?.let(::add)
-  plan.baselineSkillPath?.let {
-    add(it.resolve("content.md"))
+internal fun previewPlatformPackCreatedFiles(plan: ScaffoldPlan): List<Path> =
+  buildList {
+    plan.manifestPath?.let(::add)
+    plan.baselineSkillPath?.let {
+      add(it.resolve("content.md"))
+    }
+    plan.specialistSkillPaths.values.forEach { path ->
+      add(path.resolve("content.md"))
+    }
   }
-  plan.specialistSkillPaths.values.forEach { path ->
-    add(path.resolve("content.md"))
-  }
-}
 
 internal fun previewSubagentStubFiles(plan: ScaffoldPlan): List<Path> {
   if (!plan.shouldEmitSubagents()) {
@@ -118,5 +127,6 @@ internal fun ScaffoldPlan.shouldEmitSubagents(): Boolean = subagentSpecialists.i
 
 internal fun ScaffoldPlan.isExternalAddon(): Boolean = kind == SKILL_KIND_ADD_ON && externalAddonLocationPath != null
 
-internal fun ScaffoldPlan.externalAddonManifestPath(): Path = externalAddonLocationPath?.resolve("addon-manifest.yaml")
-  ?: error("External add-on plan is missing addon_location_path.")
+internal fun ScaffoldPlan.externalAddonManifestPath(): Path =
+  externalAddonLocationPath?.resolve("addon-manifest.yaml")
+    ?: error("External add-on plan is missing addon_location_path.")

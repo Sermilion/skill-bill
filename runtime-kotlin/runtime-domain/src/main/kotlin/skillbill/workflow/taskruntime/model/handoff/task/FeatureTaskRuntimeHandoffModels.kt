@@ -13,17 +13,11 @@ import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepair
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 
 data class FeatureTaskRuntimeRunInvariants(
-
   val specReference: String,
-
   val featureSize: FeatureTaskRuntimeFeatureSize = FeatureTaskRuntimeFeatureSize.DEFAULT,
-
   val acceptanceCriteria: List<String>,
-
   val mandatesAndOverrides: List<String>,
-
   val codeReviewMode: CodeReviewExecutionMode = CodeReviewExecutionMode.DEFAULT,
-
   val agentAddonSelection: AgentAddonSelection = AgentAddonSelection(),
 ) {
   init {
@@ -83,23 +77,19 @@ data class FeatureTaskRuntimeCeremonyScaling(
   val reviewScope: FeatureTaskRuntimeReviewScope,
   val auditCeremony: FeatureTaskRuntimeAuditCeremony,
 ) {
-  fun toBriefingLines(): List<String> = listOf(
-    "preplan_ceremony: ${preplanCeremony.wireValue} (${preplanCeremony.promptLabel})",
-    "review_scope: ${reviewScope.wireValue} (${reviewScope.promptLabel})",
-    "audit_ceremony: ${auditCeremony.wireValue} (${auditCeremony.promptLabel})",
-  )
+  fun toBriefingLines(): List<String> =
+    listOf(
+      "preplan_ceremony: ${preplanCeremony.wireValue} (${preplanCeremony.promptLabel})",
+      "review_scope: ${reviewScope.wireValue} (${reviewScope.promptLabel})",
+      "audit_ceremony: ${auditCeremony.wireValue} (${auditCeremony.promptLabel})",
+    )
 }
 
 data class FeatureTaskRuntimePhaseOutput(
-
   val phaseId: String,
-
   val iteration: Int,
-
   val payload: String,
-
   val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput? = null,
-
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence? = null,
 ) {
   init {
@@ -124,18 +114,13 @@ data class FeatureTaskRuntimePhaseHandoff(
   val runInvariants: FeatureTaskRuntimeRunInvariants,
   val upstreamOutputs: FeatureTaskRuntimeResolvedUpstreamOutputs,
   val derivedContextKeys: List<String>,
-
   val projectionDeclarations: List<PhaseHandoffProjectionDeclaration> = emptyList(),
-
   val repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint? = null,
-
   val expectedRepositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint? = null,
   val branchIdentity: String? = null,
   val baseBranch: String = "main",
-
   val validationDepth: ValidationDepth = ValidationDepth.DEFAULT,
   val qualityGateSelection: FeatureTaskRuntimeQualityGateSelection = FeatureTaskRuntimeQualityGateSelection.VALIDATE,
-
   val drivingVerdict: FeatureTaskRuntimeVerdict? = null,
   val repairLedger: FeatureTaskRuntimeRepairLedger? = null,
   val recordedFindingVerdicts: List<ReviewFindingVerdict> = emptyList(),
@@ -143,9 +128,7 @@ data class FeatureTaskRuntimePhaseHandoff(
 
 data class FeatureTaskRuntimePhaseDeclaration(
   val phaseId: String,
-
   val projectionDeclarations: List<PhaseHandoffProjectionDeclaration>,
-
   val derivedContextKeys: List<String>,
 ) {
   init {
@@ -161,7 +144,8 @@ data class FeatureTaskRuntimePhaseDeclaration(
   }
 
   val consumedUpstreamPhaseIds: List<String>
-    get() = projectionDeclarations
-      .mapNotNull { (it.sourceRef as? FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput)?.producingPhaseId }
-      .distinct()
+    get() =
+      projectionDeclarations
+        .mapNotNull { (it.sourceRef as? FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput)?.producingPhaseId }
+        .distinct()
 }

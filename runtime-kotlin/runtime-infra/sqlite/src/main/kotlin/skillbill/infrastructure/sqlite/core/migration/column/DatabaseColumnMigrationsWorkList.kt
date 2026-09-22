@@ -10,7 +10,10 @@ internal object DatabaseColumnMigrationsWorkList {
     applyWorkListMetadata(connection, recoverIssueKeys = false)
   }
 
-  private fun applyWorkListMetadata(connection: Connection, recoverIssueKeys: Boolean) {
+  private fun applyWorkListMetadata(
+    connection: Connection,
+    recoverIssueKeys: Boolean,
+  ) {
     val workflowColumnsHealed = ensureWorkListWorkflowColumns(connection)
     val goalColumnsHealed = ensureGoalWorkListColumns(connection)
     if (recoverIssueKeys || workflowColumnsHealed || goalColumnsHealed) {
@@ -79,18 +82,20 @@ internal object DatabaseColumnMigrationsWorkList {
     if (!DatabaseColumnMigrations.tableExists(connection, "goal_issue_progress")) {
       return false
     }
-    val stateEnteredAtAdded = DatabaseColumnMigrationsEnsure.ensureColumn(
-      connection,
-      "goal_issue_progress",
-      "state_entered_at",
-      "TEXT",
-    )
-    val estimatedAdded = DatabaseColumnMigrationsEnsure.ensureColumn(
-      connection,
-      "goal_issue_progress",
-      "state_entered_at_estimated",
-      "INTEGER",
-    )
+    val stateEnteredAtAdded =
+      DatabaseColumnMigrationsEnsure.ensureColumn(
+        connection,
+        "goal_issue_progress",
+        "state_entered_at",
+        "TEXT",
+      )
+    val estimatedAdded =
+      DatabaseColumnMigrationsEnsure.ensureColumn(
+        connection,
+        "goal_issue_progress",
+        "state_entered_at_estimated",
+        "INTEGER",
+      )
     healGoalIssueProgressStateEntries(connection)
     return stateEnteredAtAdded || estimatedAdded
   }

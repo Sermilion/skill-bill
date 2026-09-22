@@ -200,13 +200,15 @@ class PointerValidationTest {
   @Test
   fun `passes when pointer is a symlink whose target string matches the rendered output`() {
     val repoRoot = setupBasicPack()
-    val pointerFile = repoRoot.resolve(
-      "platform-packs/fixturepack/code-review/skill/shell-ceremony.md",
-    )
+    val pointerFile =
+      repoRoot.resolve(
+        "platform-packs/fixturepack/code-review/skill/shell-ceremony.md",
+      )
     Files.createDirectories(pointerFile.parent)
-    val symlinksSupported = runCatching {
-      Files.createSymbolicLink(pointerFile, Path.of("../../../../shared/shell.md"))
-    }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
+    val symlinksSupported =
+      runCatching {
+        Files.createSymbolicLink(pointerFile, Path.of("../../../../shared/shell.md"))
+      }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
     Assumptions.assumeTrue(symlinksSupported, "symlinks unsupported on this filesystem")
 
     val report = validatePlatformPackPointers(repoRoot)
@@ -217,13 +219,15 @@ class PointerValidationTest {
   @Test
   fun `flags drift when pointer is a symlink whose target string does not match`() {
     val repoRoot = setupBasicPack()
-    val pointerFile = repoRoot.resolve(
-      "platform-packs/fixturepack/code-review/skill/shell-ceremony.md",
-    )
+    val pointerFile =
+      repoRoot.resolve(
+        "platform-packs/fixturepack/code-review/skill/shell-ceremony.md",
+      )
     Files.createDirectories(pointerFile.parent)
-    val symlinksSupported = runCatching {
-      Files.createSymbolicLink(pointerFile, Path.of("../../../wrong/shell.md"))
-    }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
+    val symlinksSupported =
+      runCatching {
+        Files.createSymbolicLink(pointerFile, Path.of("../../../wrong/shell.md"))
+      }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
     Assumptions.assumeTrue(symlinksSupported, "symlinks unsupported on this filesystem")
 
     val report = validatePlatformPackPointers(repoRoot)
@@ -267,7 +271,11 @@ class PointerValidationTest {
     return repoRoot
   }
 
-  private fun writePointer(repoRoot: Path, relativePath: String, content: String) {
+  private fun writePointer(
+    repoRoot: Path,
+    relativePath: String,
+    content: String,
+  ) {
     val target = repoRoot.resolve(relativePath)
     Files.createDirectories(target.parent)
     Files.writeString(target, content)

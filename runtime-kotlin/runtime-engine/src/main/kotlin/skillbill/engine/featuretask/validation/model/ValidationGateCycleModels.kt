@@ -11,6 +11,7 @@ import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidat
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRepairWindowPhase
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRunRecord
 import java.nio.file.Path
+
 enum class ValidationGateCyclePhase {
   INITIAL_DISCOVERY,
   POST_REPAIR_VERIFY,
@@ -38,6 +39,7 @@ fun interface ValidationGateAgentTriageLauncher {
 
 sealed interface ValidationGateTriageResult {
   data class Captured(val validationRepairPlan: String) : ValidationGateTriageResult
+
   data object Empty : ValidationGateTriageResult
 }
 
@@ -51,7 +53,9 @@ fun interface ValidationGateAgentRepairLauncher {
 
 sealed interface ValidationGateAgentRepairResult {
   data class Paused(val reason: String) : ValidationGateAgentRepairResult
+
   data class Completed(val output: FeatureTaskRuntimePhaseOutput) : ValidationGateAgentRepairResult
+
   data class Blocked(
     val reason: String,
     val failureDisposition: FeatureTaskRuntimeFailureDisposition? = null,
@@ -66,6 +70,7 @@ sealed interface ValidationGateCycleResult {
 
 sealed interface ValidationGateCycleTerminalOutcome {
   data class Paused(val reason: String) : ValidationGateCycleTerminalOutcome
+
   data class Completed(val output: FeatureTaskRuntimePhaseOutput) : ValidationGateCycleTerminalOutcome
 
   data class Blocked(
@@ -77,7 +82,10 @@ sealed interface ValidationGateCycleTerminalOutcome {
 }
 
 fun interface ValidationGateProgressStore {
-  fun persist(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress)
+  fun persist(
+    workflowId: String,
+    progress: FeatureTaskRuntimeValidationGateProgress,
+  )
 
   fun load(workflowId: String): FeatureTaskRuntimeValidationGateProgress? = null
 }
@@ -95,13 +103,14 @@ data class ValidationGateProgressWrite(
       repairsUsed: Int,
       capturedTriagePlan: String?,
       remainingFindings: ValidationFindingSetProjection? = null,
-    ): ValidationGateProgressWrite = ValidationGateProgressWrite(
-      repairWindowPhase = FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN,
-      remainingFindings = remainingFindings,
-      completeFindings = completeFindings,
-      repairsUsed = repairsUsed,
-      capturedTriagePlan = capturedTriagePlan,
-    )
+    ): ValidationGateProgressWrite =
+      ValidationGateProgressWrite(
+        repairWindowPhase = FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN,
+        remainingFindings = remainingFindings,
+        completeFindings = completeFindings,
+        repairsUsed = repairsUsed,
+        capturedTriagePlan = capturedTriagePlan,
+      )
   }
 }
 
@@ -112,7 +121,8 @@ data class ValidationGateCycleRequest(
   val changedPaths: List<String>,
   val repositoryCheckpoint: String,
   val agentRepairLauncher: ValidationGateAgentRepairLauncher,
-  val agentTriageLauncher: ValidationGateAgentTriageLauncher = ValidationGateAgentTriageLauncher {
-    ValidationGateTriageResult.Empty
-  },
+  val agentTriageLauncher: ValidationGateAgentTriageLauncher =
+    ValidationGateAgentTriageLauncher {
+      ValidationGateTriageResult.Empty
+    },
 )

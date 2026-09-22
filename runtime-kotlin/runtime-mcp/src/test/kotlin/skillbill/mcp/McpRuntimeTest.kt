@@ -45,20 +45,22 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class McpRuntimeTest {
   @Test
   fun `workflow open retains context as its fourth positional argument`() {
     val tempDir = Files.createTempDirectory("skillbill-mcp-workflow-open-compat")
     val context = McpRuntimeContext(environment = disabledTelemetryEnvironment(tempDir), userHome = tempDir)
 
-    val opened = McpWorkflowRuntime.open(
-      McpWorkflowOpenArgs(
-        kind = WorkflowFamilyKind.TASK_RUNTIME,
-        sessionId = "ftr-compat",
-        currentStepId = null,
-        context = context,
-      ),
-    )
+    val opened =
+      McpWorkflowRuntime.open(
+        McpWorkflowOpenArgs(
+          kind = WorkflowFamilyKind.TASK_RUNTIME,
+          sessionId = "ftr-compat",
+          currentStepId = null,
+          context = context,
+        ),
+      )
 
     assertTrue((opened["workflow_id"] as String).startsWith("wftr-"))
   }
@@ -478,8 +480,9 @@ class McpRuntimeTest {
       }
       """.trimIndent() + "\n",
     )
-    val env = mapOf("SKILL_BILL_REVIEW_DB" to tempDir.resolve("metrics.db").toString())
-      .withTestTelemetryProxy()
+    val env =
+      mapOf("SKILL_BILL_REVIEW_DB" to tempDir.resolve("metrics.db").toString())
+        .withTestTelemetryProxy()
 
     val result =
       McpRuntime.importReview(
@@ -497,13 +500,14 @@ class McpRuntimeTest {
     val tempDir = Files.createTempDirectory("skillbill-mcp-verify-workflow")
     val env = disabledTelemetryEnvironment(tempDir)
     val context = McpRuntimeContext(environment = env, userHome = tempDir)
-    val opened = McpWorkflowRuntime.open(
-      McpWorkflowOpenArgs(
-        kind = WorkflowFamilyKind.VERIFY,
-        currentStepId = "code_review",
-        context = context,
-      ),
-    )
+    val opened =
+      McpWorkflowRuntime.open(
+        McpWorkflowOpenArgs(
+          kind = WorkflowFamilyKind.VERIFY,
+          currentStepId = "code_review",
+          context = context,
+        ),
+      )
     val workflowId = opened["workflow_id"] as String
     assertWorkflowIdShape(workflowId, "wfv")
     assertSqliteTimestampShape(opened["started_at"].toString(), "verify started_at")
@@ -538,10 +542,11 @@ class McpFeatureTaskRuntimeWorkflowTest {
   @Test
   fun `mcp workflow methods cover experimental feature-task-runtime verbs`() {
     val tempDir = Files.createTempDirectory("skillbill-mcp-task-runtime-workflow")
-    val context = McpRuntimeContext(
-      environment = disabledTelemetryEnvironment(tempDir),
-      userHome = tempDir,
-    )
+    val context =
+      McpRuntimeContext(
+        environment = disabledTelemetryEnvironment(tempDir),
+        userHome = tempDir,
+      )
     val opened = openTaskRuntimeWorkflow(context)
     val workflowId = opened["workflow_id"] as String
     val payloads = driveTaskRuntimeWorkflowVerbs(workflowId, context)
@@ -549,13 +554,14 @@ class McpFeatureTaskRuntimeWorkflowTest {
   }
 
   private fun openTaskRuntimeWorkflow(context: McpRuntimeContext): Map<String, Any?> {
-    val opened = McpWorkflowRuntime.open(
-      McpWorkflowOpenArgs(
-        kind = WorkflowFamilyKind.TASK_RUNTIME,
-        sessionId = "ftr-20260603-mcp",
-        context = context,
-      ),
-    )
+    val opened =
+      McpWorkflowRuntime.open(
+        McpWorkflowOpenArgs(
+          kind = WorkflowFamilyKind.TASK_RUNTIME,
+          sessionId = "ftr-20260603-mcp",
+          context = context,
+        ),
+      )
     assertWorkflowIdShape(opened["workflow_id"] as String, "wftr")
     assertSqliteTimestampShape(opened["started_at"].toString(), "task-runtime started_at")
     assertEquals(opened["started_at"], opened["updated_at"])
@@ -566,23 +572,25 @@ class McpFeatureTaskRuntimeWorkflowTest {
     workflowId: String,
     context: McpRuntimeContext,
   ): Map<String, Map<String, Any?>> {
-    val updated = McpWorkflowRuntime.update(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      WorkflowUpdateRequest(
-        workflowId = workflowId,
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
-            mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
-            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-          ),
+    val updated =
+      McpWorkflowRuntime.update(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        WorkflowUpdateRequest(
+          workflowId = workflowId,
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
+          currentStepId = "implement",
+          stepUpdates =
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
+                mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+                mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+              ),
+            ),
+          artifactsPatch = WorkflowArtifactPatch.from(taskRuntimePhaseArtifactsPatch()),
         ),
-        artifactsPatch = WorkflowArtifactPatch.from(taskRuntimePhaseArtifactsPatch()),
-      ),
-      context,
-    )
+        context,
+      )
     return mapOf(
       "update" to updated,
       "list" to McpWorkflowRuntime.list(WorkflowFamilyKind.TASK_RUNTIME, context = context),
@@ -630,33 +638,36 @@ class McpTokenEstimationTest {
     val context = McpRuntimeContext(environment = enabledTelemetryEnvironment(tempDir), userHome = tempDir)
 
     val lifecycle = services(context).lifecycleTelemetryService
-    val started = lifecycle.featureTaskRuntimeStarted(
-      FeatureTaskRuntimeStartedRequest(
-        featureSize = "MEDIUM",
-        issueKey = "SKILL-91",
-        featureName = "token-estimation",
-      ),
-    )
+    val started =
+      lifecycle.featureTaskRuntimeStarted(
+        FeatureTaskRuntimeStartedRequest(
+          featureSize = "MEDIUM",
+          issueKey = "SKILL-91",
+          featureName = "token-estimation",
+        ),
+      )
     lifecycle.featureTaskRuntimeFinished(
       FeatureTaskRuntimeFinishedRequest(
         sessionId = started.toPayload()["session_id"] as String,
         completionStatus = "completed",
         completedPhaseIds = listOf("preplan", "plan", "implement"),
-        phaseOutcomes = mapOf(
-          "preplan" to "completed",
-          "plan" to "completed",
-          "implement" to "completed",
-        ),
+        phaseOutcomes =
+          mapOf(
+            "preplan" to "completed",
+            "plan" to "completed",
+            "implement" to "completed",
+          ),
         lastIncompletePhase = "",
         blockedReason = "",
         resolvedBranch = "feat/SKILL-91",
-        estimatedPhaseTokenBreakdownJson = JsonCodec.mapToJsonString(
-          mapOf(
-            "preplan" to mapOf("estimated_input_tokens" to 800, "estimated_output_tokens" to 400),
-            "plan" to mapOf("estimated_input_tokens" to 1200, "estimated_output_tokens" to 600),
-            "implement" to mapOf("estimated_input_tokens" to 3000, "estimated_output_tokens" to 1500),
+        estimatedPhaseTokenBreakdownJson =
+          JsonCodec.mapToJsonString(
+            mapOf(
+              "preplan" to mapOf("estimated_input_tokens" to 800, "estimated_output_tokens" to 400),
+              "plan" to mapOf("estimated_input_tokens" to 1200, "estimated_output_tokens" to 600),
+              "implement" to mapOf("estimated_input_tokens" to 3000, "estimated_output_tokens" to 1500),
+            ),
           ),
-        ),
         estimatedTotalTokens = 7500,
       ),
     )
@@ -673,10 +684,11 @@ class McpTokenEstimationTest {
           "SELECT COUNT(*) FROM feature_task_runtime_sessions WHERE estimated_total_tokens = 7500",
         ),
       )
-      val phaseJson = scalarString(
-        connection,
-        "SELECT estimated_phase_tokens_json FROM feature_task_runtime_sessions LIMIT 1",
-      )
+      val phaseJson =
+        scalarString(
+          connection,
+          "SELECT estimated_phase_tokens_json FROM feature_task_runtime_sessions LIMIT 1",
+        )
       assertTrue(phaseJson.isNotEmpty())
     }
   }
@@ -686,18 +698,20 @@ class McpTokenEstimationTest {
     val tempDir = Files.createTempDirectory("skillbill-mcp-runtime-blocked")
     val context = McpRuntimeContext(environment = enabledTelemetryEnvironment(tempDir), userHome = tempDir)
 
-    val prefixlessSessionId = recordBlockedFeatureTaskRuntimeFinished(
-      context = context,
-      issueKey = "SKILL-109",
-      lastIncompletePhase = "",
-      blockedReason = "review requested changes",
-    )
-    val blankReasonSessionId = recordBlockedFeatureTaskRuntimeFinished(
-      context = context,
-      issueKey = "SKILL-109.1",
-      lastIncompletePhase = "",
-      blockedReason = "",
-    )
+    val prefixlessSessionId =
+      recordBlockedFeatureTaskRuntimeFinished(
+        context = context,
+        issueKey = "SKILL-109",
+        lastIncompletePhase = "",
+        blockedReason = "review requested changes",
+      )
+    val blankReasonSessionId =
+      recordBlockedFeatureTaskRuntimeFinished(
+        context = context,
+        issueKey = "SKILL-109.1",
+        lastIncompletePhase = "",
+        blockedReason = "",
+      )
 
     ensureTestDatabase(tempDir.resolve("metrics.db")).use { connection ->
       assertEquals(
@@ -733,76 +747,86 @@ class McpTokenEstimationTest {
   }
 }
 
-private fun taskRuntimePhaseArtifactsPatch(): Map<String, Any?> = mapOf(
-  "feature_task_runtime_phase_records" to linkedMapOf(
-    "preplan" to linkedMapOf(
-      "contract_version" to "0.2",
-      "record_kind" to "private_phase_record",
-      "phase_id" to "preplan",
-      "status" to "completed",
-      "attempt_count" to 1,
-      "started_at" to "2026-06-03T09:59:00Z",
-      "first_started_at" to "2026-06-03T09:59:00Z",
-      "finished_at" to "2026-06-03T10:00:00Z",
-      "duration_millis" to 60000,
-      "resolved_agent_id" to "claude",
-      "execution_origin" to "agent-executed",
-      "output_artifact" to
-        "{\"contract_version\":\"0.2\",\"phase_id\":\"preplan\",\"status\":\"completed\"," +
-        "\"summary\":\"preplanned\",\"produced_outputs\":{\"digest\":\"ok\"}}",
-    ),
-    "plan" to linkedMapOf(
-      "contract_version" to "0.2",
-      "record_kind" to "private_phase_record",
-      "phase_id" to "plan",
-      "status" to "completed",
-      "attempt_count" to 1,
-      "started_at" to "2026-06-03T10:00:00Z",
-      "first_started_at" to "2026-06-03T10:00:00Z",
-      "finished_at" to "2026-06-03T10:01:00Z",
-      "duration_millis" to 60000,
-      "resolved_agent_id" to "claude",
-      "execution_origin" to "agent-executed",
-      "output_artifact" to
-        "{\"contract_version\":\"0.2\",\"phase_id\":\"plan\",\"status\":\"completed\"," +
-        "\"summary\":\"planned\",\"produced_outputs\":{\"tasks\":[\"task-1\"]}}",
-    ),
-    "implement" to linkedMapOf(
-      "contract_version" to "0.2",
-      "record_kind" to "private_phase_record",
-      "phase_id" to "implement",
-      "status" to "running",
-      "attempt_count" to 1,
-      "started_at" to "2026-06-03T10:01:00Z",
-      "first_started_at" to "2026-06-03T10:01:00Z",
-      "resolved_agent_id" to "claude",
-      "execution_origin" to "agent-executed",
-    ),
-  ),
-  "feature_task_runtime_phase_ledger" to listOf(
-    taskRuntimeLedgerEntry("start", 0, "2026-06-03T09:59:00Z", "preplan"),
-    taskRuntimeLedgerEntry("complete", 1, "2026-06-03T10:00:00Z", "preplan"),
-    taskRuntimeLedgerEntry("start", 2, "2026-06-03T10:00:00Z", "plan"),
-    taskRuntimeLedgerEntry("complete", 3, "2026-06-03T10:01:00Z", "plan"),
-    taskRuntimeLedgerEntry("start", 4, "2026-06-03T10:01:00Z", "implement"),
-  ),
-)
+private fun taskRuntimePhaseArtifactsPatch(): Map<String, Any?> =
+  mapOf(
+    "feature_task_runtime_phase_records" to
+      linkedMapOf(
+        "preplan" to
+          linkedMapOf(
+            "contract_version" to "0.2",
+            "record_kind" to "private_phase_record",
+            "phase_id" to "preplan",
+            "status" to "completed",
+            "attempt_count" to 1,
+            "started_at" to "2026-06-03T09:59:00Z",
+            "first_started_at" to "2026-06-03T09:59:00Z",
+            "finished_at" to "2026-06-03T10:00:00Z",
+            "duration_millis" to 60000,
+            "resolved_agent_id" to "claude",
+            "execution_origin" to "agent-executed",
+            "output_artifact" to
+              "{\"contract_version\":\"0.2\",\"phase_id\":\"preplan\",\"status\":\"completed\"," +
+              "\"summary\":\"preplanned\",\"produced_outputs\":{\"digest\":\"ok\"}}",
+          ),
+        "plan" to
+          linkedMapOf(
+            "contract_version" to "0.2",
+            "record_kind" to "private_phase_record",
+            "phase_id" to "plan",
+            "status" to "completed",
+            "attempt_count" to 1,
+            "started_at" to "2026-06-03T10:00:00Z",
+            "first_started_at" to "2026-06-03T10:00:00Z",
+            "finished_at" to "2026-06-03T10:01:00Z",
+            "duration_millis" to 60000,
+            "resolved_agent_id" to "claude",
+            "execution_origin" to "agent-executed",
+            "output_artifact" to
+              "{\"contract_version\":\"0.2\",\"phase_id\":\"plan\",\"status\":\"completed\"," +
+              "\"summary\":\"planned\",\"produced_outputs\":{\"tasks\":[\"task-1\"]}}",
+          ),
+        "implement" to
+          linkedMapOf(
+            "contract_version" to "0.2",
+            "record_kind" to "private_phase_record",
+            "phase_id" to "implement",
+            "status" to "running",
+            "attempt_count" to 1,
+            "started_at" to "2026-06-03T10:01:00Z",
+            "first_started_at" to "2026-06-03T10:01:00Z",
+            "resolved_agent_id" to "claude",
+            "execution_origin" to "agent-executed",
+          ),
+      ),
+    "feature_task_runtime_phase_ledger" to
+      listOf(
+        taskRuntimeLedgerEntry("start", 0, "2026-06-03T09:59:00Z", "preplan"),
+        taskRuntimeLedgerEntry("complete", 1, "2026-06-03T10:00:00Z", "preplan"),
+        taskRuntimeLedgerEntry("start", 2, "2026-06-03T10:00:00Z", "plan"),
+        taskRuntimeLedgerEntry("complete", 3, "2026-06-03T10:01:00Z", "plan"),
+        taskRuntimeLedgerEntry("start", 4, "2026-06-03T10:01:00Z", "implement"),
+      ),
+  )
 
 private fun taskRuntimeLedgerEntry(
   action: String,
   sequenceNumber: Int,
   timestamp: String,
   phaseId: String,
-): Map<String, Any?> = linkedMapOf(
-  "action" to action,
-  "sequence_number" to sequenceNumber,
-  "timestamp" to timestamp,
-  "phase_id" to phaseId,
-  "attempt_count" to 1,
-  "resolved_agent_id" to "claude",
-)
+): Map<String, Any?> =
+  linkedMapOf(
+    "action" to action,
+    "sequence_number" to sequenceNumber,
+    "timestamp" to timestamp,
+    "phase_id" to phaseId,
+    "attempt_count" to 1,
+    "resolved_agent_id" to "claude",
+  )
 
-private fun assertCompactUpdateAcknowledgementPayload(payload: Map<String, *>, updatedStepIds: List<String>) {
+private fun assertCompactUpdateAcknowledgementPayload(
+  payload: Map<String, *>,
+  updatedStepIds: List<String>,
+) {
   assertEquals("ok", payload["status"])
   assertEquals(updatedStepIds, payload["updated_step_ids"])
   assertTrue(payload.containsKey("updated_artifact_keys"))
@@ -813,7 +837,10 @@ private fun assertCompactUpdateAcknowledgementPayload(payload: Map<String, *>, u
   assertFalse(payload.containsKey("session_id"))
 }
 
-private fun assertCompactContinuationPayload(payload: Map<String, *>, resumeStepId: String) {
+private fun assertCompactContinuationPayload(
+  payload: Map<String, *>,
+  resumeStepId: String,
+) {
   assertEquals(resumeStepId, payload["resume_step_id"])
   assertTrue(payload.containsKey("current_step_artifacts"))
   assertTrue(payload.containsKey("read_only_full_state_command"))
@@ -822,39 +849,47 @@ private fun assertCompactContinuationPayload(payload: Map<String, *>, resumeStep
   assertFalse(payload.containsKey("steps"))
 }
 
-private fun markVerifyWorkflowVerdictBlocked(workflowId: String, context: McpRuntimeContext): Map<String, *> =
+private fun markVerifyWorkflowVerdictBlocked(
+  workflowId: String,
+  context: McpRuntimeContext,
+): Map<String, *> =
   McpWorkflowRuntime.update(
     WorkflowFamilyKind.VERIFY,
     WorkflowUpdateRequest(
       workflowId = workflowId,
       workflowStatus = WorkflowStatus.RUNNING.wireValue,
       currentStepId = "verdict",
-      stepUpdates = WorkflowStepUpdates.from(
-        listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1)),
-      ),
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf(
-          "diff_projection" to mapOf(
-            "checkpoint" to GitWorkflowGitOperations()
-              .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value,
-            "comparison_scope" to "base..head",
-            "changed_files" to emptyList<String>(),
-          ),
-          "feature_flag_audit_receipt" to evaluatorReceipt(),
-          "code_review_receipt" to evaluatorReceipt(),
-          "unit_test_value_receipt" to evaluatorReceipt(),
-          "completeness_audit_receipt" to evaluatorReceipt(),
+      stepUpdates =
+        WorkflowStepUpdates.from(
+          listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1)),
         ),
-      ),
+      artifactsPatch =
+        WorkflowArtifactPatch.from(
+          mapOf(
+            "diff_projection" to
+              mapOf(
+                "checkpoint" to
+                  GitWorkflowGitOperations()
+                    .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value,
+                "comparison_scope" to "base..head",
+                "changed_files" to emptyList<String>(),
+              ),
+            "feature_flag_audit_receipt" to evaluatorReceipt(),
+            "code_review_receipt" to evaluatorReceipt(),
+            "unit_test_value_receipt" to evaluatorReceipt(),
+            "completeness_audit_receipt" to evaluatorReceipt(),
+          ),
+        ),
     ),
     context = context,
   )
 
-private fun evaluatorReceipt(): Map<String, Any?> = mapOf(
-  "contract_version" to "0.1",
-  "verdict" to "approved",
-  "findings" to emptyList<Map<String, Any?>>(),
-)
+private fun evaluatorReceipt(): Map<String, Any?> =
+  mapOf(
+    "contract_version" to "0.1",
+    "verdict" to "approved",
+    "findings" to emptyList<Map<String, Any?>>(),
+  )
 
 private fun enabledTelemetryEnvironment(tempDir: Path): Map<String, String> {
   val configPath = tempDir.resolve("config.json")
@@ -898,7 +933,10 @@ private fun disabledTelemetryEnvironment(tempDir: Path): Map<String, String> {
   )
 }
 
-private fun seedLearningScenario(tempDir: Path, env: Map<String, String>) {
+private fun seedLearningScenario(
+  tempDir: Path,
+  env: Map<String, String>,
+) {
   val dbPath = tempDir.resolve("metrics.db")
   assertMcpCliSuccess(
     CliRuntime.run(
@@ -955,13 +993,14 @@ private fun assertMcpCliSuccess(result: CliExecutionResult) {
 
 private fun recordFeatureTaskRuntimeLifecycle(context: McpRuntimeContext) {
   val lifecycle = services(context).lifecycleTelemetryService
-  val started = lifecycle.featureTaskRuntimeStarted(
-    FeatureTaskRuntimeStartedRequest(
-      featureSize = "MEDIUM",
-      issueKey = "SKILL-65.1",
-      featureName = "lifecycle-telemetry-and-stats",
-    ),
-  )
+  val started =
+    lifecycle.featureTaskRuntimeStarted(
+      FeatureTaskRuntimeStartedRequest(
+        featureSize = "MEDIUM",
+        issueKey = "SKILL-65.1",
+        featureName = "lifecycle-telemetry-and-stats",
+      ),
+    )
   lifecycle.featureTaskRuntimeFinished(
     FeatureTaskRuntimeFinishedRequest(
       sessionId = started.toPayload()["session_id"] as String,
@@ -987,25 +1026,27 @@ private fun recordBlockedFeatureTaskRuntimeFinished(
   blockedReason: String,
 ): String {
   val lifecycle = services(context).lifecycleTelemetryService
-  val started = lifecycle.featureTaskRuntimeStarted(
-    FeatureTaskRuntimeStartedRequest(
-      featureSize = "MEDIUM",
-      issueKey = issueKey,
-      featureName = "blocked-runtime-finish",
-    ),
-  )
+  val started =
+    lifecycle.featureTaskRuntimeStarted(
+      FeatureTaskRuntimeStartedRequest(
+        featureSize = "MEDIUM",
+        issueKey = issueKey,
+        featureName = "blocked-runtime-finish",
+      ),
+    )
   val sessionId = started.toPayload()["session_id"] as String
   lifecycle.featureTaskRuntimeFinished(
     FeatureTaskRuntimeFinishedRequest(
       sessionId = sessionId,
       completionStatus = "blocked",
       completedPhaseIds = listOf("preplan", "plan", "implement"),
-      phaseOutcomes = mapOf(
-        "preplan" to "completed",
-        "plan" to "completed",
-        "implement" to "completed",
-        "review" to "blocked",
-      ),
+      phaseOutcomes =
+        mapOf(
+          "preplan" to "completed",
+          "plan" to "completed",
+          "implement" to "completed",
+          "review" to "blocked",
+        ),
       lastIncompletePhase = lastIncompletePhase,
       blockedReason = blockedReason,
       resolvedBranch = "feat/SKILL-109",
@@ -1128,19 +1169,27 @@ private fun outboxEventCounts(connection: Connection): Map<String, Int> =
     }
   }
 
-private fun scalarInt(connection: Connection, sql: String): Int = connection.createStatement().use { statement ->
-  statement.executeQuery(sql).use { resultSet ->
-    resultSet.next()
-    resultSet.getInt(1)
+private fun scalarInt(
+  connection: Connection,
+  sql: String,
+): Int =
+  connection.createStatement().use { statement ->
+    statement.executeQuery(sql).use { resultSet ->
+      resultSet.next()
+      resultSet.getInt(1)
+    }
   }
-}
 
-private fun scalarString(connection: Connection, sql: String): String = connection.createStatement().use { statement ->
-  statement.executeQuery(sql).use { resultSet ->
-    resultSet.next()
-    resultSet.getString(1)
+private fun scalarString(
+  connection: Connection,
+  sql: String,
+): String =
+  connection.createStatement().use { statement ->
+    statement.executeQuery(sql).use { resultSet ->
+      resultSet.next()
+      resultSet.getString(1)
+    }
   }
-}
 
 private fun decodeJsonObject(rawJson: String): Map<String, Any?> {
   val parsed = JsonCodec.parseObjectOrNull(rawJson)
@@ -1150,60 +1199,83 @@ private fun decodeJsonObject(rawJson: String): Map<String, Any?> {
   return decoded
 }
 
-private fun featureVerifyStatsKeys(): Set<String> = setOf(
-  "workflow",
-  "total_runs",
-  "finished_runs",
-  "in_progress_runs",
-  "completion_status_counts",
-  "audit_result_counts",
-  "rollout_relevant_runs",
-  "rollout_relevant_rate",
-  "feature_flag_audit_performed_runs",
-  "feature_flag_audit_performed_rate",
-  "history_read_runs",
-  "history_read_rate",
-  "history_relevant_runs",
-  "history_relevant_rate",
-  "history_helpful_runs",
-  "history_helpful_rate",
-  "history_relevance_counts",
-  "history_helpfulness_counts",
-  "runs_with_gaps_found",
-  "average_acceptance_criteria_count",
-  "average_review_iterations",
-  "average_duration_seconds",
-  "db_path",
-)
+private fun featureVerifyStatsKeys(): Set<String> =
+  setOf(
+    "workflow",
+    "total_runs",
+    "finished_runs",
+    "in_progress_runs",
+    "completion_status_counts",
+    "audit_result_counts",
+    "rollout_relevant_runs",
+    "rollout_relevant_rate",
+    "feature_flag_audit_performed_runs",
+    "feature_flag_audit_performed_rate",
+    "history_read_runs",
+    "history_read_rate",
+    "history_relevant_runs",
+    "history_relevant_rate",
+    "history_helpful_runs",
+    "history_helpful_rate",
+    "history_relevance_counts",
+    "history_helpfulness_counts",
+    "runs_with_gaps_found",
+    "average_acceptance_criteria_count",
+    "average_review_iterations",
+    "average_duration_seconds",
+    "db_path",
+  )
 
-private fun goldenJson(fileName: String, vararg replacements: Pair<String, String>): String {
-  var expected = Files.readString(Path.of("src/test/resources/golden").resolve(fileName))
-    .replace("\r\n", "\n")
-    .trim()
+private fun goldenJson(
+  fileName: String,
+  vararg replacements: Pair<String, String>,
+): String {
+  var expected =
+    Files.readString(Path.of("src/test/resources/golden").resolve(fileName))
+      .replace("\r\n", "\n")
+      .trim()
   replacements.forEach { (placeholder, value) ->
     expected = expected.replace(placeholder, value)
   }
   return expected
 }
 
-private fun assertGoldenPayload(fileName: String, payload: Map<String, *>, vararg replacements: Pair<String, String>) {
+private fun assertGoldenPayload(
+  fileName: String,
+  payload: Map<String, *>,
+  vararg replacements: Pair<String, String>,
+) {
   val normalizedPayload = decodeJsonObject(JsonCodec.mapToJsonString(payload.mapValues { (_, value) -> value }))
   assertEquals(decodeJsonObject(goldenJson(fileName, *replacements)), normalizedPayload)
 }
 
-private fun assertWorkflowIdShape(workflowId: String, prefix: String) {
+private fun assertWorkflowIdShape(
+  workflowId: String,
+  prefix: String,
+) {
   assertMatchesPattern(Regex("""^$prefix-\d{8}-\d{6}-[a-z0-9]{4}$"""), workflowId, "workflow_id")
 }
 
-private fun assertSqliteTimestampShape(timestamp: String, label: String) {
+private fun assertSqliteTimestampShape(
+  timestamp: String,
+  label: String,
+) {
   assertMatchesPattern(Regex("""^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"""), timestamp, label)
 }
 
-private fun assertMatchesPattern(pattern: Regex, value: String, label: String) {
+private fun assertMatchesPattern(
+  pattern: Regex,
+  value: String,
+  label: String,
+) {
   assertTrue(pattern.matches(value), "Expected $label to match ${pattern.pattern} but got $value")
 }
 
-private fun assertOrchestratedReviewGoldens(dbPath: Path, importResult: Map<String, *>, triageResult: Map<String, *>) {
+private fun assertOrchestratedReviewGoldens(
+  dbPath: Path,
+  importResult: Map<String, *>,
+  triageResult: Map<String, *>,
+) {
   val telemetryPayload = triageResult["telemetry_payload"] as Map<*, *>
   assertGoldenPayload(
     "mcp-import-review-orchestrated.json",
@@ -1252,8 +1324,9 @@ private fun assertVerifyWorkflowContinuation(args: AssertVerifyWorkflowContinuat
     "<STARTED_AT>" to args.opened["started_at"].toString(),
     "<UPDATED_AT>" to args.got["updated_at"].toString(),
     "<CONTINUED_AT>" to args.continued["updated_at"].toString(),
-    "<CHECKPOINT>" to GitWorkflowGitOperations()
-      .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value,
+    "<CHECKPOINT>" to
+      GitWorkflowGitOperations()
+        .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value,
   )
   assertCompactUpdateAcknowledgementPayload(args.updated, listOf("verdict"))
   assertEquals(1, args.listed["workflow_count"])

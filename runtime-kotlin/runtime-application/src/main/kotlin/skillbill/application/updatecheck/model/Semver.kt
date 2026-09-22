@@ -9,21 +9,24 @@ data class Semver(
   val isPrerelease: Boolean = prerelease.isNotEmpty()
   val isUnversionedBuild: Boolean = major == 0 && minor == 0 && patch == 0
 
-  override fun compareTo(other: Semver): Int = compareValuesBy(this, other, Semver::major, Semver::minor, Semver::patch)
-    .takeIf { it != 0 }
-    ?: comparePrerelease(prerelease, other.prerelease)
+  override fun compareTo(other: Semver): Int =
+    compareValuesBy(this, other, Semver::major, Semver::minor, Semver::patch)
+      .takeIf { it != 0 }
+      ?: comparePrerelease(prerelease, other.prerelease)
 
   companion object {
     private val pattern = Regex("""^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$""")
 
     fun parse(value: String): Semver? {
       val match = pattern.matchEntire(value.trim()) ?: return null
-      val prerelease = match.groupValues[PRERELEASE_GROUP]
-        .takeIf(String::isNotBlank)
-        ?.split(".")
-        .orEmpty()
-      val core = listOf(MAJOR_GROUP, MINOR_GROUP, PATCH_GROUP)
-        .map { group -> match.groupValues[group].toIntOrNull() }
+      val prerelease =
+        match.groupValues[PRERELEASE_GROUP]
+          .takeIf(String::isNotBlank)
+          ?.split(".")
+          .orEmpty()
+      val core =
+        listOf(MAJOR_GROUP, MINOR_GROUP, PATCH_GROUP)
+          .map { group -> match.groupValues[group].toIntOrNull() }
       return core
         .takeUnless { numbers -> numbers.any { number -> number == null } }
         ?.takeUnless { prerelease.any(String::isBlank) }
@@ -47,10 +50,14 @@ data class Semver(
   }
 }
 
-private fun comparePrerelease(left: List<String>, right: List<String>): Int {
-  val identifierComparison = left.zip(right)
-    .map { (leftPart, rightPart) -> comparePrereleaseIdentifier(leftPart, rightPart) }
-    .firstOrNull { compared -> compared != 0 }
+private fun comparePrerelease(
+  left: List<String>,
+  right: List<String>,
+): Int {
+  val identifierComparison =
+    left.zip(right)
+      .map { (leftPart, rightPart) -> comparePrereleaseIdentifier(leftPart, rightPart) }
+      .firstOrNull { compared -> compared != 0 }
   return when {
     identifierComparison != null -> identifierComparison
     left.isEmpty() && right.isEmpty() -> 0
@@ -60,7 +67,10 @@ private fun comparePrerelease(left: List<String>, right: List<String>): Int {
   }
 }
 
-private fun comparePrereleaseIdentifier(left: String, right: String): Int {
+private fun comparePrereleaseIdentifier(
+  left: String,
+  right: String,
+): Int {
   val leftNumeric = left.toLongOrNull()
   val rightNumeric = right.toLongOrNull()
   return when {

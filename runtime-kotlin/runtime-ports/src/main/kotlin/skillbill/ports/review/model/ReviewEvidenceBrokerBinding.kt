@@ -7,6 +7,7 @@ import skillbill.review.context.model.hunk.ReviewChangedHunk
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.packet.ReviewExpansionRecord
 import java.nio.file.Path
+
 data class ReviewEvidenceBrokerBinding(
   val repoRoot: Path,
   val assignment: ReviewAssignment,
@@ -25,7 +26,7 @@ data class ReviewEvidenceBrokerBinding(
       assignment.assignedPaths +
         assignment.dependencyAllowlist.normalized +
         assignment.evidenceTargets.map { it.path }
-      ).toSet(),
+    ).toSet(),
 ) {
   init {
     require(

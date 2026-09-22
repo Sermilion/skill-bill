@@ -22,39 +22,47 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-private val LEGACY_POINTER_GOLDEN: Map<String, Set<String>> = mapOf(
-  "bill-code-review" to setOf(
-    "telemetry-contract.md",
-    "shell-content-contract.md",
-    "shell-ceremony.md",
-  ),
-  "bill-code-check" to setOf("stack-routing.md", "telemetry-contract.md", "shell-ceremony.md"),
-  "bill-pr-description" to setOf("shell-ceremony.md", "telemetry-contract.md"),
-  "bill-feature" to setOf(
-    "peak-hours-warner.md",
-    "shell-ceremony.md",
-    "telemetry-contract.md",
-  ),
-  "bill-feature-verify" to setOf("shell-ceremony.md", "telemetry-contract.md"),
-)
 
-private val LEGACY_PATTERN_GOLDEN: List<Pair<Regex, Set<String>>> = listOf(
-  Regex("^bill-[a-z0-9-]+-code-review-[a-z0-9-]+$") to setOf(
-    "specialist-contract.md",
-  ),
-  Regex("^bill-[a-z0-9-]+-code-review$") to setOf(
-    "review-scope.md",
-    "stack-routing.md",
-    "review-orchestrator.md",
-    "specialist-contract.md",
-    "review-delegation.md",
-    "telemetry-contract.md",
-    "shell-ceremony.md",
-  ),
-)
+private val LEGACY_POINTER_GOLDEN: Map<String, Set<String>> =
+  mapOf(
+    "bill-code-review" to
+      setOf(
+        "telemetry-contract.md",
+        "shell-content-contract.md",
+        "shell-ceremony.md",
+      ),
+    "bill-code-check" to setOf("stack-routing.md", "telemetry-contract.md", "shell-ceremony.md"),
+    "bill-pr-description" to setOf("shell-ceremony.md", "telemetry-contract.md"),
+    "bill-feature" to
+      setOf(
+        "peak-hours-warner.md",
+        "shell-ceremony.md",
+        "telemetry-contract.md",
+      ),
+    "bill-feature-verify" to setOf("shell-ceremony.md", "telemetry-contract.md"),
+  )
 
-private fun goldenPointerSetFor(skillName: String): Set<String>? = LEGACY_POINTER_GOLDEN[skillName]
-  ?: LEGACY_PATTERN_GOLDEN.firstOrNull { (pattern, _) -> pattern.matches(skillName) }?.second
+private val LEGACY_PATTERN_GOLDEN: List<Pair<Regex, Set<String>>> =
+  listOf(
+    Regex("^bill-[a-z0-9-]+-code-review-[a-z0-9-]+$") to
+      setOf(
+        "specialist-contract.md",
+      ),
+    Regex("^bill-[a-z0-9-]+-code-review$") to
+      setOf(
+        "review-scope.md",
+        "stack-routing.md",
+        "review-orchestrator.md",
+        "specialist-contract.md",
+        "review-delegation.md",
+        "telemetry-contract.md",
+        "shell-ceremony.md",
+      ),
+  )
+
+private fun goldenPointerSetFor(skillName: String): Set<String>? =
+  LEGACY_POINTER_GOLDEN[skillName]
+    ?: LEGACY_PATTERN_GOLDEN.firstOrNull { (pattern, _) -> pattern.matches(skillName) }?.second
 
 private const val FEATURE_ENTRY_CEREMONY_GOLDEN = """
 ## Ceremony
@@ -107,21 +115,22 @@ class SkillClassLoaderTest {
 
   @Test
   fun `exact and pattern matchers resolve the right class`() {
-    val classes = listOf(
-      manifest(
-        "code-review-shell",
-        matchers = listOf("exact" to "bill-code-review"),
-      ),
-      manifest(
-        "code-review-orchestrator",
-        matchers = listOf("pattern" to "^bill-[a-z0-9-]+-code-review$"),
-        excludeExact = listOf("bill-code-review"),
-      ),
-      manifest(
-        "code-review-specialist",
-        matchers = listOf("pattern" to "^bill-[a-z0-9-]+-code-review-[a-z0-9-]+$"),
-      ),
-    )
+    val classes =
+      listOf(
+        manifest(
+          "code-review-shell",
+          matchers = listOf("exact" to "bill-code-review"),
+        ),
+        manifest(
+          "code-review-orchestrator",
+          matchers = listOf("pattern" to "^bill-[a-z0-9-]+-code-review$"),
+          excludeExact = listOf("bill-code-review"),
+        ),
+        manifest(
+          "code-review-specialist",
+          matchers = listOf("pattern" to "^bill-[a-z0-9-]+-code-review-[a-z0-9-]+$"),
+        ),
+      )
 
     assertEquals("code-review-shell", resolveSkillClass("bill-code-review", classes)?.classId)
     assertEquals("code-review-orchestrator", resolveSkillClass("bill-kotlin-code-review", classes)?.classId)
@@ -134,10 +143,11 @@ class SkillClassLoaderTest {
 
   @Test
   fun `ambiguous matches loud-fail`() {
-    val classes = listOf(
-      manifest("a", matchers = listOf("pattern" to "^bill-thing$")),
-      manifest("b", matchers = listOf("exact" to "bill-thing")),
-    )
+    val classes =
+      listOf(
+        manifest("a", matchers = listOf("pattern" to "^bill-thing$")),
+        manifest("b", matchers = listOf("exact" to "bill-thing")),
+      )
     val error = assertFailsWith<InvalidManifestSchemaError> { resolveSkillClass("bill-thing", classes) }
     assertTrue(error.message.orEmpty().contains("matches more than one class"), error.message.orEmpty())
   }
@@ -208,12 +218,13 @@ class SkillClassLoaderTest {
 
     val mismatches = mutableListOf<String>()
     governedSkills.forEach { skillName ->
-      val resolved = try {
-        resolveSkillClass(skillName, classes)
-      } catch (error: Throwable) {
-        mismatches += "$skillName: resolveSkillClass threw ${error.message}"
-        return@forEach
-      }
+      val resolved =
+        try {
+          resolveSkillClass(skillName, classes)
+        } catch (error: Throwable) {
+          mismatches += "$skillName: resolveSkillClass threw ${error.message}"
+          return@forEach
+        }
       val expected = goldenPointerSetFor(skillName)
       if (resolved == null) {
         if (expected != null) {
@@ -287,9 +298,10 @@ class SkillClassLoaderTest {
 
   @Test
   fun `code-review-shell is an entry over skill-bill code-review and keeps detected_scope labels`() {
-    val yaml = Files.readString(
-      currentRepoRootForClassLoader().resolve("orchestration/skill-classes/code-review-shell.yaml"),
-    )
+    val yaml =
+      Files.readString(
+        currentRepoRootForClassLoader().resolve("orchestration/skill-classes/code-review-shell.yaml"),
+      )
     assertTrue(yaml.contains("skill-bill code-review"), yaml)
     listOf(
       "staged changes",
@@ -312,13 +324,14 @@ class SkillClassLoaderTest {
       classId = classId,
       classFile = Path.of("/tmp/$classId.yaml").toFileLocation(),
       contractVersion = SHELL_CONTRACT_VERSION,
-      matchers = matchers.map { (kind, value) ->
-        when (kind) {
-          "exact" -> SkillClassMatcher(exact = value, excludeExact = excludeExact)
-          "pattern" -> SkillClassMatcher(pattern = Regex(value), excludeExact = excludeExact)
-          else -> error("unknown matcher kind $kind")
-        }
-      },
+      matchers =
+        matchers.map { (kind, value) ->
+          when (kind) {
+            "exact" -> SkillClassMatcher(exact = value, excludeExact = excludeExact)
+            "pattern" -> SkillClassMatcher(pattern = Regex(value), excludeExact = excludeExact)
+            else -> error("unknown matcher kind $kind")
+          }
+        },
       pointers = emptyList(),
       sections = emptyList(),
       ceremonyLines = emptyList(),
@@ -342,7 +355,10 @@ class SkillClassLoaderTest {
     }
   }
 
-  private fun collectSkillsUnder(dir: Path, names: MutableList<String>) {
+  private fun collectSkillsUnder(
+    dir: Path,
+    names: MutableList<String>,
+  ) {
     if (!Files.isDirectory(dir)) return
     Files.list(dir).use { stream ->
       stream

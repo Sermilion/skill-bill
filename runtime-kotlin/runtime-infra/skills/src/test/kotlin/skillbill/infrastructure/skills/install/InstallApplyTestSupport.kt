@@ -55,35 +55,50 @@ open class InstallApplyTestSupport {
     return ApplyFixture(repoRoot, home)
   }
 
-  protected fun snapshotSource(root: Path): Map<String, String> = Files.walk(root).use { stream ->
-    stream
-      .filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
-      .sorted()
-      .toList()
-      .associate { path ->
-        root.relativize(path).toString().replace(File.separatorChar, '/') to Files.readString(path)
-      }
-      .filterKeys { relativePath -> !relativePath.startsWith(".skill-bill/") && relativePath != ".gitignore" }
-  }
+  protected fun snapshotSource(root: Path): Map<String, String> =
+    Files.walk(root).use { stream ->
+      stream
+        .filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
+        .sorted()
+        .toList()
+        .associate { path ->
+          root.relativize(path).toString().replace(File.separatorChar, '/') to Files.readString(path)
+        }
+        .filterKeys { relativePath -> !relativePath.startsWith(".skill-bill/") && relativePath != ".gitignore" }
+    }
 
-  protected fun assertSourceUnchanged(root: Path, before: Map<String, String>) {
+  protected fun assertSourceUnchanged(
+    root: Path,
+    before: Map<String, String>,
+  ) {
     assertEquals(before, snapshotSource(root), "install flow mutated source files")
   }
 
-  protected fun assertStagingUnderHomeCacheAndOutsideSource(fixture: ApplyFixture, stagingDir: Path?, label: String) {
+  protected fun assertStagingUnderHomeCacheAndOutsideSource(
+    fixture: ApplyFixture,
+    stagingDir: Path?,
+    label: String,
+  ) {
     val staged = assertNotNull(stagingDir, "$label did not expose a staging directory")
     assertTrue(staged.startsWith(fixture.home.resolve(".skill-bill/installed-skills")), "$label staged outside cache")
     assertFalse(staged.startsWith(fixture.repoRoot), "$label staged inside source")
   }
 
-  protected fun assertNativeProviders(actual: Set<NativeAgentProviderId>, expected: Set<NativeAgentProviderId>) {
+  protected fun assertNativeProviders(
+    actual: Set<NativeAgentProviderId>,
+    expected: Set<NativeAgentProviderId>,
+  ) {
     assertEquals(expected, actual.filter { provider -> provider in expected }.toSet())
   }
 
-  protected fun createSymlinkOrSkip(linkPath: Path, target: Path) {
-    val created = runCatching {
-      Files.createSymbolicLink(linkPath, target)
-    }.isSuccess
+  protected fun createSymlinkOrSkip(
+    linkPath: Path,
+    target: Path,
+  ) {
+    val created =
+      runCatching {
+        Files.createSymbolicLink(linkPath, target)
+      }.isSuccess
     Assumptions.assumeTrue(created, "symlinks unsupported on this filesystem")
   }
 
@@ -99,21 +114,32 @@ open class InstallApplyTestSupport {
     return resolved.toAbsolutePath().normalize()
   }
 
-  protected fun seedBaseSkill(repoRoot: Path, name: String, nativeAgentName: String? = null) {
+  protected fun seedBaseSkill(
+    repoRoot: Path,
+    name: String,
+    nativeAgentName: String? = null,
+  ) {
     val skillDir = repoRoot.resolve("skills/$name")
     Files.createDirectories(skillDir)
     Files.writeString(skillDir.resolve("content.md"), content(name))
     nativeAgentName?.let { seedNativeAgent(skillDir, it) }
   }
 
-  protected fun seedPlatformPack(repoRoot: Path, slug: String, nativeAgentName: String? = null) {
+  protected fun seedPlatformPack(
+    repoRoot: Path,
+    slug: String,
+    nativeAgentName: String? = null,
+  ) {
     seedConformingPlatformPack(repoRoot, slug)
     nativeAgentName?.let { name ->
       seedNativeAgent(repoRoot.resolve("platform-packs/$slug/code-review/bill-$slug-code-review"), name)
     }
   }
 
-  private fun seedNativeAgent(skillDir: Path, name: String) {
+  private fun seedNativeAgent(
+    skillDir: Path,
+    name: String,
+  ) {
     val nativeAgentDir = skillDir.resolve("native-agents")
     Files.createDirectories(nativeAgentDir)
     Files.writeString(
@@ -132,15 +158,19 @@ open class InstallApplyTestSupport {
     )
   }
 
-  protected fun content(name: String, internalFor: String? = null): String = buildString {
-    appendLine("---")
-    appendLine("name: $name")
-    appendLine("description: Test skill.")
-    internalFor?.let { parent -> appendLine("internal-for: $parent") }
-    appendLine("---")
-    appendLine()
-    appendLine("Test body.")
-  }
+  protected fun content(
+    name: String,
+    internalFor: String? = null,
+  ): String =
+    buildString {
+      appendLine("---")
+      appendLine("name: $name")
+      appendLine("description: Test skill.")
+      internalFor?.let { parent -> appendLine("internal-for: $parent") }
+      appendLine("---")
+      appendLine()
+      appendLine("Test body.")
+    }
 
   protected companion object {
     val allInstallAgents: Set<InstallAgent> = InstallAgent.entries.toSet()
@@ -155,48 +185,56 @@ data class ApplyFixture(
     selectedPlatforms: Set<String> = emptySet(),
     agents: Set<InstallAgent> = setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
     telemetryLevel: InstallTelemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-    mcpRegistrationChoice: McpRegistrationChoice = McpRegistrationChoice(
-      register = true,
-      runtimeMcpBin = home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp").toFileLocation(),
-    ),
+    mcpRegistrationChoice: McpRegistrationChoice =
+      McpRegistrationChoice(
+        register = true,
+        runtimeMcpBin = home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp").toFileLocation(),
+      ),
     replaceExistingSkillBillLinks: Boolean = false,
   ): InstallPlanRequest {
-    val windowsSymlinkPreflight = WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-      decision = WindowsSymlinkDecision.NOT_REQUIRED,
-    )
-    val platformSelectionMode = if (selectedPlatforms.isEmpty()) {
-      PlatformPackSelectionMode.NONE
-    } else {
-      PlatformPackSelectionMode.SELECTED
-    }
-    val targetPaths = InstallationTargetPaths(
-      skillsRoot = repoRoot.resolve("skills").toFileLocation(),
-      platformPacksRoot = repoRoot.resolve("platform-packs").toFileLocation(),
-      agentTargets = agents.map { agent ->
-        InstallAgentTarget(
-          agent = agent,
-          path = home.resolve("agent-skill-targets/${agent.id}").toFileLocation(),
-          source = InstallAgentTargetSource.MANUAL,
-        )
-      },
-    )
+    val windowsSymlinkPreflight =
+      WindowsSymlinkPreflight(
+        state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+        decision = WindowsSymlinkDecision.NOT_REQUIRED,
+      )
+    val platformSelectionMode =
+      if (selectedPlatforms.isEmpty()) {
+        PlatformPackSelectionMode.NONE
+      } else {
+        PlatformPackSelectionMode.SELECTED
+      }
+    val targetPaths =
+      InstallationTargetPaths(
+        skillsRoot = repoRoot.resolve("skills").toFileLocation(),
+        platformPacksRoot = repoRoot.resolve("platform-packs").toFileLocation(),
+        agentTargets =
+          agents.map { agent ->
+            InstallAgentTarget(
+              agent = agent,
+              path = home.resolve("agent-skill-targets/${agent.id}").toFileLocation(),
+              source = InstallAgentTargetSource.MANUAL,
+            )
+          },
+      )
     return InstallPlanRequest(
       repoRoot = repoRoot.toFileLocation(),
       home = home.toFileLocation(),
-      agentSelection = InstallAgentSelection(
-        mode = InstallAgentSelectionMode.MANUAL,
-        manualAgents = agents,
-      ),
-      platformPackSelection = PlatformPackSelection(
-        mode = platformSelectionMode,
-        selectedSlugs = selectedPlatforms,
-      ),
+      agentSelection =
+        InstallAgentSelection(
+          mode = InstallAgentSelectionMode.MANUAL,
+          manualAgents = agents,
+        ),
+      platformPackSelection =
+        PlatformPackSelection(
+          mode = platformSelectionMode,
+          selectedSlugs = selectedPlatforms,
+        ),
       telemetryLevel = telemetryLevel,
       mcpRegistrationChoice = mcpRegistrationChoice,
-      runtimeDistributionInputs = RuntimeDistributionInputs(
-        runtimeInstallRoot = home.resolve(".skill-bill/runtime").toFileLocation(),
-      ),
+      runtimeDistributionInputs =
+        RuntimeDistributionInputs(
+          runtimeInstallRoot = home.resolve(".skill-bill/runtime").toFileLocation(),
+        ),
       targetPaths = targetPaths,
       windowsSymlinkPreflight = windowsSymlinkPreflight,
       replaceExistingSkillBillLinks = replaceExistingSkillBillLinks,

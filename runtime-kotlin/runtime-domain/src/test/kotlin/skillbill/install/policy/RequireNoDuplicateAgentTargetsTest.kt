@@ -9,11 +9,12 @@ import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 
 class RequireNoDuplicateAgentTargetsTest {
-  private fun claudeAt(path: String) = InstallAgentTarget(
-    agent = InstallAgent.CLAUDE,
-    path = FileLocation("$path"),
-    source = InstallAgentTargetSource.MANUAL,
-  )
+  private fun claudeAt(path: String) =
+    InstallAgentTarget(
+      agent = InstallAgent.CLAUDE,
+      path = FileLocation("$path"),
+      source = InstallAgentTargetSource.MANUAL,
+    )
 
   @Test
   fun `accepts multiple claude rows at distinct roots`() {
@@ -28,15 +29,16 @@ class RequireNoDuplicateAgentTargetsTest {
 
   @Test
   fun `rejects a true same agent same path duplicate`() {
-    val error = assertFailsWith<IllegalArgumentException> {
-      requireNoDuplicateAgentTargets(
-        "targets",
-        listOf(
-          claudeAt("/home/u/.claude/skills"),
-          claudeAt("/home/u/.claude/skills"),
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        requireNoDuplicateAgentTargets(
+          "targets",
+          listOf(
+            claudeAt("/home/u/.claude/skills"),
+            claudeAt("/home/u/.claude/skills"),
+          ),
+        )
+      }
     assertContains(error.message.orEmpty(), "claude at")
   }
 }

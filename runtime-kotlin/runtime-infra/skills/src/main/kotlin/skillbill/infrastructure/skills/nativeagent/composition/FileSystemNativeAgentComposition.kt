@@ -14,19 +14,21 @@ internal object FileSystemNativeAgentComposition {
     packLoader: NativeAgentPlatformPackLoader = FileSystemNativeAgentPlatformPackLoader,
   ): NativeAgentSource {
     val normalizedRoot = repoRoot.toAbsolutePath().normalize()
-    val budget = repoLocalConfigPort
-      .readRepoLocalConfig(ReadRepoLocalConfigRequest(normalizedRoot))
-      .config
-      .reviewContextBudget
-      .maxLaneLaunchBytes
+    val budget =
+      repoLocalConfigPort
+        .readRepoLocalConfig(ReadRepoLocalConfigRequest(normalizedRoot))
+        .config
+        .reviewContextBudget
+        .maxLaneLaunchBytes
     return composeNativeAgentSource(
       repoRoot = normalizedRoot,
       source = source,
-      context = NativeAgentCompositionContext(
-        reviewContextBudgetBytes = budget,
-        renderGovernedBody = ::renderAuthoredContentBody,
-        packLoader = packLoader,
-      ),
+      context =
+        NativeAgentCompositionContext(
+          reviewContextBudgetBytes = budget,
+          renderGovernedBody = ::renderAuthoredContentBody,
+          packLoader = packLoader,
+        ),
     )
   }
 }

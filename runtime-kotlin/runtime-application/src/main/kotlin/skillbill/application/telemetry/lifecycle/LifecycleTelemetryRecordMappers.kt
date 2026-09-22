@@ -26,72 +26,77 @@ fun FeatureTaskRuntimeStartedRequest.toRecord(sessionId: String): FeatureTaskRun
     goalSubtaskId = correlation.goalSubtaskId,
   )
 
-fun FeatureTaskRuntimeFinishedRequest.toRecord(): FeatureTaskRuntimeFinishedRecord = FeatureTaskRuntimeFinishedRecord(
-  sessionId = sessionId,
-  completionStatus = completionStatus,
-  completedPhaseIds = completedPhaseIds,
-  phaseOutcomes = phaseOutcomes,
-  lastIncompletePhase = lastIncompletePhase,
-  blockedReason = blockedReason,
-  resolvedBranch = resolvedBranch,
-  reviewFixIterationCount = reviewFixIterationCount,
-  regenerationActivationCount = regenerationActivationCount,
-  regenerationAttemptCount = regenerationAttemptCount,
-  regenerationOutcomeCounts = regenerationOutcomeCounts,
-  crashReconciliationCount = crashReconciliationCount,
-  crashReconciliationReasonCounts = crashReconciliationReasonCounts,
-  estimatedPhaseTokenBreakdownJson = estimatedPhaseTokenBreakdownJson,
-  estimatedTotalTokens = estimatedTotalTokens,
-  findingVerificationVerifiedCount = findingVerificationVerifiedCount,
-  findingVerificationRejectedCount = findingVerificationRejectedCount,
-  reviewFixCapExhausted = reviewFixCapExhausted,
-  auditGapIterationCount = auditGapIterationCount,
-  resolvedAgentIds = agentContext.resolvedAgentIds,
-  launchedModels = agentContext.launchedModels,
-)
+fun FeatureTaskRuntimeFinishedRequest.toRecord(): FeatureTaskRuntimeFinishedRecord =
+  FeatureTaskRuntimeFinishedRecord(
+    sessionId = sessionId,
+    completionStatus = completionStatus,
+    completedPhaseIds = completedPhaseIds,
+    phaseOutcomes = phaseOutcomes,
+    lastIncompletePhase = lastIncompletePhase,
+    blockedReason = blockedReason,
+    resolvedBranch = resolvedBranch,
+    reviewFixIterationCount = reviewFixIterationCount,
+    regenerationActivationCount = regenerationActivationCount,
+    regenerationAttemptCount = regenerationAttemptCount,
+    regenerationOutcomeCounts = regenerationOutcomeCounts,
+    crashReconciliationCount = crashReconciliationCount,
+    crashReconciliationReasonCounts = crashReconciliationReasonCounts,
+    estimatedPhaseTokenBreakdownJson = estimatedPhaseTokenBreakdownJson,
+    estimatedTotalTokens = estimatedTotalTokens,
+    findingVerificationVerifiedCount = findingVerificationVerifiedCount,
+    findingVerificationRejectedCount = findingVerificationRejectedCount,
+    reviewFixCapExhausted = reviewFixCapExhausted,
+    auditGapIterationCount = auditGapIterationCount,
+    resolvedAgentIds = agentContext.resolvedAgentIds,
+    launchedModels = agentContext.launchedModels,
+  )
 
-fun QualityCheckStartedRequest.toRecord(sessionId: String): QualityCheckStartedRecord = QualityCheckStartedRecord(
-  sessionId = sessionId,
-  routedSkill = routedSkill,
-  detectedStack = detectedStack,
-  fallback = fallback,
-  fallbackReason = fallbackReason,
-  scopeType = scopeType,
-  initialFailureCount = initialFailureCount,
-)
+fun QualityCheckStartedRequest.toRecord(sessionId: String): QualityCheckStartedRecord =
+  QualityCheckStartedRecord(
+    sessionId = sessionId,
+    routedSkill = routedSkill,
+    detectedStack = detectedStack,
+    fallback = fallback,
+    fallbackReason = fallbackReason,
+    scopeType = scopeType,
+    initialFailureCount = initialFailureCount,
+  )
 
-fun QualityCheckFinishedRequest.toRecord(): QualityCheckFinishedRecord = QualityCheckFinishedRecord(
-  sessionId = sessionId,
-  routedSkill = routedSkill,
-  detectedStack = detectedStack,
-  fallback = fallback,
-  fallbackReason = fallbackReason,
-  scopeType = scopeType,
-  initialFailureCount = initialFailureCount,
-  finalFailureCount = finalFailureCount,
-  iterations = iterations,
-  result = result,
-  failingCheckNames = failingCheckNames,
-  unsupportedReason = unsupportedReason,
-)
+fun QualityCheckFinishedRequest.toRecord(): QualityCheckFinishedRecord =
+  QualityCheckFinishedRecord(
+    sessionId = sessionId,
+    routedSkill = routedSkill,
+    detectedStack = detectedStack,
+    fallback = fallback,
+    fallbackReason = fallbackReason,
+    scopeType = scopeType,
+    initialFailureCount = initialFailureCount,
+    finalFailureCount = finalFailureCount,
+    iterations = iterations,
+    result = result,
+    failingCheckNames = failingCheckNames,
+    unsupportedReason = unsupportedReason,
+  )
 
-fun FeatureVerifyStartedRequest.toRecord(sessionId: String): FeatureVerifyStartedRecord = FeatureVerifyStartedRecord(
-  sessionId = sessionId,
-  acceptanceCriteriaCount = acceptanceCriteriaCount,
-  rolloutRelevant = rolloutRelevant,
-  specSummary = specSummary,
-)
+fun FeatureVerifyStartedRequest.toRecord(sessionId: String): FeatureVerifyStartedRecord =
+  FeatureVerifyStartedRecord(
+    sessionId = sessionId,
+    acceptanceCriteriaCount = acceptanceCriteriaCount,
+    rolloutRelevant = rolloutRelevant,
+    specSummary = specSummary,
+  )
 
-fun FeatureVerifyFinishedRequest.toRecord(): FeatureVerifyFinishedRecord = FeatureVerifyFinishedRecord(
-  sessionId = sessionId,
-  featureFlagAuditPerformed = featureFlagAuditPerformed,
-  reviewIterations = reviewIterations,
-  auditResult = auditResult,
-  completionStatus = completionStatus,
-  historyRelevance = historyRelevance,
-  historyHelpfulness = historyHelpfulness,
-  gapsFound = gapsFound,
-)
+fun FeatureVerifyFinishedRequest.toRecord(): FeatureVerifyFinishedRecord =
+  FeatureVerifyFinishedRecord(
+    sessionId = sessionId,
+    featureFlagAuditPerformed = featureFlagAuditPerformed,
+    reviewIterations = reviewIterations,
+    auditResult = auditResult,
+    completionStatus = completionStatus,
+    historyRelevance = historyRelevance,
+    historyHelpfulness = historyHelpfulness,
+    gapsFound = gapsFound,
+  )
 
 fun PrDescriptionGeneratedRequest.toRecord(sessionId: String): PrDescriptionGeneratedRecord =
   PrDescriptionGeneratedRecord(

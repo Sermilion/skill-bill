@@ -20,10 +20,11 @@ import kotlin.test.assertFalse
 class GoalObservabilityModelsTest {
   @Test
   fun `history append preserves sequence order and prunes oldest entries`() {
-    val history = (1..(GOAL_OBSERVABILITY_HISTORY_LIMIT + 2))
-      .fold(GoalObservabilityHistory()) { current, sequence ->
-        current.append(event(sequence))
-      }
+    val history =
+      (1..(GOAL_OBSERVABILITY_HISTORY_LIMIT + 2))
+        .fold(GoalObservabilityHistory()) { current, sequence ->
+          current.append(event(sequence))
+        }
 
     assertEquals(GOAL_OBSERVABILITY_HISTORY_LIMIT, history.events.size)
     assertEquals(3, history.events.first().sequenceNumber)
@@ -52,18 +53,24 @@ class GoalObservabilityModelsTest {
 
   @Test
   fun `goal observability decoder rejects malformed list elements with a typed error`() {
-    val malformed = event(1)
-      .toArtifactMap(includeHeavyFields = true)
-      .toMutableMap()
-      .apply { this["changed_files"] = listOf(7) }
+    val malformed =
+      event(1)
+        .toArtifactMap(includeHeavyFields = true)
+        .toMutableMap()
+        .apply { this["changed_files"] = listOf(7) }
 
     assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
       goalObservabilityEventFromArtifact(
         raw = malformed,
         sourceLabel = "goal_observability_latest_event",
-        validator = object : GoalObservabilityEventValidator {
-          override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) = Unit
-        },
+        validator =
+          object : GoalObservabilityEventValidator {
+            override fun validate(
+              kind: FeatureTaskRuntimeWireArtifactKind,
+              payload: Any,
+              sourceLabel: String,
+            ) = Unit
+          },
       )
     }
   }
@@ -77,7 +84,10 @@ class GoalObservabilityModelsTest {
     assertEquals("durable_progress", rendered["liveness_class"])
   }
 
-  private fun event(sequence: Int, changedFiles: List<String> = emptyList()): GoalObservabilityEvent =
+  private fun event(
+    sequence: Int,
+    changedFiles: List<String> = emptyList(),
+  ): GoalObservabilityEvent =
     GoalObservabilityEvent(
       issueKey = "SKILL-61",
       subtaskId = 1,

@@ -13,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
   private val adapter = FeatureTaskRuntimePhaseOutputSchemaValidator()
 
@@ -67,7 +68,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
   @Test
   fun `an absent summary is recovered from the prose the producer wrote before the envelope`() {
-    val narrated = """
+    val narrated =
+      """
       |Formatting-risk check is clean: no added line exceeds 100 characters outside imports.
       |
       |All 13 plan tasks are converged; no build, test, or lint invocation was made in this phase.
@@ -77,7 +79,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
       |"produced_outputs":{"value":"Implement prose with former receipt stuffed inside.",
       |"changed_paths":["a/B.kt"]}}
       |```
-    """.trimMargin()
+      """.trimMargin()
 
     val result = adapter.validatePhaseOutput(narrated, "implement")
 
@@ -111,7 +113,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
   @Test
   fun `a summary-less draft never competes with the complete envelope that follows it`() {
-    val draftThenReal = """
+    val draftThenReal =
+      """
       |Discarded draft, missing its summary:
       |
       |```json
@@ -125,15 +128,17 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
       |{"contract_version":"0.6","phase_id":"plan","status":"completed","summary":"Plan output.",
       |"produced_outputs":{"value":"Plan prose."}}
       |```
-    """.trimMargin()
+      """.trimMargin()
 
     val result = adapter.validatePhaseOutput(draftThenReal, "plan")
 
-    val envelope = when (result) {
-      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair -> result.normalizedOutput.envelopeWireMap()
-      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> result.normalizedOutput.envelopeWireMap()
-      else -> error("the complete envelope must decide the response, got $result")
-    }
+    val envelope =
+      when (result) {
+        is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair ->
+          result.normalizedOutput.envelopeWireMap()
+        is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> result.normalizedOutput.envelopeWireMap()
+        else -> error("the complete envelope must decide the response, got $result")
+      }
     assertEquals("Plan output.", envelope["summary"])
     val produced = requireNotNull(JsonCodec.anyToStringAnyMap(envelope["produced_outputs"]))
     assertEquals("Plan prose.", produced["value"], "the draft must not win")
@@ -141,22 +146,25 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
   @Test
   fun `a summary the producer did state is never replaced by surrounding prose`() {
-    val narrated = """
+    val narrated =
+      """
       |Some narration that is not the summary.
       |
       |```json
       |{"contract_version":"0.6","phase_id":"plan","status":"completed","summary":"Plan output.",
       |"produced_outputs":{"value":"Plan prose."}}
       |```
-    """.trimMargin()
+      """.trimMargin()
 
     val result = adapter.validatePhaseOutput(narrated, "plan")
 
-    val envelope = when (val outcome = adapter.validatePhaseOutput(narrated, "plan")) {
-      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair -> outcome.normalizedOutput.envelopeWireMap()
-      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> outcome.normalizedOutput.envelopeWireMap()
-      else -> error("an envelope in a fence must be accepted, got $result")
-    }
+    val envelope =
+      when (val outcome = adapter.validatePhaseOutput(narrated, "plan")) {
+        is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair ->
+          outcome.normalizedOutput.envelopeWireMap()
+        is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> outcome.normalizedOutput.envelopeWireMap()
+        else -> error("an envelope in a fence must be accepted, got $result")
+      }
     assertEquals("Plan output.", envelope["summary"])
   }
 
@@ -228,9 +236,10 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     )
     assertEquals(sha256(malformed), repaired.evidence.originalDigest)
     assertEquals(sha256(validNestedJson), repaired.evidence.repairedDigest)
-    val producedOutputs = requireNotNull(
-      JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]),
-    )
+    val producedOutputs =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]),
+      )
     assertEquals("Plan prose.", producedOutputs["value"])
     assertEquals(listOf(mapOf("id" to "task-1")), producedOutputs["notes"])
   }
@@ -316,22 +325,24 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(payload, "plan")
 
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
-    val producedOutputs = requireNotNull(
-      JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]),
-    )
+    val producedOutputs =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]),
+      )
     assertEquals("Plan prose A.", producedOutputs["value"])
     assertEquals(listOf("n-0", "n-1"), producedOutputs["notes"])
   }
 
   @Test
   fun `prose mentioning Duplicate does not skip a valid fenced envelope`() {
-    val response = """
+    val response =
+      """
       Duplicate broker-test imports were removed.
 
       ```json
       $validJson
       ```
-    """.trimIndent()
+      """.trimIndent()
 
     val result = adapter.validatePhaseOutput(response, "plan")
 
@@ -347,9 +358,10 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
     val rejected = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.Rejected>(result)
     assertEquals(FeatureTaskRuntimePhaseOutputFailureCode.SCHEMA_INVALID, rejected.code)
-    val evidence = requireNotNull(rejected.structuralRepairEvidence) {
-      "schema rejection after delimiter repair must retain payload-free structural evidence"
-    }
+    val evidence =
+      requireNotNull(rejected.structuralRepairEvidence) {
+        "schema rejection after delimiter repair must retain payload-free structural evidence"
+      }
     assertEquals(FeatureTaskRuntimePhaseOutputFormat.JSON, evidence.format)
     assertEquals(
       FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
@@ -404,13 +416,14 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
   @Test
   fun `backtick-quoted brace in prose outside a fenced envelope is commentary not a competing document`() {
-    val response = """
+    val response =
+      """
       All three carried Blockers are reconciled; no bare `}` follows `parseContentIdentities`.
 
       ```json
       $validJson
       ```
-    """.trimIndent()
+      """.trimIndent()
 
     val result = adapter.validatePhaseOutput(response, "plan")
 
@@ -420,18 +433,20 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
   @Test
   fun `bare closing delimiter in prose outside a complete envelope is removed and the envelope is kept`() {
-    val cases = listOf(
-      "before fence" to "trailing fragment of a truncated draft }\n```json\n$validJson\n```",
-      "after unfenced" to "$validJson\nNote: the template placeholder } above is intentional.",
-      "after fence" to "```json\n$validJson\n```\nNote: the template placeholder } above is intentional.",
-    )
+    val cases =
+      listOf(
+        "before fence" to "trailing fragment of a truncated draft }\n```json\n$validJson\n```",
+        "after unfenced" to "$validJson\nNote: the template placeholder } above is intentional.",
+        "after fence" to "```json\n$validJson\n```\nNote: the template placeholder } above is intentional.",
+      )
 
     cases.forEach { (label, response) ->
       val result = adapter.validatePhaseOutput(response, "plan")
-      val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(
-        result,
-        "$label should keep the envelope after dropping the stray closer",
-      )
+      val repaired =
+        assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(
+          result,
+          "$label should keep the envelope after dropping the stray closer",
+        )
       assertEquals(
         FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER,
         repaired.evidence.operation,
@@ -446,16 +461,18 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
   fun `multiple strictly parseable delimiter candidates are rejected as ambiguous repair`() {
     val first = validJson.replace("Plan output.", "first")
     val second = validJson.replace("Plan output.", "second")
-    val decision = StructuralRepairCandidateEngine.evaluateCandidates(
-      candidates = listOf(
-        Candidate(first, FeatureTaskRuntimePhaseOutputFormat.JSON, 4),
-        Candidate(second, FeatureTaskRuntimePhaseOutputFormat.JSON, 8),
-      ),
-      originalText = "malformed",
-      sourceLabel = "plan",
-      sourceOffset = 0,
-      sourceText = "malformed",
-    )
+    val decision =
+      StructuralRepairCandidateEngine.evaluateCandidates(
+        candidates =
+          listOf(
+            Candidate(first, FeatureTaskRuntimePhaseOutputFormat.JSON, 4),
+            Candidate(second, FeatureTaskRuntimePhaseOutputFormat.JSON, 8),
+          ),
+        originalText = "malformed",
+        sourceLabel = "plan",
+        sourceOffset = 0,
+        sourceText = "malformed",
+      )
 
     val rejected = assertIs<FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Rejected>(decision)
     assertEquals(FeatureTaskRuntimePhaseOutputFailureCode.AMBIGUOUS_REPAIR, rejected.code)
@@ -542,26 +559,28 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
   fun `unsupported block YAML is rejected without guessed structural edits`() {
     val blockYaml =
       """
-        contract_version: "0.6"
-        phase_id: "audit"
-        status: "completed"
-        summary: "SKILL187-UNSUPPORTED-YAML"
-        verdict: "satisfied"
-        produced_outputs:
-          value: "{\"gaps\":[]}"
+      contract_version: "0.6"
+      phase_id: "audit"
+      status: "completed"
+      summary: "SKILL187-UNSUPPORTED-YAML"
+      verdict: "satisfied"
+      produced_outputs:
+        value: "{\"gaps\":[]}"
       """.trimIndent()
 
     val decision = StructuralRepairCandidateEngine.repairExactText(blockYaml, "audit")
 
-    val rejected = assertIs<FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Rejected>(
-      requireNotNull(decision) { "non-conservative YAML must produce an explicit repair rejection" },
-    )
+    val rejected =
+      assertIs<FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Rejected>(
+        requireNotNull(decision) { "non-conservative YAML must produce an explicit repair rejection" },
+      )
     assertEquals(FeatureTaskRuntimePhaseOutputFailureCode.UNSUPPORTED_REPAIR, rejected.code)
     assertTrue(rejected.reason.contains("conservative flow"))
     assertFalse(rejected.reason.contains("SKILL187-UNSUPPORTED-YAML"))
   }
 
-  private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
-    .digest(value.toByteArray(Charsets.UTF_8))
-    .joinToString("") { byte -> "%02x".format(byte) }
+  private fun sha256(value: String): String =
+    MessageDigest.getInstance("SHA-256")
+      .digest(value.toByteArray(Charsets.UTF_8))
+      .joinToString("") { byte -> "%02x".format(byte) }
 }

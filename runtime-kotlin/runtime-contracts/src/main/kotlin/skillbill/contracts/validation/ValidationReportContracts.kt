@@ -27,14 +27,15 @@ data class RepoValidationReportContract(
   val nativeAgentCount: Int,
   val issues: List<String>,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.STATUS to if (passed) "passed" else "failed",
-    ValidationReportPayloadKeys.SKILL_COUNT to skillCount,
-    ValidationReportPayloadKeys.GOVERNED_ADDON_COUNT to addonCount,
-    ValidationReportPayloadKeys.PLATFORM_PACK_COUNT to platformPackCount,
-    ValidationReportPayloadKeys.NATIVE_AGENT_COUNT to nativeAgentCount,
-    ValidationReportPayloadKeys.ISSUES to issues,
-  )
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.STATUS to if (passed) "passed" else "failed",
+      ValidationReportPayloadKeys.SKILL_COUNT to skillCount,
+      ValidationReportPayloadKeys.GOVERNED_ADDON_COUNT to addonCount,
+      ValidationReportPayloadKeys.PLATFORM_PACK_COUNT to platformPackCount,
+      ValidationReportPayloadKeys.NATIVE_AGENT_COUNT to nativeAgentCount,
+      ValidationReportPayloadKeys.ISSUES to issues,
+    )
 }
 
 data class ReleaseRefMetadataContract(
@@ -47,14 +48,15 @@ data class ReleaseRefMetadataContract(
   val prereleaseIdentifier: String?,
   val buildMetadata: String?,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf(
-    ValidationReportPayloadKeys.TAG to tag,
-    ValidationReportPayloadKeys.VERSION to version,
-    ValidationReportPayloadKeys.MAJOR to major,
-    ValidationReportPayloadKeys.MINOR to minor,
-    ValidationReportPayloadKeys.PATCH to patch,
-    ValidationReportPayloadKeys.PRERELEASE to prerelease,
-    ValidationReportPayloadKeys.PRERELEASE_IDENTIFIER to prereleaseIdentifier,
-    ValidationReportPayloadKeys.BUILD_METADATA to buildMetadata,
-  )
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf(
+      ValidationReportPayloadKeys.TAG to tag,
+      ValidationReportPayloadKeys.VERSION to version,
+      ValidationReportPayloadKeys.MAJOR to major,
+      ValidationReportPayloadKeys.MINOR to minor,
+      ValidationReportPayloadKeys.PATCH to patch,
+      ValidationReportPayloadKeys.PRERELEASE to prerelease,
+      ValidationReportPayloadKeys.PRERELEASE_IDENTIFIER to prereleaseIdentifier,
+      ValidationReportPayloadKeys.BUILD_METADATA to buildMetadata,
+    )
 }

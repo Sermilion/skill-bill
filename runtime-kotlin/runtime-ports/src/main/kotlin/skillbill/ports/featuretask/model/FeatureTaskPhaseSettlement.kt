@@ -43,10 +43,11 @@ sealed interface FeatureTaskPhaseSettlementKind {
     val BLOCK: FeatureTaskPhaseSettlementKind
       get() = Block
 
-    fun fromWire(value: String): FeatureTaskPhaseSettlementKind = when (value) {
-      Complete.wireValue -> Complete
-      Block.wireValue -> Block
-      else -> Unknown(value)
-    }
+    fun fromWire(value: String): FeatureTaskPhaseSettlementKind =
+      when (value) {
+        Complete.wireValue -> Complete
+        Block.wireValue -> Block
+        else -> Unknown(value)
+      }
   }
 }

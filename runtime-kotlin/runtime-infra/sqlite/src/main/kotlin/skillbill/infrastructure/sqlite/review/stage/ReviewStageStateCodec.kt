@@ -7,38 +7,42 @@ import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewFindingCitation
 
-internal fun encodePassClaims(findings: List<ParallelReviewMergedFinding>): String = JsonCodec.mapToJsonString(
-  mapOf(
-    ReviewVerificationSignalKeys.REVIEW_FINDINGS to findings.map { finding ->
-      mapOf(
-        ReviewFindingPayloadKeys.F_NUMBER to finding.fNumber,
-        SqliteReviewTelemetryPayloadKeys.AGENT_IDS to finding.agentIds,
-        SqliteReviewTelemetryPayloadKeys.SEVERITY to finding.severity.name,
-        SqliteReviewTelemetryPayloadKeys.CONFIDENCE to finding.confidence,
-        SqliteReviewTelemetryPayloadKeys.LOCATION to finding.location,
-        SqliteReviewTelemetryPayloadKeys.DESCRIPTION to finding.description,
-        SqliteReviewTelemetryPayloadKeys.SPECIALIST_SKILL_NAMES to finding.specialistSkillNames,
-        SqliteReviewTelemetryPayloadKeys.ORIGIN_LAYER_CHAINS to finding.originLayerChains,
-        ReviewFindingPayloadKeys.REPOSITORY_PATH to finding.repositoryPath,
-        SqliteReviewTelemetryPayloadKeys.LINE to finding.line,
-        SqliteReviewTelemetryPayloadKeys.COMMIT_SHAS to finding.commitShas,
-      )
-    },
-  ),
-)
+internal fun encodePassClaims(findings: List<ParallelReviewMergedFinding>): String =
+  JsonCodec.mapToJsonString(
+    mapOf(
+      ReviewVerificationSignalKeys.REVIEW_FINDINGS to
+        findings.map { finding ->
+          mapOf(
+            ReviewFindingPayloadKeys.F_NUMBER to finding.fNumber,
+            SqliteReviewTelemetryPayloadKeys.AGENT_IDS to finding.agentIds,
+            SqliteReviewTelemetryPayloadKeys.SEVERITY to finding.severity.name,
+            SqliteReviewTelemetryPayloadKeys.CONFIDENCE to finding.confidence,
+            SqliteReviewTelemetryPayloadKeys.LOCATION to finding.location,
+            SqliteReviewTelemetryPayloadKeys.DESCRIPTION to finding.description,
+            SqliteReviewTelemetryPayloadKeys.SPECIALIST_SKILL_NAMES to finding.specialistSkillNames,
+            SqliteReviewTelemetryPayloadKeys.ORIGIN_LAYER_CHAINS to finding.originLayerChains,
+            ReviewFindingPayloadKeys.REPOSITORY_PATH to finding.repositoryPath,
+            SqliteReviewTelemetryPayloadKeys.LINE to finding.line,
+            SqliteReviewTelemetryPayloadKeys.COMMIT_SHAS to finding.commitShas,
+          )
+        },
+    ),
+  )
 
 internal fun decodePassClaims(raw: String): List<ParallelReviewMergedFinding> {
-  val root = JsonCodec.parseObjectOrNull(raw)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?: return emptyList()
+  val root =
+    JsonCodec.parseObjectOrNull(raw)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?: return emptyList()
   val items = root[ReviewVerificationSignalKeys.REVIEW_FINDINGS] as? List<*> ?: return emptyList()
   return items.mapNotNull { item ->
     val map = JsonCodec.anyToStringAnyMap(item) ?: return@mapNotNull null
     val fNumber = map[ReviewFindingPayloadKeys.F_NUMBER] as? String ?: return@mapNotNull null
     val severityName = map[SqliteReviewTelemetryPayloadKeys.SEVERITY] as? String ?: return@mapNotNull null
-    val severity = runCatching { ParallelReviewSeverity.valueOf(severityName) }.getOrNull()
-      ?: return@mapNotNull null
+    val severity =
+      runCatching { ParallelReviewSeverity.valueOf(severityName) }.getOrNull()
+        ?: return@mapNotNull null
     ParallelReviewMergedFinding(
       fNumber = fNumber,
       agentIds = stringList(map[SqliteReviewTelemetryPayloadKeys.AGENT_IDS]),
@@ -64,8 +68,9 @@ private fun stringList(raw: Any?): List<String> = (raw as? List<*>)?.mapNotNull 
 
 private fun chainList(raw: Any?): List<List<String>> = (raw as? List<*>)?.map(::stringList) ?: emptyList()
 
-private fun intValue(raw: Any?): Int? = when (raw) {
-  is Int -> raw
-  is Long -> raw.toInt()
-  else -> null
-}
+private fun intValue(raw: Any?): Int? =
+  when (raw) {
+    is Int -> raw
+    is Long -> raw.toInt()
+    else -> null
+  }

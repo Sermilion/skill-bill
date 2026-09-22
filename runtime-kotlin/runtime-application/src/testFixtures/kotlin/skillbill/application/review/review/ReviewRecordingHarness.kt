@@ -151,97 +151,127 @@ data class ReviewHarnessConfig(
   val evidenceBrokerFactory: ReviewEvidenceBrokerFactory =
     ReviewEvidenceBrokerFactory { binding -> FileSystemReviewEvidenceBroker(binding) },
   val parentLaunch: ((GoalRunnerSubtaskLaunchRequest) -> AgentRunLaunchOutcome)? = null,
-
   val simulateEvidenceReads: Boolean = true,
   val evidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder =
     stubGovernedReviewEvidenceEndpointBinder(Files.createTempDirectory("review-endpoint")),
-
   val commits: List<RecordedCommit> = emptyList(),
 )
 
-fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): ParallelCodeReviewRunner {
+fun reviewHarness(
+  config: ReviewHarnessConfig,
+  recorder: ReviewRecorder,
+): ParallelCodeReviewRunner {
   val database = recordingDatabase(recorder)
-  val launcher = GoalRunnerSubtaskLauncher { request ->
-    recorder.parentLaunches += request
-    if (config.simulateEvidenceReads) simulateGovernedEvidenceReads(request.skillRunRequest)
-    config.parentLaunch?.invoke(request)?.let { return@GoalRunnerSubtaskLauncher it }
-    val response = config.response(request)
-    AgentRunLaunchFacts(
-      agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-      exitStatus = if (response.timedOut || response.spawnFailed || response.interrupted) {
-        null
-      } else {
-        response.exitStatus
-      },
-      stdout = response.stdout,
-      stderr = "",
-      timedOut = response.timedOut,
-      interrupted = response.interrupted,
-      spawnFailed = response.spawnFailed,
-      liveness = response.liveness,
-      processStarted = response.processStarted && !response.spawnFailed,
-      mcpStartupObserved = response.mcpStartupObserved,
-    ) as AgentRunLaunchOutcome
-  }
+  val launcher =
+    GoalRunnerSubtaskLauncher { request ->
+      recorder.parentLaunches += request
+      if (config.simulateEvidenceReads) simulateGovernedEvidenceReads(request.skillRunRequest)
+      config.parentLaunch?.invoke(request)?.let { return@GoalRunnerSubtaskLauncher it }
+      val response = config.response(request)
+      AgentRunLaunchFacts(
+        agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+        exitStatus =
+          if (response.timedOut || response.spawnFailed || response.interrupted) {
+            null
+          } else {
+            response.exitStatus
+          },
+        stdout = response.stdout,
+        stderr = "",
+        timedOut = response.timedOut,
+        interrupted = response.interrupted,
+        spawnFailed = response.spawnFailed,
+        liveness = response.liveness,
+        processStarted = response.processStarted && !response.spawnFailed,
+        mcpStartupObserved = response.mcpStartupObserved,
+      ) as AgentRunLaunchOutcome
+    }
   val sharedEvidenceLocatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE
-  val boundaries = ParallelCodeReviewRunnerBoundaries(
-    diffResolver = object : DiffResolverPort {
-      override fun reviewWorktreeFileIdentities(
-        root: Path,
-        paths: List<String>,
-      ): Map<String, ReviewCheckpointFileIdentity> = emptyMap()
+  val boundaries =
+    ParallelCodeReviewRunnerBoundaries(
+      diffResolver =
+        object : DiffResolverPort {
+          override fun reviewWorktreeFileIdentities(
+            root: Path,
+            paths: List<String>,
+          ): Map<String, ReviewCheckpointFileIdentity> = emptyMap()
 
-      override fun readDiff(path: Path, maxBytes: Long): String? = null
+          override fun readDiff(
+            path: Path,
+            maxBytes: Long,
+          ): String? = null
 
-      override fun runProcess(args: List<String>, workDir: Path): String? {
-        recorder.diffCommands += args
-        return when (args.getOrNull(1)) {
-          "rev-parse" -> args.last().removeSuffix("^{commit}")
-          "rev-list" -> config.commits.joinToString("\n") { it.sha }
-          "show" -> config.commits.single { it.sha == args.last() }.let { commit ->
-            "${parentOf(config.commits, commit)}\n${commit.subject}"
+          override fun runProcess(
+            args: List<String>,
+            workDir: Path,
+          ): String? {
+            recorder.diffCommands += args
+            return when (args.getOrNull(1)) {
+              "rev-parse" -> args.last().removeSuffix("^{commit}")
+              "rev-list" -> config.commits.joinToString("\n") { it.sha }
+              "show" ->
+                config.commits.single { it.sha == args.last() }.let { commit ->
+                  "${parentOf(config.commits, commit)}\n${commit.subject}"
+                }
+              else ->
+                config.commits.firstOrNull {
+                  it.sha == args.getOrNull(3) && parentOf(config.commits, it) == args.getOrNull(2)
+                }?.diff ?: config.diff
+            }
           }
-          else -> config.commits.firstOrNull {
-            it.sha == args.getOrNull(3) && parentOf(config.commits, it) == args.getOrNull(2)
-          }?.diff ?: config.diff
-        }
-      }
-    },
-    repoLocalConfig = object : RepoLocalConfigPort {
-      override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
-        ReadRepoLocalConfigResult(RepoLocalConfig.defaults().copy(reviewContextBudget = config.budget))
-    },
-    reviewContextEnvelopeValidator = object : ReviewContextEnvelopeValidator {
-      override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
-      override fun validateSpecIntentProjection(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
-    },
-    reviewRubricResolver = recordingRubricResolver(recorder, config.rubricBody),
-    reviewSpecialistContractProvider = ClasspathReviewSpecialistContractProvider(),
-    database = database,
-    installedPackCatalog = InstalledPlatformPackCatalogPort { config.manifests },
-    sharedEvidenceResolver = FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
-    sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
-    specIntentProjectionResolver = SpecIntentProjectionResolver(
-      FileSystemDecompositionManifestFileStore(),
-      DecompositionManifestSchemaValidator(),
-      SpecIntentProjectionExtractor(
-        object : ReviewContextEnvelopeValidator {
-          override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
-          override fun validateSpecIntentProjection(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
         },
-        FileSystemDecompositionManifestFileStore(),
-      ),
-    ),
-    parentReviewLauncher = launcher,
-    nativeAgentPreflight = ReviewNativeAgentPreflightPort.NONE,
-    registerParse = ParallelReviewFindingParser::parse,
-    diagnostics = NoopRuntimeDiagnostics,
-    clock = Clock.systemUTC(),
-    repositoryEnclosingRootPort = CanonicalRepositoryRoot,
-    reviewEvidenceBrokerFactory = config.evidenceBrokerFactory,
-    governedEvidenceEndpointBinder = config.evidenceEndpointBinder,
-    reviewLaunchAgentStaging = ReviewLaunchAgentStagingPort.NONE,
-  )
+      repoLocalConfig =
+        object : RepoLocalConfigPort {
+          override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
+            ReadRepoLocalConfigResult(RepoLocalConfig.defaults().copy(reviewContextBudget = config.budget))
+        },
+      reviewContextEnvelopeValidator =
+        object : ReviewContextEnvelopeValidator {
+          override fun validate(
+            envelope: ReviewContextWireMap,
+            sourceLabel: String,
+          ) = Unit
+
+          override fun validateSpecIntentProjection(
+            envelope: ReviewContextWireMap,
+            sourceLabel: String,
+          ) = Unit
+        },
+      reviewRubricResolver = recordingRubricResolver(recorder, config.rubricBody),
+      reviewSpecialistContractProvider = ClasspathReviewSpecialistContractProvider(),
+      database = database,
+      installedPackCatalog = InstalledPlatformPackCatalogPort { config.manifests },
+      sharedEvidenceResolver = FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
+      sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
+      specIntentProjectionResolver =
+        SpecIntentProjectionResolver(
+          FileSystemDecompositionManifestFileStore(),
+          DecompositionManifestSchemaValidator(),
+          SpecIntentProjectionExtractor(
+            object : ReviewContextEnvelopeValidator {
+              override fun validate(
+                envelope: ReviewContextWireMap,
+                sourceLabel: String,
+              ) = Unit
+
+              override fun validateSpecIntentProjection(
+                envelope: ReviewContextWireMap,
+                sourceLabel: String,
+              ) = Unit
+            },
+            FileSystemDecompositionManifestFileStore(),
+          ),
+        ),
+      parentReviewLauncher = launcher,
+      nativeAgentPreflight = ReviewNativeAgentPreflightPort.NONE,
+      registerParse = ParallelReviewFindingParser::parse,
+      diagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
+      repositoryEnclosingRootPort = CanonicalRepositoryRoot,
+      reviewEvidenceBrokerFactory = config.evidenceBrokerFactory,
+      governedEvidenceEndpointBinder = config.evidenceEndpointBinder,
+      reviewLaunchAgentStaging = ReviewLaunchAgentStagingPort.NONE,
+    )
   return ParallelCodeReviewRunner(
     ParallelCodeReviewRunnerComposition(
       boundaries,
@@ -254,104 +284,113 @@ const val HARNESS_BASE_REVISION: String = "base-revision"
 
 const val HARNESS_HEAD_REVISION: String = "head-revision"
 
-private fun parentOf(commits: List<RecordedCommit>, commit: RecordedCommit): String =
-  commits.getOrNull(commits.indexOf(commit) - 1)?.sha ?: HARNESS_BASE_REVISION
+private fun parentOf(
+  commits: List<RecordedCommit>,
+  commit: RecordedCommit,
+): String = commits.getOrNull(commits.indexOf(commit) - 1)?.sha ?: HARNESS_BASE_REVISION
 
-private fun recordingRubricResolver(recorder: ReviewRecorder, rubricBody: (String) -> String) =
-  object : ReviewRubricResolver {
-    override fun resolve(manifest: PlatformManifest?): ResolvedReviewRubric {
-      recorder.rubricResolutions += manifest?.slug ?: "generic"
-      return ResolvedReviewRubric("parallel-code-review", rubricBody("parallel-code-review"))
-    }
-
-    override fun resolve(
-      manifest: PlatformManifest?,
-      evidence: List<ReviewOwnedFileEvidence>,
-      specialistSkillName: String,
-    ): ResolvedReviewRubric {
-      recorder.rubricResolutions += specialistSkillName
-      return ResolvedReviewRubric(
-        rubricId = specialistSkillName,
-        body = rubricBody(specialistSkillName),
-        area = specialistSkillName.substringAfter("-code-review-", "generic"),
-      )
-    }
+private fun recordingRubricResolver(
+  recorder: ReviewRecorder,
+  rubricBody: (String) -> String,
+) = object : ReviewRubricResolver {
+  override fun resolve(manifest: PlatformManifest?): ResolvedReviewRubric {
+    recorder.rubricResolutions += manifest?.slug ?: "generic"
+    return ResolvedReviewRubric("parallel-code-review", rubricBody("parallel-code-review"))
   }
 
+  override fun resolve(
+    manifest: PlatformManifest?,
+    evidence: List<ReviewOwnedFileEvidence>,
+    specialistSkillName: String,
+  ): ResolvedReviewRubric {
+    recorder.rubricResolutions += specialistSkillName
+    return ResolvedReviewRubric(
+      rubricId = specialistSkillName,
+      body = rubricBody(specialistSkillName),
+      area = specialistSkillName.substringAfter("-code-review-", "generic"),
+    )
+  }
+}
+
 private fun recordingDatabase(recorder: ReviewRecorder): DatabaseSessionFactory {
-  val reviews = Proxy.newProxyInstance(
-    ReviewRepository::class.java.classLoader,
-    arrayOf(ReviewRepository::class.java),
-  ) { _, method, args ->
-    when (method.name) {
-      "saveAccounting" -> recorder.savedAccounting.add(args[0] as ReviewAccountingRecord).let { }
-      "loadAccounting" -> null
-      "recordFindingLaneAttribution" -> {
-        @Suppress("UNCHECKED_CAST")
-        recorder.durableFindingLanes.putAll(args[1] as Map<String, String>)
-      }
-      "replaceReviewRunLanes" -> {
-        @Suppress("UNCHECKED_CAST")
-        val lanes = args[1] as List<ReviewRunLane>
-        recorder.durableLanes.clear()
-        recorder.durableLanes.addAll(lanes)
-      }
-      "fetchReviewRunLanes" -> recorder.durableLanes.toList()
-      "recordIntegrationPass" -> {
-        @Suppress("UNCHECKED_CAST")
-        recorder.durableIntegrationPass = args[1] as ReviewIntegrationPassRecord
-      }
-      "fetchIntegrationPass" -> recorder.durableIntegrationPass
-      "recordFindingVerdicts" -> {
-        @Suppress("UNCHECKED_CAST")
-        val verdicts = args[1] as List<ReviewFindingVerdict>
-        verdicts.forEach { incoming ->
-          recorder.durableFindingVerdicts.removeAll {
-            it.findingRef == incoming.findingRef && it.stage == incoming.stage
+  val reviews =
+    Proxy.newProxyInstance(
+      ReviewRepository::class.java.classLoader,
+      arrayOf(ReviewRepository::class.java),
+    ) { _, method, args ->
+      when (method.name) {
+        "saveAccounting" -> recorder.savedAccounting.add(args[0] as ReviewAccountingRecord).let { }
+        "loadAccounting" -> null
+        "recordFindingLaneAttribution" -> {
+          @Suppress("UNCHECKED_CAST")
+          recorder.durableFindingLanes.putAll(args[1] as Map<String, String>)
+        }
+        "replaceReviewRunLanes" -> {
+          @Suppress("UNCHECKED_CAST")
+          val lanes = args[1] as List<ReviewRunLane>
+          recorder.durableLanes.clear()
+          recorder.durableLanes.addAll(lanes)
+        }
+        "fetchReviewRunLanes" -> recorder.durableLanes.toList()
+        "recordIntegrationPass" -> {
+          @Suppress("UNCHECKED_CAST")
+          recorder.durableIntegrationPass = args[1] as ReviewIntegrationPassRecord
+        }
+        "fetchIntegrationPass" -> recorder.durableIntegrationPass
+        "recordFindingVerdicts" -> {
+          @Suppress("UNCHECKED_CAST")
+          val verdicts = args[1] as List<ReviewFindingVerdict>
+          verdicts.forEach { incoming ->
+            recorder.durableFindingVerdicts.removeAll {
+              it.findingRef == incoming.findingRef && it.stage == incoming.stage
+            }
+            recorder.durableFindingVerdicts += incoming
           }
-          recorder.durableFindingVerdicts += incoming
         }
-      }
-      "fetchFindingVerdicts" -> recorder.durableFindingVerdicts.toList()
-      "recordReviewPassClaims" -> {
-        @Suppress("UNCHECKED_CAST")
-        val incoming = args[1] as List<ParallelReviewMergedFinding>
-        val existing = recorder.durablePassClaims?.findings
-        if (incoming.isEmpty() && !existing.isNullOrEmpty()) {
-          Unit
-        } else {
-          recorder.durablePassClaims = ReviewPassClaimSnapshot(incoming)
+        "fetchFindingVerdicts" -> recorder.durableFindingVerdicts.toList()
+        "recordReviewPassClaims" -> {
+          @Suppress("UNCHECKED_CAST")
+          val incoming = args[1] as List<ParallelReviewMergedFinding>
+          val existing = recorder.durablePassClaims?.findings
+          if (incoming.isEmpty() && !existing.isNullOrEmpty()) {
+            Unit
+          } else {
+            recorder.durablePassClaims = ReviewPassClaimSnapshot(incoming)
+          }
         }
+        "fetchReviewPassClaims" -> recorder.durablePassClaims
+        "recordStageBoundary" -> {
+          val boundary = args[1] as ReviewStageBoundary
+          recorder.durableStageBoundaries.removeAll { it.stage == boundary.stage }
+          recorder.durableStageBoundaries += boundary
+        }
+        "fetchStageBoundaries" -> recorder.durableStageBoundaries.toList()
+        "recordSpecProjectionReference" -> {
+          recorder.durableSpecProjection = args[1] as ReviewSpecProjectionReference
+        }
+        "fetchSpecProjectionReference" -> recorder.durableSpecProjection
+        else -> error("Unexpected review repository call: ${method.name}")
       }
-      "fetchReviewPassClaims" -> recorder.durablePassClaims
-      "recordStageBoundary" -> {
-        val boundary = args[1] as ReviewStageBoundary
-        recorder.durableStageBoundaries.removeAll { it.stage == boundary.stage }
-        recorder.durableStageBoundaries += boundary
+    } as ReviewRepository
+  val unitOfWork =
+    Proxy.newProxyInstance(
+      UnitOfWork::class.java.classLoader,
+      arrayOf(UnitOfWork::class.java),
+    ) { _, method, _ ->
+      when (method.name) {
+        "getReviews" -> reviews
+        "getLifecycleTelemetry" -> recordingLifecycleTelemetry(recorder)
+        "getDbPath" -> Path.of("/tmp/recording-review.db")
+        else -> error("Unexpected unit-of-work call: ${method.name}")
       }
-      "fetchStageBoundaries" -> recorder.durableStageBoundaries.toList()
-      "recordSpecProjectionReference" -> {
-        recorder.durableSpecProjection = args[1] as ReviewSpecProjectionReference
-      }
-      "fetchSpecProjectionReference" -> recorder.durableSpecProjection
-      else -> error("Unexpected review repository call: ${method.name}")
-    }
-  } as ReviewRepository
-  val unitOfWork = Proxy.newProxyInstance(
-    UnitOfWork::class.java.classLoader,
-    arrayOf(UnitOfWork::class.java),
-  ) { _, method, _ ->
-    when (method.name) {
-      "getReviews" -> reviews
-      "getLifecycleTelemetry" -> recordingLifecycleTelemetry(recorder)
-      "getDbPath" -> Path.of("/tmp/recording-review.db")
-      else -> error("Unexpected unit-of-work call: ${method.name}")
-    }
-  } as UnitOfWork
+    } as UnitOfWork
   return object : DatabaseSessionFactory {
     override fun resolveDbPath() = unitOfWork.dbPath
+
     override fun databaseExists() = true
+
     override fun <T> read(block: (UnitOfWork) -> T): T = block(unitOfWork)
+
     override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = transaction(block)
 
     override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unitOfWork)
@@ -374,38 +413,78 @@ private fun recordingLifecycleTelemetry(recorder: ReviewRecorder): LifecycleTele
     override fun featureTaskRuntimeDiagnosticDegradation(record: FeatureTaskRuntimeDiagnosticDegradationMeasurement) =
       Unit
 
-    override fun featureTaskRuntimeStarted(record: FeatureTaskRuntimeStartedRecord, level: String) = Unit
+    override fun featureTaskRuntimeStarted(
+      record: FeatureTaskRuntimeStartedRecord,
+      level: String,
+    ) = Unit
 
-    override fun featureTaskRuntimeFinished(record: FeatureTaskRuntimeFinishedRecord, level: String) = Unit
+    override fun featureTaskRuntimeFinished(
+      record: FeatureTaskRuntimeFinishedRecord,
+      level: String,
+    ) = Unit
 
-    override fun qualityCheckStarted(record: QualityCheckStartedRecord, level: String) = Unit
+    override fun qualityCheckStarted(
+      record: QualityCheckStartedRecord,
+      level: String,
+    ) = Unit
 
-    override fun qualityCheckFinished(record: QualityCheckFinishedRecord, level: String) = Unit
+    override fun qualityCheckFinished(
+      record: QualityCheckFinishedRecord,
+      level: String,
+    ) = Unit
 
-    override fun featureVerifyStarted(record: FeatureVerifyStartedRecord, level: String) = Unit
+    override fun featureVerifyStarted(
+      record: FeatureVerifyStartedRecord,
+      level: String,
+    ) = Unit
 
-    override fun featureVerifyFinished(record: FeatureVerifyFinishedRecord, level: String) = Unit
+    override fun featureVerifyFinished(
+      record: FeatureVerifyFinishedRecord,
+      level: String,
+    ) = Unit
 
-    override fun prDescriptionGenerated(record: PrDescriptionGeneratedRecord, level: String) = Unit
+    override fun prDescriptionGenerated(
+      record: PrDescriptionGeneratedRecord,
+      level: String,
+    ) = Unit
 
-    override fun goalStarted(record: GoalStartedRecord, level: String) = Unit
+    override fun goalStarted(
+      record: GoalStartedRecord,
+      level: String,
+    ) = Unit
 
-    override fun goalSubtaskFinished(record: GoalSubtaskFinishedRecord, level: String) = Unit
+    override fun goalSubtaskFinished(
+      record: GoalSubtaskFinishedRecord,
+      level: String,
+    ) = Unit
 
-    override fun goalFinished(record: GoalFinishedRecord, level: String) = Unit
+    override fun goalFinished(
+      record: GoalFinishedRecord,
+      level: String,
+    ) = Unit
 
-    override fun goalIssueFinished(record: GoalIssueFinishedRecord, level: String) = Unit
+    override fun goalIssueFinished(
+      record: GoalIssueFinishedRecord,
+      level: String,
+    ) = Unit
   }
 
 private fun recordingCatalogGateway(manifests: List<PlatformManifest>): ScaffoldCatalogGateway =
   object : ScaffoldCatalogGateway {
     override fun approvedCodeReviewAreas() = emptySet<String>()
+
     override fun preShellFamilies() = emptySet<String>()
+
     override fun shelledFamilies() = emptySet<String>()
+
     override fun platformPackPresets() = emptyMap<String, String>()
+
     override fun scaffoldPayloadVersion() = "1.0"
+
     override fun discoverPilotedPlatformPacks(packsRoot: Path) = emptyList<PilotedPlatformPackProjection>()
+
     override fun discoverPlatformManifests(packsRoot: Path) = manifests
+
     override fun discoverBaselineReviewCatalog(packsRoot: Path) =
       BaselineReviewCatalog(packs = emptyList(), compositionEdges = emptyList(), layerSuggestions = emptyList())
   }
@@ -441,20 +520,30 @@ fun reviewPack(
   slug = slug,
   packRoot = Path.of("platform-packs", slug).toFileLocation(),
   contractVersion = "1.3",
-  routingSignals = RoutingSignals(
-    strong = routingSignals,
-    tieBreakers = emptyList(),
-    path = routingSignals,
-    content = contentSignals,
-  ),
+  routingSignals =
+    RoutingSignals(
+      strong = routingSignals,
+      tieBreakers = emptyList(),
+      path = routingSignals,
+      content = contentSignals,
+    ),
   declaredCodeReviewAreas = areas,
-  declaredFiles = DeclaredFiles(
-    baseline = Path.of("platform-packs", slug, "code-review", "bill-$slug-code-review", "content.md").toFileLocation(),
-    areas = areas.associateWith {
-      Path.of("platform-packs", slug, "code-review", "bill-$slug-code-review-$it", "content.md")
-        .toFileLocation()
-    },
-  ),
+  declaredFiles =
+    DeclaredFiles(
+      baseline =
+        Path.of(
+          "platform-packs",
+          slug,
+          "code-review",
+          "bill-$slug-code-review",
+          "content.md",
+        ).toFileLocation(),
+      areas =
+        areas.associateWith {
+          Path.of("platform-packs", slug, "code-review", "bill-$slug-code-review-$it", "content.md")
+            .toFileLocation()
+        },
+    ),
   areaMetadata = emptyMap(),
   laneConditions = areas.associateWith { ReviewLaneCondition(path = listOf("*")) },
   codeReviewComposition = layers.takeIf { it.isNotEmpty() }?.let(::CodeReviewComposition),
@@ -469,14 +558,18 @@ fun sparseReviewPack(
 ): PlatformManifest {
   val areas = listOf(requiredArea) + pathAreas.keys.toList()
   return reviewPack(slug, areas, routingSignals = routingSignals).copy(
-    laneConditions = buildMap {
-      put(requiredArea, ReviewLaneCondition(required = true))
-      pathAreas.forEach { (area, paths) -> put(area, ReviewLaneCondition(path = paths)) }
-    },
+    laneConditions =
+      buildMap {
+        put(requiredArea, ReviewLaneCondition(required = true))
+        pathAreas.forEach { (area, paths) -> put(area, ReviewLaneCondition(path = paths)) }
+      },
   )
 }
 
-fun reviewLayer(slug: String, required: Boolean = true) = CodeReviewBaselineLayer(
+fun reviewLayer(
+  slug: String,
+  required: Boolean = true,
+) = CodeReviewBaselineLayer(
   platform = slug,
   skill = "bill-$slug-code-review",
   scope = CodeReviewCompositionScope.SameReviewScope,
@@ -487,25 +580,27 @@ fun reviewLayer(slug: String, required: Boolean = true) = CodeReviewBaselineLaye
 fun diffForPaths(vararg paths: String): String =
   diffForChanges(*paths.map { it to "val changed = \"$it\"" }.toTypedArray())
 
-fun diffForChanges(vararg changes: Pair<String, String>): String = changes.joinToString("\n") { (path, added) ->
-  """
-  diff --git a/$path b/$path
-  --- a/$path
-  +++ b/$path
-  @@ -1,2 +1,3 @@
-  +$added
-  """.trimIndent()
-}
+fun diffForChanges(vararg changes: Pair<String, String>): String =
+  changes.joinToString("\n") { (path, added) ->
+    """
+    diff --git a/$path b/$path
+    --- a/$path
+    +++ b/$path
+    @@ -1,2 +1,3 @@
+    +$added
+    """.trimIndent()
+  }
 
 fun simulateGovernedEvidenceReads(request: SkillRunRequest) {
   val broker = request.reviewEvidenceBroker ?: return
   val lane = runCatching { broker.accounting().lane }.getOrNull() ?: return
   val prompt = request.promptOverride ?: return
-  val paths = prompt.lineSequence()
-    .filter { it.startsWith("Owned paths: ") }
-    .flatMap { line -> OWNED_PATH.findAll(line.removePrefix("Owned paths: ")).map { it.groupValues[1] } }
-    .distinct()
-    .toList()
+  val paths =
+    prompt.lineSequence()
+      .filter { it.startsWith("Owned paths: ") }
+      .flatMap { line -> OWNED_PATH.findAll(line.removePrefix("Owned paths: ")).map { it.groupValues[1] } }
+      .distinct()
+      .toList()
   if (paths.isEmpty()) return
   runCatching {
     broker.readBatch(
@@ -521,15 +616,17 @@ private val OWNED_PATH = Regex("\"([^\"]+)\"")
 
 fun reviewFileSystemDiffResolver(): DiffResolverPort = FileSystemDiffResolver()
 
-fun brokerDenyingUnit(deniedPath: String): ReviewEvidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
-  val delegate = FileSystemReviewEvidenceBroker(binding)
-  val hunkId = binding.projectedHunks.first { it.path == deniedPath }.hunkId
-  val commitSha = binding.assignment.assignedBundle.entries.first { hunkId in it.hunkIds }.commitSha
-  val deniedUnit = "$commitSha@$deniedPath"
-  object : ReviewEvidenceBroker by delegate {
-    override fun accounting(): ReviewLaneAccounting = delegate.accounting().copy(
-      budgetDimension = LANE_EVIDENCE_BYTES_DIMENSION,
-      unreviewedUnits = listOf(deniedUnit),
-    )
+fun brokerDenyingUnit(deniedPath: String): ReviewEvidenceBrokerFactory =
+  ReviewEvidenceBrokerFactory { binding ->
+    val delegate = FileSystemReviewEvidenceBroker(binding)
+    val hunkId = binding.projectedHunks.first { it.path == deniedPath }.hunkId
+    val commitSha = binding.assignment.assignedBundle.entries.first { hunkId in it.hunkIds }.commitSha
+    val deniedUnit = "$commitSha@$deniedPath"
+    object : ReviewEvidenceBroker by delegate {
+      override fun accounting(): ReviewLaneAccounting =
+        delegate.accounting().copy(
+          budgetDimension = LANE_EVIDENCE_BYTES_DIMENSION,
+          unreviewedUnits = listOf(deniedUnit),
+        )
+    }
   }
-}

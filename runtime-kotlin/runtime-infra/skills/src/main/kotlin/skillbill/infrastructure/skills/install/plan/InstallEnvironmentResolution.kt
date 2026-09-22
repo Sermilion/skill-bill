@@ -6,8 +6,10 @@ import skillbill.infrastructure.host.jvm.resolveUserHome
 import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Path
 
-internal fun resolveInstallHome(home: Path?, hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path =
-  resolveUserHome(home, hostPlatform)
+internal fun resolveInstallHome(
+  home: Path?,
+  hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+): Path = resolveUserHome(home, hostPlatform)
 
 internal fun resolveInstallEnvironment(
   environment: Map<String, String>,

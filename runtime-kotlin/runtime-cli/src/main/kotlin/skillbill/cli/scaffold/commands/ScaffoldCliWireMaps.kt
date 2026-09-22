@@ -6,19 +6,20 @@ import skillbill.ports.scaffold.model.ScaffoldSectionStatus
 import skillbill.ports.scaffold.model.ScaffoldSkillStatus
 
 internal fun ScaffoldSkillStatus.toWireMap(): Map<String, Any?> {
-  val map = linkedMapOf<String, Any?>(
-    "skill_name" to skillName,
-    "package" to packageName,
-    "platform" to platform,
-    "family" to family,
-    "area" to area,
-    "content_file" to contentFile,
-    "render_command" to renderCommand,
-    "completion_status" to completionStatus.wireValue,
-    "section_count" to sectionCount,
-    "sections" to sections.map(ScaffoldSectionStatus::toWireMap),
-    "recommended_commands" to recommendedCommands,
-  )
+  val map =
+    linkedMapOf<String, Any?>(
+      "skill_name" to skillName,
+      "package" to packageName,
+      "platform" to platform,
+      "family" to family,
+      "area" to area,
+      "content_file" to contentFile,
+      "render_command" to renderCommand,
+      "completion_status" to completionStatus.wireValue,
+      "section_count" to sectionCount,
+      "sections" to sections.map(ScaffoldSectionStatus::toWireMap),
+      "recommended_commands" to recommendedCommands,
+    )
   reviewComposition?.let { map["review_composition"] = it.toWireMap() }
   contentPreview?.let { map["content_preview"] = it }
   content?.let { map["content"] = it }
@@ -32,30 +33,34 @@ internal fun ScaffoldSkillStatus.toWireMap(): Map<String, Any?> {
   return map
 }
 
-internal fun ScaffoldSectionStatus.toWireMap(): Map<String, Any?> = linkedMapOf(
-  "heading" to heading,
-  SharedPayloadKeys.STATUS to status.wireValue,
-  "line_count" to lineCount,
-  "preview" to preview,
-)
+internal fun ScaffoldSectionStatus.toWireMap(): Map<String, Any?> =
+  linkedMapOf(
+    "heading" to heading,
+    SharedPayloadKeys.STATUS to status.wireValue,
+    "line_count" to lineCount,
+    "preview" to preview,
+  )
 
-internal fun ScaffoldReviewComposition.toWireMap(): Map<String, Any?> = linkedMapOf(
-  "source" to source,
-  SharedPayloadKeys.SUMMARY to summary,
-  "baseline_layers" to baselineLayers.map { layer ->
-    linkedMapOf<String, Any?>(
-      "platform" to layer.platform,
-      "skill" to layer.skill,
-      "scope" to layer.scope,
-      "required" to layer.required,
-      "mode" to layer.mode,
-    )
-  },
-)
+internal fun ScaffoldReviewComposition.toWireMap(): Map<String, Any?> =
+  linkedMapOf(
+    "source" to source,
+    SharedPayloadKeys.SUMMARY to summary,
+    "baseline_layers" to
+      baselineLayers.map { layer ->
+        linkedMapOf<String, Any?>(
+          "platform" to layer.platform,
+          "skill" to layer.skill,
+          "scope" to layer.scope,
+          "required" to layer.required,
+          "mode" to layer.mode,
+        )
+      },
+  )
 
-internal fun ScaffoldExplainSkill.toWireMap(): Map<String, Any?> = linkedMapOf(
-  "skill_name" to skillName,
-  "content_file" to contentFile,
-  "render_command" to renderCommand,
-  "recommended_commands" to recommendedCommands,
-)
+internal fun ScaffoldExplainSkill.toWireMap(): Map<String, Any?> =
+  linkedMapOf(
+    "skill_name" to skillName,
+    "content_file" to contentFile,
+    "render_command" to renderCommand,
+    "recommended_commands" to recommendedCommands,
+  )

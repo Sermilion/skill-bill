@@ -70,33 +70,38 @@ data class FeatureTaskRuntimeRepairLedgerEntry(
     val symbolTokens = constructSymbolTokens()
     if (symbolTokens.isEmpty()) return false
     val caseInsensitiveSymbols = symbolTokens.mapTo(mutableSetOf(), String::lowercase)
-    val labelMatchesSymbolName = identifierTokens(finding.label)
-      .map(String::lowercase)
-      .any { token -> token != REDUCER_DEFAULT_FINDING_LABEL && token in caseInsensitiveSymbols }
+    val labelMatchesSymbolName =
+      identifierTokens(finding.label)
+        .map(String::lowercase)
+        .any { token -> token != REDUCER_DEFAULT_FINDING_LABEL && token in caseInsensitiveSymbols }
     return labelMatchesSymbolName || identifierTokens(finding.text).any { token -> token in symbolTokens }
   }
 
-  private fun constructSymbolTokens(): Set<String> = constructs
-    .flatMap { construct -> construct.symbol.split('.') }
-    .filterTo(mutableSetOf()) { part -> part.length >= MIN_CONSTRUCT_TOKEN_LENGTH }
-  internal fun toProjectionMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    "finding_ref" to disturbanceRef,
-    "severity" to severity,
-    "label" to label,
-    SharedPayloadKeys.STATUS to status.wireValue,
-    "origin_round" to originRound,
-    "status_round" to statusRound,
-    "constructs" to constructs.map { construct ->
-      construct.file?.let { file -> "${construct.symbol} ($file)" } ?: construct.symbol
-    },
-    "intent" to intent,
-  ).also { payload ->
-    if (rationaleContested) {
-      payload["rationale_contested"] = true
-    } else {
-      noEditReason?.let { reason -> payload["no_edit_reason"] = reason }
+  private fun constructSymbolTokens(): Set<String> =
+    constructs
+      .flatMap { construct -> construct.symbol.split('.') }
+      .filterTo(mutableSetOf()) { part -> part.length >= MIN_CONSTRUCT_TOKEN_LENGTH }
+
+  internal fun toProjectionMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      "finding_ref" to disturbanceRef,
+      "severity" to severity,
+      "label" to label,
+      SharedPayloadKeys.STATUS to status.wireValue,
+      "origin_round" to originRound,
+      "status_round" to statusRound,
+      "constructs" to
+        constructs.map { construct ->
+          construct.file?.let { file -> "${construct.symbol} ($file)" } ?: construct.symbol
+        },
+      "intent" to intent,
+    ).also { payload ->
+      if (rationaleContested) {
+        payload["rationale_contested"] = true
+      } else {
+        noEditReason?.let { reason -> payload["no_edit_reason"] = reason }
+      }
     }
-  }
 }
 
 data class FeatureTaskRuntimeRepairLedger(
@@ -120,15 +125,17 @@ data class FeatureTaskRuntimeRepairLedger(
   fun boundedProjection(): FeatureTaskRuntimeRepairLedgerProjection {
     val complete = FeatureTaskRuntimeRepairLedgerProjection(entryCount = entries.size, entries = entries)
     if (entries.size <= REPAIR_LEDGER_MAX_ENTRIES && complete.withinByteBudget) return complete
-    val summarized = FeatureTaskRuntimeRepairLedgerProjection(
-      entryCount = entries.size,
-      summarized = true,
-      affectedConstructs = entries
-        .flatMap { entry -> entry.constructs.map(FeatureTaskRuntimeRepairConstruct::symbol) }
-        .distinct()
-        .sorted()
-        .take(REPAIR_LEDGER_MAX_SUMMARY_CONSTRUCTS),
-    )
+    val summarized =
+      FeatureTaskRuntimeRepairLedgerProjection(
+        entryCount = entries.size,
+        summarized = true,
+        affectedConstructs =
+          entries
+            .flatMap { entry -> entry.constructs.map(FeatureTaskRuntimeRepairConstruct::symbol) }
+            .distinct()
+            .sorted()
+            .take(REPAIR_LEDGER_MAX_SUMMARY_CONSTRUCTS),
+      )
     if (summarized.withinByteBudget) return summarized
     return FeatureTaskRuntimeRepairLedgerProjection(entryCount = entries.size, summarized = true)
   }
@@ -161,12 +168,14 @@ data class FeatureTaskRuntimeRepairLedgerProjection(
       }
     }
   }
+
   internal fun toProjectionMap(): Map<String, Any?> {
-    val payload = linkedMapOf<String, Any?>(
-      SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
-      "summarized" to summarized,
-      "entry_count" to entryCount,
-    )
+    val payload =
+      linkedMapOf<String, Any?>(
+        SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
+        "summarized" to summarized,
+        "entry_count" to entryCount,
+      )
     if (summarized) {
       payload["affected_constructs"] = affectedConstructs
     } else {
@@ -176,8 +185,9 @@ data class FeatureTaskRuntimeRepairLedgerProjection(
   }
 
   internal val withinByteBudget: Boolean
-    get() = JsonCodec.mapToJsonString(toProjectionMap()).toByteArray(Charsets.UTF_8).size <=
-      REPAIR_LEDGER_PROJECTION_MAX_UTF8_BYTES
+    get() =
+      JsonCodec.mapToJsonString(toProjectionMap()).toByteArray(Charsets.UTF_8).size <=
+        REPAIR_LEDGER_PROJECTION_MAX_UTF8_BYTES
 
   fun renderReferenceSection(): String {
     val body = renderReferenceBody()
@@ -205,40 +215,41 @@ data class FeatureTaskRuntimeRepairLedgerProjection(
     }
   }
 
-  private fun renderReferenceBody(): String = buildString {
-    appendLine("entries: $entryCount")
-    if (summarized) {
-      appendLine("summarized: true (entry payloads omitted; this is not a complete listing)")
-      if (affectedConstructs.isEmpty()) {
-        appendLine("affected_constructs: omitted — the construct list itself exceeded the projection budget")
-      } else {
-        appendLine("affected_constructs:")
-        affectedConstructs.forEach { symbol -> appendLine("  - $symbol") }
+  private fun renderReferenceBody(): String =
+    buildString {
+      appendLine("entries: $entryCount")
+      if (summarized) {
+        appendLine("summarized: true (entry payloads omitted; this is not a complete listing)")
+        if (affectedConstructs.isEmpty()) {
+          appendLine("affected_constructs: omitted — the construct list itself exceeded the projection budget")
+        } else {
+          appendLine("affected_constructs:")
+          affectedConstructs.forEach { symbol -> appendLine("  - $symbol") }
+        }
+        return@buildString
       }
-      return@buildString
-    }
-    entries.forEach { entry ->
-      appendLine(
-        "  - ${entry.disturbanceRef} [${entry.status.wireValue}] ${entry.severity} ${entry.label} " +
-          "(round ${entry.originRound}, status round ${entry.statusRound}): ${entry.intent}",
-      )
-      entry.constructs.forEach { construct ->
-        val file = construct.file?.let { " ($it)" }.orEmpty()
-        appendLine("      holds closed by: ${construct.symbol}$file")
-      }
-      if (entry.rationaleContested) {
+      entries.forEach { entry ->
         appendLine(
-          "      a round chose to edit nothing here and that reasoning was later contradicted — by this " +
-            "finding recurring, or by a later round editing it after all. The original reasoning is " +
-            "withheld on purpose: re-verify this from the evidence in the delta above and judge it fresh.",
+          "  - ${entry.disturbanceRef} [${entry.status.wireValue}] ${entry.severity} ${entry.label} " +
+            "(round ${entry.originRound}, status round ${entry.statusRound}): ${entry.intent}",
         )
-      } else {
-        entry.noEditReason?.let { reason ->
-          appendLine("      round edited nothing because: $reason")
+        entry.constructs.forEach { construct ->
+          val file = construct.file?.let { " ($it)" }.orEmpty()
+          appendLine("      holds closed by: ${construct.symbol}$file")
+        }
+        if (entry.rationaleContested) {
+          appendLine(
+            "      a round chose to edit nothing here and that reasoning was later contradicted — by this " +
+              "finding recurring, or by a later round editing it after all. The original reasoning is " +
+              "withheld on purpose: re-verify this from the evidence in the delta above and judge it fresh.",
+          )
+        } else {
+          entry.noEditReason?.let { reason ->
+            appendLine("      round edited nothing because: $reason")
+          }
         }
       }
     }
-  }
 }
 
 fun featureTaskRuntimeFoldRepairLedger(
@@ -258,19 +269,21 @@ fun featureTaskRuntimeFoldRepairLedger(
       .forEach { entry -> accumulated.recordDisregarded(entry, carried, round) }
   }
   return FeatureTaskRuntimeRepairLedger(
-    entries = accumulated.values.sortedWith(
-      compareBy(
-        FeatureTaskRuntimeRepairLedgerEntry::originRound,
-        FeatureTaskRuntimeRepairLedgerEntry::findingIdentity,
+    entries =
+      accumulated.values.sortedWith(
+        compareBy(
+          FeatureTaskRuntimeRepairLedgerEntry::originRound,
+          FeatureTaskRuntimeRepairLedgerEntry::findingIdentity,
+        ),
       ),
-    ),
   )
 }
 
 private class ReviewStateFindingIdentities(carriedFindings: List<GoalSubtaskReviewCompactFinding>) {
-  private val byFindingId: Map<String, GoalSubtaskReviewCompactFinding> = carriedFindings
-    .mapNotNull { finding -> finding.findingId?.let { id -> normalizeIdentityPart(id) to finding } }
-    .toMap()
+  private val byFindingId: Map<String, GoalSubtaskReviewCompactFinding> =
+    carriedFindings
+      .mapNotNull { finding -> finding.findingId?.let { id -> normalizeIdentityPart(id) to finding } }
+      .toMap()
 
   fun resolve(entry: FeatureTaskRuntimeRepairReceiptEntry): GoalSubtaskReviewCompactFinding? =
     byFindingId[normalizeIdentityPart(entry.findingId)]
@@ -288,19 +301,20 @@ private fun MutableMap<String, FeatureTaskRuntimeRepairLedgerEntry>.recordResolv
   val finding = carried.resolve(entry)
   val existing = this[identity]
   val refutedDisregard = existing?.status == FeatureTaskRuntimeRepairLedgerStatus.DISREGARDED
-  this[identity] = FeatureTaskRuntimeRepairLedgerEntry(
-    findingIdentity = identity,
-    severity = finding?.severity ?: "blocker",
-    label = finding?.label ?: entry.findingId,
-    findingId = entry.findingId,
-    intent = "",
-    constructs = emptyList(),
-    status = FeatureTaskRuntimeRepairLedgerStatus.RESOLVED,
-    originRound = existing?.originRound ?: round,
-    statusRound = round,
-    noEditReason = existing?.noEditReason,
-    rationaleContested = refutedDisregard || existing?.rationaleContested == true,
-  )
+  this[identity] =
+    FeatureTaskRuntimeRepairLedgerEntry(
+      findingIdentity = identity,
+      severity = finding?.severity ?: "blocker",
+      label = finding?.label ?: entry.findingId,
+      findingId = entry.findingId,
+      intent = "",
+      constructs = emptyList(),
+      status = FeatureTaskRuntimeRepairLedgerStatus.RESOLVED,
+      originRound = existing?.originRound ?: round,
+      statusRound = round,
+      noEditReason = existing?.noEditReason,
+      rationaleContested = refutedDisregard || existing?.rationaleContested == true,
+    )
 }
 
 private fun MutableMap<String, FeatureTaskRuntimeRepairLedgerEntry>.recordDisregarded(
@@ -311,18 +325,19 @@ private fun MutableMap<String, FeatureTaskRuntimeRepairLedgerEntry>.recordDisreg
   val identity = carried.identityOf(entry)
   if (containsKey(identity)) return
   val finding = carried.resolve(entry)
-  this[identity] = FeatureTaskRuntimeRepairLedgerEntry(
-    findingIdentity = identity,
-    severity = finding?.severity ?: "blocker",
-    label = finding?.label ?: entry.findingId,
-    findingId = entry.findingId,
-    intent = "",
-    constructs = emptyList(),
-    status = FeatureTaskRuntimeRepairLedgerStatus.DISREGARDED,
-    originRound = round,
-    statusRound = round,
-    noEditReason = entry.noEditReason,
-  )
+  this[identity] =
+    FeatureTaskRuntimeRepairLedgerEntry(
+      findingIdentity = identity,
+      severity = finding?.severity ?: "blocker",
+      label = finding?.label ?: entry.findingId,
+      findingId = entry.findingId,
+      intent = "",
+      constructs = emptyList(),
+      status = FeatureTaskRuntimeRepairLedgerStatus.DISREGARDED,
+      originRound = round,
+      statusRound = round,
+      noEditReason = entry.noEditReason,
+    )
 }
 
 private fun identifierTokens(value: String): List<String> =

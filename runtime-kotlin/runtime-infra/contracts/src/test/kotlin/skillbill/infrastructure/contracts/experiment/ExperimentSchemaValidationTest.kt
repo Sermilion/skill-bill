@@ -33,43 +33,47 @@ class ExperimentSchemaValidationTest {
 
   @Test
   fun `unavailable measurement requires a reason and measured requires a quantity`() {
-    val base = mapOf<String, Any?>(
-      ExperimentObservationPayloadKeys.CONTRACT_VERSION to EXPERIMENT_OBSERVATION_CONTRACT_VERSION,
-      ExperimentObservationPayloadKeys.OBSERVATION_ID to "observation-1",
-      ExperimentObservationPayloadKeys.PAIR_ID to "pair-1",
-      ExperimentObservationPayloadKeys.ARM_ID to "control",
-      ExperimentObservationPayloadKeys.EVENT_IDENTITY to mapOf(
-        ExperimentObservationPayloadKeys.WORKFLOW_ID to "workflow-1",
-        ExperimentObservationPayloadKeys.PHASE_ID to "implement",
-        ExperimentObservationPayloadKeys.ATTEMPT to 1,
-        ExperimentObservationPayloadKeys.EVENT_KIND to "usage",
-      ),
-      ExperimentObservationPayloadKeys.RECORDED_AT to "2026-09-21T00:00:00Z",
-    )
+    val base =
+      mapOf<String, Any?>(
+        ExperimentObservationPayloadKeys.CONTRACT_VERSION to EXPERIMENT_OBSERVATION_CONTRACT_VERSION,
+        ExperimentObservationPayloadKeys.OBSERVATION_ID to "observation-1",
+        ExperimentObservationPayloadKeys.PAIR_ID to "pair-1",
+        ExperimentObservationPayloadKeys.ARM_ID to "control",
+        ExperimentObservationPayloadKeys.EVENT_IDENTITY to
+          mapOf(
+            ExperimentObservationPayloadKeys.WORKFLOW_ID to "workflow-1",
+            ExperimentObservationPayloadKeys.PHASE_ID to "implement",
+            ExperimentObservationPayloadKeys.ATTEMPT to 1,
+            ExperimentObservationPayloadKeys.EVENT_KIND to "usage",
+          ),
+        ExperimentObservationPayloadKeys.RECORDED_AT to "2026-09-21T00:00:00Z",
+      )
 
     assertFailsWith<InvalidExperimentObservationSchemaError> {
       ExperimentObservationSchemaValidator.validate(
         base + (
-          ExperimentObservationPayloadKeys.MEASUREMENTS to listOf(
-            mapOf(
-              ExperimentObservationPayloadKeys.METRIC_ID to "cost",
-              ExperimentObservationPayloadKeys.AVAILABILITY to "unavailable_incomplete",
-            ),
-          )
-          ),
+          ExperimentObservationPayloadKeys.MEASUREMENTS to
+            listOf(
+              mapOf(
+                ExperimentObservationPayloadKeys.METRIC_ID to "cost",
+                ExperimentObservationPayloadKeys.AVAILABILITY to "unavailable_incomplete",
+              ),
+            )
+        ),
         "missing-reason",
       )
     }
     assertFailsWith<InvalidExperimentObservationSchemaError> {
       ExperimentObservationSchemaValidator.validate(
         base + (
-          ExperimentObservationPayloadKeys.MEASUREMENTS to listOf(
-            mapOf(
-              ExperimentObservationPayloadKeys.METRIC_ID to "cost",
-              ExperimentObservationPayloadKeys.AVAILABILITY to "measured",
-            ),
-          )
-          ),
+          ExperimentObservationPayloadKeys.MEASUREMENTS to
+            listOf(
+              mapOf(
+                ExperimentObservationPayloadKeys.METRIC_ID to "cost",
+                ExperimentObservationPayloadKeys.AVAILABILITY to "measured",
+              ),
+            )
+        ),
         "missing-quantity",
       )
     }

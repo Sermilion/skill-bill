@@ -5,6 +5,7 @@ import skillbill.review.plan.model.ReviewLaunchLane
 import skillbill.review.plan.model.ReviewReconciledLane
 import skillbill.review.plan.model.ReviewRootLanes
 import skillbill.scaffold.model.PlatformManifest
+
 object ReviewCrossRootLaneReconciliation {
   fun compositionDepthOffsets(
     routedSlugs: Collection<String>,
@@ -34,18 +35,19 @@ object ReviewCrossRootLaneReconciliation {
     roots: List<ReviewRootLanes>,
     excludedFallbackLanesByArea: Map<String, ReviewLaunchLane> = emptyMap(),
   ): List<ReviewReconciledLane> {
-    val candidates = roots.flatMap { root -> root.lanes.map { Candidate(root.depthOffset + it.depth, it) } }
-      .sortedWith(
-        compareBy<Candidate>(
-          { it.effectiveDepth },
-          { it.lane.packSlug },
-          { it.lane.area },
-          { it.lane.skillName },
-          { it.lane.depth },
-          { it.lane.originLayerChain.joinToString(">") },
-          { it.lane.inclusionReason },
-        ),
-      )
+    val candidates =
+      roots.flatMap { root -> root.lanes.map { Candidate(root.depthOffset + it.depth, it) } }
+        .sortedWith(
+          compareBy<Candidate>(
+            { it.effectiveDepth },
+            { it.lane.packSlug },
+            { it.lane.area },
+            { it.lane.skillName },
+            { it.lane.depth },
+            { it.lane.originLayerChain.joinToString(">") },
+            { it.lane.inclusionReason },
+          ),
+        )
     return candidates.groupBy { it.lane.area }.map { (area, areaCandidates) ->
       val nearestDepth = areaCandidates.minOf { it.effectiveDepth }
       val nearest = areaCandidates.filter { it.effectiveDepth == nearestDepth }

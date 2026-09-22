@@ -30,20 +30,21 @@ class WorkflowEngine(
     sessionId: String,
     currentStepId: String,
   ): WorkflowStateSnapshot {
-    val snapshot = WorkflowStateSnapshot(
-      workflowId = workflowId,
-      sessionId = sessionId.trim(),
-      workflowName = definition.workflowName,
-      contractVersion = definition.contractVersion,
-      workflowStatus = WorkflowStatus.RUNNING,
-      currentStepId = currentStepId,
-      stepsJson = jsonString(defaultSteps(definition, currentStepId)),
-      artifactsJson = jsonString(emptyMap<String, Any?>()),
-      startedAt = null,
-      updatedAt = null,
-      finishedAt = null,
-      mode = definition.workflowMode,
-    )
+    val snapshot =
+      WorkflowStateSnapshot(
+        workflowId = workflowId,
+        sessionId = sessionId.trim(),
+        workflowName = definition.workflowName,
+        contractVersion = definition.contractVersion,
+        workflowStatus = WorkflowStatus.RUNNING,
+        currentStepId = currentStepId,
+        stepsJson = jsonString(defaultSteps(definition, currentStepId)),
+        artifactsJson = jsonString(emptyMap<String, Any?>()),
+        startedAt = null,
+        updatedAt = null,
+        finishedAt = null,
+        mode = definition.workflowMode,
+      )
     schemaValidator.validate(snapshot, definition.workflowName)
     return snapshot
   }
@@ -54,33 +55,42 @@ class WorkflowEngine(
     input: WorkflowUpdateInput,
   ): WorkflowStateSnapshot {
     val existingArtifacts = decodeObject(existing.artifactsJson)
-    val mergedArtifacts = if (input.replaceArtifacts) {
-      LinkedHashMap<String, Any?>()
-    } else {
-      existingArtifacts.toMutableMap()
-    }
+    val mergedArtifacts =
+      if (input.replaceArtifacts) {
+        LinkedHashMap<String, Any?>()
+      } else {
+        existingArtifacts.toMutableMap()
+      }
     input.artifactsPatch?.let { patch -> mergedArtifacts.putAll(patch) }
     val terminal = definition.isTerminalStatus(input.workflowStatus)
-    val updated = existing.copy(
-      sessionId = input.sessionId.trim().ifBlank { existing.sessionId.orEmpty() },
-      workflowStatus = input.workflowStatus,
-      currentStepId = input.currentStepId.trim().ifBlank { existing.currentStepId.orEmpty() },
-      stepsJson = jsonString(
-        mergeStepUpdates(definition, decodeSteps(existing.stepsJson), input.stepUpdates?.asEntries()),
-      ),
-      artifactsJson = jsonString(mergedArtifacts),
-      finishedAt = if (terminal) existing.finishedAt ?: "" else null,
-    )
+    val updated =
+      existing.copy(
+        sessionId = input.sessionId.trim().ifBlank { existing.sessionId.orEmpty() },
+        workflowStatus = input.workflowStatus,
+        currentStepId = input.currentStepId.trim().ifBlank { existing.currentStepId.orEmpty() },
+        stepsJson =
+          jsonString(
+            mergeStepUpdates(definition, decodeSteps(existing.stepsJson), input.stepUpdates?.asEntries()),
+          ),
+        artifactsJson = jsonString(mergedArtifacts),
+        finishedAt = if (terminal) existing.finishedAt ?: "" else null,
+      )
     schemaValidator.validate(updated, definition.workflowName)
     return updated
   }
 
-  fun snapshotView(definition: WorkflowDefinition, record: WorkflowStateSnapshot): WorkflowSnapshotView {
+  fun snapshotView(
+    definition: WorkflowDefinition,
+    record: WorkflowStateSnapshot,
+  ): WorkflowSnapshotView {
     schemaValidator.validate(record, definition.workflowName)
     return snapshotViewFrom(record)
   }
 
-  fun summaryView(definition: WorkflowDefinition, record: WorkflowStateSnapshot): WorkflowSummaryView {
+  fun summaryView(
+    definition: WorkflowDefinition,
+    record: WorkflowStateSnapshot,
+  ): WorkflowSummaryView {
     schemaValidator.validate(record, definition.workflowName)
     return WorkflowSummaryView(
       workflowId = record.workflowId,
@@ -99,20 +109,24 @@ class WorkflowEngine(
   fun updateAcknowledgementView(
     snapshot: WorkflowSnapshotView,
     input: WorkflowUpdateInput,
-  ): WorkflowUpdateAcknowledgementView = WorkflowUpdateAcknowledgementView(
-    status = "ok",
-    workflowId = snapshot.workflowId,
-    workflowName = snapshot.workflowName,
-    workflowStatus = snapshot.workflowStatus,
-    currentStepId = snapshot.currentStepId,
-    updatedStepIds = input.stepUpdates?.asEntries().orEmpty().mapNotNull { it[SharedPayloadKeys.STEP_ID] as? String },
-    updatedArtifactKeys = input.artifactsPatch?.keys?.sorted().orEmpty(),
-    readOnlyFullStateGuidance =
-    "Update returns a compact acknowledgement. Use explicit read-only workflow get/show for full state, " +
-      "including steps and the complete durable artifacts map.",
-  )
+  ): WorkflowUpdateAcknowledgementView =
+    WorkflowUpdateAcknowledgementView(
+      status = "ok",
+      workflowId = snapshot.workflowId,
+      workflowName = snapshot.workflowName,
+      workflowStatus = snapshot.workflowStatus,
+      currentStepId = snapshot.currentStepId,
+      updatedStepIds = input.stepUpdates?.asEntries().orEmpty().mapNotNull { it[SharedPayloadKeys.STEP_ID] as? String },
+      updatedArtifactKeys = input.artifactsPatch?.keys?.sorted().orEmpty(),
+      readOnlyFullStateGuidance =
+        "Update returns a compact acknowledgement. Use explicit read-only workflow get/show for full state, " +
+          "including steps and the complete durable artifacts map.",
+    )
 
-  fun resumeView(definition: WorkflowDefinition, record: WorkflowStateSnapshot): WorkflowResumeView {
+  fun resumeView(
+    definition: WorkflowDefinition,
+    record: WorkflowStateSnapshot,
+  ): WorkflowResumeView {
     val snapshot = snapshotView(definition, record)
     val stepsById = snapshot.steps.associateBy { it.stepId }
     val lastCompletedStepId =
@@ -179,13 +193,14 @@ class WorkflowEngine(
     val workflowStatusBeforeContinue = workflowStatusBeforeContinueOverride ?: snapshot.workflowStatus
     return buildContinueDecision(
       BuildContinueDecisionRequest(
-        context = ContinueAssemblyContext(
-          definition = definition,
-          record = record,
-          resume = resume,
-          snapshot = snapshot,
-          declaredProjection = launchProjection(definition, snapshot, resume.resumeStepId, attemptCount),
-        ),
+        context =
+          ContinueAssemblyContext(
+            definition = definition,
+            record = record,
+            resume = resume,
+            snapshot = snapshot,
+            declaredProjection = launchProjection(definition, snapshot, resume.resumeStepId, attemptCount),
+          ),
         continueStatus = continueStatus,
         workflowStatusBeforeContinue = workflowStatusBeforeContinue,
         actualContinueStatus = actualContinueStatus,
@@ -201,15 +216,16 @@ class WorkflowEngine(
     stepId: String,
     producerIteration: Int,
     resolvedRepositoryCheckpointIdentity: String = checkpoint(),
-  ): WorkflowInputProjection? = definition.inputProjectionsByStep[stepId]?.let {
-    WorkflowInputProjectionSelector.select(
-      definition,
-      snapshot,
-      stepId,
-      producerIteration,
-      resolvedRepositoryCheckpointIdentity,
-    )
-  }
+  ): WorkflowInputProjection? =
+    definition.inputProjectionsByStep[stepId]?.let {
+      WorkflowInputProjectionSelector.select(
+        definition,
+        snapshot,
+        stepId,
+        producerIteration,
+        resolvedRepositoryCheckpointIdentity,
+      )
+    }
 
   fun freshLaunchProjection(
     definition: WorkflowDefinition,
@@ -220,10 +236,14 @@ class WorkflowEngine(
     launchProjection(definition, snapshotView(definition, record), stepId, producerIteration)
 
   companion object {
-    fun validateOpen(definition: WorkflowDefinition, currentStepId: String): String? =
-      validateWorkflowOpen(definition, currentStepId)
+    fun validateOpen(
+      definition: WorkflowDefinition,
+      currentStepId: String,
+    ): String? = validateWorkflowOpen(definition, currentStepId)
 
-    fun validateUpdate(definition: WorkflowDefinition, input: WorkflowUpdateInput): String? =
-      validateWorkflowUpdate(definition, input)
+    fun validateUpdate(
+      definition: WorkflowDefinition,
+      input: WorkflowUpdateInput,
+    ): String? = validateWorkflowUpdate(definition, input)
   }
 }

@@ -16,6 +16,7 @@ import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import java.io.IOException
 import java.util.Locale
+
 internal const val TELEMETRY_EVENT_CONTRACT_VERSION: String = "1.12.0"
 
 private val LOCALE_STABLE_SCHEMA_CONFIG: SchemaValidatorsConfig =
@@ -28,7 +29,10 @@ internal object TelemetryEventSchemaValidator {
 
   fun canonicalSchemaDocument(): JsonNode = schemaDocument
 
-  fun validate(envelope: Map<String, Any?>, eventName: String? = null) {
+  fun validate(
+    envelope: Map<String, Any?>,
+    eventName: String? = null,
+  ) {
     val instance: JsonNode = mapper.valueToTree(envelope)
     val resolvedEventName: String? = eventName ?: (envelope["event_name"] as? String)
     val errors: Set<ValidationMessage> = schema.validate(instance)
@@ -60,9 +64,10 @@ internal object TelemetryEventSchemaValidator {
       throw InvalidTelemetryEventSchemaError(
         fieldPath = "\$id",
         eventName = null,
-        reason = "Canonical telemetry-event schema identity mismatch: loaded '\$id' is '$loadedId' but " +
-          "expected '$EXPECTED_SCHEMA_ID'. A stale or shadowed copy of the " +
-          "schema is on the classpath.",
+        reason =
+          "Canonical telemetry-event schema identity mismatch: loaded '\$id' is '$loadedId' but " +
+            "expected '$EXPECTED_SCHEMA_ID'. A stale or shadowed copy of the " +
+            "schema is on the classpath.",
       )
     }
     val loadedConst = yamlNode.path("properties").path("contract_version").path("const").asText("")
@@ -70,14 +75,18 @@ internal object TelemetryEventSchemaValidator {
       throw InvalidTelemetryEventSchemaError(
         fieldPath = "properties.contract_version.const",
         eventName = null,
-        reason = "Canonical telemetry-event schema contract_version.const mismatch: loaded '$loadedConst' " +
-          "but the runtime expects '$TELEMETRY_EVENT_CONTRACT_VERSION'. The schema on the classpath is out " +
-          "of date relative to the running runtime-mcp.",
+        reason =
+          "Canonical telemetry-event schema contract_version.const mismatch: loaded '$loadedConst' " +
+            "but the runtime expects '$TELEMETRY_EVENT_CONTRACT_VERSION'. The schema on the classpath is out " +
+            "of date relative to the running runtime-mcp.",
       )
     }
   }
 
-  private fun formatValidationReason(sorted: List<ValidationMessage>, instance: JsonNode): String {
+  private fun formatValidationReason(
+    sorted: List<ValidationMessage>,
+    instance: JsonNode,
+  ): String {
     val firstError = sorted.first()
     val instanceLocation = firstError.instanceLocation?.toString().orEmpty()
     val detail = firstError.message
@@ -104,13 +113,17 @@ internal object TelemetryEventSchemaValidator {
     }
   }
 
-  private val violationOrdering: Comparator<ValidationMessage> = compareBy(
-    { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
-    { it.instanceLocation?.toString().orEmpty() },
-    { it.message.orEmpty() },
-  )
+  private val violationOrdering: Comparator<ValidationMessage> =
+    compareBy(
+      { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
+      { it.instanceLocation?.toString().orEmpty() },
+      { it.message.orEmpty() },
+    )
 
-  private fun validateCoherence(envelope: Map<String, Any?>, resolvedEventName: String?) {
+  private fun validateCoherence(
+    envelope: Map<String, Any?>,
+    resolvedEventName: String?,
+  ) {
     validateQualityCheckFailureCountCoherence(envelope, resolvedEventName)
     if (resolvedEventName != "skillbill_review_finished") return
     val platformSlug = envelope["platform_slug"] as? String
@@ -120,12 +133,16 @@ internal object TelemetryEventSchemaValidator {
     throw InvalidTelemetryEventSchemaError(
       fieldPath = "platform_slug",
       eventName = resolvedEventName,
-      reason = "skillbill_review_finished requires review_platform, detected_stack, and platform_slug to be equal " +
-        "normalized slugs.",
+      reason =
+        "skillbill_review_finished requires review_platform, detected_stack, and platform_slug to be equal " +
+          "normalized slugs.",
     )
   }
 
-  private fun validateQualityCheckFailureCountCoherence(envelope: Map<String, Any?>, resolvedEventName: String?) {
+  private fun validateQualityCheckFailureCountCoherence(
+    envelope: Map<String, Any?>,
+    resolvedEventName: String?,
+  ) {
     if (resolvedEventName != McpToolPayloadKeys.QUALITY_CHECK_FINISHED) return
     if (!envelope.containsKey(LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT)) return
     if (envelope[LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT] != null) return
@@ -135,9 +152,10 @@ internal object TelemetryEventSchemaValidator {
     throw InvalidTelemetryEventSchemaError(
       fieldPath = LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT,
       eventName = resolvedEventName,
-      reason = "${McpToolPayloadKeys.QUALITY_CHECK_FINISHED} may omit final_failure_count only on a " +
-        "${LifecycleSessionCompletion.RECONCILER_STALE.wireValue} terminal the runtime itself writes. A check " +
-        "that reports its own terminal must carry the count it measured.",
+      reason =
+        "${McpToolPayloadKeys.QUALITY_CHECK_FINISHED} may omit final_failure_count only on a " +
+          "${LifecycleSessionCompletion.RECONCILER_STALE.wireValue} terminal the runtime itself writes. A check " +
+          "that reports its own terminal must carry the count it measured.",
     )
   }
 }
@@ -159,21 +177,23 @@ private fun loadSchemaDocument(): JsonNode {
   } catch (typed: InvalidTelemetryEventSchemaError) {
     failure = typed
   } catch (error: IOException) {
-    failure = InvalidTelemetryEventSchemaError(
-      fieldPath = "",
-      eventName = null,
-      reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
-      cause = error,
-    )
-  } catch (error: JsonProcessingException) {
-    failure = error.let {
+    failure =
       InvalidTelemetryEventSchemaError(
         fieldPath = "",
         eventName = null,
         reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
         cause = error,
       )
-    }
+  } catch (error: JsonProcessingException) {
+    failure =
+      error.let {
+        InvalidTelemetryEventSchemaError(
+          fieldPath = "",
+          eventName = null,
+          reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
+          cause = error,
+        )
+      }
   }
   throw failure
 }
@@ -187,21 +207,23 @@ private fun compileSchema(yamlNode: JsonNode): JsonSchema {
   } catch (typed: InvalidTelemetryEventSchemaError) {
     failure = typed
   } catch (error: IOException) {
-    failure = InvalidTelemetryEventSchemaError(
-      fieldPath = "",
-      eventName = null,
-      reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
-      cause = error,
-    )
-  } catch (error: JsonProcessingException) {
-    failure = error.let {
+    failure =
       InvalidTelemetryEventSchemaError(
         fieldPath = "",
         eventName = null,
         reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
         cause = error,
       )
-    }
+  } catch (error: JsonProcessingException) {
+    failure =
+      error.let {
+        InvalidTelemetryEventSchemaError(
+          fieldPath = "",
+          eventName = null,
+          reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
+          cause = error,
+        )
+      }
   }
   throw failure
 }
@@ -214,14 +236,18 @@ private fun readSchemaText(): String {
   throw InvalidTelemetryEventSchemaError(
     fieldPath = "",
     eventName = null,
-    reason = "Canonical telemetry-event schema is missing from the runtime-mcp classpath at " +
-      "'$SCHEMA_CLASSPATH_RESOURCE'. The on-disk source of truth lives at " +
-      "'$SCHEMA_REPO_RELATIVE_PATH' — confirm `copyTelemetryEventSchema` ran during " +
-      "`processResources` so the bytes were bundled into the runtime artifact.",
+    reason =
+      "Canonical telemetry-event schema is missing from the runtime-mcp classpath at " +
+        "'$SCHEMA_CLASSPATH_RESOURCE'. The on-disk source of truth lives at " +
+        "'$SCHEMA_REPO_RELATIVE_PATH' — confirm `copyTelemetryEventSchema` ran during " +
+        "`processResources` so the bytes were bundled into the runtime artifact.",
   )
 }
 
-internal fun extractOffendingValueFromTelemetryInstance(instance: JsonNode, instanceLocation: String): String {
+internal fun extractOffendingValueFromTelemetryInstance(
+  instance: JsonNode,
+  instanceLocation: String,
+): String {
   val dotted = telemetryEventSchemaDottedFieldPath(instanceLocation)
   if (dotted.isBlank()) return ""
   var node: JsonNode = instance
@@ -251,9 +277,10 @@ internal fun extractOffendingValueFromTelemetryInstance(instance: JsonNode, inst
   }
 }
 
-internal fun telemetryEventSchemaDottedFieldPath(instanceLocation: String): String = when {
-  instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
-  instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
-  instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
-  else -> instanceLocation.trimStart('/').replace('/', '.')
-}
+internal fun telemetryEventSchemaDottedFieldPath(instanceLocation: String): String =
+  when {
+    instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
+    instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
+    instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
+    else -> instanceLocation.trimStart('/').replace('/', '.')
+  }

@@ -38,15 +38,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeReviewDelegationTest {
   @Test
   fun `child-owned review resolves worktree-from-base without a supplied diff blob`() {
     val input = reviewInput(trackedDelta = "scope-fingerprint:abc\n")
-    val request = mappedRequest(
-      input = input,
-      agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
-      pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.DELEGATED, "rvw-191-delta"),
-    )
+    val request =
+      mappedRequest(
+        input = input,
+        agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
+        pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.DELEGATED, "rvw-191-delta"),
+      )
 
     assertEquals(null, request.suppliedDiff)
     assertEquals(ParallelReviewScope.WORKTREE_FROM_BASE, request.scope)
@@ -59,15 +61,17 @@ class FeatureTaskRuntimeReviewDelegationTest {
 
   @Test
   fun `durable baseline-untracked inventory maps to driver excluded paths`() {
-    val request = mappedRequest(
-      pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "rvw-191-baseline"),
-      workspace = FeatureTaskRuntimeReviewDriverWorkspace(
-        repoRoot = Path.of("/tmp/repo"),
-        timeout = null,
-        agentAddonSelection = HydratedAgentAddonSelection(),
-        baselineUntrackedPaths = listOf("z-before.tmp", "a-before.tmp"),
-      ),
-    )
+    val request =
+      mappedRequest(
+        pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "rvw-191-baseline"),
+        workspace =
+          FeatureTaskRuntimeReviewDriverWorkspace(
+            repoRoot = Path.of("/tmp/repo"),
+            timeout = null,
+            agentAddonSelection = HydratedAgentAddonSelection(),
+            baselineUntrackedPaths = listOf("z-before.tmp", "a-before.tmp"),
+          ),
+      )
 
     assertEquals(listOf("a-before.tmp", "z-before.tmp"), request.baselineUntrackedPolicy.excludedPaths)
     assertEquals(emptyList(), request.baselineUntrackedPolicy.includedPaths)
@@ -75,11 +79,12 @@ class FeatureTaskRuntimeReviewDelegationTest {
 
   @Test
   fun `explicit empty child-owned fingerprint still resolves worktree-from-base without a supplied diff`() {
-    val request = mappedRequest(
-      input = reviewInput(trackedDelta = ""),
-      agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
-      pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "rvw-191-empty"),
-    )
+    val request =
+      mappedRequest(
+        input = reviewInput(trackedDelta = ""),
+        agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
+        pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "rvw-191-empty"),
+      )
 
     assertEquals(null, request.suppliedDiff)
     assertEquals(ParallelReviewScope.WORKTREE_FROM_BASE, request.scope)
@@ -88,30 +93,33 @@ class FeatureTaskRuntimeReviewDelegationTest {
 
   @Test
   fun `formatted add-on section is copied onto the shared driver request`() {
-    val selection = HydratedAgentAddonSelection(
-      listOf(
-        HydratedAgentAddonSelectionEntry(
-          PersistedAgentAddonSelectionEntry("first", "local:first", "a".repeat(64)),
-          "first",
-          "first body\n",
+    val selection =
+      HydratedAgentAddonSelection(
+        listOf(
+          HydratedAgentAddonSelectionEntry(
+            PersistedAgentAddonSelectionEntry("first", "local:first", "a".repeat(64)),
+            "first",
+            "first body\n",
+          ),
+          HydratedAgentAddonSelectionEntry(
+            PersistedAgentAddonSelectionEntry("second", "local:second", "b".repeat(64)),
+            "second",
+            "second body",
+          ),
         ),
-        HydratedAgentAddonSelectionEntry(
-          PersistedAgentAddonSelectionEntry("second", "local:second", "b".repeat(64)),
-          "second",
-          "second body",
-        ),
-      ),
-    )
+      )
     val formatted = AgentAddonPromptFormatter.format(selection)
-    val request = mappedRequest(
-      agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
-      pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "rvw-191-addons"),
-      workspace = FeatureTaskRuntimeReviewDriverWorkspace(
-        repoRoot = Path.of("/tmp/repo"),
-        timeout = null,
-        agentAddonSelection = selection,
-      ),
-    )
+    val request =
+      mappedRequest(
+        agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
+        pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "rvw-191-addons"),
+        workspace =
+          FeatureTaskRuntimeReviewDriverWorkspace(
+            repoRoot = Path.of("/tmp/repo"),
+            timeout = null,
+            agentAddonSelection = selection,
+          ),
+      )
 
     assertEquals(formatted, request.selectedAgentAddonsSection)
     assertTrue(formatted.contains("## Selected agent add-ons"))
@@ -140,37 +148,42 @@ class FeatureTaskRuntimeReviewDelegationTest {
 
   @Test
   fun `settlement envelope takes findings and review_run_id from the driver register`() {
-    val result = ApprovingReviewDriverStub.run(
-      mappedRequest(
-        agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
-        pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "rvw-191-empty-register"),
-      ),
-    ).copy(
-      mergeResult = ParallelReviewMergeResult(
-        findings = listOf(
-          ParallelReviewMergedFinding(
-            fNumber = "F-001",
-            agentIds = listOf("codex"),
-            severity = ParallelReviewSeverity.MINOR,
-            confidence = "High",
-            location = "Foo.kt:1",
-            description = "naming",
-            scopeDisposition = ReviewScopeDisposition.SPEC_DEVIATION,
-            claimVerdict = ReviewClaimVerdict.CONFIRMED,
-          ),
+    val result =
+      ApprovingReviewDriverStub.run(
+        mappedRequest(
+          agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
+          pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "rvw-191-empty-register"),
         ),
-        formattedOutput = "Naming drift in Foo.\nverdict: changes_requested",
-      ),
-    )
-    val output = FeatureTaskRuntimeReviewEnvelope.assemble(
-      result = result,
-      reviewRunId = "rvw-191-empty-register",
-      cycle = FeatureTaskRuntimeReviewCycleContext(
-        passNumber = 1,
-        resolvedTier = CodeReviewExecutionMode.INLINE,
-        repositoryFingerprint = "fp-1",
-      ),
-    )
+      ).copy(
+        mergeResult =
+          ParallelReviewMergeResult(
+            findings =
+              listOf(
+                ParallelReviewMergedFinding(
+                  fNumber = "F-001",
+                  agentIds = listOf("codex"),
+                  severity = ParallelReviewSeverity.MINOR,
+                  confidence = "High",
+                  location = "Foo.kt:1",
+                  description = "naming",
+                  scopeDisposition = ReviewScopeDisposition.SPEC_DEVIATION,
+                  claimVerdict = ReviewClaimVerdict.CONFIRMED,
+                ),
+              ),
+            formattedOutput = "Naming drift in Foo.\nverdict: changes_requested",
+          ),
+      )
+    val output =
+      FeatureTaskRuntimeReviewEnvelope.assemble(
+        result = result,
+        reviewRunId = "rvw-191-empty-register",
+        cycle =
+          FeatureTaskRuntimeReviewCycleContext(
+            passNumber = 1,
+            resolvedTier = CodeReviewExecutionMode.INLINE,
+            repositoryFingerprint = "fp-1",
+          ),
+      )
     val envelope = FeatureTaskRuntimeReviewEnvelope.envelopeMap(output)
     val produced = JsonCodec.anyToStringAnyMap(envelope["produced_outputs"]).orEmpty()
 
@@ -207,28 +220,31 @@ class FeatureTaskRuntimeReviewDelegationTest {
       """.trimIndent(),
     )
     val delta = diffForPaths("src/Main.kt")
-    val mapped = mappedRequest(
-      input = reviewInput(trackedDelta = delta),
-      agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
-      pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "parity-mapper"),
-      workspace = FeatureTaskRuntimeReviewDriverWorkspace(
+    val mapped =
+      mappedRequest(
+        input = reviewInput(trackedDelta = delta),
+        agents = FeatureTaskRuntimeReviewDriverAgents("codex"),
+        pass = FeatureTaskRuntimeReviewDriverPass(1, CodeReviewExecutionMode.INLINE, "parity-mapper"),
+        workspace =
+          FeatureTaskRuntimeReviewDriverWorkspace(
+            repoRoot = repo,
+            timeout = null,
+            agentAddonSelection = HydratedAgentAddonSelection(),
+          ),
+      ).copy(suppliedDiff = delta)
+    val standalone =
+      ParallelCodeReviewRequest(
+        agent1Id = mapped.agent1Id,
+        scope = ParallelReviewScope.BRANCH,
         repoRoot = repo,
-        timeout = null,
-        agentAddonSelection = HydratedAgentAddonSelection(),
-      ),
-    ).copy(suppliedDiff = delta)
-    val standalone = ParallelCodeReviewRequest(
-      agent1Id = mapped.agent1Id,
-      scope = ParallelReviewScope.BRANCH,
-      repoRoot = repo,
-      timeout = mapped.timeout,
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-      suppliedDiff = delta,
-      reviewRunId = "parity-standalone",
-      baseRevision = mapped.baseRevision,
-      headRevision = mapped.headRevision,
-      specPath = mapped.specPath,
-    )
+        timeout = mapped.timeout,
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+        suppliedDiff = delta,
+        reviewRunId = "parity-standalone",
+        baseRevision = mapped.baseRevision,
+        headRevision = mapped.headRevision,
+        specPath = mapped.specPath,
+      )
     val mapperRecorder = ReviewRecorder()
     val standaloneRecorder = ReviewRecorder()
     reviewHarness(parityConfig(), mapperRecorder).run(mapped)
@@ -247,11 +263,12 @@ class FeatureTaskRuntimeReviewDelegationTest {
     input: GoalSubtaskReviewInput = reviewInput(),
     agents: FeatureTaskRuntimeReviewDriverAgents = FeatureTaskRuntimeReviewDriverAgents("codex"),
     pass: FeatureTaskRuntimeReviewDriverPass,
-    workspace: FeatureTaskRuntimeReviewDriverWorkspace = FeatureTaskRuntimeReviewDriverWorkspace(
-      repoRoot = Path.of("/tmp/repo"),
-      timeout = null,
-      agentAddonSelection = HydratedAgentAddonSelection(),
-    ),
+    workspace: FeatureTaskRuntimeReviewDriverWorkspace =
+      FeatureTaskRuntimeReviewDriverWorkspace(
+        repoRoot = Path.of("/tmp/repo"),
+        timeout = null,
+        agentAddonSelection = HydratedAgentAddonSelection(),
+      ),
     runInvariants: FeatureTaskRuntimeRunInvariants = invariants(),
   ) = FeatureTaskRuntimeReviewDriverMapper.request(input, runInvariants, agents, pass, workspace)
 
@@ -276,11 +293,12 @@ class FeatureTaskRuntimeReviewDelegationTest {
     )
 
   private fun parityConfig(): ReviewHarnessConfig {
-    val pack = sparseReviewPack(
-      slug = "kotlin",
-      requiredArea = "architecture",
-      pathAreas = mapOf("testing" to listOf("src/test/")),
-    )
+    val pack =
+      sparseReviewPack(
+        slug = "kotlin",
+        requiredArea = "architecture",
+        pathAreas = mapOf("testing" to listOf("src/test/")),
+      )
     return ReviewHarnessConfig(
       manifests = listOf(pack),
       diff = diffForPaths("src/Main.kt"),
@@ -295,23 +313,25 @@ class FeatureTaskRuntimeReviewDelegationTest {
     )
   }
 
-  private fun comparableVerdicts(recorder: ReviewRecorder) = recorder.durableFindingVerdicts
-    .sortedWith(compareBy({ it.stage.wireValue }, { it.findingRef }))
-    .map { verdict ->
-      listOf(
-        verdict.stage,
-        verdict.findingRef,
-        verdict.claimVerdict,
-        verdict.scopeDisposition,
-        verdict.citations,
-        verdict.severityAdjustment,
-        verdict.rejectionReason,
-      )
-    }
+  private fun comparableVerdicts(recorder: ReviewRecorder) =
+    recorder.durableFindingVerdicts
+      .sortedWith(compareBy({ it.stage.wireValue }, { it.findingRef }))
+      .map { verdict ->
+        listOf(
+          verdict.stage,
+          verdict.findingRef,
+          verdict.claimVerdict,
+          verdict.scopeDisposition,
+          verdict.citations,
+          verdict.severityAdjustment,
+          verdict.rejectionReason,
+        )
+      }
 
-  private fun comparableBoundaries(recorder: ReviewRecorder) = recorder.durableStageBoundaries
-    .sortedBy { it.stage.wireValue }
-    .map { it.stage to it.reached }
+  private fun comparableBoundaries(recorder: ReviewRecorder) =
+    recorder.durableStageBoundaries
+      .sortedBy { it.stage.wireValue }
+      .map { it.stage to it.reached }
 }
 
 private const val PARITY_FINDING =

@@ -26,10 +26,15 @@ internal object NativeAgentLinkInventoryBootstrap {
     val remove: MutableList<NativeAgentLinkInventoryEntry>,
   )
 
-  fun bootstrap(home: Path, managedRoots: List<Path>, sourceRoot: Path): BootstrapPlan {
-    val results = NativeAgentProvider.entries.map { provider ->
-      bootstrapProvider(provider, home, managedRoots, sourceRoot)
-    }
+  fun bootstrap(
+    home: Path,
+    managedRoots: List<Path>,
+    sourceRoot: Path,
+  ): BootstrapPlan {
+    val results =
+      NativeAgentProvider.entries.map { provider ->
+        bootstrapProvider(provider, home, managedRoots, sourceRoot)
+      }
     return BootstrapPlan(
       retain = results.flatMap { it.retain },
       remove = results.flatMap { it.remove },
@@ -58,7 +63,10 @@ internal object NativeAgentLinkInventoryBootstrap {
     return ProviderBootstrapResult(retain, remove)
   }
 
-  private fun inspectLink(link: Path, context: LinkInspectionContext) {
+  private fun inspectLink(
+    link: Path,
+    context: LinkInspectionContext,
+  ) {
     val raw = readManagedLinkTarget(link)
     val resolved = link.parent.resolve(raw).toAbsolutePath().normalize()
     val logicalName = link.fileName.toString().removeSuffix(".${context.provider.extension}")
@@ -81,24 +89,26 @@ internal object NativeAgentLinkInventoryBootstrap {
     }
     val digest = digestForBootstrapEntry(resolved)
     if (digest == null) {
-      context.remove += NativeAgentLinkInventoryEntry(
+      context.remove +=
+        NativeAgentLinkInventoryEntry(
+          logicalName = logicalName,
+          provider = context.provider.name.lowercase(),
+          installedPath = link.toAbsolutePath().normalize(),
+          cacheTargetPath = resolved,
+          contentDigest = "",
+          sourceRoot = context.sourceRoot,
+        )
+      return
+    }
+    val entry =
+      NativeAgentLinkInventoryEntry(
         logicalName = logicalName,
         provider = context.provider.name.lowercase(),
         installedPath = link.toAbsolutePath().normalize(),
         cacheTargetPath = resolved,
-        contentDigest = "",
+        contentDigest = digest,
         sourceRoot = context.sourceRoot,
       )
-      return
-    }
-    val entry = NativeAgentLinkInventoryEntry(
-      logicalName = logicalName,
-      provider = context.provider.name.lowercase(),
-      installedPath = link.toAbsolutePath().normalize(),
-      cacheTargetPath = resolved,
-      contentDigest = digest,
-      sourceRoot = context.sourceRoot,
-    )
     if (NativeAgentLinkInventoryDecode.isSemanticallyValid(entry, context.home, context.managedRoots)) {
       context.retain += entry
     } else {

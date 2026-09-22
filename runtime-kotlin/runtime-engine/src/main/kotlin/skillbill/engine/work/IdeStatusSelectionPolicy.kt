@@ -18,24 +18,34 @@ object IdeStatusSelectionPolicy {
 
   val SETTLED_RETENTION: Duration = Duration.ofHours(SETTLED_RETENTION_HOURS)
 
-  fun select(candidates: List<IdeStatusCandidate>, observedAt: Instant): IdeStatusCandidate? {
+  fun select(
+    candidates: List<IdeStatusCandidate>,
+    observedAt: Instant,
+  ): IdeStatusCandidate? {
     val retained = candidates.filter { retainedAt(it, observedAt) }
     if (retained.isEmpty()) return null
     return retained.sortedWith(comparator(observedAt)).first()
   }
 
-  private fun freshnessKey(candidate: IdeStatusCandidate, observedAt: Instant): Int =
+  private fun freshnessKey(
+    candidate: IdeStatusCandidate,
+    observedAt: Instant,
+  ): Int =
     if (IdeStatusFreshnessClassifier.classify(candidate.updatedAt, observedAt) == IdeStatusFreshness.STALE) 1 else 0
 
-  fun retainedAt(candidate: IdeStatusCandidate, observedAt: Instant): Boolean {
-    val ceiling = when (candidate.selectionTier) {
-      IdeStatusSelectionTier.ACTIVE, IdeStatusSelectionTier.PAUSED -> LIVE_RETENTION
-      IdeStatusSelectionTier.BLOCKED -> BLOCKED_RETENTION
-      IdeStatusSelectionTier.FAILED,
-      IdeStatusSelectionTier.RECENTLY_TERMINAL,
-      -> SETTLED_RETENTION
-      IdeStatusSelectionTier.IDLE -> return true
-    }
+  fun retainedAt(
+    candidate: IdeStatusCandidate,
+    observedAt: Instant,
+  ): Boolean {
+    val ceiling =
+      when (candidate.selectionTier) {
+        IdeStatusSelectionTier.ACTIVE, IdeStatusSelectionTier.PAUSED -> LIVE_RETENTION
+        IdeStatusSelectionTier.BLOCKED -> BLOCKED_RETENTION
+        IdeStatusSelectionTier.FAILED,
+        IdeStatusSelectionTier.RECENTLY_TERMINAL,
+        -> SETTLED_RETENTION
+        IdeStatusSelectionTier.IDLE -> return true
+      }
     val age = Duration.between(candidate.updatedAt, observedAt)
 
     return age.isNegative || age <= ceiling
@@ -48,14 +58,15 @@ object IdeStatusSelectionPolicy {
       .thenByDescending { it.updatedAt }
       .thenBy { it.workflowId }
 
-  fun selectionTier(lifecycle: IdeStatusLifecycleState): IdeStatusSelectionTier = when (lifecycle) {
-    IdeStatusLifecycleState.ACTIVE -> IdeStatusSelectionTier.ACTIVE
-    IdeStatusLifecycleState.PAUSED -> IdeStatusSelectionTier.PAUSED
-    IdeStatusLifecycleState.BLOCKED -> IdeStatusSelectionTier.BLOCKED
-    IdeStatusLifecycleState.FAILED -> IdeStatusSelectionTier.FAILED
-    IdeStatusLifecycleState.TERMINAL -> IdeStatusSelectionTier.RECENTLY_TERMINAL
-    IdeStatusLifecycleState.IDLE -> IdeStatusSelectionTier.IDLE
-  }
+  fun selectionTier(lifecycle: IdeStatusLifecycleState): IdeStatusSelectionTier =
+    when (lifecycle) {
+      IdeStatusLifecycleState.ACTIVE -> IdeStatusSelectionTier.ACTIVE
+      IdeStatusLifecycleState.PAUSED -> IdeStatusSelectionTier.PAUSED
+      IdeStatusLifecycleState.BLOCKED -> IdeStatusSelectionTier.BLOCKED
+      IdeStatusLifecycleState.FAILED -> IdeStatusSelectionTier.FAILED
+      IdeStatusLifecycleState.TERMINAL -> IdeStatusSelectionTier.RECENTLY_TERMINAL
+      IdeStatusLifecycleState.IDLE -> IdeStatusSelectionTier.IDLE
+    }
 
   internal fun lifecycleFromDurableState(currentState: IdeStatusDurableWorkflowState): IdeStatusLifecycleState =
     when (currentState) {

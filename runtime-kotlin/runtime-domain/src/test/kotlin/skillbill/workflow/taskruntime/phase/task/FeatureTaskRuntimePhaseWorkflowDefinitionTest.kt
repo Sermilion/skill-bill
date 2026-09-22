@@ -30,47 +30,50 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
   @Test
   fun `continuation extras are enabled only for the feature-task definition`() {
     val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
-    val artifacts = JsonCodec.mapToJsonString(
-      mapOf(
-        "assessment" to mapOf("feature_name" to "typed boundaries", "feature_size" to "medium"),
-        "branch" to mapOf("branch_name" to "feat/SKILL-351"),
-      ),
-    )
-    val runtimeDecision = engine.continueDecision(
-      definition,
-      WorkflowStateSnapshot(
-        workflowId = "wftr-1",
-        sessionId = "sess",
-        workflowName = definition.workflowName,
-        contractVersion = definition.contractVersion,
-        workflowStatus = WorkflowStatus.BLOCKED,
-        currentStepId = "implement",
-        stepsJson = "[]",
-        artifactsJson = artifacts,
-        startedAt = null,
-        updatedAt = null,
-        finishedAt = null,
-        mode = definition.workflowMode,
-      ),
-    )
+    val artifacts =
+      JsonCodec.mapToJsonString(
+        mapOf(
+          "assessment" to mapOf("feature_name" to "typed boundaries", "feature_size" to "medium"),
+          "branch" to mapOf("branch_name" to "feat/SKILL-351"),
+        ),
+      )
+    val runtimeDecision =
+      engine.continueDecision(
+        definition,
+        WorkflowStateSnapshot(
+          workflowId = "wftr-1",
+          sessionId = "sess",
+          workflowName = definition.workflowName,
+          contractVersion = definition.contractVersion,
+          workflowStatus = WorkflowStatus.BLOCKED,
+          currentStepId = "implement",
+          stepsJson = "[]",
+          artifactsJson = artifacts,
+          startedAt = null,
+          updatedAt = null,
+          finishedAt = null,
+          mode = definition.workflowMode,
+        ),
+      )
     val verifyDefinition = FeatureVerifyWorkflowDefinition.definition
-    val verifyDecision = engine.continueDecision(
-      verifyDefinition,
-      WorkflowStateSnapshot(
-        workflowId = "wfv-1",
-        sessionId = "sess",
-        workflowName = verifyDefinition.workflowName,
-        contractVersion = verifyDefinition.contractVersion,
-        workflowStatus = WorkflowStatus.BLOCKED,
-        currentStepId = "gather_diff",
-        stepsJson = "[]",
-        artifactsJson = artifacts,
-        startedAt = null,
-        updatedAt = null,
-        finishedAt = null,
-        mode = verifyDefinition.workflowMode,
-      ),
-    )
+    val verifyDecision =
+      engine.continueDecision(
+        verifyDefinition,
+        WorkflowStateSnapshot(
+          workflowId = "wfv-1",
+          sessionId = "sess",
+          workflowName = verifyDefinition.workflowName,
+          contractVersion = verifyDefinition.contractVersion,
+          workflowStatus = WorkflowStatus.BLOCKED,
+          currentStepId = "gather_diff",
+          stepsJson = "[]",
+          artifactsJson = artifacts,
+          startedAt = null,
+          updatedAt = null,
+          finishedAt = null,
+          mode = verifyDefinition.workflowMode,
+        ),
+      )
 
     assertEquals(
       mapOf(
@@ -215,15 +218,16 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
     val declarations = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
     definition.stepIds.forEach { phaseId ->
-      val declaration = when (phaseId) {
-        def.PHASE_WRITE_HISTORY, def.PHASE_COMMIT_PUSH ->
-          FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationForQualityGate(
-            phaseId,
-            FeatureTaskRuntimeFeatureSize.MEDIUM,
-            FeatureTaskRuntimeQualityGateSelection.VALIDATE,
-          )
-        else -> declarations.getValue(phaseId)
-      }
+      val declaration =
+        when (phaseId) {
+          def.PHASE_WRITE_HISTORY, def.PHASE_COMMIT_PUSH ->
+            FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationForQualityGate(
+              phaseId,
+              FeatureTaskRuntimeFeatureSize.MEDIUM,
+              FeatureTaskRuntimeQualityGateSelection.VALIDATE,
+            )
+          else -> declarations.getValue(phaseId)
+        }
       val projectedDependencies = phaseWorkflowDependenciesOf(phaseId).filterNot { it == def.PHASE_AUDIT }
       assertEquals(projectedDependencies, declaration.consumedUpstreamPhaseIds, phaseId)
     }
@@ -266,7 +270,10 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
 }
 
 private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
-  override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+  override fun validate(
+    snapshot: WorkflowStateSnapshot,
+    slug: String,
+  ) = Unit
 }
 
 internal fun phaseWorkflowDependenciesOf(phaseId: String): List<String> =

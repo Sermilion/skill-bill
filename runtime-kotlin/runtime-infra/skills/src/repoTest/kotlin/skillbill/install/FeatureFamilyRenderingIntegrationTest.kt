@@ -15,6 +15,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class FeatureFamilyRenderingIntegrationTest {
   private val tempDirs = mutableListOf<Path>()
 
@@ -34,15 +35,16 @@ class FeatureFamilyRenderingIntegrationTest {
     val sourceFilesBefore = reviewSourceFiles(repoRoot).associateWith(Files::readAllBytes)
 
     val kmpManifest = loadPlatformManifest(repoRoot.resolve("platform-packs/kmp"))
-    val staged = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = repoRoot,
-        sourceSkillDir = repoRoot.resolve("skills/bill-feature"),
-        home = home,
-        manifests = listOf(kmpManifest),
-        selectedPlatformSlugs = setOf("kmp"),
-      ),
-    )
+    val staged =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = repoRoot,
+          sourceSkillDir = repoRoot.resolve("skills/bill-feature"),
+          home = home,
+          manifests = listOf(kmpManifest),
+          selectedPlatformSlugs = setOf("kmp"),
+        ),
+      )
     val stagedReview = stageInstalledSkill(repoRoot, repoRoot.resolve("skills/bill-code-review"), home)
 
     val feature = staged.renderedSkillFile.toPath().readText()
@@ -93,12 +95,13 @@ class FeatureFamilyRenderingIntegrationTest {
     assertTrue(sourceFilesBefore.all { (path, bytes) -> bytes.contentEquals(Files.readAllBytes(path)) })
   }
 
-  private fun reviewSourceFiles(repoRoot: Path): List<Path> = Files.walk(repoRoot.resolve("skills")).use { paths ->
-    paths
-      .filter(Files::isRegularFile)
-      .filter { path ->
-        path.parent.toString().contains("bill-feature") || path.parent.toString().contains("bill-code-review")
-      }
-      .toList()
-  }
+  private fun reviewSourceFiles(repoRoot: Path): List<Path> =
+    Files.walk(repoRoot.resolve("skills")).use { paths ->
+      paths
+        .filter(Files::isRegularFile)
+        .filter { path ->
+          path.parent.toString().contains("bill-feature") || path.parent.toString().contains("bill-code-review")
+        }
+        .toList()
+    }
 }

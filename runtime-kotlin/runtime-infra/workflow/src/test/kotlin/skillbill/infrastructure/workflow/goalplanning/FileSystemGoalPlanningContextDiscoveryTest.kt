@@ -98,12 +98,13 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     val safeAgent = Files.createDirectories(repo.resolve("modules/safe/agent"))
     writeEntries(safeAgent.resolve("history.md"), "safe-history", "safe body")
 
-    val linkable = runCatching {
-      Files.createSymbolicLink(repo.resolve("modules/linked-dir"), packAgent.parent)
-      Files.createDirectories(repo.resolve("modules/linked-file/agent"))
-      Files.createSymbolicLink(repo.resolve("modules/linked-file/agent/history.md"), packHistory)
-      Files.createSymbolicLink(repo.resolve("modules/escaped"), outside)
-    }.isSuccess
+    val linkable =
+      runCatching {
+        Files.createSymbolicLink(repo.resolve("modules/linked-dir"), packAgent.parent)
+        Files.createDirectories(repo.resolve("modules/linked-file/agent"))
+        Files.createSymbolicLink(repo.resolve("modules/linked-file/agent/history.md"), packHistory)
+        Files.createSymbolicLink(repo.resolve("modules/escaped"), outside)
+      }.isSuccess
     assumeTrue(linkable, "filesystem cannot create symbolic links")
 
     val context = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).loadPlanningContext(repo)
@@ -149,9 +150,10 @@ class FileSystemGoalPlanningContextDiscoveryTest {
   fun `per file heading cap truncates and marks the catalog`() {
     val repo = Files.createTempDirectory("goal-context-per-file-cap")
     val agent = Files.createDirectories(repo.resolve("modules/big/agent"))
-    val entries = (0 until GoalPlanningContext.MAX_HEADINGS_PER_FILE + 5).joinToString("\n\n") { index ->
-      "## [2026-08-%02d] entry-$index\n\nbody $index".format((index % 28) + 1)
-    }
+    val entries =
+      (0 until GoalPlanningContext.MAX_HEADINGS_PER_FILE + 5).joinToString("\n\n") { index ->
+        "## [2026-08-%02d] entry-$index\n\nbody $index".format((index % 28) + 1)
+      }
     Files.writeString(agent.resolve("history.md"), "# Boundary History\n\n$entries\n")
 
     val context = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).loadPlanningContext(repo)
@@ -166,9 +168,10 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     val modules = (0 until 6).map { index -> "modules/module-%02d".format(index) }
     modules.forEach { module ->
       val agent = Files.createDirectories(repo.resolve("$module/agent"))
-      val entries = (0 until GoalPlanningContext.MAX_HEADINGS_PER_FILE).joinToString("\n\n") { index ->
-        "## [2026-08-%02d] ${module.substringAfterLast('/')}-entry-$index\n\nbody $index".format((index % 28) + 1)
-      }
+      val entries =
+        (0 until GoalPlanningContext.MAX_HEADINGS_PER_FILE).joinToString("\n\n") { index ->
+          "## [2026-08-%02d] ${module.substringAfterLast('/')}-entry-$index\n\nbody $index".format((index % 28) + 1)
+        }
       Files.writeString(agent.resolve("history.md"), "# Boundary History\n\n$entries\n")
     }
 
@@ -219,10 +222,11 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     writeEntries(readable.resolve("history.md"), "readable-history", "readable body")
     val blocked = Files.createDirectories(repo.resolve("modules/blocked/agent"))
     val blockedFile = writeEntries(blocked.resolve("history.md"), "blocked-history", "blocked body")
-    val denied = runCatching {
-      Files.setPosixFilePermissions(blockedFile, emptySet())
-      !Files.isReadable(blockedFile)
-    }.getOrDefault(false)
+    val denied =
+      runCatching {
+        Files.setPosixFilePermissions(blockedFile, emptySet())
+        !Files.isReadable(blockedFile)
+      }.getOrDefault(false)
     assumeTrue(denied, "filesystem cannot make a file unreadable for this user")
 
     val context = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).loadPlanningContext(repo)
@@ -238,9 +242,10 @@ class FileSystemGoalPlanningContextDiscoveryTest {
   fun `discovery and body resolution agree on heading ids for the same file`() {
     val repo = Files.createTempDirectory("goal-context-read-parity")
     val agent = Files.createDirectories(repo.resolve("modules/a/agent"))
-    val entries = (0 until 20).joinToString("\n\n") { index ->
-      "## [2026-08-%02d] entry-$index\n\n${"filler ".repeat(200)}body $index".format((index % 28) + 1)
-    }
+    val entries =
+      (0 until 20).joinToString("\n\n") { index ->
+        "## [2026-08-%02d] entry-$index\n\n${"filler ".repeat(200)}body $index".format((index % 28) + 1)
+      }
     Files.writeString(agent.resolve("history.md"), "# Boundary History\n\n$entries\n")
 
     val catalog = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).loadPlanningContext(repo).boundaryCatalog
@@ -256,9 +261,10 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     val repo = Files.createTempDirectory("goal-context-file-cap")
     val agent = Files.createDirectories(repo.resolve("modules/huge/agent"))
     val filler = "f".repeat(4_096)
-    val entries = (0 until 64).joinToString("\n\n") { index ->
-      "## [2026-08-%02d] entry-$index\n\n$filler".format((index % 28) + 1)
-    }
+    val entries =
+      (0 until 64).joinToString("\n\n") { index ->
+        "## [2026-08-%02d] entry-$index\n\n$filler".format((index % 28) + 1)
+      }
     Files.writeString(agent.resolve("history.md"), "# Boundary History\n\n$entries\n")
     assertTrue(
       Files.size(agent.resolve("history.md")) > GoalPlanningContext.MAX_BOUNDARY_FILE_BYTES,
@@ -271,6 +277,9 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     assertTrue(context.boundaryCatalogTruncated, "a cut file must not read as a complete catalog")
   }
 
-  private fun writeEntries(path: Path, title: String, body: String): Path =
-    Files.writeString(path, "# Boundary History\n\n## [2026-08-01] $title\n\n$body\n")
+  private fun writeEntries(
+    path: Path,
+    title: String,
+    body: String,
+  ): Path = Files.writeString(path, "# Boundary History\n\n## [2026-08-01] $title\n\n$body\n")
 }

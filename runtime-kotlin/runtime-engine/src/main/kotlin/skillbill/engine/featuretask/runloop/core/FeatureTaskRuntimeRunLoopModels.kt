@@ -32,12 +32,14 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+
 internal data class RemediationCheckpointCommit(val commitSha: String, val parentSha: String?)
 
 internal data class SubtaskCommitLedgerState(val commitSha: String?, val nextSequenceNumber: Int)
 
 internal sealed interface PhaseSettlement {
   data object Stopped : PhaseSettlement
+
   data class Completed(val phaseId: String, val verdict: FeatureTaskRuntimeVerdict) : PhaseSettlement
 
   val completedPhaseId: String? get() = (this as? Completed)?.phaseId
@@ -45,7 +47,11 @@ internal sealed interface PhaseSettlement {
 
   companion object {
     fun stop(): PhaseSettlement = Stopped
-    fun completed(phaseId: String, verdict: FeatureTaskRuntimeVerdict): PhaseSettlement = Completed(phaseId, verdict)
+
+    fun completed(
+      phaseId: String,
+      verdict: FeatureTaskRuntimeVerdict,
+    ): PhaseSettlement = Completed(phaseId, verdict)
   }
 }
 
@@ -144,7 +150,10 @@ internal data class CapturedPhaseOutput(
   val sha256: String,
 ) {
   companion object {
-    fun fromBytes(bytes: ByteArray, text: String = bytes.decodeToString()): CapturedPhaseOutput {
+    fun fromBytes(
+      bytes: ByteArray,
+      text: String = bytes.decodeToString(),
+    ): CapturedPhaseOutput {
       val byteSize = bytes.size.toLong()
       return CapturedPhaseOutput(
         text = text,
@@ -155,13 +164,14 @@ internal data class CapturedPhaseOutput(
       )
     }
 
-    fun fromLaunchCaptured(captured: LaunchResult.Captured): CapturedPhaseOutput = CapturedPhaseOutput(
-      text = captured.stdout,
-      bytes = captured.stdoutBytes,
-      truncated = captured.stdoutTruncated,
-      byteSize = captured.stdoutByteSize,
-      sha256 = captured.stdoutSha256,
-    )
+    fun fromLaunchCaptured(captured: LaunchResult.Captured): CapturedPhaseOutput =
+      CapturedPhaseOutput(
+        text = captured.stdout,
+        bytes = captured.stdoutBytes,
+        truncated = captured.stdoutTruncated,
+        byteSize = captured.stdoutByteSize,
+        sha256 = captured.stdoutSha256,
+      )
   }
 }
 
@@ -202,7 +212,6 @@ internal data class RecordRejectedOutputArgs(
   val reason: String,
   val captured: CapturedPhaseOutput,
   val targeting: RejectedOutputTargeting,
-
   val exhaustedFixLoop: Boolean? = null,
 )
 
@@ -242,9 +251,10 @@ internal class GateOutput(
   val observability get() = settlementContext.observability
 
   val rejectionExhaustsFixLoop: Boolean?
-    get() = outputGateFailuresBefore?.let {
-      FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(run.phaseId, it)
-    }
+    get() =
+      outputGateFailuresBefore?.let {
+        FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(run.phaseId, it)
+      }
 }
 
 internal data class SettledOutputContext(
@@ -334,6 +344,7 @@ internal data class CheckpointRevisions(
 
 internal sealed interface BoundaryBodyDeliveryDecision {
   data object NotApplicable : BoundaryBodyDeliveryDecision
+
   class ContinueDecision private constructor(val reason: String) : BoundaryBodyDeliveryDecision {
     companion object {
       fun of(reason: String) = ContinueDecision(reason)
@@ -405,6 +416,7 @@ internal enum class FindingsOwedKind { OMITTED, UNRESOLVED }
 
 internal sealed interface RepairReceiptSettlement {
   data class Rejected(val detail: String) : RepairReceiptSettlement
+
   data class WriteFailed(val reason: String) : RepairReceiptSettlement
 
   data object None : RepairReceiptSettlement
@@ -414,6 +426,7 @@ internal sealed interface RepairReceiptSettlement {
 
   companion object {
     fun rejected(detail: String): RepairReceiptSettlement = Rejected(detail)
+
     fun writeFailed(reason: String): RepairReceiptSettlement = WriteFailed(reason)
   }
 }

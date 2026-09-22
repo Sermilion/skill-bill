@@ -15,14 +15,15 @@ class FeatureTaskRuntimeSimplifyPhaseBoundariesTest {
 
   @Test
   fun `implement advances to simplify before audit on the shipped graph`() {
-    val next = assertIs<FeatureTaskRuntimeNextPhase.Next>(
-      shippedTransition(
-        shipped,
-        def.PHASE_IMPLEMENT,
-        FeatureTaskRuntimeVerdict.ADVANCE,
-        settledVerdicts = emptyMap(),
-      ),
-    )
+    val next =
+      assertIs<FeatureTaskRuntimeNextPhase.Next>(
+        shippedTransition(
+          shipped,
+          def.PHASE_IMPLEMENT,
+          FeatureTaskRuntimeVerdict.ADVANCE,
+          settledVerdicts = emptyMap(),
+        ),
+      )
     assertEquals(def.PHASE_SIMPLIFY, next.phaseId)
   }
 

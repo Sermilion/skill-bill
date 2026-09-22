@@ -43,7 +43,11 @@ internal data class StagedSymlinkTargetInput(
 internal fun installedSkillsCacheRoot(home: Path): Path =
   home.toAbsolutePath().normalize().resolve(".skill-bill/installed-skills")
 
-internal fun installedSkillStagingDir(home: Path, sourceSkillDir: Path, contentHash: String): Path {
+internal fun installedSkillStagingDir(
+  home: Path,
+  sourceSkillDir: Path,
+  contentHash: String,
+): Path {
   val cacheRoot = installedSkillsCacheRoot(home)
   val slug = installedSkillSlug(sourceSkillDir)
   val leaf = if (slug.isEmpty()) contentHash else "$slug-$contentHash"
@@ -63,12 +67,13 @@ internal fun applicablePointers(
   val resolvedInstall = installPath.toAbsolutePath().normalize()
   val packsRoot = repoRoot.toAbsolutePath().normalize().resolve("platform-packs")
 
-  val discovered = manifests ?: run {
-    if (!Files.isDirectory(packsRoot)) {
-      return emptyList()
+  val discovered =
+    manifests ?: run {
+      if (!Files.isDirectory(packsRoot)) {
+        return emptyList()
+      }
+      discoverPlatformPackManifests(packsRoot)
     }
-    discoverPlatformPackManifests(packsRoot)
-  }
   val collected = mutableListOf<Pair<PlatformManifest, PointerSpec>>()
   discovered.forEach { manifest ->
     val packRoot = manifest.packRoot.toPath().toAbsolutePath().normalize()
@@ -115,15 +120,19 @@ internal fun authoredFilesFor(
   }
 }
 
-private fun requireWithinSource(path: Path, resolvedSourceSkillDir: Path) {
-  val realPath = try {
-    path.toRealPath()
-  } catch (_: IOException) {
-    throw InvalidInstallStagingError(
-      sourceLabel = resolvedSourceSkillDir.toString(),
-      reason = "Authored path '$path' could not be resolved to a real path.",
-    )
-  }
+private fun requireWithinSource(
+  path: Path,
+  resolvedSourceSkillDir: Path,
+) {
+  val realPath =
+    try {
+      path.toRealPath()
+    } catch (_: IOException) {
+      throw InvalidInstallStagingError(
+        sourceLabel = resolvedSourceSkillDir.toString(),
+        reason = "Authored path '$path' could not be resolved to a real path.",
+      )
+    }
   val realRoot = resolvedSourceSkillDir.toRealPath()
   if (!realPath.startsWith(realRoot)) {
     throw InvalidInstallStagingError(
@@ -134,17 +143,18 @@ private fun requireWithinSource(path: Path, resolvedSourceSkillDir: Path) {
 }
 
 internal fun stageInstalledSkill(input: StageInstalledSkillInput): RenderedSkill {
-  val prepared = try {
-    prepareStageInstalledSkill(input)
-  } catch (error: CancellationException) {
-    throw error
-  } catch (error: ShellContentContractException) {
-    throw error
-  } catch (error: IOException) {
-    invalidStageInstalledSkill(input, error)
-  } catch (error: IllegalArgumentException) {
-    invalidStageInstalledSkill(input, error)
-  }
+  val prepared =
+    try {
+      prepareStageInstalledSkill(input)
+    } catch (error: CancellationException) {
+      throw error
+    } catch (error: ShellContentContractException) {
+      throw error
+    } catch (error: IOException) {
+      invalidStageInstalledSkill(input, error)
+    } catch (error: IllegalArgumentException) {
+      invalidStageInstalledSkill(input, error)
+    }
   tryReusePreparedStageInstalledSkill(prepared, input.suppliedCompactIdentity)?.let { reused ->
     log.fine(
       "stageInstalledSkill reuse=true skill=${prepared.skillName} " +
@@ -202,14 +212,22 @@ private fun buildFreshInstallStaging(inputs: FreshInstallInputs): RenderedSkill 
   return stagedResult!!
 }
 
-private fun invalidStageInstalledSkill(input: StageInstalledSkillInput, error: Throwable): Nothing =
+private fun invalidStageInstalledSkill(
+  input: StageInstalledSkillInput,
+  error: Throwable,
+): Nothing =
   throw InvalidInstallStagingError(
     sourceLabel = input.sourceSkillDir.toString(),
     reason = error.message ?: error::class.simpleName.orEmpty(),
     cause = error,
   )
 
-private fun logInstallStagingFailure(inputs: FreshInstallInputs, tempDir: Path, promoted: Boolean, error: Throwable) {
+private fun logInstallStagingFailure(
+  inputs: FreshInstallInputs,
+  tempDir: Path,
+  promoted: Boolean,
+  error: Throwable,
+) {
   log.log(
     Level.SEVERE,
     "stageInstalledSkill failure skill=${inputs.sourceSkillDir.fileName} hash=${inputs.contentHash} " +
@@ -220,7 +238,10 @@ private fun logInstallStagingFailure(inputs: FreshInstallInputs, tempDir: Path, 
   cleanupInstallStagingOnFailure(tempDir, inputs.finalStagingDir, promoted)
 }
 
-internal fun writeInstallStagingMarkers(tempDir: Path, inputs: FreshInstallInputs) {
+internal fun writeInstallStagingMarkers(
+  tempDir: Path,
+  inputs: FreshInstallInputs,
+) {
   Files.write(
     tempDir.resolve(INSTALL_STAGING_CONTENT_HASH_FILENAME),
     inputs.contentHash.toByteArray(StandardCharsets.UTF_8),

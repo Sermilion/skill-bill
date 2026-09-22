@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.workflow
+
 object WorkflowWirePayloadKeys {
   const val SESSION_ID: String = "session_id"
   const val WORKFLOW_NAME: String = "workflow_name"

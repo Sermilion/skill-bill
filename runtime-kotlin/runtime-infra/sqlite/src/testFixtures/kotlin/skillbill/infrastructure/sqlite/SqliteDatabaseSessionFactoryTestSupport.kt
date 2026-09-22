@@ -13,15 +13,16 @@ fun sqliteDatabaseSessionFactory(
   environment: Map<String, String>,
   clock: Clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
   diagnostics: RuntimeDiagnostics = SqliteTestDiagnostics,
-): SQLiteDatabaseSessionFactory = SQLiteDatabaseSessionFactory(
-  EnvironmentContext(
-    dbPathOverride = dbPathOverride,
-    environment = environment,
-    userHome = userHome,
-  ),
-  clock,
-  diagnostics,
-)
+): SQLiteDatabaseSessionFactory =
+  SQLiteDatabaseSessionFactory(
+    EnvironmentContext(
+      dbPathOverride = dbPathOverride,
+      environment = environment,
+      userHome = userHome,
+    ),
+    clock,
+    diagnostics,
+  )
 
 object SqliteTestDiagnostics : RuntimeDiagnostics {
   private val warnings = mutableListOf<String>()
@@ -32,11 +33,17 @@ object SqliteTestDiagnostics : RuntimeDiagnostics {
     warnings.clear()
   }
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message
   }
 
-  override fun error(message: String, error: Throwable?) {
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message
   }
 }

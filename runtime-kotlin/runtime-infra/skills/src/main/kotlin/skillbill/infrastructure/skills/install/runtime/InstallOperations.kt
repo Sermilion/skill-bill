@@ -20,8 +20,10 @@ import java.nio.file.Path
 import skillbill.infrastructure.skills.install.plan.codexAgentsPath as planCodexAgentsPath
 
 object InstallOperations {
-  fun planInstall(request: InstallPlanRequest, wireValidator: InstallPlanWireValidator): InstallPlan =
-    buildInstallPlan(request, wireValidator)
+  fun planInstall(
+    request: InstallPlanRequest,
+    wireValidator: InstallPlanWireValidator,
+  ): InstallPlan = buildInstallPlan(request, wireValidator)
 
   fun applyInstall(
     plan: InstallPlan,
@@ -29,13 +31,14 @@ object InstallOperations {
     telemetryConfigStore: TelemetryConfigStore? = null,
     mcpRegistrationPort: InstallMcpRegistrationPort,
     catalogLoader: PlatformPackCatalogLoader? = null,
-  ): InstallApplyResult = applyInstallPlan(
-    plan,
-    telemetryLevelMutator,
-    telemetryConfigStore,
-    mcpRegistrationPort,
-    catalogLoader,
-  )
+  ): InstallApplyResult =
+    applyInstallPlan(
+      plan,
+      telemetryLevelMutator,
+      telemetryConfigStore,
+      mcpRegistrationPort,
+      catalogLoader,
+    )
 
   fun agentPath(
     agent: String,
@@ -82,9 +85,13 @@ object InstallOperations {
     hostPlatform: HostPlatformPort = JdkHostPlatformPort,
   ): Path = InstallOperationsPaths.claudeAgentsPath(home, environment, hostPlatform)
 
-  fun junieAgentsPath(home: Path?, hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path =
-    InstallOperationsPaths.junieAgentsPath(home, hostPlatform)
+  fun junieAgentsPath(
+    home: Path?,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): Path = InstallOperationsPaths.junieAgentsPath(home, hostPlatform)
 
-  fun cursorAgentsPath(home: Path?, hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path =
-    InstallOperationsPaths.cursorAgentsPath(home, hostPlatform)
+  fun cursorAgentsPath(
+    home: Path?,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): Path = InstallOperationsPaths.cursorAgentsPath(home, hostPlatform)
 }

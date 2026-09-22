@@ -7,6 +7,7 @@ class GoalRunnerValidationQualityPendingState(
   private val manifestStore: GoalRunnerManifestStore,
 ) {
   private var parentWorkflowId: String = ""
+
   fun bind(parentWorkflowId: String) {
     this.parentWorkflowId = parentWorkflowId
   }
@@ -28,7 +29,10 @@ class GoalRunnerValidationQualityPendingState(
     return next
   }
 
-  fun storePendingReAttemptCause(subtaskId: Int, cause: String) {
+  fun storePendingReAttemptCause(
+    subtaskId: Int,
+    cause: String,
+  ) {
     update { state ->
       state.copy(pendingReAttemptCauseBySubtask = state.pendingReAttemptCauseBySubtask + (subtaskId to cause))
     }
@@ -43,7 +47,10 @@ class GoalRunnerValidationQualityPendingState(
     return cause
   }
 
-  fun storePendingCausingLoopEntry(subtaskId: Int, entry: String) {
+  fun storePendingCausingLoopEntry(
+    subtaskId: Int,
+    entry: String,
+  ) {
     update { state ->
       state.copy(pendingCausingLoopEntryBySubtask = state.pendingCausingLoopEntryBySubtask + (subtaskId to entry))
     }

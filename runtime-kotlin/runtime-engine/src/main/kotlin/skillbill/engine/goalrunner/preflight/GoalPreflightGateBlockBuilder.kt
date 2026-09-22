@@ -45,9 +45,10 @@ class GoalPreflightGateBlockBuilder(
     receivingAgents: List<String>,
     parentWorkflowId: String?,
   ): HydratedAgentAddonSelection {
-    val persisted = parentWorkflowId
-      ?.takeIf(String::isNotBlank)
-      ?.let { manifestStore.reviewPolicy(it)?.agentAddonSelection }
+    val persisted =
+      parentWorkflowId
+        ?.takeIf(String::isNotBlank)
+        ?.let { manifestStore.reviewPolicy(it)?.agentAddonSelection }
     if (request.requestedAgentAddonSlugs.isNotEmpty()) {
       if (persisted != null && persisted.entries.map { it.slug } != request.requestedAgentAddonSlugs) {
         throw InvalidAgentAddonSelectionError(
@@ -60,9 +61,10 @@ class GoalPreflightGateBlockBuilder(
         requestedSlugs = request.requestedAgentAddonSlugs,
         consumer = AgentAddonConsumer.BILL_FEATURE,
         receivingAgentIds = receivingAgents,
-        externalSourceRoots = externalAgentAddonSourceConfigPort.readExternalAgentAddonSources(
-          ExternalAgentAddonSourceConfigRequest(request.userHome, request.environment),
-        ).sources.map { source -> source.path.toPath() },
+        externalSourceRoots =
+          externalAgentAddonSourceConfigPort.readExternalAgentAddonSources(
+            ExternalAgentAddonSourceConfigRequest(request.userHome, request.environment),
+          ).sources.map { source -> source.path.toPath() },
       )
     }
     return if (persisted == null || persisted.entries.isEmpty()) {
@@ -82,38 +84,44 @@ class GoalPreflightGateBlockBuilder(
     root: Path,
     parentWorkflowId: String?,
   ): GoalPreflightGateBlock {
-    val durablePolicy = parentWorkflowId
-      ?.takeIf(String::isNotBlank)
-      ?.let { manifestStore.reviewPolicy(it) }
-    val mismatch = durablePolicy?.let {
-      goalRunnerReviewPolicyMismatch(
-        parentWorkflowId = parentWorkflowId.orEmpty(),
-        requestedReviewMode = request.requestedReviewMode,
-        persisted = it,
-      )
-    }
+    val durablePolicy =
+      parentWorkflowId
+        ?.takeIf(String::isNotBlank)
+        ?.let { manifestStore.reviewPolicy(it) }
+    val mismatch =
+      durablePolicy?.let {
+        goalRunnerReviewPolicyMismatch(
+          parentWorkflowId = parentWorkflowId.orEmpty(),
+          requestedReviewMode = request.requestedReviewMode,
+          persisted = it,
+        )
+      }
     if (mismatch != null) {
       throw InvalidFeatureTaskExecutionIdentitySchemaError("goal preflight", mismatch)
     }
-    val effectiveReviewPolicy = effectiveGoalRunnerReviewPolicy(
-      request.requestedReviewMode,
-      durablePolicy,
-    )
+    val effectiveReviewPolicy =
+      effectiveGoalRunnerReviewPolicy(
+        request.requestedReviewMode,
+        durablePolicy,
+      )
     val selectionResult = GoalRunnerPlanner.selectNext(manifest)
-    val firstRunnable = when (selectionResult) {
-      is GoalRunnerSelection.Run -> selectionResult.decision.subtask.id
-      is GoalRunnerSelection.Blocked -> null
-      GoalRunnerSelection.Done -> null
-    }
-    val selection = resolveSelection(
-      request = request,
-      root = root,
-      receivingAgents = listOfNotNull(
-        request.invokedAgentId,
-        request.agentOverrideId,
-      ).filter(String::isNotBlank).distinct(),
-      parentWorkflowId = parentWorkflowId,
-    )
+    val firstRunnable =
+      when (selectionResult) {
+        is GoalRunnerSelection.Run -> selectionResult.decision.subtask.id
+        is GoalRunnerSelection.Blocked -> null
+        GoalRunnerSelection.Done -> null
+      }
+    val selection =
+      resolveSelection(
+        request = request,
+        root = root,
+        receivingAgents =
+          listOfNotNull(
+            request.invokedAgentId,
+            request.agentOverrideId,
+          ).filter(String::isNotBlank).distinct(),
+        parentWorkflowId = parentWorkflowId,
+      )
     return GoalPreflightGateBlock(
       issueKey = manifest.issueKey,
       featureName = manifest.featureName,
@@ -122,24 +130,29 @@ class GoalPreflightGateBlockBuilder(
       childAgent = request.agentOverrideId?.takeIf(String::isNotBlank) ?: request.invokedAgentId,
       childAgentOverride = request.agentOverrideId?.takeIf(String::isNotBlank),
       reviewMode = effectiveReviewPolicy.codeReviewMode.displayName(request.requestedReviewMode == null),
-      agentAddons = selection.entries.map { entry ->
-        GoalPreflightAgentAddon(
-          slug = entry.persisted.slug,
-          description = entry.description,
-        )
-      },
+      agentAddons =
+        selection.entries.map { entry ->
+          GoalPreflightAgentAddon(
+            slug = entry.persisted.slug,
+            description = entry.description,
+          )
+        },
       experimentSelectionSummary = experimentSelectionSummary(request, root),
       experiment = experimentSummary(request, root),
     )
   }
 
-  private fun experimentSummary(request: GoalPreflightRequest, root: Path): GoalPreflightExperimentSummary? {
-    val launch = experimentSelectionPort.resolveForLaunch(
-      repoRoot = root,
-      parameter = request.experimentsParameter,
-      mode = ExperimentExecutionMode.GOAL_PAIR,
-      savedSelection = null,
-    )
+  private fun experimentSummary(
+    request: GoalPreflightRequest,
+    root: Path,
+  ): GoalPreflightExperimentSummary? {
+    val launch =
+      experimentSelectionPort.resolveForLaunch(
+        repoRoot = root,
+        parameter = request.experimentsParameter,
+        mode = ExperimentExecutionMode.GOAL_PAIR,
+        savedSelection = null,
+      )
     if (launch.normalizedNames.isEmpty()) return null
     return GoalPreflightExperimentSummary(
       selectedNames = launch.normalizedNames,
@@ -150,13 +163,17 @@ class GoalPreflightGateBlockBuilder(
     )
   }
 
-  private fun experimentSelectionSummary(request: GoalPreflightRequest, root: Path): String? {
-    val launch = experimentSelectionPort.resolveForLaunch(
-      repoRoot = root,
-      parameter = request.experimentsParameter,
-      mode = ExperimentExecutionMode.GOAL_PAIR,
-      savedSelection = null,
-    )
+  private fun experimentSelectionSummary(
+    request: GoalPreflightRequest,
+    root: Path,
+  ): String? {
+    val launch =
+      experimentSelectionPort.resolveForLaunch(
+        repoRoot = root,
+        parameter = request.experimentsParameter,
+        mode = ExperimentExecutionMode.GOAL_PAIR,
+        savedSelection = null,
+      )
     if (launch.normalizedNames.isEmpty()) {
       return if (request.experimentsParameter != null) "no experiments selected" else null
     }
@@ -171,53 +188,63 @@ class GoalPreflightGateBlockBuilder(
     }
   }
 
-  fun rehydrateTargets(root: Path, manifest: DecompositionManifest): List<GoalPreflightRehydrateTarget> {
+  fun rehydrateTargets(
+    root: Path,
+    manifest: DecompositionManifest,
+  ): List<GoalPreflightRehydrateTarget> {
     if (manifest.specSource != LINEAR) return emptyList()
-    val targets = buildList {
-      add(
-        GoalPreflightRehydrateTarget(
-          issueKey = manifest.issueKey,
-          linearIssueId = manifest.issueKey,
-          targetPath = relativePath(root, manifest.parentSpecPath),
-        ).takeUnless { manifestFileStore.isRegularFileWithoutRecovery(root.resolve(it.targetPath)) },
-      )
-      manifest.subtasks
-        .filterNot {
-          it.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
-        }
-        .forEach { subtask ->
-          add(
-            GoalPreflightRehydrateTarget(
-              issueKey = manifest.issueKey,
-              linearIssueId = subtask.linearIssueId,
-              targetPath = relativePath(root, subtask.specPath),
-            ).takeUnless { manifestFileStore.isRegularFileWithoutRecovery(root.resolve(it.targetPath)) },
-          )
-        }
-    }
+    val targets =
+      buildList {
+        add(
+          GoalPreflightRehydrateTarget(
+            issueKey = manifest.issueKey,
+            linearIssueId = manifest.issueKey,
+            targetPath = relativePath(root, manifest.parentSpecPath),
+          ).takeUnless { manifestFileStore.isRegularFileWithoutRecovery(root.resolve(it.targetPath)) },
+        )
+        manifest.subtasks
+          .filterNot {
+            it.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
+          }
+          .forEach { subtask ->
+            add(
+              GoalPreflightRehydrateTarget(
+                issueKey = manifest.issueKey,
+                linearIssueId = subtask.linearIssueId,
+                targetPath = relativePath(root, subtask.specPath),
+              ).takeUnless { manifestFileStore.isRegularFileWithoutRecovery(root.resolve(it.targetPath)) },
+            )
+          }
+      }
     return targets.filterNotNull()
   }
 
-  private fun subtaskBlock(subtask: DecompositionSubtask): GoalPreflightSubtask = GoalPreflightSubtask(
-    id = subtask.id,
-    name = subtask.name,
-    status = subtask.status,
-    dependencies = subtask.dependencies.map { dependency ->
-      GoalPreflightDependency(
-        subtaskId = dependency.subtaskId,
-        optional = dependency.optional,
-        skipped = dependency.skipped,
-        note = if (dependency.optional) {
-          "optional dependency on subtask ${dependency.subtaskId}" +
-            if (dependency.skipped) " is skipped" else ""
-        } else {
-          "requires subtask ${dependency.subtaskId}"
+  private fun subtaskBlock(subtask: DecompositionSubtask): GoalPreflightSubtask =
+    GoalPreflightSubtask(
+      id = subtask.id,
+      name = subtask.name,
+      status = subtask.status,
+      dependencies =
+        subtask.dependencies.map { dependency ->
+          GoalPreflightDependency(
+            subtaskId = dependency.subtaskId,
+            optional = dependency.optional,
+            skipped = dependency.skipped,
+            note =
+              if (dependency.optional) {
+                "optional dependency on subtask ${dependency.subtaskId}" +
+                  if (dependency.skipped) " is skipped" else ""
+              } else {
+                "requires subtask ${dependency.subtaskId}"
+              },
+          )
         },
-      )
-    },
-  )
+    )
 
-  private fun relativePath(root: Path, rawPath: String): String {
+  private fun relativePath(
+    root: Path,
+    rawPath: String,
+  ): String {
     val path = Path.of(rawPath)
     val resolved = (if (path.isAbsolute) path else root.resolve(path)).toAbsolutePath().normalize()
     return if (resolved.startsWith(root)) {
@@ -228,8 +255,9 @@ class GoalPreflightGateBlockBuilder(
   }
 }
 
-private fun CodeReviewExecutionMode.displayName(omitted: Boolean): String = when {
-  omitted && this == CodeReviewExecutionMode.INLINE -> "inline (default)"
-  this == CodeReviewExecutionMode.DELEGATED -> "delegated (experimental)"
-  else -> wireValue
-}
+private fun CodeReviewExecutionMode.displayName(omitted: Boolean): String =
+  when {
+    omitted && this == CodeReviewExecutionMode.INLINE -> "inline (default)"
+    this == CodeReviewExecutionMode.DELEGATED -> "delegated (experimental)"
+    else -> wireValue
+  }

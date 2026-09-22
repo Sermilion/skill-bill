@@ -88,18 +88,20 @@ class InstallServiceTest {
     val platformManifests = listOf(platformManifest(repoRoot, "kotlin"))
     val request = request(repoRoot, home)
     val planningFactsPort = FakePlanningFactsPort(repoRoot, home, platformManifests)
-    val service = InstallService(
-      planningPorts = InstallPlanningPorts(
-        planningFactsPort = planningFactsPort,
-        platformSkillMaterializationPort = SnapshotAssertingMaterializationPort(platformManifests),
-        stagingIntentPort = SnapshotAssertingStagingIntentPort(home, platformManifests),
-      ),
-      reconcilePorts = unsupportedReconcilePorts,
-      applyExecutionPort = UnsupportedApplyExecutionPort,
-      skillLinkPort = UnsupportedSkillLinkPort,
-      installSelectionPersistencePort = NoopInstallSelectionPersistencePort,
-      installPlanWireValidator = testInstallPlanWireValidator,
-    )
+    val service =
+      InstallService(
+        planningPorts =
+          InstallPlanningPorts(
+            planningFactsPort = planningFactsPort,
+            platformSkillMaterializationPort = SnapshotAssertingMaterializationPort(platformManifests),
+            stagingIntentPort = SnapshotAssertingStagingIntentPort(home, platformManifests),
+          ),
+        reconcilePorts = unsupportedReconcilePorts,
+        applyExecutionPort = UnsupportedApplyExecutionPort,
+        skillLinkPort = UnsupportedSkillLinkPort,
+        installSelectionPersistencePort = NoopInstallSelectionPersistencePort,
+        installPlanWireValidator = testInstallPlanWireValidator,
+      )
 
     service.planInstall(request)
 
@@ -111,26 +113,29 @@ class InstallServiceTest {
     val repoRoot = Path.of("/tmp/skillbill-install-service-success-repo")
     val home = Path.of("/tmp/skillbill-install-service-success-home")
     val request = request(repoRoot, home)
-    val plan = installPlan(
-      request = request,
-      agents = listOf(
-        InstallAgentTarget(
-          InstallAgent.CODEX,
-          home.resolve(".codex/skills").toFileLocation(),
-          InstallAgentTargetSource.MANUAL,
-        ),
-        InstallAgentTarget(
-          InstallAgent.CLAUDE,
-          home.resolve(".claude/skills").toFileLocation(),
-          InstallAgentTargetSource.MANUAL,
-        ),
-      ),
-    )
+    val plan =
+      installPlan(
+        request = request,
+        agents =
+          listOf(
+            InstallAgentTarget(
+              InstallAgent.CODEX,
+              home.resolve(".codex/skills").toFileLocation(),
+              InstallAgentTargetSource.MANUAL,
+            ),
+            InstallAgentTarget(
+              InstallAgent.CLAUDE,
+              home.resolve(".claude/skills").toFileLocation(),
+              InstallAgentTargetSource.MANUAL,
+            ),
+          ),
+      )
     val selectionPort = RecordingInstallSelectionPersistencePort()
-    val service = serviceForApply(
-      result = successfulApplyResult(plan, resolvedAgent = InstallAgent.CODEX),
-      selectionPort = selectionPort,
-    )
+    val service =
+      serviceForApply(
+        result = successfulApplyResult(plan, resolvedAgent = InstallAgent.CODEX),
+        selectionPort = selectionPort,
+      )
 
     service.applyInstall(plan)
 
@@ -149,10 +154,11 @@ class InstallServiceTest {
     val home = Path.of("/tmp/skillbill-install-service-fallback-home")
     val plan = installPlan(request(repoRoot, home))
     val selectionPort = RecordingInstallSelectionPersistencePort()
-    val service = serviceForApply(
-      result = successfulApplyResult(plan, resolvedAgent = null),
-      selectionPort = selectionPort,
-    )
+    val service =
+      serviceForApply(
+        result = successfulApplyResult(plan, resolvedAgent = null),
+        selectionPort = selectionPort,
+      )
 
     service.applyInstall(plan)
 
@@ -163,35 +169,40 @@ class InstallServiceTest {
   fun `apply install persists manual selected platforms and mcp opt out`() {
     val repoRoot = Path.of("/tmp/skillbill-install-service-manual-repo")
     val home = Path.of("/tmp/skillbill-install-service-manual-home")
-    val request = request(repoRoot, home).copy(
-      platformPackSelection = PlatformPackSelection(
-        mode = PlatformPackSelectionMode.SELECTED,
-        selectedSlugs = setOf("kotlin"),
-      ),
-      telemetryLevel = InstallTelemetryLevel.OFF,
-      mcpRegistrationChoice = McpRegistrationChoice(register = false, runtimeMcpBin = null),
-    )
-    val plan = installPlan(
-      request = request,
-      agents = listOf(
-        InstallAgentTarget(
-          InstallAgent.CODEX,
-          home.resolve(".codex/skills").toFileLocation(),
-          InstallAgentTargetSource.MANUAL,
-        ),
-        InstallAgentTarget(
-          InstallAgent.CLAUDE,
-          home.resolve(".claude/skills").toFileLocation(),
-          InstallAgentTargetSource.MANUAL,
-        ),
-      ),
-      selectedPlatformSlugs = listOf("kotlin"),
-    )
+    val request =
+      request(repoRoot, home).copy(
+        platformPackSelection =
+          PlatformPackSelection(
+            mode = PlatformPackSelectionMode.SELECTED,
+            selectedSlugs = setOf("kotlin"),
+          ),
+        telemetryLevel = InstallTelemetryLevel.OFF,
+        mcpRegistrationChoice = McpRegistrationChoice(register = false, runtimeMcpBin = null),
+      )
+    val plan =
+      installPlan(
+        request = request,
+        agents =
+          listOf(
+            InstallAgentTarget(
+              InstallAgent.CODEX,
+              home.resolve(".codex/skills").toFileLocation(),
+              InstallAgentTargetSource.MANUAL,
+            ),
+            InstallAgentTarget(
+              InstallAgent.CLAUDE,
+              home.resolve(".claude/skills").toFileLocation(),
+              InstallAgentTargetSource.MANUAL,
+            ),
+          ),
+        selectedPlatformSlugs = listOf("kotlin"),
+      )
     val selectionPort = RecordingInstallSelectionPersistencePort()
-    val service = serviceForApply(
-      result = successfulApplyResult(plan, resolvedAgent = null),
-      selectionPort = selectionPort,
-    )
+    val service =
+      serviceForApply(
+        result = successfulApplyResult(plan, resolvedAgent = null),
+        selectionPort = selectionPort,
+      )
 
     service.applyInstall(plan)
 
@@ -207,29 +218,33 @@ class InstallServiceTest {
   fun `apply install persists detected planned agents when result has no resolved agents`() {
     val repoRoot = Path.of("/tmp/skillbill-install-service-detected-repo")
     val home = Path.of("/tmp/skillbill-install-service-detected-home")
-    val request = request(repoRoot, home).copy(
-      agentSelection = InstallAgentSelection(mode = InstallAgentSelectionMode.DETECTED),
-    )
-    val plan = installPlan(
-      request = request,
-      agents = listOf(
-        InstallAgentTarget(
-          InstallAgent.CLAUDE,
-          home.resolve(".claude/skills").toFileLocation(),
-          InstallAgentTargetSource.DETECTED,
-        ),
-        InstallAgentTarget(
-          InstallAgent.CURSOR,
-          home.resolve(".cursor/skills").toFileLocation(),
-          InstallAgentTargetSource.DETECTED,
-        ),
-      ),
-    )
+    val request =
+      request(repoRoot, home).copy(
+        agentSelection = InstallAgentSelection(mode = InstallAgentSelectionMode.DETECTED),
+      )
+    val plan =
+      installPlan(
+        request = request,
+        agents =
+          listOf(
+            InstallAgentTarget(
+              InstallAgent.CLAUDE,
+              home.resolve(".claude/skills").toFileLocation(),
+              InstallAgentTargetSource.DETECTED,
+            ),
+            InstallAgentTarget(
+              InstallAgent.CURSOR,
+              home.resolve(".cursor/skills").toFileLocation(),
+              InstallAgentTargetSource.DETECTED,
+            ),
+          ),
+      )
     val selectionPort = RecordingInstallSelectionPersistencePort()
-    val service = serviceForApply(
-      result = successfulApplyResult(plan, resolvedAgent = null),
-      selectionPort = selectionPort,
-    )
+    val service =
+      serviceForApply(
+        result = successfulApplyResult(plan, resolvedAgent = null),
+        selectionPort = selectionPort,
+      )
 
     service.applyInstall(plan)
 
@@ -245,165 +260,198 @@ class InstallServiceTest {
     val home = Path.of("/tmp/skillbill-install-service-failed-home")
     val plan = installPlan(request(repoRoot, home))
     val selectionPort = RecordingInstallSelectionPersistencePort()
-    val service = serviceForApply(
-      result = failedApplyResult(plan),
-      selectionPort = selectionPort,
-    )
+    val service =
+      serviceForApply(
+        result = failedApplyResult(plan),
+        selectionPort = selectionPort,
+      )
 
     service.applyInstall(plan)
 
     assertEquals(emptyList(), selectionPort.writeRequests)
   }
 
-  private fun platformManifest(repoRoot: Path, slug: String): PlatformManifest = PlatformManifest(
-    slug = slug,
-    packRoot = repoRoot.resolve("platform-packs").resolve(slug).toFileLocation(),
-    contractVersion = "1.1",
-    routingSignals = RoutingSignals(strong = listOf(slug), tieBreakers = emptyList()),
-    declaredCodeReviewAreas = emptyList(),
-    declaredFiles = DeclaredFiles(baseline = null, areas = emptyMap()),
-    areaMetadata = emptyMap(),
-  )
+  private fun platformManifest(
+    repoRoot: Path,
+    slug: String,
+  ): PlatformManifest =
+    PlatformManifest(
+      slug = slug,
+      packRoot = repoRoot.resolve("platform-packs").resolve(slug).toFileLocation(),
+      contractVersion = "1.1",
+      routingSignals = RoutingSignals(strong = listOf(slug), tieBreakers = emptyList()),
+      declaredCodeReviewAreas = emptyList(),
+      declaredFiles = DeclaredFiles(baseline = null, areas = emptyMap()),
+      areaMetadata = emptyMap(),
+    )
 
-  private fun request(repoRoot: Path, home: Path): InstallPlanRequest = InstallPlanRequest(
-    repoRoot = repoRoot.toFileLocation(),
-    home = home.toFileLocation(),
-    agentSelection = InstallAgentSelection(
-      mode = InstallAgentSelectionMode.MANUAL,
-      manualAgents = setOf(InstallAgent.CODEX),
-    ),
-    platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
-    telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-    mcpRegistrationChoice = McpRegistrationChoice(
-      register = true,
-      runtimeMcpBin = home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp").toFileLocation(),
-    ),
-    runtimeDistributionInputs = RuntimeDistributionInputs(
-      runtimeInstallRoot = home.resolve(".skill-bill/runtime").toFileLocation(),
-    ),
-    targetPaths = InstallationTargetPaths(
-      skillsRoot = repoRoot.resolve("skills").toFileLocation(),
-      platformPacksRoot = repoRoot.resolve("platform-packs").toFileLocation(),
-    ),
-    windowsSymlinkPreflight = WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-      decision = WindowsSymlinkDecision.NOT_REQUIRED,
-    ),
-  )
+  private fun request(
+    repoRoot: Path,
+    home: Path,
+  ): InstallPlanRequest =
+    InstallPlanRequest(
+      repoRoot = repoRoot.toFileLocation(),
+      home = home.toFileLocation(),
+      agentSelection =
+        InstallAgentSelection(
+          mode = InstallAgentSelectionMode.MANUAL,
+          manualAgents = setOf(InstallAgent.CODEX),
+        ),
+      platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
+      telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+      mcpRegistrationChoice =
+        McpRegistrationChoice(
+          register = true,
+          runtimeMcpBin = home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp").toFileLocation(),
+        ),
+      runtimeDistributionInputs =
+        RuntimeDistributionInputs(
+          runtimeInstallRoot = home.resolve(".skill-bill/runtime").toFileLocation(),
+        ),
+      targetPaths =
+        InstallationTargetPaths(
+          skillsRoot = repoRoot.resolve("skills").toFileLocation(),
+          platformPacksRoot = repoRoot.resolve("platform-packs").toFileLocation(),
+        ),
+      windowsSymlinkPreflight =
+        WindowsSymlinkPreflight(
+          state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+          decision = WindowsSymlinkDecision.NOT_REQUIRED,
+        ),
+    )
 
   private fun installPlan(
     request: InstallPlanRequest,
-    agents: List<InstallAgentTarget> = listOf(
-      InstallAgentTarget(InstallAgent.CODEX, request.home.resolve(".codex/skills"), InstallAgentTargetSource.MANUAL),
-    ),
-    selectedPlatformSlugs: List<String> = emptyList(),
-  ): InstallPlan = InstallPlan(
-    request = request,
-    agents = agents,
-    discoveredPlatformPacks = emptyList(),
-    selectedPlatformSlugs = selectedPlatformSlugs,
-    skills = listOf(
-      InstallPlanSkill(
-        name = "bill-code-review",
-        sourceDir = request.repoRoot.resolve("skills/bill-code-review"),
-        kind = InstallPlanSkillKind.BASE,
+    agents: List<InstallAgentTarget> =
+      listOf(
+        InstallAgentTarget(InstallAgent.CODEX, request.home.resolve(".codex/skills"), InstallAgentTargetSource.MANUAL),
       ),
-    ),
-    staging = InstallStagingIntent(
-      root = request.home.resolve(".skill-bill/installed-skills"),
-      skillPaths = emptyList(),
-    ),
-    telemetryLevel = request.telemetryLevel,
-    mcpRegistrationIntent = McpRegistrationIntent(
-      register = request.mcpRegistrationChoice.register,
-      runtimeMcpBin = request.mcpRegistrationChoice.runtimeMcpBin,
-      agents = agents.map(InstallAgentTarget::agent),
-    ),
-    runtimeDistributionInputs = request.runtimeDistributionInputs,
-    installationTargetPaths = request.targetPaths,
-    windowsSymlinkPreflight = request.windowsSymlinkPreflight,
-  )
+    selectedPlatformSlugs: List<String> = emptyList(),
+  ): InstallPlan =
+    InstallPlan(
+      request = request,
+      agents = agents,
+      discoveredPlatformPacks = emptyList(),
+      selectedPlatformSlugs = selectedPlatformSlugs,
+      skills =
+        listOf(
+          InstallPlanSkill(
+            name = "bill-code-review",
+            sourceDir = request.repoRoot.resolve("skills/bill-code-review"),
+            kind = InstallPlanSkillKind.BASE,
+          ),
+        ),
+      staging =
+        InstallStagingIntent(
+          root = request.home.resolve(".skill-bill/installed-skills"),
+          skillPaths = emptyList(),
+        ),
+      telemetryLevel = request.telemetryLevel,
+      mcpRegistrationIntent =
+        McpRegistrationIntent(
+          register = request.mcpRegistrationChoice.register,
+          runtimeMcpBin = request.mcpRegistrationChoice.runtimeMcpBin,
+          agents = agents.map(InstallAgentTarget::agent),
+        ),
+      runtimeDistributionInputs = request.runtimeDistributionInputs,
+      installationTargetPaths = request.targetPaths,
+      windowsSymlinkPreflight = request.windowsSymlinkPreflight,
+    )
 
   private fun serviceForApply(
     result: InstallApplyResult,
     selectionPort: InstallSelectionPersistencePort,
-  ): InstallService = InstallService(
-    planningPorts = InstallPlanningPorts(
-      planningFactsPort = UnsupportedPlanningFactsPort,
-      platformSkillMaterializationPort = UnsupportedPlatformSkillMaterializationPort,
-      stagingIntentPort = UnsupportedStagingIntentPort,
-    ),
-    reconcilePorts = unsupportedReconcilePorts,
-    applyExecutionPort = StaticApplyExecutionPort(result),
-    skillLinkPort = UnsupportedSkillLinkPort,
-    installSelectionPersistencePort = selectionPort,
-    installPlanWireValidator = testInstallPlanWireValidator,
-  )
+  ): InstallService =
+    InstallService(
+      planningPorts =
+        InstallPlanningPorts(
+          planningFactsPort = UnsupportedPlanningFactsPort,
+          platformSkillMaterializationPort = UnsupportedPlatformSkillMaterializationPort,
+          stagingIntentPort = UnsupportedStagingIntentPort,
+        ),
+      reconcilePorts = unsupportedReconcilePorts,
+      applyExecutionPort = StaticApplyExecutionPort(result),
+      skillLinkPort = UnsupportedSkillLinkPort,
+      installSelectionPersistencePort = selectionPort,
+      installPlanWireValidator = testInstallPlanWireValidator,
+    )
 
-  private fun successfulApplyResult(plan: InstallPlan, resolvedAgent: InstallAgent?): InstallApplyResult =
+  private fun successfulApplyResult(
+    plan: InstallPlan,
+    resolvedAgent: InstallAgent?,
+  ): InstallApplyResult =
     InstallApplyResult(
       status = InstallApplyStatus.SUCCESS,
-      skills = listOf(
-        InstallAppliedSkill(
-          skillName = "bill-code-review",
-          kind = InstallPlanSkillKind.BASE,
-          sourceDir = plan.request.repoRoot.resolve("skills/bill-code-review"),
-          staging = InstallSkillStagingOutcome(
-            status = InstallSkillStagingStatus.STAGED,
+      skills =
+        listOf(
+          InstallAppliedSkill(
+            skillName = "bill-code-review",
+            kind = InstallPlanSkillKind.BASE,
             sourceDir = plan.request.repoRoot.resolve("skills/bill-code-review"),
-          ),
-          links = resolvedAgent?.let { agent ->
-            listOf(
-              InstallAgentSkillLinkOutcome(
-                agent = agent,
-                targetDir = plan.request.home.resolve(".codex/skills"),
-                linkPath = plan.request.home.resolve(".codex/skills/bill-code-review"),
-                linkTarget = plan.request.home.resolve(".skill-bill/installed-skills/bill-code-review"),
-                status = InstallAgentLinkStatus.CREATED,
+            staging =
+              InstallSkillStagingOutcome(
+                status = InstallSkillStagingStatus.STAGED,
+                sourceDir = plan.request.repoRoot.resolve("skills/bill-code-review"),
               ),
-            )
-          }.orEmpty(),
+            links =
+              resolvedAgent?.let { agent ->
+                listOf(
+                  InstallAgentSkillLinkOutcome(
+                    agent = agent,
+                    targetDir = plan.request.home.resolve(".codex/skills"),
+                    linkPath = plan.request.home.resolve(".codex/skills/bill-code-review"),
+                    linkTarget = plan.request.home.resolve(".skill-bill/installed-skills/bill-code-review"),
+                    status = InstallAgentLinkStatus.CREATED,
+                  ),
+                )
+              }.orEmpty(),
+          ),
         ),
-      ),
       nativeAgents = emptyList(),
-      telemetryOutcome = InstallTelemetryApplyOutcome(
-        level = plan.telemetryLevel,
-        status = InstallTelemetryApplyStatus.SUCCESS,
-      ),
+      telemetryOutcome =
+        InstallTelemetryApplyOutcome(
+          level = plan.telemetryLevel,
+          status = InstallTelemetryApplyStatus.SUCCESS,
+        ),
       mcpRegistrationOutcomes = emptyList(),
       warnings = emptyList(),
       failures = emptyList(),
-      windowsSymlinkOutcome = WindowsSymlinkApplyOutcome(
-        preflight = plan.windowsSymlinkPreflight,
-        fallbackState = WindowsSymlinkFallbackState.NOT_REQUIRED,
-      ),
+      windowsSymlinkOutcome =
+        WindowsSymlinkApplyOutcome(
+          preflight = plan.windowsSymlinkPreflight,
+          fallbackState = WindowsSymlinkFallbackState.NOT_REQUIRED,
+        ),
       telemetryLevel = plan.telemetryLevel,
       mcpRegistrationIntent = plan.mcpRegistrationIntent,
     )
 
-  private fun failedApplyResult(plan: InstallPlan): InstallApplyResult = InstallApplyResult(
-    status = InstallApplyStatus.FAILURE,
-    skills = emptyList(),
-    nativeAgents = emptyList(),
-    telemetryOutcome = InstallTelemetryApplyOutcome(
-      level = plan.telemetryLevel,
-      status = InstallTelemetryApplyStatus.SKIPPED,
-    ),
-    mcpRegistrationOutcomes = emptyList(),
-    warnings = emptyList(),
-    failures = listOf(
-      InstallApplyIssue(
-        kind = InstallApplyIssueKind.WINDOWS_SYMLINK_PRECHECK_FAILED,
-        message = "failed",
-      ),
-    ),
-    windowsSymlinkOutcome = WindowsSymlinkApplyOutcome(
-      preflight = plan.windowsSymlinkPreflight,
-      fallbackState = WindowsSymlinkFallbackState.USER_ACTION_REQUIRED,
-    ),
-    telemetryLevel = plan.telemetryLevel,
-    mcpRegistrationIntent = plan.mcpRegistrationIntent,
-  )
+  private fun failedApplyResult(plan: InstallPlan): InstallApplyResult =
+    InstallApplyResult(
+      status = InstallApplyStatus.FAILURE,
+      skills = emptyList(),
+      nativeAgents = emptyList(),
+      telemetryOutcome =
+        InstallTelemetryApplyOutcome(
+          level = plan.telemetryLevel,
+          status = InstallTelemetryApplyStatus.SKIPPED,
+        ),
+      mcpRegistrationOutcomes = emptyList(),
+      warnings = emptyList(),
+      failures =
+        listOf(
+          InstallApplyIssue(
+            kind = InstallApplyIssueKind.WINDOWS_SYMLINK_PRECHECK_FAILED,
+            message = "failed",
+          ),
+        ),
+      windowsSymlinkOutcome =
+        WindowsSymlinkApplyOutcome(
+          preflight = plan.windowsSymlinkPreflight,
+          fallbackState = WindowsSymlinkFallbackState.USER_ACTION_REQUIRED,
+        ),
+      telemetryLevel = plan.telemetryLevel,
+      mcpRegistrationIntent = plan.mcpRegistrationIntent,
+    )
 
   private class FakePlanningFactsPort(
     private val repoRoot: Path,
@@ -419,23 +467,26 @@ class InstallServiceTest {
         "InstallService must collect install planning facts exactly once per planInstall call."
       }
       return InstallPlanningFactsResult(
-        facts = InstallPlanningFacts(
-          baseSkills = listOf(
-            InstallPlanSkill(
-              name = "bill-code-review",
-              sourceDir = repoRoot.resolve("skills/bill-code-review").toFileLocation(),
-              kind = InstallPlanSkillKind.BASE,
-            ),
+        facts =
+          InstallPlanningFacts(
+            baseSkills =
+              listOf(
+                InstallPlanSkill(
+                  name = "bill-code-review",
+                  sourceDir = repoRoot.resolve("skills/bill-code-review").toFileLocation(),
+                  kind = InstallPlanSkillKind.BASE,
+                ),
+              ),
+            platformManifests = platformManifests,
+            detectedAgentTargets = emptyList(),
+            defaultAgentTargets =
+              listOf(
+                InstallAgentDefaultTarget(
+                  agent = InstallAgent.CODEX,
+                  path = home.resolve(".codex/skills").toFileLocation(),
+                ),
+              ),
           ),
-          platformManifests = platformManifests,
-          detectedAgentTargets = emptyList(),
-          defaultAgentTargets = listOf(
-            InstallAgentDefaultTarget(
-              agent = InstallAgent.CODEX,
-              path = home.resolve(".codex/skills").toFileLocation(),
-            ),
-          ),
-        ),
       )
     }
   }
@@ -448,13 +499,14 @@ class InstallServiceTest {
     ): InstallPlatformSkillMaterializationPortResult {
       assertSame(expectedPlatformManifests, request.platformManifests)
       return InstallPlatformSkillMaterializationPortResult(
-        platformPacks = request.platformManifests.map { manifest ->
-          InstallPlatformPackSnapshot(
-            slug = manifest.slug,
-            packRoot = manifest.packRoot,
-            skills = emptyList(),
-          )
-        },
+        platformPacks =
+          request.platformManifests.map { manifest ->
+            InstallPlatformPackSnapshot(
+              slug = manifest.slug,
+              packRoot = manifest.packRoot,
+              skills = emptyList(),
+            )
+          },
       )
     }
   }
@@ -466,18 +518,20 @@ class InstallServiceTest {
     override fun buildStagingIntent(request: InstallStagingIntentRequest): InstallStagingIntentResult {
       assertSame(expectedPlatformManifests, request.platformManifests)
       return InstallStagingIntentResult(
-        staging = InstallStagingIntent(
-          root = home.resolve(".skill-bill/installed-skills").toFileLocation(),
-          skillPaths = request.draft.skills.map { skill ->
-            InstallStagingPathIntent(
-              skillName = skill.name,
-              sourceDir = skill.sourceDir,
-              stagingRoot = home.resolve(".skill-bill/installed-skills").toFileLocation(),
-              stagingDir = home.resolve(".skill-bill/installed-skills/${skill.name}-test-hash").toFileLocation(),
-              contentHash = "test-hash-${skill.name}",
-            )
-          },
-        ),
+        staging =
+          InstallStagingIntent(
+            root = home.resolve(".skill-bill/installed-skills").toFileLocation(),
+            skillPaths =
+              request.draft.skills.map { skill ->
+                InstallStagingPathIntent(
+                  skillName = skill.name,
+                  sourceDir = skill.sourceDir,
+                  stagingRoot = home.resolve(".skill-bill/installed-skills").toFileLocation(),
+                  stagingDir = home.resolve(".skill-bill/installed-skills/${skill.name}-test-hash").toFileLocation(),
+                  contentHash = "test-hash-${skill.name}",
+                )
+              },
+          ),
       )
     }
   }
@@ -563,10 +617,11 @@ class InstallServiceTest {
   }
 
   private companion object {
-    val unsupportedReconcilePorts = InstallReconcilePorts(
-      reconcilePort = UnsupportedInstallReconcilePort,
-      reconcileApplyPort = UnsupportedInstallReconcileApplyPort,
-      baselineManifestPersistencePort = UnsupportedBaselineManifestPersistencePort,
-    )
+    val unsupportedReconcilePorts =
+      InstallReconcilePorts(
+        reconcilePort = UnsupportedInstallReconcilePort,
+        reconcileApplyPort = UnsupportedInstallReconcileApplyPort,
+        baselineManifestPersistencePort = UnsupportedBaselineManifestPersistencePort,
+      )
   }
 }

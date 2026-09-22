@@ -39,10 +39,11 @@ class DecompositionManifestValidationRepairTest {
 
   @Test
   fun `duplicate keys are rejected before repair`() {
-    val duplicate = validManifestJson().replace(
-      "\"issue_key\":\"SKILL-153\",",
-      "\"issue_key\":\"SKILL-153\",\"issue_key\":\"SKILL-153\",",
-    )
+    val duplicate =
+      validManifestJson().replace(
+        "\"issue_key\":\"SKILL-153\",",
+        "\"issue_key\":\"SKILL-153\",\"issue_key\":\"SKILL-153\",",
+      )
 
     val result = validator.validateYamlTextResult(duplicate, "manifest.yaml")
 
@@ -53,9 +54,10 @@ class DecompositionManifestValidationRepairTest {
 
   @Test
   fun `repaired syntax that fails the schema remains rejected without raw YAML`() {
-    val malformed = validManifestJson()
-      .replace("\"issue_key\":\"SKILL-153\",", "")
-      .dropLast(1)
+    val malformed =
+      validManifestJson()
+        .replace("\"issue_key\":\"SKILL-153\",", "")
+        .dropLast(1)
 
     val result = validator.validateYamlTextResult(malformed, "manifest.yaml")
 
@@ -66,19 +68,21 @@ class DecompositionManifestValidationRepairTest {
 
   @Test
   fun `shape and coherence failures stay typed rejections`() {
-    val shape = validator.validateYamlTextResult(
-      validManifestJson()
-        .replace("\"subtasks\":[{\"id\"", "\"subtasks\":{\"id\"")
-        .replace("\"dependencies\":[]}]}", "\"dependencies\":[]}}"),
-      "shape.yaml",
-    )
-    val coherence = validator.validateYamlTextResult(
-      validManifestJson().replace(
-        "\"subtask_id\":1,\"action\":\"start\"",
-        "\"subtask_id\":2,\"action\":\"start\"",
-      ),
-      "coherence.yaml",
-    )
+    val shape =
+      validator.validateYamlTextResult(
+        validManifestJson()
+          .replace("\"subtasks\":[{\"id\"", "\"subtasks\":{\"id\"")
+          .replace("\"dependencies\":[]}]}", "\"dependencies\":[]}}"),
+        "shape.yaml",
+      )
+    val coherence =
+      validator.validateYamlTextResult(
+        validManifestJson().replace(
+          "\"subtask_id\":1,\"action\":\"start\"",
+          "\"subtask_id\":2,\"action\":\"start\"",
+        ),
+        "coherence.yaml",
+      )
 
     val shapeRejection = assertIs<DecompositionManifestValidationResult.Rejected>(shape)
     assertEquals(DecompositionManifestValidationFailureCode.SCHEMA_INVALID, shapeRejection.code)
@@ -87,19 +91,21 @@ class DecompositionManifestValidationRepairTest {
     assertNull(coherenceRejection.sourceLocation)
   }
 
-  private fun validManifestJson(): String = "{" +
-    "\"contract_version\":\"0.5\",\"issue_key\":\"SKILL-153\",\"feature_name\":\"manifest\"," +
-    "\"parent_spec_path\":\".feature-specs/SKILL-153-manifest/spec.md\"," +
-    "\"execution_model\":\"same_branch_commit_per_subtask\",\"base_branch\":\"main\"," +
-    "\"feature_branch\":\"feat/SKILL-153-manifest\",\"stack_branches\":[]," +
-    "\"current_subtask_intent\":{\"subtask_id\":1,\"action\":\"start\"}," +
-    "\"subtasks\":[{\"id\":1,\"name\":\"Manifest\"," +
-    "\"spec_path\":\".feature-specs/SKILL-153-manifest/spec_subtask_1.md\"," +
-    "\"status\":\"pending\",\"branch\":null,\"commit_sha\":null,\"workflow_id\":null," +
-    "\"blocked_reason\":null,\"last_resumable_step\":null,\"dependencies\":[]}]" +
-    "}"
+  private fun validManifestJson(): String =
+    "{" +
+      "\"contract_version\":\"0.5\",\"issue_key\":\"SKILL-153\",\"feature_name\":\"manifest\"," +
+      "\"parent_spec_path\":\".feature-specs/SKILL-153-manifest/spec.md\"," +
+      "\"execution_model\":\"same_branch_commit_per_subtask\",\"base_branch\":\"main\"," +
+      "\"feature_branch\":\"feat/SKILL-153-manifest\",\"stack_branches\":[]," +
+      "\"current_subtask_intent\":{\"subtask_id\":1,\"action\":\"start\"}," +
+      "\"subtasks\":[{\"id\":1,\"name\":\"Manifest\"," +
+      "\"spec_path\":\".feature-specs/SKILL-153-manifest/spec_subtask_1.md\"," +
+      "\"status\":\"pending\",\"branch\":null,\"commit_sha\":null,\"workflow_id\":null," +
+      "\"blocked_reason\":null,\"last_resumable_step\":null,\"dependencies\":[]}]" +
+      "}"
 
-  private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
-    .digest(value.toByteArray(Charsets.UTF_8))
-    .joinToString("") { byte -> "%02x".format(byte) }
+  private fun sha256(value: String): String =
+    MessageDigest.getInstance("SHA-256")
+      .digest(value.toByteArray(Charsets.UTF_8))
+      .joinToString("") { byte -> "%02x".format(byte) }
 }

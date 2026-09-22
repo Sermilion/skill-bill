@@ -6,6 +6,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
+
 class DecompositionManifestWriterSelectorTest {
   @Test
   fun `decomposition planning rejects present invalid selector ids`() {
@@ -14,22 +15,24 @@ class DecompositionManifestWriterSelectorTest {
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
 
-    val invalidCurrent = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionPlanningResult.fromWireMap(
-        decompositionPlanningPlan(parentSpecPath).toPayload().toMutableMap().apply {
-          put("current_subtask_id", 1.5)
-        },
-        parentSpecPath.toString(),
-      )
-    }
-    val invalidRecommended = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionPlanningResult.fromWireMap(
-        decompositionPlanningPlan(parentSpecPath).toPayload().toMutableMap().apply {
-          put("recommended_first_subtask_id", 1.5)
-        },
-        parentSpecPath.toString(),
-      )
-    }
+    val invalidCurrent =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        DecompositionPlanningResult.fromWireMap(
+          decompositionPlanningPlan(parentSpecPath).toPayload().toMutableMap().apply {
+            put("current_subtask_id", 1.5)
+          },
+          parentSpecPath.toString(),
+        )
+      }
+    val invalidRecommended =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        DecompositionPlanningResult.fromWireMap(
+          decompositionPlanningPlan(parentSpecPath).toPayload().toMutableMap().apply {
+            put("recommended_first_subtask_id", 1.5)
+          },
+          parentSpecPath.toString(),
+        )
+      }
 
     assertContains(invalidCurrent.reason, "current_subtask_id must be an integer")
     assertContains(invalidRecommended.reason, "recommended_first_subtask_id must be an integer")

@@ -33,7 +33,10 @@ class ReviewCommitEvidenceTest {
     subject: String = "commit $sha",
   ) = ReviewCommitUnit(sha, parent, subject, order, hunks, ReviewCommitSource.COMMIT_RANGE)
 
-  private fun lane(name: String, paths: List<String>) = ReviewLaneDecision(
+  private fun lane(
+    name: String,
+    paths: List<String>,
+  ) = ReviewLaneDecision(
     name,
     true,
     "routed",
@@ -46,13 +49,14 @@ class ReviewCommitEvidenceTest {
   private fun packet(
     units: List<ReviewCommitUnit>,
     hunks: List<ReviewChangedHunk> = units.flatMap { it.hunks },
-    coverage: ReviewCommitCoverageFact = ReviewCommitCoverageFact(
-      "base",
-      "head",
-      units.size,
-      chainVerified = true,
-      pathCoverageVerified = true,
-    ),
+    coverage: ReviewCommitCoverageFact =
+      ReviewCommitCoverageFact(
+        "base",
+        "head",
+        units.size,
+        chainVerified = true,
+        pathCoverageVerified = true,
+      ),
     paths: List<String> = hunks.map { it.path }.distinct().sorted(),
   ) = ReviewContextPacket(
     reviewId = "review",
@@ -72,7 +76,10 @@ class ReviewCommitEvidenceTest {
     laneDecisions = listOf(lane("security", paths)),
   )
 
-  private fun focusedMatrix(units: List<ReviewCommitUnit>, lanes: List<String>) = ReviewCommitLaneRoutingMatrix(
+  private fun focusedMatrix(
+    units: List<ReviewCommitUnit>,
+    lanes: List<String>,
+  ) = ReviewCommitLaneRoutingMatrix(
     units.sortedBy { it.orderIndex }.map { it.commitSha },
     lanes,
     units.sortedBy { it.orderIndex }.flatMap { unit ->
@@ -82,10 +89,11 @@ class ReviewCommitEvidenceTest {
     },
   )
 
-  private val twoCommits = listOf(
-    unit("c1", "base", 0, listOf(hunkA)),
-    unit("head", "c1", 1, listOf(hunkB)),
-  )
+  private val twoCommits =
+    listOf(
+      unit("c1", "base", 0, listOf(hunkA)),
+      unit("head", "c1", 1, listOf(hunkB)),
+    )
 
   @Test fun `hunk id is content addressed and changes when body bytes change`() {
     val first = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
@@ -135,17 +143,19 @@ class ReviewCommitEvidenceTest {
   }
 
   @Test fun `a synthetic unit is the only unit its packet may carry`() {
-    val synthetic = packet(
-      listOf(ReviewCommitUnit.synthetic(ReviewCommitSource.SYNTHETIC_WORKING_TREE, listOf(hunkA, hunkB))),
-      coverage = ReviewCommitCoverageFact(
-        "base",
-        "head",
-        1,
-        chainVerified = false,
-        pathCoverageVerified = true,
-        degradedReason = "working-tree scope",
-      ),
-    )
+    val synthetic =
+      packet(
+        listOf(ReviewCommitUnit.synthetic(ReviewCommitSource.SYNTHETIC_WORKING_TREE, listOf(hunkA, hunkB))),
+        coverage =
+          ReviewCommitCoverageFact(
+            "base",
+            "head",
+            1,
+            chainVerified = false,
+            pathCoverageVerified = true,
+            degradedReason = "working-tree scope",
+          ),
+      )
     assertEquals(1, synthetic.commitUnits.size)
     assertFailsWith<IllegalArgumentException> {
       packet(
@@ -197,9 +207,10 @@ class ReviewCommitEvidenceTest {
   @Test fun `two commits touching the same file still partition the packet`() {
     val firstEdit = ReviewChangedHunk("src/A.kt", 10, 1, 10, 1, "+first")
     val secondEdit = ReviewChangedHunk("src/A.kt", 10, 1, 10, 1, "+second")
-    val built = packet(
-      listOf(unit("c1", "base", 0, listOf(firstEdit)), unit("head", "c1", 1, listOf(secondEdit))),
-    )
+    val built =
+      packet(
+        listOf(unit("c1", "base", 0, listOf(firstEdit)), unit("head", "c1", 1, listOf(secondEdit))),
+      )
     assertEquals(setOf(firstEdit.hunkId, secondEdit.hunkId), built.ownedHunkIds)
     assertEquals(setOf("c1", "head"), built.ownedCommitIds)
   }
@@ -229,19 +240,23 @@ class ReviewCommitEvidenceTest {
     assertNotEquals(
       built.digest,
       built.copy(
-        coverageFact = ReviewCommitCoverageFact(
-          "base",
-          "head",
-          2,
-          chainVerified = false,
-          pathCoverageVerified = true,
-          degradedReason = "unverified",
-        ),
+        coverageFact =
+          ReviewCommitCoverageFact(
+            "base",
+            "head",
+            2,
+            chainVerified = false,
+            pathCoverageVerified = true,
+            degradedReason = "unverified",
+          ),
       ).digest,
     )
   }
 
-  private fun assignment(built: ReviewContextPacket, bundle: ReviewLaneBundle) = ReviewAssignment(
+  private fun assignment(
+    built: ReviewContextPacket,
+    bundle: ReviewLaneBundle,
+  ) = ReviewAssignment(
     reviewId = built.reviewId,
     packetDigest = built.digest,
     lane = "security",
@@ -255,12 +270,13 @@ class ReviewCommitEvidenceTest {
     laneDecision = built.laneDecisions.single(),
   )
 
-  private val fullBundle = ReviewLaneBundle(
-    listOf(
-      ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)),
-      ReviewLaneBundleEntry("head", 1, listOf(hunkB.hunkId)),
-    ),
-  )
+  private val fullBundle =
+    ReviewLaneBundle(
+      listOf(
+        ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)),
+        ReviewLaneBundleEntry("head", 1, listOf(hunkB.hunkId)),
+      ),
+    )
 
   @Test fun `bundle composition and entry order change the assignment digest`() {
     val built = packet(twoCommits)
@@ -268,9 +284,10 @@ class ReviewCommitEvidenceTest {
     assertNotEquals(
       base.digest,
       base.copy(
-        assignedBundle = ReviewLaneBundle(
-          listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId, hunkB.hunkId))),
-        ),
+        assignedBundle =
+          ReviewLaneBundle(
+            listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId, hunkB.hunkId))),
+          ),
       ).digest,
     )
     assertEquals(base.digest, assignment(built, fullBundle).digest)
@@ -299,7 +316,10 @@ class ReviewCommitEvidenceTest {
     }
   }
 
-  private fun launch(built: ReviewContextPacket, bundle: ReviewLaneBundle) = GovernedReviewLaunch(
+  private fun launch(
+    built: ReviewContextPacket,
+    bundle: ReviewLaneBundle,
+  ) = GovernedReviewLaunch(
     assignment(built, bundle),
     built,
     "contract",
@@ -322,25 +342,28 @@ class ReviewCommitEvidenceTest {
 
   @Test fun `launch rejects a bundle naming a commit outside the packet`() {
     val built = packet(twoCommits)
-    val foreign = ReviewLaneBundle(
-      listOf(
-        ReviewLaneBundleEntry("not-in-packet", 0, listOf(hunkA.hunkId)),
-        ReviewLaneBundleEntry("head", 1, listOf(hunkB.hunkId)),
-      ),
-    )
+    val foreign =
+      ReviewLaneBundle(
+        listOf(
+          ReviewLaneBundleEntry("not-in-packet", 0, listOf(hunkA.hunkId)),
+          ReviewLaneBundleEntry("head", 1, listOf(hunkB.hunkId)),
+        ),
+      )
     assertFailsWith<IllegalArgumentException> { launch(built, foreign) }
-    val misordered = ReviewLaneBundle(
-      listOf(
-        ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)),
-        ReviewLaneBundleEntry("head", 5, listOf(hunkB.hunkId)),
-      ),
-    )
+    val misordered =
+      ReviewLaneBundle(
+        listOf(
+          ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)),
+          ReviewLaneBundleEntry("head", 5, listOf(hunkB.hunkId)),
+        ),
+      )
     assertFailsWith<IllegalArgumentException> { launch(built, misordered) }
     val incomplete = ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId))))
     assertFailsWith<IllegalArgumentException> { launch(built, incomplete) }
-    val misattributed = ReviewLaneBundle(
-      listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId, hunkB.hunkId))),
-    )
+    val misattributed =
+      ReviewLaneBundle(
+        listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId, hunkB.hunkId))),
+      )
     assertFailsWith<IllegalArgumentException> { launch(built, misattributed) }
   }
 }

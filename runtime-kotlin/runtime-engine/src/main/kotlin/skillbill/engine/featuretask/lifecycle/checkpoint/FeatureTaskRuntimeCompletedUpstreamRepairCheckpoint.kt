@@ -22,6 +22,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+
 fun phasesToReopenForCompletedUpstreamRepair(
   request: CompletedUpstreamRepairRequest,
   recordedOutputs: List<FeatureTaskRuntimePhaseOutput>,
@@ -33,18 +34,20 @@ fun phasesToReopenForCompletedUpstreamRepair(
   val stepOrder = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds
   return when {
     phaseRecords[resumePhaseId]?.status?.workflowStepStatus() == WorkflowStepStatus.BLOCKED -> listOf(resumePhaseId)
-    else -> buildList {
-      add(resumePhaseId)
-      phaseRecords.forEach { (phaseId, record) ->
-        if (record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED) {
-          val missing = missingUpstream(
-            phaseDeclaration(phaseId, featureSize, qualityGateSelection),
-            recordedOutputs,
-          )
-          if (missing?.contains(resumePhaseId) == true) add(phaseId)
+    else ->
+      buildList {
+        add(resumePhaseId)
+        phaseRecords.forEach { (phaseId, record) ->
+          if (record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED) {
+            val missing =
+              missingUpstream(
+                phaseDeclaration(phaseId, featureSize, qualityGateSelection),
+                recordedOutputs,
+              )
+            if (missing?.contains(resumePhaseId) == true) add(phaseId)
+          }
         }
-      }
-    }.distinct().sortedBy { stepOrder.indexOf(it).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }
+      }.distinct().sortedBy { stepOrder.indexOf(it).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }
   }
 }
 
@@ -53,38 +56,42 @@ fun completedUpstreamRepairWorkflowUpdate(
   phasesToReopen: List<String>,
   reopenedRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
   retryEntry: FeatureTaskRuntimePhaseLedgerEntry,
-): WorkflowUpdateInput = WorkflowUpdateInput(
-  workflowStatus = WorkflowStatus.RUNNING,
-  currentStepId = request.resumePhaseId,
-  stepUpdates = WorkflowStepUpdates.from(
-    phasesToReopen.map { phaseId ->
-      mapOf(
-        SharedPayloadKeys.STEP_ID to phaseId,
-        SharedPayloadKeys.STATUS to "pending",
-        "attempt_count" to 0,
-      )
-    },
-  ),
-  artifactsPatch = WorkflowArtifactPatch.from(
-    mapOf(
-      FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-        reopenedRecords.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
-      FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
-        (request.ledger.map { it.asWorkflowArtifactEntry() } + retryEntry.asWorkflowArtifactEntry()).takeLast(
-          FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
-        ),
-      FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
-        SharedPayloadKeys.PHASE_ID to request.resumePhaseId,
-        "reason" to request.reason,
-        "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
-        "previous_blocked_reason" to "completed_upstream_missing_output",
-        "reopened_phase_ids" to phasesToReopen,
+): WorkflowUpdateInput =
+  WorkflowUpdateInput(
+    workflowStatus = WorkflowStatus.RUNNING,
+    currentStepId = request.resumePhaseId,
+    stepUpdates =
+      WorkflowStepUpdates.from(
+        phasesToReopen.map { phaseId ->
+          mapOf(
+            SharedPayloadKeys.STEP_ID to phaseId,
+            SharedPayloadKeys.STATUS to "pending",
+            "attempt_count" to 0,
+          )
+        },
       ),
-      "goal_continuation_outcome" to null,
-    ),
-  ),
-  sessionId = "",
-)
+    artifactsPatch =
+      WorkflowArtifactPatch.from(
+        mapOf(
+          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+            reopenedRecords.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
+          FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
+            (request.ledger.map { it.asWorkflowArtifactEntry() } + retryEntry.asWorkflowArtifactEntry()).takeLast(
+              FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+            ),
+          FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to
+            mapOf(
+              SharedPayloadKeys.PHASE_ID to request.resumePhaseId,
+              "reason" to request.reason,
+              "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+              "previous_blocked_reason" to "completed_upstream_missing_output",
+              "reopened_phase_ids" to phasesToReopen,
+            ),
+          "goal_continuation_outcome" to null,
+        ),
+      ),
+    sessionId = "",
+  )
 
 fun completedUpstreamRepairRetryEntry(request: CompletedUpstreamRepairRequest): FeatureTaskRuntimePhaseLedgerEntry =
   FeatureTaskRuntimePhaseLedgerEntry(
@@ -98,12 +105,13 @@ fun completedUpstreamRepairRetryEntry(request: CompletedUpstreamRepairRequest): 
 
 fun settledPhaseOutputs(
   phaseRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
-): List<FeatureTaskRuntimePhaseOutput> = phaseRecords.values.mapNotNull { record ->
-  record.outputArtifact?.takeIf(String::isNotBlank)?.let { artifact ->
-    FeatureTaskRuntimePhaseOutput(
-      phaseId = record.phaseId,
-      iteration = record.attemptCount,
-      payload = artifact,
-    )
+): List<FeatureTaskRuntimePhaseOutput> =
+  phaseRecords.values.mapNotNull { record ->
+    record.outputArtifact?.takeIf(String::isNotBlank)?.let { artifact ->
+      FeatureTaskRuntimePhaseOutput(
+        phaseId = record.phaseId,
+        iteration = record.attemptCount,
+        payload = artifact,
+      )
+    }
   }
-}

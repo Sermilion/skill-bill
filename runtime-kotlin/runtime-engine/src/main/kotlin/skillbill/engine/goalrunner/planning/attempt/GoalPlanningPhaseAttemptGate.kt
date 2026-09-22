@@ -21,6 +21,7 @@ import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhas
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.ZERO
+
 internal fun DefaultGoalPlanningSweep.producePhase(args: GoalPlanningProducePhaseArgs): GoalPlanningPhaseProduction {
   val attemptArgs = args.attempt
   val phase = attemptArgs.phase
@@ -34,15 +35,16 @@ internal fun DefaultGoalPlanningSweep.producePhase(args: GoalPlanningProducePhas
     attempt += 1
     val scope = planningAttemptScope(shared, phaseId, subtask, attempt)
     recordPlanningAttemptStarted(this, scope)
-    val step = advancePlanningProduceAttempt(
-      PlanningProduceAdvanceArgs(
-        attemptArgs = attemptArgs.copy(priorSchemaFailure = priorSchemaFailure),
-        scope = scope,
-        retryableDeclines = retryableDeclines,
-        phaseId = phaseId,
-        finalizePayload = args.finalizePayload,
-      ),
-    )
+    val step =
+      advancePlanningProduceAttempt(
+        PlanningProduceAdvanceArgs(
+          attemptArgs = attemptArgs.copy(priorSchemaFailure = priorSchemaFailure),
+          scope = scope,
+          retryableDeclines = retryableDeclines,
+          phaseId = phaseId,
+          finalizePayload = args.finalizePayload,
+        ),
+      )
     when (step) {
       is PlanningProduceStep.Done -> return step.production
       is PlanningProduceStep.RetryDecline -> {
@@ -61,40 +63,43 @@ fun DefaultGoalPlanningSweep.gateCapturedPayload(
   finalizePayload: (String) -> String,
 ): GoalPlanningPhaseProduction {
   val payload = finalizePayload(captured.payload)
-  val accepted = if (payload == captured.payload) {
-    AcceptedFeatureTaskRuntimePhaseOutput(
-      normalizedOutput = captured.normalizedOutput,
-      repairEvidence = captured.repairEvidence,
-    )
-  } else {
-    outputValidator.validatePhaseOutput(payload, phaseId).requireAcceptedOutput(phaseId)
-  }
+  val accepted =
+    if (payload == captured.payload) {
+      AcceptedFeatureTaskRuntimePhaseOutput(
+        normalizedOutput = captured.normalizedOutput,
+        repairEvidence = captured.repairEvidence,
+      )
+    } else {
+      outputValidator.validatePhaseOutput(payload, phaseId).requireAcceptedOutput(phaseId)
+    }
   val canonicalPayload = accepted.normalizedOutput.canonicalJson
-  val gateReason = projectionGateReason(canonicalPayload, phaseId)
-    ?: return GoalPlanningPhaseProduction.Captured(
-      canonicalPayload,
-      accepted.normalizedOutput,
-      accepted.repairEvidence ?: captured.repairEvidence,
-      captured.agentId,
-    )
+  val gateReason =
+    projectionGateReason(canonicalPayload, phaseId)
+      ?: return GoalPlanningPhaseProduction.Captured(
+        canonicalPayload,
+        accepted.normalizedOutput,
+        accepted.repairEvidence ?: captured.repairEvidence,
+        captured.agentId,
+      )
   return GoalPlanningPhaseProduction.SchemaRejected(gateReason, canonicalPayload, captured.agentId)
 }
 
 internal fun DefaultGoalPlanningSweep.produceAttemptOrStop(
   args: GoalPlanningProduceAttemptArgs,
-): GoalPlanningPhaseProduction = runCatching {
-  produceAttempt(args)
-}.getOrElse { error ->
-  val phase = args.phase
-  GoalPlanningPhaseProduction.Stopped(
-    stopped(
-      phase.shared,
-      phase.subtask?.id ?: 0,
-      unexpectedPlanningFailureReason(phase.phaseId, error),
-      phase.phaseId,
-    ),
-  )
-}
+): GoalPlanningPhaseProduction =
+  runCatching {
+    produceAttempt(args)
+  }.getOrElse { error ->
+    val phase = args.phase
+    GoalPlanningPhaseProduction.Stopped(
+      stopped(
+        phase.shared,
+        phase.subtask?.id ?: 0,
+        unexpectedPlanningFailureReason(phase.phaseId, error),
+        phase.phaseId,
+      ),
+    )
+  }
 
 internal fun DefaultGoalPlanningSweep.produceAttempt(
   args: GoalPlanningProduceAttemptArgs,
@@ -158,44 +163,45 @@ internal fun DefaultGoalPlanningSweep.validatePlanningAttemptOutput(
   subtaskId: Int,
   phaseId: String,
   agentId: String,
-): GoalPlanningPhaseProduction = runCatching {
-  outputValidator.validatePhaseOutput(stdout, phaseId).requireAcceptedOutput(phaseId)
-}.fold(
-  onSuccess = { accepted ->
-    val payload = accepted.normalizedOutput.envelopeWireMap()
-    if (payload[SharedPayloadKeys.STATUS].workflowStepStatus() != WorkflowStepStatus.COMPLETED) {
-      val reason = unsuccessfulStatusReason(phaseId, payload)
-      val canonical = accepted.normalizedOutput.canonicalJson
-      if (FeatureTaskRuntimePhaseSafetyPolicy.dispositionForTerminalOutput(phaseId, payload).retryOnResume) {
-        GoalPlanningPhaseProduction.RetryableDecline(reason, canonical, agentId)
+): GoalPlanningPhaseProduction =
+  runCatching {
+    outputValidator.validatePhaseOutput(stdout, phaseId).requireAcceptedOutput(phaseId)
+  }.fold(
+    onSuccess = { accepted ->
+      val payload = accepted.normalizedOutput.envelopeWireMap()
+      if (payload[SharedPayloadKeys.STATUS].workflowStepStatus() != WorkflowStepStatus.COMPLETED) {
+        val reason = unsuccessfulStatusReason(phaseId, payload)
+        val canonical = accepted.normalizedOutput.canonicalJson
+        if (FeatureTaskRuntimePhaseSafetyPolicy.dispositionForTerminalOutput(phaseId, payload).retryOnResume) {
+          GoalPlanningPhaseProduction.RetryableDecline(reason, canonical, agentId)
+        } else {
+          GoalPlanningPhaseProduction.UnsuccessfulStatus(
+            reason,
+            canonical,
+            agentId,
+            stopped(shared, subtaskId, reason, phaseId),
+          )
+        }
       } else {
-        GoalPlanningPhaseProduction.UnsuccessfulStatus(
-          reason,
-          canonical,
+        GoalPlanningPhaseProduction.Captured(
+          accepted.normalizedOutput.canonicalJson,
+          accepted.normalizedOutput,
+          accepted.repairEvidence,
           agentId,
-          stopped(shared, subtaskId, reason, phaseId),
         )
       }
-    } else {
-      GoalPlanningPhaseProduction.Captured(
-        accepted.normalizedOutput.canonicalJson,
-        accepted.normalizedOutput,
-        accepted.repairEvidence,
-        agentId,
-      )
-    }
-  },
-  onFailure = { error ->
-    if (error is InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
-      GoalPlanningPhaseProduction.SchemaRejected(
-        error.payloadFreeReason ?: "Goal planning phase output was rejected by its schema contract.",
-        stdout,
-        agentId,
-      )
-    } else {
-      GoalPlanningPhaseProduction.Stopped(
-        stopped(shared, subtaskId, malformedReason(phaseId, error), phaseId),
-      )
-    }
-  },
-)
+    },
+    onFailure = { error ->
+      if (error is InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
+        GoalPlanningPhaseProduction.SchemaRejected(
+          error.payloadFreeReason ?: "Goal planning phase output was rejected by its schema contract.",
+          stdout,
+          agentId,
+        )
+      } else {
+        GoalPlanningPhaseProduction.Stopped(
+          stopped(shared, subtaskId, malformedReason(phaseId, error), phaseId),
+        )
+      }
+    },
+  )

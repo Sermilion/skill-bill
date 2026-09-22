@@ -32,14 +32,15 @@ internal fun computeInstallContentHash(
   authored: List<Path>,
   applicablePointers: List<Pair<PlatformManifest, PointerSpec>>,
   generatedSupportPointers: List<GeneratedSupportPointer> = emptyList(),
-): String = computeInstallContentHash(
-  InstallContentHashInputs(
-    sourceSkillDir = sourceSkillDir,
-    authored = authored,
-    applicablePointers = applicablePointers,
-    generatedSupportPointers = generatedSupportPointers,
-  ),
-)
+): String =
+  computeInstallContentHash(
+    InstallContentHashInputs(
+      sourceSkillDir = sourceSkillDir,
+      authored = authored,
+      applicablePointers = applicablePointers,
+      generatedSupportPointers = generatedSupportPointers,
+    ),
+  )
 
 internal fun computeInstallContentHash(inputs: InstallContentHashInputs): String {
   return computeContentHash(inputs, includeSourcePath = true)
@@ -49,7 +50,10 @@ internal fun computeReconciliationContentHash(inputs: InstallContentHashInputs):
   return computeContentHash(inputs, includeSourcePath = false)
 }
 
-private fun computeContentHash(inputs: InstallContentHashInputs, includeSourcePath: Boolean): String {
+private fun computeContentHash(
+  inputs: InstallContentHashInputs,
+  includeSourcePath: Boolean,
+): String {
   val digest = newSha256Digest()
   val newline = byteArrayOf('\n'.code.toByte())
   digest.update(INSTALL_STAGING_RECIPE_VERSION.toByteArray(StandardCharsets.UTF_8))
@@ -71,7 +75,11 @@ private fun computeContentHash(inputs: InstallContentHashInputs, includeSourcePa
   return digest.digest().take(INSTALL_CACHE_KEY_BYTES).joinToString("") { byte -> "%02x".format(byte) }
 }
 
-private fun updatePointerHash(digest: MessageDigest, newline: ByteArray, inputs: InstallContentHashInputs) {
+private fun updatePointerHash(
+  digest: MessageDigest,
+  newline: ByteArray,
+  inputs: InstallContentHashInputs,
+) {
   digest.update("--pointers--".toByteArray(StandardCharsets.UTF_8))
   digest.update(newline)
   inputs.applicablePointers
@@ -80,9 +88,10 @@ private fun updatePointerHash(digest: MessageDigest, newline: ByteArray, inputs:
       val line = "${spec.skillRelativeDir}|${spec.name}|${spec.target}"
       digest.update(line.toByteArray(StandardCharsets.UTF_8))
       digest.update(newline)
-      val repoRoot = inputs.checkoutRepoRoot?.toAbsolutePath()?.normalize()
-        ?: manifest.packRoot.toPath().toAbsolutePath().normalize().parent?.parent
-        ?: error("Platform pack '${manifest.slug}' root '${manifest.packRoot}' has no repo root parent.")
+      val repoRoot =
+        inputs.checkoutRepoRoot?.toAbsolutePath()?.normalize()
+          ?: manifest.packRoot.toPath().toAbsolutePath().normalize().parent?.parent
+          ?: error("Platform pack '${manifest.slug}' root '${manifest.packRoot}' has no repo root parent.")
       val targetFile = repoRoot.resolve(spec.target).normalize()
       requirePathContainedIn(targetFile, repoRoot) {
         "Pointer '${spec.name}' under '${spec.skillRelativeDir}' targets '${spec.target}' outside repoRoot '$repoRoot'."
@@ -121,13 +130,18 @@ private fun updateInternalSidecarHash(
   }
 }
 
-private fun updateAgentAddonHash(digest: MessageDigest, newline: ByteArray, pointers: List<AgentAddonPointer>) {
+private fun updateAgentAddonHash(
+  digest: MessageDigest,
+  newline: ByteArray,
+  pointers: List<AgentAddonPointer>,
+) {
   if (pointers.isEmpty()) return
   digest.update("--agent-addons--".toByteArray(StandardCharsets.UTF_8))
   digest.update(newline)
   pointers.sortedBy { it.slug }.forEach { pointer ->
-    val declaration = "${pointer.consumer.id}|${pointer.slug}|${pointer.name}|" +
-      "${pointer.manifestRelativePath}|${pointer.contentRelativePath}"
+    val declaration =
+      "${pointer.consumer.id}|${pointer.slug}|${pointer.name}|" +
+        "${pointer.manifestRelativePath}|${pointer.contentRelativePath}"
     digest.update(declaration.toByteArray(StandardCharsets.UTF_8))
     digest.update(newline)
     digest.update(pointer.manifestBytes)

@@ -10,7 +10,10 @@ import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 import skillbill.telemetry.model.FeatureVerifyStartedRecord
 import java.sql.Connection
 
-internal fun saveFeatureVerifyStarted(connection: Connection, record: FeatureVerifyStartedRecord) {
+internal fun saveFeatureVerifyStarted(
+  connection: Connection,
+  record: FeatureVerifyStartedRecord,
+) {
   connection.prepareStatement(
     """
     INSERT INTO feature_verify_sessions (

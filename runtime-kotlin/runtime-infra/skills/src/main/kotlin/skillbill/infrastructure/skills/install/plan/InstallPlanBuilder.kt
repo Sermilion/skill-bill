@@ -22,7 +22,10 @@ import skillbill.review.plan.ReviewFallbackResolver
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
 
-internal fun buildInstallPlan(request: InstallPlanRequest, wireValidator: InstallPlanWireValidator): InstallPlan {
+internal fun buildInstallPlan(
+  request: InstallPlanRequest,
+  wireValidator: InstallPlanWireValidator,
+): InstallPlan {
   requireSupportedAgentContract()
   val platformManifests = discoverPlatformManifests(request)
   val policyInput = buildInstallPolicyInput(request, platformManifests, enforceContractVersion = true)
@@ -47,43 +50,49 @@ private fun buildInstallPolicyInput(
   enforceContractVersion: Boolean,
 ): InstallPolicyInput {
   val baseSkills = discoverBaseSkills(request.targetPaths.skillsRoot.toPath())
-  val resolvedReviewFallback = baseSkills
-    .takeIf { skills -> skills.any { it.name == "bill-code-review" } }
-    ?.let { ReviewFallbackResolver.resolveOptional(platformManifests) }
+  val resolvedReviewFallback =
+    baseSkills
+      .takeIf { skills -> skills.any { it.name == "bill-code-review" } }
+      ?.let { ReviewFallbackResolver.resolveOptional(platformManifests) }
   val discoveredPlatformPacks = platformManifests.toDiscoverySnapshots()
-  val materializationPlan = InstallPlanPolicy.planPlatformSkillMaterialization(
-    InstallPlatformSkillMaterializationRequest(
-      installRequest = request,
-      platformPacks = discoveredPlatformPacks,
-    ),
-  )
-  val selectedPlatformSlugs = (
-    materializationPlan.selectedPlatformSlugs +
-      listOfNotNull(resolvedReviewFallback?.slug)
+  val materializationPlan =
+    InstallPlanPolicy.planPlatformSkillMaterialization(
+      InstallPlatformSkillMaterializationRequest(
+        installRequest = request,
+        platformPacks = discoveredPlatformPacks,
+      ),
+    )
+  val selectedPlatformSlugs =
+    (
+      materializationPlan.selectedPlatformSlugs +
+        listOfNotNull(resolvedReviewFallback?.slug)
     ).toSet()
   return InstallPolicyInput(
     request = request,
     baseSkills = baseSkills,
     resolvedReviewFallbackSlug = resolvedReviewFallback?.slug,
-    platformPacks = platformManifests.map { manifest ->
-      InstallPlatformPackSnapshot(
-        slug = manifest.slug,
-        packRoot = manifest.packRoot,
-        skills = if (manifest.slug in selectedPlatformSlugs) {
-          platformSkills(manifest, enforceContractVersion, packRootsBySlug(platformManifests))
-        } else {
-          emptyList()
-        },
-        baselineLayers = manifest.codeReviewComposition?.baselineLayers.orEmpty(),
-      )
-    },
-    detectedAgentTargets = detectAgents(request.home.toPath(), installPlanEnvironment(request)).map { target ->
-      InstallAgentTarget(
-        agent = InstallAgent.fromId(target.name),
-        path = target.path,
-        source = InstallAgentTargetSource.DETECTED,
-      )
-    },
+    platformPacks =
+      platformManifests.map { manifest ->
+        InstallPlatformPackSnapshot(
+          slug = manifest.slug,
+          packRoot = manifest.packRoot,
+          skills =
+            if (manifest.slug in selectedPlatformSlugs) {
+              platformSkills(manifest, enforceContractVersion, packRootsBySlug(platformManifests))
+            } else {
+              emptyList()
+            },
+          baselineLayers = manifest.codeReviewComposition?.baselineLayers.orEmpty(),
+        )
+      },
+    detectedAgentTargets =
+      detectAgents(request.home.toPath(), installPlanEnvironment(request)).map { target ->
+        InstallAgentTarget(
+          agent = InstallAgent.fromId(target.name),
+          path = target.path,
+          source = InstallAgentTargetSource.DETECTED,
+        )
+      },
     defaultAgentTargets = multiRootDefaultTargets(request.home.toPath(), installPlanEnvironment(request)),
   )
 }
@@ -95,9 +104,10 @@ internal fun enumerateInstallPlanSkills(
 ): List<InstallPlanSkill> {
   requireSupportedAgentContract()
   val platformManifests = discoverPlatformManifests(request, enforceContractVersion, catalogLoader)
-  val skills = InstallPlanPolicy.buildPlanDraft(
-    buildInstallPolicyInput(request, platformManifests, enforceContractVersion),
-  ).skills
+  val skills =
+    InstallPlanPolicy.buildPlanDraft(
+      buildInstallPolicyInput(request, platformManifests, enforceContractVersion),
+    ).skills
   validateInstallPlanInternalSkills(skills)
   return skills
 }
@@ -111,13 +121,14 @@ internal fun collectInstallPlanningFacts(
   return InstallPlanningFacts(
     baseSkills = discoverBaseSkills(request.targetPaths.skillsRoot.toPath()),
     platformManifests = platformManifests,
-    detectedAgentTargets = detectAgents(request.home.toPath(), installPlanEnvironment(request)).map { target ->
-      InstallAgentTarget(
-        agent = InstallAgent.fromId(target.name),
-        path = target.path,
-        source = InstallAgentTargetSource.DETECTED,
-      )
-    },
+    detectedAgentTargets =
+      detectAgents(request.home.toPath(), installPlanEnvironment(request)).map { target ->
+        InstallAgentTarget(
+          agent = InstallAgent.fromId(target.name),
+          path = target.path,
+          source = InstallAgentTargetSource.DETECTED,
+        )
+      },
     defaultAgentTargets = multiRootDefaultTargets(request.home.toPath(), installPlanEnvironment(request)),
   )
 }
@@ -131,11 +142,12 @@ internal fun materializeSelectedPlatformSkills(
     InstallPlatformPackSnapshot(
       slug = manifest.slug,
       packRoot = manifest.packRoot,
-      skills = if (manifest.slug in selected) {
-        platformSkills(manifest, packRootsBySlug = packRootsBySlug(platformManifests))
-      } else {
-        emptyList()
-      },
+      skills =
+        if (manifest.slug in selected) {
+          platformSkills(manifest, packRootsBySlug = packRootsBySlug(platformManifests))
+        } else {
+          emptyList()
+        },
       baselineLayers = manifest.codeReviewComposition?.baselineLayers.orEmpty(),
     )
   }
@@ -148,7 +160,10 @@ private fun packRootsBySlug(platformManifests: List<PlatformManifest>): Map<Stri
 
 private fun installPlanEnvironment(request: InstallPlanRequest): Map<String, String> = request.environment
 
-private fun multiRootDefaultTargets(home: Path, environment: Map<String, String>): List<InstallAgentDefaultTarget> =
+private fun multiRootDefaultTargets(
+  home: Path,
+  environment: Map<String, String>,
+): List<InstallAgentDefaultTarget> =
   agentPaths(home, installConfigRoots(home, environment)).flatMap { (agent, path) ->
     if (agent == SupportedAgent.CLAUDE) {
       claudeSkillTargets(home, environment).map { skillPath ->

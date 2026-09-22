@@ -6,9 +6,10 @@ object FeatureTaskRuntimeRunEvidenceAddress {
   const val STORE_ROOT: String = ".skill-bill/run-evidence"
 
   fun pathSegment(raw: String): String {
-    val sanitized = raw.map { char ->
-      if (char.isLetterOrDigit() || char in SAFE_SEGMENT_PUNCTUATION) char else '_'
-    }.joinToString("")
+    val sanitized =
+      raw.map { char ->
+        if (char.isLetterOrDigit() || char in SAFE_SEGMENT_PUNCTUATION) char else '_'
+      }.joinToString("")
     return if (sanitized.isBlank() || sanitized.all { it == '.' }) "_$sanitized" else sanitized
   }
 

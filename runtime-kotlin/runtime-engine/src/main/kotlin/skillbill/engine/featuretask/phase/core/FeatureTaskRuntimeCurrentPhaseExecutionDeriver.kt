@@ -9,6 +9,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerE
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowQueries
+
 internal data class FeatureTaskRuntimeCurrentPhaseExecutionContext(
   val currentPhaseId: String?,
   val records: Map<String, FeatureTaskRuntimePhaseRecord>,
@@ -18,7 +19,6 @@ internal data class FeatureTaskRuntimeCurrentPhaseExecutionContext(
 )
 
 class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
-
   internal fun derive(context: FeatureTaskRuntimeCurrentPhaseExecutionContext): IdeStatusCurrentPhaseExecution? {
     val phaseId = context.currentPhaseId?.takeIf(String::isNotBlank) ?: return null
     val phaseStatus = context.phases.firstOrNull { it.phaseId == phaseId } ?: return null
@@ -43,27 +43,30 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
     phaseId: String,
     phaseStatus: FeatureTaskRuntimePhaseStatus,
     record: FeatureTaskRuntimePhaseRecord?,
-  ): IdeStatusCurrentPhaseExecution? = when {
-    phaseStatus.attemptCount >= 1 || record != null -> IdeStatusCurrentPhaseExecution(
-      phaseId = phaseId,
-      kind = IdeStatusCurrentPhaseExecutionKind.PASS,
-      count = 1,
-    )
-    else -> null
-  }
+  ): IdeStatusCurrentPhaseExecution? =
+    when {
+      phaseStatus.attemptCount >= 1 || record != null ->
+        IdeStatusCurrentPhaseExecution(
+          phaseId = phaseId,
+          kind = IdeStatusCurrentPhaseExecutionKind.PASS,
+          count = 1,
+        )
+      else -> null
+    }
 
   private fun reviewExecution(
     phaseId: String,
     phaseStatus: FeatureTaskRuntimePhaseStatus,
     record: FeatureTaskRuntimePhaseRecord?,
     ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
-  ): IdeStatusCurrentPhaseExecution? = activeReviewPassNumber(record, ledger)?.let { pass ->
-    IdeStatusCurrentPhaseExecution(
-      phaseId = phaseId,
-      kind = IdeStatusCurrentPhaseExecutionKind.PASS,
-      count = pass,
-    )
-  } ?: attemptExecution(phaseId, phaseStatus.attemptCount)
+  ): IdeStatusCurrentPhaseExecution? =
+    activeReviewPassNumber(record, ledger)?.let { pass ->
+      IdeStatusCurrentPhaseExecution(
+        phaseId = phaseId,
+        kind = IdeStatusCurrentPhaseExecutionKind.PASS,
+        count = pass,
+      )
+    } ?: attemptExecution(phaseId, phaseStatus.attemptCount)
 
   private fun validationExecution(
     phaseId: String,
@@ -81,13 +84,14 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
     phaseId: String,
     phaseStatus: FeatureTaskRuntimePhaseStatus,
     gateRunCount: Int?,
-  ): IdeStatusCurrentPhaseExecution? = gateRunCount?.takeIf { it >= 1 }?.let { count ->
-    IdeStatusCurrentPhaseExecution(
-      phaseId = phaseId,
-      kind = IdeStatusCurrentPhaseExecutionKind.GATE_RUN,
-      count = count,
-    )
-  } ?: attemptExecution(phaseId, phaseStatus.attemptCount)
+  ): IdeStatusCurrentPhaseExecution? =
+    gateRunCount?.takeIf { it >= 1 }?.let { count ->
+      IdeStatusCurrentPhaseExecution(
+        phaseId = phaseId,
+        kind = IdeStatusCurrentPhaseExecutionKind.GATE_RUN,
+        count = count,
+      )
+    } ?: attemptExecution(phaseId, phaseStatus.attemptCount)
 
   private fun edgeExecution(
     phaseId: String,
@@ -98,11 +102,12 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
     val edge = FeatureTaskRuntimePhaseWorkflowQueries.backwardEdgeForLoop(loopId) ?: return null
     return IdeStatusCurrentPhaseExecution(
       phaseId = phaseId,
-      kind = if (edge.perEdgeCap == null) {
-        IdeStatusCurrentPhaseExecutionKind.SEMANTIC_LOOP
-      } else {
-        IdeStatusCurrentPhaseExecutionKind.BOUNDED_EDGE
-      },
+      kind =
+        if (edge.perEdgeCap == null) {
+          IdeStatusCurrentPhaseExecutionKind.SEMANTIC_LOOP
+        } else {
+          IdeStatusCurrentPhaseExecutionKind.BOUNDED_EDGE
+        },
       count = edgeIteration,
       total = edge.perEdgeCap,
     )
@@ -114,17 +119,19 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
   ): Int? {
     val pass = record?.reviewPassNumber ?: return null
     if (record.status.workflowStepStatus() != WorkflowStepStatus.COMPLETED) return pass
-    val latestReviewFixEdge = ledger
-      .filter {
-        it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE &&
-          it.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID &&
-          it.edgeIteration != null
-      }
-      .maxByOrNull { it.sequenceNumber }
+    val latestReviewFixEdge =
+      ledger
+        .filter {
+          it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE &&
+            it.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID &&
+            it.edgeIteration != null
+        }
+        .maxByOrNull { it.sequenceNumber }
     val ledgerEdge = latestReviewFixEdge?.edgeIteration
-    val reenteredReview = record.takeIf {
-      it.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
-    }?.edgeIteration
+    val reenteredReview =
+      record.takeIf {
+        it.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
+      }?.edgeIteration
     return ledgerEdge?.let { edge ->
       reenteredReview?.takeIf { it >= edge }
     }?.let { pass }
@@ -135,14 +142,15 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
     record: FeatureTaskRuntimePhaseRecord?,
     ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
   ): Pair<String, Int>? {
-    val edgeEntry = ledger
-      .filter {
-        it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE &&
-          it.phaseId == phaseId &&
-          it.loopId != null &&
-          it.edgeIteration != null
-      }
-      .maxByOrNull { it.sequenceNumber }
+    val edgeEntry =
+      ledger
+        .filter {
+          it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE &&
+            it.phaseId == phaseId &&
+            it.loopId != null &&
+            it.edgeIteration != null
+        }
+        .maxByOrNull { it.sequenceNumber }
     if (edgeEntry != null) return edgeEntry.loopId!! to edgeEntry.edgeIteration!!
     record?.loopId?.let { loopId ->
       record.edgeIteration?.let { return loopId to it }
@@ -150,7 +158,10 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
     return null
   }
 
-  private fun attemptExecution(phaseId: String, attemptCount: Int): IdeStatusCurrentPhaseExecution? =
+  private fun attemptExecution(
+    phaseId: String,
+    attemptCount: Int,
+  ): IdeStatusCurrentPhaseExecution? =
     attemptCount.takeIf { it >= 1 }?.let { count ->
       IdeStatusCurrentPhaseExecution(
         phaseId = phaseId,

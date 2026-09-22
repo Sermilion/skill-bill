@@ -20,26 +20,34 @@ object McpRegistrationOperations {
     val resolvedHome = home ?: resolveUserHome(null)
     val command = runtimeMcpBin.toAbsolutePath().normalize().toString()
     return when (val installAgent = InstallAgent.fromId(agent)) {
-      InstallAgent.CLAUDE -> claudeFanOut(agent, resolvedHome, environment) { perProfilePath ->
-        McpJsonConfig.register(agent, perProfilePath, command)
-      }
-      InstallAgent.CODEX -> codexFanOut(agent, resolvedHome, environment) { perProfilePath ->
-        McpTomlConfig.register(agent, perProfilePath, command)
-      }
+      InstallAgent.CLAUDE ->
+        claudeFanOut(agent, resolvedHome, environment) { perProfilePath ->
+          McpJsonConfig.register(agent, perProfilePath, command)
+        }
+      InstallAgent.CODEX ->
+        codexFanOut(agent, resolvedHome, environment) { perProfilePath ->
+          McpTomlConfig.register(agent, perProfilePath, command)
+        }
       InstallAgent.JUNIE -> McpJsonConfig.register(agent, configPathFor(installAgent, resolvedHome), command)
       InstallAgent.CURSOR -> McpJsonConfig.register(agent, configPathFor(installAgent, resolvedHome), command)
     }
   }
 
-  fun unregister(agent: String, home: Path? = null, environment: Map<String, String>): McpMutationResult {
+  fun unregister(
+    agent: String,
+    home: Path? = null,
+    environment: Map<String, String>,
+  ): McpMutationResult {
     val resolvedHome = home ?: resolveUserHome(null)
     return when (val installAgent = InstallAgent.fromId(agent)) {
-      InstallAgent.CLAUDE -> claudeFanOut(agent, resolvedHome, environment) { perProfilePath ->
-        McpJsonConfig.unregister(agent, perProfilePath)
-      }
-      InstallAgent.CODEX -> codexFanOut(agent, resolvedHome, environment) { perProfilePath ->
-        McpTomlConfig.unregister(agent, perProfilePath)
-      }
+      InstallAgent.CLAUDE ->
+        claudeFanOut(agent, resolvedHome, environment) { perProfilePath ->
+          McpJsonConfig.unregister(agent, perProfilePath)
+        }
+      InstallAgent.CODEX ->
+        codexFanOut(agent, resolvedHome, environment) { perProfilePath ->
+          McpTomlConfig.unregister(agent, perProfilePath)
+        }
       InstallAgent.JUNIE -> McpJsonConfig.unregister(agent, configPathFor(installAgent, resolvedHome))
       InstallAgent.CURSOR -> McpJsonConfig.unregister(agent, configPathFor(installAgent, resolvedHome))
     }
@@ -48,12 +56,19 @@ object McpRegistrationOperations {
   fun configFormatFor(agent: InstallAgent): McpConfigFormat =
     if (agent.mcpUsesToml) McpConfigFormat.TOML else McpConfigFormat.JSON
 
-  fun configPathFor(agent: InstallAgent, home: Path): Path = home.resolve(agent.mcpConfigRelativePath)
+  fun configPathFor(
+    agent: InstallAgent,
+    home: Path,
+  ): Path = home.resolve(agent.mcpConfigRelativePath)
 
-  private fun claudeProfileConfigPaths(home: Path, environment: Map<String, String>): List<Path> {
-    val defaultRoot = home.resolve(requireNotNull(InstallAgent.CLAUDE.profileDirectoryPrefix).removeSuffix("-"))
-      .toAbsolutePath()
-      .normalize()
+  private fun claudeProfileConfigPaths(
+    home: Path,
+    environment: Map<String, String>,
+  ): List<Path> {
+    val defaultRoot =
+      home.resolve(requireNotNull(InstallAgent.CLAUDE.profileDirectoryPrefix).removeSuffix("-"))
+        .toAbsolutePath()
+        .normalize()
     return claudeConfigRoots(home, environment).map { root ->
       if (root == defaultRoot) {
         home.resolve(InstallAgent.CLAUDE.mcpProfileFileName)
@@ -63,7 +78,10 @@ object McpRegistrationOperations {
     }
   }
 
-  private fun codexProfileConfigPaths(home: Path, environment: Map<String, String>): List<Path> {
+  private fun codexProfileConfigPaths(
+    home: Path,
+    environment: Map<String, String>,
+  ): List<Path> {
     val roots = codexConfigRoots(home, environment)
     return if (roots.isNotEmpty()) {
       roots.map { root -> root.resolve(InstallAgent.CODEX.mcpProfileFileName) }
@@ -77,26 +95,28 @@ object McpRegistrationOperations {
     home: Path,
     environment: Map<String, String>,
     mutate: (Path) -> McpMutationResult,
-  ): McpMutationResult = profileFanOut(
-    agent = agent,
-    profilePaths = claudeProfileConfigPaths(home, environment),
-    representativePath = home.resolve(InstallAgent.CLAUDE.mcpConfigRelativePath),
-    failureLabel = "Claude",
-    mutate = mutate,
-  )
+  ): McpMutationResult =
+    profileFanOut(
+      agent = agent,
+      profilePaths = claudeProfileConfigPaths(home, environment),
+      representativePath = home.resolve(InstallAgent.CLAUDE.mcpConfigRelativePath),
+      failureLabel = "Claude",
+      mutate = mutate,
+    )
 
   private fun codexFanOut(
     agent: String,
     home: Path,
     environment: Map<String, String>,
     mutate: (Path) -> McpMutationResult,
-  ): McpMutationResult = profileFanOut(
-    agent = agent,
-    profilePaths = codexProfileConfigPaths(home, environment),
-    representativePath = home.resolve(InstallAgent.CODEX.mcpConfigRelativePath),
-    failureLabel = "Codex",
-    mutate = mutate,
-  )
+  ): McpMutationResult =
+    profileFanOut(
+      agent = agent,
+      profilePaths = codexProfileConfigPaths(home, environment),
+      representativePath = home.resolve(InstallAgent.CODEX.mcpConfigRelativePath),
+      failureLabel = "Codex",
+      mutate = mutate,
+    )
 
   private fun profileFanOut(
     agent: String,

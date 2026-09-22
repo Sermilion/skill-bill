@@ -28,10 +28,11 @@ class GitWorkflowGitOperationsDiffTest {
     Files.writeString(repoRoot.resolve("tracked.txt"), "one\nTWO\nTHREE\n")
     Files.writeString(repoRoot.resolve("other.txt"), "beta\n")
 
-    val result = GitWorkflowGitOperations().selectedDiffHunks(
-      repoRoot,
-      WorkflowSelectedDiffHunksRequest(paths = listOf("tracked.txt"), maxHunks = 1, maxLines = 10, maxBytes = 400),
-    )
+    val result =
+      GitWorkflowGitOperations().selectedDiffHunks(
+        repoRoot,
+        WorkflowSelectedDiffHunksRequest(paths = listOf("tracked.txt"), maxHunks = 1, maxLines = 10, maxBytes = 400),
+      )
 
     assertEquals(WorkflowGitOperationStatus.OK, result.status, result.error)
     assertEquals(1, result.selectedDiffHunks.hunks.size)
@@ -52,16 +53,17 @@ class GitWorkflowGitOperationsDiffTest {
     git(repoRoot, "commit", "-m", "initial")
     Files.writeString(repoRoot.resolve("tracked.txt"), "ONE\ntwo\n")
 
-    val result = GitWorkflowGitOperations().selectedDiffHunks(
-      repoRoot,
-      WorkflowSelectedDiffHunksRequest(
-        paths = listOf("tracked.txt"),
-        includeStaged = false,
-        maxHunks = 1,
-        maxLines = 20,
-        maxBytes = 1_000,
-      ),
-    )
+    val result =
+      GitWorkflowGitOperations().selectedDiffHunks(
+        repoRoot,
+        WorkflowSelectedDiffHunksRequest(
+          paths = listOf("tracked.txt"),
+          includeStaged = false,
+          maxHunks = 1,
+          maxLines = 20,
+          maxBytes = 1_000,
+        ),
+      )
 
     assertEquals(WorkflowGitOperationStatus.OK, result.status, result.error)
     assertEquals(1, result.selectedDiffHunks.hunks.size)
@@ -81,10 +83,11 @@ class GitWorkflowGitOperationsDiffTest {
     git(repoRoot, "add", "tracked.txt")
     Files.writeString(repoRoot.resolve("tracked.txt"), "ONE\nTWO\n")
 
-    val result = GitWorkflowGitOperations().selectedDiffHunks(
-      repoRoot,
-      WorkflowSelectedDiffHunksRequest(paths = listOf("tracked.txt"), maxHunks = 4, maxLines = 3, maxBytes = 1_000),
-    )
+    val result =
+      GitWorkflowGitOperations().selectedDiffHunks(
+        repoRoot,
+        WorkflowSelectedDiffHunksRequest(paths = listOf("tracked.txt"), maxHunks = 4, maxLines = 3, maxBytes = 1_000),
+      )
 
     assertEquals(WorkflowGitOperationStatus.OK, result.status, result.error)
     assertEquals(3, result.selectedDiffHunks.hunks.sumOf { it.lines.size })
@@ -102,16 +105,17 @@ class GitWorkflowGitOperationsDiffTest {
     git(repoRoot, "commit", "-m", "initial")
     Files.writeString(repoRoot.resolve("tracked.txt"), "ALPHA\n\nbeta  \n")
 
-    val result = GitWorkflowGitOperations().selectedDiffHunks(
-      repoRoot,
-      WorkflowSelectedDiffHunksRequest(
-        paths = listOf("tracked.txt"),
-        includeStaged = false,
-        maxHunks = 1,
-        maxLines = 20,
-        maxBytes = 1_000,
-      ),
-    )
+    val result =
+      GitWorkflowGitOperations().selectedDiffHunks(
+        repoRoot,
+        WorkflowSelectedDiffHunksRequest(
+          paths = listOf("tracked.txt"),
+          includeStaged = false,
+          maxHunks = 1,
+          maxLines = 20,
+          maxBytes = 1_000,
+        ),
+      )
 
     assertEquals(WorkflowGitOperationStatus.OK, result.status, result.error)
     assertContains(result.selectedDiffHunks.hunks.single().lines, " ")
@@ -129,16 +133,17 @@ class GitWorkflowGitOperationsDiffTest {
     git(repoRoot, "commit", "-m", "initial")
     Files.writeString(repoRoot.resolve("tracked.txt"), (1..3_000).joinToString("\n") { "changed $it" } + "\n")
 
-    val result = GitWorkflowGitOperations().selectedDiffHunks(
-      repoRoot,
-      WorkflowSelectedDiffHunksRequest(
-        paths = listOf("tracked.txt"),
-        includeStaged = false,
-        maxHunks = 1,
-        maxLines = 5,
-        maxBytes = 200,
-      ),
-    )
+    val result =
+      GitWorkflowGitOperations().selectedDiffHunks(
+        repoRoot,
+        WorkflowSelectedDiffHunksRequest(
+          paths = listOf("tracked.txt"),
+          includeStaged = false,
+          maxHunks = 1,
+          maxLines = 5,
+          maxBytes = 200,
+        ),
+      )
 
     assertEquals(WorkflowGitOperationStatus.OK, result.status, result.error)
     assertEquals(1, result.selectedDiffHunks.hunks.size)
@@ -157,16 +162,17 @@ class GitWorkflowGitOperationsDiffTest {
     git(repoRoot, "commit", "-m", "initial")
     Files.writeString(repoRoot.resolve("tracked.txt"), "x".repeat(200_000) + "\n")
 
-    val result = GitWorkflowGitOperations().selectedDiffHunks(
-      repoRoot,
-      WorkflowSelectedDiffHunksRequest(
-        paths = listOf("tracked.txt"),
-        includeStaged = false,
-        maxHunks = 1,
-        maxLines = 10,
-        maxBytes = 24,
-      ),
-    )
+    val result =
+      GitWorkflowGitOperations().selectedDiffHunks(
+        repoRoot,
+        WorkflowSelectedDiffHunksRequest(
+          paths = listOf("tracked.txt"),
+          includeStaged = false,
+          maxHunks = 1,
+          maxLines = 10,
+          maxBytes = 24,
+        ),
+      )
 
     assertEquals(WorkflowGitOperationStatus.OK, result.status, result.error)
     val hunk = result.selectedDiffHunks.hunks.single()
@@ -201,11 +207,12 @@ class GitWorkflowGitOperationsDiffTest {
     Files.writeString(repoRoot.resolve("tracked.txt"), "base\ncommitted\nstaged\nunstaged\n")
     Files.writeString(repoRoot.resolve("owned.tmp"), "owned content\n")
 
-    val input = ops.buildGoalSubtaskReviewInput(
-      repoRoot,
-      requireNotNull(baseline.baseline),
-      branch,
-    )
+    val input =
+      ops.buildGoalSubtaskReviewInput(
+        repoRoot,
+        requireNotNull(baseline.baseline),
+        branch,
+      )
 
     assertTrue(input.status == WorkflowGitOperationStatus.OK, input.error)
     val reviewText = requireNotNull(input.input).reviewText
@@ -294,10 +301,11 @@ class GitWorkflowGitOperationsDiffTest {
     Files.writeString(repoRoot.resolve("tracked.txt"), "staged\n")
     git(repoRoot, "add", "tracked.txt")
 
-    val result = GitWorkflowGitOperations().captureGoalSubtaskReviewBaseline(
-      repoRoot,
-      git(repoRoot, "branch", "--show-current"),
-    )
+    val result =
+      GitWorkflowGitOperations().captureGoalSubtaskReviewBaseline(
+        repoRoot,
+        git(repoRoot, "branch", "--show-current"),
+      )
 
     assertEquals(WorkflowGitOperationStatus.OK, result.status, result.error)
     assertEquals(git(repoRoot, "rev-parse", "HEAD"), requireNotNull(result.baseline).reviewBaseSha)

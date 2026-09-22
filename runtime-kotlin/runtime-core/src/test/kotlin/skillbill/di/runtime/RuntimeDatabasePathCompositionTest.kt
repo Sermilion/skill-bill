@@ -22,11 +22,12 @@ class RuntimeDatabasePathCompositionTest {
     val cliStyle =
       RuntimeComponent::class.create(
         RuntimeContext(
-          environment = EnvironmentContext(
-            dbPathOverride = explicitDb.toString(),
-            environment = emptyMap(),
-            userHome = home,
-          ),
+          environment =
+            EnvironmentContext(
+              dbPathOverride = explicitDb.toString(),
+              environment = emptyMap(),
+              userHome = home,
+            ),
           transport = TransportContext(),
           workflowOps = WorkflowOpsContext(),
           callbacks = OptionalCallbacks(),
@@ -35,10 +36,11 @@ class RuntimeDatabasePathCompositionTest {
     val mcpStyle =
       RuntimeComponent::class.create(
         RuntimeContext(
-          environment = EnvironmentContext(
-            environment = mapOf(SqliteTestDatabasePaths.DB_ENVIRONMENT_KEY to explicitDb.toString()),
-            userHome = home,
-          ),
+          environment =
+            EnvironmentContext(
+              environment = mapOf(SqliteTestDatabasePaths.DB_ENVIRONMENT_KEY to explicitDb.toString()),
+              userHome = home,
+            ),
           transport = TransportContext(),
           workflowOps = WorkflowOpsContext(),
           callbacks = OptionalCallbacks(),
@@ -54,14 +56,15 @@ class RuntimeDatabasePathCompositionTest {
     val home = Files.createTempDirectory("skillbill-db-composition-default")
     val expected = home.resolve(".skill-bill/review-metrics.db").toAbsolutePath().normalize()
 
-    val cliStyle = RuntimeComponent::class.create(
-      RuntimeContext(
-        environment = EnvironmentContext(environment = emptyMap(), userHome = home),
-        transport = TransportContext(),
-        workflowOps = WorkflowOpsContext(),
-        callbacks = OptionalCallbacks(),
-      ),
-    )
+    val cliStyle =
+      RuntimeComponent::class.create(
+        RuntimeContext(
+          environment = EnvironmentContext(environment = emptyMap(), userHome = home),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
+        ),
+      )
     val mcpStyle =
       RuntimeComponent::class.create(
         RuntimeContext(

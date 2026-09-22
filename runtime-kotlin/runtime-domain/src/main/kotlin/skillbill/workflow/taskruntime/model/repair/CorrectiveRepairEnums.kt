@@ -8,10 +8,11 @@ enum class CorrectiveRepairResponseAvailability(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(raw: String): CorrectiveRepairResponseAvailability = entries.firstOrNull { it.wireValue == raw }
-      ?: throw IllegalArgumentException(
-        "CorrectiveRepairResponseAvailability '$raw' is not a declared availability state.",
-      )
+    fun fromWire(raw: String): CorrectiveRepairResponseAvailability =
+      entries.firstOrNull { it.wireValue == raw }
+        ?: throw IllegalArgumentException(
+          "CorrectiveRepairResponseAvailability '$raw' is not a declared availability state.",
+        )
   }
 }
 
@@ -24,9 +25,10 @@ enum class CorrectiveRepairInclusionReason(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(raw: String): CorrectiveRepairInclusionReason = entries.firstOrNull { it.wireValue == raw }
-      ?: throw IllegalArgumentException(
-        "CorrectiveRepairInclusionReason '$raw' is not a declared inclusion reason.",
-      )
+    fun fromWire(raw: String): CorrectiveRepairInclusionReason =
+      entries.firstOrNull { it.wireValue == raw }
+        ?: throw IllegalArgumentException(
+          "CorrectiveRepairInclusionReason '$raw' is not a declared inclusion reason.",
+        )
   }
 }

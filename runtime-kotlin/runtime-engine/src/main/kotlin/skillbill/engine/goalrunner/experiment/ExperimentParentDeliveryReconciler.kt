@@ -28,12 +28,13 @@ class ExperimentParentDeliveryReconciler(
     if (deferredPublication.publicationRecorded(pairId, controlCommitSha)) {
       return ExperimentPublicationResult(published = true, alreadyPublished = true)
     }
-    val attempt = ExperimentPublicationAttempt(
-      pairId = pairId,
-      armId = ExperimentArmId.CONTROL.wireValue,
-      workflowId = controlWorkflowId,
-      commitSha = controlCommitSha,
-    )
+    val attempt =
+      ExperimentPublicationAttempt(
+        pairId = pairId,
+        armId = ExperimentArmId.CONTROL.wireValue,
+        workflowId = controlWorkflowId,
+        commitSha = controlCommitSha,
+      )
     deferredPublication.recordDeferredAttempt(attempt)
     return publicationGateway.publish(attempt)
   }

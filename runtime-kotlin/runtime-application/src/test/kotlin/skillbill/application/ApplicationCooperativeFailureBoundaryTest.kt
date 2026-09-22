@@ -32,14 +32,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+
 class ApplicationCooperativeFailureBoundaryTest {
   @Test
   fun `spec read cancellation propagates instead of becoming unavailable`() {
-    val fileStore = object : DecompositionManifestStore by TestDecompositionManifestStore {
-      override fun isRegularFile(path: Path) = true
+    val fileStore =
+      object : DecompositionManifestStore by TestDecompositionManifestStore {
+        override fun isRegularFile(path: Path) = true
 
-      override fun readText(path: Path): String = throw CancellationException("cancelled")
-    }
+        override fun readText(path: Path): String = throw CancellationException("cancelled")
+      }
     val validator = noopReviewContextEnvelopeValidator()
     assertFailsWith<CancellationException> {
       SpecIntentProjectionExtractor(validator, fileStore).extract(
@@ -53,11 +55,12 @@ class ApplicationCooperativeFailureBoundaryTest {
 
   @Test
   fun `spec read interruption propagates instead of becoming unavailable`() {
-    val fileStore = object : DecompositionManifestStore by TestDecompositionManifestStore {
-      override fun isRegularFile(path: Path) = true
+    val fileStore =
+      object : DecompositionManifestStore by TestDecompositionManifestStore {
+        override fun isRegularFile(path: Path) = true
 
-      override fun readText(path: Path): String = throw InterruptedException("interrupted")
-    }
+        override fun readText(path: Path): String = throw InterruptedException("interrupted")
+      }
     assertFailsWith<InterruptedException> {
       SpecIntentProjectionExtractor(
         noopReviewContextEnvelopeValidator(),
@@ -73,19 +76,21 @@ class ApplicationCooperativeFailureBoundaryTest {
 
   @Test
   fun `spec read io failure remains unavailable`() {
-    val fileStore = object : DecompositionManifestStore by TestDecompositionManifestStore {
-      override fun isRegularFile(path: Path) = true
+    val fileStore =
+      object : DecompositionManifestStore by TestDecompositionManifestStore {
+        override fun isRegularFile(path: Path) = true
 
-      override fun readText(path: Path): String = throw IOException("unreadable")
-    }
-    val error = assertFailsWith<SpecIntentSourceUnavailable> {
-      SpecIntentProjectionExtractor(noopReviewContextEnvelopeValidator(), fileStore).extract(
-        Path.of("/tmp/audit-repo"),
-        Path.of("spec.md"),
-        ReviewContextBudgetPolicy.DEFAULT,
-        explicit = false,
-      )
-    }
+        override fun readText(path: Path): String = throw IOException("unreadable")
+      }
+    val error =
+      assertFailsWith<SpecIntentSourceUnavailable> {
+        SpecIntentProjectionExtractor(noopReviewContextEnvelopeValidator(), fileStore).extract(
+          Path.of("/tmp/audit-repo"),
+          Path.of("spec.md"),
+          ReviewContextBudgetPolicy.DEFAULT,
+          explicit = false,
+        )
+      }
     assertEquals("unreadable", error.reason)
   }
 
@@ -117,11 +122,12 @@ class ApplicationCooperativeFailureBoundaryTest {
 
   @Test
   fun `lazy activity workflow resolution cancellation propagates`() {
-    val writer = AgentActivityStampWriter(
-      FailingDatabase(CancellationException("cancelled")),
-      Clock.systemUTC(),
-      NoopRuntimeDiagnostics,
-    )
+    val writer =
+      AgentActivityStampWriter(
+        FailingDatabase(CancellationException("cancelled")),
+        Clock.systemUTC(),
+        NoopRuntimeDiagnostics,
+      )
     assertFailsWith<CancellationException> {
       writer.lazySink({ throw CancellationException("cancelled") }, null).stamp(
         AgentActivityLabel.EVIDENCE_READ,
@@ -131,10 +137,11 @@ class ApplicationCooperativeFailureBoundaryTest {
 
   @Test
   fun `optional persistence interruption propagates instead of returning fallback`() {
-    val boundary = RuntimeOwnedPersistenceBoundary(
-      FailingDatabase(InterruptedException("cancelled")),
-      NoopRuntimeDiagnostics,
-    )
+    val boundary =
+      RuntimeOwnedPersistenceBoundary(
+        FailingDatabase(InterruptedException("cancelled")),
+        NoopRuntimeDiagnostics,
+      )
     assertFailsWith<InterruptedException> {
       boundary.optionalRead("probe", "fact", "fallback") { "unreachable" }
     }
@@ -142,10 +149,11 @@ class ApplicationCooperativeFailureBoundaryTest {
 
   @Test
   fun `optional persistence cancellation propagates instead of returning fallback`() {
-    val boundary = RuntimeOwnedPersistenceBoundary(
-      FailingDatabase(CancellationException("cancelled")),
-      NoopRuntimeDiagnostics,
-    )
+    val boundary =
+      RuntimeOwnedPersistenceBoundary(
+        FailingDatabase(CancellationException("cancelled")),
+        NoopRuntimeDiagnostics,
+      )
     assertFailsWith<CancellationException> {
       boundary.optionalRead("probe", "fact", "fallback") { "unreachable" }
     }
@@ -154,10 +162,11 @@ class ApplicationCooperativeFailureBoundaryTest {
   @Test
   fun `optional persistence retains a diagnostic when it returns its fallback`() {
     RecordingDiagnostics.lastWarning = null
-    val result = RuntimeOwnedPersistenceBoundary(
-      FailingDatabase(IOException("optional-store-down")),
-      RecordingDiagnostics(),
-    ).optionalRead("probe", "fact", "fallback") { "unreachable" }
+    val result =
+      RuntimeOwnedPersistenceBoundary(
+        FailingDatabase(IOException("optional-store-down")),
+        RecordingDiagnostics(),
+      ).optionalRead("probe", "fact", "fallback") { "unreachable" }
 
     assertEquals("fallback", result)
     assertTrue(RecordingDiagnostics.lastWarning.orEmpty().contains("optional-store-down"))
@@ -168,9 +177,10 @@ class ApplicationCooperativeFailureBoundaryTest {
     RecordingDiagnostics.lastWarning = null
     val root = IOException("store-down")
     val boundary = RuntimeOwnedPersistenceBoundary(FailingDatabase(root), RecordingDiagnostics())
-    val error = assertFailsWith<RuntimeOwnedFactUnavailable> {
-      boundary.requiredRead("probe", "fact") { "unreachable" }
-    }
+    val error =
+      assertFailsWith<RuntimeOwnedFactUnavailable> {
+        boundary.requiredRead("probe", "fact") { "unreachable" }
+      }
     assertEquals(root, error.cause)
     assertTrue(RecordingDiagnostics.lastWarning.orEmpty().contains("store-down"))
   }
@@ -178,75 +188,91 @@ class ApplicationCooperativeFailureBoundaryTest {
   @Test
   fun `required persistence retains the store cause when diagnostics also fail`() {
     val root = IOException("store-down")
-    val diagnostics = object : RuntimeDiagnostics {
-      override fun warning(message: String, error: Throwable?): Unit = check(false) { "diagnostics-down" }
+    val diagnostics =
+      object : RuntimeDiagnostics {
+        override fun warning(
+          message: String,
+          error: Throwable?,
+        ): Unit = check(false) { "diagnostics-down" }
 
-      override fun error(message: String, error: Throwable?) = Unit
-    }
-    val error = assertFailsWith<RuntimeOwnedFactUnavailable> {
-      RuntimeOwnedPersistenceBoundary(FailingDatabase(root), diagnostics)
-        .requiredRead("probe", "fact") { "unreachable" }
-    }
+        override fun error(
+          message: String,
+          error: Throwable?,
+        ) = Unit
+      }
+    val error =
+      assertFailsWith<RuntimeOwnedFactUnavailable> {
+        RuntimeOwnedPersistenceBoundary(FailingDatabase(root), diagnostics)
+          .requiredRead("probe", "fact") { "unreachable" }
+      }
     assertSame(root, error.cause)
   }
 
   @Test
   fun `update check interruption propagates`() {
-    val service = UpdateCheckService(
-      systemService = versionedSystemService("1.0.0"),
-      requester = object : RemoteTransportPort {
-        override fun execute(
-          method: String,
-          url: String,
-          bodyJson: String?,
-          headers: Map<String, String>,
-        ): RemoteTransportResponse = throw InterruptedException("cancelled")
-      },
-    )
+    val service =
+      UpdateCheckService(
+        systemService = versionedSystemService("1.0.0"),
+        requester =
+          object : RemoteTransportPort {
+            override fun execute(
+              method: String,
+              url: String,
+              bodyJson: String?,
+              headers: Map<String, String>,
+            ): RemoteTransportResponse = throw InterruptedException("cancelled")
+          },
+      )
     assertFailsWith<InterruptedException> { service.check(includePrereleases = false) }
   }
 
   @Test
   fun `update check cancellation propagates`() {
-    val service = UpdateCheckService(
-      systemService = versionedSystemService("1.0.0"),
-      requester = object : RemoteTransportPort {
-        override fun execute(
-          method: String,
-          url: String,
-          bodyJson: String?,
-          headers: Map<String, String>,
-        ): RemoteTransportResponse = throw CancellationException("cancelled")
-      },
-    )
+    val service =
+      UpdateCheckService(
+        systemService = versionedSystemService("1.0.0"),
+        requester =
+          object : RemoteTransportPort {
+            override fun execute(
+              method: String,
+              url: String,
+              bodyJson: String?,
+              headers: Map<String, String>,
+            ): RemoteTransportResponse = throw CancellationException("cancelled")
+          },
+      )
     assertFailsWith<CancellationException> { service.check(includePrereleases = false) }
   }
 
   @Test
   fun `update check malformed payload keeps unknown status`() {
-    val service = UpdateCheckService(
-      systemService = versionedSystemService("1.0.0"),
-      requester = object : RemoteTransportPort {
-        override fun execute(
-          method: String,
-          url: String,
-          bodyJson: String?,
-          headers: Map<String, String>,
-        ): RemoteTransportResponse = RemoteTransportResponse(200, "not-json")
-      },
-    )
+    val service =
+      UpdateCheckService(
+        systemService = versionedSystemService("1.0.0"),
+        requester =
+          object : RemoteTransportPort {
+            override fun execute(
+              method: String,
+              url: String,
+              bodyJson: String?,
+              headers: Map<String, String>,
+            ): RemoteTransportResponse = RemoteTransportResponse(200, "not-json")
+          },
+      )
     val result = service.check(includePrereleases = false)
     assertEquals(UpdateCheckStatus.UNKNOWN, result.status)
   }
 
   @Test
   fun `optional telemetry settings loading preserves cooperative failures`() {
-    val cancelled = object : TelemetrySettingsProvider {
-      override fun load(materialize: Boolean) = throw CancellationException("cancelled")
-    }
-    val interrupted = object : TelemetrySettingsProvider {
-      override fun load(materialize: Boolean) = throw InterruptedException("interrupted")
-    }
+    val cancelled =
+      object : TelemetrySettingsProvider {
+        override fun load(materialize: Boolean) = throw CancellationException("cancelled")
+      }
+    val interrupted =
+      object : TelemetrySettingsProvider {
+        override fun load(materialize: Boolean) = throw InterruptedException("interrupted")
+      }
 
     val diagnostics = NoopRuntimeDiagnostics
     assertFailsWith<CancellationException> { telemetrySettingsOrNull(cancelled, diagnostics) }
@@ -256,9 +282,15 @@ class ApplicationCooperativeFailureBoundaryTest {
 
 private fun noopReviewContextEnvelopeValidator(): ReviewContextEnvelopeValidator =
   object : ReviewContextEnvelopeValidator {
-    override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+    override fun validate(
+      envelope: ReviewContextWireMap,
+      sourceLabel: String,
+    ) = Unit
 
-    override fun validateSpecIntentProjection(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+    override fun validateSpecIntentProjection(
+      envelope: ReviewContextWireMap,
+      sourceLabel: String,
+    ) = Unit
   }
 
 private class FailingDatabase(private val failure: Throwable) : DatabaseSessionFactory {
@@ -279,29 +311,42 @@ private class FailingDatabase(private val failure: Throwable) : DatabaseSessionF
 }
 
 private object NoopRuntimeDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private class RecordingDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     lastWarning = message
   }
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
   companion object {
     var lastWarning: String? = null
   }
 }
 
-private fun versionedSystemService(version: String): SystemService = SystemService(
-  UpdateCheckTestDatabaseSessionFactory(),
-  UpdateCheckTestTelemetrySettingsProvider,
-  NoopRuntimeDiagnostics,
-  version,
-)
+private fun versionedSystemService(version: String): SystemService =
+  SystemService(
+    UpdateCheckTestDatabaseSessionFactory(),
+    UpdateCheckTestTelemetrySettingsProvider,
+    NoopRuntimeDiagnostics,
+    version,
+  )
 
 private class UpdateCheckTestDatabaseSessionFactory : DatabaseSessionFactory {
   private val dbPath = Files.createTempDirectory("cooperative-failure-db").resolve("metrics.db")

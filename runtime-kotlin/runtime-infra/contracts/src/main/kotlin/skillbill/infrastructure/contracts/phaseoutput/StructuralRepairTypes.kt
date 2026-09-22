@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
+
 internal data class CandidateGeneration(
   val candidates: List<Candidate>,
   val limitExceeded: Boolean,

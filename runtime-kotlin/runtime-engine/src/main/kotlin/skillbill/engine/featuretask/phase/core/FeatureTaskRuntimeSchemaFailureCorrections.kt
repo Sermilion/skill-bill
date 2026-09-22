@@ -1,10 +1,11 @@
 package skillbill.engine.featuretask.phase.core
 import skillbill.workflow.taskruntime.model.handoff.task.MAX_BOUNDED_POINTER_LENGTH
-object FeatureTaskRuntimeSchemaFailureCorrections {
 
+object FeatureTaskRuntimeSchemaFailureCorrections {
   fun unreconciledReceipt(priorSchemaFailure: String): String {
-    val namesReconciled = priorSchemaFailure.contains("reconciliation_evidence.reconciled") ||
-      priorSchemaFailure.contains("reconciliation_evidence/reconciled")
+    val namesReconciled =
+      priorSchemaFailure.contains("reconciliation_evidence.reconciled") ||
+        priorSchemaFailure.contains("reconciliation_evidence/reconciled")
     if (!namesReconciled || !priorSchemaFailure.contains("must be the constant value")) {
       return ""
     }
@@ -14,7 +15,7 @@ object FeatureTaskRuntimeSchemaFailureCorrections {
       must be true, and 'completed' is the only status that may carry this receipt. Do not report 'completed'
       with reconciled false, and do not flip the flag to true unless the tree really is at target. If the work
       is genuinely incomplete, leave this phase through a 'blocked' or 'failed' envelope instead.
-    """.trimIndent()
+      """.trimIndent()
   }
 
   fun lengthViolation(priorSchemaFailure: String): String {
@@ -36,22 +37,27 @@ object FeatureTaskRuntimeSchemaFailureCorrections {
   }
 
   private fun offendingFieldName(priorSchemaFailure: String): String? {
-    val pointer = DOLLAR_POINTER_PATTERN.find(priorSchemaFailure)?.value?.removePrefix("$")
-      ?: SLASH_POINTER_PATTERN.find(priorSchemaFailure)?.groupValues?.get(1)
-      ?: BARE_PATH_PATTERN.find(priorSchemaFailure)?.groupValues?.get(1)
-      ?: return null
+    val pointer =
+      DOLLAR_POINTER_PATTERN.find(priorSchemaFailure)?.value?.removePrefix("$")
+        ?: SLASH_POINTER_PATTERN.find(priorSchemaFailure)?.groupValues?.get(1)
+        ?: BARE_PATH_PATTERN.find(priorSchemaFailure)?.groupValues?.get(1)
+        ?: return null
     return pointer.split('.', '/')
       .map { it.substringBefore('[') }
       .lastOrNull { it.isNotBlank() }
   }
 
-  private fun boundedPointerAdvice(field: String, cap: Int): String {
-    val replacement = if (field == "artifact_ref") {
-      "one repository-relative path, optionally followed by one :symbol, such as " +
-        "runtime-kotlin/runtime-mcp/src/test/kotlin/skillbill/mcp/McpStdioServerTest.kt"
-    } else {
-      "one acceptance-criterion, finding, test, or check identifier, such as AC-005 or McpStdioServerTest"
-    }
+  private fun boundedPointerAdvice(
+    field: String,
+    cap: Int,
+  ): String {
+    val replacement =
+      if (field == "artifact_ref") {
+        "one repository-relative path, optionally followed by one :symbol, such as " +
+          "runtime-kotlin/runtime-mcp/src/test/kotlin/skillbill/mcp/McpStdioServerTest.kt"
+      } else {
+        "one acceptance-criterion, finding, test, or check identifier, such as AC-005 or McpStdioServerTest"
+      }
     val statedCap = if (cap == UNSTATED_CAP) MAX_BOUNDED_POINTER_LENGTH else cap
     return """
 
@@ -59,10 +65,13 @@ object FeatureTaskRuntimeSchemaFailureCorrections {
       It MUST be at most $statedCap characters. Do not concatenate multiple paths,
       symbols, findings, commands, or explanations into this field. Put necessary detail in the issue,
       fix, or other schema-authorized descriptive fields.
-    """.trimIndent()
+      """.trimIndent()
   }
 
-  private fun compressionAdvice(field: String?, cap: Int): String {
+  private fun compressionAdvice(
+    field: String?,
+    cap: Int,
+  ): String {
     val subject = field?.let { "The rejected $it" } ?: "The rejected field"
     val limit = if (cap == UNSTATED_CAP) "its declared limit" else "$cap characters"
     return """
@@ -75,7 +84,7 @@ object FeatureTaskRuntimeSchemaFailureCorrections {
       segment applied no edits, say that it applied none and why it was already satisfied — the absence of
       work is shorter to report than to prove. Move any remaining detail into the schema-authorized
       descriptive fields for this projection, not into this one.
-    """.trimIndent()
+      """.trimIndent()
   }
 
   private const val UNSTATED_CAP: Int = -1

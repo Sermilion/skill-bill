@@ -23,9 +23,10 @@ data class EffectivePlatformPackCatalog(
 ) {
   val manifests: List<PlatformManifest> = entries.map { entry -> entry.loaded.manifest }
 
-  val manifestsBySlug: Map<String, PlatformManifest> = entries.associate { entry ->
-    entry.loaded.manifest.slug to entry.loaded.manifest
-  }
+  val manifestsBySlug: Map<String, PlatformManifest> =
+    entries.associate { entry ->
+      entry.loaded.manifest.slug to entry.loaded.manifest
+    }
 
   fun entryForSlug(slug: String): EffectivePlatformPackEntry? =
     entries.firstOrNull { entry -> entry.loaded.manifest.slug == slug }

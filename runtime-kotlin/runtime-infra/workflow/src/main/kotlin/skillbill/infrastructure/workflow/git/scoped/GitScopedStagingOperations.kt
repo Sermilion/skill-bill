@@ -17,7 +17,10 @@ private const val INDEX_REMOVAL_OBJECT = "00000000000000000000000000000000000000
 private const val PATHSPEC_BATCH_SIZE = 200
 
 internal object GitScopedStagingOperations : ScopedStagingGitOperations {
-  override fun stagePaths(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult {
+  override fun stagePaths(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitOperationResult {
     val normalized = paths.filter(String::isNotBlank).distinct()
     if (normalized.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
     val resolved = resolveStageablePaths(repoRoot, normalized)
@@ -31,7 +34,10 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
     return WorkflowGitOperationResult.Ok(value = "")
   }
 
-  override fun captureIndexState(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult {
+  override fun captureIndexState(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitOperationResult {
     val normalized = paths.filter(String::isNotBlank).distinct()
     if (normalized.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
     val entries = mutableListOf<String>()
@@ -43,14 +49,19 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
     return WorkflowGitOperationResult.Ok(value = entries.joinToString(GIT_NUL.toString()))
   }
 
-  override fun restoreIndexState(repoRoot: Path, paths: List<String>, snapshot: String): WorkflowGitOperationResult {
+  override fun restoreIndexState(
+    repoRoot: Path,
+    paths: List<String>,
+    snapshot: String,
+  ): WorkflowGitOperationResult {
     val normalized = paths.filter(String::isNotBlank).distinct()
     if (normalized.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
     val entries = snapshot.split(GIT_NUL).filter(String::isNotBlank)
     val snapshotPaths = entries.mapNotNull(::indexEntryPath).toSet()
 
-    val removals = normalized.filterNot { it in snapshotPaths }
-      .map { "$INDEX_REMOVAL_MODE $INDEX_REMOVAL_OBJECT\t$it" }
+    val removals =
+      normalized.filterNot { it in snapshotPaths }
+        .map { "$INDEX_REMOVAL_MODE $INDEX_REMOVAL_OBJECT\t$it" }
     val records = entries + removals
     if (records.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
     val stdin = records.joinToString(GIT_NUL.toString(), postfix = GIT_NUL.toString()).toByteArray()
@@ -60,9 +71,13 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
   override fun stagedPaths(repoRoot: Path): WorkflowGitOperationResult =
     runGitCommand(repoRoot, "diff", "--cached", "--name-only", "-z")
 
-  override fun pathContentIdentities(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult {
-    val present = paths.filter(String::isNotBlank).distinct().sorted()
-      .filter { Files.isRegularFile(repoRoot.resolve(it)) }
+  override fun pathContentIdentities(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitOperationResult {
+    val present =
+      paths.filter(String::isNotBlank).distinct().sorted()
+        .filter { Files.isRegularFile(repoRoot.resolve(it)) }
     if (present.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
     val records = mutableListOf<String>()
     present.chunked(PATHSPEC_BATCH_SIZE).forEach { batch ->
@@ -83,7 +98,10 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
   private fun indexEntryPath(entry: String): String? =
     entry.substringAfter('\t', missingDelimiterValue = "").takeIf(String::isNotBlank)
 
-  private fun resolveStageablePaths(repoRoot: Path, normalized: List<String>): WorkflowGitOperationResult {
+  private fun resolveStageablePaths(
+    repoRoot: Path,
+    normalized: List<String>,
+  ): WorkflowGitOperationResult {
     val indexed = mutableSetOf<String>()
     for (batch in normalized.chunked(PATHSPEC_BATCH_SIZE)) {
       val listed = runGitCommand(repoRoot, listOf("ls-files", "--stage", "-z", "--") + batch)
@@ -101,7 +119,10 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
     return WorkflowGitOperationResult.Ok(value = stageable.joinToString(GIT_NUL.toString()))
   }
 
-  private fun materializePathspecs(repoRoot: Path, paths: List<String>): List<String> {
+  private fun materializePathspecs(
+    repoRoot: Path,
+    paths: List<String>,
+  ): List<String> {
     val materialized = LinkedHashSet<String>()
     for (raw in paths) {
       val relative = raw.trim().removeSuffix("/")
@@ -120,7 +141,10 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
     return materialized.toList()
   }
 
-  private fun ignoredUntrackedPaths(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult {
+  private fun ignoredUntrackedPaths(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitOperationResult {
     if (paths.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
     val ignored = mutableListOf<String>()
     for (batch in paths.chunked(PATHSPEC_BATCH_SIZE)) {
@@ -132,17 +156,21 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
     return WorkflowGitOperationResult.Ok(value = ignored.joinToString(GIT_NUL.toString()))
   }
 
-  private fun parseCheckIgnore(result: GitProcessResult): WorkflowGitOperationResult = when {
-    result.timedOut -> WorkflowGitOperationResult.Failed(
-      error = gitTimedOutError(listOf("check-ignore", "-z", "--stdin")),
-    )
-    result.readFailure != null -> WorkflowGitOperationResult.Failed(
-      error = result.readFailure.message.orEmpty(),
-    )
-    result.exitCode == 0 -> WorkflowGitOperationResult.Ok(value = result.output)
-    result.exitCode == 1 -> WorkflowGitOperationResult.Ok(value = "")
-    else -> WorkflowGitOperationResult.Failed(
-      error = "git check-ignore failed with exit code ${result.exitCode}: ${result.output}",
-    )
-  }
+  private fun parseCheckIgnore(result: GitProcessResult): WorkflowGitOperationResult =
+    when {
+      result.timedOut ->
+        WorkflowGitOperationResult.Failed(
+          error = gitTimedOutError(listOf("check-ignore", "-z", "--stdin")),
+        )
+      result.readFailure != null ->
+        WorkflowGitOperationResult.Failed(
+          error = result.readFailure.message.orEmpty(),
+        )
+      result.exitCode == 0 -> WorkflowGitOperationResult.Ok(value = result.output)
+      result.exitCode == 1 -> WorkflowGitOperationResult.Ok(value = "")
+      else ->
+        WorkflowGitOperationResult.Failed(
+          error = "git check-ignore failed with exit code ${result.exitCode}: ${result.output}",
+        )
+    }
 }

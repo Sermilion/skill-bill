@@ -177,14 +177,15 @@ class ProsePhaseOutputSynthesizerTest {
   @Test
   fun `historical prose status aliases retain canonical output`() {
     listOf("complete" to "completed", "block" to "blocked", "fail" to "failed").forEach { (input, output) ->
-      val raw = """
+      val raw =
+        """
         {
           "phase_id": "implement",
           "status": "$input",
           "summary": "Applied the plan.",
           "produced_outputs": [ { "name": "implementation_receipt", "value": "implementation receipt" } ]
         }
-      """.trimIndent()
+        """.trimIndent()
 
       val envelope = assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "implement"))
       assertEquals(output, envelopeMap(envelope)["status"])
@@ -211,15 +212,16 @@ class ProsePhaseOutputSynthesizerTest {
 
   @Test
   fun `blocked audit external settlement omits verdict`() {
-    val envelope = ProsePhaseOutputSynthesizer.envelopeFromSettlement(
-      SettlementEnvelopeRequest(
-        phaseId = "audit",
-        status = "blocked",
-        value = "Planning criterion list unreadable.",
-        summary = "Audit blocked on external dependency.",
-        failureDisposition = "needs_user_action",
-      ),
-    )
+    val envelope =
+      ProsePhaseOutputSynthesizer.envelopeFromSettlement(
+        SettlementEnvelopeRequest(
+          phaseId = "audit",
+          status = "blocked",
+          value = "Planning criterion list unreadable.",
+          summary = "Audit blocked on external dependency.",
+          failureDisposition = "needs_user_action",
+        ),
+      )
     val map = envelopeMap(envelope)
     assertEquals("blocked", map["status"])
     assertNull(map["verdict"])

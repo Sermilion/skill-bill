@@ -9,9 +9,10 @@ import kotlin.test.assertEquals
 class AgentAddonSchemaContractVersionTest {
   @Test
   fun `Kotlin contract version matches canonical schema`() {
-    val stream = checkNotNull(
-      javaClass.classLoader.getResourceAsStream(AgentAddonSchemaPaths.CLASSPATH_RESOURCE),
-    )
+    val stream =
+      checkNotNull(
+        javaClass.classLoader.getResourceAsStream(AgentAddonSchemaPaths.CLASSPATH_RESOURCE),
+      )
     val schema = stream.use { YAMLMapper().readTree(it) }
 
     val schemaVersion = schema.path("properties").path("contract_version").path("const").asText()

@@ -6,6 +6,7 @@ import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 fun reviewFixCapExhaustion(
   ledger: List<FeatureTaskRuntimePhaseLedgerEntry>?,
   goalReviewCapReached: Boolean?,
@@ -23,20 +24,22 @@ fun auditGapIterationCount(ledger: List<FeatureTaskRuntimePhaseLedgerEntry>?): I
   return ledger.count(::isAuditGapRound)
 }
 
-private fun isAuditGapRound(entry: FeatureTaskRuntimePhaseLedgerEntry): Boolean = when (entry.action) {
-  FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE ->
-    entry.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID
-  FeatureTaskRuntimePhaseLedgerAction.FIX_LOOP_ITERATION ->
-    entry.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT &&
-      FeatureTaskRuntimeContinuationKind.fromLedgerDetail(entry.blockedReason) ==
-      FeatureTaskRuntimeContinuationKind.AUDIT_AC_RETRY
-  else -> false
-}
+private fun isAuditGapRound(entry: FeatureTaskRuntimePhaseLedgerEntry): Boolean =
+  when (entry.action) {
+    FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE ->
+      entry.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID
+    FeatureTaskRuntimePhaseLedgerAction.FIX_LOOP_ITERATION ->
+      entry.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT &&
+        FeatureTaskRuntimeContinuationKind.fromLedgerDetail(entry.blockedReason) ==
+        FeatureTaskRuntimeContinuationKind.AUDIT_AC_RETRY
+    else -> false
+  }
 
-fun FeatureTaskRuntimeRunner.reviewFixCapExhaustion(workflowId: String): Boolean? = reviewFixCapExhaustion(
-  recorder.loadPhaseLedger(workflowId),
-  goalContinuationRecorder.reviewState(workflowId)?.reviewCapReached,
-)
+fun FeatureTaskRuntimeRunner.reviewFixCapExhaustion(workflowId: String): Boolean? =
+  reviewFixCapExhaustion(
+    recorder.loadPhaseLedger(workflowId),
+    goalContinuationRecorder.reviewState(workflowId)?.reviewCapReached,
+  )
 
 fun FeatureTaskRuntimeRunner.auditGapIterationCount(workflowId: String): Int? =
   auditGapIterationCount(recorder.loadPhaseLedger(workflowId))

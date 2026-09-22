@@ -28,20 +28,20 @@ class FileSystemScaffoldRepoValidation(
   private val environmentContext: EnvironmentContext? = null,
   private val catalogLoader: PlatformPackCatalogLoader? = null,
 ) : ScaffoldRepoValidationPort {
-
   override fun validateAuthoringTarget(
     request: ScaffoldAuthoringValidationRequest,
   ): ScaffoldAuthoringValidationResult {
-    val target = AuthoringTarget(
-      skillName = request.skillName,
-      packageName = request.packageName,
-      platform = request.platform,
-      displayName = request.displayName,
-      family = request.family,
-      area = request.area,
-      skillFile = request.skillFile,
-      contentFile = request.contentFile,
-    )
+    val target =
+      AuthoringTarget(
+        skillName = request.skillName,
+        packageName = request.packageName,
+        platform = request.platform,
+        displayName = request.displayName,
+        family = request.family,
+        area = request.area,
+        skillFile = request.skillFile,
+        contentFile = request.contentFile,
+      )
     val issues = validateTarget(target, request.repoRoot)
     return ScaffoldAuthoringValidationResult(issues = issues)
   }
@@ -89,7 +89,10 @@ class FileSystemScaffoldRepoValidation(
     }
   }
 
-  internal fun validateScaffold(plan: ScaffoldPlan, repoRoot: Path) {
+  internal fun validateScaffold(
+    plan: ScaffoldPlan,
+    repoRoot: Path,
+  ) {
     if (plan.kind == SKILL_KIND_AGENT_ADDON) {
       discoverAgentAddons(repoRoot)
       return
@@ -101,35 +104,41 @@ class FileSystemScaffoldRepoValidation(
       }
       return
     }
-    val packRoot = plan.manifestPath?.parent
-      ?: repoRoot.resolve("platform-packs").resolve(plan.platform)
-    val catalog = if (plan.externalPackRoot != null && environmentContext != null && catalogLoader != null) {
-      catalogLoader.loadEffectiveCatalog(
-        PlatformPackDiscoveryContext(
-          repoRoot = repoRoot,
-          userHome = environmentContext.userHome,
-          environment = environmentContext.environment,
-          catalogLoader = catalogLoader,
-        ),
-      ).manifestsBySlug
-    } else {
-      emptyMap()
-    }
+    val packRoot =
+      plan.manifestPath?.parent
+        ?: repoRoot.resolve("platform-packs").resolve(plan.platform)
+    val catalog =
+      if (plan.externalPackRoot != null && environmentContext != null && catalogLoader != null) {
+        catalogLoader.loadEffectiveCatalog(
+          PlatformPackDiscoveryContext(
+            repoRoot = repoRoot,
+            userHome = environmentContext.userHome,
+            environment = environmentContext.environment,
+            catalogLoader = catalogLoader,
+          ),
+        ).manifestsBySlug
+      } else {
+        emptyMap()
+      }
     loadPlatformPack(packRoot, catalog)
   }
 
-  internal fun plannedAuthoringTarget(plan: ScaffoldPlan): AuthoringTarget = AuthoringTarget(
-    skillName = plan.skillName,
-    packageName = plan.platform.ifBlank { "base" },
-    platform = plan.platform,
-    displayName = plan.displayName.ifBlank { displayNameFromSlug(plan.skillName.removePrefix("bill-")) },
-    family = plan.family,
-    area = plan.area,
-    skillFile = plan.skillFile,
-    contentFile = plan.contentFile ?: plan.skillPath.resolve(CONTENT_BODY_FILENAME),
-  )
+  internal fun plannedAuthoringTarget(plan: ScaffoldPlan): AuthoringTarget =
+    AuthoringTarget(
+      skillName = plan.skillName,
+      packageName = plan.platform.ifBlank { "base" },
+      platform = plan.platform,
+      displayName = plan.displayName.ifBlank { displayNameFromSlug(plan.skillName.removePrefix("bill-")) },
+      family = plan.family,
+      area = plan.area,
+      skillFile = plan.skillFile,
+      contentFile = plan.contentFile ?: plan.skillPath.resolve(CONTENT_BODY_FILENAME),
+    )
 
-  private fun validateBaselineLayerModeSupported(index: Int, layer: CodeReviewBaselineLayer) {
+  private fun validateBaselineLayerModeSupported(
+    index: Int,
+    layer: CodeReviewBaselineLayer,
+  ) {
     val unsupportedReason = unsupportedCompositionModeReason(layer)
     if (unsupportedReason != null) {
       failBaselineUnsupportedMode(index, layer, unsupportedReason)
@@ -137,27 +146,42 @@ class FileSystemScaffoldRepoValidation(
   }
 }
 
-private fun failBaselineLayersNotAList(): Nothing = throw InvalidScaffoldPayloadError(
-  "Scaffold payload field 'baseline_layers' must be a list of baseline layer objects.",
-)
+private fun failBaselineLayersNotAList(): Nothing =
+  throw InvalidScaffoldPayloadError(
+    "Scaffold payload field 'baseline_layers' must be a list of baseline layer objects.",
+  )
 
-private fun failBaselineLayersEmpty(): Nothing = throw InvalidScaffoldPayloadError(
-  "Scaffold payload field 'baseline_layers' must contain at least one layer when provided.",
-)
+private fun failBaselineLayersEmpty(): Nothing =
+  throw InvalidScaffoldPayloadError(
+    "Scaffold payload field 'baseline_layers' must contain at least one layer when provided.",
+  )
 
-private fun failBaselineSelfReference(index: Int, targetLabel: String): Nothing = throw InvalidScaffoldPayloadError(
-  "Scaffold payload field 'baseline_layers[$index]' self-references the new platform pack '$targetLabel'.",
-)
+private fun failBaselineSelfReference(
+  index: Int,
+  targetLabel: String,
+): Nothing =
+  throw InvalidScaffoldPayloadError(
+    "Scaffold payload field 'baseline_layers[$index]' self-references the new platform pack '$targetLabel'.",
+  )
 
-private fun failBaselineDuplicate(targetLabel: String): Nothing = throw InvalidScaffoldPayloadError(
-  "Scaffold payload field 'baseline_layers' contains duplicate layer '$targetLabel'.",
-)
+private fun failBaselineDuplicate(targetLabel: String): Nothing =
+  throw InvalidScaffoldPayloadError(
+    "Scaffold payload field 'baseline_layers' contains duplicate layer '$targetLabel'.",
+  )
 
-private fun failBaselineMissingPack(index: Int, platform: String): Nothing = throw InvalidScaffoldPayloadError(
-  "Scaffold payload field 'baseline_layers[$index]' references missing platform pack '$platform'.",
-)
+private fun failBaselineMissingPack(
+  index: Int,
+  platform: String,
+): Nothing =
+  throw InvalidScaffoldPayloadError(
+    "Scaffold payload field 'baseline_layers[$index]' references missing platform pack '$platform'.",
+  )
 
-private fun failBaselineMissingSkill(index: Int, platform: String, skill: String): Nothing =
+private fun failBaselineMissingSkill(
+  index: Int,
+  platform: String,
+  skill: String,
+): Nothing =
   throw InvalidScaffoldPayloadError(
     "Scaffold payload field 'baseline_layers[$index]' references missing code-review skill " +
       "'$skill' in platform pack '$platform'.",
@@ -167,10 +191,13 @@ private fun failBaselineUnsupportedMode(
   index: Int,
   layer: CodeReviewBaselineLayer,
   unsupportedReason: String,
-): Nothing = throw InvalidScaffoldPayloadError(
-  "Scaffold payload field 'baseline_layers[$index].mode' uses mode '${layer.mode.wireValue}' with " +
-    "unsupported referenced skill '${layer.platform}/${layer.skill}'. $unsupportedReason",
-)
+): Nothing =
+  throw InvalidScaffoldPayloadError(
+    "Scaffold payload field 'baseline_layers[$index].mode' uses mode '${layer.mode.wireValue}' with " +
+      "unsupported referenced skill '${layer.platform}/${layer.skill}'. $unsupportedReason",
+  )
 
-private fun failMissingRequiredSection(skillName: String, firstIssue: String): Nothing =
-  throw MissingRequiredSectionError("Horizontal skill '$skillName': $firstIssue")
+private fun failMissingRequiredSection(
+  skillName: String,
+  firstIssue: String,
+): Nothing = throw MissingRequiredSectionError("Horizontal skill '$skillName': $firstIssue")

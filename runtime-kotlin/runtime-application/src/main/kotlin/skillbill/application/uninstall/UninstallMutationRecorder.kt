@@ -7,7 +7,10 @@ class UninstallMutationRecorder(
 ) {
   private val failures = mutableListOf<String>()
 
-  fun recordFailure(description: String, error: Throwable) {
+  fun recordFailure(
+    description: String,
+    error: Throwable,
+  ) {
     diagnostics.error("uninstall mutation failed: $description", error)
     failures += "$description: ${error.message.orEmpty()}"
   }

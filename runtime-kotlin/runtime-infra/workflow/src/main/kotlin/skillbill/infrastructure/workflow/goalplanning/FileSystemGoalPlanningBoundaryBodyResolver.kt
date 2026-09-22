@@ -16,27 +16,29 @@ class FileSystemGoalPlanningBoundaryBodyResolver : GoalPlanningBoundaryBodyResol
     loudFailOnCapExceeded: Boolean,
   ): GoalPlanningResolvedBoundaryBodies {
     val canonicalRoot = GoalPlanningRepositoryScope.canonicalRoot(repoRoot)
-    val state = BoundaryBodyResolutionState(
-      bodies = mutableListOf(),
-      unresolved = mutableListOf(),
-      parsedByPath = mutableMapOf(),
-      truncated = false,
-      totalBytes = 0,
-    )
+    val state =
+      BoundaryBodyResolutionState(
+        bodies = mutableListOf(),
+        unresolved = mutableListOf(),
+        parsedByPath = mutableMapOf(),
+        truncated = false,
+        totalBytes = 0,
+      )
     val requested = headingIds.distinct()
     for ((index, headingId) in requested.withIndex()) {
-      val step = resolveBoundaryHeading(
-        BoundaryHeadingResolutionInput(
-          canonicalRoot = canonicalRoot,
-          headingId = headingId,
-          index = index,
-          requested = requested,
-          catalogHeadingIds = catalogHeadingIds,
-          caps = caps,
-          loudFailOnCapExceeded = loudFailOnCapExceeded,
-          state = state,
-        ),
-      )
+      val step =
+        resolveBoundaryHeading(
+          BoundaryHeadingResolutionInput(
+            canonicalRoot = canonicalRoot,
+            headingId = headingId,
+            index = index,
+            requested = requested,
+            catalogHeadingIds = catalogHeadingIds,
+            caps = caps,
+            loudFailOnCapExceeded = loudFailOnCapExceeded,
+            state = state,
+          ),
+        )
       if (!step.continueLoop) {
         break
       }

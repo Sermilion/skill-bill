@@ -47,16 +47,17 @@ data class GoalObservabilityProgressEvent(
   val sequenceNumber: Int,
   val timestamp: String,
 ) {
-  fun toObservabilityEvent(): GoalObservabilityEvent = GoalObservabilityEvent(
-    issueKey = issueKey,
-    subtaskId = subtaskId,
-    workflowPhase = workflowPhase,
-    workerRole = workerRole,
-    livenessClass = livenessClass,
-    activitySummary = activitySummary,
-    timestamp = timestamp,
-    sequenceNumber = sequenceNumber,
-  )
+  fun toObservabilityEvent(): GoalObservabilityEvent =
+    GoalObservabilityEvent(
+      issueKey = issueKey,
+      subtaskId = subtaskId,
+      workflowPhase = workflowPhase,
+      workerRole = workerRole,
+      livenessClass = livenessClass,
+      activitySummary = activitySummary,
+      timestamp = timestamp,
+      sequenceNumber = sequenceNumber,
+    )
 }
 
 data class GoalRunnerAttemptLedgerSummary(

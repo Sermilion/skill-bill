@@ -43,9 +43,10 @@ class FeatureTaskRuntimePlanningProjectionModelsTest {
     assertTrue(
       featureTaskRuntimeIsDecompositionPackage(
         mapOf(
-          "produced_outputs" to mapOf(
-            "decomposition_package" to mapOf("mode" to "decompose", "subtasks" to listOf<Any>()),
-          ),
+          "produced_outputs" to
+            mapOf(
+              "decomposition_package" to mapOf("mode" to "decompose", "subtasks" to listOf<Any>()),
+            ),
         ),
       ),
     )
@@ -65,10 +66,11 @@ class FeatureTaskRuntimePlanningProjectionModelsTest {
     assertNull(
       featureTaskRuntimeDecomposePlanOutcomeOrNull(
         mapOf(
-          "produced_outputs" to mapOf(
-            "value" to "prose plan with leftover decompose mode",
-            "mode" to "decompose",
-          ),
+          "produced_outputs" to
+            mapOf(
+              "value" to "prose plan with leftover decompose mode",
+              "mode" to "decompose",
+            ),
         ),
         SpecSource.LOCAL,
       ),
@@ -79,48 +81,51 @@ class FeatureTaskRuntimePlanningProjectionModelsTest {
         SpecSource.LOCAL,
       ),
     )
-    val outcome = featureTaskRuntimeDecomposePlanOutcomeOrNull(
-      mapOf(
-        "summary" to "Plan needs ordered subtasks.",
-        "produced_outputs" to mapOf("decomposition_package" to nestedDecompositionPackage()),
-      ),
-      SpecSource.LOCAL,
-    )
+    val outcome =
+      featureTaskRuntimeDecomposePlanOutcomeOrNull(
+        mapOf(
+          "summary" to "Plan needs ordered subtasks.",
+          "produced_outputs" to mapOf("decomposition_package" to nestedDecompositionPackage()),
+        ),
+        SpecSource.LOCAL,
+      )
     assertNotNull(outcome)
     assertEquals("runtime decomposition", outcome.featureName)
   }
 
-  private fun nestedDecompositionPackage(): Map<String, Any?> = mapOf(
-    "mode" to "decompose",
-    "reason" to "Plan needs ordered subtasks.",
-    "feature_name" to "runtime decomposition",
-    "parent_spec_overview" to "Split work into subtasks.",
-    "validation_strategy" to "bill-code-check",
-    "base_branch" to "main",
-    "feature_branch" to "feat/decompose",
-    "subtasks" to listOf(
-      mapOf(
-        "id" to 1,
-        "name" to "first",
-        "scope" to "First subtask.",
-        "acceptance_criteria" to listOf("First."),
-        "non_goals" to emptyList<String>(),
-        "dependency_notes" to "First.",
-        "validation_strategy" to "unit tests",
-        "next_path" to "Next.",
-        "depends_on" to emptyList<Int>(),
-      ),
-      mapOf(
-        "id" to 2,
-        "name" to "second",
-        "scope" to "Second subtask.",
-        "acceptance_criteria" to listOf("Second."),
-        "non_goals" to emptyList<String>(),
-        "dependency_notes" to "Second.",
-        "validation_strategy" to "unit tests",
-        "next_path" to "Done.",
-        "depends_on" to listOf(1),
-      ),
-    ),
-  )
+  private fun nestedDecompositionPackage(): Map<String, Any?> =
+    mapOf(
+      "mode" to "decompose",
+      "reason" to "Plan needs ordered subtasks.",
+      "feature_name" to "runtime decomposition",
+      "parent_spec_overview" to "Split work into subtasks.",
+      "validation_strategy" to "bill-code-check",
+      "base_branch" to "main",
+      "feature_branch" to "feat/decompose",
+      "subtasks" to
+        listOf(
+          mapOf(
+            "id" to 1,
+            "name" to "first",
+            "scope" to "First subtask.",
+            "acceptance_criteria" to listOf("First."),
+            "non_goals" to emptyList<String>(),
+            "dependency_notes" to "First.",
+            "validation_strategy" to "unit tests",
+            "next_path" to "Next.",
+            "depends_on" to emptyList<Int>(),
+          ),
+          mapOf(
+            "id" to 2,
+            "name" to "second",
+            "scope" to "Second subtask.",
+            "acceptance_criteria" to listOf("Second."),
+            "non_goals" to emptyList<String>(),
+            "dependency_notes" to "Second.",
+            "validation_strategy" to "unit tests",
+            "next_path" to "Done.",
+            "depends_on" to listOf(1),
+          ),
+        ),
+    )
 }

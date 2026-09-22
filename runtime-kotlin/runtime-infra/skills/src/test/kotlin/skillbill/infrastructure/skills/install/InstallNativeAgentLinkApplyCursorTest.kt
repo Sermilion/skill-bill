@@ -26,27 +26,30 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSupport() {
   @Test
   fun `inventory deletion followed by multi provider apply publishes canonical readable entries`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
     Files.createDirectories(fixture.home.resolve(".cursor"))
-    val request = fixture.request(
-      selectedPlatforms = setOf("kotlin"),
-      agents = setOf(InstallAgent.CODEX, InstallAgent.CURSOR),
-    )
+    val request =
+      fixture.request(
+        selectedPlatforms = setOf("kotlin"),
+        agents = setOf(InstallAgent.CODEX, InstallAgent.CURSOR),
+      )
     val first = applyInstallForTest(planInstallForTest(request))
     assertEquals(InstallApplyStatus.SUCCESS, first.status)
     Files.delete(fixture.home.resolve(".skill-bill/native-agent-link-inventory.json"))
 
     val second = applyInstallForTest(planInstallForTest(request))
     assertEquals(InstallApplyStatus.SUCCESS, second.status)
-    val cacheRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val cacheRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     val entries = NativeAgentLinkInventory.read(fixture.home, listOf(cacheRoot), fixture.repoRoot)
     assertEquals(setOf("codex", "cursor"), entries.map { it.provider }.toSet())
     assertTrue(entries.all { it.contentDigest != "0".repeat(64) && Files.isReadable(it.cacheTargetPath) })
@@ -60,20 +63,22 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     Files.createDirectories(fixture.home.resolve(".codex"))
     Files.createDirectories(fixture.home.resolve(".junie"))
     Files.createDirectories(fixture.home.resolve(".cursor"))
-    val result = applyInstallForTest(
-      planInstallForTest(
-        fixture.request(
-          selectedPlatforms = setOf(HARBOR_PACK_SLUG),
-          agents = allInstallAgents,
+    val result =
+      applyInstallForTest(
+        planInstallForTest(
+          fixture.request(
+            selectedPlatforms = setOf(HARBOR_PACK_SLUG),
+            agents = allInstallAgents,
+          ),
         ),
-      ),
-    )
+      )
     assertEquals(InstallApplyStatus.SUCCESS, result.status, "apply failures: ${result.failures}")
-    val cacheRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val cacheRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     NativeAgentProvider.entries.forEach { provider ->
       val artifact = provider.cacheArtifactPath(cacheRoot, HARBOR_ARCHITECTURE_WORKER)
       assertTrue(Files.isRegularFile(artifact), "${provider.directoryName} missing $HARBOR_ARCHITECTURE_WORKER")
@@ -94,11 +99,12 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     val linkPath = targetDir.resolve("bill-worker.md")
     createSymlinkOrSkip(linkPath, userSource)
 
-    val result = installNativeAgentFile(
-      source = newSource,
-      agentTarget = AgentTarget("codex", targetDir.toFileLocation()),
-      managedSourceRoots = listOf(cacheRoot),
-    )
+    val result =
+      installNativeAgentFile(
+        source = newSource,
+        agentTarget = AgentTarget("codex", targetDir.toFileLocation()),
+        managedSourceRoots = listOf(cacheRoot),
+      )
 
     assertTrue(result is InstallNativeAgentResult.Skipped)
     assertEquals(userSource.toAbsolutePath().normalize(), readSymlinkTarget(linkPath))
@@ -110,24 +116,27 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     Files.createDirectories(fixture.home.resolve(".codex"))
     val targetDir = fixture.home.resolve(".codex/agents")
     Files.createDirectories(targetDir)
-    val legacyRoot = NativeAgentOperations.installCacheRoot(
-      home = fixture.home,
-      platformPacksRoot = fixture.repoRoot.resolve("platform-packs"),
-      skillsRoot = fixture.repoRoot.resolve("skills"),
-    )
-    val legacyFile = legacyRoot
-      .resolve(NativeAgentProvider.Codex.directoryName)
-      .resolve("bill-code-review-worker.${NativeAgentProvider.Codex.extension}")
+    val legacyRoot =
+      NativeAgentOperations.installCacheRoot(
+        home = fixture.home,
+        platformPacksRoot = fixture.repoRoot.resolve("platform-packs"),
+        skillsRoot = fixture.repoRoot.resolve("skills"),
+      )
+    val legacyFile =
+      legacyRoot
+        .resolve(NativeAgentProvider.Codex.directoryName)
+        .resolve("bill-code-review-worker.${NativeAgentProvider.Codex.extension}")
     Files.createDirectories(legacyFile.parent)
     Files.writeString(legacyFile, "legacy")
     val linkPath = targetDir.resolve(legacyFile.fileName)
     createSymlinkOrSkip(linkPath, legacyFile)
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -142,12 +151,13 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
   fun `replacement apply removes native agent links from deselected platforms`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val kmpPlan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kmp"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val kmpPlan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kmp"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
     val first = applyInstallForTest(kmpPlan)
     assertEquals(InstallApplyStatus.SUCCESS, first.status)
     val targetDir = fixture.home.resolve(".codex/agents")
@@ -155,26 +165,29 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     val kmpNativeAgent = targetDir.resolve("bill-kmp-code-review-worker.toml")
     assertTrue(Files.isSymbolicLink(baseNativeAgent))
     assertTrue(Files.isSymbolicLink(kmpNativeAgent))
-    val legacyRoot = NativeAgentOperations.installCacheRoot(
-      home = fixture.home,
-      platformPacksRoot = fixture.repoRoot.resolve("platform-packs"),
-      skillsRoot = fixture.repoRoot.resolve("skills"),
-    )
-    val legacyKmpNativeAgent = legacyRoot
-      .resolve(NativeAgentProvider.Codex.directoryName)
-      .resolve(kmpNativeAgent.fileName)
+    val legacyRoot =
+      NativeAgentOperations.installCacheRoot(
+        home = fixture.home,
+        platformPacksRoot = fixture.repoRoot.resolve("platform-packs"),
+        skillsRoot = fixture.repoRoot.resolve("skills"),
+      )
+    val legacyKmpNativeAgent =
+      legacyRoot
+        .resolve(NativeAgentProvider.Codex.directoryName)
+        .resolve(kmpNativeAgent.fileName)
     Files.createDirectories(legacyKmpNativeAgent.parent)
     Files.writeString(legacyKmpNativeAgent, "legacy kmp")
     Files.delete(kmpNativeAgent)
     createSymlinkOrSkip(kmpNativeAgent, legacyKmpNativeAgent)
     assertEquals(legacyKmpNativeAgent.toAbsolutePath().normalize(), readSymlinkTarget(kmpNativeAgent))
 
-    val baseOnlyReplacementPlan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        replaceExistingSkillBillLinks = true,
-      ),
-    )
+    val baseOnlyReplacementPlan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          replaceExistingSkillBillLinks = true,
+        ),
+      )
     val second = applyInstallForTest(baseOnlyReplacementPlan)
 
     assertEquals(InstallApplyStatus.SUCCESS, second.status)
@@ -186,21 +199,24 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
   fun `replacement apply prunes deselected packs from installed review catalog`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val firstPlan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kmp"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val firstPlan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kmp"), agents = setOf(InstallAgent.CODEX)),
+      )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(firstPlan).status)
-    val cacheRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val cacheRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     val catalog = cacheRoot.resolve("review-catalog/platform-packs")
     assertTrue(Files.isDirectory(catalog.resolve("kmp")))
 
-    val replacementPlan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val replacementPlan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(replacementPlan).status)
 
     assertFalse(Files.exists(catalog.resolve("kmp"), LinkOption.NOFOLLOW_LINKS))
@@ -211,15 +227,17 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
   fun `failed replacement apply restores the previously published review catalog`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val firstPlan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val firstPlan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(firstPlan).status)
-    val catalog = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    ).resolve("review-catalog/platform-packs")
+    val catalog =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      ).resolve("review-catalog/platform-packs")
     val publishedManifest = Files.readString(catalog.resolve("kotlin/platform.yaml"))
     val userFile = fixture.home.resolve(".codex/agents/user-notes.md")
     Files.createDirectories(userFile.parent)
@@ -227,9 +245,10 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
 
     val inventory = fixture.home.resolve(".skill-bill/native-agent-link-inventory.json")
     Files.writeString(inventory, "not-json")
-    val replacementPlan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kmp"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val replacementPlan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kmp"), agents = setOf(InstallAgent.CODEX)),
+      )
 
     val result = applyInstallForTest(replacementPlan)
 
@@ -247,17 +266,19 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     Files.createDirectories(sourcePack.resolve("agent"))
     Files.writeString(sourcePack.resolve("agent/history.md"), "boundary history")
     Files.writeString(sourcePack.resolve("unrelated-custom-file.txt"), "not review runtime content")
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
 
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(plan).status)
 
-    val cacheRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val cacheRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     val installedPack = cacheRoot.resolve("review-catalog/platform-packs/kotlin")
     assertTrue(Files.isRegularFile(installedPack.resolve("platform.yaml")))
     assertTrue(
@@ -272,17 +293,19 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     val fixture = setupApplyFixture()
     seedHarborAddonPack(fixture.repoRoot)
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf(HARBOR_PACK_SLUG), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf(HARBOR_PACK_SLUG), agents = setOf(InstallAgent.CODEX)),
+      )
 
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(plan).status)
 
-    val installedPack = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    ).resolve("review-catalog/platform-packs/$HARBOR_PACK_SLUG")
+    val installedPack =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      ).resolve("review-catalog/platform-packs/$HARBOR_PACK_SLUG")
     assertTrue(Files.isRegularFile(installedPack.resolve("addons/$HARBOR_ENTRYPOINT_NAME")))
     assertTrue(Files.isRegularFile(installedPack.resolve("addons/$HARBOR_COMPANION_NAME")))
     assertEquals(
@@ -311,19 +334,21 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
           PosixFilePermission.OTHERS_WRITE,
       )
       val probe = targetDir.resolve("probe")
-      val canStillCreateSymlink = runCatching {
-        Files.createSymbolicLink(probe, newSource)
-        Files.deleteIfExists(probe)
-      }.isSuccess
+      val canStillCreateSymlink =
+        runCatching {
+          Files.createSymbolicLink(probe, newSource)
+          Files.deleteIfExists(probe)
+        }.isSuccess
       Assumptions.assumeFalse(canStillCreateSymlink, "read-only directory still allows symlink creation")
 
-      val failure = runCatching {
-        installNativeAgentFile(
-          source = newSource,
-          agentTarget = AgentTarget("codex", targetDir.toFileLocation()),
-          managedSourceRoots = listOf(managedRoot),
-        )
-      }.exceptionOrNull()
+      val failure =
+        runCatching {
+          installNativeAgentFile(
+            source = newSource,
+            agentTarget = AgentTarget("codex", targetDir.toFileLocation()),
+            managedSourceRoots = listOf(managedRoot),
+          )
+        }.exceptionOrNull()
 
       assertNotNull(failure, "replacement should fail in read-only target dir")
       assertEquals(oldSource.toAbsolutePath().normalize(), readSymlinkTarget(linkPath))

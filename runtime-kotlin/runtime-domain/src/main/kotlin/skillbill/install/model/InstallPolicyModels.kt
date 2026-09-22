@@ -12,7 +12,6 @@ data class InstallPlatformPackSnapshot(
   val slug: String,
   val packRoot: FileLocation,
   val skills: List<InstallPlanSkill>,
-
   val baselineLayers: List<CodeReviewBaselineLayer> = emptyList(),
 )
 
@@ -52,19 +51,20 @@ data class InstallPlanDraft(
   val installationTargetPaths: InstallationTargetPaths,
   val windowsSymlinkPreflight: WindowsSymlinkPreflight,
 ) {
-  fun toInstallPlan(staging: InstallStagingIntent): InstallPlan = InstallPlan(
-    request = request,
-    agents = agents,
-    discoveredPlatformPacks = discoveredPlatformPacks,
-    selectedPlatformSlugs = selectedPlatformSlugs,
-    skills = skills,
-    staging = staging,
-    telemetryLevel = telemetryLevel,
-    mcpRegistrationIntent = mcpRegistrationIntent,
-    runtimeDistributionInputs = runtimeDistributionInputs,
-    installationTargetPaths = installationTargetPaths,
-    windowsSymlinkPreflight = windowsSymlinkPreflight,
-  )
+  fun toInstallPlan(staging: InstallStagingIntent): InstallPlan =
+    InstallPlan(
+      request = request,
+      agents = agents,
+      discoveredPlatformPacks = discoveredPlatformPacks,
+      selectedPlatformSlugs = selectedPlatformSlugs,
+      skills = skills,
+      staging = staging,
+      telemetryLevel = telemetryLevel,
+      mcpRegistrationIntent = mcpRegistrationIntent,
+      runtimeDistributionInputs = runtimeDistributionInputs,
+      installationTargetPaths = installationTargetPaths,
+      windowsSymlinkPreflight = windowsSymlinkPreflight,
+    )
 }
 
 data class InstallPolicyValidationResult(

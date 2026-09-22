@@ -23,42 +23,50 @@ class FileSystemScaffoldOrchestrator(
   private val catalogLoader: PlatformPackCatalogLoader,
   private val packSourceConfig: ExternalPlatformPackSourceConfigPort,
 ) {
-  fun scaffold(payload: Map<String, Any?>, dryRun: Boolean): ScaffoldResult = scaffoldWithAdapters(
-    payload,
-    dryRun,
-    adapterSeams(),
-    runtime = ScaffoldRuntimeContext(
-      userHome = environmentContext.userHome,
-      environment = environmentContext.environment,
-      catalogLoader = catalogLoader,
-      packSourceConfig = packSourceConfig,
-    ),
-  )
-
-  fun scaffold(request: ScaffoldCommandRequest, dryRun: Boolean): ScaffoldResult =
-    scaffold(request.toRawScaffoldPayload(), dryRun)
-
-  private fun adapterSeams(): ScaffoldAdapterSeams = ScaffoldAdapterSeams(
-    validateScaffold = { plan, repoRoot -> repoValidation.validateScaffold(plan, repoRoot) },
-    optionalBaselineLayers = { payload, repoRoot, newPlatform ->
-      repoValidation.optionalBaselineLayers(payload, repoRoot, newPlatform)
-    },
-    resolveAddonConsumerSkillDirs = { payload, packRoot, pack ->
-      sourceLoader.resolveAddonConsumerSkillDirs(payload, packRoot, pack)
-    },
-    performInstall = { txn, plan, repoRoot ->
-      performScaffoldInstall(
-        txn,
-        plan,
-        repoRoot,
+  fun scaffold(
+    payload: Map<String, Any?>,
+    dryRun: Boolean,
+  ): ScaffoldResult =
+    scaffoldWithAdapters(
+      payload,
+      dryRun,
+      adapterSeams(),
+      runtime =
         ScaffoldRuntimeContext(
           userHome = environmentContext.userHome,
           environment = environmentContext.environment,
           catalogLoader = catalogLoader,
           packSourceConfig = packSourceConfig,
         ),
-      )
-    },
-    rollbackInstallTargets = { txn, errors -> rollbackScaffoldInstallTargets(txn, errors) },
-  )
+    )
+
+  fun scaffold(
+    request: ScaffoldCommandRequest,
+    dryRun: Boolean,
+  ): ScaffoldResult = scaffold(request.toRawScaffoldPayload(), dryRun)
+
+  private fun adapterSeams(): ScaffoldAdapterSeams =
+    ScaffoldAdapterSeams(
+      validateScaffold = { plan, repoRoot -> repoValidation.validateScaffold(plan, repoRoot) },
+      optionalBaselineLayers = { payload, repoRoot, newPlatform ->
+        repoValidation.optionalBaselineLayers(payload, repoRoot, newPlatform)
+      },
+      resolveAddonConsumerSkillDirs = { payload, packRoot, pack ->
+        sourceLoader.resolveAddonConsumerSkillDirs(payload, packRoot, pack)
+      },
+      performInstall = { txn, plan, repoRoot ->
+        performScaffoldInstall(
+          txn,
+          plan,
+          repoRoot,
+          ScaffoldRuntimeContext(
+            userHome = environmentContext.userHome,
+            environment = environmentContext.environment,
+            catalogLoader = catalogLoader,
+            packSourceConfig = packSourceConfig,
+          ),
+        )
+      },
+      rollbackInstallTargets = { txn, errors -> rollbackScaffoldInstallTargets(txn, errors) },
+    )
 }

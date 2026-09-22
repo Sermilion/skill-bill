@@ -4,6 +4,7 @@ import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKe
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+
 class GoalPlanningSharedContextPacketTypedErrorTest {
   @Test
   fun `malformed shared context catalog raises the planning schema error`() {

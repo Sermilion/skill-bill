@@ -27,9 +27,10 @@ class WorktreeEditJournalStoreTest {
       assertEquals(secondTick, unitOfWork.worktreeEditJournal.latestTick("wfl-a"))
     }
 
-    val deleted = factory.selfManagedWrite { unitOfWork ->
-      unitOfWork.worktreeEditJournal.trimToCap("wfl-a", maxRows = secondTick.entries.size)
-    }
+    val deleted =
+      factory.selfManagedWrite { unitOfWork ->
+        unitOfWork.worktreeEditJournal.trimToCap("wfl-a", maxRows = secondTick.entries.size)
+      }
 
     assertEquals(firstTick.entries.size, deleted)
     factory.read { unitOfWork ->
@@ -50,12 +51,14 @@ class WorktreeEditJournalStoreTest {
     recordedAt: String,
     phaseId: String,
     vararg entries: Pair<String, Pair<Int, Int>>,
-  ): WorktreeEditTick = WorktreeEditTick(
-    recordedAt = Instant.parse(recordedAt),
-    phaseId = phaseId,
-    source = WorktreeEditSource.WORKTREE_PROBE,
-    entries = entries.map { (path, counts) ->
-      GoalObservabilityFileDiffStat(path = path, insertions = counts.first, deletions = counts.second)
-    },
-  )
+  ): WorktreeEditTick =
+    WorktreeEditTick(
+      recordedAt = Instant.parse(recordedAt),
+      phaseId = phaseId,
+      source = WorktreeEditSource.WORKTREE_PROBE,
+      entries =
+        entries.map { (path, counts) ->
+          GoalObservabilityFileDiffStat(path = path, insertions = counts.first, deletions = counts.second)
+        },
+    )
 }

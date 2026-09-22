@@ -44,7 +44,10 @@ internal fun migrateLegacyTelemetryOutboxLedger(connection: Connection) {
   }
 }
 
-internal fun materializeReviewFinishedPayload(connection: Connection, payload: Map<String, Any?>): Map<String, Any?> {
+internal fun materializeReviewFinishedPayload(
+  connection: Connection,
+  payload: Map<String, Any?>,
+): Map<String, Any?> {
   if (payload.isEmpty() || !isLegacyReviewFinished(payload)) return payload
   val reviewRunId = payload.stringHealthValue("review_run_id")
   if (reviewRunId.isBlank()) return payload
@@ -58,7 +61,11 @@ internal fun materializeReviewFinishedPayload(connection: Connection, payload: M
   }
 }
 
-private fun migrateLegacyReviewFinishedRow(connection: Connection, outboxId: Long, raw: String) {
+private fun migrateLegacyReviewFinishedRow(
+  connection: Connection,
+  outboxId: Long,
+  raw: String,
+) {
   val payload = parseHealthJsonObject(raw)
   if (payload.isEmpty() || !isLegacyReviewFinished(payload)) return
   val reviewRunId = payload.stringHealthValue("review_run_id")
@@ -74,7 +81,7 @@ private fun migrateLegacyReviewFinishedRow(connection: Connection, outboxId: Lon
       ReviewVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,
       SqliteReviewTelemetryPayloadKeys.FROM_VERSION to (
         payload[SharedPayloadKeys.CONTRACT_VERSION]?.toString() ?: REVIEW_FINISHED_LEGACY_CONTRACT_VERSION
-        ),
+      ),
       SqliteReviewTelemetryPayloadKeys.TO_VERSION to REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION,
     ),
   )
@@ -96,24 +103,32 @@ private fun regenerateReviewFinishedPayload(
   payload: Map<String, Any?>,
   reviewRunId: String,
 ): Map<String, Any?> {
-  val regenerated = ReviewStatsRuntime.buildReviewFinishedPayload(
-    ReviewFinishedPayloadBuildRequest(connection = connection, reviewRunId = reviewRunId),
-  )
-    .toReviewFinishedTelemetryPayload()
-    .toPayload()
+  val regenerated =
+    ReviewStatsRuntime.buildReviewFinishedPayload(
+      ReviewFinishedPayloadBuildRequest(connection = connection, reviewRunId = reviewRunId),
+    )
+      .toReviewFinishedTelemetryPayload()
+      .toPayload()
   return LinkedHashMap(payload).apply {
     putAll(regenerated)
     put(SharedPayloadKeys.CONTRACT_VERSION, REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION)
   }
 }
 
-private fun reviewRunRowExists(connection: Connection, reviewRunId: String): Boolean =
+private fun reviewRunRowExists(
+  connection: Connection,
+  reviewRunId: String,
+): Boolean =
   connection.prepareStatement("SELECT 1 FROM review_runs WHERE review_run_id = ?").use { statement ->
     statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet -> resultSet.next() }
   }
 
-private fun rewriteOutboxPayload(connection: Connection, outboxId: Long, payload: Map<String, Any?>) {
+private fun rewriteOutboxPayload(
+  connection: Connection,
+  outboxId: Long,
+  payload: Map<String, Any?>,
+) {
   connection.prepareStatement(
     "UPDATE telemetry_outbox SET payload_json = ? WHERE id = ?",
   ).use { statement ->

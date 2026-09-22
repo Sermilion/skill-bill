@@ -20,19 +20,19 @@ internal class GoalRunnerProgressEventEmitter(
 
   override fun emit(emission: AgentRunProgressEmission) {
     val workflowId = resolveEmitWorkflowId() ?: return
-    val event = GoalProgressEvent(
-      eventKind = emission.eventKind,
-      workflowId = workflowId,
-
-      workflowPhase = "goal_runner_supervision",
-      processAlive = emission.processAlive,
-      sequenceNumber = sequence++,
-      timestamp = clock.instant().toString(),
-      operationName = emission.operationName,
-      operationKind = emission.operationKind,
-      expectedLong = emission.expectedLong,
-      outcome = emission.outcome,
-    )
+    val event =
+      GoalProgressEvent(
+        eventKind = emission.eventKind,
+        workflowId = workflowId,
+        workflowPhase = "goal_runner_supervision",
+        processAlive = emission.processAlive,
+        sequenceNumber = sequence++,
+        timestamp = clock.instant().toString(),
+        operationName = emission.operationName,
+        operationKind = emission.operationKind,
+        expectedLong = emission.expectedLong,
+        outcome = emission.outcome,
+      )
     GoalRunnerBestEffortEmission.record(
       diagnostics = diagnostics,
       write = {
@@ -52,12 +52,13 @@ internal class GoalRunnerProgressEventEmitter(
     )
   }
 
-  private fun resolveEmitWorkflowId(): String? = try {
-    resolveWorkflowId()?.takeIf(String::isNotBlank)
-  } catch (cancellation: CancellationException) {
-    throw cancellation
-  } catch (interrupted: InterruptedException) {
-    Thread.currentThread().interrupt()
-    throw interrupted
-  }
+  private fun resolveEmitWorkflowId(): String? =
+    try {
+      resolveWorkflowId()?.takeIf(String::isNotBlank)
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (interrupted: InterruptedException) {
+      Thread.currentThread().interrupt()
+      throw interrupted
+    }
 }

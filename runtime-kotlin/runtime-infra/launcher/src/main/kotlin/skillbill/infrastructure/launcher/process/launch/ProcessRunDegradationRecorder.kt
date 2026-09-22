@@ -27,9 +27,10 @@ internal class ProcessRunDegradationRecorder(
 
   fun appendToStderr(existing: String): String {
     if (records.isEmpty()) return existing
-    val lines = records.joinToString("\n") { record ->
-      "skill-bill: run degradation [${record.kind.name.lowercase()}] ${record.seam}: ${record.detail}"
-    }
+    val lines =
+      records.joinToString("\n") { record ->
+        "skill-bill: run degradation [${record.kind.name.lowercase()}] ${record.seam}: ${record.detail}"
+      }
     return if (existing.isBlank()) lines else "$existing\n$lines"
   }
 
@@ -37,7 +38,10 @@ internal class ProcessRunDegradationRecorder(
     record(ProcessRunDegradationKind.PROBE_ABSENCE, seam, "expected absence")
   }
 
-  fun recordProbeFailure(seam: String, failure: Throwable) {
+  fun recordProbeFailure(
+    seam: String,
+    failure: Throwable,
+  ) {
     record(
       ProcessRunDegradationKind.PROBE_FAILURE,
       seam,
@@ -57,7 +61,10 @@ internal class ProcessRunDegradationRecorder(
     )
   }
 
-  fun recordCleanupFailure(seam: String, failure: Throwable) {
+  fun recordCleanupFailure(
+    seam: String,
+    failure: Throwable,
+  ) {
     record(
       ProcessRunDegradationKind.CLEANUP_FAILURE,
       seam,
@@ -71,7 +78,11 @@ internal class ProcessRunDegradationRecorder(
     recordCleanupFailure("progress_lifecycle_emit", failure)
   }
 
-  private fun record(kind: ProcessRunDegradationKind, seam: String, detail: String) {
+  private fun record(
+    kind: ProcessRunDegradationKind,
+    seam: String,
+    detail: String,
+  ) {
     if (records.size >= maxRecords) return
     val seamCount = countsBySeam.getOrDefault(seam, 0)
     if (seamCount >= maxPerSeam) return
@@ -85,15 +96,19 @@ internal class ProcessRunDegradationRecorder(
   }
 }
 
-internal fun exportRunDegradationEvidence(degradation: ProcessRunDegradationRecorder, outputSink: AgentRunOutputSink) {
+internal fun exportRunDegradationEvidence(
+  degradation: ProcessRunDegradationRecorder,
+  outputSink: AgentRunOutputSink,
+) {
   val payload = degradation.appendToStderr("")
   if (payload.isBlank()) {
     return
   }
   val line = if (payload.endsWith("\n")) payload else "$payload\n"
-  val sinkFailure = runCatching {
-    outputSink.write(AgentRunOutputStream.STDERR, line)
-  }.exceptionOrNull() ?: return
+  val sinkFailure =
+    runCatching {
+      outputSink.write(AgentRunOutputStream.STDERR, line)
+    }.exceptionOrNull() ?: return
   degradationExportLogger.warning(
     "skillbill agent run: degradation export failed; " +
       "records=${payload.take(DEGRADATION_EXPORT_PAYLOAD_LIMIT)}; " +

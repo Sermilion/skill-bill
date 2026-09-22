@@ -27,7 +27,7 @@ class FeatureTaskRuntimeAuditRemainingAcInterpretationTest {
           assertIs<FeatureTaskRuntimeAuditRemainingAcResult.RemainingCriteriaText>(
             FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(text),
           )
-          ).text,
+        ).text,
       )
     }
   }

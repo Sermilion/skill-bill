@@ -11,7 +11,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CliInstallReconcileReportRuntimeTest {
-  private fun seedSkill(repoRoot: Path, name: String, body: String) {
+  private fun seedSkill(
+    repoRoot: Path,
+    name: String,
+    body: String,
+  ) {
     val skillDir = repoRoot.resolve("skills/$name")
     Files.createDirectories(skillDir)
     Files.writeString(
@@ -22,20 +26,26 @@ class CliInstallReconcileReportRuntimeTest {
 
   private fun context(home: Path): CliRuntimeContext = CliRuntimeContext(userHome = home, environment = emptyMap())
 
-  private fun reconcileArgs(home: Path, local: Path, upstream: Path, apply: Boolean): List<String> = buildList {
-    addAll(listOf("--home", home.toString(), "install", "reconcile"))
-    if (apply) add("--apply")
-    addAll(
-      listOf(
-        "--repo-root", local.toString(),
-        "--skills", local.resolve("skills").toString(),
-        "--platform-packs", local.resolve("platform-packs").toString(),
-        "--upstream-repo-root", upstream.toString(),
-        "--upstream-skills", upstream.resolve("skills").toString(),
-        "--upstream-platform-packs", upstream.resolve("platform-packs").toString(),
-      ),
-    )
-  }
+  private fun reconcileArgs(
+    home: Path,
+    local: Path,
+    upstream: Path,
+    apply: Boolean,
+  ): List<String> =
+    buildList {
+      addAll(listOf("--home", home.toString(), "install", "reconcile"))
+      if (apply) add("--apply")
+      addAll(
+        listOf(
+          "--repo-root", local.toString(),
+          "--skills", local.resolve("skills").toString(),
+          "--platform-packs", local.resolve("platform-packs").toString(),
+          "--upstream-repo-root", upstream.toString(),
+          "--upstream-skills", upstream.resolve("skills").toString(),
+          "--upstream-platform-packs", upstream.resolve("platform-packs").toString(),
+        ),
+      )
+    }
 
   @Test
   fun `real reconcile command emits the stable line report for a first-install plan`() {

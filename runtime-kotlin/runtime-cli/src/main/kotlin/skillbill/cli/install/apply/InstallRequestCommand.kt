@@ -116,40 +116,49 @@ abstract class InstallRequestCommand(
     return InstallPlanRequest(
       repoRoot = resolvedRepoRoot.toFileLocation(),
       home = inputs.userHome.toFileLocation(),
-      agentSelection = InstallAgentSelection(
-        mode = selectedAgentMode(manualAgents, explicitTargets),
-        manualAgents = manualAgents,
-      ),
-      platformPackSelection = PlatformPackSelection(
-        mode = selectedPlatformMode(),
-        selectedSlugs = platforms.toSet(),
-      ),
+      agentSelection =
+        InstallAgentSelection(
+          mode = selectedAgentMode(manualAgents, explicitTargets),
+          manualAgents = manualAgents,
+        ),
+      platformPackSelection =
+        PlatformPackSelection(
+          mode = selectedPlatformMode(),
+          selectedSlugs = platforms.toSet(),
+        ),
       telemetryLevel = telemetryLevel(),
-      mcpRegistrationChoice = McpRegistrationChoice(
-        register = mcp == "register",
-        runtimeMcpBin = runtimeMcpBin?.let(Path::of)?.toFileLocation(),
-      ),
-      runtimeDistributionInputs = RuntimeDistributionInputs(
-        runtimeInstallRoot = runtimeInstallRoot?.let(Path::of)?.toFileLocation()
-          ?: inputs.userHome.resolve(".skill-bill/runtime").toFileLocation(),
-        runtimeCliBuildDir = runtimeCliBuildDir?.let(Path::of)?.toFileLocation(),
-        runtimeMcpBuildDir = runtimeMcpBuildDir?.let(Path::of)?.toFileLocation(),
-        runtimeCliInstallDir = runtimeCliInstallDir?.let(Path::of)?.toFileLocation(),
-        runtimeMcpInstallDir = runtimeMcpInstallDir?.let(Path::of)?.toFileLocation(),
-        runtimeLauncherBinDir = runtimeLauncherBinDir?.let(Path::of)?.toFileLocation(),
-      ),
-      targetPaths = InstallationTargetPaths(
-        skillsRoot = skillsRoot?.let(Path::of)?.toFileLocation()
-          ?: resolvedRepoRoot.resolve("skills").toFileLocation(),
-        platformPacksRoot = platformPacksRoot?.let(Path::of)?.toFileLocation()
-          ?: resolvedRepoRoot.resolve("platform-packs").toFileLocation(),
-        agentTargets = explicitTargets,
-      ),
-      windowsSymlinkPreflight = WindowsSymlinkPreflight(
-        state = windowsSymlinkPreflightState(),
-        decision = windowsSymlinkPreflightDecision(),
-        message = windowsSymlinkMessage,
-      ),
+      mcpRegistrationChoice =
+        McpRegistrationChoice(
+          register = mcp == "register",
+          runtimeMcpBin = runtimeMcpBin?.let(Path::of)?.toFileLocation(),
+        ),
+      runtimeDistributionInputs =
+        RuntimeDistributionInputs(
+          runtimeInstallRoot =
+            runtimeInstallRoot?.let(Path::of)?.toFileLocation()
+              ?: inputs.userHome.resolve(".skill-bill/runtime").toFileLocation(),
+          runtimeCliBuildDir = runtimeCliBuildDir?.let(Path::of)?.toFileLocation(),
+          runtimeMcpBuildDir = runtimeMcpBuildDir?.let(Path::of)?.toFileLocation(),
+          runtimeCliInstallDir = runtimeCliInstallDir?.let(Path::of)?.toFileLocation(),
+          runtimeMcpInstallDir = runtimeMcpInstallDir?.let(Path::of)?.toFileLocation(),
+          runtimeLauncherBinDir = runtimeLauncherBinDir?.let(Path::of)?.toFileLocation(),
+        ),
+      targetPaths =
+        InstallationTargetPaths(
+          skillsRoot =
+            skillsRoot?.let(Path::of)?.toFileLocation()
+              ?: resolvedRepoRoot.resolve("skills").toFileLocation(),
+          platformPacksRoot =
+            platformPacksRoot?.let(Path::of)?.toFileLocation()
+              ?: resolvedRepoRoot.resolve("platform-packs").toFileLocation(),
+          agentTargets = explicitTargets,
+        ),
+      windowsSymlinkPreflight =
+        WindowsSymlinkPreflight(
+          state = windowsSymlinkPreflightState(),
+          decision = windowsSymlinkPreflightDecision(),
+          message = windowsSymlinkMessage,
+        ),
       replaceExistingSkillBillLinks = replaceExistingSkillBillLinks,
       environment = inputs.environment,
     )
@@ -158,54 +167,60 @@ abstract class InstallRequestCommand(
   private fun selectedAgentMode(
     manualAgents: Set<InstallAgent>,
     explicitTargets: List<InstallAgentTarget>,
-  ): InstallAgentSelectionMode = if (
-    agentMode == "manual" ||
-    manualAgents.isNotEmpty() ||
-    explicitTargets.isNotEmpty()
-  ) {
-    InstallAgentSelectionMode.MANUAL
-  } else {
-    InstallAgentSelectionMode.DETECTED
-  }
+  ): InstallAgentSelectionMode =
+    if (
+      agentMode == "manual" ||
+      manualAgents.isNotEmpty() ||
+      explicitTargets.isNotEmpty()
+    ) {
+      InstallAgentSelectionMode.MANUAL
+    } else {
+      InstallAgentSelectionMode.DETECTED
+    }
 
-  private fun selectedPlatformMode(): PlatformPackSelectionMode = when {
-    platforms.isNotEmpty() -> PlatformPackSelectionMode.SELECTED
-    platformMode == "selected" -> PlatformPackSelectionMode.SELECTED
-    platformMode == "all" -> PlatformPackSelectionMode.ALL
-    else -> PlatformPackSelectionMode.NONE
-  }
+  private fun selectedPlatformMode(): PlatformPackSelectionMode =
+    when {
+      platforms.isNotEmpty() -> PlatformPackSelectionMode.SELECTED
+      platformMode == "selected" -> PlatformPackSelectionMode.SELECTED
+      platformMode == "all" -> PlatformPackSelectionMode.ALL
+      else -> PlatformPackSelectionMode.NONE
+    }
 
-  private fun telemetryLevel(): InstallTelemetryLevel = when (telemetry) {
-    "full" -> InstallTelemetryLevel.FULL
-    "off" -> InstallTelemetryLevel.OFF
-    "anonymous" -> InstallTelemetryLevel.ANONYMOUS
-    else -> InstallTelemetryLevel.ANONYMOUS
-  }
+  private fun telemetryLevel(): InstallTelemetryLevel =
+    when (telemetry) {
+      "full" -> InstallTelemetryLevel.FULL
+      "off" -> InstallTelemetryLevel.OFF
+      "anonymous" -> InstallTelemetryLevel.ANONYMOUS
+      else -> InstallTelemetryLevel.ANONYMOUS
+    }
 
-  private fun windowsSymlinkPreflightState(): WindowsSymlinkPreflightState = when (windowsSymlinkState) {
-    "available" -> WindowsSymlinkPreflightState.AVAILABLE
-    "requires-elevation-or-developer-mode" -> WindowsSymlinkPreflightState.REQUIRES_ELEVATION_OR_DEVELOPER_MODE
-    "decision-required" -> WindowsSymlinkPreflightState.DECISION_REQUIRED
-    "not-windows" -> WindowsSymlinkPreflightState.NOT_WINDOWS
-    else -> WindowsSymlinkPreflightState.NOT_WINDOWS
-  }
+  private fun windowsSymlinkPreflightState(): WindowsSymlinkPreflightState =
+    when (windowsSymlinkState) {
+      "available" -> WindowsSymlinkPreflightState.AVAILABLE
+      "requires-elevation-or-developer-mode" -> WindowsSymlinkPreflightState.REQUIRES_ELEVATION_OR_DEVELOPER_MODE
+      "decision-required" -> WindowsSymlinkPreflightState.DECISION_REQUIRED
+      "not-windows" -> WindowsSymlinkPreflightState.NOT_WINDOWS
+      else -> WindowsSymlinkPreflightState.NOT_WINDOWS
+    }
 
-  private fun windowsSymlinkPreflightDecision(): WindowsSymlinkDecision = when (windowsSymlinkDecision) {
-    "proceed-with-symlinks" -> WindowsSymlinkDecision.PROCEED_WITH_SYMLINKS
-    "require-user-action" -> WindowsSymlinkDecision.REQUIRE_USER_ACTION
-    "not-required" -> WindowsSymlinkDecision.NOT_REQUIRED
-    else -> WindowsSymlinkDecision.NOT_REQUIRED
-  }
+  private fun windowsSymlinkPreflightDecision(): WindowsSymlinkDecision =
+    when (windowsSymlinkDecision) {
+      "proceed-with-symlinks" -> WindowsSymlinkDecision.PROCEED_WITH_SYMLINKS
+      "require-user-action" -> WindowsSymlinkDecision.REQUIRE_USER_ACTION
+      "not-required" -> WindowsSymlinkDecision.NOT_REQUIRED
+      else -> WindowsSymlinkDecision.NOT_REQUIRED
+    }
 }
 
-private fun parseAgentTargets(rawTargets: List<String>): List<InstallAgentTarget> = rawTargets.map { rawTarget ->
-  val parts = rawTarget.split("=", limit = 2)
-  require(parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
-    "--agent-target must use agent=path form."
+private fun parseAgentTargets(rawTargets: List<String>): List<InstallAgentTarget> =
+  rawTargets.map { rawTarget ->
+    val parts = rawTarget.split("=", limit = 2)
+    require(parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
+      "--agent-target must use agent=path form."
+    }
+    InstallAgentTarget(
+      agent = InstallAgent.fromId(parts[0]),
+      path = Path.of(parts[1]).toFileLocation(),
+      source = InstallAgentTargetSource.MANUAL,
+    )
   }
-  InstallAgentTarget(
-    agent = InstallAgent.fromId(parts[0]),
-    path = Path.of(parts[1]).toFileLocation(),
-    source = InstallAgentTargetSource.MANUAL,
-  )
-}

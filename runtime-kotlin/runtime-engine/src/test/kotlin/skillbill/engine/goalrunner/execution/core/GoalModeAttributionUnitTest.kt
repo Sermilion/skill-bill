@@ -25,19 +25,20 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
-class GoalModeAttributionUnitTest {
 
+class GoalModeAttributionUnitTest {
   @Test
   fun `GoalStartedRequest mode field passes through toRecord`() {
-    val request = GoalStartedRequest(
-      issueKey = "SKILL-92",
-      featureName = "test",
-      workflowId = "wf-1",
-      subtaskTotal = 1,
-      resumed = false,
-      startedAt = "2026-06-23T10:00:00Z",
-      mode = "prose",
-    )
+    val request =
+      GoalStartedRequest(
+        issueKey = "SKILL-92",
+        featureName = "test",
+        workflowId = "wf-1",
+        subtaskTotal = 1,
+        resumed = false,
+        startedAt = "2026-06-23T10:00:00Z",
+        mode = "prose",
+      )
     val record = request.toRecord()
     assertEquals("prose", record.mode)
     assertEquals("running", record.status)
@@ -45,15 +46,16 @@ class GoalModeAttributionUnitTest {
 
   @Test
   fun `goal telemetry records normalize safe issue keys and reject control characters`() {
-    val request = GoalStartedRequest(
-      issueKey = "  SKILL-92  ",
-      featureName = "test",
-      workflowId = "wf-1",
-      subtaskTotal = 1,
-      resumed = false,
-      startedAt = "2026-06-23T10:00:00Z",
-      mode = "prose",
-    )
+    val request =
+      GoalStartedRequest(
+        issueKey = "  SKILL-92  ",
+        featureName = "test",
+        workflowId = "wf-1",
+        subtaskTotal = 1,
+        resumed = false,
+        startedAt = "2026-06-23T10:00:00Z",
+        mode = "prose",
+      )
 
     assertEquals("SKILL-92", request.toRecord().issueKey)
     assertFailsWith<IllegalArgumentException> { request.copy(issueKey = "SKILL-92\nspoofed").toRecord() }
@@ -61,18 +63,19 @@ class GoalModeAttributionUnitTest {
 
   @Test
   fun `GoalFinishedRequest mode field passes through toRecord`() {
-    val request = GoalFinishedRequest(
-      issueKey = "SKILL-92",
-      workflowId = "wf-1",
-      status = "completed",
-      startedAt = "2026-06-23T10:00:00Z",
-      finishedAt = "2026-06-23T11:00:00Z",
-      durationMs = 3_600_000,
-      subtasksComplete = 1,
-      subtasksBlocked = 0,
-      subtasksSkipped = 0,
-      mode = "runtime",
-    )
+    val request =
+      GoalFinishedRequest(
+        issueKey = "SKILL-92",
+        workflowId = "wf-1",
+        status = "completed",
+        startedAt = "2026-06-23T10:00:00Z",
+        finishedAt = "2026-06-23T11:00:00Z",
+        durationMs = 3_600_000,
+        subtasksComplete = 1,
+        subtasksBlocked = 0,
+        subtasksSkipped = 0,
+        mode = "runtime",
+      )
     val record = request.toRecord()
     assertEquals("runtime", record.mode)
   }
@@ -111,34 +114,37 @@ class GoalModeAttributionUnitTest {
     launcher: RecordingSubtaskLauncher,
     outcomes: RecordingOutcomeStore,
     telemetry: GoalLifecycleTelemetryEmitter,
-  ): GoalRunner = testGoalRunner(
-    goalRunnerDeps(
-      manifestStore = store,
-      subtaskLauncher = launcher,
-      outcomeStore = outcomes,
-      pullRequestPort = RecordingPullRequestPort(),
-    ).copy(
-      telemetry = telemetry,
-      clock = Clock.fixed(Instant.parse("2026-06-23T10:00:00Z"), ZoneOffset.UTC),
-    ),
-  )
+  ): GoalRunner =
+    testGoalRunner(
+      goalRunnerDeps(
+        manifestStore = store,
+        subtaskLauncher = launcher,
+        outcomeStore = outcomes,
+        pullRequestPort = RecordingPullRequestPort(),
+      ).copy(
+        telemetry = telemetry,
+        clock = Clock.fixed(Instant.parse("2026-06-23T10:00:00Z"), ZoneOffset.UTC),
+      ),
+    )
 
   private fun completingLauncher(
     store: InMemoryGoalManifestStore,
     outcomes: RecordingOutcomeStore,
-  ): RecordingSubtaskLauncher = RecordingSubtaskLauncher { request ->
-    val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-    store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-    outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
-    launchFacts()
-  }
+  ): RecordingSubtaskLauncher =
+    RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+      launchFacts()
+    }
 
-  private fun runRequest(): GoalRunnerRunRequest = GoalRunnerRunRequest(
-    issueKey = "SKILL-56",
-    repoRoot = Path.of("/tmp/skillbill-goal-runner"),
-    invokedAgentId = "claude",
-    eventSink = GoalRunnerEventSink {},
-  )
+  private fun runRequest(): GoalRunnerRunRequest =
+    GoalRunnerRunRequest(
+      issueKey = "SKILL-56",
+      repoRoot = Path.of("/tmp/skillbill-goal-runner"),
+      invokedAgentId = "claude",
+      eventSink = GoalRunnerEventSink {},
+    )
 }
 
 private class ModeCapturingTelemetryEmitter : GoalLifecycleTelemetryEmitter {

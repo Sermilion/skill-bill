@@ -10,11 +10,12 @@ internal data class McpTool(
   val handler: McpToolHandler,
   val normalize: ((Map<String, Any?>) -> Map<String, Any?>)? = null,
 ) {
-  fun toPayload(): Map<String, Any?> = linkedMapOf(
-    McpProtocolFramer.NAME_KEY to name,
-    McpProtocolFramer.DESCRIPTION_KEY to description,
-    McpProtocolFramer.INPUT_SCHEMA_KEY to inputSchema,
-  )
+  fun toPayload(): Map<String, Any?> =
+    linkedMapOf(
+      McpProtocolFramer.NAME_KEY to name,
+      McpProtocolFramer.DESCRIPTION_KEY to description,
+      McpProtocolFramer.INPUT_SCHEMA_KEY to inputSchema,
+    )
 }
 
 internal typealias McpToolSpec = McpTool
@@ -92,11 +93,12 @@ internal object McpToolRegistry {
         description = toolDescriptions.getValue(name),
         inputSchema = projectedInputSchemas.getValue(name),
         handler = McpToolDispatcher.handlerFor(name),
-        normalize = if (name == McpToolPayloadKeys.QUALITY_CHECK_FINISHED) {
-          McpToolDispatcher::normalizeQualityCheckFinished
-        } else {
-          null
-        },
+        normalize =
+          if (name == McpToolPayloadKeys.QUALITY_CHECK_FINISHED) {
+            McpToolDispatcher::normalizeQualityCheckFinished
+          } else {
+            null
+          },
       )
     }
 

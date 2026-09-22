@@ -34,18 +34,21 @@ class GoalPlanningLogService(
   private val clock: Clock,
 ) {
   fun log(request: GoalPlanningLogRequest): GoalPlanningLog {
-    val parentWorkflowId = manifestStore
-      .readByIssueKey(request.issueKey, request.repoRoot)
-      ?.parentWorkflowId
-      ?: return GoalPlanningLog(request.issueKey, null)
+    val parentWorkflowId =
+      manifestStore
+        .readByIssueKey(request.issueKey, request.repoRoot)
+        ?.parentWorkflowId
+        ?: return GoalPlanningLog(request.issueKey, null)
 
-    val events = outcomeStore.progressEvents(parentWorkflowId)
-      .filter { event -> event.workflowPhase == GOAL_PLANNING_WORKFLOW_PHASE }
+    val events =
+      outcomeStore.progressEvents(parentWorkflowId)
+        .filter { event -> event.workflowPhase == GOAL_PLANNING_WORKFLOW_PHASE }
     val rejections = readRejections(parentWorkflowId)
 
-    val attempts = assembleAttempts(events, rejections)
-      .filter { attempt -> request.subtaskId == null || attempt.subtaskId == request.subtaskId }
-      .filter { attempt -> !request.failuresOnly || attempt.outcome == GoalPlanningAttemptOutcome.FAILED }
+    val attempts =
+      assembleAttempts(events, rejections)
+        .filter { attempt -> request.subtaskId == null || attempt.subtaskId == request.subtaskId }
+        .filter { attempt -> !request.failuresOnly || attempt.outcome == GoalPlanningAttemptOutcome.FAILED }
 
     return GoalPlanningLog(
       issueKey = request.issueKey,
@@ -54,16 +57,17 @@ class GoalPlanningLogService(
     )
   }
 
-  private fun readRejections(parentWorkflowId: String): Map<String, RejectedOutputDiagnostic> = runCatching {
-    database.transaction { unitOfWork ->
-      val repository = unitOfWork.rejectedOutputDiagnostics ?: return@transaction emptyList()
-      val permissions = unitOfWork.rejectedOutputDiagnosticPermissions ?: return@transaction emptyList()
-      RejectedOutputDiagnosticService(repository, permissions, diagnosticMetadataValidator, clock = clock)
-        .inspect(RejectedOutputDiagnosticSelector(workflowId = parentWorkflowId))
+  private fun readRejections(parentWorkflowId: String): Map<String, RejectedOutputDiagnostic> =
+    runCatching {
+      database.transaction { unitOfWork ->
+        val repository = unitOfWork.rejectedOutputDiagnostics ?: return@transaction emptyList()
+        val permissions = unitOfWork.rejectedOutputDiagnosticPermissions ?: return@transaction emptyList()
+        RejectedOutputDiagnosticService(repository, permissions, diagnosticMetadataValidator, clock = clock)
+          .inspect(RejectedOutputDiagnosticSelector(workflowId = parentWorkflowId))
+      }
     }
-  }
-    .getOrDefault(emptyList())
-    .associateBy { record -> rejectionKey(record.phaseId, record.attempt) }
+      .getOrDefault(emptyList())
+      .associateBy { record -> rejectionKey(record.phaseId, record.attempt) }
 
   private fun assembleAttempts(
     events: List<GoalProgressEvent>,
@@ -83,8 +87,9 @@ class GoalPlanningLogService(
         }
 
         GoalProgressEventKind.OPERATION_COMPLETED -> {
-          val pending = open[operation]?.removeLastOrNull()
-            ?: AttemptOccurrence(operation, startedAt = null).also { occurrences += it }
+          val pending =
+            open[operation]?.removeLastOrNull()
+              ?: AttemptOccurrence(operation, startedAt = null).also { occurrences += it }
           pending.settle(timestamp(event), outcomeWire(event.outcome))
         }
 
@@ -120,7 +125,10 @@ class GoalPlanningLogService(
     var outcome: GoalPlanningAttemptOutcome = GoalPlanningAttemptOutcome.IN_FLIGHT
       private set
 
-    fun settle(finishedAt: Instant?, outcome: String?) {
+    fun settle(
+      finishedAt: Instant?,
+      outcome: String?,
+    ) {
       this.finishedAt = finishedAt
 
       this.outcome = outcome?.let(GoalPlanningAttemptOutcome::fromWire) ?: GoalPlanningAttemptOutcome.IN_FLIGHT
@@ -143,5 +151,8 @@ class GoalPlanningLogService(
     return ParsedOperation(if (subtaskId == 0) phase else "$phase:$subtaskId", subtaskId, attempt)
   }
 
-  private fun rejectionKey(phaseId: String, attempt: Int): String = "$phaseId#$attempt"
+  private fun rejectionKey(
+    phaseId: String,
+    attempt: Int,
+  ): String = "$phaseId#$attempt"
 }

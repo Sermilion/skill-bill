@@ -56,8 +56,9 @@ internal object DecompositionManifestBundleJournalValidation {
     stagingDirectory: Path,
     markerParent: Path,
   ): List<DecompositionManifestBundleEntry> {
-    val rawEntries = parsed[DecompositionManifestBundleJournalPayloadKeys.ENTRIES] as? List<*>
-      ?: throw journalError(sourceLabel, "entries must be a non-empty array.", "entries_missing")
+    val rawEntries =
+      parsed[DecompositionManifestBundleJournalPayloadKeys.ENTRIES] as? List<*>
+        ?: throw journalError(sourceLabel, "entries must be a non-empty array.", "entries_missing")
     return rawEntries.map { rawEntry ->
       parseEntry(rawEntry, sourceLabel, stagingDirectory, markerParent)
     }
@@ -69,24 +70,28 @@ internal object DecompositionManifestBundleJournalValidation {
     stagingDirectory: Path,
     markerParent: Path,
   ): DecompositionManifestBundleEntry {
-    val entry = rawEntry as? Map<*, *>
-      ?: throw journalError(sourceLabel, "Malformed bundle journal entry.", "entry_not_object")
-    val target = pathValue(
-      entry[DecompositionManifestBundleJournalPayloadKeys.TARGET],
-      sourceLabel,
-      DecompositionManifestBundleJournalPayloadKeys.TARGET,
-    ).toAbsolutePath().normalize()
-    val staged = pathValue(
-      entry[DecompositionManifestBundleJournalPayloadKeys.STAGED],
-      sourceLabel,
-      DecompositionManifestBundleJournalPayloadKeys.STAGED,
-    ).toAbsolutePath().normalize()
-    val sha256 = entry[DecompositionManifestBundleJournalPayloadKeys.SHA256] as? String
-      ?: throw journalError(
+    val entry =
+      rawEntry as? Map<*, *>
+        ?: throw journalError(sourceLabel, "Malformed bundle journal entry.", "entry_not_object")
+    val target =
+      pathValue(
+        entry[DecompositionManifestBundleJournalPayloadKeys.TARGET],
         sourceLabel,
-        "Journal entry field '${DecompositionManifestBundleJournalPayloadKeys.SHA256}' is missing or not a string.",
-        "entry_field_invalid",
-      )
+        DecompositionManifestBundleJournalPayloadKeys.TARGET,
+      ).toAbsolutePath().normalize()
+    val staged =
+      pathValue(
+        entry[DecompositionManifestBundleJournalPayloadKeys.STAGED],
+        sourceLabel,
+        DecompositionManifestBundleJournalPayloadKeys.STAGED,
+      ).toAbsolutePath().normalize()
+    val sha256 =
+      entry[DecompositionManifestBundleJournalPayloadKeys.SHA256] as? String
+        ?: throw journalError(
+          sourceLabel,
+          "Journal entry field '${DecompositionManifestBundleJournalPayloadKeys.SHA256}' is missing or not a string.",
+          "entry_field_invalid",
+        )
     validateEntryPaths(
       DecompositionManifestBundleEntry(target, staged, sha256),
       markerParent,
@@ -106,7 +111,11 @@ internal object DecompositionManifestBundleJournalValidation {
     validateStagedPath(entry.staged, stagingDirectory, sourceLabel)
   }
 
-  private fun validateTargetPath(target: Path, markerParent: Path, sourceLabel: String) {
+  private fun validateTargetPath(
+    target: Path,
+    markerParent: Path,
+    sourceLabel: String,
+  ) {
     if (target.parent != markerParent) {
       throw journalError(sourceLabel, "Journal target '$target' is outside the marker parent.", "target_outside_parent")
     }
@@ -115,7 +124,11 @@ internal object DecompositionManifestBundleJournalValidation {
     }
   }
 
-  private fun validateStagedPath(staged: Path, stagingDirectory: Path, sourceLabel: String) {
+  private fun validateStagedPath(
+    staged: Path,
+    stagingDirectory: Path,
+    sourceLabel: String,
+  ) {
     if (staged.parent != stagingDirectory.toAbsolutePath().normalize()) {
       throw journalError(
         sourceLabel,
@@ -128,13 +141,18 @@ internal object DecompositionManifestBundleJournalValidation {
     }
   }
 
-  private fun pathValue(value: Any?, sourceLabel: String, fieldName: String): Path {
-    val raw = value as? String
-      ?: throw journalError(
-        sourceLabel,
-        "Journal entry field '$fieldName' is missing or not a string.",
-        "entry_field_invalid",
-      )
+  private fun pathValue(
+    value: Any?,
+    sourceLabel: String,
+    fieldName: String,
+  ): Path {
+    val raw =
+      value as? String
+        ?: throw journalError(
+          sourceLabel,
+          "Journal entry field '$fieldName' is missing or not a string.",
+          "entry_field_invalid",
+        )
     return try {
       Path.of(raw)
     } catch (error: InvalidPathException) {
@@ -146,14 +164,20 @@ internal object DecompositionManifestBundleJournalValidation {
     }
   }
 
-  private fun validateUniqueTargets(entries: List<DecompositionManifestBundleEntry>, sourceLabel: String) {
+  private fun validateUniqueTargets(
+    entries: List<DecompositionManifestBundleEntry>,
+    sourceLabel: String,
+  ) {
     val normalizedTargets = entries.map { it.target }
     if (normalizedTargets.distinct().size != normalizedTargets.size) {
       throw journalError(sourceLabel, "Journal entries repeat the same normalized target path.", "duplicate_target")
     }
   }
 
-  private fun validateUniqueStagedPaths(entries: List<DecompositionManifestBundleEntry>, sourceLabel: String) {
+  private fun validateUniqueStagedPaths(
+    entries: List<DecompositionManifestBundleEntry>,
+    sourceLabel: String,
+  ) {
     val normalizedStagedPaths = entries.map { it.staged }
     if (normalizedStagedPaths.distinct().size != normalizedStagedPaths.size) {
       throw journalError(
@@ -169,7 +193,10 @@ internal object DecompositionManifestBundleJournalValidation {
     transaction.entries.forEach { entry -> validateEntryDigest(entry, sourceLabel) }
   }
 
-  private fun validateEntryDigest(entry: DecompositionManifestBundleEntry, sourceLabel: String) {
+  private fun validateEntryDigest(
+    entry: DecompositionManifestBundleEntry,
+    sourceLabel: String,
+  ) {
     when {
       Files.isRegularFile(entry.staged) -> validateStagedDigest(entry, sourceLabel)
       Files.isRegularFile(entry.target) -> validateTargetDigest(entry, sourceLabel)
@@ -181,7 +208,10 @@ internal object DecompositionManifestBundleJournalValidation {
     }
   }
 
-  private fun validateStagedDigest(entry: DecompositionManifestBundleEntry, sourceLabel: String) {
+  private fun validateStagedDigest(
+    entry: DecompositionManifestBundleEntry,
+    sourceLabel: String,
+  ) {
     val digest = sha256Hex(Files.readString(entry.staged).toByteArray(Charsets.UTF_8))
     if (digest != entry.sha256) {
       throw journalError(
@@ -192,7 +222,10 @@ internal object DecompositionManifestBundleJournalValidation {
     }
   }
 
-  private fun validateTargetDigest(entry: DecompositionManifestBundleEntry, sourceLabel: String) {
+  private fun validateTargetDigest(
+    entry: DecompositionManifestBundleEntry,
+    sourceLabel: String,
+  ) {
     val digest = sha256Hex(Files.readString(entry.target).toByteArray(Charsets.UTF_8))
     if (digest != entry.sha256) {
       throw journalError(
@@ -203,16 +236,20 @@ internal object DecompositionManifestBundleJournalValidation {
     }
   }
 
-  private fun requireTransactionId(marker: Path, sourceLabel: String): String =
+  private fun requireTransactionId(
+    marker: Path,
+    sourceLabel: String,
+  ): String =
     transactionIdFromMarker(marker) ?: throw journalError(
       sourceLabel,
       "Marker file name does not match the bundle journal naming contract.",
       "invalid_marker_name",
     )
 
-  private fun stagingDirectory(parsed: Map<String, Any?>): Path = Path.of(
-    requireNotNull(parsed[DecompositionManifestBundleJournalPayloadKeys.STAGING_DIRECTORY] as? String),
-  )
+  private fun stagingDirectory(parsed: Map<String, Any?>): Path =
+    Path.of(
+      requireNotNull(parsed[DecompositionManifestBundleJournalPayloadKeys.STAGING_DIRECTORY] as? String),
+    )
 
   private fun validateStagingDirectory(
     stagingDirectory: Path,
@@ -250,15 +287,22 @@ internal object DecompositionManifestBundleJournalValidation {
       .takeIf { it.isNotEmpty() }
   }
 
-  fun expectedStagingDirectory(markerParent: Path, transactionId: String): Path = markerParent.resolve(
-    "${DecompositionManifestBundleJournal.BUNDLE_PREFIX}$transactionId" +
-      DecompositionManifestBundleJournal.STAGING_SUFFIX,
-  ).toAbsolutePath().normalize()
+  fun expectedStagingDirectory(
+    markerParent: Path,
+    transactionId: String,
+  ): Path =
+    markerParent.resolve(
+      "${DecompositionManifestBundleJournal.BUNDLE_PREFIX}$transactionId" +
+        DecompositionManifestBundleJournal.STAGING_SUFFIX,
+    ).toAbsolutePath().normalize()
 
-  private fun journalError(sourceLabel: String, reason: String, failureCode: String) =
-    InvalidDecompositionManifestBundleJournalError(
-      sourceLabel = sourceLabel,
-      reason = reason,
-      failureCode = failureCode,
-    )
+  private fun journalError(
+    sourceLabel: String,
+    reason: String,
+    failureCode: String,
+  ) = InvalidDecompositionManifestBundleJournalError(
+    sourceLabel = sourceLabel,
+    reason = reason,
+    failureCode = failureCode,
+  )
 }

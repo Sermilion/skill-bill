@@ -22,7 +22,10 @@ object FeatureTaskRuntimePhaseOutputWireSchema {
     YAMLMapper(YAMLFactory().apply { enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION) })
   internal val mapType = object : TypeReference<Map<String, Any?>>() {}
 
-  fun validate(phaseOutput: Map<String, Any?>, sourceLabel: String) {
+  fun validate(
+    phaseOutput: Map<String, Any?>,
+    sourceLabel: String,
+  ) {
     val instance: JsonNode = mapper.valueToTree(phaseOutput)
     val errors: Set<ValidationMessage> = schema.validate(instance)
     if (errors.isNotEmpty()) {
@@ -45,20 +48,29 @@ object FeatureTaskRuntimePhaseOutputWireSchema {
     }
   }
 
-  fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
+  fun validatePhaseOutputText(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ) {
     val node = readPhaseOutputObjectNode(phaseOutputText, sourceLabel)
     val parsed = phaseOutputObjectNodeToMap(node, sourceLabel)
     validate(parsed, sourceLabel)
   }
 
-  fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Map<String, Any?> {
+  fun validateAndReadPhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): Map<String, Any?> {
     val node = readPhaseOutputObjectNode(phaseOutputText, sourceLabel)
     val parsed = phaseOutputObjectNodeToMap(node, sourceLabel)
     validate(parsed, sourceLabel)
     return parsed
   }
 
-  fun normalizePhaseOutput(phaseOutputText: String, sourceLabel: String): NormalizedFeatureTaskRuntimePhaseOutput {
+  fun normalizePhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): NormalizedFeatureTaskRuntimePhaseOutput {
     val node = readPhaseOutputObjectNode(phaseOutputText, sourceLabel)
     val parsed = phaseOutputObjectNodeToMap(node, sourceLabel).toMutableMap()
     dropSpuriousAuditCompletedVerdict(parsed)

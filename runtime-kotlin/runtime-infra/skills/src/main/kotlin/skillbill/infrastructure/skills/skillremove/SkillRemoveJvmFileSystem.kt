@@ -25,8 +25,10 @@ class SkillRemoveJvmFileSystem(
     cascadedSkillNames: List<String>,
   ): List<String> = planning.resolveCascadeFilesystemPaths(request, cascadedSkillNames)
 
-  override fun planManifestEdits(request: SkillRemovalRequest, cascadedSkillNames: List<String>): List<ManifestEdit> =
-    planning.planManifestEdits(request, cascadedSkillNames)
+  override fun planManifestEdits(
+    request: SkillRemovalRequest,
+    cascadedSkillNames: List<String>,
+  ): List<ManifestEdit> = planning.planManifestEdits(request, cascadedSkillNames)
 
   override fun planAgentSymlinkUnlinks(
     request: SkillRemovalRequest,
@@ -36,6 +38,8 @@ class SkillRemoveJvmFileSystem(
   override fun planReadmeCatalogEdits(request: SkillRemovalRequest): List<ReadmeCatalogEdit> =
     planning.planReadmeCatalogEdits(request)
 
-  override fun applyCascade(request: SkillRemovalRequest, preview: SkillRemovalPreview): AppliedCascade =
-    apply.applyCascade(request, preview)
+  override fun applyCascade(
+    request: SkillRemovalRequest,
+    preview: SkillRemovalPreview,
+  ): AppliedCascade = apply.applyCascade(request, preview)
 }

@@ -17,59 +17,85 @@ internal fun gitTimeoutSeconds(args: List<String>): Long {
 internal fun gitTimedOutError(args: List<String>): String =
   "git ${args.joinToString(" ")} timed out after ${gitTimeoutSeconds(args)}s."
 
-internal fun runGitCommand(repoRoot: Path, vararg args: String): WorkflowGitOperationResult =
-  runGitCommand(repoRoot, args.toList())
+internal fun runGitCommand(
+  repoRoot: Path,
+  vararg args: String,
+): WorkflowGitOperationResult = runGitCommand(repoRoot, args.toList())
 
-internal fun runGitCommand(repoRoot: Path, env: Map<String, String>, vararg args: String): WorkflowGitOperationResult =
-  runGitCommand(repoRoot, env, args.toList())
+internal fun runGitCommand(
+  repoRoot: Path,
+  env: Map<String, String>,
+  vararg args: String,
+): WorkflowGitOperationResult = runGitCommand(repoRoot, env, args.toList())
 
-internal fun runGitCommand(repoRoot: Path, args: List<String>): WorkflowGitOperationResult =
-  runGitCommand(repoRoot, emptyMap(), args)
+internal fun runGitCommand(
+  repoRoot: Path,
+  args: List<String>,
+): WorkflowGitOperationResult = runGitCommand(repoRoot, emptyMap(), args)
 
-internal fun runGitCommand(repoRoot: Path, env: Map<String, String>, args: List<String>): WorkflowGitOperationResult {
+internal fun runGitCommand(
+  repoRoot: Path,
+  env: Map<String, String>,
+  args: List<String>,
+): WorkflowGitOperationResult {
   val argList = args
   val result = runGitProcess(repoRoot, argList, stdin = null, extraEnvironment = env)
   return when {
-    result.timedOut -> WorkflowGitOperationResult.Failed(
-      error = gitTimedOutError(argList),
-    )
-    result.readFailure != null -> WorkflowGitOperationResult.Failed(
-      error = result.readFailure.message.orEmpty(),
-    )
+    result.timedOut ->
+      WorkflowGitOperationResult.Failed(
+        error = gitTimedOutError(argList),
+      )
+    result.readFailure != null ->
+      WorkflowGitOperationResult.Failed(
+        error = result.readFailure.message.orEmpty(),
+      )
     result.exitCode == 0 -> WorkflowGitOperationResult.Ok(value = result.output)
-    else -> WorkflowGitOperationResult.Failed(
-      error = "git ${argList.joinToString(" ")} failed with exit code ${result.exitCode}: ${result.output}",
-    )
+    else ->
+      WorkflowGitOperationResult.Failed(
+        error = "git ${argList.joinToString(" ")} failed with exit code ${result.exitCode}: ${result.output}",
+      )
   }
 }
 
-internal fun runGitForActivity(repoRoot: Path, args: List<String>): WorkflowGitOperationResult {
+internal fun runGitForActivity(
+  repoRoot: Path,
+  args: List<String>,
+): WorkflowGitOperationResult {
   val result = runGitProcess(repoRoot, args)
   return when {
-    result.timedOut -> WorkflowGitOperationResult.Failed(
-      error = gitTimedOutError(args),
-    )
-    result.readFailure != null -> WorkflowGitOperationResult.Failed(
-      error = result.readFailure.message.orEmpty(),
-    )
+    result.timedOut ->
+      WorkflowGitOperationResult.Failed(
+        error = gitTimedOutError(args),
+      )
+    result.readFailure != null ->
+      WorkflowGitOperationResult.Failed(
+        error = result.readFailure.message.orEmpty(),
+      )
     result.exitCode == 0 -> WorkflowGitOperationResult.Ok(value = result.output)
     else -> WorkflowGitOperationResult.Failed(error = result.output)
   }
 }
 
-internal fun runGitCommandWithStdin(repoRoot: Path, args: List<String>, stdin: ByteArray): WorkflowGitOperationResult {
+internal fun runGitCommandWithStdin(
+  repoRoot: Path,
+  args: List<String>,
+  stdin: ByteArray,
+): WorkflowGitOperationResult {
   val result = runGitProcess(repoRoot, args, stdin)
   return when {
-    result.timedOut -> WorkflowGitOperationResult.Failed(
-      error = gitTimedOutError(args),
-    )
-    result.readFailure != null -> WorkflowGitOperationResult.Failed(
-      error = result.readFailure.message.orEmpty(),
-    )
+    result.timedOut ->
+      WorkflowGitOperationResult.Failed(
+        error = gitTimedOutError(args),
+      )
+    result.readFailure != null ->
+      WorkflowGitOperationResult.Failed(
+        error = result.readFailure.message.orEmpty(),
+      )
     result.exitCode == 0 -> WorkflowGitOperationResult.Ok(value = result.output)
-    else -> WorkflowGitOperationResult.Failed(
-      error = "git ${args.joinToString(" ")} failed with exit code ${result.exitCode}: ${result.output}",
-    )
+    else ->
+      WorkflowGitOperationResult.Failed(
+        error = "git ${args.joinToString(" ")} failed with exit code ${result.exitCode}: ${result.output}",
+      )
   }
 }
 
@@ -87,7 +113,8 @@ internal data class GitProcessResult(
   val exitCode: Int = -1,
 )
 
-internal fun WorkflowGitOperationResult.withValue(value: String): WorkflowGitOperationResult = when (this) {
-  is WorkflowGitOperationResult.Ok -> copy(value = value)
-  is WorkflowGitOperationResult.Failed -> this
-}
+internal fun WorkflowGitOperationResult.withValue(value: String): WorkflowGitOperationResult =
+  when (this) {
+    is WorkflowGitOperationResult.Ok -> copy(value = value)
+    is WorkflowGitOperationResult.Failed -> this
+  }

@@ -6,12 +6,13 @@ internal fun baselineViolations(
   file: Path,
   packRootsBySlug: Map<String, Path> = emptyMap(),
 ): List<ReviewSkillStructureViolation> {
-  val required = listOf(
-    "Classification Rules",
-    "Diff-Signal Routing Table",
-    "Mixed Diffs",
-    "Finding Discipline",
-  )
+  val required =
+    listOf(
+      "Classification Rules",
+      "Diff-Signal Routing Table",
+      "Mixed Diffs",
+      "Finding Discipline",
+    )
   val content = Files.readString(file)
   val classification = h2Section(content, "Classification Rules")
   val routing = h2Section(content, "Diff-Signal Routing Table")

@@ -2,7 +2,8 @@ package skillbill.engine
 
 internal const val AUDIT_GAP_MESSAGE = "AC-002 acceptance criterion is not yet implemented"
 
-internal fun auditSatisfiedOutput(): String = """
+internal fun auditSatisfiedOutput(): String =
+  """
   {
     "contract_version": "0.6",
     "phase_id": "audit",
@@ -12,24 +13,25 @@ internal fun auditSatisfiedOutput(): String = """
       "value": "[]"
     }
   }
-""".trimIndent()
+  """.trimIndent()
 
 internal fun auditRemainingAcOutput(remainingText: String): String {
   val escaped = remainingText.replace("\\", "\\\\").replace("\"", "\\\"")
   return """
-  {
-    "contract_version": "0.6",
-    "phase_id": "audit",
-    "status": "completed",
-    "summary": "Audit found remaining acceptance criteria.",
-    "produced_outputs": {
-      "value": "$escaped"
+    {
+      "contract_version": "0.6",
+      "phase_id": "audit",
+      "status": "completed",
+      "summary": "Audit found remaining acceptance criteria.",
+      "produced_outputs": {
+        "value": "$escaped"
+      }
     }
-  }
-  """.trimIndent()
+    """.trimIndent()
 }
 
-internal fun auditGapsFoundOutput(): String = """
+internal fun auditGapsFoundOutput(): String =
+  """
   {
     "contract_version": "0.6",
     "phase_id": "audit",
@@ -40,9 +42,10 @@ internal fun auditGapsFoundOutput(): String = """
       "value": "{\"gaps\":[{\"criterion\":\"AC-002\",\"note\":\"$AUDIT_GAP_MESSAGE\"}],\"non_blocking_findings\":[]}"
     }
   }
-""".trimIndent()
+  """.trimIndent()
 
-internal fun auditBlockedOutput(reason: String): String = """
+internal fun auditBlockedOutput(reason: String): String =
+  """
   {
     "contract_version": "0.6",
     "phase_id": "audit",
@@ -53,13 +56,14 @@ internal fun auditBlockedOutput(reason: String): String = """
       "value": "$reason"
     }
   }
-""".trimIndent()
+  """.trimIndent()
 
-internal fun satisfiedAuditLauncher(): RuntimeRecordingLauncher = RuntimeRecordingLauncher { request ->
-  val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-  if (phaseId == "audit") {
-    facts(auditSatisfiedOutput())
-  } else {
-    facts(defaultPhaseOutput(request))
+internal fun satisfiedAuditLauncher(): RuntimeRecordingLauncher =
+  RuntimeRecordingLauncher { request ->
+    val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+    if (phaseId == "audit") {
+      facts(auditSatisfiedOutput())
+    } else {
+      facts(defaultPhaseOutput(request))
+    }
   }
-}

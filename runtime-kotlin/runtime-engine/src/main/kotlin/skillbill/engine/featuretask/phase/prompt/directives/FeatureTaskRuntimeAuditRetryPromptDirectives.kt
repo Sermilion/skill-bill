@@ -9,7 +9,7 @@ fun auditRetryFocusDirective(focusHint: String?): String {
     re-verify, or modify criteria that were already resolved in the preceding audit session. Repair
     these unresolved criteria in this same session and emit only the criteria that remain unresolved.
     $focusHint
-  """.trimIndent()
+    """.trimIndent()
 }
 
 internal fun FeatureTaskRuntimePhaseLaunchBriefing.forAuditRetry(
@@ -28,8 +28,9 @@ private fun String.replaceAuditAcceptanceCriteria(focusHint: String): String {
   val contentStart = start + "acceptance_criteria:\n".length
   val end = indexOf("\nmandates_and_overrides:", contentStart)
   require(end >= 0) { "Audit retry briefing acceptance_criteria section has no closing boundary." }
-  val replacement = focusHint.lines()
-    .filter(String::isNotBlank)
-    .joinToString("\n") { "  ${it.trim()}" }
+  val replacement =
+    focusHint.lines()
+      .filter(String::isNotBlank)
+      .joinToString("\n") { "  ${it.trim()}" }
   return replaceRange(contentStart, end + 1, "$replacement\n")
 }

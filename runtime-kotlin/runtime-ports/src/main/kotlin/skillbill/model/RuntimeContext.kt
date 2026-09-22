@@ -21,9 +21,10 @@ data class EnvironmentContext(
   val repositoryRoot: Path = UnspecifiedRepositoryRoot,
 ) {
   companion object {
-    val UnspecifiedEnvironment: Map<String, String> = object : AbstractMap<String, String>() {
-      override val entries: Set<Map.Entry<String, String>> = emptySet()
-    }
+    val UnspecifiedEnvironment: Map<String, String> =
+      object : AbstractMap<String, String>() {
+        override val entries: Set<Map.Entry<String, String>> = emptySet()
+      }
     val UnspecifiedUserHome: Path = Path.of(".skillbill-unspecified-user-home")
     val UnspecifiedRepositoryRoot: Path = Path.of(".skillbill-unspecified-repository-root")
   }

@@ -121,9 +121,10 @@ class FileSystemGoalPlanningBoundaryBodyResolverTest {
   fun `selections beyond the aggregate cap are reported unresolved rather than dropped`() {
     val repo = Files.createTempDirectory("goal-body-aggregate")
     val agent = Files.createDirectories(repo.resolve("modules/many/agent"))
-    val entries = (1..GoalPlanningContext.MAX_SELECTED_BODIES + 6).joinToString("\n") { index ->
-      "## [2026-08-%02d] entry-$index\n\nbody $index\n".format(index)
-    }
+    val entries =
+      (1..GoalPlanningContext.MAX_SELECTED_BODIES + 6).joinToString("\n") { index ->
+        "## [2026-08-%02d] entry-$index\n\nbody $index\n".format(index)
+      }
     Files.writeString(agent.resolve("history.md"), "# Boundary History\n\n$entries")
     val catalog = catalogOf(repo)
     val selected = catalog.map(GoalPlanningBoundaryHeading::headingId)

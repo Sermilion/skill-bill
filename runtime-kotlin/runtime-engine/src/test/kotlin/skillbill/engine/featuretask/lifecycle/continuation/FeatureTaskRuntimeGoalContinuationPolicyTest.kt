@@ -14,6 +14,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+
 class FeatureTaskRuntimeGoalContinuationPolicyTest {
   private val baseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList())
 
@@ -56,21 +57,23 @@ class FeatureTaskRuntimeGoalContinuationPolicyTest {
 
   private fun request(
     goalContinuation: FeatureTaskRuntimeGoalContinuationContext? = null,
-  ): FeatureTaskRuntimeRunRequest = FeatureTaskRuntimeRunRequest(
-    issueKey = "SKILL-173",
-    workflowId = "wfl-child",
-    sessionId = "ftr-child",
-    runInvariants = FeatureTaskRuntimeRunInvariants(
-      specReference = ".feature-specs/SKILL-173/spec.md",
-      featureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
-      acceptanceCriteria = listOf("AC-001"),
-      mandatesAndOverrides = emptyList(),
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    ),
-    invokedAgentId = "claude",
-    repoRoot = Path.of("/tmp/skillbill-validation-depth"),
-    goalContinuation = goalContinuation,
-  )
+  ): FeatureTaskRuntimeRunRequest =
+    FeatureTaskRuntimeRunRequest(
+      issueKey = "SKILL-173",
+      workflowId = "wfl-child",
+      sessionId = "ftr-child",
+      runInvariants =
+        FeatureTaskRuntimeRunInvariants(
+          specReference = ".feature-specs/SKILL-173/spec.md",
+          featureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
+          acceptanceCriteria = listOf("AC-001"),
+          mandatesAndOverrides = emptyList(),
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      invokedAgentId = "claude",
+      repoRoot = Path.of("/tmp/skillbill-validation-depth"),
+      goalContinuation = goalContinuation,
+    )
 
   private fun continuation(validationDepth: ValidationDepth): FeatureTaskRuntimeGoalContinuationContext =
     FeatureTaskRuntimeGoalContinuationContext(

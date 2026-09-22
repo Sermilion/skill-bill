@@ -26,6 +26,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeDiagnosticDegradationTest {
   @Test
   fun `three repair turns of one attempt each retain their own evidence row`() {
@@ -41,14 +42,16 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
       listOf(1, 2, 3),
       database.retainedProducerEvidence().filter { it.phaseId == "validate" }.map { it.repairTurn },
     )
-    val found = recorder.producerOutput(
-      ProducerOutputQueryArgs(WORKFLOW_ID, "validate", 1, "cursor", generation = 0),
-    )
+    val found =
+      recorder.producerOutput(
+        ProducerOutputQueryArgs(WORKFLOW_ID, "validate", 1, "cursor", generation = 0),
+      )
     assertIs<FeatureTaskRuntimeProducerOutputRead.Found>(found)
     assertContentEquals("turn-3".encodeToByteArray(), found.evidence.payload)
-    val absent = recorder.producerOutput(
-      ProducerOutputQueryArgs(WORKFLOW_ID, "validate", 99, "cursor", generation = 0),
-    )
+    val absent =
+      recorder.producerOutput(
+        ProducerOutputQueryArgs(WORKFLOW_ID, "validate", 99, "cursor", generation = 0),
+      )
     assertIs<FeatureTaskRuntimeProducerOutputRead.Absent>(absent)
     assertTrue(recorder.loadDiagnosticSignals(WORKFLOW_ID).isEmpty())
   }
@@ -97,9 +100,10 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
         .none { it is String && it.contains("divergent-bytes") },
       "the measurement must not carry the divergent agent bytes",
     )
-    val found = recorder.producerOutput(
-      ProducerOutputQueryArgs(WORKFLOW_ID, "validate", 1, "cursor", generation = 0),
-    )
+    val found =
+      recorder.producerOutput(
+        ProducerOutputQueryArgs(WORKFLOW_ID, "validate", 1, "cursor", generation = 0),
+      )
     assertIs<FeatureTaskRuntimeProducerOutputRead.Found>(found)
     assertContentEquals(retained, found.evidence.payload)
   }
@@ -122,17 +126,19 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
   @Test
   fun `a missing rejected-output port is Unreadable persistence rather than Absent`() {
     val lifecycle = RecordingLifecycleTelemetryRepository()
-    val database = RuntimeFakeDatabaseSessionFactory(
-      InMemoryRuntimeWorkflowRepository(),
-      lifecycle,
-      rejectedOutputDiagnosticsAvailable = false,
-    )
+    val database =
+      RuntimeFakeDatabaseSessionFactory(
+        InMemoryRuntimeWorkflowRepository(),
+        lifecycle,
+        rejectedOutputDiagnosticsAvailable = false,
+      )
     val recorder = recorder(database)
     recorder.ensureWorkflowOpen(WORKFLOW_ID, "session-1")
 
-    val read = recorder.producerOutput(
-      ProducerOutputQueryArgs(WORKFLOW_ID, "validate", 1, "cursor", generation = 0),
-    )
+    val read =
+      recorder.producerOutput(
+        ProducerOutputQueryArgs(WORKFLOW_ID, "validate", 1, "cursor", generation = 0),
+      )
 
     val unreadable = assertIs<FeatureTaskRuntimeProducerOutputRead.Unreadable>(read)
     assertEquals(FeatureTaskRuntimeDiagnosticFailureClass.PERSISTENCE, unreadable.failureClass)
@@ -212,9 +218,10 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
     assertTrue("SKILL187-DEGRADE-SENTINEL" !in summary)
     assertTrue("blast_radius_inspected" !in summary)
     assertContains(summary, "audit")
-    val measurement = requireNotNull(
-      JsonCodec.anyToStringAnyMap(lifecycle.diagnosticDegradationMeasurements.single().asTelemetryPayload()),
-    )
+    val measurement =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMap(lifecycle.diagnosticDegradationMeasurements.single().asTelemetryPayload()),
+      )
     assertTrue(measurement.values.none { it is String && "SKILL187-DEGRADE-SENTINEL" in it })
     assertTrue(measurement.values.none { it is String && "blast_radius_inspected" in it })
   }
@@ -225,16 +232,20 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
       lifecycle,
     )
 
-  private fun recorder(database: RuntimeFakeDatabaseSessionFactory) = featureTaskRuntimePhaseRecorder(
-    database,
-    NoopSnapshotValidator,
-    AcceptingFeatureTaskRuntimeWireArtifactValidator,
-    AcceptingFeatureTaskRuntimeWireArtifactValidator,
-    testHarnessClock,
-    NoopRuntimeDiagnostics,
-  )
+  private fun recorder(database: RuntimeFakeDatabaseSessionFactory) =
+    featureTaskRuntimePhaseRecorder(
+      database,
+      NoopSnapshotValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      testHarnessClock,
+      NoopRuntimeDiagnostics,
+    )
 
-  private fun evidence(payload: ByteArray, repairTurn: Int) = ProducerOutputEvidence(
+  private fun evidence(
+    payload: ByteArray,
+    repairTurn: Int,
+  ) = ProducerOutputEvidence(
     workflowId = WORKFLOW_ID,
     phaseId = "validate",
     attempt = 1,
@@ -247,7 +258,10 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
     repairTurn = repairTurn,
   )
 
-  private fun rejection(payload: ByteArray, repairTurn: Int) = RejectedOutputDiagnosticRequest(
+  private fun rejection(
+    payload: ByteArray,
+    repairTurn: Int,
+  ) = RejectedOutputDiagnosticRequest(
     workflowId = WORKFLOW_ID,
     phaseId = "validate",
     attempt = 1,
@@ -261,7 +275,10 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
   )
 
   private object NoopSnapshotValidator : WorkflowSnapshotValidator {
-    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
   }
 
   private companion object {

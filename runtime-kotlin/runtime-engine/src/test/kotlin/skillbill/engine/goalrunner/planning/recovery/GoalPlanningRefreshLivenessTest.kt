@@ -39,6 +39,7 @@ import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class GoalPlanningRefreshLivenessTest {
   private val now = Instant.parse("2026-08-11T00:00:00Z")
   private val clock = Clock.fixed(now, ZoneOffset.UTC)
@@ -103,28 +104,31 @@ class GoalPlanningRefreshLivenessTest {
   fun `intent naming a missing subtask falls through to IDLE`() {
     val harness = RefreshLivenessHarness(clock)
     val base = manifest(subtaskCount = 1)
-    val state = GoalRunnerManifestState(
-      parentWorkflowId = "wfl-parent",
-      dbPath = "/tmp/refresh-liveness.db",
-      manifest = base.copy(currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 9, action = "resume")),
-    )
+    val state =
+      GoalRunnerManifestState(
+        parentWorkflowId = "wfl-parent",
+        dbPath = "/tmp/refresh-liveness.db",
+        manifest = base.copy(currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 9, action = "resume")),
+      )
 
     assertEquals(ExecutionLiveness.IDLE, harness.liveness.resolve(state))
   }
 
   private fun manifestState(childWorkflowId: String?): GoalRunnerManifestState {
     val base = manifest(subtaskCount = 1)
-    val subtask = base.subtasks.single().let { row ->
-      if (childWorkflowId == null) row else row.copy(workflowId = childWorkflowId)
-    }
+    val subtask =
+      base.subtasks.single().let { row ->
+        if (childWorkflowId == null) row else row.copy(workflowId = childWorkflowId)
+      }
     return GoalRunnerManifestState(
       parentWorkflowId = "wfl-parent",
       dbPath = "/tmp/refresh-liveness.db",
-      manifest = base.copy(
-        status = "in_progress",
-        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
-        subtasks = listOf(subtask),
-      ),
+      manifest =
+        base.copy(
+          status = "in_progress",
+          currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
+          subtasks = listOf(subtask),
+        ),
     )
   }
 }
@@ -132,17 +136,21 @@ class GoalPlanningRefreshLivenessTest {
 private class RefreshLivenessHarness(clock: Clock) {
   private val repository = SeedableRefreshLivenessWorkflowStates()
   private val database = SeedableRefreshLivenessDatabase(repository)
-  val recorder = featureTaskRuntimePhaseRecorder(
-    database,
-    NoopRefreshLivenessSnapshotValidator,
-    AcceptingFeatureTaskRuntimeWireArtifactValidator,
-    AcceptingFeatureTaskRuntimeWireArtifactValidator,
-    testHarnessClock,
-    NoopRuntimeDiagnostics,
-  )
+  val recorder =
+    featureTaskRuntimePhaseRecorder(
+      database,
+      NoopRefreshLivenessSnapshotValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      testHarnessClock,
+      NoopRuntimeDiagnostics,
+    )
   val liveness = ChildAwareGoalPlanningRefreshLiveness(recorder, clock)
 
-  fun seedRuntimeChild(workflowId: String, expiresAt: String) {
+  fun seedRuntimeChild(
+    workflowId: String,
+    expiresAt: String,
+  ) {
     repository.saveFeatureTaskRuntimeWorkflow(
       WorkflowStateRecord(
         workflowId = workflowId,
@@ -164,7 +172,10 @@ private class RefreshLivenessHarness(clock: Clock) {
 }
 
 private object NoopRefreshLivenessSnapshotValidator : WorkflowSnapshotValidator {
-  override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+  override fun validate(
+    snapshot: WorkflowStateSnapshot,
+    slug: String,
+  ) = Unit
 }
 
 private class SeedableRefreshLivenessDatabase(
@@ -182,46 +193,53 @@ private class SeedableRefreshLivenessDatabase(
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unitOfWork())
 
-  private fun unitOfWork(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = this@SeedableRefreshLivenessDatabase.dbPath
-    override val reviews: ReviewRepository get() = error("unused by refresh liveness tests")
-    override val learnings: LearningRepository get() = error("unused by refresh liveness tests")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository get() = error("unused by refresh liveness tests")
-    override val telemetryReconciliation: TelemetryReconciliationRepository
-      get() = error("unused by refresh liveness tests")
-    override val telemetryOutbox: TelemetryOutboxRepository get() = error("unused by refresh liveness tests")
-    override val workflowStates: WorkflowStateRepository = repository
-    override val workList = EmptyWorkListRepository
-    override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
-    override val goalRunnerControls = EmptyGoalRunnerControlRepository
-  }
+  private fun unitOfWork(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = this@SeedableRefreshLivenessDatabase.dbPath
+      override val reviews: ReviewRepository get() = error("unused by refresh liveness tests")
+      override val learnings: LearningRepository get() = error("unused by refresh liveness tests")
+      override val lifecycleTelemetry: LifecycleTelemetryRepository get() = error("unused by refresh liveness tests")
+      override val telemetryReconciliation: TelemetryReconciliationRepository
+        get() = error("unused by refresh liveness tests")
+      override val telemetryOutbox: TelemetryOutboxRepository get() = error("unused by refresh liveness tests")
+      override val workflowStates: WorkflowStateRepository = repository
+      override val workList = EmptyWorkListRepository
+      override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
+      override val goalRunnerControls = EmptyGoalRunnerControlRepository
+    }
 }
 
 private class SeedableRefreshLivenessWorkflowStates : WorkflowStateRepositoryDefaults() {
   private val taskRuntimeRows = linkedMapOf<String, WorkflowStateRecord>()
   private val ownershipRows = linkedMapOf<String, FeatureTaskRuntimeWorkerOwnership>()
 
-  fun seedOwnership(workflowId: String, expiresAt: String) {
-    ownershipRows[workflowId] = FeatureTaskRuntimeWorkerOwnership(
-      workflowId = workflowId,
-      ownerToken = "owner-token-123456",
-      generation = 1,
-      hostIdentity = "host",
-      bootIdentity = "boot",
-      pid = 1234,
-      processBirthToken = "birth-1234",
-      leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
-      phaseId = "implement",
-      phaseAttempt = 1,
-      heartbeatAt = "2026-08-11T00:00:00Z",
-      expiresAt = expiresAt,
-    )
+  fun seedOwnership(
+    workflowId: String,
+    expiresAt: String,
+  ) {
+    ownershipRows[workflowId] =
+      FeatureTaskRuntimeWorkerOwnership(
+        workflowId = workflowId,
+        ownerToken = "owner-token-123456",
+        generation = 1,
+        hostIdentity = "host",
+        bootIdentity = "boot",
+        pid = 1234,
+        processBirthToken = "birth-1234",
+        leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
+        phaseId = "implement",
+        phaseAttempt = 1,
+        heartbeatAt = "2026-08-11T00:00:00Z",
+        expiresAt = expiresAt,
+      )
   }
 
   override fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity) = Unit
 
-  override fun findStandaloneFeatureTaskCandidates(normalizedIssueKey: String, repositoryIdentity: String) =
-    emptyList<FeatureTaskWorkflowCandidate>()
+  override fun findStandaloneFeatureTaskCandidates(
+    normalizedIssueKey: String,
+    repositoryIdentity: String,
+  ) = emptyList<FeatureTaskWorkflowCandidate>()
 
   override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) = Unit
 

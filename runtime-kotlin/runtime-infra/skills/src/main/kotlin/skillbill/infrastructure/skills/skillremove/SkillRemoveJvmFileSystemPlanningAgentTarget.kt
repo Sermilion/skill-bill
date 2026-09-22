@@ -35,10 +35,11 @@ internal fun SkillRemoveJvmFileSystemPlanning.agentUnlinksForPlatform(
   val out = mutableListOf<AgentSymlinkUnlink>()
   AgentSymlinkProvider.values().forEach { provider ->
     agentHomeDirs(provider, resolvedHome, environment).forEach { dir ->
-      out += AgentSymlinkUnlink(
-        provider = provider,
-        path = dir.resolve("bill-$platform-*").toString().replace('\\', '/'),
-      )
+      out +=
+        AgentSymlinkUnlink(
+          provider = provider,
+          path = dir.resolve("bill-$platform-*").toString().replace('\\', '/'),
+        )
     }
   }
   return out
@@ -48,10 +49,11 @@ internal fun SkillRemoveJvmFileSystemPlanning.agentHomeDirs(
   provider: AgentSymlinkProvider,
   home: Path,
   environment: Map<String, String>,
-): List<Path> = when (provider) {
-  AgentSymlinkProvider.CLAUDE -> claudeConfigRoots(home, environment).map { it.resolve("agents") }
-  AgentSymlinkProvider.CODEX -> codexAgentsTargets(home, environment)
-  AgentSymlinkProvider.JUNIE,
-  AgentSymlinkProvider.CURSOR,
-  -> listOf(home.resolve(requireNotNull(provider.simpleHomeDirectory)).resolve("agents"))
-}
+): List<Path> =
+  when (provider) {
+    AgentSymlinkProvider.CLAUDE -> claudeConfigRoots(home, environment).map { it.resolve("agents") }
+    AgentSymlinkProvider.CODEX -> codexAgentsTargets(home, environment)
+    AgentSymlinkProvider.JUNIE,
+    AgentSymlinkProvider.CURSOR,
+    -> listOf(home.resolve(requireNotNull(provider.simpleHomeDirectory)).resolve("agents"))
+  }

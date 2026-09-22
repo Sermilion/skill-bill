@@ -24,30 +24,58 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeDiagn
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRejectionMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeSharedEvidenceMeasurement
-private object QualityCheckLifecycleTelemetryNoop : QualityCheckLifecycleTelemetryRepository {
-  override fun qualityCheckStarted(record: QualityCheckStartedRecord, level: String) = Unit
 
-  override fun qualityCheckFinished(record: QualityCheckFinishedRecord, level: String) = Unit
+private object QualityCheckLifecycleTelemetryNoop : QualityCheckLifecycleTelemetryRepository {
+  override fun qualityCheckStarted(
+    record: QualityCheckStartedRecord,
+    level: String,
+  ) = Unit
+
+  override fun qualityCheckFinished(
+    record: QualityCheckFinishedRecord,
+    level: String,
+  ) = Unit
 }
 
 private object FeatureVerifyLifecycleTelemetryNoop : FeatureVerifyLifecycleTelemetryRepository {
-  override fun featureVerifyStarted(record: FeatureVerifyStartedRecord, level: String) = Unit
+  override fun featureVerifyStarted(
+    record: FeatureVerifyStartedRecord,
+    level: String,
+  ) = Unit
 
-  override fun featureVerifyFinished(record: FeatureVerifyFinishedRecord, level: String) = Unit
+  override fun featureVerifyFinished(
+    record: FeatureVerifyFinishedRecord,
+    level: String,
+  ) = Unit
 }
 
 private object PrDescriptionLifecycleTelemetryNoop : PrDescriptionLifecycleTelemetryRepository {
-  override fun prDescriptionGenerated(record: PrDescriptionGeneratedRecord, level: String) = Unit
+  override fun prDescriptionGenerated(
+    record: PrDescriptionGeneratedRecord,
+    level: String,
+  ) = Unit
 }
 
 private object GoalLifecycleTelemetryNoop : GoalLifecycleTelemetryRepository {
-  override fun goalStarted(record: GoalStartedRecord, level: String) = Unit
+  override fun goalStarted(
+    record: GoalStartedRecord,
+    level: String,
+  ) = Unit
 
-  override fun goalSubtaskFinished(record: GoalSubtaskFinishedRecord, level: String) = Unit
+  override fun goalSubtaskFinished(
+    record: GoalSubtaskFinishedRecord,
+    level: String,
+  ) = Unit
 
-  override fun goalFinished(record: GoalFinishedRecord, level: String) = Unit
+  override fun goalFinished(
+    record: GoalFinishedRecord,
+    level: String,
+  ) = Unit
 
-  override fun goalIssueFinished(record: GoalIssueFinishedRecord, level: String) = Unit
+  override fun goalIssueFinished(
+    record: GoalIssueFinishedRecord,
+    level: String,
+  ) = Unit
 }
 
 class RecordingLifecycleTelemetryRepository(
@@ -82,11 +110,17 @@ class RecordingLifecycleTelemetryRepository(
     diagnosticDegradationMeasurements += record
   }
 
-  override fun featureTaskRuntimeStarted(record: FeatureTaskRuntimeStartedRecord, level: String) {
+  override fun featureTaskRuntimeStarted(
+    record: FeatureTaskRuntimeStartedRecord,
+    level: String,
+  ) {
     startedRecords += record
   }
 
-  override fun featureTaskRuntimeFinished(record: FeatureTaskRuntimeFinishedRecord, level: String) {
+  override fun featureTaskRuntimeFinished(
+    record: FeatureTaskRuntimeFinishedRecord,
+    level: String,
+  ) {
     finishedRecords += record
   }
 }

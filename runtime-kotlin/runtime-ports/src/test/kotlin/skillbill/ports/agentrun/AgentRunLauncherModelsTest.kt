@@ -15,13 +15,14 @@ import kotlin.time.Duration.Companion.seconds
 class AgentRunLauncherModelsTest {
   @Test
   fun `skill run goal continuation defaults validationDepth to full`() {
-    val context = SkillRunGoalContinuationContext(
-      parentIssueKey = "SKILL-173",
-      subtaskId = 1,
-      goalBranch = "feat/SKILL-173",
-      suppressPr = true,
-      specPath = ".feature-specs/SKILL-173/spec.md",
-    )
+    val context =
+      SkillRunGoalContinuationContext(
+        parentIssueKey = "SKILL-173",
+        subtaskId = 1,
+        goalBranch = "feat/SKILL-173",
+        suppressPr = true,
+        specPath = ".feature-specs/SKILL-173/spec.md",
+      )
     assertEquals(ValidationDepth.FULL, context.validationDepth)
   }
 

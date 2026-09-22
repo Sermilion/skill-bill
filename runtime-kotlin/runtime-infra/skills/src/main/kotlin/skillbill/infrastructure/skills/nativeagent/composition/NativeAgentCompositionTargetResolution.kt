@@ -39,12 +39,18 @@ internal fun NativeAgentPlatformPackLoader.withAdditionalPackRoots(roots: List<P
     this
   } else {
     object : NativeAgentPlatformPackLoader by this {
-      override fun loadPlatformPack(packRoot: Path, additionalPackRoots: List<Path>): NativeAgentPlatformPack =
+      override fun loadPlatformPack(
+        packRoot: Path,
+        additionalPackRoots: List<Path>,
+      ): NativeAgentPlatformPack =
         this@withAdditionalPackRoots.loadPlatformPack(packRoot, additionalPackRoots.ifEmpty { roots })
     }
   }
 
-internal fun resolveSiblingContentTarget(sourcePath: Path, source: NativeAgentSource): NativeAgentCompositionTarget? =
+internal fun resolveSiblingContentTarget(
+  sourcePath: Path,
+  source: NativeAgentSource,
+): NativeAgentCompositionTarget? =
   sourcePath.parent
     ?.parent
     ?.resolve("content.md")
@@ -59,7 +65,11 @@ internal fun resolveSiblingContentTarget(sourcePath: Path, source: NativeAgentSo
       )
     }
 
-internal fun platformPackRoot(repoRoot: Path, sourcePath: Path, additionalPackRoots: List<Path> = emptyList()): Path? {
+internal fun platformPackRoot(
+  repoRoot: Path,
+  sourcePath: Path,
+  additionalPackRoots: List<Path> = emptyList(),
+): Path? {
   val packRoots = listOf(repoRoot.resolve("platform-packs")) + additionalPackRoots
   val canonicalSourcePath = canonicalize(sourcePath)
   return packRoots.firstNotNullOfOrNull { root ->
@@ -78,7 +88,10 @@ internal fun platformPackRoot(repoRoot: Path, sourcePath: Path, additionalPackRo
   }
 }
 
-internal fun displayPath(root: Path, path: Path): String {
+internal fun displayPath(
+  root: Path,
+  path: Path,
+): String {
   val resolvedRoot = root.toAbsolutePath().normalize()
   val resolvedPath = path.toAbsolutePath().normalize()
   return runCatching { resolvedPath.relativeTo(resolvedRoot).toString() }

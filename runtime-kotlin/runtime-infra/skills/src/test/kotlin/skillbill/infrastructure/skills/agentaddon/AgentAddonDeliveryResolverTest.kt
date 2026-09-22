@@ -38,7 +38,11 @@ class AgentAddonDeliveryResolverTest {
     assertTrue(entry.manifestPath.toPath().endsWith("agent-addon.yaml"))
   }
 
-  private fun writeAddon(repo: Path, slug: String, content: String) {
+  private fun writeAddon(
+    repo: Path,
+    slug: String,
+    content: String,
+  ) {
     val root = repo.resolve("agent-addons/$slug")
     Files.createDirectories(root)
     Files.writeString(

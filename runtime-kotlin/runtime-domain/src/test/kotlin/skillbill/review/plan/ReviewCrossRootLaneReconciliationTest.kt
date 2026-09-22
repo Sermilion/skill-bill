@@ -15,6 +15,7 @@ import skillbill.scaffold.model.RoutingSignals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class ReviewCrossRootLaneReconciliationTest {
   @Test
   fun `a composing root owns a shared area over the baseline root routing brought along`() {
@@ -40,14 +41,16 @@ class ReviewCrossRootLaneReconciliationTest {
 
   @Test
   fun `two distinct packs tying at the nearest depth raise ambiguous ownership naming both slugs`() {
-    val roots = listOf(
-      root(0, lane("kmp", "security", depth = 0)),
-      root(0, lane("swift", "security", depth = 0)),
-    )
+    val roots =
+      listOf(
+        root(0, lane("kmp", "security", depth = 0)),
+        root(0, lane("swift", "security", depth = 0)),
+      )
 
-    val error = assertFailsWith<AmbiguousLaneOwnershipError> {
-      ReviewCrossRootLaneReconciliation.reconcile(roots)
-    }
+    val error =
+      assertFailsWith<AmbiguousLaneOwnershipError> {
+        ReviewCrossRootLaneReconciliation.reconcile(roots)
+      }
 
     assertTrue(error.message!!.contains("security"))
     assertTrue(error.message!!.contains("kmp"))
@@ -56,26 +59,28 @@ class ReviewCrossRootLaneReconciliationTest {
 
   @Test
   fun `the surviving lane claims the union of every reconciled lane's paths hunks and requirement`() {
-    val near = root(
-      0,
-      lane(
-        "kmp",
-        "architecture",
-        depth = 0,
-        required = false,
-        ownedPaths = listOf("b.kt", "a.kt"),
-      ),
-    )
-    val far = root(
-      1,
-      lane(
-        "kotlin",
-        "architecture",
-        depth = 0,
-        required = true,
-        ownedPaths = listOf("c.kt", "a.kt"),
-      ),
-    )
+    val near =
+      root(
+        0,
+        lane(
+          "kmp",
+          "architecture",
+          depth = 0,
+          required = false,
+          ownedPaths = listOf("b.kt", "a.kt"),
+        ),
+      )
+    val far =
+      root(
+        1,
+        lane(
+          "kotlin",
+          "architecture",
+          depth = 0,
+          required = true,
+          ownedPaths = listOf("c.kt", "a.kt"),
+        ),
+      )
 
     val survivor = ReviewCrossRootLaneReconciliation.reconcile(listOf(near, far)).single().lane
 
@@ -86,20 +91,22 @@ class ReviewCrossRootLaneReconciliationTest {
 
   @Test
   fun `reconciliation is independent of input order including assigned order indexes`() {
-    val roots = listOf(
-      root(
-        0,
-        lane("kmp", "ui", depth = 0),
-        lane("kmp", "security", depth = 0),
-        lane("kotlin", "testing", depth = 1),
-      ),
-      root(1, lane("kotlin", "ui", depth = 0), lane("kotlin", "testing", depth = 0)),
-    )
+    val roots =
+      listOf(
+        root(
+          0,
+          lane("kmp", "ui", depth = 0),
+          lane("kmp", "security", depth = 0),
+          lane("kotlin", "testing", depth = 1),
+        ),
+        root(1, lane("kotlin", "ui", depth = 0), lane("kotlin", "testing", depth = 0)),
+      )
 
     val first = ReviewCrossRootLaneReconciliation.reconcile(roots).map { it.lane }
-    val second = ReviewCrossRootLaneReconciliation
-      .reconcile(roots.reversed().map { it.copy(lanes = it.lanes.reversed()) })
-      .map { it.lane }
+    val second =
+      ReviewCrossRootLaneReconciliation
+        .reconcile(roots.reversed().map { it.copy(lanes = it.lanes.reversed()) })
+        .map { it.lane }
 
     assertEquals(first, second)
     assertEquals(listOf(0, 1, 2), first.map { it.orderIndex })
@@ -111,8 +118,9 @@ class ReviewCrossRootLaneReconciliationTest {
     val kotlin = pack("kotlin")
     val kmp = pack("kmp", baselines = listOf("kotlin"))
 
-    val offsets = ReviewCrossRootLaneReconciliation
-      .compositionDepthOffsets(listOf("kotlin", "kmp"), listOf(kotlin, kmp))
+    val offsets =
+      ReviewCrossRootLaneReconciliation
+        .compositionDepthOffsets(listOf("kotlin", "kmp"), listOf(kotlin, kmp))
 
     assertEquals(mapOf("kmp" to 0, "kotlin" to 1), offsets)
   }
@@ -122,41 +130,50 @@ class ReviewCrossRootLaneReconciliationTest {
     val native = root(0, lane("kmp", "architecture", depth = 0, ownedPaths = listOf("a.kt")))
     val fallback = lane("generic", "architecture", depth = 0, ownedPaths = listOf("fallback.py"))
 
-    val reconciled = ReviewCrossRootLaneReconciliation.reconcile(
-      listOf(native),
-      mapOf("architecture" to fallback),
-    )
+    val reconciled =
+      ReviewCrossRootLaneReconciliation.reconcile(
+        listOf(native),
+        mapOf("architecture" to fallback),
+      )
 
     assertEquals(listOf("a.kt", "fallback.py"), reconciled.single().lane.ownedPaths)
     assertEquals(listOf("hunk-a.kt", "hunk-fallback.py"), reconciled.single().lane.changedHunkIds)
   }
 
-  private fun root(depthOffset: Int, vararg lanes: ReviewLaunchLane) = ReviewRootLanes(depthOffset, lanes.toList())
+  private fun root(
+    depthOffset: Int,
+    vararg lanes: ReviewLaunchLane,
+  ) = ReviewRootLanes(depthOffset, lanes.toList())
 
-  private fun pack(slug: String, baselines: List<String> = emptyList()) = PlatformManifest(
+  private fun pack(
+    slug: String,
+    baselines: List<String> = emptyList(),
+  ) = PlatformManifest(
     slug = slug,
     packRoot = FileLocation("platform-packs/$slug"),
     contractVersion = "1.3",
     routingSignals = RoutingSignals(emptyList(), emptyList()),
     declaredCodeReviewAreas = listOf("architecture"),
-    declaredFiles = DeclaredFiles(
-      baseline = FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review/content.md"),
-      areas = emptyMap(),
-    ),
+    declaredFiles =
+      DeclaredFiles(
+        baseline = FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review/content.md"),
+        areas = emptyMap(),
+      ),
     areaMetadata = emptyMap(),
     laneConditions = emptyMap(),
-    codeReviewComposition = baselines
-      .takeIf { it.isNotEmpty() }
-      ?.map {
-        CodeReviewBaselineLayer(
-          platform = it,
-          skill = "bill-$it-code-review",
-          scope = CodeReviewCompositionScope.SameReviewScope,
-          required = true,
-          mode = CodeReviewCompositionMode.KmpBaseline,
-        )
-      }
-      ?.let(::CodeReviewComposition),
+    codeReviewComposition =
+      baselines
+        .takeIf { it.isNotEmpty() }
+        ?.map {
+          CodeReviewBaselineLayer(
+            platform = it,
+            skill = "bill-$it-code-review",
+            scope = CodeReviewCompositionScope.SameReviewScope,
+            required = true,
+            mode = CodeReviewCompositionMode.KmpBaseline,
+          )
+        }
+        ?.let(::CodeReviewComposition),
   )
 
   private fun lane(

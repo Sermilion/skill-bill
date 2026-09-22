@@ -5,6 +5,7 @@ import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaErr
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import java.nio.file.Path
+
 object GoalPreflightInputValidation {
   fun requireInvokedAgentId(invokedAgentId: String) {
     if (invokedAgentId.isBlank()) {
@@ -15,7 +16,10 @@ object GoalPreflightInputValidation {
     }
   }
 
-  fun requireOptionalIdentity(field: String, value: String?) {
+  fun requireOptionalIdentity(
+    field: String,
+    value: String?,
+  ) {
     if (value?.isBlank() == true) {
       throw InvalidFeatureTaskExecutionIdentitySchemaError(
         "preflight request",
@@ -24,7 +28,10 @@ object GoalPreflightInputValidation {
     }
   }
 
-  fun resolveRepositoryRoot(repoRoot: Path, repositoryEnclosingRootPort: RepositoryEnclosingRootPort): Path =
+  fun resolveRepositoryRoot(
+    repoRoot: Path,
+    repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
+  ): Path =
     runCatching {
       repositoryEnclosingRootPort.canonicalPath(repoRoot.toAbsolutePath().normalize())
     }.getOrElse {
@@ -38,7 +45,10 @@ object GoalPreflightInputValidation {
   fun normalizeIssueKey(issueKey: String): String =
     FeatureTaskExecutionIdentityPolicy.normalizeIssueKey(issueKey, "preflight request")
 
-  fun requireManifestIssueKey(manifestIssueKey: String, requestedIssueKey: String) {
+  fun requireManifestIssueKey(
+    manifestIssueKey: String,
+    requestedIssueKey: String,
+  ) {
     if (manifestIssueKey != requestedIssueKey) {
       throw InvalidDecompositionManifestSchemaError(
         sourceLabel = requestedIssueKey,

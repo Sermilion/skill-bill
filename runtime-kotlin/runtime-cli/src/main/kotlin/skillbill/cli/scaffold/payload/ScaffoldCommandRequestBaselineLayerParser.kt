@@ -15,11 +15,15 @@ internal fun parseBaselineLayers(payload: Map<String, Any?>): List<CodeReviewBas
   return raw.mapIndexed(::parseBaselineLayer)
 }
 
-private fun parseBaselineLayer(index: Int, entry: Any?): CodeReviewBaselineLayer {
-  val layer = entry as? Map<*, *>
-    ?: throw InvalidScaffoldPayloadError(
-      "Scaffold payload field 'baseline_layers[$index]' must be an object.",
-    )
+private fun parseBaselineLayer(
+  index: Int,
+  entry: Any?,
+): CodeReviewBaselineLayer {
+  val layer =
+    entry as? Map<*, *>
+      ?: throw InvalidScaffoldPayloadError(
+        "Scaffold payload field 'baseline_layers[$index]' must be an object.",
+      )
   val fieldPrefix = "baseline_layers[$index]"
   val scopeValue = requireStringInMap(layer, "$fieldPrefix.scope", "scope")
   val modeValue = requireStringInMap(layer, "$fieldPrefix.mode", "mode")
@@ -32,19 +36,29 @@ private fun parseBaselineLayer(index: Int, entry: Any?): CodeReviewBaselineLayer
   )
 }
 
-private fun parseRequiredFlag(layer: Map<*, *>, fieldPrefix: String): Boolean = layer["required"] as? Boolean
-  ?: throw InvalidScaffoldPayloadError(
-    "Scaffold payload field '$fieldPrefix.required' must be an explicit boolean.",
-  )
+private fun parseRequiredFlag(
+  layer: Map<*, *>,
+  fieldPrefix: String,
+): Boolean =
+  layer["required"] as? Boolean
+    ?: throw InvalidScaffoldPayloadError(
+      "Scaffold payload field '$fieldPrefix.required' must be an explicit boolean.",
+    )
 
-private fun parseBaselineScope(scopeValue: String, fieldPrefix: String): CodeReviewCompositionScope =
+private fun parseBaselineScope(
+  scopeValue: String,
+  fieldPrefix: String,
+): CodeReviewCompositionScope =
   CodeReviewCompositionScope.fromWireValue(scopeValue)
     ?: throw InvalidScaffoldPayloadError(
       "Scaffold payload field '$fieldPrefix.scope' has unsupported value '$scopeValue'. " +
         "Supported values: ${CodeReviewCompositionScope.entries.map { it.wireValue }}.",
     )
 
-private fun parseBaselineMode(modeValue: String, fieldPrefix: String): CodeReviewCompositionMode =
+private fun parseBaselineMode(
+  modeValue: String,
+  fieldPrefix: String,
+): CodeReviewCompositionMode =
   CodeReviewCompositionMode.fromWireValue(modeValue)
     ?: throw InvalidScaffoldPayloadError(
       "Scaffold payload field '$fieldPrefix.mode' has unsupported value '$modeValue'. " +

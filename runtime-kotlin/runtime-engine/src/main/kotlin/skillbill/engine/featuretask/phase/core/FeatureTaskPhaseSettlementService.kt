@@ -20,6 +20,7 @@ import skillbill.workflow.taskruntime.model.handoff.envelope.SettlementEnvelopeR
 import skillbill.workflow.taskruntime.phase.ProsePhaseOutputSynthesizer
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.Clock
+
 @Inject
 class FeatureTaskPhaseSettlementService(
   private val repository: FeatureTaskPhaseSettlementRepository,
@@ -29,30 +30,32 @@ class FeatureTaskPhaseSettlementService(
     require(ProsePhaseOutputSynthesizer.isProsePhase(request.phaseId)) {
       "phase_id must be a prose phase (preplan|plan|implement|simplify|audit)."
     }
-    val verdict = when (request.phaseId) {
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
-        request.verdict?.takeIf { it == "satisfied" }
-          ?: when (FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(request.value)) {
-            FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> "satisfied"
-            else -> null
-          }.let { resolved ->
-            requireNotNull(resolved) {
-              "feature_task_phase_complete requires an explicit empty remaining-criteria list " +
-                "or verdict=satisfied when phase_id=audit."
+    val verdict =
+      when (request.phaseId) {
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
+          request.verdict?.takeIf { it == "satisfied" }
+            ?: when (FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(request.value)) {
+              FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> "satisfied"
+              else -> null
+            }.let { resolved ->
+              requireNotNull(resolved) {
+                "feature_task_phase_complete requires an explicit empty remaining-criteria list " +
+                  "or verdict=satisfied when phase_id=audit."
+              }
             }
-          }
-      else -> request.verdict
-    }
-    val envelope = ProsePhaseOutputSynthesizer.envelopeFromSettlement(
-      SettlementEnvelopeRequest(
-        phaseId = request.phaseId,
-        status = "completed",
-        value = request.value,
-        summary = request.summary?.takeIf { it.any { ch -> !ch.isWhitespace() } } ?: truncateSummary(request.value),
-        prompt = request.prompt,
-        verdict = verdict,
-      ),
-    ).toWorkflowArtifactMap()
+        else -> request.verdict
+      }
+    val envelope =
+      ProsePhaseOutputSynthesizer.envelopeFromSettlement(
+        SettlementEnvelopeRequest(
+          phaseId = request.phaseId,
+          status = "completed",
+          value = request.value,
+          summary = request.summary?.takeIf { it.any { ch -> !ch.isWhitespace() } } ?: truncateSummary(request.value),
+          prompt = request.prompt,
+          verdict = verdict,
+        ),
+      ).toWorkflowArtifactMap()
     return persist(
       PersistRequest(
         workflowId = request.workflowId,
@@ -71,15 +74,16 @@ class FeatureTaskPhaseSettlementService(
     require(request.failureDisposition.any { !it.isWhitespace() }) {
       "feature_task_phase_block requires a non-blank failure_disposition."
     }
-    val envelope = ProsePhaseOutputSynthesizer.envelopeFromSettlement(
-      SettlementEnvelopeRequest(
-        phaseId = request.phaseId,
-        status = "blocked",
-        value = request.reason,
-        summary = truncateSummary(request.reason),
-        failureDisposition = request.failureDisposition,
-      ),
-    ).toWorkflowArtifactMap()
+    val envelope =
+      ProsePhaseOutputSynthesizer.envelopeFromSettlement(
+        SettlementEnvelopeRequest(
+          phaseId = request.phaseId,
+          status = "blocked",
+          value = request.reason,
+          summary = truncateSummary(request.reason),
+          failureDisposition = request.failureDisposition,
+        ),
+      ).toWorkflowArtifactMap()
     return persist(
       PersistRequest(
         workflowId = request.workflowId,
@@ -91,26 +95,35 @@ class FeatureTaskPhaseSettlementService(
     )
   }
 
-  fun findEnvelope(workflowId: String, phaseId: String, attempt: Int): FeatureTaskPhaseSettlementEnvelope? {
+  fun findEnvelope(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+  ): FeatureTaskPhaseSettlementEnvelope? {
     val settlement = repository.find(workflowId, phaseId, attempt) ?: return null
-    val envelope = JsonCodec.parseObjectOrNull(settlement.envelopeJson)
-      ?.let { JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it)) }
-      ?: return null
+    val envelope =
+      JsonCodec.parseObjectOrNull(settlement.envelopeJson)
+        ?.let { JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it)) }
+        ?: return null
     val wire = envelope.toWorkflowArtifactMap()
-    val evidence = wire[SharedPayloadKeys.PRODUCED_OUTPUTS]
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT)
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE)
-      ?.let(JsonCodec::anyToStringAnyMap)
+    val evidence =
+      wire[SharedPayloadKeys.PRODUCED_OUTPUTS]
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT)
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE)
+        ?.let(JsonCodec::anyToStringAnyMap)
     if (evidence != null) {
       decodeValidationEvidenceFromArtifact(evidence, "$phaseId settlement")
     }
     return FeatureTaskPhaseSettlementEnvelope(envelope = wire)
   }
 
-  fun clear(workflowId: String, phaseId: String, attempt: Int): Boolean =
-    repository.delete(workflowId, phaseId, attempt)
+  fun clear(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+  ): Boolean = repository.delete(workflowId, phaseId, attempt)
 
   private fun persist(request: PersistRequest): FeatureTaskPhaseSettlementAcknowledgment {
     val envelopeJson = JsonCodec.mapToJsonString(request.envelopeAsMap())

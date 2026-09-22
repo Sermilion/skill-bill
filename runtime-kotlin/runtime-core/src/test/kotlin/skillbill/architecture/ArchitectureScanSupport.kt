@@ -50,7 +50,10 @@ object ArchitectureScanSupport {
     return null
   }
 
-  fun packageClusteringViolations(sourceRoots: List<String>, genericSegments: Set<String>): List<String> {
+  fun packageClusteringViolations(
+    sourceRoots: List<String>,
+    genericSegments: Set<String>,
+  ): List<String> {
     val filesByPackage = linkedMapOf<String, MutableList<Pair<Path, String>>>()
     sourceRoots.forEach { sourceRoot ->
       kotlinFilesUnder(runtimeRoot.resolve(sourceRoot)).forEach { sourceFile ->
@@ -63,14 +66,16 @@ object ArchitectureScanSupport {
     val allPackages = filesByPackage.keys
     val violations = mutableListOf<String>()
     filesByPackage.forEach { (packageName, looseFiles) ->
-      val childPackages = allPackages.filter { child ->
-        child.startsWith("$packageName.") && "." !in child.removePrefix("$packageName.")
-      }
+      val childPackages =
+        allPackages.filter { child ->
+          child.startsWith("$packageName.") && "." !in child.removePrefix("$packageName.")
+        }
       if (childPackages.isEmpty()) return@forEach
-      val areaChildren = childPackages
-        .map { child -> child.substringAfterLast('.') }
-        .filterNot { segment -> segment in genericSegments }
-        .toSet()
+      val areaChildren =
+        childPackages
+          .map { child -> child.substringAfterLast('.') }
+          .filterNot { segment -> segment in genericSegments }
+          .toSet()
       if (areaChildren.isEmpty()) return@forEach
       val parentNoun = packageName.substringAfterLast('.')
       looseFiles.forEach { (sourceFile, primaryName) ->
@@ -94,12 +99,13 @@ object ArchitectureScanSupport {
       kotlinFilesUnder(runtimeRoot.resolve(productionRoot)).forEach { sourceFile ->
         val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
         if (isNonProductionKotlinSourceSet(relativePath)) return@forEach
-        violations += productionLineCeilingViolationsInSource(
-          relativePath = relativePath,
-          source = sourceFile.readText(),
-          ceiling = ceiling,
-          exemptions = exemptions,
-        )
+        violations +=
+          productionLineCeilingViolationsInSource(
+            relativePath = relativePath,
+            source = sourceFile.readText(),
+            ceiling = ceiling,
+            exemptions = exemptions,
+          )
       }
     }
     return violations.sorted()
@@ -131,7 +137,10 @@ object ArchitectureScanSupport {
       "/src/nativeTest/" in normalized
   }
 
-  fun inlineFqnViolations(scanRoots: List<String>, prefixes: List<String>): List<String> {
+  fun inlineFqnViolations(
+    scanRoots: List<String>,
+    prefixes: List<String>,
+  ): List<String> {
     val violations = mutableListOf<String>()
     scanRoots.forEach { scanRoot ->
       kotlinFilesUnder(runtimeRoot.resolve(scanRoot)).forEach { sourceFile ->
@@ -167,11 +176,12 @@ object ArchitectureScanSupport {
     val violations = mutableListOf<String>()
     moduleBuildFiles.forEach { buildFile ->
       val relativePath = runtimeRoot.relativize(buildFile).toString().replace('\\', '/')
-      violations += conventionReapplicationViolationsInText(
-        relativePath = relativePath,
-        text = buildFile.readText(),
-        ownedPatterns = ownedPatterns,
-      )
+      violations +=
+        conventionReapplicationViolationsInText(
+          relativePath = relativePath,
+          text = buildFile.readText(),
+          ownedPatterns = ownedPatterns,
+        )
     }
     return violations.sorted()
   }
@@ -192,23 +202,27 @@ object ArchitectureScanSupport {
     return violations.sorted()
   }
 
-  fun inlineFqnReferences(source: String, prefixes: List<String>): List<String> = sourceWithoutStringLiterals(source)
-    .lineSequence()
-    .filterNot { line ->
-      val trimmed = line.trim()
-      trimmed.startsWith("import ") ||
-        trimmed.startsWith("package ") ||
-        trimmed.startsWith("//") ||
-        trimmed.startsWith("*") ||
-        trimmed.startsWith("/*")
-    }
-    .flatMap { line ->
-      val codeLine = line.substringBefore("//")
-      prefixes.flatMap { prefix -> inlineFqnMatches(codeLine, prefix) }
-    }
-    .distinct()
-    .sorted()
-    .toList()
+  fun inlineFqnReferences(
+    source: String,
+    prefixes: List<String>,
+  ): List<String> =
+    sourceWithoutStringLiterals(source)
+      .lineSequence()
+      .filterNot { line ->
+        val trimmed = line.trim()
+        trimmed.startsWith("import ") ||
+          trimmed.startsWith("package ") ||
+          trimmed.startsWith("//") ||
+          trimmed.startsWith("*") ||
+          trimmed.startsWith("/*")
+      }
+      .flatMap { line ->
+        val codeLine = line.substringBefore("//")
+        prefixes.flatMap { prefix -> inlineFqnMatches(codeLine, prefix) }
+      }
+      .distinct()
+      .sorted()
+      .toList()
 
   private fun sourceWithoutStringLiterals(source: String): String {
     val output = StringBuilder()
@@ -248,17 +262,21 @@ object ArchitectureScanSupport {
     return output.toString()
   }
 
-  private fun inlineFqnMatches(line: String, prefix: String): List<String> {
+  private fun inlineFqnMatches(
+    line: String,
+    prefix: String,
+  ): List<String> {
     val escaped = Regex.escape(prefix)
-    val pattern = when (prefix) {
-      "java.",
-      "javax.",
-      "jakarta.",
-      "kotlin.",
-      "kotlinx.",
-      -> Regex("""\b$escaped(?:[a-z][a-z0-9]*\.)+[A-Z][A-Za-z0-9_]*(?:\.[a-z][A-Za-z0-9_]*)*\b""")
-      else -> Regex("""\b$escaped(?:[a-z][a-z0-9]*\.)+[A-Z][A-Za-z0-9_]*(?:\.[a-zA-Z][A-Za-z0-9_]*)*\b""")
-    }
+    val pattern =
+      when (prefix) {
+        "java.",
+        "javax.",
+        "jakarta.",
+        "kotlin.",
+        "kotlinx.",
+        -> Regex("""\b$escaped(?:[a-z][a-z0-9]*\.)+[A-Z][A-Za-z0-9_]*(?:\.[a-z][A-Za-z0-9_]*)*\b""")
+        else -> Regex("""\b$escaped(?:[a-z][a-z0-9]*\.)+[A-Z][A-Za-z0-9_]*(?:\.[a-zA-Z][A-Za-z0-9_]*)*\b""")
+      }
     return pattern.findAll(line)
       .map { match -> match.value }
       .filter { reference -> reference.count { character -> character == '.' } >= 2 }
@@ -276,7 +294,10 @@ object ArchitectureScanSupport {
     return reporters
   }
 
-  private fun extractFunctionBodies(source: String, functionNames: Set<String>): Map<String, String> {
+  private fun extractFunctionBodies(
+    source: String,
+    functionNames: Set<String>,
+  ): Map<String, String> {
     val bodies = linkedMapOf<String, String>()
     var braceDepth = 0
     var captureStartDepth = -1
@@ -311,7 +332,10 @@ object ArchitectureScanSupport {
     return bodies
   }
 
-  fun parseBoundaryViolationsInSource(source: String, site: ParseBoundarySite): List<String> {
+  fun parseBoundaryViolationsInSource(
+    source: String,
+    site: ParseBoundarySite,
+  ): List<String> {
     val violations = mutableListOf<String>()
     extractFunctionBodies(source, site.functionNames).forEach { (functionName, body) ->
       forbiddenParseBoundaryReporter(body).forEach { reporter ->
@@ -362,19 +386,24 @@ object ArchitectureScanSupport {
   fun productionPackageSiblingCountViolations(
     sourceRoots: List<String>,
     remainderInventory: Set<String>,
-  ): List<String> = productionPackageSiblingCountViolationsForCounts(
-    counts = productionPackageSiblingCounts(sourceRoots),
-    remainderInventory = remainderInventory,
-  )
+  ): List<String> =
+    productionPackageSiblingCountViolationsForCounts(
+      counts = productionPackageSiblingCounts(sourceRoots),
+      remainderInventory = remainderInventory,
+    )
 
   fun productionPackageSiblingCountViolationsForCounts(
     counts: List<PackageSiblingCount>,
     remainderInventory: Set<String>,
-  ): List<String> = counts
-    .filter { count -> count.fileCount > count.ceiling && count.packageName !in remainderInventory }
-    .map { count -> packageSiblingCountViolationMessage(count) }
+  ): List<String> =
+    counts
+      .filter { count -> count.fileCount > count.ceiling && count.packageName !in remainderInventory }
+      .map { count -> packageSiblingCountViolationMessage(count) }
 
-  fun packageSiblingCountViolationMessage(packageName: String, fileCount: Int): String? {
+  fun packageSiblingCountViolationMessage(
+    packageName: String,
+    fileCount: Int,
+  ): String? {
     val ceiling = if (packageName.substringAfterLast('.') == "model") 20 else 12
     if (fileCount <= ceiling) return null
     return packageSiblingCountViolationMessage(
@@ -386,7 +415,11 @@ object ArchitectureScanSupport {
     "${count.packageName} has ${count.fileCount} production Kotlin siblings; " +
       "the ${count.ceiling}-file ceiling applies to this package."
 
-  private fun matchingAreaChild(primaryName: String, areaChildren: Set<String>, parentNoun: String): String? {
+  private fun matchingAreaChild(
+    primaryName: String,
+    areaChildren: Set<String>,
+    parentNoun: String,
+  ): String? {
     val normalized = camelTokens(primaryName).joinToString("")
     return areaChildren.firstOrNull { area ->
       area != parentNoun &&
@@ -394,7 +427,7 @@ object ArchitectureScanSupport {
           normalized.contains(area) ||
             area in primaryName.lowercase() ||
             primaryName.lowercase().contains(area)
-          )
+        )
     }
   }
 
@@ -413,11 +446,12 @@ object ArchitectureScanSupport {
         remaining = ""
       } else {
         output.append(remaining.take(next.start))
-        remaining = if (next.isLineComment) {
-          ""
-        } else {
-          remaining.drop(next.endExclusive)
-        }
+        remaining =
+          if (next.isLineComment) {
+            ""
+          } else {
+            remaining.drop(next.endExclusive)
+          }
       }
     }
     return SourceLine(output.toString())
@@ -520,10 +554,11 @@ object ArchitectureScanSupport {
   fun runtimeComponentCompositionSurfaceSources(diScanRoot: String): List<Path> {
     val diRoot = runtimeRoot.resolve(diScanRoot)
     val componentFile = runtimeRoot.resolve(PrincipleEnforcementInventory.RUNTIME_COMPONENT_SOURCE)
-    val providesFiles = kotlinFilesUnder(diRoot).filter { path ->
-      val fileName = path.fileName.toString()
-      fileName.startsWith("Runtime") && fileName.endsWith("Provides.kt")
-    }
+    val providesFiles =
+      kotlinFilesUnder(diRoot).filter { path ->
+        val fileName = path.fileName.toString()
+        fileName.startsWith("Runtime") && fileName.endsWith("Provides.kt")
+      }
     return (listOfNotNull(componentFile.takeIf { Files.exists(it) }) + providesFiles).distinct()
   }
 
@@ -537,46 +572,52 @@ object ArchitectureScanSupport {
       }
       .sorted()
 
-  fun runtimeComponentPublicCallableViolationsInSource(relativePath: String, source: String): List<String> =
+  fun runtimeComponentPublicCallableViolationsInSource(
+    relativePath: String,
+    source: String,
+  ): List<String> =
     unclassifiedPublicFunctionNames(source).map { name ->
       "$relativePath exposes public function '$name' outside the @Provides generated-wiring surface."
     }
 
-  fun logicalTypeLineCounts(productionRoots: List<String>): Map<String, Int> = productionRoots
-    .flatMap { productionRoot -> kotlinFilesUnder(runtimeRoot.resolve(productionRoot)) }
-    .mapNotNull { sourceFile ->
-      val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
-      if (isNonProductionKotlinSourceSet(relativePath)) return@mapNotNull null
-      val source = sourceFile.readText()
-      val packageName = declaredPackage(source) ?: return@mapNotNull null
-      SourceFile(
-        relativePath = relativePath,
-        packageName = packageName,
-        imports = declaredImports(source),
-        source = source,
-      )
-    }
-    .let(::logicalTypeLineCountsInSources)
+  fun logicalTypeLineCounts(productionRoots: List<String>): Map<String, Int> =
+    productionRoots
+      .flatMap { productionRoot -> kotlinFilesUnder(runtimeRoot.resolve(productionRoot)) }
+      .mapNotNull { sourceFile ->
+        val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+        if (isNonProductionKotlinSourceSet(relativePath)) return@mapNotNull null
+        val source = sourceFile.readText()
+        val packageName = declaredPackage(source) ?: return@mapNotNull null
+        SourceFile(
+          relativePath = relativePath,
+          packageName = packageName,
+          imports = declaredImports(source),
+          source = source,
+        )
+      }
+      .let(::logicalTypeLineCountsInSources)
 
   internal fun logicalTypeLineCeilingViolationsInSources(
     sourceFiles: List<SourceFile>,
     ceiling: Int,
     baseline: Map<String, Int>,
-  ): List<String> = logicalTypeLineCeilingViolationsForCounts(
-    logicalTypeLineCountsInSources(sourceFiles),
-    ceiling,
-    baseline,
-  )
+  ): List<String> =
+    logicalTypeLineCeilingViolationsForCounts(
+      logicalTypeLineCountsInSources(sourceFiles),
+      ceiling,
+      baseline,
+    )
 
   fun logicalTypeLineCeilingViolations(
     productionRoots: List<String>,
     ceiling: Int,
     baseline: Map<String, Int>,
-  ): List<String> = logicalTypeLineCeilingViolationsForCounts(
-    logicalTypeLineCounts(productionRoots),
-    ceiling,
-    baseline,
-  )
+  ): List<String> =
+    logicalTypeLineCeilingViolationsForCounts(
+      logicalTypeLineCounts(productionRoots),
+      ceiling,
+      baseline,
+    )
 
   private fun logicalTypeLineCountsInSources(sourceFiles: List<SourceFile>): Map<String, Int> {
     val counts = linkedMapOf<String, Int>()
@@ -612,18 +653,22 @@ object ArchitectureScanSupport {
     return violations.sorted()
   }
 
-  fun parseIntBaseline(text: String): Map<String, Int> = text.lineSequence()
-    .map { it.trim() }
-    .filter { it.isNotBlank() && !it.startsWith("#") }
-    .mapNotNull { line ->
-      val parts = line.split(Regex("""\s+"""), limit = 2)
-      if (parts.size != 2) return@mapNotNull null
-      val count = parts[1].toIntOrNull() ?: return@mapNotNull null
-      parts[0] to count
-    }
-    .toMap()
+  fun parseIntBaseline(text: String): Map<String, Int> =
+    text.lineSequence()
+      .map { it.trim() }
+      .filter { it.isNotBlank() && !it.startsWith("#") }
+      .mapNotNull { line ->
+        val parts = line.split(Regex("""\s+"""), limit = 2)
+        if (parts.size != 2) return@mapNotNull null
+        val count = parts[1].toIntOrNull() ?: return@mapNotNull null
+        parts[0] to count
+      }
+      .toMap()
 
-  fun packageImportEdges(scanRoot: String, packagePrefix: String): Map<String, Set<String>> {
+  fun packageImportEdges(
+    scanRoot: String,
+    packagePrefix: String,
+  ): Map<String, Set<String>> {
     val edges = linkedMapOf<String, MutableSet<String>>()
     kotlinFilesUnder(runtimeRoot.resolve(scanRoot)).forEach { sourceFile ->
       val source = sourceFile.readText()
@@ -640,7 +685,10 @@ object ArchitectureScanSupport {
     return edges.mapValues { (_, value) -> value.toSet() }
   }
 
-  fun packageCycles(scanRoot: String, packagePrefix: String): Set<PackageCycle> =
+  fun packageCycles(
+    scanRoot: String,
+    packagePrefix: String,
+  ): Set<PackageCycle> =
     mutualImportCyclesForEdges(packageImportEdges(scanRoot, packagePrefix))
       .map { cycle -> PackageCycle(cycle) }
       .toSet()
@@ -656,9 +704,10 @@ object ArchitectureScanSupport {
     baselineCycles: Set<PackageCycle>,
   ): List<String> {
     val baselineKeys = baselineCycles.map { cycle -> cycle.areas.sorted().joinToString("|") }.toSet()
-    val currentKeys = mutualImportCyclesForEdges(edges)
-      .map { cycle -> cycle.sorted().joinToString("|") }
-      .toSet()
+    val currentKeys =
+      mutualImportCyclesForEdges(edges)
+        .map { cycle -> cycle.sorted().joinToString("|") }
+        .toSet()
     return (currentKeys - baselineKeys).sorted().map { cycle ->
       "New package cycle not in baseline: ${cycle.replace("|", " <-> ")}"
     }
@@ -676,15 +725,19 @@ object ArchitectureScanSupport {
     return cycles.toList()
   }
 
-  fun parsePackageCycleBaseline(text: String): Set<PackageCycle> = text.lineSequence()
-    .map { it.trim() }
-    .filter { it.isNotBlank() && !it.startsWith("#") }
-    .map { line ->
-      PackageCycle(line.split('|').map(String::trim).filter(String::isNotBlank).sorted())
-    }
-    .toSet()
+  fun parsePackageCycleBaseline(text: String): Set<PackageCycle> =
+    text.lineSequence()
+      .map { it.trim() }
+      .filter { it.isNotBlank() && !it.startsWith("#") }
+      .map { line ->
+        PackageCycle(line.split('|').map(String::trim).filter(String::isNotBlank).sorted())
+      }
+      .toSet()
 
-  fun transitiveAreaClosure(edges: Map<String, Set<String>>, area: String): Set<String> {
+  fun transitiveAreaClosure(
+    edges: Map<String, Set<String>>,
+    area: String,
+  ): Set<String> {
     val reached = linkedSetOf<String>()
     val pending = ArrayDeque(listOf(area))
     while (pending.isNotEmpty()) {
@@ -699,60 +752,72 @@ object ArchitectureScanSupport {
     edges: Map<String, Set<String>>,
     area: String,
     sharedAreas: Set<String>,
-  ): List<String> = transitiveAreaClosure(edges, area)
-    .filterNot { reached -> reached in sharedAreas }
-    .sorted()
-    .map { reached ->
-      "Area '$area' transitively imports '$reached'; only the shared leaves " +
-        "(${sharedAreas.sorted().joinToString(", ")}) may appear in a single area's import closure."
-    }
+  ): List<String> =
+    transitiveAreaClosure(edges, area)
+      .filterNot { reached -> reached in sharedAreas }
+      .sorted()
+      .map { reached ->
+        "Area '$area' transitively imports '$reached'; only the shared leaves " +
+          "(${sharedAreas.sorted().joinToString(", ")}) may appear in a single area's import closure."
+      }
 
   fun allAreaIsolationViolationsForEdges(
     edges: Map<String, Set<String>>,
     sharedAreas: Set<String>,
     compositionRootArea: String,
-  ): List<String> = (edges.keys + edges.values.flatten())
-    .asSequence()
-    .filterNot { area -> area == compositionRootArea }
-    .distinct()
-    .sorted()
-    .flatMap { area -> areaIsolationViolationsForEdges(edges, area, sharedAreas).asSequence() }
-    .toList()
+  ): List<String> =
+    (edges.keys + edges.values.flatten())
+      .asSequence()
+      .filterNot { area -> area == compositionRootArea }
+      .distinct()
+      .sorted()
+      .flatMap { area -> areaIsolationViolationsForEdges(edges, area, sharedAreas).asSequence() }
+      .toList()
 
   fun areaIsolationViolations(
     scanRoot: String,
     packagePrefix: String,
     sharedAreas: Set<String>,
     compositionRootArea: String,
-  ): List<String> = allAreaIsolationViolationsForEdges(
-    packageImportEdges(scanRoot, packagePrefix),
-    sharedAreas,
-    compositionRootArea,
-  )
-
-  fun projectEdgesForConfiguration(source: String, configuration: String): Set<String> {
-    val edges = mutableSetOf<String>()
-    val pattern = Regex(
-      """^\s*${Regex.escape(configuration)}\(project\(":([A-Za-z0-9:-]+)"\)\)""",
-      RegexOption.MULTILINE,
+  ): List<String> =
+    allAreaIsolationViolationsForEdges(
+      packageImportEdges(scanRoot, packagePrefix),
+      sharedAreas,
+      compositionRootArea,
     )
+
+  fun projectEdgesForConfiguration(
+    source: String,
+    configuration: String,
+  ): Set<String> {
+    val edges = mutableSetOf<String>()
+    val pattern =
+      Regex(
+        """^\s*${Regex.escape(configuration)}\(project\(":([A-Za-z0-9:-]+)"\)\)""",
+        RegexOption.MULTILINE,
+      )
     pattern.findAll(source).forEach { match -> edges += match.groupValues[1] }
     return edges
   }
 
-  fun spilloverFileNameViolationsForPaths(relativePaths: List<String>, exemptPaths: Set<String>): List<String> {
-    val pathsByPackage = relativePaths.groupBy { relativePath ->
-      relativePath.replace('\\', '/').substringBeforeLast('/', missingDelimiterValue = "")
-    }
+  fun spilloverFileNameViolationsForPaths(
+    relativePaths: List<String>,
+    exemptPaths: Set<String>,
+  ): List<String> {
+    val pathsByPackage =
+      relativePaths.groupBy { relativePath ->
+        relativePath.replace('\\', '/').substringBeforeLast('/', missingDelimiterValue = "")
+      }
     return relativePaths
       .filterNot { relativePath -> relativePath in exemptPaths }
       .filter { relativePath ->
         val normalized = relativePath.replace('\\', '/')
         val packageDir = normalized.substringBeforeLast('/', missingDelimiterValue = "")
         val baseName = normalized.substringAfterLast('/').removeSuffix(".kt")
-        val siblings = pathsByPackage.getOrDefault(packageDir, emptyList())
-          .map { path -> path.replace('\\', '/').substringAfterLast('/').removeSuffix(".kt") }
-          .toSet()
+        val siblings =
+          pathsByPackage.getOrDefault(packageDir, emptyList())
+            .map { path -> path.replace('\\', '/').substringAfterLast('/').removeSuffix(".kt") }
+            .toSet()
         isSpilloverBaseName(baseName, siblings, isMainSourcePath(normalized))
       }
       .sorted()
@@ -766,26 +831,37 @@ object ArchitectureScanSupport {
   private fun spilloverSuffixPattern(mainSource: Boolean): Regex =
     if (mainSource) SPILLOVER_MAIN_SOURCE_SUFFIX_PATTERN else SPILLOVER_NUMBERED_SUFFIX_PATTERN
 
-  private fun isSpilloverBaseName(baseName: String, siblings: Set<String>, mainSource: Boolean): Boolean = when {
-    spilloverSuffixPattern(mainSource).containsMatchIn(baseName) -> true
-    else -> {
-      val prefix = Regex("""^(.+?)(\d+)$""").find(baseName)?.groupValues?.get(1).orEmpty()
-      prefix.isNotEmpty() && (
-        prefix in siblings ||
-          siblings.any { sibling ->
-            sibling != baseName &&
-              Regex("""^${Regex.escape(prefix)}\d+$""").matches(sibling)
-          }
+  private fun isSpilloverBaseName(
+    baseName: String,
+    siblings: Set<String>,
+    mainSource: Boolean,
+  ): Boolean =
+    when {
+      spilloverSuffixPattern(mainSource).containsMatchIn(baseName) -> true
+      else -> {
+        val prefix = Regex("""^(.+?)(\d+)$""").find(baseName)?.groupValues?.get(1).orEmpty()
+        prefix.isNotEmpty() && (
+          prefix in siblings ||
+            siblings.any { sibling ->
+              sibling != baseName &&
+                Regex("""^${Regex.escape(prefix)}\d+$""").matches(sibling)
+            }
         )
+      }
     }
-  }
 
-  fun spilloverFileNamePaths(scanRoots: List<String>, exemptPaths: Set<String>): Set<String> =
+  fun spilloverFileNamePaths(
+    scanRoots: List<String>,
+    exemptPaths: Set<String>,
+  ): Set<String> =
     spilloverFileNameViolations(scanRoots, exemptPaths)
       .map { violation -> violation.substringBefore(' ') }
       .toSet()
 
-  fun spilloverFileNameViolations(scanRoots: List<String>, exemptPaths: Set<String>): List<String> =
+  fun spilloverFileNameViolations(
+    scanRoots: List<String>,
+    exemptPaths: Set<String>,
+  ): List<String> =
     spilloverFileNameViolationsForPaths(
       scanRoots.flatMap { scanRoot ->
         kotlinFilesUnder(runtimeRoot.resolve(scanRoot)).map { path ->
@@ -795,7 +871,10 @@ object ArchitectureScanSupport {
       exemptPaths,
     )
 
-  fun spilloverIdentifierKeysInSource(relativePath: String, source: String): List<String> {
+  fun spilloverIdentifierKeysInSource(
+    relativePath: String,
+    source: String,
+  ): List<String> {
     val normalized = relativePath.replace('\\', '/')
     if (!isMainSourcePath(normalized)) return emptyList()
     return sourceWithoutStringLiterals(source).lineSequence()
@@ -805,12 +884,18 @@ object ArchitectureScanSupport {
       .toList()
   }
 
-  fun spilloverIdentifierViolationsInSource(relativePath: String, source: String): List<String> =
+  fun spilloverIdentifierViolationsInSource(
+    relativePath: String,
+    source: String,
+  ): List<String> =
     spilloverIdentifierKeysInSource(relativePath, source).map { key ->
       "$key carries the spillover-identifier signature; name the declaration for the responsibility it holds."
     }
 
-  fun spilloverIdentifierKeys(scanRoots: List<String>, exemptPaths: Set<String>): Set<String> =
+  fun spilloverIdentifierKeys(
+    scanRoots: List<String>,
+    exemptPaths: Set<String>,
+  ): Set<String> =
     scanRoots.flatMap { scanRoot ->
       kotlinFilesUnder(runtimeRoot.resolve(scanRoot)).flatMap { path ->
         val relativePath = runtimeRoot.relativize(path).toString().replace('\\', '/')
@@ -831,26 +916,38 @@ object ArchitectureScanSupport {
     }
   }
 
-  private fun skipWhitespace(text: String, from: Int): Int {
+  private fun skipWhitespace(
+    text: String,
+    from: Int,
+  ): Int {
     var index = from
     while (index < text.length && text[index].isWhitespace()) index++
     return index
   }
 
-  private fun identifierEnd(text: String, from: Int): Int {
+  private fun identifierEnd(
+    text: String,
+    from: Int,
+  ): Int {
     var index = from
     while (index < text.length && (text[index].isLetterOrDigit() || text[index] == '_')) index++
     return index
   }
 
-  private fun skipTypeArgumentsAndNullability(text: String, from: Int): Int {
+  private fun skipTypeArgumentsAndNullability(
+    text: String,
+    from: Int,
+  ): Int {
     var index = from
     if (index < text.length && text[index] == '<') index = skipBalancedAngles(text, index)
     if (index < text.length && text[index] == '?') index++
     return index
   }
 
-  private fun skipBalancedAngles(text: String, openIndex: Int): Int {
+  private fun skipBalancedAngles(
+    text: String,
+    openIndex: Int,
+  ): Int {
     var depth = 0
     var index = openIndex
     while (index < text.length) {
@@ -863,7 +960,11 @@ object ArchitectureScanSupport {
     return index
   }
 
-  fun extensionReceiverFqns(source: String, packageName: String, imports: List<String>): List<String> {
+  fun extensionReceiverFqns(
+    source: String,
+    packageName: String,
+    imports: List<String>,
+  ): List<String> {
     val importMap = imports.associateBy { imported -> imported.substringAfterLast('.') }
     val receivers = linkedSetOf<String>()
     var braceDepth = 0
@@ -881,11 +982,16 @@ object ArchitectureScanSupport {
     return receivers.toList()
   }
 
-  private fun resolveTypeFqn(typeName: String, packageName: String, importMap: Map<String, String>): String? = when {
-    '.' in typeName -> typeName
-    typeName in importMap -> importMap.getValue(typeName)
-    else -> "$packageName.$typeName"
-  }
+  private fun resolveTypeFqn(
+    typeName: String,
+    packageName: String,
+    importMap: Map<String, String>,
+  ): String? =
+    when {
+      '.' in typeName -> typeName
+      typeName in importMap -> importMap.getValue(typeName)
+      else -> "$packageName.$typeName"
+    }
 
   data class AuthoredSuppression(val relativePath: String, val symbol: String, val rule: String)
 
@@ -924,9 +1030,10 @@ object ArchitectureScanSupport {
     return violations.sorted()
   }
 
-  fun lineCommentViolationsIgnoringStringLiterals(source: String): List<Int> = collectCommentPolicyViolations(source)
-    .filter { violation -> violation.kind == "line-comment" }
-    .map { violation -> violation.lineNumber }
+  fun lineCommentViolationsIgnoringStringLiterals(source: String): List<Int> =
+    collectCommentPolicyViolations(source)
+      .filter { violation -> violation.kind == "line-comment" }
+      .map { violation -> violation.lineNumber }
 
   internal fun collectCommentPolicyViolations(source: String): List<CommentPolicyViolation> =
     CommentPolicyScanner(source).scan()
@@ -1021,7 +1128,10 @@ object ArchitectureScanSupport {
       segment == "build" || segment == "generated"
     }
 
-  private fun interfaceKeywordAt(source: String, index: Int): Boolean {
+  private fun interfaceKeywordAt(
+    source: String,
+    index: Int,
+  ): Boolean {
     if (!source.startsWith("interface", index)) return false
     val before = source.getOrNull(index - 1)
     if (before != null && (before.isLetterOrDigit() || before == '_')) return false
@@ -1030,7 +1140,10 @@ object ArchitectureScanSupport {
     return true
   }
 
-  private fun nonInterfaceDeclarationKeywordAt(source: String, index: Int): Boolean =
+  private fun nonInterfaceDeclarationKeywordAt(
+    source: String,
+    index: Int,
+  ): Boolean =
     listOf("class", "object", "fun", "val", "var", "typealias").any { keyword ->
       source.startsWith(keyword, index) &&
         source.getOrNull(index - 1)?.let { character -> character.isLetterOrDigit() || character == '_' } != true &&
@@ -1038,7 +1151,11 @@ object ArchitectureScanSupport {
           ?.let { character -> character.isLetterOrDigit() || character == '_' } != true
     }
 
-  private fun isAllowedKDocSite(source: String, afterCommentIndex: Int, insideInterfaceBody: Boolean): Boolean {
+  private fun isAllowedKDocSite(
+    source: String,
+    afterCommentIndex: Int,
+    insideInterfaceBody: Boolean,
+  ): Boolean {
     var remainder = source.substring(afterCommentIndex).trimStart()
     while (remainder.startsWith("@")) {
       val nextLine = remainder.indexOf('\n').takeIf { lineBreak -> lineBreak != -1 } ?: remainder.length
@@ -1049,18 +1166,27 @@ object ArchitectureScanSupport {
     return KDOC_INTERFACE_MEMBER_PREFIX.containsMatchIn(remainder)
   }
 
-  private fun skipToEndOfLine(source: String, from: Int): Int {
+  private fun skipToEndOfLine(
+    source: String,
+    from: Int,
+  ): Int {
     var index = from
     while (index < source.length && source[index] != '\n') index++
     return index
   }
 
-  private fun skipBlockComment(source: String, from: Int): Int {
+  private fun skipBlockComment(
+    source: String,
+    from: Int,
+  ): Int {
     val end = source.indexOf("*/", from + 2)
     return if (end == -1) source.length else end + 2
   }
 
-  private fun skipQuotedString(source: String, from: Int): Int {
+  private fun skipQuotedString(
+    source: String,
+    from: Int,
+  ): Int {
     var index = from
     while (index < source.length) {
       when (source[index]) {
@@ -1072,7 +1198,10 @@ object ArchitectureScanSupport {
     return index
   }
 
-  private fun skipTripleQuotedString(source: String, from: Int): Int {
+  private fun skipTripleQuotedString(
+    source: String,
+    from: Int,
+  ): Int {
     var index = from
     while (index < source.length) {
       if (source.startsWith("\"\"\"", index)) return index + 3
@@ -1085,7 +1214,10 @@ object ArchitectureScanSupport {
     return index
   }
 
-  private fun skipCharLiteral(source: String, from: Int): Int {
+  private fun skipCharLiteral(
+    source: String,
+    from: Int,
+  ): Int {
     var index = from
     while (index < source.length) {
       when (source[index]) {

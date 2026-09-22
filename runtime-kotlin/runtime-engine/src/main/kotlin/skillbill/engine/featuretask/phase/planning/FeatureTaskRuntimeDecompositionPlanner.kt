@@ -12,6 +12,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunIn
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDecomposePlanOutcome
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDecomposeSubtask
 import java.nio.file.Path
+
 @Inject
 class FeatureTaskRuntimeDecompositionPlanner(
   private val preparationRuntime: FeatureSpecPreparationRuntime,
@@ -23,27 +24,29 @@ class FeatureTaskRuntimeDecompositionPlanner(
     runInvariants: FeatureTaskRuntimeRunInvariants,
     outcome: FeatureTaskRuntimeDecomposePlanOutcome,
   ): FeatureSpecWriteResult {
-    val decision = preparationRuntime.prepareForFeatureSpec(
-      FeatureSpecPreparationIntake(
-        issueKey = issueKey,
-        intendedOutcome = outcome.parentSpecOverview.ifBlank { outcome.reason },
-        acceptanceCriteria = runInvariants.acceptanceCriteria,
-        constraints = runInvariants.mandatesAndOverrides.ifEmpty { listOf("Runtime decompose planning stop.") },
-        nonGoals = emptyList(),
-      ),
-    ).copy(mode = FeatureSpecPreparationMode.DECOMPOSED)
+    val decision =
+      preparationRuntime.prepareForFeatureSpec(
+        FeatureSpecPreparationIntake(
+          issueKey = issueKey,
+          intendedOutcome = outcome.parentSpecOverview.ifBlank { outcome.reason },
+          acceptanceCriteria = runInvariants.acceptanceCriteria,
+          constraints = runInvariants.mandatesAndOverrides.ifEmpty { listOf("Runtime decompose planning stop.") },
+          nonGoals = emptyList(),
+        ),
+      ).copy(mode = FeatureSpecPreparationMode.DECOMPOSED)
     return preparationWriter.write(
       repoRoot = repoRoot,
-      request = FeatureSpecWriteRequest(
-        decision = decision,
-        featureName = outcome.featureName,
-        parentSpecOverview = outcome.parentSpecOverview,
-        validationStrategy = outcome.validationStrategy,
-        subtasks = outcome.subtasks.map(FeatureTaskRuntimeDecomposeSubtask::toPreparation),
-        baseBranch = outcome.baseBranch,
-        featureBranch = outcome.featureBranch,
-        specSource = outcome.specSource,
-      ),
+      request =
+        FeatureSpecWriteRequest(
+          decision = decision,
+          featureName = outcome.featureName,
+          parentSpecOverview = outcome.parentSpecOverview,
+          validationStrategy = outcome.validationStrategy,
+          subtasks = outcome.subtasks.map(FeatureTaskRuntimeDecomposeSubtask::toPreparation),
+          baseBranch = outcome.baseBranch,
+          featureBranch = outcome.featureBranch,
+          specSource = outcome.specSource,
+        ),
     )
   }
 }

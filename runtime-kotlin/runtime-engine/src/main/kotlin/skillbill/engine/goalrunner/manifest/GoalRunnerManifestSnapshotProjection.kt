@@ -24,16 +24,20 @@ const val SUBTASK_STATUS_SKIPPED = "skipped"
 
 fun DecompositionManifest.isAtUnlaunchedBoundary(): Boolean {
   val currentSubtask = subtasks.firstOrNull { it.id == currentSubtaskIntent.subtaskId }
-  val activeChildExists = subtasks.any { subtask ->
-    subtask.status.decompositionStatus() == DecompositionStatus.IN_PROGRESS && subtask.workflowId?.isNotBlank() == true
-  }
-  val unselected = currentSubtaskIntent.subtaskId == NO_CURRENT_SUBTASK_ID &&
-    currentSubtaskIntent.action == NO_CURRENT_SUBTASK_ACTION
-  val selectedButNotLaunched = currentSubtask?.let { subtask ->
-    subtask.status.decompositionStatus() == DecompositionStatus.PENDING &&
-      subtask.workflowId.isNullOrBlank() &&
-      currentSubtaskIntent.action == SUBTASK_ACTION_START
-  } == true
+  val activeChildExists =
+    subtasks.any { subtask ->
+      subtask.status.decompositionStatus() == DecompositionStatus.IN_PROGRESS &&
+        subtask.workflowId?.isNotBlank() == true
+    }
+  val unselected =
+    currentSubtaskIntent.subtaskId == NO_CURRENT_SUBTASK_ID &&
+      currentSubtaskIntent.action == NO_CURRENT_SUBTASK_ACTION
+  val selectedButNotLaunched =
+    currentSubtask?.let { subtask ->
+      subtask.status.decompositionStatus() == DecompositionStatus.PENDING &&
+        subtask.workflowId.isNullOrBlank() &&
+        currentSubtaskIntent.action == SUBTASK_ACTION_START
+    } == true
   return !activeChildExists && (unselected || selectedButNotLaunched)
 }
 
@@ -48,21 +52,23 @@ fun DecompositionManifest.resetManifest(hard: Boolean): DecompositionManifest {
       lastResumableStep = null,
     )
   }
-  val resetSubtasks = subtasks.map { subtask ->
-    when {
-      hard -> freshReset(subtask)
-      subtask.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED) ->
-        subtask.copy(
-          blockedReason = null,
-          lastResumableStep = null,
-        )
-      !subtask.workflowId.isNullOrBlank() -> subtask.copy(
-        status = "in_progress",
-        blockedReason = null,
-      )
-      else -> freshReset(subtask)
+  val resetSubtasks =
+    subtasks.map { subtask ->
+      when {
+        hard -> freshReset(subtask)
+        subtask.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED) ->
+          subtask.copy(
+            blockedReason = null,
+            lastResumableStep = null,
+          )
+        !subtask.workflowId.isNullOrBlank() ->
+          subtask.copy(
+            status = "in_progress",
+            blockedReason = null,
+          )
+        else -> freshReset(subtask)
+      }
     }
-  }
   return copy(
     currentSubtaskIntent = restartIntent(resetSubtasks),
     subtasks = resetSubtasks,
@@ -80,15 +86,18 @@ fun restartIntent(subtasks: List<DecompositionSubtask>): CurrentSubtaskIntent {
     return CurrentSubtaskIntent(subtaskId = resumable.id, action = "resume")
   }
   val subtasksById = subtasks.associateBy(DecompositionSubtask::id)
-  val nextRunnable = subtasks.firstOrNull { subtask ->
-    subtask.status.decompositionStatus() == DecompositionStatus.PENDING && subtask.dependencies.all { dependency ->
-      val dependencySubtask = subtasksById[dependency.subtaskId]
-      dependencySubtask?.status.decompositionStatus() in setOf(
-        DecompositionStatus.COMPLETE,
-        DecompositionStatus.SKIPPED,
-      ) || (dependency.optional && dependency.skipped)
-    }
-  } ?: subtasks.firstOrNull { it.status.decompositionStatus() == DecompositionStatus.PENDING }
+  val nextRunnable =
+    subtasks.firstOrNull { subtask ->
+      subtask.status.decompositionStatus() == DecompositionStatus.PENDING &&
+        subtask.dependencies.all { dependency ->
+          val dependencySubtask = subtasksById[dependency.subtaskId]
+          dependencySubtask?.status.decompositionStatus() in
+            setOf(
+              DecompositionStatus.COMPLETE,
+              DecompositionStatus.SKIPPED,
+            ) || (dependency.optional && dependency.skipped)
+        }
+    } ?: subtasks.firstOrNull { it.status.decompositionStatus() == DecompositionStatus.PENDING }
   return CurrentSubtaskIntent(
     subtaskId = nextRunnable?.id ?: 0,
     action = if (nextRunnable == null) "complete" else "start",
@@ -96,41 +105,45 @@ fun restartIntent(subtasks: List<DecompositionSubtask>): CurrentSubtaskIntent {
 }
 
 fun replanIntent(subtask: DecompositionSubtask): CurrentSubtaskIntent {
-  val action = when {
-    subtask.status.decompositionStatus() == DecompositionStatus.IN_PROGRESS ||
-      !subtask.workflowId.isNullOrBlank() -> SUBTASK_ACTION_RESUME
-    else -> SUBTASK_ACTION_START
-  }
+  val action =
+    when {
+      subtask.status.decompositionStatus() == DecompositionStatus.IN_PROGRESS ||
+        !subtask.workflowId.isNullOrBlank() -> SUBTASK_ACTION_RESUME
+      else -> SUBTASK_ACTION_START
+    }
   return CurrentSubtaskIntent(subtaskId = subtask.id, action = action)
 }
 
-fun DecompositionManifest.toResetSnapshot(): GoalRunnerResetSnapshot = GoalRunnerResetSnapshot(
-  status = status,
-  currentSubtaskId = currentSubtaskIntent.subtaskId.takeIf { it > 0 },
-  currentAction = currentSubtaskIntent.action,
-  subtasks = subtasks.map { subtask ->
-    GoalRunnerResetSubtaskSnapshot(
-      id = subtask.id,
-      status = subtask.status,
-      branch = subtask.branch,
-      workflowId = subtask.workflowId,
-      commitSha = subtask.commitSha,
-      blockedReason = subtask.blockedReason,
-      lastResumableStep = subtask.lastResumableStep,
-    )
-  },
-)
+fun DecompositionManifest.toResetSnapshot(): GoalRunnerResetSnapshot =
+  GoalRunnerResetSnapshot(
+    status = status,
+    currentSubtaskId = currentSubtaskIntent.subtaskId.takeIf { it > 0 },
+    currentAction = currentSubtaskIntent.action,
+    subtasks =
+      subtasks.map { subtask ->
+        GoalRunnerResetSubtaskSnapshot(
+          id = subtask.id,
+          status = subtask.status,
+          branch = subtask.branch,
+          workflowId = subtask.workflowId,
+          commitSha = subtask.commitSha,
+          blockedReason = subtask.blockedReason,
+          lastResumableStep = subtask.lastResumableStep,
+        )
+      },
+  )
 
-fun GoalObservabilityProgressEvent.toStatusMap(): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.ISSUE_KEY to issueKey,
-  SharedPayloadKeys.SUBTASK_ID to subtaskId,
-  "workflow_phase" to workflowPhase,
-  "worker_role" to workerRole,
-  "liveness_class" to livenessClass,
-  "activity_summary" to activitySummary,
-  "sequence_number" to sequenceNumber,
-  "timestamp" to timestamp,
-)
+fun GoalObservabilityProgressEvent.toStatusMap(): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.ISSUE_KEY to issueKey,
+    SharedPayloadKeys.SUBTASK_ID to subtaskId,
+    "workflow_phase" to workflowPhase,
+    "worker_role" to workerRole,
+    "liveness_class" to livenessClass,
+    "activity_summary" to activitySummary,
+    "sequence_number" to sequenceNumber,
+    "timestamp" to timestamp,
+  )
 
 fun Map<Int, GoalRunnerOutOfBandAcceptance>.toAcceptedSubtasks(): List<GoalRunnerAcceptedSubtask> =
   values.sortedBy(GoalRunnerOutOfBandAcceptance::subtaskId).map { acceptance ->

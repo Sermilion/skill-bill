@@ -19,15 +19,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class ApplicationPersistencePortTest {
   @Test
   fun `learning list can run with fake repositories through a read unit of work`() {
     val learningRepository =
       FakeLearningRepository(
         records =
-        mutableMapOf(
-          1 to learningRecord(id = 1, title = "Keep prompts stable"),
-        ),
+          mutableMapOf(
+            1 to learningRecord(id = 1, title = "Keep prompts stable"),
+          ),
       )
     val database = FakeDatabaseSessionFactory(learnings = learningRepository)
     val service = LearningService(database)
@@ -94,10 +95,10 @@ class ApplicationPersistencePortTest {
     val reviewRepository =
       FakeReviewRepository(
         numberedFindings =
-        listOf(
-          numberedFinding(1, "F-001"),
-          numberedFinding(2, "F-002"),
-        ),
+          listOf(
+            numberedFinding(1, "F-001"),
+            numberedFinding(2, "F-002"),
+          ),
       )
     val database = FakeDatabaseSessionFactory(reviews = reviewRepository)
     val service =
@@ -160,18 +161,19 @@ class ApplicationPersistencePortTest {
   fun `a run whose routed pack cannot be resolved still imports with unresolved lanes`() {
     val reviewRepository = FakeReviewRepository()
     val database = FakeDatabaseSessionFactory(reviews = reviewRepository)
-    val service = ReviewService(
-      EnvironmentContext(
-        environment = emptyMap(),
-        userHome = Files.createTempDirectory("skillbill-app-lane-unrouted"),
-        stdinText = reviewText(findings = false),
-      ),
-      database,
-      FakeTelemetrySettingsProvider(enabled = false),
-      FakeReviewInputSource,
-      EmptyReviewAttributionPort,
-      NoopRuntimeDiagnostics,
-    )
+    val service =
+      ReviewService(
+        EnvironmentContext(
+          environment = emptyMap(),
+          userHome = Files.createTempDirectory("skillbill-app-lane-unrouted"),
+          stdinText = reviewText(findings = false),
+        ),
+        database,
+        FakeTelemetrySettingsProvider(enabled = false),
+        FakeReviewInputSource,
+        EmptyReviewAttributionPort,
+        NoopRuntimeDiagnostics,
+      )
 
     service.importReview(input = "-")
 
@@ -188,18 +190,19 @@ class ApplicationPersistencePortTest {
   fun `a composition failure degrades to unresolved lanes rather than failing the import`() {
     val reviewRepository = FakeReviewRepository()
     val database = FakeDatabaseSessionFactory(reviews = reviewRepository)
-    val service = ReviewService(
-      EnvironmentContext(
-        environment = emptyMap(),
-        userHome = Files.createTempDirectory("skillbill-app-lane-broken"),
-        stdinText = reviewText(findings = false),
-      ),
-      database,
-      FakeTelemetrySettingsProvider(enabled = false),
-      FakeReviewInputSource,
-      ThrowingPlanReviewAttributionPort,
-      NoopRuntimeDiagnostics,
-    )
+    val service =
+      ReviewService(
+        EnvironmentContext(
+          environment = emptyMap(),
+          userHome = Files.createTempDirectory("skillbill-app-lane-broken"),
+          stdinText = reviewText(findings = false),
+        ),
+        database,
+        FakeTelemetrySettingsProvider(enabled = false),
+        FakeReviewInputSource,
+        ThrowingPlanReviewAttributionPort,
+        NoopRuntimeDiagnostics,
+      )
 
     service.importReview(input = "-")
 
@@ -228,10 +231,11 @@ class ApplicationPersistencePortTest {
         ),
       )
     val reconciliationRepository = RecordingTelemetryReconciliationRepository()
-    val database = FakeDatabaseSessionFactory(
-      telemetryOutbox = outboxRepository,
-      telemetryReconciliation = reconciliationRepository,
-    )
+    val database =
+      FakeDatabaseSessionFactory(
+        telemetryOutbox = outboxRepository,
+        telemetryReconciliation = reconciliationRepository,
+      )
     val client = FakeTelemetryClient()
     val settingsProvider = FakeTelemetrySettingsProvider(enabled = true)
     val service =
@@ -240,11 +244,12 @@ class ApplicationPersistencePortTest {
         settingsProvider = settingsProvider,
         telemetryClient = client,
         clock = Clock.systemUTC(),
-        levelMutationService = TelemetryLevelMutationService(
-          database = database,
-          settingsProvider = settingsProvider,
-          configStore = FakeTelemetryConfigStore,
-        ),
+        levelMutationService =
+          TelemetryLevelMutationService(
+            database = database,
+            settingsProvider = settingsProvider,
+            configStore = FakeTelemetryConfigStore,
+          ),
         diagnostics = NoopRuntimeDiagnostics,
         interruptSignal = JvmInterruptSignalPort,
       )
@@ -277,10 +282,11 @@ class ApplicationPersistencePortTest {
         ),
       )
     val reconciliationRepository = RecordingTelemetryReconciliationRepository()
-    val database = FakeDatabaseSessionFactory(
-      telemetryOutbox = outboxRepository,
-      telemetryReconciliation = reconciliationRepository,
-    )
+    val database =
+      FakeDatabaseSessionFactory(
+        telemetryOutbox = outboxRepository,
+        telemetryReconciliation = reconciliationRepository,
+      )
     val client = FakeTelemetryClient()
     val settingsProvider = FakeTelemetrySettingsProvider(enabled = true)
     val service =
@@ -289,11 +295,12 @@ class ApplicationPersistencePortTest {
         settingsProvider = settingsProvider,
         telemetryClient = client,
         clock = Clock.systemUTC(),
-        levelMutationService = TelemetryLevelMutationService(
-          database = database,
-          settingsProvider = settingsProvider,
-          configStore = FakeTelemetryConfigStore,
-        ),
+        levelMutationService =
+          TelemetryLevelMutationService(
+            database = database,
+            settingsProvider = settingsProvider,
+            configStore = FakeTelemetryConfigStore,
+          ),
         diagnostics = NoopRuntimeDiagnostics,
         interruptSignal = JvmInterruptSignalPort,
       )
@@ -320,10 +327,11 @@ class ApplicationPersistencePortTest {
           ),
         ),
       )
-    val database = FakeDatabaseSessionFactory(
-      telemetryOutbox = outboxRepository,
-      telemetryReconciliation = ThrowingTelemetryReconciliationRepository,
-    )
+    val database =
+      FakeDatabaseSessionFactory(
+        telemetryOutbox = outboxRepository,
+        telemetryReconciliation = ThrowingTelemetryReconciliationRepository,
+      )
     val client = FakeTelemetryClient()
     val settingsProvider = FakeTelemetrySettingsProvider(enabled = true)
     val service =
@@ -332,11 +340,12 @@ class ApplicationPersistencePortTest {
         settingsProvider = settingsProvider,
         telemetryClient = client,
         clock = Clock.systemUTC(),
-        levelMutationService = TelemetryLevelMutationService(
-          database = database,
-          settingsProvider = settingsProvider,
-          configStore = FakeTelemetryConfigStore,
-        ),
+        levelMutationService =
+          TelemetryLevelMutationService(
+            database = database,
+            settingsProvider = settingsProvider,
+            configStore = FakeTelemetryConfigStore,
+          ),
         diagnostics = NoopRuntimeDiagnostics,
         interruptSignal = JvmInterruptSignalPort,
       )

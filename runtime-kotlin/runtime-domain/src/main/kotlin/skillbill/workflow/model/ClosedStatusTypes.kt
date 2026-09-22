@@ -9,10 +9,11 @@ enum class DecompositionStatus(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): DecompositionStatus? = when (value) {
-      "completed" -> COMPLETE
-      else -> entries.firstOrNull { it.wireValue == value }
-    }
+    fun fromWire(value: String): DecompositionStatus? =
+      when (value) {
+        "completed" -> COMPLETE
+        else -> entries.firstOrNull { it.wireValue == value }
+      }
   }
 }
 

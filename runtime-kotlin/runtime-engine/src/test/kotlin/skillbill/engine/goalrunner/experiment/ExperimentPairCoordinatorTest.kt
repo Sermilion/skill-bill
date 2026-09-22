@@ -40,53 +40,59 @@ class ExperimentPairCoordinatorTest {
     requests: MutableList<GoalRunnerRunRequest>,
     isolationContexts: MutableList<ExperimentArmIsolationContext>,
     deliveryCalls: MutableList<Triple<String, String, Boolean>>,
-  ): ExperimentPairCoordinator = ExperimentPairCoordinator(
-    goalRunner = ExperimentGoalRunnerPort { request ->
-      requests += request
-      GoalRunnerRunReport.Completed(
-        issueKey = request.issueKey,
-        attemptedSubtasks = listOf(1),
-        pullRequestUrl = null,
-        pullRequestStatus = GoalPullRequestStatus.EXISTING,
-        subtasksCompleted = 1,
-        subtasksPending = 0,
-        subtasksBlocked = 0,
-        parentWorkflowId = "${request.experimentPairId}:${request.experimentArmId?.wireValue}",
-      )
-    },
-    selectionPort = fixtureSelectionPort(),
-    pairOwner = owner,
-    gitOperations = fixtureGitOperations(),
-    isolationCapability = fixtureIsolationCapability(isolationContexts),
-    parentDelivery = ExperimentParentDeliveryPort { pair, workflow, _, completed, _ ->
-      deliveryCalls += Triple(pair, workflow, completed)
-      ExperimentPublicationResult(published = completed)
-    },
-    measurementPort = ExperimentArmMeasurementPort { _, _, _ ->
-      ExperimentArmMeasurement(setupCost = measured(1.0), usage = measured(2.0), cost = measured(3.0))
-    },
-    random = Random(0),
-  )
-
-  private fun fixtureSelectionPort() = object : ExperimentSelectionPort {
-    override fun resolveForLaunch(
-      repoRoot: Path,
-      parameter: String?,
-      mode: ExperimentExecutionMode,
-      savedSelection: List<String>?,
-    ) = ExperimentLaunchSelection(
-      normalizedNames = listOf("fixture-goal"),
-      descriptors = listOf("fixture-goal"),
-      availabilitySummary = "explicit",
-      treatmentCapabilities = setOf("fixture-treatment"),
+  ): ExperimentPairCoordinator =
+    ExperimentPairCoordinator(
+      goalRunner =
+        ExperimentGoalRunnerPort { request ->
+          requests += request
+          GoalRunnerRunReport.Completed(
+            issueKey = request.issueKey,
+            attemptedSubtasks = listOf(1),
+            pullRequestUrl = null,
+            pullRequestStatus = GoalPullRequestStatus.EXISTING,
+            subtasksCompleted = 1,
+            subtasksPending = 0,
+            subtasksBlocked = 0,
+            parentWorkflowId = "${request.experimentPairId}:${request.experimentArmId?.wireValue}",
+          )
+        },
+      selectionPort = fixtureSelectionPort(),
+      pairOwner = owner,
+      gitOperations = fixtureGitOperations(),
+      isolationCapability = fixtureIsolationCapability(isolationContexts),
+      parentDelivery =
+        ExperimentParentDeliveryPort { pair, workflow, _, completed, _ ->
+          deliveryCalls += Triple(pair, workflow, completed)
+          ExperimentPublicationResult(published = completed)
+        },
+      measurementPort =
+        ExperimentArmMeasurementPort { _, _, _ ->
+          ExperimentArmMeasurement(setupCost = measured(1.0), usage = measured(2.0), cost = measured(3.0))
+        },
+      random = Random(0),
     )
-  }
 
-  private fun fixtureGitOperations() = RecordingWorkflowGitOperations().also {
-    it.headCommitShaValue = "a".repeat(40)
-    it.repositoryFingerprintValue = "repository"
-    it.worktreeStatusValue = ""
-  }
+  private fun fixtureSelectionPort() =
+    object : ExperimentSelectionPort {
+      override fun resolveForLaunch(
+        repoRoot: Path,
+        parameter: String?,
+        mode: ExperimentExecutionMode,
+        savedSelection: List<String>?,
+      ) = ExperimentLaunchSelection(
+        normalizedNames = listOf("fixture-goal"),
+        descriptors = listOf("fixture-goal"),
+        availabilitySummary = "explicit",
+        treatmentCapabilities = setOf("fixture-treatment"),
+      )
+    }
+
+  private fun fixtureGitOperations() =
+    RecordingWorkflowGitOperations().also {
+      it.headCommitShaValue = "a".repeat(40)
+      it.repositoryFingerprintValue = "repository"
+      it.worktreeStatusValue = ""
+    }
 
   private fun fixtureIsolationCapability(isolationContexts: MutableList<ExperimentArmIsolationContext>) =
     object : ExperimentIsolationCapabilityPort {
@@ -101,37 +107,42 @@ class ExperimentPairCoordinatorTest {
       }
     }
 
-  private fun resumeOwner(sourceSha: String) = InMemoryOwner().also {
-    it.lastState = ExperimentPairPersistedState(
-      pairId = "pair-resume",
-      executionMode = ExperimentExecutionMode.GOAL_PAIR,
-      selectedNames = listOf("fixture-goal"),
-      armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
-      randomSeed = "seed",
-      pairPayload = mapOf(
-        ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
-        ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
-        ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
-        ExperimentPairPayloadKeys.RANDOM_SEED to "seed",
-        ExperimentPairPayloadKeys.PAIR_STATUS to "running",
-        ExperimentPairPayloadKeys.DELIVERY_ARM to "control",
-        ExperimentPairPayloadKeys.DELIVERY_STATUS to "deferred",
-        ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to mapOf(
-          ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repository",
-          ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to sourceSha,
-          ExperimentPairPayloadKeys.SOURCE_TREE_SHA to sourceSha,
-          ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to specBundleHash("frozen spec"),
-        ),
-        ExperimentPairPayloadKeys.ARM_OUTCOMES to listOf(
-          mapOf(
-            ExperimentPairPayloadKeys.ARM_ID to "control",
-            ExperimentPairPayloadKeys.WORKFLOW_ID to "control-workflow",
-            ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
-          ),
-        ),
-      ),
-    )
-  }
+  private fun resumeOwner(sourceSha: String) =
+    InMemoryOwner().also {
+      it.lastState =
+        ExperimentPairPersistedState(
+          pairId = "pair-resume",
+          executionMode = ExperimentExecutionMode.GOAL_PAIR,
+          selectedNames = listOf("fixture-goal"),
+          armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
+          randomSeed = "seed",
+          pairPayload =
+            mapOf(
+              ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
+              ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
+              ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
+              ExperimentPairPayloadKeys.RANDOM_SEED to "seed",
+              ExperimentPairPayloadKeys.PAIR_STATUS to "running",
+              ExperimentPairPayloadKeys.DELIVERY_ARM to "control",
+              ExperimentPairPayloadKeys.DELIVERY_STATUS to "deferred",
+              ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to
+                mapOf(
+                  ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repository",
+                  ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to sourceSha,
+                  ExperimentPairPayloadKeys.SOURCE_TREE_SHA to sourceSha,
+                  ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to specBundleHash("frozen spec"),
+                ),
+              ExperimentPairPayloadKeys.ARM_OUTCOMES to
+                listOf(
+                  mapOf(
+                    ExperimentPairPayloadKeys.ARM_ID to "control",
+                    ExperimentPairPayloadKeys.WORKFLOW_ID to "control-workflow",
+                    ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
+                  ),
+                ),
+            ),
+        )
+    }
 
   private fun resumeCoordinator(
     owner: InMemoryOwner,
@@ -139,50 +150,56 @@ class ExperimentPairCoordinatorTest {
     launchedArms: MutableList<ExperimentArmId>,
     measuredArms: MutableList<String>,
   ) = ExperimentPairCoordinator(
-    goalRunner = ExperimentGoalRunnerPort { request ->
-      request.experimentArmId?.let { launchedArms += it }
-      GoalRunnerRunReport.Completed(
-        issueKey = request.issueKey,
-        attemptedSubtasks = emptyList(),
-        pullRequestUrl = null,
-        pullRequestStatus = GoalPullRequestStatus.DEFERRED,
-        subtasksCompleted = 0,
-        subtasksPending = 0,
-        subtasksBlocked = 0,
-        parentWorkflowId = "treatment-workflow",
-      )
-    },
+    goalRunner =
+      ExperimentGoalRunnerPort { request ->
+        request.experimentArmId?.let { launchedArms += it }
+        GoalRunnerRunReport.Completed(
+          issueKey = request.issueKey,
+          attemptedSubtasks = emptyList(),
+          pullRequestUrl = null,
+          pullRequestStatus = GoalPullRequestStatus.DEFERRED,
+          subtasksCompleted = 0,
+          subtasksPending = 0,
+          subtasksBlocked = 0,
+          parentWorkflowId = "treatment-workflow",
+        )
+      },
     selectionPort = resumeSelectionPort(),
     pairOwner = owner,
-    gitOperations = RecordingWorkflowGitOperations().also {
-      it.headCommitShaValue = sourceSha
-      it.repositoryFingerprintValue = "repository"
-      it.worktreeStatusValue = ""
-    },
-    isolationCapability = object : ExperimentIsolationCapabilityPort {
-      override fun assertLaunchSupported(context: ExperimentArmIsolationContext) = Unit
-    },
-    measurementPort = ExperimentArmMeasurementPort { _, arm, _ ->
-      measuredArms += arm
-      ExperimentArmMeasurement(setupCost = measured(1.0), usage = measured(1.0), cost = measured(1.0))
-    },
-    parentDelivery = ExperimentParentDeliveryPort { _, _, _, _, _ ->
-      ExperimentPublicationResult(published = false)
-    },
+    gitOperations =
+      RecordingWorkflowGitOperations().also {
+        it.headCommitShaValue = sourceSha
+        it.repositoryFingerprintValue = "repository"
+        it.worktreeStatusValue = ""
+      },
+    isolationCapability =
+      object : ExperimentIsolationCapabilityPort {
+        override fun assertLaunchSupported(context: ExperimentArmIsolationContext) = Unit
+      },
+    measurementPort =
+      ExperimentArmMeasurementPort { _, arm, _ ->
+        measuredArms += arm
+        ExperimentArmMeasurement(setupCost = measured(1.0), usage = measured(1.0), cost = measured(1.0))
+      },
+    parentDelivery =
+      ExperimentParentDeliveryPort { _, _, _, _, _ ->
+        ExperimentPublicationResult(published = false)
+      },
   )
 
-  private fun resumeSelectionPort() = object : ExperimentSelectionPort {
-    override fun resolveForLaunch(
-      repoRoot: Path,
-      parameter: String?,
-      mode: ExperimentExecutionMode,
-      savedSelection: List<String>?,
-    ) = ExperimentLaunchSelection(
-      normalizedNames = savedSelection ?: listOf("fixture-goal"),
-      descriptors = listOf("fixture-goal"),
-      availabilitySummary = "saved",
-    )
-  }
+  private fun resumeSelectionPort() =
+    object : ExperimentSelectionPort {
+      override fun resolveForLaunch(
+        repoRoot: Path,
+        parameter: String?,
+        mode: ExperimentExecutionMode,
+        savedSelection: List<String>?,
+      ) = ExperimentLaunchSelection(
+        normalizedNames = savedSelection ?: listOf("fixture-goal"),
+        descriptors = listOf("fixture-goal"),
+        availabilitySummary = "saved",
+      )
+    }
 
   @Test
   fun `pair runs both arms in isolated worktree roots and persists terminal outcomes`() {
@@ -285,44 +302,51 @@ class ExperimentPairCoordinatorTest {
     Files.createDirectories(spec.parent)
     Files.writeString(spec, "frozen spec")
     val requests = mutableListOf<GoalRunnerRunRequest>()
-    val git = RecordingWorkflowGitOperations().also {
-      it.headCommitShaValue = "a".repeat(40)
-      it.repositoryFingerprintValue = "repository"
-      it.worktreeStatusValue = " M user.txt"
-    }
-    val coordinator = ExperimentPairCoordinator(
-      goalRunner = ExperimentGoalRunnerPort { request ->
-        requests += request
-        error("dirty source must stop before launching an arm")
-      },
-      selectionPort = object : ExperimentSelectionPort {
-        override fun resolveForLaunch(
-          repoRoot: Path,
-          parameter: String?,
-          mode: ExperimentExecutionMode,
-          savedSelection: List<String>?,
-        ) = ExperimentLaunchSelection(
-          normalizedNames = listOf("fixture-goal"),
-          descriptors = listOf("fixture-goal"),
-          availabilitySummary = "explicit",
-        )
-      },
-      pairOwner = InMemoryOwner(),
-      gitOperations = git,
-      isolationCapability = object : ExperimentIsolationCapabilityPort {
-        override fun assertLaunchSupported(context: ExperimentArmIsolationContext) = Unit
-      },
-      measurementPort = ExperimentArmMeasurementPort { _, _, _ ->
-        ExperimentArmMeasurement(
-          setupCost = measured(1.0),
-          usage = measured(1.0),
-          cost = measured(1.0),
-        )
-      },
-      parentDelivery = ExperimentParentDeliveryPort { _, _, _, _, _ ->
-        ExperimentPublicationResult(published = false)
-      },
-    )
+    val git =
+      RecordingWorkflowGitOperations().also {
+        it.headCommitShaValue = "a".repeat(40)
+        it.repositoryFingerprintValue = "repository"
+        it.worktreeStatusValue = " M user.txt"
+      }
+    val coordinator =
+      ExperimentPairCoordinator(
+        goalRunner =
+          ExperimentGoalRunnerPort { request ->
+            requests += request
+            error("dirty source must stop before launching an arm")
+          },
+        selectionPort =
+          object : ExperimentSelectionPort {
+            override fun resolveForLaunch(
+              repoRoot: Path,
+              parameter: String?,
+              mode: ExperimentExecutionMode,
+              savedSelection: List<String>?,
+            ) = ExperimentLaunchSelection(
+              normalizedNames = listOf("fixture-goal"),
+              descriptors = listOf("fixture-goal"),
+              availabilitySummary = "explicit",
+            )
+          },
+        pairOwner = InMemoryOwner(),
+        gitOperations = git,
+        isolationCapability =
+          object : ExperimentIsolationCapabilityPort {
+            override fun assertLaunchSupported(context: ExperimentArmIsolationContext) = Unit
+          },
+        measurementPort =
+          ExperimentArmMeasurementPort { _, _, _ ->
+            ExperimentArmMeasurement(
+              setupCost = measured(1.0),
+              usage = measured(1.0),
+              cost = measured(1.0),
+            )
+          },
+        parentDelivery =
+          ExperimentParentDeliveryPort { _, _, _, _, _ ->
+            ExperimentPublicationResult(published = false)
+          },
+      )
 
     assertFailsWith<ExperimentDirtySourceRefusalError> {
       coordinator.run(
@@ -345,57 +369,64 @@ class ExperimentPairCoordinatorTest {
     Files.writeString(spec, "frozen spec")
     val owner = InMemoryOwner()
     val requests = mutableListOf<GoalRunnerRunRequest>()
-    val isolation = object : ExperimentIsolationCapabilityPort {
-      override fun assertLaunchSupported(context: ExperimentArmIsolationContext) = Unit
+    val isolation =
+      object : ExperimentIsolationCapabilityPort {
+        override fun assertLaunchSupported(context: ExperimentArmIsolationContext) = Unit
 
-      override fun observe(context: ExperimentArmIsolationContext) =
-        ExperimentIsolationObservation(listOf("shared learning result was written"))
-    }
-    val git = RecordingWorkflowGitOperations().also {
-      it.headCommitShaValue = "a".repeat(40)
-      it.repositoryFingerprintValue = "repository"
-      it.worktreeStatusValue = ""
-    }
-    val coordinator = ExperimentPairCoordinator(
-      goalRunner = ExperimentGoalRunnerPort { request ->
-        requests += request
-        GoalRunnerRunReport.Completed(
-          issueKey = request.issueKey,
-          attemptedSubtasks = listOf(1),
-          pullRequestUrl = null,
-          pullRequestStatus = GoalPullRequestStatus.DEFERRED,
-          subtasksCompleted = 1,
-          subtasksPending = 0,
-          subtasksBlocked = 0,
-          parentWorkflowId = "workflow-${request.experimentArmId?.wireValue}",
-        )
-      },
-      selectionPort = object : ExperimentSelectionPort {
-        override fun resolveForLaunch(
-          repoRoot: Path,
-          parameter: String?,
-          mode: ExperimentExecutionMode,
-          savedSelection: List<String>?,
-        ) = ExperimentLaunchSelection(
-          normalizedNames = listOf("fixture-goal"),
-          descriptors = listOf("fixture-goal"),
-          availabilitySummary = "explicit",
-        )
-      },
-      pairOwner = owner,
-      gitOperations = git,
-      isolationCapability = isolation,
-      measurementPort = ExperimentArmMeasurementPort { _, _, _ ->
-        ExperimentArmMeasurement(
-          setupCost = measured(1.0),
-          usage = measured(1.0),
-          cost = measured(1.0),
-        )
-      },
-      parentDelivery = ExperimentParentDeliveryPort { _, _, _, _, _ ->
-        ExperimentPublicationResult(published = false)
-      },
-    )
+        override fun observe(context: ExperimentArmIsolationContext) =
+          ExperimentIsolationObservation(listOf("shared learning result was written"))
+      }
+    val git =
+      RecordingWorkflowGitOperations().also {
+        it.headCommitShaValue = "a".repeat(40)
+        it.repositoryFingerprintValue = "repository"
+        it.worktreeStatusValue = ""
+      }
+    val coordinator =
+      ExperimentPairCoordinator(
+        goalRunner =
+          ExperimentGoalRunnerPort { request ->
+            requests += request
+            GoalRunnerRunReport.Completed(
+              issueKey = request.issueKey,
+              attemptedSubtasks = listOf(1),
+              pullRequestUrl = null,
+              pullRequestStatus = GoalPullRequestStatus.DEFERRED,
+              subtasksCompleted = 1,
+              subtasksPending = 0,
+              subtasksBlocked = 0,
+              parentWorkflowId = "workflow-${request.experimentArmId?.wireValue}",
+            )
+          },
+        selectionPort =
+          object : ExperimentSelectionPort {
+            override fun resolveForLaunch(
+              repoRoot: Path,
+              parameter: String?,
+              mode: ExperimentExecutionMode,
+              savedSelection: List<String>?,
+            ) = ExperimentLaunchSelection(
+              normalizedNames = listOf("fixture-goal"),
+              descriptors = listOf("fixture-goal"),
+              availabilitySummary = "explicit",
+            )
+          },
+        pairOwner = owner,
+        gitOperations = git,
+        isolationCapability = isolation,
+        measurementPort =
+          ExperimentArmMeasurementPort { _, _, _ ->
+            ExperimentArmMeasurement(
+              setupCost = measured(1.0),
+              usage = measured(1.0),
+              cost = measured(1.0),
+            )
+          },
+        parentDelivery =
+          ExperimentParentDeliveryPort { _, _, _, _, _ ->
+            ExperimentPublicationResult(published = false)
+          },
+      )
 
     coordinator.run(
       GoalRunnerRunRequest(
@@ -421,18 +452,20 @@ class ExperimentPairCoordinatorTest {
     )
   }
 
-  private fun stopped(reason: GoalRunnerStopReason): GoalRunnerRunReport.Stopped = GoalRunnerRunReport.Stopped(
-    issueKey = "SKILL-366",
-    attemptedSubtasks = listOf(1),
-    stop = GoalRunnerStopReport(
+  private fun stopped(reason: GoalRunnerStopReason): GoalRunnerRunReport.Stopped =
+    GoalRunnerRunReport.Stopped(
       issueKey = "SKILL-366",
-      subtaskId = 1,
-      reason = reason,
-      blockedReason = "test outcome",
-      workflowId = "workflow-1",
-      lastResumableStep = "review",
-    ),
-  )
+      attemptedSubtasks = listOf(1),
+      stop =
+        GoalRunnerStopReport(
+          issueKey = "SKILL-366",
+          subtaskId = 1,
+          reason = reason,
+          blockedReason = "test outcome",
+          workflowId = "workflow-1",
+          lastResumableStep = "review",
+        ),
+    )
 
   private class InMemoryOwner : ExperimentPairOwnerPort {
     var lastState: ExperimentPairPersistedState? = null
@@ -444,17 +477,21 @@ class ExperimentPairCoordinatorTest {
       lastState = state
     }
 
-    override fun saveReport(pairId: String, reportPayload: Map<String, Any?>) {
+    override fun saveReport(
+      pairId: String,
+      reportPayload: Map<String, Any?>,
+    ) {
       lastReport = reportPayload
     }
 
     override fun importObservation(payload: Map<String, Any?>): Boolean = true
   }
 
-  private fun measured(quantity: Double) = ExperimentMeasuredValue(
-    quantity = quantity,
-    availability = TelemetryMeasurementAvailability.MEASURED.wireValue,
-  )
+  private fun measured(quantity: Double) =
+    ExperimentMeasuredValue(
+      quantity = quantity,
+      availability = TelemetryMeasurementAvailability.MEASURED.wireValue,
+    )
 
   private fun specBundleHash(value: String): String {
     val digest = MessageDigest.getInstance("SHA-256")

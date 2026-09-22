@@ -22,6 +22,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeCheckpointRefPruneTest {
   private lateinit var repo: Path
   private val git: WorkflowGitOperations = GitWorkflowGitOperations()
@@ -49,15 +50,17 @@ class FeatureTaskRuntimeCheckpointRefPruneTest {
     val subtaskId = "1"
     seedRefs(issueKey, subtaskId, count = 2)
 
-    val result = git.pruneSubtaskCheckpointRefs(
-      repoRoot = repo,
-      request = FeatureTaskRuntimeCheckpointRefPruneRequest(
-        issueKey = issueKey,
-        subtaskId = subtaskId,
-        manifestCommitSha = null,
-      ),
-      record = {},
-    )
+    val result =
+      git.pruneSubtaskCheckpointRefs(
+        repoRoot = repo,
+        request =
+          FeatureTaskRuntimeCheckpointRefPruneRequest(
+            issueKey = issueKey,
+            subtaskId = subtaskId,
+            manifestCommitSha = null,
+          ),
+        record = {},
+      )
 
     assertFalse(result.attempted)
     assertEquals(2, listedRefCount(issueKey, subtaskId))
@@ -68,11 +71,12 @@ class FeatureTaskRuntimeCheckpointRefPruneTest {
     val issueKey = "SKILL-190"
     val subtaskId = "2"
     seedRefs(issueKey, subtaskId, count = 3)
-    val request = FeatureTaskRuntimeCheckpointRefPruneRequest(
-      issueKey = issueKey,
-      subtaskId = subtaskId,
-      manifestCommitSha = head(),
-    )
+    val request =
+      FeatureTaskRuntimeCheckpointRefPruneRequest(
+        issueKey = issueKey,
+        subtaskId = subtaskId,
+        manifestCommitSha = head(),
+      )
 
     val first = git.pruneSubtaskCheckpointRefs(repo, request, record = {})
     val second = git.pruneSubtaskCheckpointRefs(repo, request, record = {})
@@ -89,18 +93,20 @@ class FeatureTaskRuntimeCheckpointRefPruneTest {
     val issueKey = "SKILL-190"
     val subtaskId = "3"
     seedRefs(issueKey, subtaskId, count = 3)
-    val refs = (0 until 3).map { sequence ->
-      featureTaskRuntimeCheckpointRefName(issueKey, subtaskId, sequence)
-    }
+    val refs =
+      (0 until 3).map { sequence ->
+        featureTaskRuntimeCheckpointRefName(issueKey, subtaskId, sequence)
+      }
     assertTrue(
       git.deleteCheckpointRef(repo, FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE, refs[0]) is
         WorkflowGitOperationResult.Ok,
     )
-    val request = FeatureTaskRuntimeCheckpointRefPruneRequest(
-      issueKey = issueKey,
-      subtaskId = subtaskId,
-      manifestCommitSha = head(),
-    )
+    val request =
+      FeatureTaskRuntimeCheckpointRefPruneRequest(
+        issueKey = issueKey,
+        subtaskId = subtaskId,
+        manifestCommitSha = head(),
+      )
 
     val resumed = git.pruneSubtaskCheckpointRefs(repo, request, record = {})
 
@@ -113,25 +119,27 @@ class FeatureTaskRuntimeCheckpointRefPruneTest {
   fun `blocked subtask retention leaves checkpoint refs when manifest row is not complete`() {
     val issueKey = "SKILL-190"
     seedRefs(issueKey, "5", count = 2)
-    val manifest = DecompositionManifest(
-      issueKey = issueKey,
-      featureName = "one-commit-per-subtask",
-      parentSpecPath = ".feature-specs/$issueKey/spec.md",
-      baseBranch = "main",
-      featureBranch = "feat/skill-190",
-      status = "blocked",
-      currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 5, action = "blocked"),
-      subtasks = listOf(
-        DecompositionSubtask(
-          id = 5,
-          name = "blocked subtask",
-          specPath = ".feature-specs/$issueKey/spec_subtask_5.md",
-          status = "blocked",
-          commitSha = null,
-          blockedReason = "needs repair",
-        ),
-      ),
-    )
+    val manifest =
+      DecompositionManifest(
+        issueKey = issueKey,
+        featureName = "one-commit-per-subtask",
+        parentSpecPath = ".feature-specs/$issueKey/spec.md",
+        baseBranch = "main",
+        featureBranch = "feat/skill-190",
+        status = "blocked",
+        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 5, action = "blocked"),
+        subtasks =
+          listOf(
+            DecompositionSubtask(
+              id = 5,
+              name = "blocked subtask",
+              specPath = ".feature-specs/$issueKey/spec_subtask_5.md",
+              status = "blocked",
+              commitSha = null,
+              blockedReason = "needs repair",
+            ),
+          ),
+      )
 
     pruneEligibleCheckpointRefsForManifest(manifest, git, repo, record = {})
 
@@ -160,16 +168,18 @@ class FeatureTaskRuntimeCheckpointRefPruneTest {
     seedRefs(issueKey, subtaskId, count = 2)
     val localOnlySha = head()
 
-    val result = git.pruneSubtaskCheckpointRefs(
-      repoRoot = repo,
-      request = FeatureTaskRuntimeCheckpointRefPruneRequest(
-        issueKey = issueKey,
-        subtaskId = subtaskId,
-        manifestCommitSha = localOnlySha,
-        featureBranch = "feat/skill-190",
-      ),
-      record = {},
-    )
+    val result =
+      git.pruneSubtaskCheckpointRefs(
+        repoRoot = repo,
+        request =
+          FeatureTaskRuntimeCheckpointRefPruneRequest(
+            issueKey = issueKey,
+            subtaskId = subtaskId,
+            manifestCommitSha = localOnlySha,
+            featureBranch = "feat/skill-190",
+          ),
+        record = {},
+      )
 
     assertFalse(result.attempted)
     assertEquals(2, listedRefCount(issueKey, subtaskId))
@@ -193,16 +203,18 @@ class FeatureTaskRuntimeCheckpointRefPruneTest {
     gitCommand("remote", "add", "origin", repo.toUri().toString())
     gitCommand("push", "-u", "origin", "feat/skill-201")
 
-    val result = git.pruneSubtaskCheckpointRefs(
-      repoRoot = repo,
-      request = FeatureTaskRuntimeCheckpointRefPruneRequest(
-        issueKey = issueKey,
-        subtaskId = subtaskId,
-        manifestCommitSha = supersededSha,
-        featureBranch = "feat/skill-201",
-      ),
-      record = {},
-    )
+    val result =
+      git.pruneSubtaskCheckpointRefs(
+        repoRoot = repo,
+        request =
+          FeatureTaskRuntimeCheckpointRefPruneRequest(
+            issueKey = issueKey,
+            subtaskId = subtaskId,
+            manifestCommitSha = supersededSha,
+            featureBranch = "feat/skill-201",
+          ),
+        record = {},
+      )
 
     assertTrue(result.attempted)
     assertEquals(2, result.deletedRefCount)
@@ -215,23 +227,29 @@ class FeatureTaskRuntimeCheckpointRefPruneTest {
     val subtaskId = "4"
     seedRefs(issueKey, subtaskId, count = 1)
 
-    val result = git.pruneSubtaskCheckpointRefs(
-      repoRoot = repo,
-      request = FeatureTaskRuntimeCheckpointRefPruneRequest(
-        issueKey = issueKey,
-        subtaskId = subtaskId,
-        manifestCommitSha = null,
-        bypassEligibilityGate = true,
-      ),
-      record = {},
-    )
+    val result =
+      git.pruneSubtaskCheckpointRefs(
+        repoRoot = repo,
+        request =
+          FeatureTaskRuntimeCheckpointRefPruneRequest(
+            issueKey = issueKey,
+            subtaskId = subtaskId,
+            manifestCommitSha = null,
+            bypassEligibilityGate = true,
+          ),
+        record = {},
+      )
 
     assertTrue(result.attempted)
     assertEquals(1, result.deletedRefCount)
     assertEquals(0, listedRefCount(issueKey, subtaskId))
   }
 
-  private fun seedRefs(issueKey: String, subtaskId: String, count: Int) {
+  private fun seedRefs(
+    issueKey: String,
+    subtaskId: String,
+    count: Int,
+  ) {
     val sha = head()
     repeat(count) { sequence ->
       val ref = featureTaskRuntimeCheckpointRefName(issueKey, subtaskId, sequence)
@@ -242,22 +260,30 @@ class FeatureTaskRuntimeCheckpointRefPruneTest {
     }
   }
 
-  private fun listedRefCount(issueKey: String, subtaskId: String): Int = parseCheckpointRefListing(
-    git.listCheckpointRefs(repo, featureTaskRuntimeSubtaskCheckpointRefPrefix(issueKey, subtaskId)).value.orEmpty(),
-  ).size
+  private fun listedRefCount(
+    issueKey: String,
+    subtaskId: String,
+  ): Int =
+    parseCheckpointRefListing(
+      git.listCheckpointRefs(repo, featureTaskRuntimeSubtaskCheckpointRefPrefix(issueKey, subtaskId)).value.orEmpty(),
+    ).size
 
   private fun head(): String = gitCommand("rev-parse", "HEAD")
 
-  private fun write(relative: String, content: String) {
+  private fun write(
+    relative: String,
+    content: String,
+  ) {
     val target = repo.resolve(relative)
     target.parent?.createDirectories()
     target.writeText(content)
   }
 
   private fun gitCommand(vararg args: String): String {
-    val process = ProcessBuilder(listOf("git", "-C", repo.toString()) + args.toList())
-      .redirectErrorStream(true)
-      .start()
+    val process =
+      ProcessBuilder(listOf("git", "-C", repo.toString()) + args.toList())
+        .redirectErrorStream(true)
+        .start()
     val output = process.inputStream.bufferedReader().readText().trim()
     val exitCode = process.waitFor()
     check(exitCode == 0) { "git ${args.joinToString(" ")} failed with $exitCode: $output" }

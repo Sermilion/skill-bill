@@ -8,13 +8,14 @@ import kotlin.test.assertEquals
 class ExperimentStatsProjectorTest {
   @Test
   fun `stats keep goal and navigation cohorts separate and retain exclusions`() {
-    val stats = ExperimentStatsProjector.project(
-      listOf(
-        report("goal", "complete", metricComparison = metricComparison(20.0)),
-        report("goal", "degraded", listOf("treatment failed")),
-        report("navigation", "complete"),
-      ),
-    )
+    val stats =
+      ExperimentStatsProjector.project(
+        listOf(
+          report("goal", "complete", metricComparison = metricComparison(20.0)),
+          report("goal", "degraded", listOf("treatment failed")),
+          report("navigation", "complete"),
+        ),
+      )
 
     val goal = stats[ExperimentStatsPayloadKeys.GOAL] as Map<*, *>
     val navigation = stats[ExperimentStatsPayloadKeys.NAVIGATION] as Map<*, *>
@@ -30,37 +31,43 @@ class ExperimentStatsProjectorTest {
 
   @Test
   fun `stats aggregate measured spend percent savings and quality only from complete pairs`() {
-    val stats = ExperimentStatsProjector.project(
-      listOf(
-        mapOf(
-          ExperimentReportPayloadKeys.COHORT to "goal",
-          ExperimentReportPayloadKeys.COMPLETENESS to "complete",
-          ExperimentReportPayloadKeys.TOTAL_EXPERIMENT_SPEND to mapOf(
-            ExperimentReportPayloadKeys.AVAILABILITY to "measured",
-            ExperimentReportPayloadKeys.AMOUNT to 30.0,
-          ),
-          ExperimentReportPayloadKeys.METRIC_COMPARISONS to listOf(
-            mapOf(
-              ExperimentReportPayloadKeys.METRIC_ID to "cost",
-              ExperimentReportPayloadKeys.ABSOLUTE_SAVINGS to mapOf(
-                ExperimentReportPayloadKeys.QUANTITY to 20.0,
+    val stats =
+      ExperimentStatsProjector.project(
+        listOf(
+          mapOf(
+            ExperimentReportPayloadKeys.COHORT to "goal",
+            ExperimentReportPayloadKeys.COMPLETENESS to "complete",
+            ExperimentReportPayloadKeys.TOTAL_EXPERIMENT_SPEND to
+              mapOf(
+                ExperimentReportPayloadKeys.AVAILABILITY to "measured",
+                ExperimentReportPayloadKeys.AMOUNT to 30.0,
               ),
-              ExperimentReportPayloadKeys.PERCENT_SAVINGS to mapOf(
-                ExperimentReportPayloadKeys.QUANTITY to 20.0,
+            ExperimentReportPayloadKeys.METRIC_COMPARISONS to
+              listOf(
+                mapOf(
+                  ExperimentReportPayloadKeys.METRIC_ID to "cost",
+                  ExperimentReportPayloadKeys.ABSOLUTE_SAVINGS to
+                    mapOf(
+                      ExperimentReportPayloadKeys.QUANTITY to 20.0,
+                    ),
+                  ExperimentReportPayloadKeys.PERCENT_SAVINGS to
+                    mapOf(
+                      ExperimentReportPayloadKeys.QUANTITY to 20.0,
+                    ),
+                ),
               ),
-            ),
-          ),
-          ExperimentReportPayloadKeys.ARM_SUMMARIES to listOf(
-            mapOf(
-              ExperimentReportPayloadKeys.LABELLED_CRITERIA to 2,
-              ExperimentReportPayloadKeys.TOTAL_CRITERIA to 3,
-              ExperimentReportPayloadKeys.PRECISION_AVAILABLE to true,
-              ExperimentReportPayloadKeys.RESTRICTED_BASELINE to true,
-            ),
+            ExperimentReportPayloadKeys.ARM_SUMMARIES to
+              listOf(
+                mapOf(
+                  ExperimentReportPayloadKeys.LABELLED_CRITERIA to 2,
+                  ExperimentReportPayloadKeys.TOTAL_CRITERIA to 3,
+                  ExperimentReportPayloadKeys.PRECISION_AVAILABLE to true,
+                  ExperimentReportPayloadKeys.RESTRICTED_BASELINE to true,
+                ),
+              ),
           ),
         ),
-      ),
-    )
+      )
 
     val goal = stats[ExperimentStatsPayloadKeys.GOAL] as Map<*, *>
     assertEquals(
@@ -82,20 +89,23 @@ class ExperimentStatsProjectorTest {
     completeness: String,
     exclusionReasons: List<String> = emptyList(),
     metricComparison: Map<String, Any?>? = null,
-  ): Map<String, Any?> = mapOf(
-    ExperimentReportPayloadKeys.COHORT to cohort,
-    ExperimentReportPayloadKeys.COMPLETENESS to completeness,
-    ExperimentReportPayloadKeys.EXCLUSION_REASONS to exclusionReasons,
-  ).plus(
-    metricComparison?.let {
-      mapOf(ExperimentReportPayloadKeys.METRIC_COMPARISONS to listOf(it))
-    } ?: emptyMap(),
-  )
+  ): Map<String, Any?> =
+    mapOf(
+      ExperimentReportPayloadKeys.COHORT to cohort,
+      ExperimentReportPayloadKeys.COMPLETENESS to completeness,
+      ExperimentReportPayloadKeys.EXCLUSION_REASONS to exclusionReasons,
+    ).plus(
+      metricComparison?.let {
+        mapOf(ExperimentReportPayloadKeys.METRIC_COMPARISONS to listOf(it))
+      } ?: emptyMap(),
+    )
 
-  private fun metricComparison(savings: Double): Map<String, Any?> = mapOf(
-    ExperimentReportPayloadKeys.METRIC_ID to "cost",
-    ExperimentReportPayloadKeys.ABSOLUTE_SAVINGS to mapOf(
-      ExperimentReportPayloadKeys.QUANTITY to savings,
-    ),
-  )
+  private fun metricComparison(savings: Double): Map<String, Any?> =
+    mapOf(
+      ExperimentReportPayloadKeys.METRIC_ID to "cost",
+      ExperimentReportPayloadKeys.ABSOLUTE_SAVINGS to
+        mapOf(
+          ExperimentReportPayloadKeys.QUANTITY to savings,
+        ),
+    )
 }

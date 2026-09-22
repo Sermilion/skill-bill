@@ -3,7 +3,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 
 internal object FeatureTaskRuntimeProjectionCanonicalizer {
-
   fun canonicalize(produced: Map<String, Any?>): FeatureTaskRuntimeProjectionCanonicalization {
     val records = mutableListOf<FeatureTaskRuntimeProjectionCanonicalizationRecord>()
     val declaredIds = buildDeclaredIdMap(produced)
@@ -17,14 +16,16 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     )
   }
 
-  fun canonicalizeTaskId(raw: String): String = raw.trim()
-    .lowercase()
-    .replace(FEATURE_TASK_RUNTIME_ID_SEPARATOR_RUN, "-")
-    .replace(FEATURE_TASK_RUNTIME_ID_INVALID_CHAR, "")
-    .replace(FEATURE_TASK_RUNTIME_ID_HYPHEN_RUN, "-")
+  fun canonicalizeTaskId(raw: String): String =
+    raw.trim()
+      .lowercase()
+      .replace(FEATURE_TASK_RUNTIME_ID_SEPARATOR_RUN, "-")
+      .replace(FEATURE_TASK_RUNTIME_ID_INVALID_CHAR, "")
+      .replace(FEATURE_TASK_RUNTIME_ID_HYPHEN_RUN, "-")
 
   private fun buildDeclaredIdMap(produced: Map<String, Any?>): Map<String, String> {
     val map = LinkedHashMap<String, String>()
+
     fun harvest(listKey: String) {
       (produced[listKey] as? List<*>)?.forEach { entry ->
         val id = (entry as? Map<*, *>)?.get("task_id") as? String ?: return@forEach
@@ -41,79 +42,86 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     value: Any?,
     declaredIds: Map<String, String>,
     records: MutableList<FeatureTaskRuntimeProjectionCanonicalizationRecord>,
-  ): Any? = when (key) {
-    "tasks" -> mapEntries(value) { index, entry ->
-      canonicalizeTaskEntry(entry, declaredIds, records, index)
+  ): Any? =
+    when (key) {
+      "tasks" ->
+        mapEntries(value) { index, entry ->
+          canonicalizeTaskEntry(entry, declaredIds, records, index)
+        }
+      "task_commitments" ->
+        mapEntries(value) { index, entry ->
+          canonicalizeCommitmentEntry(entry, records, index)
+        }
+      "deviations" ->
+        mapEntries(value) { index, entry ->
+          canonicalizeDeviationEntry(entry, records, index)
+        }
+      "completed_task_ids" -> canonicalizeReferenceIds(value, declaredIds, records, key)
+      "tests_executed" ->
+        discardUnknownKeysInEntries(
+          value,
+          FEATURE_TASK_RUNTIME_TEST_EXECUTION_KEYS,
+          key,
+          records,
+        )
+      "reconciliation_evidence" -> canonicalizeReconciliationEvidence(value, records)
+      "repository_checkpoint" -> canonicalizeRepositoryCheckpoint(value, records, key)
+      in FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS -> trimStringList(value, records, key)
+      else -> value
     }
-    "task_commitments" -> mapEntries(value) { index, entry ->
-      canonicalizeCommitmentEntry(entry, records, index)
-    }
-    "deviations" -> mapEntries(value) { index, entry ->
-      canonicalizeDeviationEntry(entry, records, index)
-    }
-    "completed_task_ids" -> canonicalizeReferenceIds(value, declaredIds, records, key)
-    "tests_executed" -> discardUnknownKeysInEntries(
-      value,
-      FEATURE_TASK_RUNTIME_TEST_EXECUTION_KEYS,
-      key,
-      records,
-    )
-    "reconciliation_evidence" -> canonicalizeReconciliationEvidence(value, records)
-    "repository_checkpoint" -> canonicalizeRepositoryCheckpoint(value, records, key)
-    in FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS -> trimStringList(value, records, key)
-    else -> value
-  }
 
   private fun canonicalizeReconciliationEvidence(
     value: Any?,
     records: MutableList<FeatureTaskRuntimeProjectionCanonicalizationRecord>,
-  ): Any? = mapObject(promotedReconciliationEvidence(value, records)) {
-    trimNonBlank(
-      discardUnknownKeys(
-        adoptedProseKey(
-          it,
+  ): Any? =
+    mapObject(promotedReconciliationEvidence(value, records)) {
+      trimNonBlank(
+        discardUnknownKeys(
+          adoptedProseKey(
+            it,
+            FEATURE_TASK_RUNTIME_RECONCILIATION_EVIDENCE_KEYS,
+            "evidence",
+            "reconciliation_evidence",
+            records,
+          ),
           FEATURE_TASK_RUNTIME_RECONCILIATION_EVIDENCE_KEYS,
-          "evidence",
           "reconciliation_evidence",
           records,
         ),
-        FEATURE_TASK_RUNTIME_RECONCILIATION_EVIDENCE_KEYS,
-        "reconciliation_evidence",
+        "evidence",
         records,
-      ),
-      "evidence",
-      records,
-      "reconciliation_evidence.evidence",
-    )
-  }
+        "reconciliation_evidence.evidence",
+      )
+    }
 
   private fun canonicalizeRepositoryCheckpoint(
     value: Any?,
     records: MutableList<FeatureTaskRuntimeProjectionCanonicalizationRecord>,
     key: String,
-  ): Any? = mapObject(value) { checkpoint ->
-    trimNonBlank(
+  ): Any? =
+    mapObject(value) { checkpoint ->
       trimNonBlank(
         trimNonBlank(
-          discardUnknownKeys(
-            checkpoint,
-            FEATURE_TASK_RUNTIME_REPOSITORY_CHECKPOINT_KEYS,
-            key,
+          trimNonBlank(
+            discardUnknownKeys(
+              checkpoint,
+              FEATURE_TASK_RUNTIME_REPOSITORY_CHECKPOINT_KEYS,
+              key,
+              records,
+            ),
+            "fingerprint",
             records,
+            "repository_checkpoint.fingerprint",
           ),
-          "fingerprint",
+          "base_ref",
           records,
-          "repository_checkpoint.fingerprint",
+          "repository_checkpoint.base_ref",
         ),
-        "base_ref",
+        "head_ref",
         records,
-        "repository_checkpoint.base_ref",
-      ),
-      "head_ref",
-      records,
-      "repository_checkpoint.head_ref",
-    )
-  }
+        "repository_checkpoint.head_ref",
+      )
+    }
 
   private fun canonicalizeTaskEntry(
     entry: Map<String, Any?>,
@@ -121,27 +129,30 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     records: MutableList<FeatureTaskRuntimeProjectionCanonicalizationRecord>,
     index: Int,
   ): Map<String, Any?> {
-    val governed = discardUnknownKeys(
-      entry,
-      FEATURE_TASK_RUNTIME_PLAN_TASK_KEYS,
-      "tasks[$index]",
-      records,
-    )
+    val governed =
+      discardUnknownKeys(
+        entry,
+        FEATURE_TASK_RUNTIME_PLAN_TASK_KEYS,
+        "tasks[$index]",
+        records,
+      )
     val result = LinkedHashMap<String, Any?>(governed.size)
     governed.forEach { (key, value) ->
-      result[key] = when (key) {
-        "task_id" -> canonicalizeDeclaredId(value, records, "tasks[$index].task_id")
-        DecompositionPlanningPayloadKeys.DEPENDS_ON -> canonicalizeReferenceIds(
-          value,
-          declaredIds,
-          records,
-          "tasks[$index].depends_on",
-        )
-        "description" -> canonicalizeCompactSummary(value, records, "tasks[$index].description")
-        in FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS ->
-          trimStringList(value, records, "tasks[$index].$key")
-        else -> value
-      }
+      result[key] =
+        when (key) {
+          "task_id" -> canonicalizeDeclaredId(value, records, "tasks[$index].task_id")
+          DecompositionPlanningPayloadKeys.DEPENDS_ON ->
+            canonicalizeReferenceIds(
+              value,
+              declaredIds,
+              records,
+              "tasks[$index].depends_on",
+            )
+          "description" -> canonicalizeCompactSummary(value, records, "tasks[$index].description")
+          in FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS ->
+            trimStringList(value, records, "tasks[$index].$key")
+          else -> value
+        }
     }
     return result
   }
@@ -151,20 +162,22 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     records: MutableList<FeatureTaskRuntimeProjectionCanonicalizationRecord>,
     index: Int,
   ): Map<String, Any?> {
-    val governed = discardUnknownKeys(
-      entry,
-      FEATURE_TASK_RUNTIME_TASK_COMMITMENT_KEYS,
-      "task_commitments[$index]",
-      records,
-    )
+    val governed =
+      discardUnknownKeys(
+        entry,
+        FEATURE_TASK_RUNTIME_TASK_COMMITMENT_KEYS,
+        "task_commitments[$index]",
+        records,
+      )
     val result = LinkedHashMap<String, Any?>(governed.size)
     governed.forEach { (key, value) ->
-      result[key] = when (key) {
-        "task_id" -> canonicalizeDeclaredId(value, records, "task_commitments[$index].task_id")
-        in FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS ->
-          trimStringList(value, records, "task_commitments[$index].$key")
-        else -> value
-      }
+      result[key] =
+        when (key) {
+          "task_id" -> canonicalizeDeclaredId(value, records, "task_commitments[$index].task_id")
+          in FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS ->
+            trimStringList(value, records, "task_commitments[$index].$key")
+          else -> value
+        }
     }
     return result
   }
@@ -174,19 +187,21 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     records: MutableList<FeatureTaskRuntimeProjectionCanonicalizationRecord>,
     index: Int,
   ): Map<String, Any?> {
-    val governed = discardUnknownKeys(
-      entry,
-      FEATURE_TASK_RUNTIME_DEVIATION_KEYS,
-      "deviations[$index]",
-      records,
-    )
+    val governed =
+      discardUnknownKeys(
+        entry,
+        FEATURE_TASK_RUNTIME_DEVIATION_KEYS,
+        "deviations[$index]",
+        records,
+      )
     val result = LinkedHashMap<String, Any?>(governed.size)
     governed.forEach { (key, value) ->
-      result[key] = when (key) {
-        "ref" -> trimNonBlankValue(value, records, "deviations[$index].ref")
-        "note" -> canonicalizeCompactSummary(value, records, "deviations[$index].note")
-        else -> value
-      }
+      result[key] =
+        when (key) {
+          "ref" -> trimNonBlankValue(value, records, "deviations[$index].ref")
+          "note" -> canonicalizeCompactSummary(value, records, "deviations[$index].note")
+          else -> value
+        }
     }
     return result
   }
@@ -226,11 +241,12 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     val afterTabs = raw.replace(FEATURE_TASK_RUNTIME_TAB_RUN, " ")
     val afterBackticks = afterTabs.replace("`", "")
     val trimmed = afterBackticks.trim()
-    val transforms = buildList {
-      if (afterTabs != raw) add(FeatureTaskRuntimeProjectionCanonicalizationTransform.TABS_TO_SPACE)
-      if (afterBackticks != afterTabs) add(FeatureTaskRuntimeProjectionCanonicalizationTransform.BACKTICKS_STRIPPED)
-      if (trimmed != afterBackticks) add(FeatureTaskRuntimeProjectionCanonicalizationTransform.TRIMMED)
-    }
+    val transforms =
+      buildList {
+        if (afterTabs != raw) add(FeatureTaskRuntimeProjectionCanonicalizationTransform.TABS_TO_SPACE)
+        if (afterBackticks != afterTabs) add(FeatureTaskRuntimeProjectionCanonicalizationTransform.BACKTICKS_STRIPPED)
+        if (trimmed != afterBackticks) add(FeatureTaskRuntimeProjectionCanonicalizationTransform.TRIMMED)
+      }
     if (transforms.isNotEmpty()) {
       records += textFreeRecord(fieldPath, transforms)
     }
@@ -248,7 +264,10 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     }
   }
 
-  private fun mapEntries(value: Any?, transform: (Int, Map<String, Any?>) -> Map<String, Any?>): Any? {
+  private fun mapEntries(
+    value: Any?,
+    transform: (Int, Map<String, Any?>) -> Map<String, Any?>,
+  ): Any? {
     val list = value as? List<*> ?: return value
     return list.mapIndexed { index, entry ->
       val entryMap = entry as? Map<*, *> ?: return@mapIndexed entry
@@ -257,7 +276,10 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     }
   }
 
-  private fun mapObject(value: Any?, transform: (Map<String, Any?>) -> Map<String, Any?>): Any? {
+  private fun mapObject(
+    value: Any?,
+    transform: (Map<String, Any?>) -> Map<String, Any?>,
+  ): Any? {
     val map = value as? Map<*, *> ?: return value
     val stringKeyed = map.stringKeyedView() ?: return value
     return transform(stringKeyed)
@@ -280,10 +302,11 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
       if (key in governedKeys) {
         retained[key] = value
       } else {
-        records += textFreeRecord(
-          "$fieldPath.${key.take(MAX_RECORDED_ID_LENGTH)}",
-          listOf(FeatureTaskRuntimeProjectionCanonicalizationTransform.UNKNOWN_KEY_DISCARDED),
-        )
+        records +=
+          textFreeRecord(
+            "$fieldPath.${key.take(MAX_RECORDED_ID_LENGTH)}",
+            listOf(FeatureTaskRuntimeProjectionCanonicalizationTransform.UNKNOWN_KEY_DISCARDED),
+          )
       }
     }
     return retained
@@ -299,10 +322,11 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     if (map.containsKey(proseKey)) return map
     val donor = map.keys.singleOrNull { it !in governedKeys } ?: return map
     val prose = (map[donor] as? String)?.trim()?.takeIf(String::isNotEmpty) ?: return map
-    records += textFreeRecord(
-      "$fieldPath.$proseKey",
-      listOf(FeatureTaskRuntimeProjectionCanonicalizationTransform.MISNAMED_KEY_ADOPTED),
-    )
+    records +=
+      textFreeRecord(
+        "$fieldPath.$proseKey",
+        listOf(FeatureTaskRuntimeProjectionCanonicalizationTransform.MISNAMED_KEY_ADOPTED),
+      )
     val adopted = LinkedHashMap<String, Any?>(map.size)
     map.forEach { (key, value) -> if (key != donor) adopted[key] = value }
     adopted[proseKey] = prose
@@ -327,10 +351,11 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     records: MutableList<FeatureTaskRuntimeProjectionCanonicalizationRecord>,
   ): Any? {
     val evidence = (value as? String)?.trim()?.takeIf(String::isNotEmpty) ?: return value
-    records += textFreeRecord(
-      "reconciliation_evidence",
-      listOf(FeatureTaskRuntimeProjectionCanonicalizationTransform.SCALAR_PROMOTED_TO_OBJECT),
-    )
+    records +=
+      textFreeRecord(
+        "reconciliation_evidence",
+        listOf(FeatureTaskRuntimeProjectionCanonicalizationTransform.SCALAR_PROMOTED_TO_OBJECT),
+      )
     return linkedMapOf<String, Any?>("reconciled" to true, "evidence" to evidence)
   }
 
@@ -366,12 +391,13 @@ internal object FeatureTaskRuntimeProjectionCanonicalizer {
     records: MutableList<FeatureTaskRuntimeProjectionCanonicalizationRecord>,
   ) {
     if (canonical == raw) return
-    records += FeatureTaskRuntimeProjectionCanonicalizationRecord(
-      fieldPath = fieldPath,
-      transforms = listOf(FeatureTaskRuntimeProjectionCanonicalizationTransform.TASK_ID_NORMALIZED),
-      originalId = raw.take(MAX_RECORDED_ID_LENGTH),
-      canonicalId = canonical.take(MAX_RECORDED_ID_LENGTH),
-    )
+    records +=
+      FeatureTaskRuntimeProjectionCanonicalizationRecord(
+        fieldPath = fieldPath,
+        transforms = listOf(FeatureTaskRuntimeProjectionCanonicalizationTransform.TASK_ID_NORMALIZED),
+        originalId = raw.take(MAX_RECORDED_ID_LENGTH),
+        canonicalId = canonical.take(MAX_RECORDED_ID_LENGTH),
+      )
   }
 
   private fun textFreeRecord(

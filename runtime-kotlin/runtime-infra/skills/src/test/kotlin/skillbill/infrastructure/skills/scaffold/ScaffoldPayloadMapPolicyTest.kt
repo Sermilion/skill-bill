@@ -23,6 +23,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class ScaffoldPayloadMapPolicyTest {
   @Test
   fun `validatePayloadVersion accepts the canonical wire version`() {
@@ -59,9 +60,10 @@ class ScaffoldPayloadMapPolicyTest {
   fun `detectKind throws RetiredScaffoldKindError for retired partial kind aliases`() {
     listOf("platform-override-piloted", "platform-override", "override", "code-review-area", "area", "specialist")
       .forEach { kind ->
-        val error = assertFailsWith<RetiredScaffoldKindError> {
-          detectKind(mapOf("kind" to kind))
-        }
+        val error =
+          assertFailsWith<RetiredScaffoldKindError> {
+            detectKind(mapOf("kind" to kind))
+          }
         val message = error.message.orEmpty()
         assertTrue(kind in message, "Got: $message")
         assertTrue("platform-pack" in message, "Got: $message")
@@ -72,9 +74,10 @@ class ScaffoldPayloadMapPolicyTest {
   fun `detectKind rejects retired feature task family name with replacement`() {
     val retiredFamily = "feature-" + "implement"
 
-    val error = assertFailsWith<UnknownPreShellFamilyError> {
-      detectKind(mapOf("kind" to "platform-override-piloted", "family" to retiredFamily))
-    }
+    val error =
+      assertFailsWith<UnknownPreShellFamilyError> {
+        detectKind(mapOf("kind" to "platform-override-piloted", "family" to retiredFamily))
+      }
 
     val message = error.message.orEmpty()
     assertTrue(retiredFamily in message, "Got: $message")
@@ -94,9 +97,10 @@ class ScaffoldPayloadMapPolicyTest {
 
   @Test
   fun `resolvePlatformPackSelection rejects retired skeleton_mode with migration message`() {
-    val error = assertFailsWith<InvalidScaffoldPayloadError> {
-      resolvePlatformPackSelection(mapOf("skeleton_mode" to "full"))
-    }
+    val error =
+      assertFailsWith<InvalidScaffoldPayloadError> {
+        resolvePlatformPackSelection(mapOf("skeleton_mode" to "full"))
+      }
     val message = error.message.orEmpty()
     assertTrue("skeleton_mode" in message, "Got: $message")
     assertTrue("no longer supported" in message, "Got: $message")
@@ -105,9 +109,10 @@ class ScaffoldPayloadMapPolicyTest {
 
   @Test
   fun `resolvePlatformPackSelection rejects retired specialist_areas with migration message`() {
-    val error = assertFailsWith<InvalidScaffoldPayloadError> {
-      resolvePlatformPackSelection(mapOf("specialist_areas" to listOf("ui")))
-    }
+    val error =
+      assertFailsWith<InvalidScaffoldPayloadError> {
+        resolvePlatformPackSelection(mapOf("specialist_areas" to listOf("ui")))
+      }
     val message = error.message.orEmpty()
     assertTrue("specialist_areas" in message, "Got: $message")
     assertTrue("no longer supported" in message, "Got: $message")
@@ -214,16 +219,18 @@ class ScaffoldPayloadMapPolicyTest {
 
   @Test
   fun `resolvePlatformPackDefaults completes custom routing structure requirements`() {
-    val defaults = resolvePlatformPackDefaults(
-      mapOf(
-        "display_name" to "Fixture",
-        "routing_signals" to mapOf(
-          "strong" to listOf(".fixture"),
-          "tie_breakers" to listOf("Use Fixture for fixture modules."),
+    val defaults =
+      resolvePlatformPackDefaults(
+        mapOf(
+          "display_name" to "Fixture",
+          "routing_signals" to
+            mapOf(
+              "strong" to listOf(".fixture"),
+              "tie_breakers" to listOf("Use Fixture for fixture modules."),
+            ),
         ),
-      ),
-      "fixture",
-    )
+        "fixture",
+      )
 
     assertEquals(listOf(".fixture", "*.fixture"), defaults.strongSignals)
     assertTrue(defaults.tieBreakers.any { "Prefer Fixture" in it && "dominate" in it })
@@ -233,10 +240,11 @@ class ScaffoldPayloadMapPolicyTest {
 
   @Test
   fun `optionalSpecialistSubagents preserves supplied specialist names`() {
-    val parsed = optionalSpecialistSubagents(
-      mapOf("subagent_specialists" to listOf("ui", "api-contracts")),
-      SKILL_KIND_PLATFORM_PACK,
-    )
+    val parsed =
+      optionalSpecialistSubagents(
+        mapOf("subagent_specialists" to listOf("ui", "api-contracts")),
+        SKILL_KIND_PLATFORM_PACK,
+      )
     assertEquals(listOf("ui", "api-contracts"), parsed.specialists)
   }
 
@@ -277,15 +285,16 @@ class ScaffoldPayloadMapPolicyTest {
 
   @Test
   fun `optionalSpecialistSubagents rejects no_subagents=true with non-empty subagent list`() {
-    val error = assertFailsWith<InvalidScaffoldPayloadError> {
-      optionalSpecialistSubagents(
-        mapOf(
-          "subagent_specialists" to listOf("ui"),
-          "no_subagents" to true,
-        ),
-        SKILL_KIND_HORIZONTAL,
-      )
-    }
+    val error =
+      assertFailsWith<InvalidScaffoldPayloadError> {
+        optionalSpecialistSubagents(
+          mapOf(
+            "subagent_specialists" to listOf("ui"),
+            "no_subagents" to true,
+          ),
+          SKILL_KIND_HORIZONTAL,
+        )
+      }
     val message = error.message.orEmpty()
     assertTrue("no_subagents=true" in message, "Got: $message")
     assertTrue("subagent_specialists" in message, "Got: $message")
@@ -294,12 +303,13 @@ class ScaffoldPayloadMapPolicyTest {
   @Test
   fun `optionalSpecialistSubagents rejects subagent name that violates SUBAGENT_NAME_PATTERN`() {
     listOf("UPPER", "1starts-with-digit", "has/slash", "has space").forEach { invalidName ->
-      val error = assertFailsWith<InvalidScaffoldPayloadError> {
-        optionalSpecialistSubagents(
-          mapOf("subagent_specialists" to listOf(invalidName)),
-          SKILL_KIND_HORIZONTAL,
-        )
-      }
+      val error =
+        assertFailsWith<InvalidScaffoldPayloadError> {
+          optionalSpecialistSubagents(
+            mapOf("subagent_specialists" to listOf(invalidName)),
+            SKILL_KIND_HORIZONTAL,
+          )
+        }
       val message = error.message.orEmpty()
       assertTrue("invalid name '$invalidName'" in message, "Got: $message for input '$invalidName'")
     }
@@ -307,12 +317,13 @@ class ScaffoldPayloadMapPolicyTest {
 
   @Test
   fun `optionalSpecialistSubagents loud-fails when no_subagents is not a boolean`() {
-    val error = assertFailsWith<InvalidScaffoldPayloadError> {
-      optionalSpecialistSubagents(
-        mapOf("no_subagents" to "true"),
-        SKILL_KIND_HORIZONTAL,
-      )
-    }
+    val error =
+      assertFailsWith<InvalidScaffoldPayloadError> {
+        optionalSpecialistSubagents(
+          mapOf("no_subagents" to "true"),
+          SKILL_KIND_HORIZONTAL,
+        )
+      }
     val message = error.message.orEmpty()
     assertTrue("no_subagents" in message, "Got: $message")
     assertTrue("boolean" in message, "Got: $message")
@@ -320,12 +331,13 @@ class ScaffoldPayloadMapPolicyTest {
 
   @Test
   fun `optionalSpecialistSubagents loud-fails when subagent_specialists is not a list`() {
-    val error = assertFailsWith<InvalidScaffoldPayloadError> {
-      optionalSpecialistSubagents(
-        mapOf("subagent_specialists" to "ui"),
-        SKILL_KIND_HORIZONTAL,
-      )
-    }
+    val error =
+      assertFailsWith<InvalidScaffoldPayloadError> {
+        optionalSpecialistSubagents(
+          mapOf("subagent_specialists" to "ui"),
+          SKILL_KIND_HORIZONTAL,
+        )
+      }
     val message = error.message.orEmpty()
     assertTrue("subagent_specialists" in message, "Got: $message")
     assertTrue("list of strings" in message, "Got: $message")

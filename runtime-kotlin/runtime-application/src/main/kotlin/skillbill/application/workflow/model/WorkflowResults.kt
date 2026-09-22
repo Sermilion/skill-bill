@@ -14,6 +14,7 @@ sealed interface WorkflowOpenResult {
     val snapshot: WorkflowSnapshotView,
     val launchProjection: WorkflowInputProjection? = null,
   ) : WorkflowOpenResult
+
   data class Error(val workflowId: String, val error: String) : WorkflowOpenResult
 }
 
@@ -24,6 +25,7 @@ sealed interface WorkflowUpdateResult {
     val acknowledgement: WorkflowUpdateAcknowledgementView,
     val launchProjection: WorkflowInputProjection? = null,
   ) : WorkflowUpdateResult
+
   data class Error(val workflowId: String, val error: String, val dbPath: String? = null) : WorkflowUpdateResult
 }
 
@@ -33,6 +35,7 @@ sealed interface WorkflowGetResult {
     val dbPath: String,
     val snapshot: WorkflowSnapshotView,
   ) : WorkflowGetResult
+
   data class Error(val workflowId: String, val error: String, val dbPath: String) : WorkflowGetResult
 }
 
@@ -54,6 +57,7 @@ data class GoalContinuationOutcome(
 
 sealed interface WorkflowLatestResult {
   data class Ok(val dbPath: String, val summary: WorkflowSummaryView) : WorkflowLatestResult
+
   data class Error(val dbPath: String, val error: String) : WorkflowLatestResult
 }
 
@@ -63,6 +67,7 @@ sealed interface WorkflowResumeResult {
     val dbPath: String,
     val resume: WorkflowResumeView,
   ) : WorkflowResumeResult
+
   data class Error(val workflowId: String, val error: String, val dbPath: String) : WorkflowResumeResult
 }
 

@@ -36,20 +36,24 @@ internal fun <T> runWithUpgradeRollback(
   originalBytes: Map<Path, ByteArray>,
   createdPaths: List<Path> = emptyList(),
   block: () -> T,
-): T = try {
-  block()
-} catch (error: SkillBillRuntimeException) {
-  rollbackUpgrade(originalBytes, createdPaths)
-  throw error
-} catch (error: IOException) {
-  rollbackUpgrade(originalBytes, createdPaths)
-  throw error
-} catch (error: IllegalArgumentException) {
-  rollbackUpgrade(originalBytes, createdPaths)
-  throw error
-}
+): T =
+  try {
+    block()
+  } catch (error: SkillBillRuntimeException) {
+    rollbackUpgrade(originalBytes, createdPaths)
+    throw error
+  } catch (error: IOException) {
+    rollbackUpgrade(originalBytes, createdPaths)
+    throw error
+  } catch (error: IllegalArgumentException) {
+    rollbackUpgrade(originalBytes, createdPaths)
+    throw error
+  }
 
-private fun rollbackUpgrade(originalBytes: Map<Path, ByteArray>, createdPaths: List<Path>) {
+private fun rollbackUpgrade(
+  originalBytes: Map<Path, ByteArray>,
+  createdPaths: List<Path>,
+) {
   restoreFiles(originalBytes)
   createdPaths.asReversed().forEach { path ->
     if (path !in originalBytes) {
@@ -62,10 +66,11 @@ internal fun resolveTarget(
   repoRoot: Path,
   skillName: String,
   externalDiscovery: PlatformPackDiscoveryContext? = null,
-): AuthoringTarget = discoverTargets(repoRoot, externalDiscovery = externalDiscovery)[skillName]
-  ?: throw SkillBillRuntimeException(
-    "Skill '$skillName' is not a content-managed skill with a sibling content.md file.",
-  )
+): AuthoringTarget =
+  discoverTargets(repoRoot, externalDiscovery = externalDiscovery)[skillName]
+    ?: throw SkillBillRuntimeException(
+      "Skill '$skillName' is not a content-managed skill with a sibling content.md file.",
+    )
 
 internal fun discoverTargets(
   repoRoot: Path,
@@ -101,10 +106,11 @@ private fun platformPacksForAuthoring(
   if (externalDiscovery == null) {
     return discoverPlatformPackManifests(checkoutPacks, enforceContractVersion)
   }
-  val loader = externalDiscovery.catalogLoader ?: return discoverPlatformPackManifests(
-    checkoutPacks,
-    enforceContractVersion,
-  )
+  val loader =
+    externalDiscovery.catalogLoader ?: return discoverPlatformPackManifests(
+      checkoutPacks,
+      enforceContractVersion,
+    )
   return loader.loadEffectiveManifests(
     externalDiscovery.copy(
       repoRoot = repoRoot.toAbsolutePath().normalize(),
@@ -117,7 +123,10 @@ private fun restoreFiles(originalBytes: Map<Path, ByteArray>) {
   originalBytes.forEach { (path, bytes) -> rollbackRestoreBytes(path, bytes) }
 }
 
-private fun recordPackTargets(discovered: MutableMap<String, AuthoringTarget>, pack: PlatformManifest) {
+private fun recordPackTargets(
+  discovered: MutableMap<String, AuthoringTarget>,
+  pack: PlatformManifest,
+) {
   val displayName = pack.displayName ?: displayNameFromSlug(pack.slug)
   pack.declaredFiles.baseline?.let { baseline ->
     val baselineContent = declaredContentFile(baseline.toPath())
@@ -154,7 +163,11 @@ private fun recordPackTargets(discovered: MutableMap<String, AuthoringTarget>, p
   }
 }
 
-private fun recordSkillTarget(repoRoot: Path, discovered: MutableMap<String, AuthoringTarget>, contentFile: Path) {
+private fun recordSkillTarget(
+  repoRoot: Path,
+  discovered: MutableMap<String, AuthoringTarget>,
+  contentFile: Path,
+) {
   val skillFile = contentFile.resolveSibling("SKILL.md")
   val skillName = contentFile.parent.name
   if (skillName in discovered) {
@@ -184,12 +197,13 @@ private fun recordSkillTarget(repoRoot: Path, discovered: MutableMap<String, Aut
 
 private fun declaredContentFile(declaredFile: Path): Path = declaredFile
 
-private fun platformFromSkillPath(relative: Path): String = if (
-  relative.nameCount >= PRE_SHELL_PLATFORM_PATH_PARTS &&
-  relative.getName(0).toString() == "skills" &&
-  !relative.getName(1).toString().startsWith("bill-")
-) {
-  relative.getName(1).toString()
-} else {
-  ""
-}
+private fun platformFromSkillPath(relative: Path): String =
+  if (
+    relative.nameCount >= PRE_SHELL_PLATFORM_PATH_PARTS &&
+    relative.getName(0).toString() == "skills" &&
+    !relative.getName(1).toString().startsWith("bill-")
+  ) {
+    relative.getName(1).toString()
+  } else {
+    ""
+  }

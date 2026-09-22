@@ -21,27 +21,32 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+
 class FileSystemInstallSelectionPersistenceTest {
   @Test
   fun `writes and reads latest successful install selection`() {
     val home = Files.createTempDirectory("skillbill-install-selection-home")
     val store = FileSystemInstallSelectionPersistence()
-    val selection = SharedInstallSelection(
-      selectedAgents = setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
-      platformPackSelection = PlatformPackSelection(
-        mode = PlatformPackSelectionMode.SELECTED,
-        selectedSlugs = setOf("kotlin", "kmp"),
-      ),
-      telemetryLevel = InstallTelemetryLevel.FULL,
-      mcpRegistrationChoice = McpRegistrationChoice(
-        register = true,
-        runtimeMcpBin = Path.of("/runtime-mcp/bin/runtime-mcp").toFileLocation(),
-      ),
-    )
+    val selection =
+      SharedInstallSelection(
+        selectedAgents = setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
+        platformPackSelection =
+          PlatformPackSelection(
+            mode = PlatformPackSelectionMode.SELECTED,
+            selectedSlugs = setOf("kotlin", "kmp"),
+          ),
+        telemetryLevel = InstallTelemetryLevel.FULL,
+        mcpRegistrationChoice =
+          McpRegistrationChoice(
+            register = true,
+            runtimeMcpBin = Path.of("/runtime-mcp/bin/runtime-mcp").toFileLocation(),
+          ),
+      )
 
-    val writeResult = store.writeLatestSuccessfulSelection(
-      WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = selection),
-    )
+    val writeResult =
+      store.writeLatestSuccessfulSelection(
+        WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = selection),
+      )
     val readResult = store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home))
 
     assertEquals(home.resolve(".skill-bill/install-selection.json"), writeResult.path)
@@ -85,22 +90,25 @@ class FileSystemInstallSelectionPersistenceTest {
     store.writeLatestSuccessfulSelection(
       WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = selection),
     )
-    val emittedPayload = JsonCodec.anyToStringAnyMap(
-      JsonCodec.parseObjectOrNull(Files.readString(path))?.let(JsonCodec::jsonElementToValue),
-    ).orEmpty()
+    val emittedPayload =
+      JsonCodec.anyToStringAnyMap(
+        JsonCodec.parseObjectOrNull(Files.readString(path))?.let(JsonCodec::jsonElementToValue),
+      ).orEmpty()
     assertEquals(
       mapOf(
         "contract_version" to "1.0",
         "selected_agents" to listOf("claude", "codex"),
-        "platform_pack_selection" to mapOf(
-          "mode" to "selected",
-          "selected_slugs" to listOf("kmp", "kotlin"),
-        ),
+        "platform_pack_selection" to
+          mapOf(
+            "mode" to "selected",
+            "selected_slugs" to listOf("kmp", "kotlin"),
+          ),
         "telemetry_level" to "full",
-        "mcp_registration" to mapOf(
-          "register" to true,
-          "runtime_mcp_bin" to "/runtime-mcp/bin/runtime-mcp",
-        ),
+        "mcp_registration" to
+          mapOf(
+            "register" to true,
+            "runtime_mcp_bin" to "/runtime-mcp/bin/runtime-mcp",
+          ),
       ),
       emittedPayload,
     )
@@ -111,14 +119,16 @@ class FileSystemInstallSelectionPersistenceTest {
     val firstHome = Files.createTempDirectory("skillbill-install-selection-first")
     val alternateHome = Files.createTempDirectory("skillbill-install-selection-alternate")
     val store = FileSystemInstallSelectionPersistence()
-    val selection = selection(
-      selectedAgents = setOf(InstallAgent.CURSOR),
-      platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.ALL),
-    )
+    val selection =
+      selection(
+        selectedAgents = setOf(InstallAgent.CURSOR),
+        platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.ALL),
+      )
 
-    val writeResult = store.writeLatestSuccessfulSelection(
-      WriteLatestSuccessfulInstallSelectionRequest(installHome = alternateHome, selection = selection),
-    )
+    val writeResult =
+      store.writeLatestSuccessfulSelection(
+        WriteLatestSuccessfulInstallSelectionRequest(installHome = alternateHome, selection = selection),
+      )
 
     assertEquals(alternateHome.resolve(".skill-bill/install-selection.json"), writeResult.path)
     assertEquals(
@@ -134,23 +144,27 @@ class FileSystemInstallSelectionPersistenceTest {
   fun `latest successful selection write overwrites previous record and persists mcp opt out`() {
     val home = Files.createTempDirectory("skillbill-install-selection-overwrite")
     val store = FileSystemInstallSelectionPersistence()
-    val initialSelection = selection(
-      selectedAgents = setOf(InstallAgent.CLAUDE),
-      telemetryLevel = InstallTelemetryLevel.FULL,
-      mcpRegistrationChoice = McpRegistrationChoice(
-        register = true,
-        runtimeMcpBin = Path.of("/runtime-mcp/bin/runtime-mcp").toFileLocation(),
-      ),
-    )
-    val latestSelection = selection(
-      selectedAgents = setOf(InstallAgent.CODEX),
-      platformPackSelection = PlatformPackSelection(
-        mode = PlatformPackSelectionMode.SELECTED,
-        selectedSlugs = setOf("kotlin"),
-      ),
-      telemetryLevel = InstallTelemetryLevel.OFF,
-      mcpRegistrationChoice = McpRegistrationChoice(register = false, runtimeMcpBin = null),
-    )
+    val initialSelection =
+      selection(
+        selectedAgents = setOf(InstallAgent.CLAUDE),
+        telemetryLevel = InstallTelemetryLevel.FULL,
+        mcpRegistrationChoice =
+          McpRegistrationChoice(
+            register = true,
+            runtimeMcpBin = Path.of("/runtime-mcp/bin/runtime-mcp").toFileLocation(),
+          ),
+      )
+    val latestSelection =
+      selection(
+        selectedAgents = setOf(InstallAgent.CODEX),
+        platformPackSelection =
+          PlatformPackSelection(
+            mode = PlatformPackSelectionMode.SELECTED,
+            selectedSlugs = setOf("kotlin"),
+          ),
+        telemetryLevel = InstallTelemetryLevel.OFF,
+        mcpRegistrationChoice = McpRegistrationChoice(register = false, runtimeMcpBin = null),
+      )
 
     store.writeLatestSuccessfulSelection(
       WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = initialSelection),
@@ -174,17 +188,21 @@ class FileSystemInstallSelectionPersistenceTest {
       WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = validSelection),
     )
 
-    val invalidSelections = mapOf(
-      "selected mode with empty slugs" to selection(
-        platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.SELECTED),
-      ),
-      "all mode with selected slugs" to selection(
-        platformPackSelection = PlatformPackSelection(
-          mode = PlatformPackSelectionMode.ALL,
-          selectedSlugs = setOf("kotlin"),
-        ),
-      ),
-    )
+    val invalidSelections =
+      mapOf(
+        "selected mode with empty slugs" to
+          selection(
+            platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.SELECTED),
+          ),
+        "all mode with selected slugs" to
+          selection(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.ALL,
+                selectedSlugs = setOf("kotlin"),
+              ),
+          ),
+      )
 
     invalidSelections.forEach { (caseName, invalidSelection) ->
       assertFailsWith<MalformedInstallSelectionRecordError>(caseName) {
@@ -201,22 +219,26 @@ class FileSystemInstallSelectionPersistenceTest {
 
   @Test
   fun `canonical record round trips manual and detected reusable selections`() {
-    val cases = mapOf(
-      "manual single-agent opt out" to selection(
-        selectedAgents = setOf(InstallAgent.CODEX),
-        telemetryLevel = InstallTelemetryLevel.OFF,
-        mcpRegistrationChoice = McpRegistrationChoice(register = false, runtimeMcpBin = null),
-      ),
-      "detected multi-agent registration" to selection(
-        selectedAgents = setOf(InstallAgent.CLAUDE, InstallAgent.CURSOR),
-        platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.ALL),
-        telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-        mcpRegistrationChoice = McpRegistrationChoice(
-          register = true,
-          runtimeMcpBin = Path.of("/runtime-mcp/bin/runtime-mcp").toFileLocation(),
-        ),
-      ),
-    )
+    val cases =
+      mapOf(
+        "manual single-agent opt out" to
+          selection(
+            selectedAgents = setOf(InstallAgent.CODEX),
+            telemetryLevel = InstallTelemetryLevel.OFF,
+            mcpRegistrationChoice = McpRegistrationChoice(register = false, runtimeMcpBin = null),
+          ),
+        "detected multi-agent registration" to
+          selection(
+            selectedAgents = setOf(InstallAgent.CLAUDE, InstallAgent.CURSOR),
+            platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.ALL),
+            telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+            mcpRegistrationChoice =
+              McpRegistrationChoice(
+                register = true,
+                runtimeMcpBin = Path.of("/runtime-mcp/bin/runtime-mcp").toFileLocation(),
+              ),
+          ),
+      )
     val store = FileSystemInstallSelectionPersistence()
 
     cases.forEach { (caseName, expectedSelection) ->
@@ -231,10 +253,11 @@ class FileSystemInstallSelectionPersistenceTest {
         store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home)).selection,
         caseName,
       )
-      val emittedPayload = JsonCodec.anyToStringAnyMap(
-        JsonCodec.parseObjectOrNull(Files.readString(home.resolve(".skill-bill/install-selection.json")))
-          ?.let(JsonCodec::jsonElementToValue),
-      ).orEmpty()
+      val emittedPayload =
+        JsonCodec.anyToStringAnyMap(
+          JsonCodec.parseObjectOrNull(Files.readString(home.resolve(".skill-bill/install-selection.json")))
+            ?.let(JsonCodec::jsonElementToValue),
+        ).orEmpty()
       assertFalse("recentRepoPath" in emittedPayload, caseName)
       assertFalse("firstRun.agents" in emittedPayload, caseName)
       assertEquals("1.0", emittedPayload["contract_version"], caseName)
@@ -245,18 +268,21 @@ class FileSystemInstallSelectionPersistenceTest {
   fun `manually selected cursor round trips without a detected cursor home`() {
     val home = Files.createTempDirectory("skillbill-install-selection-cursor")
     val store = FileSystemInstallSelectionPersistence()
-    val selection = selection(
-      selectedAgents = setOf(InstallAgent.CURSOR, InstallAgent.CLAUDE),
-      platformPackSelection = PlatformPackSelection(
-        mode = PlatformPackSelectionMode.SELECTED,
-        selectedSlugs = setOf("kotlin"),
-      ),
-      telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-      mcpRegistrationChoice = McpRegistrationChoice(
-        register = true,
-        runtimeMcpBin = Path.of("/runtime-mcp/bin/runtime-mcp").toFileLocation(),
-      ),
-    )
+    val selection =
+      selection(
+        selectedAgents = setOf(InstallAgent.CURSOR, InstallAgent.CLAUDE),
+        platformPackSelection =
+          PlatformPackSelection(
+            mode = PlatformPackSelectionMode.SELECTED,
+            selectedSlugs = setOf("kotlin"),
+          ),
+        telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+        mcpRegistrationChoice =
+          McpRegistrationChoice(
+            register = true,
+            runtimeMcpBin = Path.of("/runtime-mcp/bin/runtime-mcp").toFileLocation(),
+          ),
+      )
 
     store.writeLatestSuccessfulSelection(
       WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = selection),
@@ -274,9 +300,10 @@ class FileSystemInstallSelectionPersistenceTest {
     val home = Files.createTempDirectory("skillbill-install-selection-missing")
     val store = FileSystemInstallSelectionPersistence()
 
-    val error = assertFailsWith<MissingInstallSelectionRecordError> {
-      store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home))
-    }
+    val error =
+      assertFailsWith<MissingInstallSelectionRecordError> {
+        store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home))
+      }
 
     assertContains(error.message.orEmpty(), "install-selection.json")
   }
@@ -289,9 +316,10 @@ class FileSystemInstallSelectionPersistenceTest {
     Files.writeString(path, "{\"recentRepoPath\":\"/repo\"}")
     val store = FileSystemInstallSelectionPersistence()
 
-    val error = assertFailsWith<MalformedInstallSelectionRecordError> {
-      store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home))
-    }
+    val error =
+      assertFailsWith<MalformedInstallSelectionRecordError> {
+        store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home))
+      }
 
     assertContains(error.message.orEmpty(), "unknown keys")
     assertContains(error.message.orEmpty(), "recentRepoPath")
@@ -318,12 +346,14 @@ class FileSystemInstallSelectionPersistenceTest {
     store.writeLatestSuccessfulSelection(
       WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = previousSelection),
     )
-    val oversizedSelection = selection(
-      platformPackSelection = PlatformPackSelection(
-        mode = PlatformPackSelectionMode.SELECTED,
-        selectedSlugs = (1..900).mapTo(mutableSetOf()) { index -> "slug-$index-${"a".repeat(80)}" },
-      ),
-    )
+    val oversizedSelection =
+      selection(
+        platformPackSelection =
+          PlatformPackSelection(
+            mode = PlatformPackSelectionMode.SELECTED,
+            selectedSlugs = (1..900).mapTo(mutableSetOf()) { index -> "slug-$index-${"a".repeat(80)}" },
+          ),
+      )
 
     assertFailsWith<UnreadableInstallSelectionRecordError> {
       store.writeLatestSuccessfulSelection(
@@ -339,26 +369,41 @@ class FileSystemInstallSelectionPersistenceTest {
 
   @Test
   fun `invalid install selection records fail loudly`() {
-    val cases = mapOf(
-      "unsupported contract version" to validPayload(contractVersion = "2.0"),
-      "missing required field" to """
-        {
-          "contract_version": "1.0",
-          "selected_agents": [],
-          "platform_pack_selection": {"mode": "none", "selected_slugs": []},
-          "telemetry_level": "anonymous"
-        }
-      """.trimIndent(),
-      "bad agent id" to validPayload(selectedAgents = listOf("codex", "unknown-agent")),
-      "selected platform mode with empty slugs" to validPayload(platformMode = "selected", platformSlugs = emptyList()),
-      "selected platform mode with empty slug" to validPayload(platformMode = "selected", platformSlugs = listOf("")),
-      "selected platform mode with whitespace slug" to validPayload(
-        platformMode = "selected",
-        platformSlugs = listOf("   "),
-      ),
-      "none platform mode with selected slugs" to validPayload(platformMode = "none", platformSlugs = listOf("kotlin")),
-      "invalid nested mcp field" to validPayload(runtimeMcpBin = "\"\""),
-    )
+    val cases =
+      mapOf(
+        "unsupported contract version" to validPayload(contractVersion = "2.0"),
+        "missing required field" to
+          """
+          {
+            "contract_version": "1.0",
+            "selected_agents": [],
+            "platform_pack_selection": {"mode": "none", "selected_slugs": []},
+            "telemetry_level": "anonymous"
+          }
+          """.trimIndent(),
+        "bad agent id" to validPayload(selectedAgents = listOf("codex", "unknown-agent")),
+        "selected platform mode with empty slugs" to
+          validPayload(
+            platformMode = "selected",
+            platformSlugs = emptyList(),
+          ),
+        "selected platform mode with empty slug" to
+          validPayload(
+            platformMode = "selected",
+            platformSlugs = listOf(""),
+          ),
+        "selected platform mode with whitespace slug" to
+          validPayload(
+            platformMode = "selected",
+            platformSlugs = listOf("   "),
+          ),
+        "none platform mode with selected slugs" to
+          validPayload(
+            platformMode = "none",
+            platformSlugs = listOf("kotlin"),
+          ),
+        "invalid nested mcp field" to validPayload(runtimeMcpBin = "\"\""),
+      )
     val store = FileSystemInstallSelectionPersistence()
 
     cases.forEach { (caseName, payload) ->
@@ -390,12 +435,13 @@ class FileSystemInstallSelectionPersistenceTest {
     platformPackSelection: PlatformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.NONE),
     telemetryLevel: InstallTelemetryLevel = InstallTelemetryLevel.ANONYMOUS,
     mcpRegistrationChoice: McpRegistrationChoice = McpRegistrationChoice(register = false),
-  ): SharedInstallSelection = SharedInstallSelection(
-    selectedAgents = selectedAgents,
-    platformPackSelection = platformPackSelection,
-    telemetryLevel = telemetryLevel,
-    mcpRegistrationChoice = mcpRegistrationChoice,
-  )
+  ): SharedInstallSelection =
+    SharedInstallSelection(
+      selectedAgents = selectedAgents,
+      platformPackSelection = platformPackSelection,
+      telemetryLevel = telemetryLevel,
+      mcpRegistrationChoice = mcpRegistrationChoice,
+    )
 
   private fun validPayload(
     contractVersion: String = "1.0",
@@ -403,7 +449,8 @@ class FileSystemInstallSelectionPersistenceTest {
     platformMode: String = "none",
     platformSlugs: List<String> = emptyList(),
     runtimeMcpBin: String = "null",
-  ): String = """
+  ): String =
+    """
     {
       "contract_version": "$contractVersion",
       "selected_agents": [${selectedAgents.joinToString { "\"$it\"" }}],
@@ -417,5 +464,5 @@ class FileSystemInstallSelectionPersistenceTest {
         "runtime_mcp_bin": $runtimeMcpBin
       }
     }
-  """.trimIndent()
+    """.trimIndent()
 }

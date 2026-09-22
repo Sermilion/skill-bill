@@ -12,6 +12,7 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
+
 internal fun parsePhaseAgents(rawAssignments: List<String>): Map<String, String> {
   val parsed = LinkedHashMap<String, String>()
   rawAssignments.forEach { assignment ->
@@ -78,5 +79,7 @@ internal data class PreparedRuntimeRun(
   val operatorDecision: GoalSubtaskOperatorDecision?,
 )
 
-internal fun resolveInvokedRuntimeAgentId(explicitAgent: String?, environment: Map<String, String>): String =
-  requireInvokingAgentId(explicitAgent, environment, "--agent")
+internal fun resolveInvokedRuntimeAgentId(
+  explicitAgent: String?,
+  environment: Map<String, String>,
+): String = requireInvokingAgentId(explicitAgent, environment, "--agent")

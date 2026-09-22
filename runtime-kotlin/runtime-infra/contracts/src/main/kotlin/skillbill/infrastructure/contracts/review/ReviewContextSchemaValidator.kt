@@ -18,6 +18,7 @@ import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.util.logging.Level
 import java.util.logging.Logger
+
 private const val MAX_REPORTED_VIOLATIONS: Int = 4
 
 private val reviewContextLog: Logger =
@@ -30,41 +31,67 @@ class ReviewContextSchemaValidator : ReviewContextEnvelopeValidator {
   private val mapper: ObjectMapper
     get() = ClasspathContractSchemaLoader.sharedObjectMapper()
 
-  override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) {
+  override fun validate(
+    envelope: ReviewContextWireMap,
+    sourceLabel: String,
+  ) {
     validate(envelope as Map<String, Any?>, sourceLabel)
   }
 
-  override fun validateSpecIntentProjection(envelope: ReviewContextWireMap, sourceLabel: String) {
+  override fun validateSpecIntentProjection(
+    envelope: ReviewContextWireMap,
+    sourceLabel: String,
+  ) {
     validateSpecIntentProjection(envelope as Map<String, Any?>, sourceLabel)
   }
 
-  fun validate(envelope: Map<String, Any?>, sourceLabel: String) {
+  fun validate(
+    envelope: Map<String, Any?>,
+    sourceLabel: String,
+  ) {
     val kind = envelope["kind"] as? String
     validatePayloadAgainst(envelope, sourceLabel, kind, schemas.forKind(kind), mapper)
   }
 
-  fun validateParentPacket(envelope: Map<String, Any?>, sourceLabel: String) =
-    validateExpectedKind(envelope, sourceLabel, "parent_packet", schemas, mapper)
+  fun validateParentPacket(
+    envelope: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateExpectedKind(envelope, sourceLabel, "parent_packet", schemas, mapper)
 
-  fun validateAssignment(envelope: Map<String, Any?>, sourceLabel: String) =
-    validateExpectedKind(envelope, sourceLabel, "assignment", schemas, mapper)
+  fun validateAssignment(
+    envelope: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateExpectedKind(envelope, sourceLabel, "assignment", schemas, mapper)
 
-  fun validateLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
-    validateExpectedKind(envelope, sourceLabel, "launch", schemas, mapper)
+  fun validateLaunch(
+    envelope: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateExpectedKind(envelope, sourceLabel, "launch", schemas, mapper)
 
-  fun validateIntegrationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
-    validateExpectedKind(envelope, sourceLabel, "integration_launch", schemas, mapper)
+  fun validateIntegrationLaunch(
+    envelope: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateExpectedKind(envelope, sourceLabel, "integration_launch", schemas, mapper)
 
-  fun validateVerificationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
-    validateExpectedKind(envelope, sourceLabel, "verification_launch", schemas, mapper)
+  fun validateVerificationLaunch(
+    envelope: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateExpectedKind(envelope, sourceLabel, "verification_launch", schemas, mapper)
 
-  fun validateAdjudicationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
-    validateExpectedKind(envelope, sourceLabel, "adjudication_launch", schemas, mapper)
+  fun validateAdjudicationLaunch(
+    envelope: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateExpectedKind(envelope, sourceLabel, "adjudication_launch", schemas, mapper)
 
-  fun validateFindingVerdict(envelope: Map<String, Any?>, sourceLabel: String) =
-    validateExpectedKind(envelope, sourceLabel, "finding_verdict", schemas, mapper)
+  fun validateFindingVerdict(
+    envelope: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateExpectedKind(envelope, sourceLabel, "finding_verdict", schemas, mapper)
 
-  fun validateSpecIntentProjection(payload: Map<String, Any?>, sourceLabel: String) = validatePayloadAgainst(
+  fun validateSpecIntentProjection(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validatePayloadAgainst(
     payload,
     sourceLabel,
     "spec_intent_projection",
@@ -75,33 +102,53 @@ class ReviewContextSchemaValidator : ReviewContextEnvelopeValidator {
   companion object {
     private val canonical: ReviewContextSchemaValidator by lazy(::ReviewContextSchemaValidator)
 
-    fun validate(envelope: Map<String, Any?>, sourceLabel: String) = canonical.validate(envelope, sourceLabel)
+    fun validate(
+      envelope: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validate(envelope, sourceLabel)
 
-    fun validateParentPacket(envelope: Map<String, Any?>, sourceLabel: String) =
-      canonical.validateParentPacket(envelope, sourceLabel)
+    fun validateParentPacket(
+      envelope: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validateParentPacket(envelope, sourceLabel)
 
-    fun validateAssignment(envelope: Map<String, Any?>, sourceLabel: String) =
-      canonical.validateAssignment(envelope, sourceLabel)
+    fun validateAssignment(
+      envelope: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validateAssignment(envelope, sourceLabel)
 
-    fun validateLaunch(envelope: Map<String, Any?>, sourceLabel: String) = canonical.validateLaunch(
+    fun validateLaunch(
+      envelope: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validateLaunch(
       envelope,
       sourceLabel,
     )
 
-    fun validateIntegrationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
-      canonical.validateIntegrationLaunch(envelope, sourceLabel)
+    fun validateIntegrationLaunch(
+      envelope: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validateIntegrationLaunch(envelope, sourceLabel)
 
-    fun validateVerificationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
-      canonical.validateVerificationLaunch(envelope, sourceLabel)
+    fun validateVerificationLaunch(
+      envelope: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validateVerificationLaunch(envelope, sourceLabel)
 
-    fun validateAdjudicationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
-      canonical.validateAdjudicationLaunch(envelope, sourceLabel)
+    fun validateAdjudicationLaunch(
+      envelope: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validateAdjudicationLaunch(envelope, sourceLabel)
 
-    fun validateFindingVerdict(envelope: Map<String, Any?>, sourceLabel: String) =
-      canonical.validateFindingVerdict(envelope, sourceLabel)
+    fun validateFindingVerdict(
+      envelope: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validateFindingVerdict(envelope, sourceLabel)
 
-    fun validateSpecIntentProjection(payload: Map<String, Any?>, sourceLabel: String) =
-      canonical.validateSpecIntentProjection(payload, sourceLabel)
+    fun validateSpecIntentProjection(
+      payload: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validateSpecIntentProjection(payload, sourceLabel)
   }
 }
 
@@ -123,14 +170,19 @@ private fun validateExpectedKind(
   validatePayloadAgainst(envelope, sourceLabel, expectedKind, schemas.forKind(expectedKind), mapper)
 }
 
-private fun requireMatchingContractVersion(payload: Map<String, Any?>, sourceLabel: String, definitionName: String?) {
+private fun requireMatchingContractVersion(
+  payload: Map<String, Any?>,
+  sourceLabel: String,
+  definitionName: String?,
+) {
   val declared = payload[SharedPayloadKeys.CONTRACT_VERSION] ?: return
   val declaredText = declared as? String ?: declared.toString()
   if (declaredText == REVIEW_CONTEXT_CONTRACT_VERSION) return
   throw InvalidReviewContextSchemaError(
     sourceLabel = sourceLabel,
-    reason = "contract_version mismatch: envelope declares '$declaredText' but the runtime requires " +
-      "'$REVIEW_CONTEXT_CONTRACT_VERSION'.",
+    reason =
+      "contract_version mismatch: envelope declares '$declaredText' but the runtime requires " +
+        "'$REVIEW_CONTEXT_CONTRACT_VERSION'.",
     definitionName = definitionName,
   )
 }
@@ -156,18 +208,26 @@ private fun validatePayloadAgainst(
   }
 }
 
-private fun buildSchemaDriftLog(sourceLabel: String, sorted: List<ValidationMessage>, instance: JsonNode): String {
-  val parts = sorted.take(2).map { error ->
-    val location = error.instanceLocation?.toString().orEmpty()
-    val fieldPath = dottedFieldPath(location).ifBlank { "<root>" }
-    val offendingValue = offendingValue(instance, location)
-    if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
-  }
+private fun buildSchemaDriftLog(
+  sourceLabel: String,
+  sorted: List<ValidationMessage>,
+  instance: JsonNode,
+): String {
+  val parts =
+    sorted.take(2).map { error ->
+      val location = error.instanceLocation?.toString().orEmpty()
+      val fieldPath = dottedFieldPath(location).ifBlank { "<root>" }
+      val offendingValue = offendingValue(instance, location)
+      if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
+    }
   return "Review context envelope failed schema validation: source='$sourceLabel' " +
     "violations=${parts.joinToString(", ")} totalViolations=${sorted.size}"
 }
 
-private fun formatValidationReason(sorted: List<ValidationMessage>, instance: JsonNode): String {
+private fun formatValidationReason(
+  sorted: List<ValidationMessage>,
+  instance: JsonNode,
+): String {
   val firstError = sorted.first()
   val offendingValue = offendingValue(instance, firstError.instanceLocation?.toString().orEmpty())
   return buildString {
@@ -187,18 +247,22 @@ private fun formatValidationReason(sorted: List<ValidationMessage>, instance: Js
   }
 }
 
-private val violationOrdering: Comparator<ValidationMessage> = compareBy(
-  { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
-  { it.instanceLocation?.toString().orEmpty() },
-  { it.message.orEmpty() },
-)
+private val violationOrdering: Comparator<ValidationMessage> =
+  compareBy(
+    { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
+    { it.instanceLocation?.toString().orEmpty() },
+    { it.message.orEmpty() },
+  )
 
 private const val MAX_OFFENDING_VALUE_CHARS: Int = 120
 
 private val REDACTED_FIELD_SEGMENTS: Set<String> =
   setOf("excerpt", "content", "reason", "reachability_reason", "rubric", "specialist_contract", "status")
 
-private fun offendingValue(instance: JsonNode, instanceLocation: String): String {
+private fun offendingValue(
+  instance: JsonNode,
+  instanceLocation: String,
+): String {
   val dotted = dottedFieldPath(instanceLocation)
   if (dotted.isBlank()) return ""
   val segments = dotted.split('.')
@@ -215,12 +279,13 @@ private fun offendingValue(instance: JsonNode, instanceLocation: String): String
   }
 }
 
-private fun dottedFieldPath(instanceLocation: String): String = when {
-  instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
-  instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
-  instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
-  else -> instanceLocation.trimStart('/').replace('/', '.')
-}
+private fun dottedFieldPath(instanceLocation: String): String =
+  when {
+    instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
+    instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
+    instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
+    else -> instanceLocation.trimStart('/').replace('/', '.')
+  }
 
 internal const val REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE: String =
   ReviewContextSchemaPaths.CLASSPATH_RESOURCE
@@ -233,12 +298,13 @@ private val NESTED_REVIEW_CONTEXT_DEFINITIONS: List<String> = listOf("spec_inten
 internal class ReviewContextSchemas(private val envelope: JsonSchema, private val branches: Map<String, JsonSchema>) {
   fun forKind(kind: String?): JsonSchema = branches[kind] ?: envelope
 
-  fun forDefinition(name: String): JsonSchema = branches[name]
-    ?: throw InvalidReviewContextSchemaError(
-      sourceLabel = ReviewContextSchemaPaths.CLASSPATH_RESOURCE,
-      reason = "Canonical review context schema has no compiled definition '$name'.",
-      definitionName = name,
-    )
+  fun forDefinition(name: String): JsonSchema =
+    branches[name]
+      ?: throw InvalidReviewContextSchemaError(
+        sourceLabel = ReviewContextSchemaPaths.CLASSPATH_RESOURCE,
+        reason = "Canonical review context schema has no compiled definition '$name'.",
+        definitionName = name,
+      )
 }
 
 private fun logReviewContextSchemaFailure(error: Throwable): Throwable {
@@ -291,7 +357,10 @@ private fun readReviewContextSchemaNode(): JsonNode {
   }
 }
 
-private fun reviewContextContractVersionMatches(node: JsonNode, expected: String): Boolean =
+private fun reviewContextContractVersionMatches(
+  node: JsonNode,
+  expected: String,
+): Boolean =
   node.path("\$defs").fields().asSequence()
     .map { (_, definition) ->
       definition.path("properties").path(SharedPayloadKeys.CONTRACT_VERSION).path("const").asText("")
@@ -302,49 +371,53 @@ private fun reviewContextContractVersionMatches(node: JsonNode, expected: String
 private fun compileReviewContextSchemas(yamlNode: JsonNode): ReviewContextSchemas {
   try {
     val mapper = ClasspathContractSchemaLoader.sharedObjectMapper()
-    val envelopeSchema = ClasspathContractSchemaLoader.compiledSchemaFromYamlNode(
-      cacheKey = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
-      yamlNode = yamlNode,
-      processingFailure = { cause ->
-        InvalidReviewContextSchemaError(
-          sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
-          reason = cause.message ?: cause::class.simpleName.orEmpty(),
-          cause = cause,
-        )
-      },
-    )
-    val defs = yamlNode.path("\$defs")
-    val oneOfNames = yamlNode.path("oneOf").asSequence()
-      .map { branch -> branch.path("\$ref").asText("").substringAfterLast('/') }
-      .filter { name -> name.isNotBlank() && !defs.path(name).isMissingNode }
-      .toList()
-    val definitionNames = (oneOfNames + NESTED_REVIEW_CONTEXT_DEFINITIONS)
-      .distinct()
-    val branches = definitionNames.associateWith { name ->
-      if (defs.path(name).isMissingNode) {
-        throw InvalidReviewContextSchemaError(
-          sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
-          reason = "Canonical review context schema is missing definition '$name'.",
-          definitionName = name,
-        )
-      }
-      val wrapper = mapper.createObjectNode()
-      wrapper.put("\$schema", yamlNode.path("\$schema").asText())
-      wrapper.put("\$ref", "#/\$defs/" + name)
-      wrapper.set<ObjectNode>("\$defs", defs.deepCopy())
+    val envelopeSchema =
       ClasspathContractSchemaLoader.compiledSchemaFromYamlNode(
-        cacheKey = "$REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE#$name",
-        yamlNode = wrapper,
+        cacheKey = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+        yamlNode = yamlNode,
         processingFailure = { cause ->
           InvalidReviewContextSchemaError(
             sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
             reason = cause.message ?: cause::class.simpleName.orEmpty(),
-            definitionName = name,
             cause = cause,
           )
         },
       )
-    }
+    val defs = yamlNode.path("\$defs")
+    val oneOfNames =
+      yamlNode.path("oneOf").asSequence()
+        .map { branch -> branch.path("\$ref").asText("").substringAfterLast('/') }
+        .filter { name -> name.isNotBlank() && !defs.path(name).isMissingNode }
+        .toList()
+    val definitionNames =
+      (oneOfNames + NESTED_REVIEW_CONTEXT_DEFINITIONS)
+        .distinct()
+    val branches =
+      definitionNames.associateWith { name ->
+        if (defs.path(name).isMissingNode) {
+          throw InvalidReviewContextSchemaError(
+            sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+            reason = "Canonical review context schema is missing definition '$name'.",
+            definitionName = name,
+          )
+        }
+        val wrapper = mapper.createObjectNode()
+        wrapper.put("\$schema", yamlNode.path("\$schema").asText())
+        wrapper.put("\$ref", "#/\$defs/" + name)
+        wrapper.set<ObjectNode>("\$defs", defs.deepCopy())
+        ClasspathContractSchemaLoader.compiledSchemaFromYamlNode(
+          cacheKey = "$REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE#$name",
+          yamlNode = wrapper,
+          processingFailure = { cause ->
+            InvalidReviewContextSchemaError(
+              sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+              reason = cause.message ?: cause::class.simpleName.orEmpty(),
+              definitionName = name,
+              cause = cause,
+            )
+          },
+        )
+      }
     return ReviewContextSchemas(envelopeSchema, branches)
   } catch (error: InvalidReviewContextSchemaError) {
     throw logReviewContextSchemaFailure(error)

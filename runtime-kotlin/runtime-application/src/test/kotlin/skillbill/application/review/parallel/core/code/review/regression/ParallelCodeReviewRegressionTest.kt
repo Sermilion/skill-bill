@@ -45,14 +45,15 @@ class ParallelCodeReviewRegressionTest {
 
   @Test fun `overlapping lane ownership assigns each hunk once`() {
     val recorder = ReviewRecorder()
-    val runner = reviewHarness(
-      config {
-        RecordedWorkerResponse(
-          stdout = finding("src/Repo.kt", specialist = "bill-kotlin-code-review-architecture"),
-        )
-      },
-      recorder,
-    )
+    val runner =
+      reviewHarness(
+        config {
+          RecordedWorkerResponse(
+            stdout = finding("src/Repo.kt", specialist = "bill-kotlin-code-review-architecture"),
+          )
+        },
+        recorder,
+      )
 
     val result = runner.run(harnessRequest())
     val summary = assertNotNull(result.accountingSummary)
@@ -68,16 +69,17 @@ class ParallelCodeReviewRegressionTest {
 
   @Test fun `a failed parent lane reports its own failure without masking sibling specialist output`() {
     val recorder = ReviewRecorder()
-    val runner = reviewHarness(
-      config { request ->
-        if (request.invokedAgentId == "codex") {
-          RecordedWorkerResponse(exitStatus = 1, stdout = "")
-        } else {
-          RecordedWorkerResponse()
-        }
-      },
-      recorder,
-    )
+    val runner =
+      reviewHarness(
+        config { request ->
+          if (request.invokedAgentId == "codex") {
+            RecordedWorkerResponse(exitStatus = 1, stdout = "")
+          } else {
+            RecordedWorkerResponse()
+          }
+        },
+        recorder,
+      )
 
     val result = runner.run(harnessRequest())
 
@@ -110,9 +112,10 @@ class ParallelCodeReviewRegressionTest {
     ).forEach { scope ->
       val recorder = ReviewRecorder()
 
-      val result = reviewHarness(config(), recorder).run(
-        harnessRequest(scope = scope, codeReviewMode = CodeReviewExecutionMode.DELEGATED),
-      )
+      val result =
+        reviewHarness(config(), recorder).run(
+          harnessRequest(scope = scope, codeReviewMode = CodeReviewExecutionMode.DELEGATED),
+        )
 
       assertEquals(
         branchResult.mergeResult.formattedOutput,

@@ -9,62 +9,68 @@ import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 fun goalContinuationConflict(
   request: FeatureTaskRuntimeRunRequest,
   durable: FeatureTaskRuntimeGoalContinuationArtifact,
   baseline: GoalSubtaskReviewBaseline,
-): String? = listOfNotNull(
-  requestedReviewModeConflict(request, durable),
-  request.goalContinuation?.let { supplied -> suppliedGoalContinuationConflict(supplied, durable, baseline) },
-).firstOrNull()
+): String? =
+  listOfNotNull(
+    requestedReviewModeConflict(request, durable),
+    request.goalContinuation?.let { supplied -> suppliedGoalContinuationConflict(supplied, durable, baseline) },
+  ).firstOrNull()
 
 private fun requestedReviewModeConflict(
   request: FeatureTaskRuntimeRunRequest,
   durable: FeatureTaskRuntimeGoalContinuationArtifact,
-): String? = request.requestedCodeReviewMode
-  ?.takeIf { it != durable.codeReviewMode }
-  ?.let {
-    "Cannot change code-review mode on a goal child resume; its durable continuation policy is " +
-      "'${durable.codeReviewMode.wireValue}'."
-  }
+): String? =
+  request.requestedCodeReviewMode
+    ?.takeIf { it != durable.codeReviewMode }
+    ?.let {
+      "Cannot change code-review mode on a goal child resume; its durable continuation policy is " +
+        "'${durable.codeReviewMode.wireValue}'."
+    }
 
 private fun suppliedGoalContinuationConflict(
   supplied: FeatureTaskRuntimeGoalContinuationContext,
   durable: FeatureTaskRuntimeGoalContinuationArtifact,
   baseline: GoalSubtaskReviewBaseline,
-): String? = listOfNotNull(
-  suppliedIdentityConflict(supplied, durable),
-  supplied.codeReviewMode?.takeIf { it != durable.codeReviewMode }?.let {
-    "The supplied goal-continuation code-review mode conflicts with its durable child policy."
-  },
-  durable.validationDepth?.takeIf { it != supplied.validationDepth }?.let {
-    "The supplied goal-continuation validation depth conflicts with its durable child policy."
-  },
-  durable.qualityGateSelection?.takeIf { it != supplied.qualityGateSelection }?.let {
-    "The supplied goal-continuation quality gate selection conflicts with its durable child policy."
-  },
-  requireNotNull(supplied.reviewBaseline).takeIf { it != baseline }?.let {
-    "The supplied goal-continuation review baseline conflicts with its durable child policy."
-  },
-).firstOrNull()
+): String? =
+  listOfNotNull(
+    suppliedIdentityConflict(supplied, durable),
+    supplied.codeReviewMode?.takeIf { it != durable.codeReviewMode }?.let {
+      "The supplied goal-continuation code-review mode conflicts with its durable child policy."
+    },
+    durable.validationDepth?.takeIf { it != supplied.validationDepth }?.let {
+      "The supplied goal-continuation validation depth conflicts with its durable child policy."
+    },
+    durable.qualityGateSelection?.takeIf { it != supplied.qualityGateSelection }?.let {
+      "The supplied goal-continuation quality gate selection conflicts with its durable child policy."
+    },
+    requireNotNull(supplied.reviewBaseline).takeIf { it != baseline }?.let {
+      "The supplied goal-continuation review baseline conflicts with its durable child policy."
+    },
+  ).firstOrNull()
 
 private fun suppliedIdentityConflict(
   supplied: FeatureTaskRuntimeGoalContinuationContext,
   durable: FeatureTaskRuntimeGoalContinuationArtifact,
-): String? = if (suppliedIdentityMatchesDurable(supplied, durable)) {
-  null
-} else {
-  "The supplied goal-continuation identity conflicts with its durable child policy."
-}
+): String? =
+  if (suppliedIdentityMatchesDurable(supplied, durable)) {
+    null
+  } else {
+    "The supplied goal-continuation identity conflicts with its durable child policy."
+  }
 
 private fun suppliedIdentityMatchesDurable(
   supplied: FeatureTaskRuntimeGoalContinuationContext,
   durable: FeatureTaskRuntimeGoalContinuationArtifact,
-): Boolean = supplied.parentIssueKey == durable.issueKey &&
-  supplied.subtaskId == durable.subtaskId &&
-  supplied.goalBranch == durable.goalBranch &&
-  supplied.suppressPr == durable.suppressPr &&
-  supplied.parentWorkflowId == durable.parentWorkflowId
+): Boolean =
+  supplied.parentIssueKey == durable.issueKey &&
+    supplied.subtaskId == durable.subtaskId &&
+    supplied.goalBranch == durable.goalBranch &&
+    supplied.suppressPr == durable.suppressPr &&
+    supplied.parentWorkflowId == durable.parentWorkflowId
 
 fun newGoalContinuationConflict(
   request: FeatureTaskRuntimeRunRequest,
@@ -80,12 +86,13 @@ fun goalContinuationPolicyBlockedReport(
   request: FeatureTaskRuntimeRunRequest,
   runInvariants: FeatureTaskRuntimeRunInvariants,
   reason: String,
-): FeatureTaskRuntimeRunReport.Blocked = FeatureTaskRuntimeRunReport.Blocked(
-  issueKey = request.issueKey,
-  workflowId = request.workflowId,
-  featureSize = runInvariants.featureSize.name,
-  lastIncompletePhase = FeatureTaskRuntimePhaseWorkflowDefinition.definition.defaultInitialStepId,
-  blockedReason = reason,
-  completedPhaseIds = emptyList(),
-  resolvedBranch = null,
-)
+): FeatureTaskRuntimeRunReport.Blocked =
+  FeatureTaskRuntimeRunReport.Blocked(
+    issueKey = request.issueKey,
+    workflowId = request.workflowId,
+    featureSize = runInvariants.featureSize.name,
+    lastIncompletePhase = FeatureTaskRuntimePhaseWorkflowDefinition.definition.defaultInitialStepId,
+    blockedReason = reason,
+    completedPhaseIds = emptyList(),
+    resolvedBranch = null,
+  )

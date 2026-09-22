@@ -43,21 +43,24 @@ internal fun seedLegacyGoalRunnerControlsMigrationFixture(dbPath: Path) {
         "DELETE FROM schema_migrations WHERE name = 'migrate-legacy-goal-runner-controls'",
       )
     }
-    val artifactsJson = JsonCodec.mapToJsonString(
-      mapOf(
-        GOAL_REVIEW_POLICY_ARTIFACT_KEY to mapOf(
-          "code_review_mode" to CodeReviewExecutionMode.INLINE.wireValue,
+    val artifactsJson =
+      JsonCodec.mapToJsonString(
+        mapOf(
+          GOAL_REVIEW_POLICY_ARTIFACT_KEY to
+            mapOf(
+              "code_review_mode" to CodeReviewExecutionMode.INLINE.wireValue,
+            ),
+          GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY to
+            listOf(
+              mapOf(
+                "subtask_id" to 2,
+                "commit_sha" to "legacy-commit",
+                "reason" to "accepted outside the normal review path",
+                "accepted_at" to "2026-09-17T10:00:00Z",
+              ),
+            ),
         ),
-        GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY to listOf(
-          mapOf(
-            "subtask_id" to 2,
-            "commit_sha" to "legacy-commit",
-            "reason" to "accepted outside the normal review path",
-            "accepted_at" to "2026-09-17T10:00:00Z",
-          ),
-        ),
-      ),
-    )
+      )
     connection.prepareStatement(
       """
       INSERT INTO feature_task_workflows (
@@ -76,9 +79,9 @@ internal fun rejectedDiagnosticIndexNames(connection: Connection): List<String> 
   connection.createStatement().use { statement ->
     statement.executeQuery(
       """
-        SELECT name FROM sqlite_master
-        WHERE type = 'index' AND tbl_name = 'rejected_output_diagnostics' AND name NOT LIKE 'sqlite_%'
-        ORDER BY name
+      SELECT name FROM sqlite_master
+      WHERE type = 'index' AND tbl_name = 'rejected_output_diagnostics' AND name NOT LIKE 'sqlite_%'
+      ORDER BY name
       """.trimIndent(),
     ).use { rows -> buildList { while (rows.next()) add(rows.getString("name")) } }
   }
@@ -101,16 +104,16 @@ internal fun seedPreRepairTurnDiagnosticsForMigration29(
 
       statement.executeUpdate(
         """
-          CREATE INDEX idx_rejected_output_diagnostics_selector
-            ON rejected_output_diagnostics(workflow_id, phase_id, attempt)
+        CREATE INDEX idx_rejected_output_diagnostics_selector
+          ON rejected_output_diagnostics(workflow_id, phase_id, attempt)
         """.trimIndent(),
       )
     }
     connection.prepareStatement(
       """
-        INSERT INTO producer_output_evidence
-        (workflow_id, phase_id, generation, attempt, agent_id, model, recorded_at, byte_size, sha256, payload)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO producer_output_evidence
+      (workflow_id, phase_id, generation, attempt, agent_id, model, recorded_at, byte_size, sha256, payload)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
       statement.setString(1, "wftr-20260811-201509-n7hz")
@@ -137,10 +140,10 @@ internal fun seedPreRepairTurnDiagnosticRow(
 ) {
   connection.prepareStatement(
     """
-      INSERT INTO rejected_output_diagnostics
-      (identity, workflow_id, phase_id, attempt, rule, rejection_path, reason, agent_id, model,
-       recorded_at, byte_size, sha256, lifecycle, payload)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stored', ?)
+    INSERT INTO rejected_output_diagnostics
+    (identity, workflow_id, phase_id, attempt, rule, rejection_path, reason, agent_id, model,
+     recorded_at, byte_size, sha256, lifecycle, payload)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stored', ?)
     """.trimIndent(),
   ).use { statement ->
     statement.setString(1, identity)
@@ -196,7 +199,11 @@ internal fun clearProducerOutputEvidenceMigrationRecords(connection: Connection)
   }
 }
 
-internal fun seedPreAgentProducerEvidenceForMigration28(dbPath: Path, payload: ByteArray, sha: String) {
+internal fun seedPreAgentProducerEvidenceForMigration28(
+  dbPath: Path,
+  payload: ByteArray,
+  sha: String,
+) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
     connection.createStatement().use { statement ->
       clearProducerOutputEvidenceMigrationRecords(connection)
@@ -205,9 +212,9 @@ internal fun seedPreAgentProducerEvidenceForMigration28(dbPath: Path, payload: B
     }
     connection.prepareStatement(
       """
-        INSERT INTO producer_output_evidence
-        (workflow_id, phase_id, generation, attempt, agent_id, model, recorded_at, byte_size, sha256, payload)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO producer_output_evidence
+      (workflow_id, phase_id, generation, attempt, agent_id, model, recorded_at, byte_size, sha256, payload)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
       statement.setString(1, "wftr-20260808-175505-c5po")
@@ -233,12 +240,16 @@ internal fun assertMigration28Applied(connection: Connection) {
   )
 }
 
-internal fun assertProducerEvidenceRowSurvivedMigration28(connection: Connection, payload: ByteArray, sha: String) {
+internal fun assertProducerEvidenceRowSurvivedMigration28(
+  connection: Connection,
+  payload: ByteArray,
+  sha: String,
+) {
   connection.prepareStatement(
     """
-      SELECT generation, attempt, agent_id, recorded_at, sha256, payload
-      FROM producer_output_evidence
-      WHERE workflow_id = ? AND phase_id = ? AND generation = ? AND attempt = ?
+    SELECT generation, attempt, agent_id, recorded_at, sha256, payload
+    FROM producer_output_evidence
+    WHERE workflow_id = ? AND phase_id = ? AND generation = ? AND attempt = ?
     """.trimIndent(),
   ).use { statement ->
     statement.setString(1, "wftr-20260808-175505-c5po")
@@ -258,7 +269,10 @@ internal fun assertProducerEvidenceRowSurvivedMigration28(connection: Connection
   }
 }
 
-internal fun assertProducerEvidenceMigrationDdlParity(migratedDdl: String, baseSchemaDirPrefix: String) {
+internal fun assertProducerEvidenceMigrationDdlParity(
+  migratedDdl: String,
+  baseSchemaDirPrefix: String,
+) {
   val baseSchemaPath = Files.createTempDirectory(baseSchemaDirPrefix).resolve("base.db")
   DriverManager.getConnection("jdbc:sqlite:$baseSchemaPath").use { connection ->
     DatabaseSchema.createBaseSchema(connection)
@@ -275,33 +289,33 @@ internal fun seedPartiallyHealedLegacyWorkflow(dbPath: Path) {
     connection.createStatement().use { statement ->
       statement.execute(
         """
-          CREATE TABLE feature_task_workflows (
-            workflow_id TEXT PRIMARY KEY,
-            session_id TEXT NOT NULL DEFAULT '',
-            workflow_name TEXT NOT NULL DEFAULT 'bill-feature-task',
-            mode TEXT NOT NULL,
-            implementation_skill TEXT NOT NULL DEFAULT '',
-            contract_version TEXT NOT NULL,
-            workflow_status TEXT NOT NULL DEFAULT 'pending',
-            current_step_id TEXT NOT NULL DEFAULT '',
-            steps_json TEXT NOT NULL DEFAULT '',
-            artifacts_json TEXT NOT NULL DEFAULT '',
-            issue_key TEXT,
-            started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            state_entered_at TEXT,
-            state_entered_at_estimated INTEGER,
-            finished_at TEXT
-          )
+        CREATE TABLE feature_task_workflows (
+          workflow_id TEXT PRIMARY KEY,
+          session_id TEXT NOT NULL DEFAULT '',
+          workflow_name TEXT NOT NULL DEFAULT 'bill-feature-task',
+          mode TEXT NOT NULL,
+          implementation_skill TEXT NOT NULL DEFAULT '',
+          contract_version TEXT NOT NULL,
+          workflow_status TEXT NOT NULL DEFAULT 'pending',
+          current_step_id TEXT NOT NULL DEFAULT '',
+          steps_json TEXT NOT NULL DEFAULT '',
+          artifacts_json TEXT NOT NULL DEFAULT '',
+          issue_key TEXT,
+          started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          state_entered_at TEXT,
+          state_entered_at_estimated INTEGER,
+          finished_at TEXT
+        )
         """.trimIndent(),
       )
       statement.executeUpdate(
         """
-          INSERT INTO feature_task_workflows (
-            workflow_id, mode, contract_version, workflow_status, started_at, state_entered_at,
-            state_entered_at_estimated
-          ) VALUES ('wfl-partial-heal', 'prose', '0.1', 'running', '2026-05-01T10:00:00Z',
-                    '2026-05-02T11:00:00Z', NULL)
+        INSERT INTO feature_task_workflows (
+          workflow_id, mode, contract_version, workflow_status, started_at, state_entered_at,
+          state_entered_at_estimated
+        ) VALUES ('wfl-partial-heal', 'prose', '0.1', 'running', '2026-05-01T10:00:00Z',
+                  '2026-05-02T11:00:00Z', NULL)
         """.trimIndent(),
       )
     }
@@ -338,27 +352,27 @@ internal fun seedLegacyStateEntryFallbacks(dbPath: Path) {
 internal fun createLegacyStateEntryTables(statement: Statement) {
   statement.execute(
     """
-      CREATE TABLE feature_task_workflows (
-        workflow_id TEXT PRIMARY KEY, session_id TEXT NOT NULL DEFAULT '',
-        workflow_name TEXT NOT NULL DEFAULT 'bill-feature-task', mode TEXT NOT NULL,
-        implementation_skill TEXT NOT NULL DEFAULT '', contract_version TEXT NOT NULL,
-        workflow_status TEXT NOT NULL DEFAULT 'pending', current_step_id TEXT NOT NULL DEFAULT '',
-        steps_json TEXT NOT NULL DEFAULT '', artifacts_json TEXT NOT NULL DEFAULT '',
-        started_at TEXT NOT NULL, updated_at TEXT NOT NULL, finished_at TEXT
-      )
+    CREATE TABLE feature_task_workflows (
+      workflow_id TEXT PRIMARY KEY, session_id TEXT NOT NULL DEFAULT '',
+      workflow_name TEXT NOT NULL DEFAULT 'bill-feature-task', mode TEXT NOT NULL,
+      implementation_skill TEXT NOT NULL DEFAULT '', contract_version TEXT NOT NULL,
+      workflow_status TEXT NOT NULL DEFAULT 'pending', current_step_id TEXT NOT NULL DEFAULT '',
+      steps_json TEXT NOT NULL DEFAULT '', artifacts_json TEXT NOT NULL DEFAULT '',
+      started_at TEXT NOT NULL, updated_at TEXT NOT NULL, finished_at TEXT
+    )
     """.trimIndent(),
   )
   statement.execute(
     """
-      CREATE TABLE goal_issue_progress (
-        parent_workflow_id TEXT NOT NULL, issue_key TEXT NOT NULL,
-        total_invocations INTEGER NOT NULL DEFAULT 0, total_blocks INTEGER NOT NULL DEFAULT 0,
-        total_resumes INTEGER NOT NULL DEFAULT 0, first_started_at TEXT, last_activity_at TEXT,
-        last_blocked_at TEXT, latest_segment_workflow_id TEXT, last_blocked_segment_workflow_id TEXT,
-        finished_at TEXT, status TEXT, subtasks_complete INTEGER, subtasks_blocked INTEGER,
-        subtasks_skipped INTEGER, mode TEXT NOT NULL DEFAULT 'runtime', finished_event_emitted_at TEXT,
-        PRIMARY KEY (parent_workflow_id, issue_key)
-      )
+    CREATE TABLE goal_issue_progress (
+      parent_workflow_id TEXT NOT NULL, issue_key TEXT NOT NULL,
+      total_invocations INTEGER NOT NULL DEFAULT 0, total_blocks INTEGER NOT NULL DEFAULT 0,
+      total_resumes INTEGER NOT NULL DEFAULT 0, first_started_at TEXT, last_activity_at TEXT,
+      last_blocked_at TEXT, latest_segment_workflow_id TEXT, last_blocked_segment_workflow_id TEXT,
+      finished_at TEXT, status TEXT, subtasks_complete INTEGER, subtasks_blocked INTEGER,
+      subtasks_skipped INTEGER, mode TEXT NOT NULL DEFAULT 'runtime', finished_event_emitted_at TEXT,
+      PRIMARY KEY (parent_workflow_id, issue_key)
+    )
     """.trimIndent(),
   )
 }
@@ -366,12 +380,12 @@ internal fun createLegacyStateEntryTables(statement: Statement) {
 internal fun insertLegacyWorkflowStateEntryRows(statement: Statement) {
   statement.executeUpdate(
     """
-      INSERT INTO feature_task_workflows (workflow_id, mode, contract_version, started_at, updated_at, finished_at)
-      VALUES
-        ('wfl-finished', 'prose', '0.1', '2026-05-01T10:00:00Z', '2026-05-02T10:00:00Z', '2026-05-03T10:00:00Z'),
-        ('wfl-updated', 'prose', '0.1', '2026-05-01T10:00:00Z', '2026-05-02T10:00:00Z', NULL),
-        ('wfl-started', 'prose', '0.1', '2026-05-01T10:00:00Z', '', NULL),
-        ('wfl-no-time', 'prose', '0.1', '', '', NULL)
+    INSERT INTO feature_task_workflows (workflow_id, mode, contract_version, started_at, updated_at, finished_at)
+    VALUES
+      ('wfl-finished', 'prose', '0.1', '2026-05-01T10:00:00Z', '2026-05-02T10:00:00Z', '2026-05-03T10:00:00Z'),
+      ('wfl-updated', 'prose', '0.1', '2026-05-01T10:00:00Z', '2026-05-02T10:00:00Z', NULL),
+      ('wfl-started', 'prose', '0.1', '2026-05-01T10:00:00Z', '', NULL),
+      ('wfl-no-time', 'prose', '0.1', '', '', NULL)
     """.trimIndent(),
   )
 }
@@ -379,12 +393,12 @@ internal fun insertLegacyWorkflowStateEntryRows(statement: Statement) {
 internal fun insertLegacyGoalStateEntryRows(statement: Statement) {
   statement.executeUpdate(
     """
-      INSERT INTO goal_issue_progress (parent_workflow_id, issue_key, first_started_at, last_activity_at, finished_at)
-      VALUES
-        ('goal-finished', 'SKILL-117', '2026-05-01T10:00:00Z', '2026-05-02T10:00:00Z', '2026-05-03T10:00:00Z'),
-        ('goal-activity', 'SKILL-117', '2026-05-01T10:00:00Z', '2026-05-02T10:00:00Z', NULL),
-        ('goal-started', 'SKILL-117', '2026-05-01T10:00:00Z', '', NULL),
-        ('goal-no-time', 'SKILL-117', '', '', NULL)
+    INSERT INTO goal_issue_progress (parent_workflow_id, issue_key, first_started_at, last_activity_at, finished_at)
+    VALUES
+      ('goal-finished', 'SKILL-117', '2026-05-01T10:00:00Z', '2026-05-02T10:00:00Z', '2026-05-03T10:00:00Z'),
+      ('goal-activity', 'SKILL-117', '2026-05-01T10:00:00Z', '2026-05-02T10:00:00Z', NULL),
+      ('goal-started', 'SKILL-117', '2026-05-01T10:00:00Z', '', NULL),
+      ('goal-no-time', 'SKILL-117', '', '', NULL)
     """.trimIndent(),
   )
 }
@@ -436,11 +450,11 @@ internal fun assertMissingTimestampRowsRemainUnchanged(connection: Connection) {
   connection.createStatement().use { statement ->
     statement.execute(
       """
-        CREATE TRIGGER reject_missing_timestamp_rewrite
-        BEFORE UPDATE ON feature_task_workflows
-        BEGIN
-          SELECT RAISE(ABORT, 'missing legacy timestamp must not be rewritten');
-        END
+      CREATE TRIGGER reject_missing_timestamp_rewrite
+      BEFORE UPDATE ON feature_task_workflows
+      BEGIN
+        SELECT RAISE(ABORT, 'missing legacy timestamp must not be rewritten');
+      END
       """.trimIndent(),
     )
   }
@@ -453,8 +467,8 @@ internal fun createLegacyReviewRunsDatabase(dbPath: Path) {
     }
     connection.prepareStatement(
       """
-        INSERT INTO review_runs (review_run_id, routed_skill, raw_text)
-        VALUES (?, ?, ?)
+      INSERT INTO review_runs (review_run_id, routed_skill, raw_text)
+      VALUES (?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
       statement.setString(1, "rvw-legacy-001")
@@ -471,18 +485,18 @@ internal fun createLegacyFeatureImplementSessionsDatabase(dbPath: Path) {
       statement.execute(CREATE_LEGACY_FEATURE_IMPLEMENT_SESSIONS_SQL)
       statement.execute(
         """
-          CREATE TABLE schema_migrations (
-            version INTEGER PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE,
-            applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-          )
+        CREATE TABLE schema_migrations (
+          version INTEGER PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
         """.trimIndent(),
       )
     }
     connection.prepareStatement(
       """
-        INSERT INTO schema_migrations (version, name)
-        VALUES (?, ?)
+      INSERT INTO schema_migrations (version, name)
+      VALUES (?, ?)
       """.trimIndent(),
     ).use { statement ->
       DatabaseMigrations.migrations.filterNot { migration ->
@@ -502,11 +516,11 @@ internal fun createLegacyFeatureTaskRuntimeSessionsDatabase(dbPath: Path) {
       statement.execute(CREATE_LEGACY_FEATURE_TASK_RUNTIME_SESSIONS_SQL)
       statement.execute(
         """
-          CREATE TABLE schema_migrations (
-            version INTEGER PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE,
-            applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-          )
+        CREATE TABLE schema_migrations (
+          version INTEGER PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
         """.trimIndent(),
       )
     }
@@ -534,11 +548,11 @@ internal fun createLegacyLifecycleSessionsWithoutStartsDatabase(dbPath: Path) {
       statement.execute(CREATE_LEGACY_QUALITY_CHECK_SESSIONS_WITHOUT_START_SQL)
       statement.execute(
         """
-          CREATE TABLE schema_migrations (
-            version INTEGER PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE,
-            applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-          )
+        CREATE TABLE schema_migrations (
+          version INTEGER PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
         """.trimIndent(),
       )
     }
@@ -555,14 +569,14 @@ internal fun createLegacyLifecycleSessionsWithoutStartsDatabase(dbPath: Path) {
       statement.executeUpdate("INSERT INTO feature_implement_sessions (session_id) VALUES ('fis-legacy-duration')")
       statement.executeUpdate(
         """
-          INSERT INTO feature_task_workflows (
-            workflow_id, session_id, mode, implementation_skill, contract_version,
-            workflow_status, current_step_id, steps_json, artifacts_json, started_at, updated_at
-          ) VALUES (
-            'wf-legacy-duration', 'fis-legacy-duration', 'runtime', 'bill-feature', '0.1',
-            'running', 'implement', '[]', '{}', '$LEGACY_FEATURE_TASK_WORKFLOW_STARTED_AT',
-            '$LEGACY_FEATURE_TASK_WORKFLOW_STARTED_AT'
-          )
+        INSERT INTO feature_task_workflows (
+          workflow_id, session_id, mode, implementation_skill, contract_version,
+          workflow_status, current_step_id, steps_json, artifacts_json, started_at, updated_at
+        ) VALUES (
+          'wf-legacy-duration', 'fis-legacy-duration', 'runtime', 'bill-feature', '0.1',
+          'running', 'implement', '[]', '{}', '$LEGACY_FEATURE_TASK_WORKFLOW_STARTED_AT',
+          '$LEGACY_FEATURE_TASK_WORKFLOW_STARTED_AT'
+        )
         """.trimIndent(),
       )
       statement.executeUpdate("INSERT INTO feature_verify_sessions (session_id) VALUES ('fvs-legacy-start')")
@@ -577,11 +591,11 @@ internal fun createLegacyGoalSubtaskEventsDatabase(dbPath: Path) {
       statement.execute(CREATE_LEGACY_GOAL_SUBTASK_EVENTS_SQL)
       statement.execute(
         """
-          CREATE TABLE schema_migrations (
-            version INTEGER PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE,
-            applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-          )
+        CREATE TABLE schema_migrations (
+          version INTEGER PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
         """.trimIndent(),
       )
     }
@@ -607,8 +621,8 @@ internal fun createLegacyFeedbackEventsDatabase(dbPath: Path) {
     }
     connection.prepareStatement(
       """
-        INSERT INTO review_runs (review_run_id, raw_text)
-        VALUES (?, ?)
+      INSERT INTO review_runs (review_run_id, raw_text)
+      VALUES (?, ?)
       """.trimIndent(),
     ).use { statement ->
       statement.setString(1, "rvw-legacy-002")
@@ -617,8 +631,8 @@ internal fun createLegacyFeedbackEventsDatabase(dbPath: Path) {
     }
     connection.prepareStatement(
       """
-        INSERT INTO findings (review_run_id, finding_id, severity, confidence, location, description, finding_text)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO findings (review_run_id, finding_id, severity, confidence, location, description, finding_text)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
       statement.setString(1, "rvw-legacy-002")
@@ -632,8 +646,8 @@ internal fun createLegacyFeedbackEventsDatabase(dbPath: Path) {
     }
     connection.prepareStatement(
       """
-        INSERT INTO feedback_events (review_run_id, finding_id, event_type, note, created_at)
-        VALUES (?, ?, ?, ?, ?)
+      INSERT INTO feedback_events (review_run_id, finding_id, event_type, note, created_at)
+      VALUES (?, ?, ?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
       statement.setString(1, "rvw-legacy-002")
@@ -646,52 +660,62 @@ internal fun createLegacyFeedbackEventsDatabase(dbPath: Path) {
   }
 }
 
-internal fun reviewSessionId(connection: Connection, reviewRunId: String): String = connection.prepareStatement(
-  """
-      SELECT review_session_id
-      FROM review_runs
-      WHERE review_run_id = ?
-  """.trimIndent(),
-).use { statement ->
-  statement.setString(1, reviewRunId)
-  statement.executeQuery().use { resultSet ->
-    resultSet.next()
-    resultSet.getString(1)
-  }
-}
-
-internal fun feedbackEventsSchemaSql(connection: Connection): String = connection.prepareStatement(
-  """
-      SELECT sql
-      FROM sqlite_master
-      WHERE type = 'table' AND name = 'feedback_events'
-  """.trimIndent(),
-).use { statement ->
-  statement.executeQuery().use { resultSet ->
-    resultSet.next()
-    resultSet.getString(1)
-  }
-}
-
-internal fun reviewRunsSchemaSql(connection: Connection): String = connection.prepareStatement(
-  """
-      SELECT sql
-      FROM sqlite_master
-      WHERE type = 'table' AND name = 'review_runs'
-  """.trimIndent(),
-).use { statement ->
-  statement.executeQuery().use { resultSet ->
-    resultSet.next()
-    resultSet.getString(1)
-  }
-}
-
-internal fun feedbackEventType(connection: Connection, reviewRunId: String, findingId: String): String =
+internal fun reviewSessionId(
+  connection: Connection,
+  reviewRunId: String,
+): String =
   connection.prepareStatement(
     """
-      SELECT event_type
-      FROM feedback_events
-      WHERE review_run_id = ? AND finding_id = ?
+    SELECT review_session_id
+    FROM review_runs
+    WHERE review_run_id = ?
+    """.trimIndent(),
+  ).use { statement ->
+    statement.setString(1, reviewRunId)
+    statement.executeQuery().use { resultSet ->
+      resultSet.next()
+      resultSet.getString(1)
+    }
+  }
+
+internal fun feedbackEventsSchemaSql(connection: Connection): String =
+  connection.prepareStatement(
+    """
+    SELECT sql
+    FROM sqlite_master
+    WHERE type = 'table' AND name = 'feedback_events'
+    """.trimIndent(),
+  ).use { statement ->
+    statement.executeQuery().use { resultSet ->
+      resultSet.next()
+      resultSet.getString(1)
+    }
+  }
+
+internal fun reviewRunsSchemaSql(connection: Connection): String =
+  connection.prepareStatement(
+    """
+    SELECT sql
+    FROM sqlite_master
+    WHERE type = 'table' AND name = 'review_runs'
+    """.trimIndent(),
+  ).use { statement ->
+    statement.executeQuery().use { resultSet ->
+      resultSet.next()
+      resultSet.getString(1)
+    }
+  }
+
+internal fun feedbackEventType(
+  connection: Connection,
+  reviewRunId: String,
+  findingId: String,
+): String =
+  connection.prepareStatement(
+    """
+    SELECT event_type
+    FROM feedback_events
+    WHERE review_run_id = ? AND finding_id = ?
     """.trimIndent(),
   ).use { statement ->
     statement.setString(1, reviewRunId)
@@ -702,12 +726,16 @@ internal fun feedbackEventType(connection: Connection, reviewRunId: String, find
     }
   }
 
-internal fun findingIssueCategory(connection: Connection, reviewRunId: String, findingId: String): String =
+internal fun findingIssueCategory(
+  connection: Connection,
+  reviewRunId: String,
+  findingId: String,
+): String =
   connection.prepareStatement(
     """
-      SELECT issue_category
-      FROM findings
-      WHERE review_run_id = ? AND finding_id = ?
+    SELECT issue_category
+    FROM findings
+    WHERE review_run_id = ? AND finding_id = ?
     """.trimIndent(),
   ).use { statement ->
     statement.setString(1, reviewRunId)
@@ -723,14 +751,14 @@ internal fun seedLegacyReviewRunAttributionVariants(dbPath: Path): Int {
     connection.createStatement().use { statement ->
       statement.execute(
         """
-          CREATE TABLE review_runs (
-            review_run_id TEXT PRIMARY KEY,
-            routed_skill TEXT,
-            detected_scope TEXT,
-            detected_stack TEXT,
-            execution_mode TEXT,
-            raw_text TEXT NOT NULL
-          )
+        CREATE TABLE review_runs (
+          review_run_id TEXT PRIMARY KEY,
+          routed_skill TEXT,
+          detected_scope TEXT,
+          detected_stack TEXT,
+          execution_mode TEXT,
+          raw_text TEXT NOT NULL
+        )
         """.trimIndent(),
       )
     }
@@ -776,7 +804,10 @@ internal fun requireGatedStore(gate: String): Path {
 
 internal fun requireRealStore(): Path = requireGatedStore(REAL_STORE_ENV)
 
-internal fun groupCount(connection: Connection, column: String): Map<String, Int> =
+internal fun groupCount(
+  connection: Connection,
+  column: String,
+): Map<String, Int> =
   connection.createStatement().use { statement ->
     statement.executeQuery("SELECT $column, COUNT(*) FROM review_runs GROUP BY $column").use { resultSet ->
       buildMap {
@@ -787,7 +818,11 @@ internal fun groupCount(connection: Connection, column: String): Map<String, Int
     }
   }
 
-internal fun reviewRunColumn(connection: Connection, reviewRunId: String, column: String): String? =
+internal fun reviewRunColumn(
+  connection: Connection,
+  reviewRunId: String,
+  column: String,
+): String? =
   connection.prepareStatement("SELECT $column FROM review_runs WHERE review_run_id = ?").use { statement ->
     statement.setString(1, reviewRunId)
     statement.executeQuery().use { resultSet ->
@@ -796,28 +831,36 @@ internal fun reviewRunColumn(connection: Connection, reviewRunId: String, column
     }
   }
 
-internal fun executionModeGaps(connection: Connection): Int = connection.createStatement().use { statement ->
-  statement.executeQuery("SELECT COUNT(*) FROM review_runs WHERE execution_mode IS NULL OR execution_mode = ''")
-    .use { resultSet ->
-      check(resultSet.next())
-      resultSet.getInt(1)
-    }
-}
-
-internal fun featureImplementColumnValue(connection: Connection, columnName: String): Any = connection.prepareStatement(
-  """
-      SELECT $columnName
-      FROM feature_implement_sessions
-      WHERE session_id = 'fis-defaults'
-  """.trimIndent(),
-).use { statement ->
-  statement.executeQuery().use { resultSet ->
-    resultSet.next()
-    resultSet.getObject(1)
+internal fun executionModeGaps(connection: Connection): Int =
+  connection.createStatement().use { statement ->
+    statement.executeQuery("SELECT COUNT(*) FROM review_runs WHERE execution_mode IS NULL OR execution_mode = ''")
+      .use { resultSet ->
+        check(resultSet.next())
+        resultSet.getInt(1)
+      }
   }
-}
 
-internal fun columnNames(connection: Connection, table: String): Set<String> =
+internal fun featureImplementColumnValue(
+  connection: Connection,
+  columnName: String,
+): Any =
+  connection.prepareStatement(
+    """
+    SELECT $columnName
+    FROM feature_implement_sessions
+    WHERE session_id = 'fis-defaults'
+    """.trimIndent(),
+  ).use { statement ->
+    statement.executeQuery().use { resultSet ->
+      resultSet.next()
+      resultSet.getObject(1)
+    }
+  }
+
+internal fun columnNames(
+  connection: Connection,
+  table: String,
+): Set<String> =
   connection.prepareStatement("SELECT name FROM pragma_table_info(?)").use { statement ->
     statement.setString(1, table)
     statement.executeQuery().use { resultSet ->
@@ -829,29 +872,33 @@ internal fun columnNames(connection: Connection, table: String): Set<String> =
     }
   }
 
-internal fun migrationRows(connection: Connection): List<MigrationRow> = connection.prepareStatement(
-  """
-      SELECT version, name, applied_at
-      FROM schema_migrations
-      ORDER BY version
-  """.trimIndent(),
-).use { statement ->
-  statement.executeQuery().use { resultSet ->
-    buildList {
-      while (resultSet.next()) {
-        add(
-          MigrationRow(
-            version = resultSet.getInt("version"),
-            name = resultSet.getString("name"),
-            appliedAt = resultSet.getString("applied_at"),
-          ),
-        )
+internal fun migrationRows(connection: Connection): List<MigrationRow> =
+  connection.prepareStatement(
+    """
+    SELECT version, name, applied_at
+    FROM schema_migrations
+    ORDER BY version
+    """.trimIndent(),
+  ).use { statement ->
+    statement.executeQuery().use { resultSet ->
+      buildList {
+        while (resultSet.next()) {
+          add(
+            MigrationRow(
+              version = resultSet.getInt("version"),
+              name = resultSet.getString("name"),
+              appliedAt = resultSet.getString("applied_at"),
+            ),
+          )
+        }
       }
     }
   }
-}
 
-internal fun goalSubtaskColumnValue(connection: Connection, columnName: String): Any =
+internal fun goalSubtaskColumnValue(
+  connection: Connection,
+  columnName: String,
+): Any =
   connection.prepareStatement("SELECT $columnName FROM goal_subtask_events LIMIT 1").use { statement ->
     statement.executeQuery().use { resultSet ->
       check(resultSet.next()) { "Expected a seeded goal_subtask_events row." }
@@ -865,15 +912,16 @@ internal fun nullableTableColumnValue(
   pkColumnName: String,
   pkValue: String,
   columnName: String,
-): Any? = connection.prepareStatement(
-  "SELECT $columnName FROM $tableName WHERE $pkColumnName = ?",
-).use { statement ->
-  statement.setString(1, pkValue)
-  statement.executeQuery().use { resultSet ->
-    check(resultSet.next()) { "Expected a row with $pkColumnName = '$pkValue' in $tableName." }
-    resultSet.getObject(1)
+): Any? =
+  connection.prepareStatement(
+    "SELECT $columnName FROM $tableName WHERE $pkColumnName = ?",
+  ).use { statement ->
+    statement.setString(1, pkValue)
+    statement.executeQuery().use { resultSet ->
+      check(resultSet.next()) { "Expected a row with $pkColumnName = '$pkValue' in $tableName." }
+      resultSet.getObject(1)
+    }
   }
-}
 
 internal fun tableColumnValue(
   connection: Connection,
@@ -881,24 +929,26 @@ internal fun tableColumnValue(
   pkColumnName: String,
   pkValue: String,
   columnName: String,
-): Any? = connection.prepareStatement(
-  "SELECT $columnName FROM $tableName WHERE $pkColumnName = ?",
-).use { statement ->
-  statement.setString(1, pkValue)
-  statement.executeQuery().use { resultSet ->
-    check(resultSet.next()) { "Expected a row with $pkColumnName = '$pkValue' in $tableName." }
-    resultSet.getObject(1)
+): Any? =
+  connection.prepareStatement(
+    "SELECT $columnName FROM $tableName WHERE $pkColumnName = ?",
+  ).use { statement ->
+    statement.setString(1, pkValue)
+    statement.executeQuery().use { resultSet ->
+      check(resultSet.next()) { "Expected a row with $pkColumnName = '$pkValue' in $tableName." }
+      resultSet.getObject(1)
+    }
   }
-}
 
-internal fun producerEvidenceDdl(connection: Connection): String = connection.createStatement().use { statement ->
-  statement.executeQuery(
-    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'producer_output_evidence'",
-  ).use { rows ->
-    check(rows.next()) { "producer_output_evidence is absent." }
-    rows.getString("sql")
+internal fun producerEvidenceDdl(connection: Connection): String =
+  connection.createStatement().use { statement ->
+    statement.executeQuery(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'producer_output_evidence'",
+    ).use { rows ->
+      check(rows.next()) { "producer_output_evidence is absent." }
+      rows.getString("sql")
+    }
   }
-}
 
 internal fun producerEvidenceRows(connection: Connection): List<ProducerEvidenceRow> =
   connection.createStatement().use { statement ->
@@ -921,7 +971,10 @@ internal fun producerEvidenceRows(connection: Connection): List<ProducerEvidence
     }
   }
 
-internal fun tableColumns(connection: Connection, tableName: String): Set<String> =
+internal fun tableColumns(
+  connection: Connection,
+  tableName: String,
+): Set<String> =
   connection.createStatement().use { statement ->
     statement.executeQuery("PRAGMA table_info($tableName)").use { resultSet ->
       buildSet {
@@ -932,7 +985,10 @@ internal fun tableColumns(connection: Connection, tableName: String): Set<String
     }
   }
 
-internal fun tableColumnTypes(connection: Connection, tableName: String): Map<String, String> =
+internal fun tableColumnTypes(
+  connection: Connection,
+  tableName: String,
+): Map<String, String> =
   connection.createStatement().use { statement ->
     statement.executeQuery("PRAGMA table_info($tableName)").use { resultSet ->
       buildMap {
@@ -947,11 +1003,11 @@ internal fun legacyGoalSubtaskRows(connection: Connection): List<Map<String, Any
   connection.createStatement().use { statement ->
     statement.executeQuery(
       """
-        SELECT issue_key, workflow_id, subtask_id, subtask_name, status,
-               started_at, finished_at, duration_ms, attempt_count, blocked_reason,
-               subtask_event_emitted_at
-        FROM goal_subtask_events
-        ORDER BY issue_key, workflow_id, subtask_id
+      SELECT issue_key, workflow_id, subtask_id, subtask_name, status,
+             started_at, finished_at, duration_ms, attempt_count, blocked_reason,
+             subtask_event_emitted_at
+      FROM goal_subtask_events
+      ORDER BY issue_key, workflow_id, subtask_id
       """.trimIndent(),
     ).use { resultSet ->
       val metadata = resultSet.metaData
@@ -969,68 +1025,86 @@ internal fun legacyGoalSubtaskRows(connection: Connection): List<Map<String, Any
     }
   }
 
-internal fun tableNames(connection: Connection): Set<String> = connection.createStatement().use { statement ->
-  statement.executeQuery("SELECT name FROM sqlite_master WHERE type = 'table'").use { resultSet ->
-    buildSet {
-      while (resultSet.next()) {
-        add(resultSet.getString("name"))
+internal fun tableNames(connection: Connection): Set<String> =
+  connection.createStatement().use { statement ->
+    statement.executeQuery("SELECT name FROM sqlite_master WHERE type = 'table'").use { resultSet ->
+      buildSet {
+        while (resultSet.next()) {
+          add(resultSet.getString("name"))
+        }
       }
     }
   }
-}
 
-internal fun allTableRowCounts(connection: Connection): Map<String, Int> = tableNames(connection)
-  .filterNot { it.startsWith("sqlite_") }
-  .associateWith { table -> rowCount(connection, table) }
+internal fun allTableRowCounts(connection: Connection): Map<String, Int> =
+  tableNames(connection)
+    .filterNot { it.startsWith("sqlite_") }
+    .associateWith { table -> rowCount(connection, table) }
 
-internal fun findingRows(connection: Connection): List<List<Any?>> = connection.createStatement().use { statement ->
-  statement.executeQuery(
-    """
+internal fun findingRows(connection: Connection): List<List<Any?>> =
+  connection.createStatement().use { statement ->
+    statement.executeQuery(
+      """
       SELECT review_run_id, finding_id, severity, confidence, location, description, finding_text
       FROM findings
       ORDER BY review_run_id, finding_id
-    """.trimIndent(),
-  ).use { resultSet ->
-    buildList {
-      while (resultSet.next()) {
-        add((1..resultSet.metaData.columnCount).map(resultSet::getObject))
+      """.trimIndent(),
+    ).use { resultSet ->
+      buildList {
+        while (resultSet.next()) {
+          add((1..resultSet.metaData.columnCount).map(resultSet::getObject))
+        }
       }
     }
   }
-}
 
-internal fun rowCount(connection: Connection, tableName: String): Int = connection.createStatement().use { statement ->
-  statement.executeQuery("SELECT COUNT(*) FROM $tableName").use { resultSet ->
-    check(resultSet.next())
-    resultSet.getInt(1)
+internal fun rowCount(
+  connection: Connection,
+  tableName: String,
+): Int =
+  connection.createStatement().use { statement ->
+    statement.executeQuery("SELECT COUNT(*) FROM $tableName").use { resultSet ->
+      check(resultSet.next())
+      resultSet.getInt(1)
+    }
   }
-}
 
-internal fun scalarInt(connection: Connection, sql: String): Int = connection.createStatement().use { statement ->
-  statement.executeQuery(sql).use { resultSet ->
-    check(resultSet.next())
-    resultSet.getInt(1)
+internal fun scalarInt(
+  connection: Connection,
+  sql: String,
+): Int =
+  connection.createStatement().use { statement ->
+    statement.executeQuery(sql).use { resultSet ->
+      check(resultSet.next())
+      resultSet.getInt(1)
+    }
   }
-}
 
-internal fun scalarString(connection: Connection, sql: String): String? =
+internal fun scalarString(
+  connection: Connection,
+  sql: String,
+): String? =
   connection.createStatement().use { statement ->
     statement.executeQuery(sql).use { resultSet ->
       if (resultSet.next()) resultSet.getString(1) else null
     }
   }
 
-internal fun tableIndexNames(connection: Connection): Set<String> = connection.createStatement().use { statement ->
-  statement.executeQuery("SELECT name FROM sqlite_master WHERE type = 'index'").use { resultSet ->
-    buildSet {
-      while (resultSet.next()) {
-        add(resultSet.getString("name"))
+internal fun tableIndexNames(connection: Connection): Set<String> =
+  connection.createStatement().use { statement ->
+    statement.executeQuery("SELECT name FROM sqlite_master WHERE type = 'index'").use { resultSet ->
+      buildSet {
+        while (resultSet.next()) {
+          add(resultSet.getString("name"))
+        }
       }
     }
   }
-}
 
-internal fun tableInfo(connection: Connection, tableName: String): List<TableColumnInfo> =
+internal fun tableInfo(
+  connection: Connection,
+  tableName: String,
+): List<TableColumnInfo> =
   connection.prepareStatement("PRAGMA table_info($tableName)").use { statement ->
     statement.executeQuery().use { resultSet ->
       buildList {
@@ -1046,37 +1120,38 @@ internal fun tableInfo(connection: Connection, tableName: String): List<TableCol
     }
   }
 
-internal fun telemetryOutboxRows(connection: Connection): List<List<Any?>> = connection.createStatement().use {
-  it.executeQuery("SELECT id, event_name, synced_at, last_error FROM telemetry_outbox ORDER BY id").use { rows ->
-    buildList {
-      while (rows.next()) {
-        add((1..rows.metaData.columnCount).map(rows::getObject))
+internal fun telemetryOutboxRows(connection: Connection): List<List<Any?>> =
+  connection.createStatement().use {
+    it.executeQuery("SELECT id, event_name, synced_at, last_error FROM telemetry_outbox ORDER BY id").use { rows ->
+      buildList {
+        while (rows.next()) {
+          add((1..rows.metaData.columnCount).map(rows::getObject))
+        }
       }
     }
   }
-}
 
 internal fun createLegacyTelemetryOutboxDatabase(dbPath: Path) {
   DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
     connection.createStatement().use { statement ->
       statement.execute(
         """
-          CREATE TABLE telemetry_outbox (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_name TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            synced_at TEXT,
-            last_error TEXT NOT NULL DEFAULT ''
-          )
+        CREATE TABLE telemetry_outbox (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          event_name TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          synced_at TEXT,
+          last_error TEXT NOT NULL DEFAULT ''
+        )
         """.trimIndent(),
       )
       statement.executeUpdate(
         """
-          INSERT INTO telemetry_outbox (id, event_name, payload_json, synced_at, last_error) VALUES
-            (1, 'review_finished', '{}', '2026-01-01T00:00:00Z', ''),
-            (2, 'review_finished', '{}', NULL, 'boom'),
-            (3, 'goal_finished', '{}', NULL, '')
+        INSERT INTO telemetry_outbox (id, event_name, payload_json, synced_at, last_error) VALUES
+          (1, 'review_finished', '{}', '2026-01-01T00:00:00Z', ''),
+          (2, 'review_finished', '{}', NULL, 'boom'),
+          (3, 'goal_finished', '{}', NULL, '')
         """.trimIndent(),
       )
     }
@@ -1103,14 +1178,15 @@ const val SCHEMA_MIGRATIONS_TABLE: String = "schema_migrations"
 const val REAL_STORE_ENV: String = "SKILL_BILL_REAL_STORE_DB"
 const val MIGRATION_FIXTURE_ENV: String = "SKILL_BILL_MIGRATION_FIXTURE_DB"
 
-val LEGACY_ROUTED_SKILL_VARIANTS: List<String> = listOf(
-  "bill-kmp-code-review",
-  "bill-kmp-code-review (parallel)",
-  "bill-kmp-code-review-persistence",
-  "skillbill:bill-kmp-code-review",
-  "`bill-kmp-code-review`",
-  "Routed to bill-kmp-code-review for the KMP pack",
-)
+val LEGACY_ROUTED_SKILL_VARIANTS: List<String> =
+  listOf(
+    "bill-kmp-code-review",
+    "bill-kmp-code-review (parallel)",
+    "bill-kmp-code-review-persistence",
+    "skillbill:bill-kmp-code-review",
+    "`bill-kmp-code-review`",
+    "Routed to bill-kmp-code-review for the KMP pack",
+  )
 val LEGACY_STACK_VARIANTS: List<String> =
   listOf("kotlin", "Kotlin", "Kotlin/JVM", "kotlin (jvm backend)", "  KOTLIN  ")
 const val AMBIGUOUS_ROUTED_SKILL: String = "bill-kmp-code-review, bill-ios-code-review"
@@ -1312,7 +1388,10 @@ internal fun versionIsPrimaryKey(connection: Connection): Boolean =
       statement.executeQuery().use { resultSet -> resultSet.next() && resultSet.getInt("pk") > 0 }
     }
 
-internal fun tableExists(connection: Connection, table: String): Boolean =
+internal fun tableExists(
+  connection: Connection,
+  table: String,
+): Boolean =
   connection.prepareStatement("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").use { statement ->
     statement.setString(1, table)
     statement.executeQuery().use { resultSet -> resultSet.next() }

@@ -18,80 +18,93 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeFindingVerificationOutputTest {
   @Test
   fun `verify_findings wire verdict settles findings_verified`() {
-    val verdict = FeatureTaskRuntimeOutputVerification.verdictFor(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-      mapOf(
-        "verdict" to FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED.wireValue,
-        "produced_outputs" to mapOf(
-          "finding_dispositions" to listOf(
+    val verdict =
+      FeatureTaskRuntimeOutputVerification.verdictFor(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+        mapOf(
+          "verdict" to FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED.wireValue,
+          "produced_outputs" to
             mapOf(
-              "finding_id" to "F-001",
-              "disposition" to "verified",
+              "finding_dispositions" to
+                listOf(
+                  mapOf(
+                    "finding_id" to "F-001",
+                    "disposition" to "verified",
+                  ),
+                ),
             ),
-          ),
-        ),
-      ).toWorkflowArtifactMap(),
-    )
+        ).toWorkflowArtifactMap(),
+      )
     assertEquals(FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED, verdict)
   }
 
   @Test
   fun `verify_findings wire verdict settles no_findings_verified`() {
-    val verdict = FeatureTaskRuntimeOutputVerification.verdictFor(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-      mapOf(
-        "verdict" to FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED.wireValue,
-        "produced_outputs" to mapOf(
-          "finding_dispositions" to listOf(
+    val verdict =
+      FeatureTaskRuntimeOutputVerification.verdictFor(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+        mapOf(
+          "verdict" to FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED.wireValue,
+          "produced_outputs" to
             mapOf(
-              "finding_id" to "F-001",
-              "disposition" to "rejected",
+              "finding_dispositions" to
+                listOf(
+                  mapOf(
+                    "finding_id" to "F-001",
+                    "disposition" to "rejected",
+                  ),
+                ),
             ),
-          ),
-        ),
-      ).toWorkflowArtifactMap(),
-    )
+        ).toWorkflowArtifactMap(),
+      )
     assertEquals(FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED, verdict)
   }
 
   @Test
   fun `verify_findings wire verdict findings_verified settles when census has zero verified rows`() {
-    val verdict = FeatureTaskRuntimeOutputVerification.verdictFor(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-      mapOf(
-        "verdict" to FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED.wireValue,
-        "produced_outputs" to mapOf(
-          "finding_dispositions" to listOf(
+    val verdict =
+      FeatureTaskRuntimeOutputVerification.verdictFor(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+        mapOf(
+          "verdict" to FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED.wireValue,
+          "produced_outputs" to
             mapOf(
-              "finding_id" to "F-001",
-              "disposition" to "rejected",
+              "finding_dispositions" to
+                listOf(
+                  mapOf(
+                    "finding_id" to "F-001",
+                    "disposition" to "rejected",
+                  ),
+                ),
             ),
-          ),
-        ),
-      ).toWorkflowArtifactMap(),
-    )
+        ).toWorkflowArtifactMap(),
+      )
     assertEquals(FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED, verdict)
   }
 
   @Test
   fun `verify_findings wire verdict no_findings_verified settles when census has verified rows`() {
-    val verdict = FeatureTaskRuntimeOutputVerification.verdictFor(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-      mapOf(
-        "verdict" to FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED.wireValue,
-        "produced_outputs" to mapOf(
-          "finding_dispositions" to listOf(
+    val verdict =
+      FeatureTaskRuntimeOutputVerification.verdictFor(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+        mapOf(
+          "verdict" to FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED.wireValue,
+          "produced_outputs" to
             mapOf(
-              "finding_id" to "F-001",
-              "disposition" to "verified",
+              "finding_dispositions" to
+                listOf(
+                  mapOf(
+                    "finding_id" to "F-001",
+                    "disposition" to "verified",
+                  ),
+                ),
             ),
-          ),
-        ),
-      ).toWorkflowArtifactMap(),
-    )
+        ).toWorkflowArtifactMap(),
+      )
     assertEquals(FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED, verdict)
   }
 
@@ -101,14 +114,16 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
       FeatureTaskRuntimeOutputVerification.verdictFor(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
         mapOf(
-          "produced_outputs" to mapOf(
-            "finding_dispositions" to listOf(
-              mapOf(
-                "finding_id" to "F-001",
-                "disposition" to "verified",
-              ),
+          "produced_outputs" to
+            mapOf(
+              "finding_dispositions" to
+                listOf(
+                  mapOf(
+                    "finding_id" to "F-001",
+                    "disposition" to "verified",
+                  ),
+                ),
             ),
-          ),
         ).toWorkflowArtifactMap(),
       )
     }
@@ -116,12 +131,13 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
 
   @Test
   fun `validateDispositionCoverage rejects duplicate finding ids`() {
-    val dispositions = parseVerifyDispositions(
-      listOf(
-        verifyDisposition("F-001", "verified"),
-        verifyDisposition("F-001", "rejected"),
-      ),
-    )
+    val dispositions =
+      parseVerifyDispositions(
+        listOf(
+          verifyDisposition("F-001", "verified"),
+          verifyDisposition("F-001", "rejected"),
+        ),
+      )
     assertVerifyCoverageContains(dispositions, setOf("F-001", "F-002"), "duplicate finding_id: F-001.")
   }
 
@@ -144,11 +160,12 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
 
   @Test
   fun `optional reason round-trips through artifact map`() {
-    val disposition = FeatureTaskRuntimeFindingVerificationDisposition(
-      findingId = "F-001",
-      disposition = FeatureTaskRuntimeFindingVerificationDispositionVerdict.VERIFIED,
-      reason = "Matches spec intent.",
-    )
+    val disposition =
+      FeatureTaskRuntimeFindingVerificationDisposition(
+        findingId = "F-001",
+        disposition = FeatureTaskRuntimeFindingVerificationDispositionVerdict.VERIFIED,
+        reason = "Matches spec intent.",
+      )
     assertEquals(
       disposition,
       decodeFindingVerificationDispositionFromArtifact(
@@ -160,45 +177,48 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
 
   @Test
   fun `census-only disposition ignores extra keys`() {
-    val disposition = requireNotNull(
-      decodeFindingVerificationDispositionFromArtifact(
-        mapOf(
-          "finding_id" to "F-001",
-          "disposition" to "verified",
-          "severity" to "major",
-          "location" to "Example.kt",
-          "message" to "Finding",
+    val disposition =
+      requireNotNull(
+        decodeFindingVerificationDispositionFromArtifact(
+          mapOf(
+            "finding_id" to "F-001",
+            "disposition" to "verified",
+            "severity" to "major",
+            "location" to "Example.kt",
+            "message" to "Finding",
+          ),
+          "finding_dispositions[0]",
         ),
-        "finding_dispositions[0]",
-      ),
-    )
+      )
     assertEquals("F-001", disposition.findingId)
     assertNull(disposition.reason)
   }
 
   @Test
   fun `malformed finding verification checkpoint loud-fails when raw is not an array`() {
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
-      FeatureTaskRuntimeFindingVerificationDisposition.parseList(
-        mapOf("finding_id" to "F-001"),
-        "finding_verification_checkpoint",
-      )
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
+        FeatureTaskRuntimeFindingVerificationDisposition.parseList(
+          mapOf("finding_id" to "F-001"),
+          "finding_verification_checkpoint",
+        )
+      }
     assertTrue(error.reason.contains("finding_verification_checkpoint"))
     assertTrue(error.reason.contains("array"))
   }
 
   @Test
   fun `retired disposition field loud-fails with named verification record error`() {
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
-      decodeFindingVerificationDispositionFromArtifact(
-        mapOf(
-          "finding_id" to "F-001",
-          "verdict" to "verified",
-        ),
-        "finding_verification_checkpoint[0]",
-      )
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
+        decodeFindingVerificationDispositionFromArtifact(
+          mapOf(
+            "finding_id" to "F-001",
+            "verdict" to "verified",
+          ),
+          "finding_verification_checkpoint[0]",
+        )
+      }
     assertTrue(error.reason.contains("disposition"))
   }
 }

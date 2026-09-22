@@ -5,7 +5,10 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
 object ExperimentFrozenSpecBundle {
-  fun copy(source: Path, destination: Path) {
+  fun copy(
+    source: Path,
+    destination: Path,
+  ) {
     Files.walk(source).use { paths ->
       paths.forEach { path ->
         val target = destination.resolve(source.relativize(path).toString())

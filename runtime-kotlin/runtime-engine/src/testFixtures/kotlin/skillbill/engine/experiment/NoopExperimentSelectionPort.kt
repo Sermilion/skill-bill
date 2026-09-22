@@ -10,9 +10,10 @@ object NoopExperimentSelectionPort : ExperimentSelectionPort {
     parameter: String?,
     mode: ExperimentExecutionMode,
     savedSelection: List<String>?,
-  ): ExperimentLaunchSelection = ExperimentLaunchSelection(
-    normalizedNames = emptyList(),
-    descriptors = emptyList(),
-    availabilitySummary = "no experiments selected",
-  )
+  ): ExperimentLaunchSelection =
+    ExperimentLaunchSelection(
+      normalizedNames = emptyList(),
+      descriptors = emptyList(),
+      availabilitySummary = "no experiments selected",
+    )
 }

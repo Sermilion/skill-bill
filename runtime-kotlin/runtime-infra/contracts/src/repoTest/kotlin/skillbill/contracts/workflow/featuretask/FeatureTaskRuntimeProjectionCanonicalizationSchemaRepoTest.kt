@@ -9,11 +9,12 @@ import kotlin.test.assertFalse
 class FeatureTaskRuntimeProjectionCanonicalizationSchemaRepoTest {
   @Test
   fun `planning projections schema is reject-all with no live implementation_receipt def`() {
-    val schema = Yaml().load<Map<String, Any?>>(
-      Files.readString(
-        repoRootFromTest().resolve("orchestration/contracts/feature-task-runtime-planning-projections-schema.yaml"),
-      ),
-    )
+    val schema =
+      Yaml().load<Map<String, Any?>>(
+        Files.readString(
+          repoRootFromTest().resolve("orchestration/contracts/feature-task-runtime-planning-projections-schema.yaml"),
+        ),
+      )
     val defs = schema["\$defs"] as Map<*, *>
     assertFalse(
       defs.containsKey("implementation_receipt"),

@@ -19,29 +19,30 @@ class ConfigUnregisterExternalPlatformPackCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "unregister-external-platform-pack",
-  "Remove one external platform pack registration by canonical pack root path. " +
-    "Does not delete the author's pack directory. Config path precedence: SKILL_BILL_CONFIG_PATH, " +
-    "then ~/.config/skill-bill/config.json, then ~/.skill-bill/config.json.",
-) {
+    "unregister-external-platform-pack",
+    "Remove one external platform pack registration by canonical pack root path. " +
+      "Does not delete the author's pack directory. Config path precedence: SKILL_BILL_CONFIG_PATH, " +
+      "then ~/.config/skill-bill/config.json, then ~/.skill-bill/config.json.",
+  ) {
   private val packPath by option("--path", help = "Registered pack root path to remove.").required()
 
   override fun run() {
     val resolvedPath = service.canonicalPackRoot(inputs.userHome, packPath)
-    val sources = try {
-      service.unregisterSource(
-        inputs.userHome,
-        ExternalPlatformPackSource(resolvedPath.toFileLocation()),
-        inputs.environment,
-      )
-    } catch (error: ShellContentContractException) {
-      state.completeText(
-        "${error.message}\n",
-        externalPlatformPackFailurePayload(error, sourceKind = PlatformPackSourceKind.EXTERNAL),
-        exitCode = 1,
-      )
-      return
-    }
+    val sources =
+      try {
+        service.unregisterSource(
+          inputs.userHome,
+          ExternalPlatformPackSource(resolvedPath.toFileLocation()),
+          inputs.environment,
+        )
+      } catch (error: ShellContentContractException) {
+        state.completeText(
+          "${error.message}\n",
+          externalPlatformPackFailurePayload(error, sourceKind = PlatformPackSourceKind.EXTERNAL),
+          exitCode = 1,
+        )
+        return
+      }
     state.completeText(
       "External platform pack registrations: ${sources.size}.\n",
       mapOf(SharedPayloadKeys.STATUS to "ok", "count" to sources.size),

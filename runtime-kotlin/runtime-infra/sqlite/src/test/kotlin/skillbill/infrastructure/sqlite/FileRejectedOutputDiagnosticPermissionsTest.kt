@@ -11,6 +11,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class FileRejectedOutputDiagnosticPermissionsTest {
   @Test
   fun `applyRestrictivePermissions skips when posix view is unavailable`() {
@@ -36,15 +37,16 @@ class FileRejectedOutputDiagnosticPermissionsTest {
     val dbPath = tempDir.resolve("metrics.db")
     Files.createFile(dbPath)
 
-    val error = assertFailsWith<RejectedOutputDiagnosticError.Persistence> {
-      FileRejectedOutputDiagnosticPermissions(
-        databasePath = dbPath,
-        diagnostics = SqliteTestDiagnostics,
-        setPosixPermissions = { _: Path, _: Set<PosixFilePermission> ->
-          throw IOException("permission probe")
-        },
-      ).applyRestrictivePermissions()
-    }
+    val error =
+      assertFailsWith<RejectedOutputDiagnosticError.Persistence> {
+        FileRejectedOutputDiagnosticPermissions(
+          databasePath = dbPath,
+          diagnostics = SqliteTestDiagnostics,
+          setPosixPermissions = { _: Path, _: Set<PosixFilePermission> ->
+            throw IOException("permission probe")
+          },
+        ).applyRestrictivePermissions()
+      }
 
     assertTrue(error.message.orEmpty().contains("apply-restrictive-permissions"))
   }

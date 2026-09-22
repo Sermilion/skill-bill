@@ -11,6 +11,7 @@ import skillbill.learnings.model.LearningSourceValidation
 import skillbill.learnings.model.UpdateLearningRequest
 import java.sql.Connection
 import java.sql.ResultSet
+
 internal object SQLiteLearningStore {
   fun addLearning(
     connection: Connection,
@@ -71,17 +72,24 @@ internal object SQLiteLearningStore {
     }
   }
 
-  fun getLearning(connection: Connection, learningId: Int): LearningRecord = connection.prepareStatement(
-    learningRecordSelectSql("WHERE id = ?"),
-  ).use { statement ->
-    statement.bindAll(learningId)
-    statement.executeQuery().use { resultSet ->
-      require(resultSet.next()) { "Unknown learning id '$learningId'." }
-      resultSet.toLearningRecord()
+  fun getLearning(
+    connection: Connection,
+    learningId: Int,
+  ): LearningRecord =
+    connection.prepareStatement(
+      learningRecordSelectSql("WHERE id = ?"),
+    ).use { statement ->
+      statement.bindAll(learningId)
+      statement.executeQuery().use { resultSet ->
+        require(resultSet.next()) { "Unknown learning id '$learningId'." }
+        resultSet.toLearningRecord()
+      }
     }
-  }
 
-  fun listLearnings(connection: Connection, status: String): List<LearningRecord> {
+  fun listLearnings(
+    connection: Connection,
+    status: String,
+  ): List<LearningRecord> {
     val query =
       buildString {
         appendLine(learningRecordSelectSql())
@@ -145,7 +153,10 @@ internal object SQLiteLearningStore {
     return Triple(normalizedRepoScopeKey, normalizedSkillName, rows)
   }
 
-  fun editLearning(connection: Connection, request: UpdateLearningRequest): LearningRecord {
+  fun editLearning(
+    connection: Connection,
+    request: UpdateLearningRequest,
+  ): LearningRecord {
     val current = getLearning(connection, request.learningId)
     val nextScope = request.scope ?: LearningScope.fromWireName(current.scope)
     val nextScopeKey = request.scopeKey ?: current.scopeKey
@@ -182,7 +193,11 @@ internal object SQLiteLearningStore {
     return getLearning(connection, request.learningId)
   }
 
-  fun setLearningStatus(connection: Connection, learningId: Int, status: String): LearningRecord {
+  fun setLearningStatus(
+    connection: Connection,
+    learningId: Int,
+    status: String,
+  ): LearningRecord {
     val validatedStatus = LearningsRuntime.validateLearningStatus(status)
     getLearning(connection, learningId)
     connection.prepareStatement(
@@ -198,7 +213,10 @@ internal object SQLiteLearningStore {
     return getLearning(connection, learningId)
   }
 
-  fun deleteLearning(connection: Connection, learningId: Int) {
+  fun deleteLearning(
+    connection: Connection,
+    learningId: Int,
+  ) {
     getLearning(connection, learningId)
     connection.prepareStatement("DELETE FROM learnings WHERE id = ?").use { statement ->
       statement.bindAll(learningId)
@@ -206,7 +224,10 @@ internal object SQLiteLearningStore {
     }
   }
 
-  fun countLearnings(connection: Connection, status: String? = null): Int {
+  fun countLearnings(
+    connection: Connection,
+    status: String? = null,
+  ): Int {
     val query =
       if (status == null) {
         "SELECT COUNT(*) FROM learnings"
@@ -227,7 +248,11 @@ internal object SQLiteLearningStore {
     }
   }
 
-  fun saveSessionLearnings(connection: Connection, reviewSessionId: String, learningsJson: String) {
+  fun saveSessionLearnings(
+    connection: Connection,
+    reviewSessionId: String,
+    learningsJson: String,
+  ) {
     connection.prepareStatement(
       """
       INSERT INTO session_learnings (review_session_id, learnings_json, updated_at)
@@ -242,7 +267,10 @@ internal object SQLiteLearningStore {
     }
   }
 
-  fun fetchSessionLearnings(connection: Connection, reviewSessionId: String): Map<String, Any?>? =
+  fun fetchSessionLearnings(
+    connection: Connection,
+    reviewSessionId: String,
+  ): Map<String, Any?>? =
     connection.prepareStatement(
       """
       SELECT learnings_json
@@ -260,47 +288,51 @@ internal object SQLiteLearningStore {
     }
 }
 
-private fun learningRecordSelectSql(whereClause: String? = null): String = buildString {
-  appendLine("SELECT")
-  appendLine("  id,")
-  appendLine("  scope,")
-  appendLine("  scope_key,")
-  appendLine("  title,")
-  appendLine("  rule_text,")
-  appendLine("  rationale,")
-  appendLine("  status,")
-  appendLine("  source_review_run_id,")
-  appendLine("  source_finding_id,")
-  appendLine("  created_at,")
-  appendLine("  updated_at")
-  appendLine("FROM learnings")
-  if (whereClause != null) {
-    append(whereClause)
+private fun learningRecordSelectSql(whereClause: String? = null): String =
+  buildString {
+    appendLine("SELECT")
+    appendLine("  id,")
+    appendLine("  scope,")
+    appendLine("  scope_key,")
+    appendLine("  title,")
+    appendLine("  rule_text,")
+    appendLine("  rationale,")
+    appendLine("  status,")
+    appendLine("  source_review_run_id,")
+    appendLine("  source_finding_id,")
+    appendLine("  created_at,")
+    appendLine("  updated_at")
+    appendLine("FROM learnings")
+    if (whereClause != null) {
+      append(whereClause)
+    }
   }
-}
 
-private fun learningScopeOrderClause(columnName: String): String = buildString {
-  appendLine("CASE $columnName")
-  LearningScope.precedence.forEachIndexed { index, scope ->
-    appendLine("  WHEN '${scope.wireName}' THEN $index")
+private fun learningScopeOrderClause(columnName: String): String =
+  buildString {
+    appendLine("CASE $columnName")
+    LearningScope.precedence.forEachIndexed { index, scope ->
+      appendLine("  WHEN '${scope.wireName}' THEN $index")
+    }
+    append("  ELSE ${LearningScope.precedence.size}\nEND")
   }
-  append("  ELSE ${LearningScope.precedence.size}\nEND")
-}
 
-private fun decodeSessionLearnings(rawJson: String): Map<String, Any?>? = JsonCodec.parseObjectOrNull(rawJson)?.let {
-  JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
-}
+private fun decodeSessionLearnings(rawJson: String): Map<String, Any?>? =
+  JsonCodec.parseObjectOrNull(rawJson)?.let {
+    JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
+  }
 
-private fun ResultSet.toLearningRecord(): LearningRecord = LearningRecord(
-  id = getInt("id"),
-  scope = getString("scope"),
-  scopeKey = getString("scope_key"),
-  title = getString("title"),
-  ruleText = getString("rule_text"),
-  rationale = getString("rationale").orEmpty(),
-  status = getString(SharedPayloadKeys.STATUS),
-  sourceReviewRunId = getString("source_review_run_id"),
-  sourceFindingId = getString("source_finding_id"),
-  createdAt = getString("created_at"),
-  updatedAt = getString("updated_at"),
-)
+private fun ResultSet.toLearningRecord(): LearningRecord =
+  LearningRecord(
+    id = getInt("id"),
+    scope = getString("scope"),
+    scopeKey = getString("scope_key"),
+    title = getString("title"),
+    ruleText = getString("rule_text"),
+    rationale = getString("rationale").orEmpty(),
+    status = getString(SharedPayloadKeys.STATUS),
+    sourceReviewRunId = getString("source_review_run_id"),
+    sourceFindingId = getString("source_finding_id"),
+    createdAt = getString("created_at"),
+    updatedAt = getString("updated_at"),
+  )

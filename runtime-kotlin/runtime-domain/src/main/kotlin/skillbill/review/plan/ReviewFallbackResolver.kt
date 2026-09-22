@@ -2,6 +2,7 @@ package skillbill.review.plan
 
 import skillbill.error.shellcontent.InvalidFallbackCapabilityError
 import skillbill.scaffold.model.PlatformManifest
+
 object ReviewFallbackResolver {
   fun resolveOptional(manifests: List<PlatformManifest>): PlatformManifest? {
     val owners = manifests.filter { CODE_REVIEW_CAPABILITY in it.fallbackCapabilities }

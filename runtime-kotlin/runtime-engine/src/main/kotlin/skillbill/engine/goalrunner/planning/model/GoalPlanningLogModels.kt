@@ -35,13 +35,13 @@ data class GoalPlanningLogAttempt(
   val rejectedOutputIdentity: String? = null,
   val rejectedOutputBytes: Long? = null,
 ) {
-
   val durationMs: Long?
-    get() = startedAt?.let { start ->
-      finishedAt?.let { end ->
-        if (end.isBefore(start)) null else Duration.between(start, end).toMillis()
+    get() =
+      startedAt?.let { start ->
+        finishedAt?.let { end ->
+          if (end.isBefore(start)) null else Duration.between(start, end).toMillis()
+        }
       }
-    }
 
   val timestampsInconsistent: Boolean
     get() = startedAt != null && finishedAt != null && finishedAt.isBefore(startedAt)

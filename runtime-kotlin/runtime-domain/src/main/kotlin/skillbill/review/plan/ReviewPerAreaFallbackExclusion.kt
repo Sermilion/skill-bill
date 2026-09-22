@@ -10,18 +10,20 @@ object ReviewPerAreaFallbackExclusion {
     roots: List<ReviewRootLanes>,
     manifests: Collection<PlatformManifest>,
   ): ReviewFallbackExclusionPartition {
-    val fallbackSlug = ReviewFallbackResolver.resolveOptional(manifests.toList())?.slug
-      ?: return ReviewFallbackExclusionPartition(sortRoots(roots), emptyMap())
+    val fallbackSlug =
+      ReviewFallbackResolver.resolveOptional(manifests.toList())?.slug
+        ?: return ReviewFallbackExclusionPartition(sortRoots(roots), emptyMap())
     val sorted = sortRoots(roots)
-    val candidates = sorted.flatMap { root -> root.lanes.map { root.depthOffset to it } }
-      .sortedWith(
-        compareBy<Pair<Int, ReviewLaunchLane>>(
-          { it.second.area },
-          { it.second.packSlug },
-          { it.second.skillName },
-          { it.second.depth },
-        ),
-      )
+    val candidates =
+      sorted.flatMap { root -> root.lanes.map { root.depthOffset to it } }
+        .sortedWith(
+          compareBy<Pair<Int, ReviewLaunchLane>>(
+            { it.second.area },
+            { it.second.packSlug },
+            { it.second.skillName },
+            { it.second.depth },
+          ),
+        )
     val excluded = linkedMapOf<String, ReviewLaunchLane>()
     val removed = mutableSetOf<Triple<String, String, String>>()
     candidates.groupBy { it.second.area }.entries.sortedBy { it.key }.forEach { (area, areaCandidates) ->
@@ -32,23 +34,26 @@ object ReviewPerAreaFallbackExclusion {
         fallbacks.forEach { removed += laneIdentity(it.second) }
       }
     }
-    val filtered = sorted.map { root ->
-      root.copy(
-        lanes = root.lanes
-          .filter { laneIdentity(it) !in removed }
-          .sortedWith(compareBy({ it.area }, { it.packSlug }, { it.skillName })),
-      )
-    }
+    val filtered =
+      sorted.map { root ->
+        root.copy(
+          lanes =
+            root.lanes
+              .filter { laneIdentity(it) !in removed }
+              .sortedWith(compareBy({ it.area }, { it.packSlug }, { it.skillName })),
+        )
+      }
     return ReviewFallbackExclusionPartition(filtered, excluded)
   }
 
-  private fun sortRoots(roots: List<ReviewRootLanes>): List<ReviewRootLanes> = roots.sortedWith(
-    compareBy(
-      { it.depthOffset },
-      { root -> root.lanes.minOfOrNull { lane -> lane.packSlug }.orEmpty() },
-      { root -> root.lanes.minOfOrNull { lane -> lane.area }.orEmpty() },
-    ),
-  )
+  private fun sortRoots(roots: List<ReviewRootLanes>): List<ReviewRootLanes> =
+    roots.sortedWith(
+      compareBy(
+        { it.depthOffset },
+        { root -> root.lanes.minOfOrNull { lane -> lane.packSlug }.orEmpty() },
+        { root -> root.lanes.minOfOrNull { lane -> lane.area }.orEmpty() },
+      ),
+    )
 
   private fun laneIdentity(lane: ReviewLaunchLane) = Triple(lane.packSlug, lane.area, lane.skillName)
 

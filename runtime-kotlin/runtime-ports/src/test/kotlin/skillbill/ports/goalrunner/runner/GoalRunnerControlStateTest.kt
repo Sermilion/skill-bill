@@ -8,14 +8,15 @@ import kotlin.test.assertFailsWith
 class GoalRunnerControlStateTest {
   @Test
   fun `positive stop-after policy and consumed operator request are valid`() {
-    val state = GoalRunnerControlState(
-      stopAfterSubtaskId = 3,
-      pauseRequested = true,
-      pauseConsumed = true,
-      paused = true,
-      pauseReason = "operator_request",
-      pausedAt = "2026-08-07T10:00:00Z",
-    )
+    val state =
+      GoalRunnerControlState(
+        stopAfterSubtaskId = 3,
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = "operator_request",
+        pausedAt = "2026-08-07T10:00:00Z",
+      )
 
     assertEquals(3, state.stopAfterSubtaskId)
     assertEquals("operator_request", state.pauseReason)

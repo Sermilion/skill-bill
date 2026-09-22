@@ -10,11 +10,12 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 class AgentRunGoalRunnerSubtaskLauncher(
   private val agentRunService: AgentRunService,
 ) : GoalRunnerSubtaskLauncher {
-  override fun launch(request: GoalRunnerSubtaskLaunchRequest): AgentRunLaunchOutcome = agentRunService.launch(
-    AgentRunStartRequest(
-      invokedAgentId = request.invokedAgentId,
-      configuredAgentOverrideId = request.configuredAgentOverrideId,
-      skillRunRequest = request.skillRunRequest,
-    ),
-  ).launchOutcome
+  override fun launch(request: GoalRunnerSubtaskLaunchRequest): AgentRunLaunchOutcome =
+    agentRunService.launch(
+      AgentRunStartRequest(
+        invokedAgentId = request.invokedAgentId,
+        configuredAgentOverrideId = request.configuredAgentOverrideId,
+        skillRunRequest = request.skillRunRequest,
+      ),
+    ).launchOutcome
 }

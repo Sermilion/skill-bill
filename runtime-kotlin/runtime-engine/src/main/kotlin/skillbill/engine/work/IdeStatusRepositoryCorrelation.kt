@@ -9,14 +9,18 @@ class IdeStatusRepositoryCorrelation(
   private val unitOfWork: UnitOfWork,
   private val repositoryIdentity: String,
 ) {
-  fun matches(item: WorkItem, family: IdeStatusWorkflowFamily): Boolean? = when (family) {
-    IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME ->
-      matchesFeatureTaskRepository(item.workflowId)
-    IdeStatusWorkflowFamily.FEATURE_GOAL ->
-      matchesGoalRepository(item)
-    IdeStatusWorkflowFamily.FEATURE_VERIFY ->
-      matchesVerifyRepository(item)
-  }
+  fun matches(
+    item: WorkItem,
+    family: IdeStatusWorkflowFamily,
+  ): Boolean? =
+    when (family) {
+      IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME ->
+        matchesFeatureTaskRepository(item.workflowId)
+      IdeStatusWorkflowFamily.FEATURE_GOAL ->
+        matchesGoalRepository(item)
+      IdeStatusWorkflowFamily.FEATURE_VERIFY ->
+        matchesVerifyRepository(item)
+    }
 
   private fun matchesFeatureTaskRepository(workflowId: String): Boolean? {
     val identity = unitOfWork.workflowStates.getFeatureTaskExecutionIdentity(workflowId) ?: return null
@@ -28,8 +32,9 @@ class IdeStatusRepositoryCorrelation(
     return when {
       bound == null -> {
         val issueKey = item.issueKey?.trim()?.uppercase() ?: return null
-        val childrenHere = unitOfWork.workflowStates
-          .findGoalChildFeatureTaskCandidates(issueKey, repositoryIdentity)
+        val childrenHere =
+          unitOfWork.workflowStates
+            .findGoalChildFeatureTaskCandidates(issueKey, repositoryIdentity)
         val childCountAnywhere = unitOfWork.workflowStates.countGoalChildIdentities(issueKey)
         childrenHere.isNotEmpty() || childCountAnywhere == 0
       }
@@ -66,7 +71,10 @@ class IdeStatusRepositoryCorrelation(
     }
   }
 
-  private fun correlateSameIssueWork(other: WorkItem, normalizedIssueKey: String): VerifyRepoCorrelation =
+  private fun correlateSameIssueWork(
+    other: WorkItem,
+    normalizedIssueKey: String,
+  ): VerifyRepoCorrelation =
     when (other.workflowKind) {
       WorkItemKind.FEATURE_TASK_PROSE,
       WorkItemKind.FEATURE_TASK_RUNTIME,
@@ -82,13 +90,17 @@ class IdeStatusRepositoryCorrelation(
       WorkItemKind.FEATURE_VERIFY -> VerifyRepoCorrelation.UNKNOWN
     }
 
-  private fun correlateGoalForVerify(workflowId: String, normalizedIssueKey: String): VerifyRepoCorrelation {
+  private fun correlateGoalForVerify(
+    workflowId: String,
+    normalizedIssueKey: String,
+  ): VerifyRepoCorrelation {
     val bound = unitOfWork.goalRunnerControls.controlState(workflowId).repositoryIdentity
     return when {
       bound == repositoryIdentity -> VerifyRepoCorrelation.SAME_REPO
       bound == null -> {
-        val childrenHere = unitOfWork.workflowStates
-          .findGoalChildFeatureTaskCandidates(normalizedIssueKey, repositoryIdentity)
+        val childrenHere =
+          unitOfWork.workflowStates
+            .findGoalChildFeatureTaskCandidates(normalizedIssueKey, repositoryIdentity)
         val childCountAnywhere = unitOfWork.workflowStates.countGoalChildIdentities(normalizedIssueKey)
         when {
           childrenHere.isNotEmpty() -> VerifyRepoCorrelation.SAME_REPO

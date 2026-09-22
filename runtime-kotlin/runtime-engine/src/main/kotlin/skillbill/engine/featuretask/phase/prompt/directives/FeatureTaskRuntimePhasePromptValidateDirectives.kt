@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask.phase.prompt.directives
 import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 private const val VALIDATE_PHASE_FORBIDDEN_EXTRAS: String =
   "Do not run `skill-bill validate`, `npx agnix`, `scripts/validate_agent_configs`, or any other " +
     "repo-root checklist. Those commands are not this phase. "
@@ -46,16 +47,21 @@ internal data class PhaseTaskDirectiveArgs(
   val acceptanceCriteria: List<String> = emptyList(),
 )
 
-internal fun phaseTaskDirective(phaseId: String, args: PhaseTaskDirectiveArgs = PhaseTaskDirectiveArgs()): String =
+internal fun phaseTaskDirective(
+  phaseId: String,
+  args: PhaseTaskDirectiveArgs = PhaseTaskDirectiveArgs(),
+): String =
   when (phaseId) {
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD -> when {
-      args.validationGateTriage -> buildGateTriagePhaseTask(args.packBuildCommand)
-      else -> runtimeOwnedBuildPhaseTask(args.packBuildCommand)
-    }
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE -> when {
-      args.validationGateTriage -> validateGateTriagePhaseTask()
-      else -> runtimeOwnedValidateAgentPhaseTask()
-    }
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD ->
+      when {
+        args.validationGateTriage -> buildGateTriagePhaseTask(args.packBuildCommand)
+        else -> runtimeOwnedBuildPhaseTask(args.packBuildCommand)
+      }
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ->
+      when {
+        args.validationGateTriage -> validateGateTriagePhaseTask()
+        else -> runtimeOwnedValidateAgentPhaseTask()
+      }
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
       auditPhaseTaskDirective()
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT ->
@@ -63,7 +69,10 @@ internal fun phaseTaskDirective(phaseId: String, args: PhaseTaskDirectiveArgs = 
     else -> phaseDirectives[phaseId] ?: error("No phase directive for runtime phase '$phaseId'.")
   }
 
-fun gateRepairNoOutputSchemaDirective(phaseId: String, triage: Boolean = false): String {
+fun gateRepairNoOutputSchemaDirective(
+  phaseId: String,
+  triage: Boolean = false,
+): String {
   if (triage) {
     return """
       ## Gate triage — optional capture surface, no phase-output schema
@@ -73,30 +82,30 @@ fun gateRepairNoOutputSchemaDirective(phaseId: String, triage: Boolean = false):
       When you can recommend a repair shape, you may emit produced_outputs.value (a JSON string) carrying
       validation_repair_plan prose with suggested fields per item: item_id, module, rule_or_task, location,
       failure_summary, fix_intent. Malformed or missing capture is fine; repair still runs without it.
-    """.trimIndent()
+      """.trimIndent()
   }
   return """
-  ## Gate repair — prose only, no phase-output schema
-  This launch is a repair turn for the runtime-owned `$phaseId` gate. Do not emit a Required final
-  output JSON object, build_receipt, validation_receipt, gate_run_count, or any other phase envelope.
-  Do not spawn delegated subagents. Work in this single agent session in ordinary prose.
+    ## Gate repair — prose only, no phase-output schema
+    This launch is a repair turn for the runtime-owned `$phaseId` gate. Do not emit a Required final
+    output JSON object, build_receipt, validation_receipt, gate_run_count, or any other phase envelope.
+    Do not spawn delegated subagents. Work in this single agent session in ordinary prose.
 
-  The runtime already ran the pack command and parsed the failures listed in this briefing. It will
-  re-run that command after you stop, and it may give you up to three repair turns against whatever
-  remains. Address every open finding in this turn — all at once, not one finding per turn.
+    The runtime already ran the pack command and parsed the failures listed in this briefing. It will
+    re-run that command after you stop, and it may give you up to three repair turns against whatever
+    remains. Address every open finding in this turn — all at once, not one finding per turn.
 
-  Before editing, do brief reasoned planning in prose for each finding (or for a shared root cause
-  that covers several). Scale the plan to the finding:
-  - Small / obvious: a few lines of due diligence, then fix.
-  - Complex: a real short plan — blast radius, surrounding callers/contracts you checked, whether
-    the change can introduce new bugs, and how you will keep the fix local.
+    Before editing, do brief reasoned planning in prose for each finding (or for a shared root cause
+    that covers several). Scale the plan to the finding:
+    - Small / obvious: a few lines of due diligence, then fix.
+    - Complex: a real short plan — blast radius, surrounding callers/contracts you checked, whether
+      the change can introduce new bugs, and how you will keep the fix local.
 
-  No defined plan schema. Do the thinking, then edit. After you have attempted a fix for every open
-  finding, you may run targeted proof commands relevant to those findings (the tool or task named in
-  the finding). Stop when done; the runtime re-runs the pack gate.
-  Never silence findings with @Suppress, @file:Suppress, baselines, disabled rules, weakened
-  configuration, or skipped tests — fix the root cause instead.
-  """.trimIndent()
+    No defined plan schema. Do the thinking, then edit. After you have attempted a fix for every open
+    finding, you may run targeted proof commands relevant to those findings (the tool or task named in
+    the finding). Stop when done; the runtime re-runs the pack gate.
+    Never silence findings with @Suppress, @file:Suppress, baselines, disabled rules, weakened
+    configuration, or skipped tests — fix the root cause instead.
+    """.trimIndent()
 }
 
 fun validationGateFindingsDirective(
@@ -105,31 +114,34 @@ fun validationGateFindingsDirective(
   triagePlan: String?,
 ): String {
   if (findings == null) return ""
-  val (sectionTitle, preamble) = when (phaseId) {
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE -> return ""
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD -> Pair(
-      "## Runtime build gate findings",
-      "A prior gate run parsed these items. They are the full open set for this repair turn — fix " +
-        "every one in this session (shared root causes may collapse several into one change). Run only " +
-        "the pack-declared build command when you need console detail. Do not run `skill-bill " +
-        "validate`, `bill-code-check`, or the pack collect_all_full_gate_command. Do not spawn delegated subagents.",
-    )
-    else -> return ""
-  }
-  val lines = buildList {
-    add(sectionTitle)
-    add(preamble)
-    findings.findings.forEachIndexed { index, finding ->
-      add(
-        "${index + 1}. module=${finding.module} id=${finding.ruleOrTestId} " +
-          "location=${finding.location ?: "<unknown>"} message=${finding.message}",
-      )
+  val (sectionTitle, preamble) =
+    when (phaseId) {
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE -> return ""
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD ->
+        Pair(
+          "## Runtime build gate findings",
+          "A prior gate run parsed these items. They are the full open set for this repair turn — fix every one in " +
+            "this session (shared root causes may collapse several into one change). Run only the pack-declared " +
+            "build command when you need console detail. Do not run `skill-bill validate`, `bill-code-check`, or the " +
+            "pack collect_all_full_gate_command. Do not spawn delegated subagents.",
+        )
+      else -> return ""
     }
-    if (!triagePlan.isNullOrBlank()) {
-      add("## Triage working notes")
-      add(triagePlan)
+  val lines =
+    buildList {
+      add(sectionTitle)
+      add(preamble)
+      findings.findings.forEachIndexed { index, finding ->
+        add(
+          "${index + 1}. module=${finding.module} id=${finding.ruleOrTestId} " +
+            "location=${finding.location ?: "<unknown>"} message=${finding.message}",
+        )
+      }
+      if (!triagePlan.isNullOrBlank()) {
+        add("## Triage working notes")
+        add(triagePlan)
+      }
     }
-  }
   return lines.joinToString("\n")
 }
 

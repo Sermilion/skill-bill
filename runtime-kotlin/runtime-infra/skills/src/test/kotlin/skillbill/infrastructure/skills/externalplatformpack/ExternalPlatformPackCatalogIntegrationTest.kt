@@ -78,7 +78,9 @@ import kotlin.test.assertTrue
 
 class ExternalPlatformPackCatalogIntegrationTest {
   @Test
-  fun `external kotlin replaces bundled for catalog routing and install discovery`(@TempDir root: Path) {
+  fun `external kotlin replaces bundled for catalog routing and install discovery`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -140,7 +142,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `native agent generation reads the effective external pack source`(@TempDir root: Path) {
+  fun `native agent generation reads the effective external pack source`(
+    @TempDir root: Path,
+  ) {
     val fixture = nativeAgentFixture(root)
     assertNativeAgentMarker(fixture, "EXTERNAL_AGENT_MARKER", "BUNDLED_AGENT_MARKER")
 
@@ -155,7 +159,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `invalid external kotlin is not promoted over the bundled pack`(@TempDir root: Path) {
+  fun `invalid external kotlin is not promoted over the bundled pack`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -172,7 +178,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `two external roots for one slug publish no catalog`(@TempDir root: Path) {
+  fun `two external roots for one slug publish no catalog`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -188,7 +196,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `missing root slug mismatch bad contract and missing content fail before promotion`(@TempDir root: Path) {
+  fun `missing root slug mismatch bad contract and missing content fail before promotion`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -232,7 +242,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `kmp composition reads the effective kotlin baseline and a missing area fails closed`(@TempDir root: Path) {
+  fun `kmp composition reads the effective kotlin baseline and a missing area fails closed`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -269,14 +281,17 @@ class ExternalPlatformPackCatalogIntegrationTest {
       Files.readString(kmp.resolve("platform.yaml"))
         .replace("skill: bill-kotlin-code-review", "skill: bill-kotlin-code-review-architecture"),
     )
-    val error = assertFailsWith<InvalidManifestSchemaError> {
-      loader().loadEffectiveCatalog(context(repo, home, config))
-    }
+    val error =
+      assertFailsWith<InvalidManifestSchemaError> {
+        loader().loadEffectiveCatalog(context(repo, home, config))
+      }
     assertFalse(error.message.orEmpty().contains("BUNDLED_AREA_MARKER"))
   }
 
   @Test
-  fun `registration accepts external kotlin when bundled kotlin is absent and kmp requires it`(@TempDir root: Path) {
+  fun `registration accepts external kotlin when bundled kotlin is absent and kmp requires it`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -291,16 +306,18 @@ class ExternalPlatformPackCatalogIntegrationTest {
     )
     writeSources(config)
 
-    val slug = loader().assertRegistrableExternalPack(
-      ExternalPlatformPackRootRequest(
-        packRoot = external,
-        catalog = PlatformPackCatalogRequest(
-          repoRoot = repo,
-          userHome = home,
-          environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
+    val slug =
+      loader().assertRegistrableExternalPack(
+        ExternalPlatformPackRootRequest(
+          packRoot = external,
+          catalog =
+            PlatformPackCatalogRequest(
+              repoRoot = repo,
+              userHome = home,
+              environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
+            ),
         ),
-      ),
-    ).slug
+      ).slug
 
     assertEquals("kotlin", slug)
     assertFalse(Files.isDirectory(repo.resolve("platform-packs/kotlin")))
@@ -316,7 +333,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `review uses generic when kotlin exists neither externally nor as a bundled pack`(@TempDir root: Path) {
+  fun `review uses generic when kotlin exists neither externally nor as a bundled pack`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -348,7 +367,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `missing validation gate is not filled from the shadowed bundled pack`(@TempDir root: Path) {
+  fun `missing validation gate is not filled from the shadowed bundled pack`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -362,20 +383,23 @@ class ExternalPlatformPackCatalogIntegrationTest {
     writePack(root.resolve("external/kotlin"), "kotlin", "EXTERNAL_BASELINE_MARKER", listOf(".kt"), gate = null)
     writeSources(config, root.resolve("external/kotlin"))
 
-    val error = assertFailsWith<MissingValidationGateError> {
-      routeQualityCheck(
-        repo,
-        listOf("src/Foo.kt"),
-        home,
-        loader(),
-        mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
-      )
-    }
+    val error =
+      assertFailsWith<MissingValidationGateError> {
+        routeQualityCheck(
+          repo,
+          listOf("src/Foo.kt"),
+          home,
+          loader(),
+          mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
+        )
+      }
     assertFalse(error.message.orEmpty().contains("bundled-gate-collect"))
   }
 
   @Test
-  fun `symlink escape keeps the outside file and the previous catalog`(@TempDir root: Path) {
+  fun `symlink escape keeps the outside file and the previous catalog`(
+    @TempDir root: Path,
+  ) {
     val pack = root.resolve("external/kotlin")
     writePack(pack, "kotlin", "OLD_CATALOG_MARKER", listOf(".kt"), "external-gate")
     val cache = root.resolve("cache")
@@ -391,9 +415,10 @@ class ExternalPlatformPackCatalogIntegrationTest {
     val content = pack.resolve("code-review/bill-kotlin-code-review/content.md")
     Files.delete(content)
     Files.createSymbolicLink(content, outside)
-    val error = assertFailsWith<ExternalPlatformPackPublishError> {
-      publishInstalledReviewCatalog(bundledRoot, null, cache, ProviderMutationJournal(), listOf(pack))
-    }
+    val error =
+      assertFailsWith<ExternalPlatformPackPublishError> {
+        publishInstalledReviewCatalog(bundledRoot, null, cache, ProviderMutationJournal(), listOf(pack))
+      }
     assertEquals("previous_catalog_retained", error.remotePayload[ExternalPlatformPackTelemetryPayloadKeys.RECOVERY])
     assertEquals("kotlin", error.remotePayload[ExternalPlatformPackTelemetryPayloadKeys.PLATFORM_SLUG])
     assertEquals("external", error.remotePayload[ExternalPlatformPackTelemetryPayloadKeys.SOURCE_KIND])
@@ -404,7 +429,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `directory symlink escape fails before the outside bytes are accepted`(@TempDir root: Path) {
+  fun `directory symlink escape fails before the outside bytes are accepted`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -423,28 +450,33 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `external reconcile identity stays under one slug directory`(@TempDir root: Path) {
+  fun `external reconcile identity stays under one slug directory`(
+    @TempDir root: Path,
+  ) {
     val external = root.resolve("external/kotlin")
     writePack(external, "kotlin", "EXTERNAL_BASELINE_MARKER", listOf(".kt"), "external-gate")
     val skillDir = external.resolve("code-review/bill-kotlin-code-review")
-    val relative = skillRelativePath(
-      ReconcileSourceRoots(
-        repoRoot = root.resolve("repo"),
-        skillsRoot = root.resolve("repo/skills"),
-        platformPacksRoot = root.resolve("repo/platform-packs"),
-      ),
-      InstallPlanSkill(
-        name = "bill-kotlin-code-review",
-        sourceDir = skillDir.toFileLocation(),
-        kind = InstallPlanSkillKind.PLATFORM_PACK,
-        platformSlug = "kotlin",
-      ),
-    )
+    val relative =
+      skillRelativePath(
+        ReconcileSourceRoots(
+          repoRoot = root.resolve("repo"),
+          skillsRoot = root.resolve("repo/skills"),
+          platformPacksRoot = root.resolve("repo/platform-packs"),
+        ),
+        InstallPlanSkill(
+          name = "bill-kotlin-code-review",
+          sourceDir = skillDir.toFileLocation(),
+          kind = InstallPlanSkillKind.PLATFORM_PACK,
+          platformSlug = "kotlin",
+        ),
+      )
     assertEquals("platform-packs/kotlin/code-review/bill-kotlin-code-review", relative)
   }
 
   @Test
-  fun `external pack pointer outside the checkout still stages`(@TempDir root: Path) {
+  fun `external pack pointer outside the checkout still stages`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -456,13 +488,14 @@ class ExternalPlatformPackCatalogIntegrationTest {
     writePack(external, "kotlin", "EXTERNAL_BASELINE_MARKER", listOf(".kt"), "external-gate")
     Files.writeString(
       external.resolve("platform.yaml"),
-      Files.readString(external.resolve("platform.yaml")) + """
+      Files.readString(external.resolve("platform.yaml")) +
+        """
         pointers:
           code-review/bill-kotlin-code-review:
             - name: review-orchestrator.md
               target: orchestration/review-orchestrator/PLAYBOOK.md
 
-      """.trimIndent(),
+        """.trimIndent(),
     )
     writeSources(config, external)
     val request = installRequest(repo, home, config)
@@ -471,24 +504,27 @@ class ExternalPlatformPackCatalogIntegrationTest {
     val kotlinManifest = manifests.single { manifest -> manifest.slug == "kotlin" }
     assertEquals(external.toAbsolutePath().normalize(), kotlinManifest.packRoot.toPath())
     val skillDir = external.resolve("code-review/bill-kotlin-code-review")
-    val staging = buildInstallStagingIntent(
-      request,
-      listOf(
-        InstallPlanSkill(
-          name = "bill-kotlin-code-review",
-          sourceDir = skillDir.toFileLocation(),
-          kind = InstallPlanSkillKind.PLATFORM_PACK,
-          platformSlug = "kotlin",
+    val staging =
+      buildInstallStagingIntent(
+        request,
+        listOf(
+          InstallPlanSkill(
+            name = "bill-kotlin-code-review",
+            sourceDir = skillDir.toFileLocation(),
+            kind = InstallPlanSkillKind.PLATFORM_PACK,
+            platformSlug = "kotlin",
+          ),
         ),
-      ),
-      manifests,
-      loader,
-    )
+        manifests,
+        loader,
+      )
     assertEquals(skillDir.toAbsolutePath().normalize(), staging.skillPaths.single().sourceDir.toPath())
   }
 
   @Test
-  fun `source switch drops the external sidecar and an external-only slug`(@TempDir root: Path) {
+  fun `source switch drops the external sidecar and an external-only slug`(
+    @TempDir root: Path,
+  ) {
     val bundled = root.resolve("repo/platform-packs/kotlin")
     val external = root.resolve("external/kotlin")
     val acme = root.resolve("external/acme")
@@ -520,7 +556,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `identical bytes at different source paths do not share an install hash`(@TempDir root: Path) {
+  fun `identical bytes at different source paths do not share an install hash`(
+    @TempDir root: Path,
+  ) {
     val left = Files.createDirectories(root.resolve("left"))
     val right = Files.createDirectories(root.resolve("right"))
     Files.writeString(left.resolve("content.md"), "same-bytes\n")
@@ -532,7 +570,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `uninstall removes a native-agent link to the previous source and keeps user files`(@TempDir root: Path) {
+  fun `uninstall removes a native-agent link to the previous source and keeps user files`(
+    @TempDir root: Path,
+  ) {
     val oldSource = Files.createDirectories(root.resolve("old-cache")).resolve("review.md")
     Files.writeString(oldSource, "old-agent\n")
     val agentDir = Files.createDirectories(root.resolve("agent"))
@@ -549,7 +589,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `pinned config path selects the external pack for reconcile and native-agent roots`(@TempDir root: Path) {
+  fun `pinned config path selects the external pack for reconcile and native-agent roots`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("pinned-config.json")
@@ -562,20 +604,23 @@ class ExternalPlatformPackCatalogIntegrationTest {
     Files.writeString(xdg, "{}\n")
     writeSources(config, external)
     val environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString())
-    val roots = ReconcileSourceRoots(
-      repoRoot = repo,
-      skillsRoot = repo.resolve("skills"),
-      platformPacksRoot = repo.resolve("platform-packs"),
-    )
+    val roots =
+      ReconcileSourceRoots(
+        repoRoot = repo,
+        skillsRoot = repo.resolve("skills"),
+        platformPacksRoot = repo.resolve("platform-packs"),
+      )
 
-    val pinned = discoverPlatformManifests(
-      reconcileEnumerationRequest(roots, home, environment),
-      catalogLoader = loader(),
-    )
-    val ignored = discoverPlatformManifests(
-      reconcileEnumerationRequest(roots, home),
-      catalogLoader = loader(),
-    )
+    val pinned =
+      discoverPlatformManifests(
+        reconcileEnumerationRequest(roots, home, environment),
+        catalogLoader = loader(),
+      )
+    val ignored =
+      discoverPlatformManifests(
+        reconcileEnumerationRequest(roots, home),
+        catalogLoader = loader(),
+      )
     assertEquals(external.toAbsolutePath().normalize(), pinned.single { it.slug == "kotlin" }.packRoot.toPath())
     assertEquals(bundled.toAbsolutePath().normalize(), ignored.single { it.slug == "kotlin" }.packRoot.toPath())
     assertTrue(
@@ -587,19 +632,22 @@ class ExternalPlatformPackCatalogIntegrationTest {
         .contains("EXTERNAL_BASELINE_MARKER"),
     )
 
-    val rootsForLink = effectivePackRootsForInstall(
-      platformPacksRoot = repo.resolve("platform-packs"),
-      userHome = home,
-      environment = environment,
-      selectedPlatforms = null,
-      catalogLoader = loader(),
-    )
+    val rootsForLink =
+      effectivePackRootsForInstall(
+        platformPacksRoot = repo.resolve("platform-packs"),
+        userHome = home,
+        environment = environment,
+        selectedPlatforms = null,
+        catalogLoader = loader(),
+      )
     assertTrue(rootsForLink.any { it == external.toAbsolutePath().normalize() })
     assertFalse(rootsForLink.any { it == bundled.toAbsolutePath().normalize() })
   }
 
   @Test
-  fun `validate addresses the external content file and leaves the bundled file unchanged`(@TempDir root: Path) {
+  fun `validate addresses the external content file and leaves the bundled file unchanged`(
+    @TempDir root: Path,
+  ) {
     val home = Files.createDirectories(root.resolve("home"))
     val repo = Files.createDirectories(root.resolve("repo"))
     val config = home.resolve("config.json")
@@ -623,7 +671,9 @@ class ExternalPlatformPackCatalogIntegrationTest {
   }
 
   @Test
-  fun `external pointer hash reads the checkout target and leaves an outside file unread`(@TempDir root: Path) {
+  fun `external pointer hash reads the checkout target and leaves an outside file unread`(
+    @TempDir root: Path,
+  ) {
     val checkout = root.resolve("checkout")
     val playbook = checkout.resolve("orchestration/review-orchestrator/PLAYBOOK.md")
     Files.createDirectories(playbook.parent)
@@ -637,21 +687,23 @@ class ExternalPlatformPackCatalogIntegrationTest {
     Files.writeString(decoy, "DECOY_POINTER_MARKER\n")
     val outside = root.resolve("secret-playbook.md")
     Files.writeString(outside, "SECRET_POINTER_BYTES\n")
-    val pointer = PointerSpec(
-      skillRelativeDir = "code-review/bill-kotlin-code-review",
-      name = "review-orchestrator.md",
-      target = "orchestration/review-orchestrator/PLAYBOOK.md",
-    )
-    val manifest = PlatformManifest(
-      slug = "kotlin",
-      packRoot = external.toFileLocation(),
-      contractVersion = "1",
-      routingSignals = RoutingSignals(emptyList(), emptyList()),
-      declaredCodeReviewAreas = emptyList(),
-      declaredFiles = DeclaredFiles(baseline = null, areas = emptyMap()),
-      areaMetadata = emptyMap(),
-      pointers = listOf(pointer),
-    )
+    val pointer =
+      PointerSpec(
+        skillRelativeDir = "code-review/bill-kotlin-code-review",
+        name = "review-orchestrator.md",
+        target = "orchestration/review-orchestrator/PLAYBOOK.md",
+      )
+    val manifest =
+      PlatformManifest(
+        slug = "kotlin",
+        packRoot = external.toFileLocation(),
+        contractVersion = "1",
+        routingSignals = RoutingSignals(emptyList(), emptyList()),
+        declaredCodeReviewAreas = emptyList(),
+        declaredFiles = DeclaredFiles(baseline = null, areas = emptyMap()),
+        areaMetadata = emptyMap(),
+        pointers = listOf(pointer),
+      )
 
     val hashed = pointerHash(skill, manifest, pointer, checkout)
     Files.writeString(decoy, "DECOY_POINTER_MARKER_CHANGED\n")
@@ -670,7 +722,12 @@ class ExternalPlatformPackCatalogIntegrationTest {
     assertEquals("SECRET_POINTER_BYTES\n", Files.readString(outside))
   }
 
-  private fun pointerHash(skill: Path, manifest: PlatformManifest, pointer: PointerSpec, checkout: Path): String =
+  private fun pointerHash(
+    skill: Path,
+    manifest: PlatformManifest,
+    pointer: PointerSpec,
+    checkout: Path,
+  ): String =
     computeInstallContentHash(
       InstallContentHashInputs(
         sourceSkillDir = skill,
@@ -682,14 +739,22 @@ class ExternalPlatformPackCatalogIntegrationTest {
 
   private fun loader() = PlatformPackCatalogLoader(FileExternalPlatformPackSourceConfigStore())
 
-  private fun context(repo: Path, home: Path, config: Path) = PlatformPackDiscoveryContext(
+  private fun context(
+    repo: Path,
+    home: Path,
+    config: Path,
+  ) = PlatformPackDiscoveryContext(
     repoRoot = repo,
     userHome = home,
     environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
     catalogLoader = loader(),
   )
 
-  private fun installRequest(repo: Path, home: Path, config: Path): InstallPlanRequest {
+  private fun installRequest(
+    repo: Path,
+    home: Path,
+    config: Path,
+  ): InstallPlanRequest {
     val skills = Files.createDirectories(repo.resolve("skills"))
     val packs = Files.createDirectories(repo.resolve("platform-packs"))
     return InstallPlanRequest(
@@ -700,33 +765,40 @@ class ExternalPlatformPackCatalogIntegrationTest {
       telemetryLevel = InstallTelemetryLevel.OFF,
       mcpRegistrationChoice = McpRegistrationChoice(register = false),
       runtimeDistributionInputs = RuntimeDistributionInputs(runtimeInstallRoot = repo.toFileLocation()),
-      targetPaths = InstallationTargetPaths(
-        skillsRoot = skills.toFileLocation(),
-        platformPacksRoot = packs.toFileLocation(),
-      ),
-      windowsSymlinkPreflight = WindowsSymlinkPreflight(
-        state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-        decision = WindowsSymlinkDecision.NOT_REQUIRED,
-      ),
+      targetPaths =
+        InstallationTargetPaths(
+          skillsRoot = skills.toFileLocation(),
+          platformPacksRoot = packs.toFileLocation(),
+        ),
+      windowsSymlinkPreflight =
+        WindowsSymlinkPreflight(
+          state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+          decision = WindowsSymlinkDecision.NOT_REQUIRED,
+        ),
       environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
     )
   }
 
-  private fun reviewRoute(manifests: List<PlatformManifest>): Set<String> = ReviewStackRouting.route(
-    manifests,
-    listOf(ReviewRoutingChangedFile("src/Main.kt", "class Main")),
-  ).routedSlugs
+  private fun reviewRoute(manifests: List<PlatformManifest>): Set<String> =
+    ReviewStackRouting.route(
+      manifests,
+      listOf(ReviewRoutingChangedFile("src/Main.kt", "class Main")),
+    ).routedSlugs
 
-  private fun writeSources(config: Path, vararg packs: Path) {
+  private fun writeSources(
+    config: Path,
+    vararg packs: Path,
+  ) {
     Files.createDirectories(config.parent)
     Files.writeString(
       config,
       JsonCodec.mapToJsonString(
         mapOf(
           "install_id" to "stable-id",
-          ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to packs.map { pack ->
-            mapOf("path" to pack.toAbsolutePath().normalize().toString())
-          },
+          ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to
+            packs.map { pack ->
+              mapOf("path" to pack.toAbsolutePath().normalize().toString())
+            },
         ),
       ) + "\n",
     )
@@ -762,14 +834,19 @@ class ExternalPlatformPackCatalogIntegrationTest {
     return NativeAgentFixture(root, home, repo, config, externalAgents)
   }
 
-  private fun assertNativeAgentMarker(fixture: NativeAgentFixture, expected: String, unexpected: String) {
-    val roots = effectivePackRootsForInstall(
-      platformPacksRoot = fixture.repo.resolve("platform-packs"),
-      userHome = fixture.home,
-      environment = mapOf(CONFIG_ENVIRONMENT_KEY to fixture.config.toString()),
-      selectedPlatforms = listOf("kotlin"),
-      catalogLoader = loader(),
-    )
+  private fun assertNativeAgentMarker(
+    fixture: NativeAgentFixture,
+    expected: String,
+    unexpected: String,
+  ) {
+    val roots =
+      effectivePackRootsForInstall(
+        platformPacksRoot = fixture.repo.resolve("platform-packs"),
+        userHome = fixture.home,
+        environment = mapOf(CONFIG_ENVIRONMENT_KEY to fixture.config.toString()),
+        selectedPlatforms = listOf("kotlin"),
+        catalogLoader = loader(),
+      )
     val rendered = renderNativeAgent(fixture, roots)
     assertTrue(Files.readString(rendered).contains(expected))
     assertFalse(Files.readString(rendered).contains(unexpected))
@@ -778,46 +855,60 @@ class ExternalPlatformPackCatalogIntegrationTest {
     assertFalse(Files.readString(linked).contains(unexpected))
   }
 
-  private fun renderNativeAgent(fixture: NativeAgentFixture, roots: List<Path>): Path {
-    val rendered = NativeAgentOperations.renderInstallArtifacts(
-      NativeAgentInstallRenderRequest(
-        platformPacksRoot = fixture.repo.resolve("platform-packs"),
-        skillsRoot = fixture.repo.resolve("skills"),
-        selectedPlatforms = listOf("kotlin"),
-        provider = NativeAgentProvider.Claude,
-        home = fixture.home,
-        compositionContext = installNativeAgentCompositionContext(roots),
-        overrides = NativeAgentInstallRenderOverrides(
-          cacheRoot = fixture.root.resolve("native-agent-cache"),
-          sourceRoots = roots,
+  private fun renderNativeAgent(
+    fixture: NativeAgentFixture,
+    roots: List<Path>,
+  ): Path {
+    val rendered =
+      NativeAgentOperations.renderInstallArtifacts(
+        NativeAgentInstallRenderRequest(
+          platformPacksRoot = fixture.repo.resolve("platform-packs"),
+          skillsRoot = fixture.repo.resolve("skills"),
+          selectedPlatforms = listOf("kotlin"),
+          provider = NativeAgentProvider.Claude,
+          home = fixture.home,
+          compositionContext = installNativeAgentCompositionContext(roots),
+          overrides =
+            NativeAgentInstallRenderOverrides(
+              cacheRoot = fixture.root.resolve("native-agent-cache"),
+              sourceRoots = roots,
+            ),
         ),
-      ),
-    )
+      )
     return rendered.generatedFiles.single { path ->
       path.fileName.toString() == "bill-kotlin-code-review.md"
     }
   }
 
-  private fun linkNativeAgent(fixture: NativeAgentFixture, roots: List<Path>): Path {
-    val outcome = InstallNativeAgentOperations.linkClaudeAgents(
-      NativeAgentLinkRequest(
-        platformPacksRoot = fixture.repo.resolve("platform-packs"),
-        skillsRoot = fixture.repo.resolve("skills"),
-        home = fixture.home,
-        selectedPlatforms = listOf("kotlin"),
-        overrides = NativeAgentLinkOverrides(
-          installCacheRoot = fixture.root.resolve("native-agent-link-cache"),
-          sourceRoots = roots,
+  private fun linkNativeAgent(
+    fixture: NativeAgentFixture,
+    roots: List<Path>,
+  ): Path {
+    val outcome =
+      InstallNativeAgentOperations.linkClaudeAgents(
+        NativeAgentLinkRequest(
+          platformPacksRoot = fixture.repo.resolve("platform-packs"),
+          skillsRoot = fixture.repo.resolve("skills"),
+          home = fixture.home,
+          selectedPlatforms = listOf("kotlin"),
+          overrides =
+            NativeAgentLinkOverrides(
+              installCacheRoot = fixture.root.resolve("native-agent-link-cache"),
+              sourceRoots = roots,
+            ),
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to fixture.config.toString()),
+          catalogLoader = loader(),
         ),
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to fixture.config.toString()),
-        catalogLoader = loader(),
-      ),
-    )
+      )
     return (outcome.linked + outcome.skipped.map { skipped -> skipped.path })
       .single { path -> path.fileName.toString() == "bill-kotlin-code-review.md" }
   }
 
-  private fun seedExternalKotlinReplacement(root: Path, repo: Path, config: Path) {
+  private fun seedExternalKotlinReplacement(
+    root: Path,
+    repo: Path,
+    config: Path,
+  ) {
     writePack(
       repo.resolve("platform-packs/kotlin"),
       "kotlin",
@@ -843,7 +934,13 @@ class ExternalPlatformPackCatalogIntegrationTest {
     writeSources(config, root.resolve("external/kotlin"), root.resolve("external/acme"))
   }
 
-  private fun writePack(packRoot: Path, slug: String, marker: String, strong: List<String>, gate: String?) {
+  private fun writePack(
+    packRoot: Path,
+    slug: String,
+    marker: String,
+    strong: List<String>,
+    gate: String?,
+  ) {
     writePack(packRoot, slug, marker, strong, PackFixtureOptions(gate = gate))
   }
 
@@ -859,20 +956,32 @@ class ExternalPlatformPackCatalogIntegrationTest {
     Files.writeString(packRoot.resolve("platform.yaml"), packManifest(slug, strong, options))
   }
 
-  private fun writePackBaseline(packRoot: Path, slug: String, marker: String) {
+  private fun writePackBaseline(
+    packRoot: Path,
+    slug: String,
+    marker: String,
+  ) {
     val baseline = packRoot.resolve("code-review/bill-$slug-code-review/content.md")
     Files.createDirectories(baseline.parent)
     Files.writeString(baseline, reviewBody("bill-$slug-code-review", slug, marker))
   }
 
-  private fun writePackArea(packRoot: Path, slug: String, areaMarker: String?) {
+  private fun writePackArea(
+    packRoot: Path,
+    slug: String,
+    areaMarker: String?,
+  ) {
     if (areaMarker == null) return
     val area = packRoot.resolve("code-review/bill-$slug-code-review-architecture/content.md")
     Files.createDirectories(area.parent)
     Files.writeString(area, reviewBody("bill-$slug-code-review-architecture", slug, areaMarker))
   }
 
-  private fun packManifest(slug: String, strong: List<String>, options: PackFixtureOptions): String {
+  private fun packManifest(
+    slug: String,
+    strong: List<String>,
+    options: PackFixtureOptions,
+  ): String {
     val signals = strong.joinToString("\n") { signal -> "    - \"$signal\"" }
     return buildString {
       appendLine("platform: $slug")
@@ -897,24 +1006,30 @@ class ExternalPlatformPackCatalogIntegrationTest {
     }
   }
 
-  private fun packAreaYaml(areaMarker: String?): String = if (areaMarker == null) {
-    "declared_code_review_areas: []\n"
-  } else {
-    """
-    declared_code_review_areas:
-      - architecture
-    """.trimIndent() + "\n"
-  }
+  private fun packAreaYaml(areaMarker: String?): String =
+    if (areaMarker == null) {
+      "declared_code_review_areas: []\n"
+    } else {
+      """
+      declared_code_review_areas:
+        - architecture
+      """.trimIndent() + "\n"
+    }
 
-  private fun packAreaFilesYaml(slug: String, areaMarker: String?): String = if (areaMarker == null) {
-    ""
-  } else {
-    "  areas:\n    architecture: \"code-review/bill-$slug-code-review-architecture/content.md\"\n"
-  }
+  private fun packAreaFilesYaml(
+    slug: String,
+    areaMarker: String?,
+  ): String =
+    if (areaMarker == null) {
+      ""
+    } else {
+      "  areas:\n    architecture: \"code-review/bill-$slug-code-review-architecture/content.md\"\n"
+    }
 
   private fun packGateYaml(gate: String?): String {
     if (gate == null) return ""
-    return "\n" + """
+    return "\n" +
+      """
       validation_gate:
         full_gate_command: ["$gate"]
         cache_bypassing_full_gate_command: ["$gate-nocache"]
@@ -927,12 +1042,13 @@ class ExternalPlatformPackCatalogIntegrationTest {
           artifact_globs: ["build/test-results/**/*.xml"]
           compiler_diagnostics:
             format: gradle_kotlin_compiler_stdout
-    """.trimIndent() + "\n"
+      """.trimIndent() + "\n"
   }
 
   private fun packCompositionYaml(compositionSkill: String?): String {
     if (compositionSkill == null) return ""
-    return "\n" + """
+    return "\n" +
+      """
       code_review_composition:
         baseline_layers:
           - platform: kotlin
@@ -940,19 +1056,23 @@ class ExternalPlatformPackCatalogIntegrationTest {
             scope: same-review-scope
             required: true
             mode: kmp-baseline
-    """.trimIndent() + "\n"
+      """.trimIndent() + "\n"
   }
 
-  private fun reviewBody(skillName: String, platform: String, marker: String): String =
-    renderContentBody(TemplateContext(skillName, "code-review", platform, "", platform), marker)
+  private fun reviewBody(
+    skillName: String,
+    platform: String,
+    marker: String,
+  ): String = renderContentBody(TemplateContext(skillName, "code-review", platform, "", platform), marker)
 
-  private fun nativeAgentBundle(marker: String): String = """
+  private fun nativeAgentBundle(marker: String): String =
+    """
     contract_version: "0.1"
     agents:
       - name: bill-kotlin-code-review
         description: "$marker"
         compose: governed-content
-  """.trimIndent() + "\n"
+    """.trimIndent() + "\n"
 }
 
 private data class PackFixtureOptions(

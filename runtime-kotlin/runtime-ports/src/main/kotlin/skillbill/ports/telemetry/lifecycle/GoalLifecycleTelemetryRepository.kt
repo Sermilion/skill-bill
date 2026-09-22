@@ -5,11 +5,23 @@ import skillbill.telemetry.model.GoalStartedRecord
 import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 
 interface GoalLifecycleTelemetryRepository {
-  fun goalStarted(record: GoalStartedRecord, level: String)
+  fun goalStarted(
+    record: GoalStartedRecord,
+    level: String,
+  )
 
-  fun goalSubtaskFinished(record: GoalSubtaskFinishedRecord, level: String)
+  fun goalSubtaskFinished(
+    record: GoalSubtaskFinishedRecord,
+    level: String,
+  )
 
-  fun goalFinished(record: GoalFinishedRecord, level: String)
+  fun goalFinished(
+    record: GoalFinishedRecord,
+    level: String,
+  )
 
-  fun goalIssueFinished(record: GoalIssueFinishedRecord, level: String)
+  fun goalIssueFinished(
+    record: GoalIssueFinishedRecord,
+    level: String,
+  )
 }

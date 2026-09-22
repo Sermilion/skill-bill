@@ -23,7 +23,6 @@ data class ReviewLaneCondition(
 }
 
 data class DeclaredFiles(
-
   val baseline: FileLocation?,
   val areas: Map<String, FileLocation>,
 )

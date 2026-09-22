@@ -10,19 +10,21 @@ import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
 import skillbill.model.TransportContext
 import skillbill.model.WorkflowOpsContext
+
 fun main() {
   val environment = System.getenv()
   if (GovernedReviewEvidenceBridge.enabled(environment)) {
     GovernedReviewEvidenceBridge.run(environment)
   } else {
-    val runtimeComponent = RuntimeComponent::class.create(
-      RuntimeContext(
-        environment = EnvironmentContext(environment = environment),
-        transport = TransportContext(),
-        workflowOps = WorkflowOpsContext(),
-        callbacks = OptionalCallbacks(),
-      ),
-    )
+    val runtimeComponent =
+      RuntimeComponent::class.create(
+        RuntimeContext(
+          environment = EnvironmentContext(environment = environment),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
+        ),
+      )
     val mcpComponent = McpComponent::class.create(runtimeComponent)
     McpStdioServer.run(mcpComponent)
   }

@@ -16,30 +16,34 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class ParallelCodeReviewRegisterSeamTest {
   @Test
   fun `a zero-exit blocked lane without evidence fails despite an approval verdict`() {
-    val blocked = """
+    val blocked =
+      """
       This session has no worker-launch capability and no bound evidence broker.
       Per the contract I am not running the review inline as a single prompt, and I am not
       emitting a findings register — zero [F-XXX] lines here means not executed, not clean.
       verdict: approved
-    """.trimIndent()
-    val launcher = GoalRunnerSubtaskLauncher { request ->
-      AgentRunLaunchFacts(
-        agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-        exitStatus = 0,
-        stdout = blocked,
-        stderr = "",
-        timedOut = false,
-        spawnFailed = false,
-      )
-    }
+      """.trimIndent()
+    val launcher =
+      GoalRunnerSubtaskLauncher { request ->
+        AgentRunLaunchFacts(
+          agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+          exitStatus = 0,
+          stdout = blocked,
+          stderr = "",
+          timedOut = false,
+          spawnFailed = false,
+        )
+      }
     val runner = runner(launcher, diffResolver = RecordingDiffResolver(default = diffFor("A.kt")))
 
-    val result = runner.run(
-      baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.DELEGATED),
-    )
+    val result =
+      runner.run(
+        baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.DELEGATED),
+      )
 
     assertFalse(result.lane1.success)
     assertEquals("Review worker returned without reading assigned evidence.", result.lane1.failureReason)
@@ -49,14 +53,16 @@ class ParallelCodeReviewRegisterSeamTest {
 
   @Test
   fun `a short F-id register line is padded and admitted instead of soft-dropped`() {
-    val runner = runner(
-      stdoutLauncher("[F-1] Major | High | a.kt:3 | x\nverdict: approved"),
-      diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
-    )
+    val runner =
+      runner(
+        stdoutLauncher("[F-1] Major | High | a.kt:3 | x\nverdict: approved"),
+        diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
+      )
 
-    val result = runner.run(
-      baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
-    )
+    val result =
+      runner.run(
+        baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
+      )
 
     assertTrue(result.lane1.success)
     assertNull(result.lane1.failureReason)
@@ -67,14 +73,16 @@ class ParallelCodeReviewRegisterSeamTest {
   @Test
   fun `an oversized lane body without register soft-admits without leaking the body into diagnostics`() {
     val body = "prose ".repeat(2_000)
-    val runner = runner(
-      stdoutLauncher("$body\nverdict: approved"),
-      diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
-    )
+    val runner =
+      runner(
+        stdoutLauncher("$body\nverdict: approved"),
+        diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
+      )
 
-    val result = runner.run(
-      baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
-    )
+    val result =
+      runner.run(
+        baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
+      )
 
     assertTrue(result.lane1.success)
     assertNull(result.lane1.failureReason)
@@ -87,14 +95,16 @@ class ParallelCodeReviewRegisterSeamTest {
 
   @Test
   fun `an admissible register produces findings with no absence verdict`() {
-    val runner = runner(
-      stdoutLauncher("[F-001] Major | High | path=\"A.kt\" | line=1 | admissible\nverdict: approved"),
-      diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
-    )
+    val runner =
+      runner(
+        stdoutLauncher("[F-001] Major | High | path=\"A.kt\" | line=1 | admissible\nverdict: approved"),
+        diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
+      )
 
-    val result = runner.run(
-      baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
-    )
+    val result =
+      runner.run(
+        baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
+      )
 
     assertTrue(result.lane1.success)
     assertNull(result.lane1.failureReason)
@@ -105,9 +115,10 @@ class ParallelCodeReviewRegisterSeamTest {
   @Test
   fun `a throwing parse at the register seam escapes as a typed seam error instead of an empty register`() {
     val laneBody = "lane body line ".repeat(200)
-    val thrown = assertFailsWith<ReviewRegisterParseSeamException> {
-      parseLaneRegisterSeam(laneBody, lane = "lane-1") { error(laneBody) }
-    }
+    val thrown =
+      assertFailsWith<ReviewRegisterParseSeamException> {
+        parseLaneRegisterSeam(laneBody, lane = "lane-1") { error(laneBody) }
+      }
 
     assertEquals("attributeInlineFindings", thrown.seam)
     assertEquals("lane-1", thrown.lane)
@@ -121,18 +132,20 @@ class ParallelCodeReviewRegisterSeamTest {
 
   @Test
   fun `a short sibling F-id is padded and admitted alongside a canonical register line`() {
-    val runner = runner(
-      stdoutLauncher(
-        "[F-001] Major | High | path=\"A.kt\" | line=1 | admissible\n" +
-          "[F-2] Major | High | a.kt:3 | also admissible after pad\n" +
-          "verdict: approved",
-      ),
-      diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
-    )
+    val runner =
+      runner(
+        stdoutLauncher(
+          "[F-001] Major | High | path=\"A.kt\" | line=1 | admissible\n" +
+            "[F-2] Major | High | a.kt:3 | also admissible after pad\n" +
+            "verdict: approved",
+        ),
+        diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
+      )
 
-    val result = runner.run(
-      baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
-    )
+    val result =
+      runner.run(
+        baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
+      )
 
     assertTrue(result.lane1.success)
     assertNull(result.lane1.failureReason)
@@ -142,14 +155,16 @@ class ParallelCodeReviewRegisterSeamTest {
 
   @Test
   fun `a finding body without an F-token is assigned the next id and admitted`() {
-    val runner = runner(
-      stdoutLauncher("Major | High | a.kt:3 | missing token\nverdict: approved"),
-      diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
-    )
+    val runner =
+      runner(
+        stdoutLauncher("Major | High | a.kt:3 | missing token\nverdict: approved"),
+        diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
+      )
 
-    val result = runner.run(
-      baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
-    )
+    val result =
+      runner.run(
+        baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
+      )
 
     assertTrue(result.lane1.success)
     assertNull(result.lane1.failureReason)
@@ -160,14 +175,16 @@ class ParallelCodeReviewRegisterSeamTest {
   @Test
   fun `a register line that remains unparseable after F-id padding is soft-dropped with a diagnostic`() {
     val broken = "[F-1] Major | High | not-a-location | missing line anchor"
-    val runner = runner(
-      stdoutLauncher("$broken\nverdict: approved"),
-      diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
-    )
+    val runner =
+      runner(
+        stdoutLauncher("$broken\nverdict: approved"),
+        diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
+      )
 
-    val result = runner.run(
-      baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
-    )
+    val result =
+      runner.run(
+        baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
+      )
 
     assertTrue(result.lane1.success)
     assertNull(result.lane1.failureReason)
@@ -179,14 +196,16 @@ class ParallelCodeReviewRegisterSeamTest {
   @Test
   fun `an unmatched candidate remains in authoritative review output`() {
     val nearMiss = "[F-001] Major | architecture | path=\"A.kt\" | line=1 | missing validation"
-    val runner = runner(
-      stdoutLauncher("$nearMiss\nverdict: changes_requested"),
-      diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
-    )
+    val runner =
+      runner(
+        stdoutLauncher("$nearMiss\nverdict: changes_requested"),
+        diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
+      )
 
-    val result = runner.run(
-      baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
-    )
+    val result =
+      runner.run(
+        baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
+      )
 
     assertTrue(result.mergeResult.findings.isEmpty())
     assertContains(result.output, nearMiss)
@@ -195,32 +214,35 @@ class ParallelCodeReviewRegisterSeamTest {
 
   @Test
   fun `a parser fault at the register seam soft-admits instead of failing the lane`() {
-    val runner = createRunner(
-      stdoutLauncher("prose with no register\nverdict: approved"),
-      RunnerFixtureConfig(
-        diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
-        registerParse = { error("parser exploded") },
-      ),
-    )
+    val runner =
+      createRunner(
+        stdoutLauncher("prose with no register\nverdict: approved"),
+        RunnerFixtureConfig(
+          diffResolver = RecordingDiffResolver(default = diffFor("A.kt")),
+          registerParse = { error("parser exploded") },
+        ),
+      )
 
-    val result = runner.run(
-      baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
-    )
+    val result =
+      runner.run(
+        baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.INLINE),
+      )
 
     assertTrue(result.lane1.success)
     assertNull(result.lane1.failureReason)
     assertTrue(result.mergeResult.findings.isEmpty())
   }
 
-  private fun stdoutLauncher(stdout: String) = GoalRunnerSubtaskLauncher { request ->
-    simulateGovernedEvidenceReads(request.skillRunRequest)
-    AgentRunLaunchFacts(
-      agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-      exitStatus = 0,
-      stdout = stdout,
-      stderr = "",
-      timedOut = false,
-      spawnFailed = false,
-    )
-  }
+  private fun stdoutLauncher(stdout: String) =
+    GoalRunnerSubtaskLauncher { request ->
+      simulateGovernedEvidenceReads(request.skillRunRequest)
+      AgentRunLaunchFacts(
+        agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+        exitStatus = 0,
+        stdout = stdout,
+        stderr = "",
+        timedOut = false,
+        spawnFailed = false,
+      )
+    }
 }

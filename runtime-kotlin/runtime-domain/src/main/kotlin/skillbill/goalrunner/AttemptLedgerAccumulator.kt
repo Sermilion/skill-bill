@@ -29,9 +29,10 @@ fun summarizeAttemptLedgerFromEntries(entries: Iterable<Map<*, *>>): GoalRunnerA
     if (entry["diagnostic_class"]?.toString() == "supervisor_killed_confirmed_alive") supervisorKillCount++
     when (action) {
       "child_activation", "resume" -> {
-        val step = entry["current_step"]?.toString()?.takeIf(String::isNotBlank)
-          ?: entry["previous_step"]?.toString()?.takeIf(String::isNotBlank)
-          ?: "initial_start"
+        val step =
+          entry["current_step"]?.toString()?.takeIf(String::isNotBlank)
+            ?: entry["previous_step"]?.toString()?.takeIf(String::isNotBlank)
+            ?: "initial_start"
         phaseAttemptCounts.merge(step, 1, Int::plus)
       }
       "backward_edge_entry" -> {
@@ -52,13 +53,14 @@ fun summarizeAttemptLedgerFromEntries(entries: Iterable<Map<*, *>>): GoalRunnerA
   )
 }
 
-val BLOCK_STOP_REASONS: Set<String> = setOf(
-  "failed",
-  "blocked",
-  "policy_blocked",
-  "dependencies_blocked",
-  "pull_request_failed",
-)
+val BLOCK_STOP_REASONS: Set<String> =
+  setOf(
+    "failed",
+    "blocked",
+    "policy_blocked",
+    "dependencies_blocked",
+    "pull_request_failed",
+  )
 
 fun backwardEdgeCountsFromLedger(artifacts: Any): Map<String, Int> {
   val wire = artifacts.asGoalWorkflowArtifactMap("goal attempt ledger artifacts")

@@ -7,6 +7,7 @@ import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+
 class McpRepositoryRootResolutionParityTest {
   @Test
   fun `mcp runtime resolves enclosing repository root when repositoryRoot is a nested subdirectory`() {
@@ -28,14 +29,16 @@ class McpRepositoryRootResolutionParityTest {
       }
       """.trimIndent() + "\n",
     )
-    val context = McpRuntimeContext(
-      environment = mapOf(
-        "SKILL_BILL_REVIEW_DB" to fixtureRoot.resolve("metrics.db").toString(),
-        CONFIG_ENVIRONMENT_KEY to configPath.toString(),
-      ),
-      userHome = fixtureRoot,
-      repositoryRoot = nested,
-    )
+    val context =
+      McpRuntimeContext(
+        environment =
+          mapOf(
+            "SKILL_BILL_REVIEW_DB" to fixtureRoot.resolve("metrics.db").toString(),
+            CONFIG_ENVIRONMENT_KEY to configPath.toString(),
+          ),
+        userHome = fixtureRoot,
+        repositoryRoot = nested,
+      )
     val resolved = RuntimeComponent::class.create(context.toRuntimeContext()).resolvedEnvironmentContext.repositoryRoot
     assertEquals(
       fixtureRoot.toRealPath(),

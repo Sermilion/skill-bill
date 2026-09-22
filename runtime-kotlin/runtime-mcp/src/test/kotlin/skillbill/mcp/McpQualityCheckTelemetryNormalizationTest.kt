@@ -13,19 +13,21 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+
 class McpQualityCheckTelemetryNormalizationTest {
   @Test
   fun `quality check completion refuses runtime-owned telemetry keys`() {
     val tempDir = Files.createTempDirectory("skillbill-mcp-quality-owned-key")
     val context = McpRuntimeContext(environment = enabledTelemetryEnvironment(tempDir), userHome = tempDir)
 
-    val error = assertFailsWith<InvalidMcpToolArgumentError> {
-      McpToolDispatcher.call(
-        "quality_check_finished",
-        mapOf("completion" to "operator_completed"),
-        context,
-      )
-    }
+    val error =
+      assertFailsWith<InvalidMcpToolArgumentError> {
+        McpToolDispatcher.call(
+          "quality_check_finished",
+          mapOf("completion" to "operator_completed"),
+          context,
+        )
+      }
 
     assertEquals("quality_check_finished", error.toolName)
     assertEquals("completion", error.argumentKey)
@@ -71,20 +73,24 @@ private fun enabledTelemetryEnvironment(tempDir: Path): Map<String, String> {
   )
 }
 
-private fun recordQualityCheckStarted(context: McpRuntimeContext): Map<String, Any?> = McpToolDispatcher.call(
-  "quality_check_started",
-  mapOf(
-    "routed_skill" to "skill-bill:bill-kmp-code-check",
-    "detected_stack" to "kmp",
-    "fallback" to false,
-    "scope_type" to "branch_diff",
-    "initial_failure_count" to 1,
-    "orchestrated" to false,
-  ),
-  context,
-)
+private fun recordQualityCheckStarted(context: McpRuntimeContext): Map<String, Any?> =
+  McpToolDispatcher.call(
+    "quality_check_started",
+    mapOf(
+      "routed_skill" to "skill-bill:bill-kmp-code-check",
+      "detected_stack" to "kmp",
+      "fallback" to false,
+      "scope_type" to "branch_diff",
+      "initial_failure_count" to 1,
+      "orchestrated" to false,
+    ),
+    context,
+  )
 
-private fun recordQualityCheckFinished(context: McpRuntimeContext, sessionId: String) {
+private fun recordQualityCheckFinished(
+  context: McpRuntimeContext,
+  sessionId: String,
+) {
   McpToolDispatcher.call(
     "quality_check_finished",
     mapOf(
@@ -128,7 +134,10 @@ private fun recordBlankQualityCheckFinished(context: McpRuntimeContext) {
   )
 }
 
-private fun assertDirectKmpPayloads(connection: Connection, sessionId: String) {
+private fun assertDirectKmpPayloads(
+  connection: Connection,
+  sessionId: String,
+) {
   val startedPayload = qualityCheckPayload(connection, "skillbill_quality_check_started", sessionId)
   val finishedPayload = qualityCheckPayload(connection, "skillbill_quality_check_finished", sessionId)
   listOf(startedPayload, finishedPayload).forEach { payload ->
@@ -148,7 +157,11 @@ private fun assertBlankRoutingPayload(connection: Connection) {
   assertFalse("fallback_reason" in blankFinishedPayload)
 }
 
-private fun qualityCheckPayload(connection: Connection, eventName: String, sessionId: String): Map<String, Any?> =
+private fun qualityCheckPayload(
+  connection: Connection,
+  eventName: String,
+  sessionId: String,
+): Map<String, Any?> =
   decodeJsonObject(
     connection.prepareStatement(
       """

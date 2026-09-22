@@ -16,18 +16,19 @@ import kotlin.test.assertTrue
 class NativeAgentRenderingTest {
   @Test
   fun `source parser reads provider-neutral frontmatter and body`() {
-    val source = parseNativeAgentSourceText(
-      """
-      ---
-      name: bill-test-worker
-      description: Test worker.
-      ---
+    val source =
+      parseNativeAgentSourceText(
+        """
+        ---
+        name: bill-test-worker
+        description: Test worker.
+        ---
 
-      # Worker
+        # Worker
 
-      Do the work.
-      """.trimIndent(),
-    )
+        Do the work.
+        """.trimIndent(),
+      )
 
     assertEquals("bill-test-worker", source.name)
     assertEquals("Test worker.", source.description)
@@ -36,31 +37,33 @@ class NativeAgentRenderingTest {
 
   @Test
   fun `source parser rejects provider-specific mode frontmatter`() {
-    val error = assertFailsWith<IllegalArgumentException> {
-      parseNativeAgentSourceText(
-        """
-        ---
-        name: bill-test-worker
-        description: Test worker.
-        mode: subagent
-        ---
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        parseNativeAgentSourceText(
+          """
+          ---
+          name: bill-test-worker
+          description: Test worker.
+          mode: subagent
+          ---
 
-        # Worker
-        """.trimIndent(),
-      )
-    }
+          # Worker
+          """.trimIndent(),
+        )
+      }
 
     assertContains(error.message.orEmpty(), "unsupported native agent frontmatter key 'mode'")
   }
 
   @Test
   fun `renderers emit claude codex junie and cursor shapes from one source`() {
-    val source = NativeAgentSource(
-      name = "bill-test-worker",
-      description = "Test worker.",
-      body = "# Worker\n\nDo the work.",
-      tools = listOf("Read", "Grep", "Glob", "Bash"),
-    )
+    val source =
+      NativeAgentSource(
+        name = "bill-test-worker",
+        description = "Test worker.",
+        body = "# Worker\n\nDo the work.",
+        tools = listOf("Read", "Grep", "Glob", "Bash"),
+      )
 
     val claude = NativeAgentProvider.Claude.render(source)
     val codex = NativeAgentProvider.Codex.render(source)
@@ -92,11 +95,12 @@ class NativeAgentRenderingTest {
 
   @Test
   fun `renderers escape codex triple quote and yaml special characters`() {
-    val source = NativeAgentSource(
-      name = "bill-test-edge",
-      description = "Edge: case - quoted \"value\" and 'apostrophes'.",
-      body = "# Edge\n\nBody with \"\"\" triple quotes and a back\\slash.",
-    )
+    val source =
+      NativeAgentSource(
+        name = "bill-test-edge",
+        description = "Edge: case - quoted \"value\" and 'apostrophes'.",
+        body = "# Edge\n\nBody with \"\"\" triple quotes and a back\\slash.",
+      )
 
     val claude = NativeAgentProvider.Claude.render(source)
     val codex = NativeAgentProvider.Codex.render(source)
@@ -131,11 +135,12 @@ class NativeAgentRenderingTest {
 
   @Test
   fun `renderers are deterministic across repeated calls`() {
-    val source = NativeAgentSource(
-      name = "bill-test-worker",
-      description = "Test worker.",
-      body = "# Worker\n\nDo the work.",
-    )
+    val source =
+      NativeAgentSource(
+        name = "bill-test-worker",
+        description = "Test worker.",
+        body = "# Worker\n\nDo the work.",
+      )
 
     NativeAgentProvider.entries.forEach { provider ->
       val first = provider.render(source)
@@ -160,9 +165,10 @@ class NativeAgentRenderingTest {
       """.trimIndent(),
     )
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      parseNativeAgentSource(sourcePath)
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        parseNativeAgentSource(sourcePath)
+      }
 
     assertContains(error.message.orEmpty(), "filename must match frontmatter name")
   }
@@ -193,7 +199,10 @@ class NativeAgentRenderingTest {
     assertEquals(sourcePath, source.path)
   }
 
-  private fun parseFrontmatterValue(rendered: String, key: String): String {
+  private fun parseFrontmatterValue(
+    rendered: String,
+    key: String,
+  ): String {
     val line = rendered.lines().first { it.startsWith("$key: ") }
     val raw = line.removePrefix("$key: ")
     if (raw.startsWith("\"") && raw.endsWith("\"")) {

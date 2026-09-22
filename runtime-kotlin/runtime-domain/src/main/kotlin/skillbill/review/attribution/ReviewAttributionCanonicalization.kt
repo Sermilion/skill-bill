@@ -9,21 +9,22 @@ const val UNRESOLVED_ATTRIBUTION: String = "unresolved"
 
 const val EXECUTION_MODE_DELEGATED: String = "delegated"
 
-val canonicalPlatformSlugs: Set<String> = setOf(
-  "kmp",
-  "kotlin",
-  "ios",
-  "python",
-  "php",
-  "go",
-  "rust",
-  "typescript",
-  "android",
-  "java",
-  "ruby",
-  "docs",
-  "generic",
-)
+val canonicalPlatformSlugs: Set<String> =
+  setOf(
+    "kmp",
+    "kotlin",
+    "ios",
+    "python",
+    "php",
+    "go",
+    "rust",
+    "typescript",
+    "android",
+    "java",
+    "ruby",
+    "docs",
+    "generic",
+  )
 
 val canonicalPackSkillNames: Set<String> = canonicalPlatformSlugs.map { slug -> "bill-$slug-code-review" }.toSet()
 
@@ -36,7 +37,10 @@ private val packSkillPattern = Regex("bill-(?:[a-z0-9]+-)*code-review")
 
 private val vocabularyEntryPattern = Regex("^[a-z0-9][a-z0-9-]*$")
 
-fun resolveCanonicalRoutedSkill(rawValue: String?, knownPackSkillNames: Set<String>): CanonicalAttribution {
+fun resolveCanonicalRoutedSkill(
+  rawValue: String?,
+  knownPackSkillNames: Set<String>,
+): CanonicalAttribution {
   requireWellFormedVocabulary(rawValue, "pack_skill_names", knownPackSkillNames)
   val value = rawValue?.trim().orEmpty()
   if (value.isEmpty()) return CanonicalAttribution(UNRESOLVED_ATTRIBUTION, rawValue)
@@ -78,11 +82,12 @@ fun resolveCanonicalScope(rawValue: String?): CanonicalAttribution {
 fun resolveExecutionMode(
   reportedExecutionMode: ReviewExecutionMode?,
   specialistReviews: List<String>,
-): ReviewExecutionMode = reportedExecutionMode ?: if (specialistReviews.isNotEmpty()) {
-  ReviewExecutionMode.DELEGATED
-} else {
-  ReviewExecutionMode.UNRESOLVED
-}
+): ReviewExecutionMode =
+  reportedExecutionMode ?: if (specialistReviews.isNotEmpty()) {
+    ReviewExecutionMode.DELEGATED
+  } else {
+    ReviewExecutionMode.UNRESOLVED
+  }
 
 fun ImportedReview.withCanonicalAttribution(
   knownPackSkillNames: Set<String>,
@@ -104,49 +109,53 @@ private class ScopeMatchRule(
   val prefixes: Set<String> = emptySet(),
   val containsAll: Set<String> = emptySet(),
 ) {
-  fun matches(slug: String): Boolean = when {
-    slug in exact -> true
-    contains.any { term -> term in slug } -> true
-    prefixes.any { prefix -> slug.startsWith(prefix) } -> true
-    else -> containsAll.isNotEmpty() && containsAll.all { term -> term in slug }
-  }
+  fun matches(slug: String): Boolean =
+    when {
+      slug in exact -> true
+      contains.any { term -> term in slug } -> true
+      prefixes.any { prefix -> slug.startsWith(prefix) } -> true
+      else -> containsAll.isNotEmpty() && containsAll.all { term -> term in slug }
+    }
 }
 
-private val scopeMatchRules: List<ScopeMatchRule> = listOf(
-  ScopeMatchRule(
-    scope = CanonicalScope.WORKING_TREE,
-    exact = setOf("worktree"),
-    contains = setOf("unstaged", "working-tree", "working-dir"),
-  ),
-  ScopeMatchRule(
-    scope = CanonicalScope.STAGED,
-    exact = setOf("index"),
-    contains = setOf(CanonicalScope.STAGED.wireValue),
-  ),
-
-  ScopeMatchRule(
-    scope = CanonicalScope.PULL_REQUEST,
-    exact = setOf("pr"),
-    contains = setOf("pull-req"),
-    prefixes = setOf("pr-"),
-  ),
-  ScopeMatchRule(
-    scope = CanonicalScope.COMMIT_RANGE,
-    contains = setOf("commit-range", "branch-diff"),
-    containsAll = setOf("commit", "range"),
-  ),
-
-  ScopeMatchRule(
-    scope = CanonicalScope.OTHER,
-    exact = setOf(CanonicalScope.OTHER.wireValue, "file", "files"),
-    contains = setOf("repo"),
-  ),
-)
+private val scopeMatchRules: List<ScopeMatchRule> =
+  listOf(
+    ScopeMatchRule(
+      scope = CanonicalScope.WORKING_TREE,
+      exact = setOf("worktree"),
+      contains = setOf("unstaged", "working-tree", "working-dir"),
+    ),
+    ScopeMatchRule(
+      scope = CanonicalScope.STAGED,
+      exact = setOf("index"),
+      contains = setOf(CanonicalScope.STAGED.wireValue),
+    ),
+    ScopeMatchRule(
+      scope = CanonicalScope.PULL_REQUEST,
+      exact = setOf("pr"),
+      contains = setOf("pull-req"),
+      prefixes = setOf("pr-"),
+    ),
+    ScopeMatchRule(
+      scope = CanonicalScope.COMMIT_RANGE,
+      contains = setOf("commit-range", "branch-diff"),
+      containsAll = setOf("commit", "range"),
+    ),
+    ScopeMatchRule(
+      scope = CanonicalScope.OTHER,
+      exact = setOf(CanonicalScope.OTHER.wireValue, "file", "files"),
+      contains = setOf("repo"),
+    ),
+  )
 
 private fun matchCanonicalScope(slug: String): CanonicalScope? =
   if (slug.isEmpty()) null else scopeMatchRules.firstOrNull { rule -> rule.matches(slug) }?.scope
 
-private fun requireWellFormedVocabulary(rawValue: String?, vocabulary: String, entries: Set<String>) {
+private fun requireWellFormedVocabulary(
+  rawValue: String?,
+  vocabulary: String,
+  entries: Set<String>,
+) {
   entries.forEach { entry ->
     if (!entry.matches(vocabularyEntryPattern)) {
       throw ReviewAttributionResolutionError.MalformedVocabulary(rawValue, vocabulary, entry)

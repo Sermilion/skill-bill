@@ -37,30 +37,37 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class InstallPlanPolicyTest {
   @Test
   fun `manual plan draft resolves selected platform skills agent defaults and MCP intent`() {
-    val input = policyInput(
-      request = request(
-        agentSelection = InstallAgentSelection(
-          mode = InstallAgentSelectionMode.MANUAL,
-          manualAgents = setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
-        ),
-        targetPaths = targetPaths(
-          agentTargets = listOf(
-            InstallAgentTarget(
-              agent = InstallAgent.CLAUDE,
-              path = path("/manual/claude"),
-              source = InstallAgentTargetSource.DETECTED,
-            ),
+    val input =
+      policyInput(
+        request =
+          request(
+            agentSelection =
+              InstallAgentSelection(
+                mode = InstallAgentSelectionMode.MANUAL,
+                manualAgents = setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
+              ),
+            targetPaths =
+              targetPaths(
+                agentTargets =
+                  listOf(
+                    InstallAgentTarget(
+                      agent = InstallAgent.CLAUDE,
+                      path = path("/manual/claude"),
+                      source = InstallAgentTargetSource.DETECTED,
+                    ),
+                  ),
+              ),
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("kotlin"),
+              ),
           ),
-        ),
-        platformPackSelection = PlatformPackSelection(
-          mode = PlatformPackSelectionMode.SELECTED,
-          selectedSlugs = setOf("kotlin"),
-        ),
-      ),
-    )
+      )
 
     val draft = InstallPlanPolicy.buildPlanDraft(input)
 
@@ -79,27 +86,32 @@ class InstallPlanPolicyTest {
 
   @Test
   fun `detected plan draft prefers caller supplied detected targets and normalizes their source`() {
-    val input = policyInput(
-      request = request(
-        agentSelection = InstallAgentSelection(
-          mode = InstallAgentSelectionMode.DETECTED,
-          detectedTargets = listOf(
+    val input =
+      policyInput(
+        request =
+          request(
+            agentSelection =
+              InstallAgentSelection(
+                mode = InstallAgentSelectionMode.DETECTED,
+                detectedTargets =
+                  listOf(
+                    InstallAgentTarget(
+                      agent = InstallAgent.CURSOR,
+                      path = path("/detected/cursor"),
+                      source = InstallAgentTargetSource.MANUAL,
+                    ),
+                  ),
+              ),
+          ),
+        detectedAgentTargets =
+          listOf(
             InstallAgentTarget(
-              agent = InstallAgent.CURSOR,
-              path = path("/detected/cursor"),
-              source = InstallAgentTargetSource.MANUAL,
+              agent = InstallAgent.CODEX,
+              path = path("/detected/codex"),
+              source = InstallAgentTargetSource.DETECTED,
             ),
           ),
-        ),
-      ),
-      detectedAgentTargets = listOf(
-        InstallAgentTarget(
-          agent = InstallAgent.CODEX,
-          path = path("/detected/codex"),
-          source = InstallAgentTargetSource.DETECTED,
-        ),
-      ),
-    )
+      )
 
     val draft = InstallPlanPolicy.buildPlanDraft(input)
 
@@ -110,47 +122,55 @@ class InstallPlanPolicyTest {
 
   @Test
   fun `request validation rejects inconsistent platform and target selections`() {
-    val selectedWithoutSlugs = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.validateRequest(
-        policyInput(
-          request = request(
-            platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.SELECTED),
+    val selectedWithoutSlugs =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.validateRequest(
+          policyInput(
+            request =
+              request(
+                platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.SELECTED),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
     assertContains(selectedWithoutSlugs.message.orEmpty(), "SELECTED requires at least one selected slug")
 
-    val detectedWithManualAgents = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.validateRequest(
-        policyInput(
-          request = request(
-            agentSelection = InstallAgentSelection(
-              mode = InstallAgentSelectionMode.DETECTED,
-              manualAgents = setOf(InstallAgent.CODEX),
-            ),
+    val detectedWithManualAgents =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.validateRequest(
+          policyInput(
+            request =
+              request(
+                agentSelection =
+                  InstallAgentSelection(
+                    mode = InstallAgentSelectionMode.DETECTED,
+                    manualAgents = setOf(InstallAgent.CODEX),
+                  ),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
     assertContains(
       detectedWithManualAgents.message.orEmpty(),
       "Detected agent selection must not include manual agents",
     )
 
-    val missingManualTarget = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.validateRequest(
-        policyInput(
-          request = request(
-            agentSelection = InstallAgentSelection(
-              mode = InstallAgentSelectionMode.MANUAL,
-              manualAgents = setOf(InstallAgent.CODEX),
-            ),
+    val missingManualTarget =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.validateRequest(
+          policyInput(
+            request =
+              request(
+                agentSelection =
+                  InstallAgentSelection(
+                    mode = InstallAgentSelectionMode.MANUAL,
+                    manualAgents = setOf(InstallAgent.CODEX),
+                  ),
+              ),
+            defaultAgentTargets = emptyList(),
           ),
-          defaultAgentTargets = emptyList(),
-        ),
-      )
-    }
+        )
+      }
     assertContains(
       missingManualTarget.message.orEmpty(),
       "no explicit or default target path",
@@ -159,121 +179,147 @@ class InstallPlanPolicyTest {
 
   @Test
   fun `request validation rejects malformed skill and platform snapshots`() {
-    val blankBaseName = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.validateRequest(
-        policyInput(baseSkills = listOf(baseSkill(""))),
-      )
-    }
+    val blankBaseName =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.validateRequest(
+          policyInput(baseSkills = listOf(baseSkill(""))),
+        )
+      }
     assertContains(blankBaseName.message.orEmpty(), "non-blank name")
 
-    val blankBaseSource = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.validateRequest(
-        policyInput(baseSkills = listOf(baseSkill("bill-code-review", sourceDir = path("")))),
-      )
-    }
+    val blankBaseSource =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.validateRequest(
+          policyInput(baseSkills = listOf(baseSkill("bill-code-review", sourceDir = path("")))),
+        )
+      }
     assertContains(blankBaseSource.message.orEmpty(), "sourceDir must not be blank")
 
-    val nonPlatformSkill = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.validateRequest(
-        policyInput(
-          platformPacks = listOf(
-            platformPack(
-              skills = listOf(
-                baseSkill("bill-kotlin-code-review"),
+    val nonPlatformSkill =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.validateRequest(
+          policyInput(
+            platformPacks =
+              listOf(
+                platformPack(
+                  skills =
+                    listOf(
+                      baseSkill("bill-kotlin-code-review"),
+                    ),
+                ),
               ),
-            ),
           ),
-        ),
-      )
-    }
+        )
+      }
     assertContains(nonPlatformSkill.message.orEmpty(), "contains non-platform skill")
 
-    val mismatchedPlatformSlug = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.validateRequest(
-        policyInput(
-          platformPacks = listOf(
-            platformPack(
-              slug = "kotlin",
-              skills = listOf(platformSkill("bill-kotlin-code-review", platformSlug = "kmp")),
-            ),
+    val mismatchedPlatformSlug =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.validateRequest(
+          policyInput(
+            platformPacks =
+              listOf(
+                platformPack(
+                  slug = "kotlin",
+                  skills = listOf(platformSkill("bill-kotlin-code-review", platformSlug = "kmp")),
+                ),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
     assertContains(mismatchedPlatformSlug.message.orEmpty(), "owned by 'kmp'")
   }
 
   @Test
   fun `platform skill materialization plan uses policy selection without skill snapshots`() {
-    val plan = InstallPlanPolicy.planPlatformSkillMaterialization(
-      InstallPlatformSkillMaterializationRequest(
-        installRequest = request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("kotlin"),
-          ),
+    val plan =
+      InstallPlanPolicy.planPlatformSkillMaterialization(
+        InstallPlatformSkillMaterializationRequest(
+          installRequest =
+            request(
+              platformPackSelection =
+                PlatformPackSelection(
+                  mode = PlatformPackSelectionMode.SELECTED,
+                  selectedSlugs = setOf("kotlin"),
+                ),
+            ),
+          platformPacks =
+            listOf(
+              InstallPlatformPackDiscoverySnapshot(
+                slug = "kmp",
+                packRoot = path("/repo/platform-packs/kmp"),
+                baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
+              ),
+              InstallPlatformPackDiscoverySnapshot(slug = "kotlin", packRoot = path("/repo/platform-packs/kotlin")),
+            ),
         ),
-        platformPacks = listOf(
-          InstallPlatformPackDiscoverySnapshot(
-            slug = "kmp",
-            packRoot = path("/repo/platform-packs/kmp"),
-            baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
-          ),
-          InstallPlatformPackDiscoverySnapshot(slug = "kotlin", packRoot = path("/repo/platform-packs/kotlin")),
-        ),
-      ),
-    )
+      )
 
     assertEquals(listOf("kmp", "kotlin"), plan.selectedPlatformSlugs)
 
-    val duplicateDiscovery = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.planPlatformSkillMaterialization(
-        InstallPlatformSkillMaterializationRequest(
-          installRequest = request(platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL)),
-          platformPacks = listOf(
-            InstallPlatformPackDiscoverySnapshot(slug = "kotlin", packRoot = path("/repo/platform-packs/kotlin")),
-            InstallPlatformPackDiscoverySnapshot(slug = "kotlin", packRoot = path("/repo/platform-packs/kotlin-copy")),
+    val duplicateDiscovery =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.planPlatformSkillMaterialization(
+          InstallPlatformSkillMaterializationRequest(
+            installRequest =
+              request(
+                platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
+              ),
+            platformPacks =
+              listOf(
+                InstallPlatformPackDiscoverySnapshot(slug = "kotlin", packRoot = path("/repo/platform-packs/kotlin")),
+                InstallPlatformPackDiscoverySnapshot(
+                  slug = "kotlin",
+                  packRoot = path("/repo/platform-packs/kotlin-copy"),
+                ),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
     assertContains(duplicateDiscovery.message.orEmpty(), "duplicate slug")
   }
 
   @Test
   fun `planning rejects unknown platforms and duplicate skill names`() {
-    val unknownPlatform = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.buildPlanDraft(
-        policyInput(
-          request = request(
-            platformPackSelection = PlatformPackSelection(
-              mode = PlatformPackSelectionMode.SELECTED,
-              selectedSlugs = setOf("swift"),
-            ),
+    val unknownPlatform =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.buildPlanDraft(
+          policyInput(
+            request =
+              request(
+                platformPackSelection =
+                  PlatformPackSelection(
+                    mode = PlatformPackSelectionMode.SELECTED,
+                    selectedSlugs = setOf("swift"),
+                  ),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
     assertContains(unknownPlatform.message.orEmpty(), "Unknown platform pack selection: swift")
 
-    val duplicateSkill = assertFailsWith<IllegalArgumentException> {
-      InstallPlanPolicy.buildPlanDraft(
-        policyInput(
-          platformPacks = listOf(
-            platformPack(
-              slug = "duplicate",
-              skills = listOf(platformSkill("bill-code-review", platformSlug = "duplicate")),
-            ),
+    val duplicateSkill =
+      assertFailsWith<IllegalArgumentException> {
+        InstallPlanPolicy.buildPlanDraft(
+          policyInput(
+            platformPacks =
+              listOf(
+                platformPack(
+                  slug = "duplicate",
+                  skills = listOf(platformSkill("bill-code-review", platformSlug = "duplicate")),
+                ),
+              ),
+            request =
+              request(
+                platformPackSelection =
+                  PlatformPackSelection(
+                    mode = PlatformPackSelectionMode.SELECTED,
+                    selectedSlugs = setOf("duplicate"),
+                  ),
+              ),
           ),
-          request = request(
-            platformPackSelection = PlatformPackSelection(
-              mode = PlatformPackSelectionMode.SELECTED,
-              selectedSlugs = setOf("duplicate"),
-            ),
-          ),
-        ),
-      )
-    }
+        )
+      }
     assertContains(duplicateSkill.message.orEmpty(), "duplicate skill name")
     assertContains(duplicateSkill.message.orEmpty(), "bill-code-review")
   }
@@ -281,62 +327,72 @@ class InstallPlanPolicyTest {
   @Test
   fun `validate install plan snapshot delegates to the injected wire validator port`() {
     val draft = InstallPlanPolicy.buildPlanDraft(policyInput())
-    val plan = draft.toInstallPlan(
-      staging = InstallStagingIntent(
-        root = path("/home/.skill-bill/installed-skills"),
-        skillPaths = draft.skills.map { skill ->
-          InstallStagingPathIntent(
-            skillName = skill.name,
-            sourceDir = skill.sourceDir,
-            stagingRoot = path("/home/.skill-bill/installed-skills"),
-            stagingDir = path("/home/.skill-bill/installed-skills/${skill.name}-abc"),
-            contentHash = "abc",
-          )
-        },
-      ),
-    )
+    val plan =
+      draft.toInstallPlan(
+        staging =
+          InstallStagingIntent(
+            root = path("/home/.skill-bill/installed-skills"),
+            skillPaths =
+              draft.skills.map { skill ->
+                InstallStagingPathIntent(
+                  skillName = skill.name,
+                  sourceDir = skill.sourceDir,
+                  stagingRoot = path("/home/.skill-bill/installed-skills"),
+                  stagingDir = path("/home/.skill-bill/installed-skills/${skill.name}-abc"),
+                  contentHash = "abc",
+                )
+              },
+          ),
+      )
 
     var capturedWireMap: Map<String, Any?>? = null
-    val recordingValidator = object : InstallPlanWireValidator {
-      override fun validate(plan: InstallPlanWireMap) {
-        capturedWireMap = plan
+    val recordingValidator =
+      object : InstallPlanWireValidator {
+        override fun validate(plan: InstallPlanWireMap) {
+          capturedWireMap = plan
+        }
       }
-    }
     val result = InstallPlanPolicy.validateInstallPlanSnapshot(plan, recordingValidator)
     assertEquals(InstallPolicyValidationStatus.VALID, result.status)
     assertEquals("planned", capturedWireMap?.get("status"))
 
-    val loudFailValidator = object : InstallPlanWireValidator {
-      override fun validate(plan: InstallPlanWireMap) {
-        throw InvalidInstallPlanSchemaError(
-          fieldPath = "mcp_registration.runtime_mcp_bin",
-          reason = "must be a non-empty string when register is true.",
-        )
+    val loudFailValidator =
+      object : InstallPlanWireValidator {
+        override fun validate(plan: InstallPlanWireMap) {
+          throw InvalidInstallPlanSchemaError(
+            fieldPath = "mcp_registration.runtime_mcp_bin",
+            reason = "must be a non-empty string when register is true.",
+          )
+        }
       }
-    }
-    val error = assertFailsWith<InvalidInstallPlanSchemaError> {
-      InstallPlanPolicy.validateInstallPlanSnapshot(plan, loudFailValidator)
-    }
+    val error =
+      assertFailsWith<InvalidInstallPlanSchemaError> {
+        InstallPlanPolicy.validateInstallPlanSnapshot(plan, loudFailValidator)
+      }
     assertContains(error.message.orEmpty(), "mcp_registration.runtime_mcp_bin")
   }
 
   @Test
   fun `PD8 guard fails when a selected pack declares a required baseline in an unselected pack`() {
-    val kmpPack = platformPack(
-      slug = "kmp",
-      skills = listOf(platformSkill("bill-kmp-code-review", platformSlug = "kmp")),
-      baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
-    )
+    val kmpPack =
+      platformPack(
+        slug = "kmp",
+        skills = listOf(platformSkill("bill-kmp-code-review", platformSlug = "kmp")),
+        baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
+      )
     val kotlinPack = platformPack(slug = "kotlin")
-    val input = policyInput(
-      request = request(
-        platformPackSelection = PlatformPackSelection(
-          mode = PlatformPackSelectionMode.SELECTED,
-          selectedSlugs = setOf("kmp"),
-        ),
-      ),
-      platformPacks = listOf(kmpPack, kotlinPack),
-    )
+    val input =
+      policyInput(
+        request =
+          request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("kmp"),
+              ),
+          ),
+        platformPacks = listOf(kmpPack, kotlinPack),
+      )
 
     val error = assertFailsWith<MissingBaselinePlatformSelectionError> { InstallPlanPolicy.buildPlanDraft(input) }
     assertEquals("kmp", error.selectingSlug)
@@ -347,21 +403,25 @@ class InstallPlanPolicyTest {
 
   @Test
   fun `PD8 guard passes when the required baseline pack is also selected`() {
-    val kmpPack = platformPack(
-      slug = "kmp",
-      skills = listOf(platformSkill("bill-kmp-code-review", platformSlug = "kmp")),
-      baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
-    )
+    val kmpPack =
+      platformPack(
+        slug = "kmp",
+        skills = listOf(platformSkill("bill-kmp-code-review", platformSlug = "kmp")),
+        baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
+      )
     val kotlinPack = platformPack(slug = "kotlin")
-    val input = policyInput(
-      request = request(
-        platformPackSelection = PlatformPackSelection(
-          mode = PlatformPackSelectionMode.SELECTED,
-          selectedSlugs = setOf("kmp", "kotlin"),
-        ),
-      ),
-      platformPacks = listOf(kmpPack, kotlinPack),
-    )
+    val input =
+      policyInput(
+        request =
+          request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("kmp", "kotlin"),
+              ),
+          ),
+        platformPacks = listOf(kmpPack, kotlinPack),
+      )
 
     val draft = InstallPlanPolicy.buildPlanDraft(input)
     assertEquals(listOf("kmp", "kotlin"), draft.selectedPlatformSlugs)
@@ -370,20 +430,24 @@ class InstallPlanPolicyTest {
   @Test
   fun `selecting a baseline pack installs required composed packs transitively`() {
     val kotlinPack = platformPack(slug = "kotlin")
-    val kmpPack = platformPack(
-      slug = "kmp",
-      skills = listOf(platformSkill("bill-kmp-code-review", platformSlug = "kmp")),
-      baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
-    )
-    val input = policyInput(
-      request = request(
-        platformPackSelection = PlatformPackSelection(
-          mode = PlatformPackSelectionMode.SELECTED,
-          selectedSlugs = setOf("kotlin"),
-        ),
-      ),
-      platformPacks = listOf(kmpPack, kotlinPack),
-    )
+    val kmpPack =
+      platformPack(
+        slug = "kmp",
+        skills = listOf(platformSkill("bill-kmp-code-review", platformSlug = "kmp")),
+        baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
+      )
+    val input =
+      policyInput(
+        request =
+          request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("kotlin"),
+              ),
+          ),
+        platformPacks = listOf(kmpPack, kotlinPack),
+      )
 
     val draft = InstallPlanPolicy.buildPlanDraft(input)
 
@@ -392,18 +456,21 @@ class InstallPlanPolicyTest {
 
   @Test
   fun `PD8 guard passes under ALL selection even when a baseline layer points to another pack`() {
-    val kmpPack = platformPack(
-      slug = "kmp",
-      skills = listOf(platformSkill("bill-kmp-code-review", platformSlug = "kmp")),
-      baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
-    )
+    val kmpPack =
+      platformPack(
+        slug = "kmp",
+        skills = listOf(platformSkill("bill-kmp-code-review", platformSlug = "kmp")),
+        baselineLayers = listOf(baselineLayer(platform = "kotlin", skill = "bill-kotlin-code-review")),
+      )
     val kotlinPack = platformPack(slug = "kotlin")
-    val input = policyInput(
-      request = request(
-        platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
-      ),
-      platformPacks = listOf(kmpPack, kotlinPack),
-    )
+    val input =
+      policyInput(
+        request =
+          request(
+            platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
+          ),
+        platformPacks = listOf(kmpPack, kotlinPack),
+      )
 
     val draft = InstallPlanPolicy.buildPlanDraft(input)
     assertEquals(listOf("kmp", "kotlin"), draft.selectedPlatformSlugs.sorted())
@@ -412,15 +479,18 @@ class InstallPlanPolicyTest {
   @Test
   fun `PD8 guard is unaffected by packs without baseline layers`() {
     val pythonPack = platformPack(slug = "python")
-    val input = policyInput(
-      request = request(
-        platformPackSelection = PlatformPackSelection(
-          mode = PlatformPackSelectionMode.SELECTED,
-          selectedSlugs = setOf("python"),
-        ),
-      ),
-      platformPacks = listOf(pythonPack, platformPack(slug = "kotlin")),
-    )
+    val input =
+      policyInput(
+        request =
+          request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("python"),
+              ),
+          ),
+        platformPacks = listOf(pythonPack, platformPack(slug = "kotlin")),
+      )
 
     val draft = InstallPlanPolicy.buildPlanDraft(input)
     assertEquals(listOf("python"), draft.selectedPlatformSlugs)
@@ -432,46 +502,52 @@ class InstallPlanPolicyTest {
     platformPacks: List<InstallPlatformPackSnapshot> = listOf(platformPack()),
     detectedAgentTargets: List<InstallAgentTarget> = emptyList(),
     defaultAgentTargets: List<InstallAgentDefaultTarget> = defaultAgentTargets(),
-  ): InstallPolicyInput = InstallPolicyInput(
-    request = request,
-    baseSkills = baseSkills,
-    platformPacks = platformPacks,
-    detectedAgentTargets = detectedAgentTargets,
-    defaultAgentTargets = defaultAgentTargets,
-  )
+  ): InstallPolicyInput =
+    InstallPolicyInput(
+      request = request,
+      baseSkills = baseSkills,
+      platformPacks = platformPacks,
+      detectedAgentTargets = detectedAgentTargets,
+      defaultAgentTargets = defaultAgentTargets,
+    )
 
-  private fun defaultAgentTargets(): List<InstallAgentDefaultTarget> = listOf(
-    InstallAgentDefaultTarget(InstallAgent.CLAUDE, path("/home/.claude/skills")),
-    InstallAgentDefaultTarget(InstallAgent.CODEX, path("/home/.codex/skills")),
-    InstallAgentDefaultTarget(InstallAgent.JUNIE, path("/home/.junie/skills")),
-    InstallAgentDefaultTarget(InstallAgent.CURSOR, path("/home/.cursor/skills")),
-  )
+  private fun defaultAgentTargets(): List<InstallAgentDefaultTarget> =
+    listOf(
+      InstallAgentDefaultTarget(InstallAgent.CLAUDE, path("/home/.claude/skills")),
+      InstallAgentDefaultTarget(InstallAgent.CODEX, path("/home/.codex/skills")),
+      InstallAgentDefaultTarget(InstallAgent.JUNIE, path("/home/.junie/skills")),
+      InstallAgentDefaultTarget(InstallAgent.CURSOR, path("/home/.cursor/skills")),
+    )
 
   private fun request(
-    agentSelection: InstallAgentSelection = InstallAgentSelection(
-      mode = InstallAgentSelectionMode.MANUAL,
-      manualAgents = setOf(InstallAgent.CODEX),
-    ),
+    agentSelection: InstallAgentSelection =
+      InstallAgentSelection(
+        mode = InstallAgentSelectionMode.MANUAL,
+        manualAgents = setOf(InstallAgent.CODEX),
+      ),
     platformPackSelection: PlatformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.NONE),
     targetPaths: InstallationTargetPaths = targetPaths(),
-    mcpRegistrationChoice: McpRegistrationChoice = McpRegistrationChoice(
-      register = true,
-      runtimeMcpBin = path("/runtime-mcp"),
-    ),
-  ): InstallPlanRequest = InstallPlanRequest(
-    repoRoot = path("/repo"),
-    home = path("/home"),
-    agentSelection = agentSelection,
-    platformPackSelection = platformPackSelection,
-    telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-    mcpRegistrationChoice = mcpRegistrationChoice,
-    runtimeDistributionInputs = RuntimeDistributionInputs(runtimeInstallRoot = path("/home/.skill-bill/runtime")),
-    targetPaths = targetPaths,
-    windowsSymlinkPreflight = WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-      decision = WindowsSymlinkDecision.NOT_REQUIRED,
-    ),
-  )
+    mcpRegistrationChoice: McpRegistrationChoice =
+      McpRegistrationChoice(
+        register = true,
+        runtimeMcpBin = path("/runtime-mcp"),
+      ),
+  ): InstallPlanRequest =
+    InstallPlanRequest(
+      repoRoot = path("/repo"),
+      home = path("/home"),
+      agentSelection = agentSelection,
+      platformPackSelection = platformPackSelection,
+      telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+      mcpRegistrationChoice = mcpRegistrationChoice,
+      runtimeDistributionInputs = RuntimeDistributionInputs(runtimeInstallRoot = path("/home/.skill-bill/runtime")),
+      targetPaths = targetPaths,
+      windowsSymlinkPreflight =
+        WindowsSymlinkPreflight(
+          state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+          decision = WindowsSymlinkDecision.NOT_REQUIRED,
+        ),
+    )
 
   private fun targetPaths(agentTargets: List<InstallAgentTarget> = emptyList()): InstallationTargetPaths =
     InstallationTargetPaths(
@@ -484,14 +560,19 @@ class InstallPlanPolicyTest {
     slug: String = "kotlin",
     skills: List<InstallPlanSkill> = listOf(platformSkill("bill-kotlin-code-review", platformSlug = slug)),
     baselineLayers: List<CodeReviewBaselineLayer> = emptyList(),
-  ): InstallPlatformPackSnapshot = InstallPlatformPackSnapshot(
-    slug = slug,
-    packRoot = path("/repo/platform-packs/$slug"),
-    skills = skills,
-    baselineLayers = baselineLayers,
-  )
+  ): InstallPlatformPackSnapshot =
+    InstallPlatformPackSnapshot(
+      slug = slug,
+      packRoot = path("/repo/platform-packs/$slug"),
+      skills = skills,
+      baselineLayers = baselineLayers,
+    )
 
-  private fun baselineLayer(platform: String, skill: String, required: Boolean = true): CodeReviewBaselineLayer =
+  private fun baselineLayer(
+    platform: String,
+    skill: String,
+    required: Boolean = true,
+  ): CodeReviewBaselineLayer =
     CodeReviewBaselineLayer(
       platform = platform,
       skill = skill,
@@ -500,19 +581,26 @@ class InstallPlanPolicyTest {
       mode = CodeReviewCompositionMode.KmpBaseline,
     )
 
-  private fun baseSkill(name: String, sourceDir: FileLocation = path("/repo/skills/$name")): InstallPlanSkill =
+  private fun baseSkill(
+    name: String,
+    sourceDir: FileLocation = path("/repo/skills/$name"),
+  ): InstallPlanSkill =
     InstallPlanSkill(
       name = name,
       sourceDir = sourceDir,
       kind = InstallPlanSkillKind.BASE,
     )
 
-  private fun platformSkill(name: String, platformSlug: String): InstallPlanSkill = InstallPlanSkill(
-    name = name,
-    sourceDir = path("/repo/platform-packs/$platformSlug/code-review/$name"),
-    kind = InstallPlanSkillKind.PLATFORM_PACK,
-    platformSlug = platformSlug,
-  )
+  private fun platformSkill(
+    name: String,
+    platformSlug: String,
+  ): InstallPlanSkill =
+    InstallPlanSkill(
+      name = name,
+      sourceDir = path("/repo/platform-packs/$platformSlug/code-review/$name"),
+      kind = InstallPlanSkillKind.PLATFORM_PACK,
+      platformSlug = platformSlug,
+    )
 
   private fun path(value: String): FileLocation = FileLocation(value)
 }

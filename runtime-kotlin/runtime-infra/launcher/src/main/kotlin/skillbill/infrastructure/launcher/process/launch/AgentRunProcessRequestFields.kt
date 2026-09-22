@@ -144,45 +144,55 @@ internal class AgentRunProcessRequestDsl {
   var treatmentCapabilitiesDenied: Set<String> = emptySet()
   var denyRemotePublication: Boolean = false
 
-  internal fun build(command: List<String>, workingDirectory: Path): AgentRunProcessRequest = AgentRunProcessRequest(
-    launch = AgentRunProcessLaunchFields(
-      command = command,
-      workingDirectory = workingDirectory,
-      stdinText = stdinText,
-      outputSink = outputSink,
-    ),
-    timing = AgentRunProcessTimingFields(
-      timeout = timeout,
-      progressIdleTimeout = progressIdleTimeout,
-      fileActivityGraceTimeout = fileActivityGraceTimeout,
-      statusHeartbeatInterval = statusHeartbeatInterval,
-      operationDeadline = operationDeadline,
-    ),
-    probes = AgentRunProcessProbeFields(
-      progressProbe = progressProbe,
-      declaredProgressProbe = declaredProgressProbe,
-      mcpStartupProbe = mcpStartupProbe,
-      progressEmitter = progressEmitter,
-      activityProbe = activityProbe,
-      activityStampSink = activityStampSink,
-      worktreeEditObserver = worktreeEditObserver,
-      idlePolicy = idlePolicy,
-    ),
-    environmentFields = AgentRunProcessEnvironmentFields(
-      environment = environment,
-      inheritEnvironment = inheritEnvironment,
-      environmentPassthroughKeys = environmentPassthroughKeys,
-    ),
-    review = AgentRunProcessReviewFields(
-      conversationIsolation = conversationIsolation,
-      reviewEvidenceBroker = reviewEvidenceBroker,
-      reviewEvidenceEndpoint = reviewEvidenceEndpoint,
-      spawnAuthorization = spawnAuthorization,
-    ),
-    experimentCapabilities = AgentRunProcessExperimentCapabilityFields(
-      treatmentCapabilitiesEnabled = treatmentCapabilitiesEnabled,
-      treatmentCapabilitiesDenied = treatmentCapabilitiesDenied,
-      denyRemotePublication = denyRemotePublication,
-    ),
-  )
+  internal fun build(
+    command: List<String>,
+    workingDirectory: Path,
+  ): AgentRunProcessRequest =
+    AgentRunProcessRequest(
+      launch =
+        AgentRunProcessLaunchFields(
+          command = command,
+          workingDirectory = workingDirectory,
+          stdinText = stdinText,
+          outputSink = outputSink,
+        ),
+      timing =
+        AgentRunProcessTimingFields(
+          timeout = timeout,
+          progressIdleTimeout = progressIdleTimeout,
+          fileActivityGraceTimeout = fileActivityGraceTimeout,
+          statusHeartbeatInterval = statusHeartbeatInterval,
+          operationDeadline = operationDeadline,
+        ),
+      probes =
+        AgentRunProcessProbeFields(
+          progressProbe = progressProbe,
+          declaredProgressProbe = declaredProgressProbe,
+          mcpStartupProbe = mcpStartupProbe,
+          progressEmitter = progressEmitter,
+          activityProbe = activityProbe,
+          activityStampSink = activityStampSink,
+          worktreeEditObserver = worktreeEditObserver,
+          idlePolicy = idlePolicy,
+        ),
+      environmentFields =
+        AgentRunProcessEnvironmentFields(
+          environment = environment,
+          inheritEnvironment = inheritEnvironment,
+          environmentPassthroughKeys = environmentPassthroughKeys,
+        ),
+      review =
+        AgentRunProcessReviewFields(
+          conversationIsolation = conversationIsolation,
+          reviewEvidenceBroker = reviewEvidenceBroker,
+          reviewEvidenceEndpoint = reviewEvidenceEndpoint,
+          spawnAuthorization = spawnAuthorization,
+        ),
+      experimentCapabilities =
+        AgentRunProcessExperimentCapabilityFields(
+          treatmentCapabilitiesEnabled = treatmentCapabilitiesEnabled,
+          treatmentCapabilitiesDenied = treatmentCapabilitiesDenied,
+          denyRemotePublication = denyRemotePublication,
+        ),
+    )
 }

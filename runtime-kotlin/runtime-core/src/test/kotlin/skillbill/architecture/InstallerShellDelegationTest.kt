@@ -65,22 +65,23 @@ class InstallerShellDelegationTest {
     assertEquals(
       expectedApplyArgs(
         ExpectedApply(run, agentMode = "manual", platformMode = "none", telemetry = "off", mcp = "register"),
-      ) + listOf(
-        "--agent",
-        "claude",
-        "--agent",
-        "codex",
-        "--agent-target",
-        "codex=${run.home.resolve("agent-targets/codex")}",
-        "--agent",
-        "junie",
-        "--agent-target",
-        "junie=${run.home.resolve("agent-targets/junie")}",
-        "--agent",
-        "cursor",
-        "--agent-target",
-        "cursor=${run.home.resolve("agent-targets/cursor")}",
-      ),
+      ) +
+        listOf(
+          "--agent",
+          "claude",
+          "--agent",
+          "codex",
+          "--agent-target",
+          "codex=${run.home.resolve("agent-targets/codex")}",
+          "--agent",
+          "junie",
+          "--agent-target",
+          "junie=${run.home.resolve("agent-targets/junie")}",
+          "--agent",
+          "cursor",
+          "--agent-target",
+          "cursor=${run.home.resolve("agent-targets/cursor")}",
+        ),
       run.applyArgs,
     )
     assertCopyInPopulatedRealFiles(run)
@@ -173,14 +174,15 @@ class InstallerShellDelegationTest {
     assertEquals(
       expectedApplyArgs(
         ExpectedApply(run, agentMode = "manual", platformMode = "selected", telemetry = "full", mcp = "register"),
-      ) + listOf(
-        "--agent",
-        "codex",
-        "--agent-target",
-        "codex=${run.home.resolve("agent-targets/codex")}",
-        "--platform",
-        "kotlin",
-      ),
+      ) +
+        listOf(
+          "--agent",
+          "codex",
+          "--agent-target",
+          "codex=${run.home.resolve("agent-targets/codex")}",
+          "--platform",
+          "kotlin",
+        ),
       run.applyArgs,
     )
   }
@@ -192,14 +194,15 @@ class InstallerShellDelegationTest {
     assertEquals(
       expectedApplyArgs(
         ExpectedApply(run, agentMode = "manual", platformMode = "selected", telemetry = "full", mcp = "register"),
-      ) + listOf(
-        "--agent",
-        "codex",
-        "--agent-target",
-        "codex=${run.home.resolve("agent-targets/codex")}",
-        "--platform",
-        "python",
-      ),
+      ) +
+        listOf(
+          "--agent",
+          "codex",
+          "--agent-target",
+          "codex=${run.home.resolve("agent-targets/codex")}",
+          "--platform",
+          "python",
+        ),
       run.applyArgs,
     )
   }
@@ -271,10 +274,11 @@ class InstallerShellDelegationTest {
 
   @Test
   fun `install plan summary is printed before any mutation`() {
-    val run = runPrebuiltInstaller(
-      releaseValid = true,
-      options = PrebuiltOptions(skipPreinstallUninstall = false, seedPriorInstall = true),
-    )
+    val run =
+      runPrebuiltInstaller(
+        releaseValid = true,
+        options = PrebuiltOptions(skipPreinstallUninstall = false, seedPriorInstall = true),
+      )
 
     assertEquals(0, run.exitCode, run.output)
     val planIndex = run.output.indexOf("What this installer will change")

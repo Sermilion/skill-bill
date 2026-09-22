@@ -25,23 +25,31 @@ internal fun SkillClassMatcher.matchesSkillName(skillName: String): Boolean {
   return notExcluded && (exact == skillName || patternMatches)
 }
 
-internal fun readClassManifestYaml(classFile: Path, classId: String): Any? = try {
-  Yaml().load<Any?>(Files.readString(classFile))
-} catch (error: CancellationException) {
-  throw error
-} catch (error: IOException) {
-  throw InvalidManifestSchemaError(
-    "Skill class '$classId': manifest '$classFile' is not valid YAML: ${error.message}",
-    error,
-  )
-} catch (error: YAMLException) {
-  throw InvalidManifestSchemaError(
-    "Skill class '$classId': manifest '$classFile' is not valid YAML: ${error.message}",
-    error,
-  )
-}
+internal fun readClassManifestYaml(
+  classFile: Path,
+  classId: String,
+): Any? =
+  try {
+    Yaml().load<Any?>(Files.readString(classFile))
+  } catch (error: CancellationException) {
+    throw error
+  } catch (error: IOException) {
+    throw InvalidManifestSchemaError(
+      "Skill class '$classId': manifest '$classFile' is not valid YAML: ${error.message}",
+      error,
+    )
+  } catch (error: YAMLException) {
+    throw InvalidManifestSchemaError(
+      "Skill class '$classId': manifest '$classFile' is not valid YAML: ${error.message}",
+      error,
+    )
+  }
 
-internal fun buildClassManifest(classId: String, classFile: Path, raw: Any?): SkillClassManifest {
+internal fun buildClassManifest(
+  classId: String,
+  classFile: Path,
+  raw: Any?,
+): SkillClassManifest {
   val manifest = requireSkillClassManifestMap(classId, classFile.toString(), raw)
   val declaredClass = requireSkillClassString(manifest, classId, "class")
   validateDeclaredSkillClass(classId, declaredClass)
@@ -62,9 +70,13 @@ internal fun buildClassManifest(classId: String, classFile: Path, raw: Any?): Sk
   )
 }
 
-internal fun parseSkillClassMatchers(manifest: Map<*, *>, classId: String): List<SkillClassMatcher> {
-  val raw = manifest["matchers"]
-    ?: throw InvalidManifestSchemaError("Skill class '$classId': required field 'matchers' is missing.")
+internal fun parseSkillClassMatchers(
+  manifest: Map<*, *>,
+  classId: String,
+): List<SkillClassMatcher> {
+  val raw =
+    manifest["matchers"]
+      ?: throw InvalidManifestSchemaError("Skill class '$classId': required field 'matchers' is missing.")
   val matchersList = requireSkillClassMatcherList(classId, raw)
   if (matchersList.isEmpty()) {
     throw InvalidManifestSchemaError("Skill class '$classId': 'matchers' must declare at least one entry.")
@@ -72,10 +84,14 @@ internal fun parseSkillClassMatchers(manifest: Map<*, *>, classId: String): List
   return matchersList.mapIndexed { index, entry -> parseSkillClassMatcher(classId, index, entry) }
 }
 
-internal fun parseSkillClassSections(manifest: Map<*, *>, classId: String): List<SkillClassSection> {
+internal fun parseSkillClassSections(
+  manifest: Map<*, *>,
+  classId: String,
+): List<SkillClassSection> {
   val raw = manifest["sections"] ?: return emptyList()
-  val list = raw as? List<*>
-    ?: throw InvalidManifestSchemaError("Skill class '$classId': 'sections' must be a list.")
+  val list =
+    raw as? List<*>
+      ?: throw InvalidManifestSchemaError("Skill class '$classId': 'sections' must be a list.")
   return list.mapIndexed { index, entry -> parseSkillClassSection(classId, index, entry) }
 }
 
@@ -92,14 +108,20 @@ internal fun parseSkillClassStringList(
     }
     return emptyList()
   }
-  val list = raw as? List<*>
-    ?: throw InvalidManifestSchemaError("Skill class '$classId': '$field' must be a list of strings.")
+  val list =
+    raw as? List<*>
+      ?: throw InvalidManifestSchemaError("Skill class '$classId': '$field' must be a list of strings.")
   return list.mapIndexed { index, entry -> requireSkillClassStringEntry(classId, field, index, entry) }
 }
 
-internal fun requireSkillClassString(manifest: Map<*, *>, classId: String, field: String): String {
-  val raw = manifest[field]
-    ?: throw InvalidManifestSchemaError("Skill class '$classId': required field '$field' is missing.")
+internal fun requireSkillClassString(
+  manifest: Map<*, *>,
+  classId: String,
+  field: String,
+): String {
+  val raw =
+    manifest[field]
+      ?: throw InvalidManifestSchemaError("Skill class '$classId': required field '$field' is missing.")
   return raw as? String
     ?: throw InvalidManifestSchemaError("Skill class '$classId': field '$field' must be a string.")
 }

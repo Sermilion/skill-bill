@@ -18,36 +18,40 @@ object FeatureTaskRuntimeCheckpointScope {
         FeatureTaskRuntimeRunEvidenceOwnership.isOwnedByRun(path, input.workflowId)
     }
     val deleted = sanitized(input.deletedPaths, runtimeOwned)
-    val implementationPaths = sanitized(
-      input.ownedPaths +
-        input.phaseIntroducedPaths +
-        input.concurrentlyModifiedOwnedPaths +
-        deleted,
-      runtimeOwned,
-    ).filterNot { isFeatureSpecPathForIssue(it, input.issueKey) }
-    val implementationAliases = implementationPaths
-      .groupBy(::normalizeForAliasComparison)
-      .mapValues { (_, paths) -> paths.first() }
-    val stageable = sanitized(
-      input.worktreeDeltaPaths +
-        input.phaseIntroducedPaths +
+    val implementationPaths =
+      sanitized(
+        input.ownedPaths +
+          input.phaseIntroducedPaths +
+          input.concurrentlyModifiedOwnedPaths +
+          deleted,
+        runtimeOwned,
+      ).filterNot { isFeatureSpecPathForIssue(it, input.issueKey) }
+    val implementationAliases =
+      implementationPaths
+        .groupBy(::normalizeForAliasComparison)
+        .mapValues { (_, paths) -> paths.first() }
+    val stageable =
+      sanitized(
+        input.worktreeDeltaPaths +
+          input.phaseIntroducedPaths +
+          input.foreignStagedPaths +
+          input.concurrentlyModifiedOwnedPaths +
+          deleted,
+        runtimeOwned,
+      ).filterNot { isFeatureSpecPathForIssue(it, input.issueKey) }
+        .mapNotNull { path ->
+          implementationAliases[normalizeForAliasComparison(path)]
+        }.distinct().sorted()
+    val adopted =
+      sanitized(
         input.foreignStagedPaths +
-        input.concurrentlyModifiedOwnedPaths +
-        deleted,
-      runtimeOwned,
-    ).filterNot { isFeatureSpecPathForIssue(it, input.issueKey) }
-      .mapNotNull { path ->
-        implementationAliases[normalizeForAliasComparison(path)]
-      }.distinct().sorted()
-    val adopted = sanitized(
-      input.foreignStagedPaths +
-        input.concurrentlyModifiedOwnedPaths +
-        deleted,
-      runtimeOwned,
-    ).filterNot { isFeatureSpecPathForIssue(it, input.issueKey) }
-      .mapNotNull { path ->
-        implementationAliases[normalizeForAliasComparison(path)]
-      }.distinct().sorted()
+          input.concurrentlyModifiedOwnedPaths +
+          deleted,
+        runtimeOwned,
+      ).filterNot { isFeatureSpecPathForIssue(it, input.issueKey) }
+        .mapNotNull { path ->
+          implementationAliases[normalizeForAliasComparison(path)]
+        }.distinct().sorted()
     return if (stageable.isEmpty()) {
       FeatureTaskRuntimeCheckpointDecision.Skip
     } else {
@@ -56,8 +60,10 @@ object FeatureTaskRuntimeCheckpointScope {
   }
 }
 
-private fun sanitized(paths: Collection<String>, runtimeOwned: (String) -> Boolean): List<String> =
-  paths.filter(String::isNotBlank).filterNot(runtimeOwned)
+private fun sanitized(
+  paths: Collection<String>,
+  runtimeOwned: (String) -> Boolean,
+): List<String> = paths.filter(String::isNotBlank).filterNot(runtimeOwned)
 
 fun isRuntimePrivatePath(path: String): Boolean {
   val normalized = normalizeForAliasComparison(path)
@@ -67,7 +73,10 @@ fun isRuntimePrivatePath(path: String): Boolean {
     normalized.startsWith(RUNTIME_PRIVATE_ROOT)
 }
 
-fun phaseWrittenPaths(worktreeDeltaPaths: List<String>, phaseManifestPaths: List<String>): List<String> {
+fun phaseWrittenPaths(
+  worktreeDeltaPaths: List<String>,
+  phaseManifestPaths: List<String>,
+): List<String> {
   val manifest = phaseManifestPaths.filter(String::isNotBlank).map(::normalizeForAliasComparison)
   if (manifest.isEmpty()) return emptyList()
   return worktreeDeltaPaths.filter(String::isNotBlank)
@@ -84,12 +93,16 @@ fun reviewUntrackedExclusions(
   ownedPaths: List<String>,
 ): List<String> {
   val ownedAliases = ownedPaths.map(::normalizeForAliasComparison).toSet()
-  val foreign = currentUntrackedPaths.filter(String::isNotBlank)
-    .filterNot { normalizeForAliasComparison(it) in ownedAliases }
+  val foreign =
+    currentUntrackedPaths.filter(String::isNotBlank)
+      .filterNot { normalizeForAliasComparison(it) in ownedAliases }
   return (baselineUntrackedPaths + foreign).filter(String::isNotBlank).distinct().sorted()
 }
 
-fun adoptionWarning(branch: String, paths: List<String>): String =
+fun adoptionWarning(
+  branch: String,
+  paths: List<String>,
+): String =
   "Feature-task-runtime checkpoint adopted owned path(s) ${formatCheckpointPaths(paths)} whose index or " +
     "working-tree content diverged from what this run wrote. The working-tree content is committed " +
     "to '$branch' as this workflow's work rather than blocking the run."
@@ -109,11 +122,12 @@ class FeatureTaskRuntimeCheckpointMetadata(
   val branch: String,
   val intent: String,
 ) {
-  override fun toString(): String = buildList {
-    add("phase=$phaseId")
-    loopId?.takeIf(String::isNotBlank)?.let { add("loop=$it") }
-    add("generation=$generation")
-  }.joinToString(" ")
+  override fun toString(): String =
+    buildList {
+      add("phase=$phaseId")
+      loopId?.takeIf(String::isNotBlank)?.let { add("loop=$it") }
+      add("generation=$generation")
+    }.joinToString(" ")
 }
 
 object FeatureTaskRuntimeCheckpointMessage {
@@ -126,7 +140,11 @@ object FeatureTaskRuntimeCheckpointMessage {
     return compose(subject(issueKey, subtaskName, identity.subtaskId), metadata, identity)
   }
 
-  fun subject(issueKey: String, subtaskName: String?, subtaskId: String): String =
+  fun subject(
+    issueKey: String,
+    subtaskName: String?,
+    subtaskId: String,
+  ): String =
     subtaskName?.trim()?.takeIf(String::isNotBlank)?.let { "$issueKey: $it" }
       ?: fallbackSubject(issueKey, subtaskId)
 
@@ -145,9 +163,15 @@ object FeatureTaskRuntimeCheckpointMessage {
     return "$subject\n\n$body\n$metadata\n\n${identity.trailer}\n"
   }
 
-  fun fallbackSubject(issueKey: String, subtaskId: String): String = "$issueKey: subtask $subtaskId"
+  fun fallbackSubject(
+    issueKey: String,
+    subtaskId: String,
+  ): String = "$issueKey: subtask $subtaskId"
 
-  fun missingSubtaskNameRecord(issueKey: String, subtaskId: String): String =
+  fun missingSubtaskNameRecord(
+    issueKey: String,
+    subtaskId: String,
+  ): String =
     "seam=FeatureTaskRuntimeCheckpointMessage.build value_used='${fallbackSubject(issueKey, subtaskId)}' " +
       "value_expected=manifest subtask name for '$issueKey' subtask '$subtaskId' " +
       "cause=the durable goal-continuation row carried no subtask name; the commit subject " +

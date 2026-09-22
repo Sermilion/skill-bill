@@ -54,8 +54,9 @@ class ClaudeConfigDirAgentPathTest {
     Files.createDirectories(workConfig)
     val env = mapOf("CLAUDE_CONFIG_DIR" to workConfig.toString())
 
-    val claudeTargets = InstallOperations.detectAgentTargets(home, environment = env)
-      .filter { it.name == "claude" }
+    val claudeTargets =
+      InstallOperations.detectAgentTargets(home, environment = env)
+        .filter { it.name == "claude" }
     assertEquals(
       listOf(home.resolve(".claude/skills"), workConfig.resolve("skills")),
       claudeTargets.map { it.path.toPath() },

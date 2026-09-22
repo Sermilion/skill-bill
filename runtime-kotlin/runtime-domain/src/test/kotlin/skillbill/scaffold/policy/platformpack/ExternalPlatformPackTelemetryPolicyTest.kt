@@ -11,15 +11,17 @@ class ExternalPlatformPackTelemetryPolicyTest {
   fun `remote payload keeps slug and source kind and drops path and guidance`() {
     val secretPath = "/home/author/private/company-packs/kotlin"
     val guidance = "Open the author README at $secretPath before retrying."
-    val error = AmbiguousExternalPlatformPackError(
-      "External platform pack slug 'kotlin' is declared by '$secretPath'. $guidance",
-    )
+    val error =
+      AmbiguousExternalPlatformPackError(
+        "External platform pack slug 'kotlin' is declared by '$secretPath'. $guidance",
+      )
 
-    val payload = externalPlatformPackTelemetryPayload(
-      error,
-      slug = "kotlin",
-      sourceKind = PlatformPackSourceKind.EXTERNAL,
-    )
+    val payload =
+      externalPlatformPackTelemetryPayload(
+        error,
+        slug = "kotlin",
+        sourceKind = PlatformPackSourceKind.EXTERNAL,
+      )
 
     assertEquals("AmbiguousExternalPlatformPackError", payload[ExternalPlatformPackTelemetryPayloadKeys.ERROR_TYPE])
     assertEquals("kotlin", payload[ExternalPlatformPackTelemetryPayloadKeys.PLATFORM_SLUG])

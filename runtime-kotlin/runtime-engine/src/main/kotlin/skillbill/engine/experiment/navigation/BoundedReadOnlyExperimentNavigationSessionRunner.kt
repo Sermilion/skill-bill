@@ -37,21 +37,24 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
     val shortlisted = linkedSetOf<String>()
     val evidence = NavigationEvidenceState(receipts, delivered, shortlisted, request.acceptanceCriteria)
     var satisfied = 0
-    val decisions = decisionAdapter.decide(
-      ExperimentNavigationDecisionContext(
-        pairId = request.pairId,
-        armId = request.armId,
-        repoRoot = root,
-        acceptanceCriteria = request.acceptanceCriteria,
-      ),
-    )
+    val decisions =
+      decisionAdapter.decide(
+        ExperimentNavigationDecisionContext(
+          pairId = request.pairId,
+          armId = request.armId,
+          repoRoot = root,
+          acceptanceCriteria = request.acceptanceCriteria,
+        ),
+      )
     for (decision in decisions) {
       when (decision) {
-        is ExperimentNavigationDecision.Search -> satisfied += search(
-          root,
-          decision.query,
-          evidence,
-        )
+        is ExperimentNavigationDecision.Search ->
+          satisfied +=
+            search(
+              root,
+              decision.query,
+              evidence,
+            )
         is ExperimentNavigationDecision.Read -> {
           satisfied += readDecision(root, decision.path, evidence)
         }
@@ -60,27 +63,34 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
     }
     val uniqueSatisfied = satisfied.coerceAtMost(request.acceptanceCriteria.size)
     return ExperimentNavigationSessionResult(
-      outcome = if (uniqueSatisfied == request.acceptanceCriteria.size) {
-        ExperimentNavigationTerminalOutcome.SEARCH_COMPLETED
-      } else {
-        ExperimentNavigationTerminalOutcome.INSUFFICIENT_EVIDENCE
-      },
+      outcome =
+        if (uniqueSatisfied == request.acceptanceCriteria.size) {
+          ExperimentNavigationTerminalOutcome.SEARCH_COMPLETED
+        } else {
+          ExperimentNavigationTerminalOutcome.INSUFFICIENT_EVIDENCE
+        },
       deliveredPaths = evidence.delivered.toList(),
       shortlistedPaths = evidence.shortlisted.toList(),
       readReceipts = receipts,
       attemptCount = request.acceptanceCriteria.size,
-      labelCoverage = ExperimentNavigationLabelCoverage(
-        labelledCriteria = 0,
-        totalCriteria = request.acceptanceCriteria.size,
-        precisionAvailable = false,
-      ),
-      excludedPaths = listOf(".git", ".skill-bill", ".skill-bill-experiments")
-        .filter { name -> Files.exists(root.resolve(name)) },
+      labelCoverage =
+        ExperimentNavigationLabelCoverage(
+          labelledCriteria = 0,
+          totalCriteria = request.acceptanceCriteria.size,
+          precisionAvailable = false,
+        ),
+      excludedPaths =
+        listOf(".git", ".skill-bill", ".skill-bill-experiments")
+          .filter { name -> Files.exists(root.resolve(name)) },
       restrictedBaseline = true,
     )
   }
 
-  private fun readDecision(root: Path, requestedPath: String, state: NavigationEvidenceState): Int {
+  private fun readDecision(
+    root: Path,
+    requestedPath: String,
+    state: NavigationEvidenceState,
+  ): Int {
     val path = root.resolve(requestedPath).normalize()
     if (!Files.isRegularFile(path) || !isAllowed(root, path)) {
       throw ExperimentIsolationCapabilityRefusalError(
@@ -89,16 +99,21 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
     }
     val relative = root.relativize(path).toString().replace('\\', '/')
     val text = readText(path) ?: return 0
-    val satisfied = state.criteria.count { criterion ->
-      criterionTerms(criterion).any { term -> text.contains(term, ignoreCase = true) }
-    }
+    val satisfied =
+      state.criteria.count { criterion ->
+        criterionTerms(criterion).any { term -> text.contains(term, ignoreCase = true) }
+      }
     if (satisfied > 0) state.delivered += relative
     state.shortlisted += relative
     state.receipts += ExperimentNavigationReadReceipt(relative, "direct_read")
     return satisfied
   }
 
-  private fun search(root: Path, query: String, state: NavigationEvidenceState): Int {
+  private fun search(
+    root: Path,
+    query: String,
+    state: NavigationEvidenceState,
+  ): Int {
     var satisfied = 0
     Files.walk(root).use { paths ->
       paths
@@ -125,7 +140,10 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
     return satisfied
   }
 
-  private fun isAllowed(root: Path, path: Path): Boolean {
+  private fun isAllowed(
+    root: Path,
+    path: Path,
+  ): Boolean {
     val normalized = path.toAbsolutePath().normalize()
     if (!normalized.startsWith(root)) {
       throw ExperimentIsolationCapabilityRefusalError("Navigation attempted to escape its snapshot.")
@@ -142,9 +160,10 @@ class BoundedReadOnlyExperimentNavigationSessionRunner(
 
   private fun readText(path: Path): String? = runCatching { Files.readString(path) }.getOrNull()
 
-  private fun criterionTerms(criterion: String): List<String> = criterion
-    .split(Regex("[^A-Za-z0-9_]+"))
-    .map(String::trim)
-    .filter { it.length >= MINIMUM_CRITERION_TERM_LENGTH }
-    .distinct()
+  private fun criterionTerms(criterion: String): List<String> =
+    criterion
+      .split(Regex("[^A-Za-z0-9_]+"))
+      .map(String::trim)
+      .filter { it.length >= MINIMUM_CRITERION_TERM_LENGTH }
+      .distinct()
 }

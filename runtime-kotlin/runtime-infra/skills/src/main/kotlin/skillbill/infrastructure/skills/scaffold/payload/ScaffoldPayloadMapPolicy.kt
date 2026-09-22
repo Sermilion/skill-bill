@@ -9,11 +9,13 @@ import skillbill.scaffold.policy.scaffold.RETIRED_CODE_REVIEW_AREA_KIND_ALIASES
 import skillbill.scaffold.policy.scaffold.RETIRED_PLATFORM_OVERRIDE_KIND_ALIASES
 import skillbill.scaffold.policy.scaffold.SCAFFOLD_PAYLOAD_VERSION
 import skillbill.scaffold.policy.scaffold.rejectRetiredPartialScaffoldKind
+
 internal fun validatePayloadVersion(payload: Map<String, Any?>) {
-  val version = payload["scaffold_payload_version"] as? String
-    ?: throw InvalidScaffoldPayloadError(
-      "Scaffold payload is missing required field 'scaffold_payload_version'.",
-    )
+  val version =
+    payload["scaffold_payload_version"] as? String
+      ?: throw InvalidScaffoldPayloadError(
+        "Scaffold payload is missing required field 'scaffold_payload_version'.",
+      )
   if (version != SCAFFOLD_PAYLOAD_VERSION) {
     throw ScaffoldPayloadVersionMismatchError(
       "Scaffold payload declares 'scaffold_payload_version' '$version' " +
@@ -23,10 +25,11 @@ internal fun validatePayloadVersion(payload: Map<String, Any?>) {
 }
 
 internal fun detectKind(payload: Map<String, Any?>): String {
-  val kind = payload["kind"] as? String
-    ?: throw InvalidScaffoldPayloadError(
-      "Scaffold payload field 'kind' must be a non-empty string.",
-    )
+  val kind =
+    payload["kind"] as? String
+      ?: throw InvalidScaffoldPayloadError(
+        "Scaffold payload field 'kind' must be a non-empty string.",
+      )
   rejectRetiredFeatureImplementFamily(payload["family"])
   if (kind.trim().lowercase() in RETIRED_PLATFORM_OVERRIDE_KIND_ALIASES) {
     rejectRetiredPartialScaffoldKind(kind)
@@ -52,16 +55,25 @@ private fun rejectRetiredFeatureImplementFamily(family: Any?) {
   }
 }
 
-internal fun requireStringMap(payload: Map<String, Any?>, key: String): String =
+internal fun requireStringMap(
+  payload: Map<String, Any?>,
+  key: String,
+): String =
   (payload[key] as? String)?.takeIf { it.isNotBlank() }
     ?: throw InvalidScaffoldPayloadError(
       "Scaffold payload field '$key' must be a non-empty string.",
     )
 
-internal fun requireStringOrDefaultMap(payload: Map<String, Any?>, key: String, default: String): String =
-  (payload[key] as? String)?.takeIf { it.isNotBlank() } ?: default
+internal fun requireStringOrDefaultMap(
+  payload: Map<String, Any?>,
+  key: String,
+  default: String,
+): String = (payload[key] as? String)?.takeIf { it.isNotBlank() } ?: default
 
-internal fun rejectBaselineLayersForNonPlatformPack(payload: Map<String, Any?>, kind: String) {
+internal fun rejectBaselineLayersForNonPlatformPack(
+  payload: Map<String, Any?>,
+  kind: String,
+) {
   if (payload.containsKey("baseline_layers")) {
     throw InvalidScaffoldPayloadError(
       "Scaffold payload field 'baseline_layers' is only supported for kind 'platform-pack'; got '$kind'.",
@@ -69,7 +81,10 @@ internal fun rejectBaselineLayersForNonPlatformPack(payload: Map<String, Any?>, 
   }
 }
 
-internal fun requireStringListPayload(value: Any?, fieldName: String): List<String> {
+internal fun requireStringListPayload(
+  value: Any?,
+  fieldName: String,
+): List<String> {
   if (value !is List<*>) {
     throw InvalidScaffoldPayloadError(
       "Scaffold payload field '$fieldName' must be a list of strings.",
@@ -78,11 +93,15 @@ internal fun requireStringListPayload(value: Any?, fieldName: String): List<Stri
   return value.map { liftNonBlankString(it, fieldName) }
 }
 
-private fun liftNonBlankString(value: Any?, fieldName: String): String {
-  val string = value as? String
-    ?: throw InvalidScaffoldPayloadError(
-      "Scaffold payload field '$fieldName' must contain only non-empty strings.",
-    )
+private fun liftNonBlankString(
+  value: Any?,
+  fieldName: String,
+): String {
+  val string =
+    value as? String
+      ?: throw InvalidScaffoldPayloadError(
+        "Scaffold payload field '$fieldName' must contain only non-empty strings.",
+      )
   if (string.isBlank()) {
     throw InvalidScaffoldPayloadError(
       "Scaffold payload field '$fieldName' must contain only non-empty strings.",

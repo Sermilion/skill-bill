@@ -26,13 +26,14 @@ class FileSystemReviewNativeAgentPreflight(
     request.assignments.distinct().forEach { assignment ->
       val agentId = assignment.agentId
       val logicalName = assignment.logicalName
-      val provider = provider(agentId) ?: throw MissingInstalledNativeAgentError(
-        logicalName,
-        agentId,
-        environment.userHome.toString(),
-        "provider does not support native-agent selection",
-        REPAIR_COMMAND,
-      )
+      val provider =
+        provider(agentId) ?: throw MissingInstalledNativeAgentError(
+          logicalName,
+          agentId,
+          environment.userHome.toString(),
+          "provider does not support native-agent selection",
+          REPAIR_COMMAND,
+        )
       val entries = inventory.filter { it.provider == provider.name.lowercase() && it.logicalName == logicalName }
       if (entries.isEmpty()) {
         fail(
@@ -42,8 +43,9 @@ class FileSystemReviewNativeAgentPreflight(
           "managed inventory entry is missing",
         )
       }
-      val activePaths = activeProviderDirs(provider, home)
-        .map { it.resolve(provider.fileName(logicalName)).toAbsolutePath().normalize() }.toSet()
+      val activePaths =
+        activeProviderDirs(provider, home)
+          .map { it.resolve(provider.fileName(logicalName)).toAbsolutePath().normalize() }.toSet()
       if (activePaths.isEmpty()) {
         fail(
           logicalName,
@@ -65,13 +67,18 @@ class FileSystemReviewNativeAgentPreflight(
     }
   }
 
-  private fun verifyEntry(entry: NativeAgentLinkInventoryEntry, provider: NativeAgentProvider) {
+  private fun verifyEntry(
+    entry: NativeAgentLinkInventoryEntry,
+    provider: NativeAgentProvider,
+  ) {
     val installed = entry.installedPath
     if (!Files.isSymbolicLink(installed)) fail(entry.logicalName, provider, installed, "managed link is missing")
-    val resolved = runCatching { installed.toRealPath() }
-      .getOrElse { fail(entry.logicalName, provider, installed, "managed link is dangling or unreadable", it) }
-    val target = runCatching { entry.cacheTargetPath.toRealPath() }
-      .getOrElse { fail(entry.logicalName, provider, installed, "managed cache artifact is missing", it) }
+    val resolved =
+      runCatching { installed.toRealPath() }
+        .getOrElse { fail(entry.logicalName, provider, installed, "managed link is dangling or unreadable", it) }
+    val target =
+      runCatching { entry.cacheTargetPath.toRealPath() }
+        .getOrElse { fail(entry.logicalName, provider, installed, "managed cache artifact is missing", it) }
     if (resolved != target) {
       fail(
         entry.logicalName,
@@ -98,7 +105,10 @@ class FileSystemReviewNativeAgentPreflight(
   private fun provider(agentId: String): NativeAgentProvider? =
     runCatching { NativeAgentProvider.forSupportedAgent(SupportedAgent.fromWire(agentId)) }.getOrNull()
 
-  private fun activeProviderDirs(provider: NativeAgentProvider, home: Path): List<Path> {
+  private fun activeProviderDirs(
+    provider: NativeAgentProvider,
+    home: Path,
+  ): List<Path> {
     val env = resolveEnvironmentMap(environment.environment)
     return provider.activeHomeAgentDirs(home, env)
   }
@@ -109,14 +119,15 @@ class FileSystemReviewNativeAgentPreflight(
     path: Path,
     reason: String,
     cause: Throwable? = null,
-  ): Nothing = throw MissingInstalledNativeAgentError(
-    logicalName,
-    provider.name.lowercase(),
-    path.toString(),
-    reason,
-    REPAIR_COMMAND,
-    cause,
-  )
+  ): Nothing =
+    throw MissingInstalledNativeAgentError(
+      logicalName,
+      provider.name.lowercase(),
+      path.toString(),
+      reason,
+      REPAIR_COMMAND,
+      cause,
+    )
 
   private companion object {
     const val REPAIR_COMMAND = "skill-bill install apply"

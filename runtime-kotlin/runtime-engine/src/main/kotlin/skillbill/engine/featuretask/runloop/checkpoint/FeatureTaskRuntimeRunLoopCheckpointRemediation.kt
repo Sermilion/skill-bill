@@ -34,6 +34,7 @@ import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifac
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 object FeatureTaskRuntimeRunLoopCheckpointRemediation {
   internal fun concurrentlyModifiedOwnedPaths(
     request: FeatureTaskRuntimeRunRequest,
@@ -100,19 +101,20 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
       ) {
         return true
       }
-      val baseSha = commitSha?.trim()?.takeIf(String::isNotBlank) ?: run {
-        val head = phaseGates.gitOperations.headCommitSha(request.repoRoot)
-        if (head !is WorkflowGitOperationResult.Ok || head.value.isBlank()) {
-          return FeatureTaskRuntimeRunLoopRepairReceipt.blockRemediationBaseSha(
-            request,
-            state,
-            session,
-            precedingPhaseId,
-            head.error.ifBlank { "HEAD resolved to an empty sha." },
-          )
+      val baseSha =
+        commitSha?.trim()?.takeIf(String::isNotBlank) ?: run {
+          val head = phaseGates.gitOperations.headCommitSha(request.repoRoot)
+          if (head !is WorkflowGitOperationResult.Ok || head.value.isBlank()) {
+            return FeatureTaskRuntimeRunLoopRepairReceipt.blockRemediationBaseSha(
+              request,
+              state,
+              session,
+              precedingPhaseId,
+              head.error.ifBlank { "HEAD resolved to an empty sha." },
+            )
+          }
+          head.value.trim()
         }
-        head.value.trim()
-      }
       return runCatching {
         goalContinuationRecorder.updateReviewState(
           request.workflowId,
@@ -149,12 +151,13 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
   internal fun completedImplementFixProducedOutputs(
     run: PhaseRun,
     outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): Map<String, Any?>? = outputMap
-    .takeIf {
-      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX &&
-        (it[SharedPayloadKeys.STATUS] as? String)?.let(WorkflowStepStatus::fromWire) == WorkflowStepStatus.COMPLETED
-    }
-    ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]).orEmpty() }
+  ): Map<String, Any?>? =
+    outputMap
+      .takeIf {
+        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX &&
+          (it[SharedPayloadKeys.STATUS] as? String)?.let(WorkflowStepStatus::fromWire) == WorkflowStepStatus.COMPLETED
+      }
+      ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]).orEmpty() }
 
   internal fun establishRemediationCheckpoint(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -168,7 +171,6 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
           precedingPhaseId,
           loopId,
           commitSha = null,
-
           parentSha = null,
         )
       }
@@ -179,23 +181,22 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
           precedingPhaseId,
           loopId,
           commitSha = null,
-
           parentSha = null,
         )
       }
-      val scope = with(FeatureTaskRuntimeRunLoopCheckpoint) {
-        FeatureTaskRuntimeRunLoopCheckpoint.resolveCheckpointScope(
-          context,
-          precedingPhaseId,
-
-          branch,
-        ) { errorBranch, error ->
-          FeatureTaskRuntimeRunLoopPlanningBranch.remediationCheckpointBlockedReason(
-            errorBranch,
-            error,
-          )
-        }
-      } ?: return false
+      val scope =
+        with(FeatureTaskRuntimeRunLoopCheckpoint) {
+          FeatureTaskRuntimeRunLoopCheckpoint.resolveCheckpointScope(
+            context,
+            precedingPhaseId,
+            branch,
+          ) { errorBranch, error ->
+            FeatureTaskRuntimeRunLoopPlanningBranch.remediationCheckpointBlockedReason(
+              errorBranch,
+              error,
+            )
+          }
+        } ?: return false
       return when (scope) {
         is FeatureTaskRuntimeCheckpointDecision.Skip ->
           FeatureTaskRuntimeRunLoopCheckpointRemediation.recordRemediationBaseIfNeeded(
@@ -203,7 +204,6 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
             precedingPhaseId,
             loopId,
             commitSha = null,
-
             parentSha = null,
           )
         is FeatureTaskRuntimeCheckpointDecision.Block -> {
@@ -216,7 +216,6 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
             precedingPhaseId,
             branch,
             loopId,
-
             scope,
           )
       }
@@ -231,13 +230,14 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
     ownedPaths: List<String>,
   ): RemediationCheckpointCommit? {
     with(context) {
-      val prepared = FeatureTaskRuntimeRunLoopCheckpointRemediation.prepareRemediationCommit(
-        context,
-        precedingPhaseId,
-        branch,
-        loopId,
-        ownedPaths,
-      ) ?: return null
+      val prepared =
+        FeatureTaskRuntimeRunLoopCheckpointRemediation.prepareRemediationCommit(
+          context,
+          precedingPhaseId,
+          branch,
+          loopId,
+          ownedPaths,
+        ) ?: return null
       return with(FeatureTaskRuntimeRunLoopCheckpoint) {
         FeatureTaskRuntimeRunLoopCheckpoint.finalizeRemediationCommit(context, prepared)
       }
@@ -253,12 +253,12 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
   ): Boolean {
     with(context) {
       if (loopId != FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID) return true
-      val recorded = FeatureTaskRuntimeRunLoopCheckpointRemediation.recordRemediationBaseSha(
-        context,
-        precedingPhaseId,
-
-        commitSha,
-      )
+      val recorded =
+        FeatureTaskRuntimeRunLoopCheckpointRemediation.recordRemediationBaseSha(
+          context,
+          precedingPhaseId,
+          commitSha,
+        )
       if (recorded) return true
       if (commitSha != null) {
         FeatureTaskRuntimeRunLoopCheckpointRemediation.rollbackRemediationCheckpointCommit(
@@ -282,17 +282,18 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
       val normalizedCommit = commitSha.trim()
       val head = phaseGates.gitOperations.headCommitSha(request.repoRoot)
       if (head !is WorkflowGitOperationResult.Ok || head.value.trim() != normalizedCommit) return
-      val identities = with(FeatureTaskRuntimeRunLoopCheckpoint) {
-        FeatureTaskRuntimeRunLoopCheckpoint.checkpointIdentitiesForRollback(context, normalizedCommit)
-      }
-      val restoreSha = FeatureTaskRuntimeRunLoopCheckpointRemediation.remediationRollbackTargetSha(
-        context,
-        identities = identities,
-        commitSha = normalizedCommit,
-        parentSha = parentSha,
-
-        identityRecorded = identityRecorded,
-      ) ?: return
+      val identities =
+        with(FeatureTaskRuntimeRunLoopCheckpoint) {
+          FeatureTaskRuntimeRunLoopCheckpoint.checkpointIdentitiesForRollback(context, normalizedCommit)
+        }
+      val restoreSha =
+        FeatureTaskRuntimeRunLoopCheckpointRemediation.remediationRollbackTargetSha(
+          context,
+          identities = identities,
+          commitSha = normalizedCommit,
+          parentSha = parentSha,
+          identityRecorded = identityRecorded,
+        ) ?: return
       val reset = phaseGates.gitOperations.resetSoftToCommit(request.repoRoot, restoreSha)
       if (reset !is WorkflowGitOperationResult.Ok) {
         FeatureTaskRuntimeRunLoopCheckpointRemediation.recordRemediationRollbackDegradation(
@@ -300,7 +301,6 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
           seam = "FeatureTaskRuntimeRunLoop.rollbackRemediationCheckpointCommit",
           valueUsed = restoreSha,
           valueExpected = "successful soft reset to restore target",
-
           cause = reset.error.ifBlank { "resetSoftToCommit failed" },
         )
       }
@@ -317,12 +317,13 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
     with(context) {
       goalContinuationRecorder.appendRemediationRollbackDegradationEvidence(
         workflowId = request.workflowId,
-        signal = RemediationDegradationSignal(
-          seam = seam,
-          valueUsed = valueUsed,
-          valueExpected = valueExpected,
-          cause = cause,
-        ),
+        signal =
+          RemediationDegradationSignal(
+            seam = seam,
+            valueUsed = valueUsed,
+            valueExpected = valueExpected,
+            cause = cause,
+          ),
       )
     }
   }
@@ -367,23 +368,23 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
           seam = "FeatureTaskRuntimeRunLoop.remediationRollbackTargetSha",
           valueUsed = "(blank)",
           valueExpected = "resolvable predecessor identity commit",
-
           cause = "predecessor identity commit sha was missing or blank",
         )
         return null
       }
       val resolved = phaseGates.gitOperations.resolveCommit(request.repoRoot, predecessorCommitSha)
-      val predecessorSha = resolved.value.orEmpty().trim()
-        .takeIf { resolved is WorkflowGitOperationResult.Ok && it.isNotBlank() }
+      val predecessorSha =
+        resolved.value.orEmpty().trim()
+          .takeIf { resolved is WorkflowGitOperationResult.Ok && it.isNotBlank() }
       if (predecessorSha == null) {
         FeatureTaskRuntimeRunLoopCheckpointRemediation.recordRemediationRollbackDegradation(
           context,
           seam = "FeatureTaskRuntimeRunLoop.remediationRollbackTargetSha",
           valueUsed = predecessorCommitSha,
           valueExpected = "resolvable predecessor identity commit",
-
-          cause = resolved.error.takeIf { resolved !is WorkflowGitOperationResult.Ok && it.isNotBlank() }
-            ?: "predecessor commit '$predecessorCommitSha' did not resolve",
+          cause =
+            resolved.error.takeIf { resolved !is WorkflowGitOperationResult.Ok && it.isNotBlank() }
+              ?: "predecessor commit '$predecessorCommitSha' did not resolve",
         )
       }
       return predecessorSha
@@ -409,9 +410,10 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
       if (head !is WorkflowGitOperationResult.Ok || head.value.trim() != branch.trim()) {
         return true
       }
-      val scope = with(FeatureTaskRuntimeRunLoopCheckpoint) {
-        FeatureTaskRuntimeRunLoopCheckpoint.resolveCheckpointScope(context, precedingPhaseId, branch, blockedReason)
-      } ?: return false
+      val scope =
+        with(FeatureTaskRuntimeRunLoopCheckpoint) {
+          FeatureTaskRuntimeRunLoopCheckpoint.resolveCheckpointScope(context, precedingPhaseId, branch, blockedReason)
+        } ?: return false
       return when (scope) {
         is FeatureTaskRuntimeCheckpointDecision.Skip -> true
         is FeatureTaskRuntimeCheckpointDecision.Block -> {
@@ -471,14 +473,14 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
           adoptionWarning(branch, scope.adoptedPaths),
         )
       }
-      val committed = FeatureTaskRuntimeRunLoopCheckpointRemediation.commitRemediationCheckpoint(
-        context,
-        precedingPhaseId = precedingPhaseId,
-        branch = branch,
-        loopId = loopId,
-
-        ownedPaths = scope.ownedPaths,
-      ) ?: return false
+      val committed =
+        FeatureTaskRuntimeRunLoopCheckpointRemediation.commitRemediationCheckpoint(
+          context,
+          precedingPhaseId = precedingPhaseId,
+          branch = branch,
+          loopId = loopId,
+          ownedPaths = scope.ownedPaths,
+        ) ?: return false
       return FeatureTaskRuntimeRunLoopCheckpointRemediation.recordRemediationBaseIfNeeded(
         context,
         precedingPhaseId = precedingPhaseId,
@@ -512,8 +514,9 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
       if (snapshot !is WorkflowGitOperationResult.Ok) {
         return blockRemediationCommitPreparation(context, precedingPhaseId, branch, snapshot.error)
       }
-      val parentSha = phaseGates.gitOperations.headCommitSha(request.repoRoot)
-        .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank)
+      val parentSha =
+        phaseGates.gitOperations.headCommitSha(request.repoRoot)
+          .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank)
       val staged = phaseGates.gitOperations.stagePaths(request.repoRoot, ownedPaths)
       if (staged !is WorkflowGitOperationResult.Ok) {
         return blockRemediationCommitPreparation(
@@ -530,18 +533,19 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
         )
       }
       val subtaskIdentity = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitIdentity(request)
-      val message = FeatureTaskRuntimeRunLoopCheckpoint.checkpointCommitMessage(
-        request,
-        state,
-        diagnostics,
-        CheckpointCommitMessageArgs(
-          branch = branch,
-          phaseId = precedingPhaseId,
-          loopId = loopId,
-          identity = subtaskIdentity,
-          intent = FeatureTaskRuntimeCheckpointMessage.INTENT_REMEDIATION,
-        ),
-      )
+      val message =
+        FeatureTaskRuntimeRunLoopCheckpoint.checkpointCommitMessage(
+          request,
+          state,
+          diagnostics,
+          CheckpointCommitMessageArgs(
+            branch = branch,
+            phaseId = precedingPhaseId,
+            loopId = loopId,
+            identity = subtaskIdentity,
+            intent = FeatureTaskRuntimeCheckpointMessage.INTENT_REMEDIATION,
+          ),
+        )
       return RemediationCommitPrepared(
         precedingPhaseId = precedingPhaseId,
         branch = branch,

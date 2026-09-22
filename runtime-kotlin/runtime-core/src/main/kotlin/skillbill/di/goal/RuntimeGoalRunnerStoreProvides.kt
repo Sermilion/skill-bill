@@ -61,16 +61,17 @@ internal interface RuntimeGoalRunnerStoreProvides {
   fun goalRunnerManifestStore(
     persistence: GoalRunnerManifestPersistenceDependencies,
     projection: GoalRunnerManifestProjectionDependencies,
-  ): GoalRunnerManifestStore = WorkflowGoalRunnerManifestStore(
-    persistence.database,
-    persistence.workflowSnapshotValidator,
-    persistence.decompositionManifestValidator,
-    persistence.decompositionManifestStore,
-    projection.clock,
-    projection.decompositionManifestWriter,
-    projection.repositoryRoot,
-    projection.planningHydrator,
-  )
+  ): GoalRunnerManifestStore =
+    WorkflowGoalRunnerManifestStore(
+      persistence.database,
+      persistence.workflowSnapshotValidator,
+      persistence.decompositionManifestValidator,
+      persistence.decompositionManifestStore,
+      projection.clock,
+      projection.decompositionManifestWriter,
+      projection.repositoryRoot,
+      projection.planningHydrator,
+    )
 
   @Provides @JvmSynthetic
   fun goalRunnerManifestPersistenceDependencies(
@@ -78,12 +79,13 @@ internal interface RuntimeGoalRunnerStoreProvides {
     workflowSnapshotValidator: WorkflowSnapshotValidator,
     decompositionManifestValidator: DecompositionManifestValidator,
     decompositionManifestStore: DecompositionManifestStore,
-  ): GoalRunnerManifestPersistenceDependencies = GoalRunnerManifestPersistenceDependencies(
-    database,
-    workflowSnapshotValidator,
-    decompositionManifestValidator,
-    decompositionManifestStore,
-  )
+  ): GoalRunnerManifestPersistenceDependencies =
+    GoalRunnerManifestPersistenceDependencies(
+      database,
+      workflowSnapshotValidator,
+      decompositionManifestValidator,
+      decompositionManifestStore,
+    )
 
   @Provides @JvmSynthetic
   fun goalRunnerManifestProjectionDependencies(
@@ -91,12 +93,13 @@ internal interface RuntimeGoalRunnerStoreProvides {
     decompositionManifestWriter: DecompositionManifestProjectionWriter,
     repositoryRoot: RepositoryRoot,
     planningHydrator: GoalChildPlanningHydratorPort,
-  ): GoalRunnerManifestProjectionDependencies = GoalRunnerManifestProjectionDependencies(
-    clock,
-    decompositionManifestWriter,
-    repositoryRoot,
-    planningHydrator,
-  )
+  ): GoalRunnerManifestProjectionDependencies =
+    GoalRunnerManifestProjectionDependencies(
+      clock,
+      decompositionManifestWriter,
+      repositoryRoot,
+      planningHydrator,
+    )
 
   @Provides @JvmSynthetic
   fun goalRunnerWorkflowOutcomeStore(
@@ -104,22 +107,23 @@ internal interface RuntimeGoalRunnerStoreProvides {
     validation: GoalRunnerOutcomeValidationDependencies,
     execution: GoalRunnerOutcomeExecutionDependencies,
     persistence: GoalRunnerOutcomePersistenceDependencies,
-  ): GoalRunnerWorkflowOutcomeStore = WorkflowGoalRunnerOutcomeStore(
-    database,
-    WorkflowGoalRunnerOutcomeStoreDependencies(
-      validation.workflowSnapshotValidator,
-      validation.goalObservabilityEventValidator,
-      validation.goalProgressEventValidator,
-      validation.gitOperations,
-      execution.phaseOutputValidator,
-      execution.workerSupervisor,
-      execution.clock,
-      execution.decompositionManifestValidator,
-      persistence.decompositionManifestStore,
-      persistence.decompositionManifestWriter,
-      persistence.childRepairExecutor,
-    ),
-  )
+  ): GoalRunnerWorkflowOutcomeStore =
+    WorkflowGoalRunnerOutcomeStore(
+      database,
+      WorkflowGoalRunnerOutcomeStoreDependencies(
+        validation.workflowSnapshotValidator,
+        validation.goalObservabilityEventValidator,
+        validation.goalProgressEventValidator,
+        validation.gitOperations,
+        execution.phaseOutputValidator,
+        execution.workerSupervisor,
+        execution.clock,
+        execution.decompositionManifestValidator,
+        persistence.decompositionManifestStore,
+        persistence.decompositionManifestWriter,
+        persistence.childRepairExecutor,
+      ),
+    )
 
   @Provides @JvmSynthetic
   fun goalRunnerOutcomeValidationDependencies(
@@ -127,12 +131,13 @@ internal interface RuntimeGoalRunnerStoreProvides {
     goalObservabilityEventValidator: GoalObservabilityEventValidator,
     goalProgressEventValidator: GoalProgressEventValidator,
     gitOperations: WorkflowGitOperations,
-  ): GoalRunnerOutcomeValidationDependencies = GoalRunnerOutcomeValidationDependencies(
-    workflowSnapshotValidator,
-    goalObservabilityEventValidator,
-    goalProgressEventValidator,
-    gitOperations,
-  )
+  ): GoalRunnerOutcomeValidationDependencies =
+    GoalRunnerOutcomeValidationDependencies(
+      workflowSnapshotValidator,
+      goalObservabilityEventValidator,
+      goalProgressEventValidator,
+      gitOperations,
+    )
 
   @Provides @JvmSynthetic
   fun goalRunnerOutcomeExecutionDependencies(
@@ -140,23 +145,25 @@ internal interface RuntimeGoalRunnerStoreProvides {
     workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
     clock: Clock,
     decompositionManifestValidator: DecompositionManifestValidator,
-  ): GoalRunnerOutcomeExecutionDependencies = GoalRunnerOutcomeExecutionDependencies(
-    phaseOutputValidator,
-    workerSupervisor,
-    clock,
-    decompositionManifestValidator,
-  )
+  ): GoalRunnerOutcomeExecutionDependencies =
+    GoalRunnerOutcomeExecutionDependencies(
+      phaseOutputValidator,
+      workerSupervisor,
+      clock,
+      decompositionManifestValidator,
+    )
 
   @Provides @JvmSynthetic
   fun goalRunnerOutcomePersistenceDependencies(
     decompositionManifestStore: DecompositionManifestStore,
     decompositionManifestWriter: DecompositionManifestProjectionWriter,
     childRepairExecutor: GoalRunnerChildRepairRunnerPort,
-  ): GoalRunnerOutcomePersistenceDependencies = GoalRunnerOutcomePersistenceDependencies(
-    decompositionManifestStore,
-    decompositionManifestWriter,
-    childRepairExecutor,
-  )
+  ): GoalRunnerOutcomePersistenceDependencies =
+    GoalRunnerOutcomePersistenceDependencies(
+      decompositionManifestStore,
+      decompositionManifestWriter,
+      childRepairExecutor,
+    )
 
   @Provides @JvmSynthetic
   fun goalRunnerChildRepairExecutorPort(operations: GoalRunnerChildRepairOperations): GoalRunnerChildRepairRunnerPort =

@@ -11,10 +11,11 @@ import kotlin.test.assertTrue
 class CliGoalOperatorDecisionRuntimeTest {
   @Test
   fun `goal operator-decision help documents the paused-subtask decision surface`() {
-    val result = CliRuntime.run(
-      listOf("goal", "operator-decision", "--help"),
-      CliRuntimeContext(environment = emptyMap(), executableLookup = ExecutableLookup { true }),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("goal", "operator-decision", "--help"),
+        CliRuntimeContext(environment = emptyMap(), executableLookup = ExecutableLookup { true }),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val help = result.stdout.replace(Regex("\\s+"), " ")

@@ -21,30 +21,33 @@ import kotlin.test.assertTrue
 class GoalRunnerDirectRuntimeContinuationTest {
   @Test
   fun `reconciler threads direct runtime goal-continuation context onto the child launch request`() {
-    val store = InMemoryGoalManifestStore(
-      manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-child-runtime"),
-    )
+    val store =
+      InMemoryGoalManifestStore(
+        manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-child-runtime"),
+      )
     val outcomeStore = RecordingOutcomeStore()
-    val reconciler = GoalRunnerLaunchReconciler(
-      manifestStore = store,
-      outcomeStore = outcomeStore,
-      progressReader = GoalRunnerProgressReader(outcomeStore),
-      activityStampWriter = testActivityStampWriter(),
-      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
-      clock = testHarnessClock,
-      diagnostics = NoopRuntimeDiagnostics,
-    )
+    val reconciler =
+      GoalRunnerLaunchReconciler(
+        manifestStore = store,
+        outcomeStore = outcomeStore,
+        progressReader = GoalRunnerProgressReader(outcomeStore),
+        activityStampWriter = testActivityStampWriter(),
+        worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
+        clock = testHarnessClock,
+        diagnostics = NoopRuntimeDiagnostics,
+      )
 
-    val launchRequest = reconciler.subtaskLaunchRequest(
-      SubtaskLaunchRequestArgs(
-        issueKey = "SKILL-56",
-        subtaskId = 1,
-        request = wiringRunRequest(),
-        assignedWorkflowId = null,
-        reviewBaseline = null,
-        spawnAuthorization = null,
-      ),
-    )
+    val launchRequest =
+      reconciler.subtaskLaunchRequest(
+        SubtaskLaunchRequestArgs(
+          issueKey = "SKILL-56",
+          subtaskId = 1,
+          request = wiringRunRequest(),
+          assignedWorkflowId = null,
+          reviewBaseline = null,
+          spawnAuthorization = null,
+        ),
+      )
     val context = requireNotNull(launchRequest.skillRunRequest.goalContinuation)
 
     assertEquals("SKILL-56", context.parentIssueKey)
@@ -58,30 +61,33 @@ class GoalRunnerDirectRuntimeContinuationTest {
 
   @Test
   fun `fresh assigned workflow id wins over stale manifest workflow id`() {
-    val store = InMemoryGoalManifestStore(
-      manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-stale-blocked"),
-    )
+    val store =
+      InMemoryGoalManifestStore(
+        manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-stale-blocked"),
+      )
     val outcomeStore = RecordingOutcomeStore()
-    val reconciler = GoalRunnerLaunchReconciler(
-      manifestStore = store,
-      outcomeStore = outcomeStore,
-      progressReader = GoalRunnerProgressReader(outcomeStore),
-      activityStampWriter = testActivityStampWriter(),
-      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
-      clock = testHarnessClock,
-      diagnostics = NoopRuntimeDiagnostics,
-    )
+    val reconciler =
+      GoalRunnerLaunchReconciler(
+        manifestStore = store,
+        outcomeStore = outcomeStore,
+        progressReader = GoalRunnerProgressReader(outcomeStore),
+        activityStampWriter = testActivityStampWriter(),
+        worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
+        clock = testHarnessClock,
+        diagnostics = NoopRuntimeDiagnostics,
+      )
 
-    val launchRequest = reconciler.subtaskLaunchRequest(
-      SubtaskLaunchRequestArgs(
-        issueKey = "SKILL-56",
-        subtaskId = 1,
-        request = wiringRunRequest(),
-        assignedWorkflowId = "wftr-fresh-assigned",
-        reviewBaseline = null,
-        spawnAuthorization = null,
-      ),
-    )
+    val launchRequest =
+      reconciler.subtaskLaunchRequest(
+        SubtaskLaunchRequestArgs(
+          issueKey = "SKILL-56",
+          subtaskId = 1,
+          request = wiringRunRequest(),
+          assignedWorkflowId = "wftr-fresh-assigned",
+          reviewBaseline = null,
+          spawnAuthorization = null,
+        ),
+      )
     val context = requireNotNull(launchRequest.skillRunRequest.goalContinuation)
 
     assertNull(context.childWorkflowId)
@@ -90,52 +96,58 @@ class GoalRunnerDirectRuntimeContinuationTest {
 
   @Test
   fun `nested child inherits treatment policy while an ordinary request has none`() {
-    val store = InMemoryGoalManifestStore(
-      manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-child-runtime"),
-    )
+    val store =
+      InMemoryGoalManifestStore(
+        manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-child-runtime"),
+      )
     val outcomeStore = RecordingOutcomeStore()
-    val reconciler = GoalRunnerLaunchReconciler(
-      manifestStore = store,
-      outcomeStore = outcomeStore,
-      progressReader = GoalRunnerProgressReader(outcomeStore),
-      activityStampWriter = testActivityStampWriter(),
-      worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
-      clock = testHarnessClock,
-      diagnostics = NoopRuntimeDiagnostics,
-    )
+    val reconciler =
+      GoalRunnerLaunchReconciler(
+        manifestStore = store,
+        outcomeStore = outcomeStore,
+        progressReader = GoalRunnerProgressReader(outcomeStore),
+        activityStampWriter = testActivityStampWriter(),
+        worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
+        clock = testHarnessClock,
+        diagnostics = NoopRuntimeDiagnostics,
+      )
 
-    val treatment = reconciler.subtaskLaunchRequest(
-      SubtaskLaunchRequestArgs(
-        issueKey = "SKILL-56",
-        subtaskId = 1,
-        request = wiringRunRequest().copy(
-          experimentArmId = ExperimentArmId.TREATMENT,
-          experimentTreatmentCapabilities = setOf("fixture-treatment"),
+    val treatment =
+      reconciler.subtaskLaunchRequest(
+        SubtaskLaunchRequestArgs(
+          issueKey = "SKILL-56",
+          subtaskId = 1,
+          request =
+            wiringRunRequest().copy(
+              experimentArmId = ExperimentArmId.TREATMENT,
+              experimentTreatmentCapabilities = setOf("fixture-treatment"),
+            ),
+          assignedWorkflowId = null,
+          reviewBaseline = null,
+          spawnAuthorization = null,
         ),
-        assignedWorkflowId = null,
-        reviewBaseline = null,
-        spawnAuthorization = null,
-      ),
-    )
-    val ordinary = reconciler.subtaskLaunchRequest(
-      SubtaskLaunchRequestArgs(
-        issueKey = "SKILL-56",
-        subtaskId = 1,
-        request = wiringRunRequest(),
-        assignedWorkflowId = null,
-        reviewBaseline = null,
-        spawnAuthorization = null,
-      ),
-    )
+      )
+    val ordinary =
+      reconciler.subtaskLaunchRequest(
+        SubtaskLaunchRequestArgs(
+          issueKey = "SKILL-56",
+          subtaskId = 1,
+          request = wiringRunRequest(),
+          assignedWorkflowId = null,
+          reviewBaseline = null,
+          spawnAuthorization = null,
+        ),
+      )
 
     assertEquals(setOf("fixture-treatment"), treatment.skillRunRequest.treatmentCapabilitiesEnabled)
     assertEquals(emptySet(), ordinary.skillRunRequest.treatmentCapabilitiesEnabled)
     assertEquals(emptySet(), ordinary.skillRunRequest.treatmentCapabilitiesDenied)
   }
 
-  private fun wiringRunRequest(): GoalRunnerRunRequest = GoalRunnerRunRequest(
-    issueKey = "SKILL-56",
-    repoRoot = Path.of("/tmp/skillbill-goal-runner"),
-    invokedAgentId = "claude",
-  )
+  private fun wiringRunRequest(): GoalRunnerRunRequest =
+    GoalRunnerRunRequest(
+      issueKey = "SKILL-56",
+      repoRoot = Path.of("/tmp/skillbill-goal-runner"),
+      invokedAgentId = "claude",
+    )
 }

@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.core
+
 data class FeatureTaskRuntimeCheckpointRefPruneRequest(
   val issueKey: String,
   val subtaskId: String,

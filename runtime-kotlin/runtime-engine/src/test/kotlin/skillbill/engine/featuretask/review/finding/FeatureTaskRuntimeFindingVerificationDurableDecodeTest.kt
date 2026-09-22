@@ -22,6 +22,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+
 class FeatureTaskRuntimeFindingVerificationDurableDecodeTest {
   @Test
   fun `durable finding verification checkpoint round-trips valid dispositions`() {
@@ -46,9 +47,10 @@ class FeatureTaskRuntimeFindingVerificationDurableDecodeTest {
     )
 
     val recorder = recorderFor(repository)
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
-      recorder.loadFindingVerificationCheckpoint(workflowId)
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
+        recorder.loadFindingVerificationCheckpoint(workflowId)
+      }
     assertContains(error.reason, "finding_verification_checkpoint")
     assertContains(error.reason, "array")
   }
@@ -79,29 +81,35 @@ class FeatureTaskRuntimeFindingVerificationDurableDecodeTest {
     )
 
     val recorder = recorderFor(repository)
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
-      recorder.loadFindingVerificationCheckpoint(workflowId)
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
+        recorder.loadFindingVerificationCheckpoint(workflowId)
+      }
     assertContains(error.reason, "disposition")
   }
 }
 
-private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflowId: String, artifactsJson: String) {
+private fun seedWorkflow(
+  repository: InMemoryRuntimeWorkflowRepository,
+  workflowId: String,
+  artifactsJson: String,
+) {
   val engine = WorkflowEngine(testWorkflowSnapshotValidator)
   val definition = WorkflowFamily.TASK_RUNTIME.definition
   val opened = engine.openRecord(definition, workflowId, "ftr-finding-verification", "verify_findings")
   val artifacts = decodeWorkflowArtifacts(artifactsJson)
-  val seeded = engine.updateRecord(
-    definition,
-    opened,
-    WorkflowUpdateInput(
-      workflowStatus = WorkflowStatus.RUNNING,
-      currentStepId = "verify_findings",
-      stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(artifacts),
-      sessionId = "ftr-finding-verification",
-    ),
-  ).toRecord()
+  val seeded =
+    engine.updateRecord(
+      definition,
+      opened,
+      WorkflowUpdateInput(
+        workflowStatus = WorkflowStatus.RUNNING,
+        currentStepId = "verify_findings",
+        stepUpdates = null,
+        artifactsPatch = WorkflowArtifactPatch.from(artifacts),
+        sessionId = "ftr-finding-verification",
+      ),
+    ).toRecord()
   repository.saveFeatureTaskRuntimeWorkflow(seeded)
 }
 
@@ -121,33 +129,37 @@ private fun verificationCheckpointArtifactsJson(
   invalidSeverity: Boolean = false,
   retiredDispositionField: Boolean = false,
 ): String {
-  val checkpointBody = when {
-    malformedShape -> """{"finding_id":"F-001"}"""
-    valid -> """
-      [{
-        "finding_id":"F-001",
-        "disposition":"verified",
-        "reason":"Matches spec intent."
-      }]
-    """.trimIndent()
-    retiredDispositionField -> """
-      [{
-        "finding_id":"F-001",
-        "verdict":"verified",
-        "reason":"Matches spec intent."
-      }]
-    """.trimIndent()
-    invalidSeverity -> """
-      [{
-        "finding_id":"F-001",
-        "disposition":"verified",
-        "reason":"Matches spec intent.",
-        "severity":"catastrophic"
-      }]
-    """.trimIndent()
-    else -> "[]"
-  }
+  val checkpointBody =
+    when {
+      malformedShape -> """{"finding_id":"F-001"}"""
+      valid ->
+        """
+        [{
+          "finding_id":"F-001",
+          "disposition":"verified",
+          "reason":"Matches spec intent."
+        }]
+        """.trimIndent()
+      retiredDispositionField ->
+        """
+        [{
+          "finding_id":"F-001",
+          "verdict":"verified",
+          "reason":"Matches spec intent."
+        }]
+        """.trimIndent()
+      invalidSeverity ->
+        """
+        [{
+          "finding_id":"F-001",
+          "disposition":"verified",
+          "reason":"Matches spec intent.",
+          "severity":"catastrophic"
+        }]
+        """.trimIndent()
+      else -> "[]"
+    }
   return """
     {"$FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY":$checkpointBody}
-  """.trimIndent()
+    """.trimIndent()
 }

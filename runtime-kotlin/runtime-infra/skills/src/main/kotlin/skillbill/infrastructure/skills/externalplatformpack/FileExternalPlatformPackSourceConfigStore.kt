@@ -23,7 +23,6 @@ import java.nio.file.Path
 
 @Inject
 class FileExternalPlatformPackSourceConfigStore : ExternalPlatformPackSourceConfigPort {
-
   override fun readExternalPlatformPackSources(
     request: ExternalPlatformPackSourceConfigRequest,
   ): ExternalPlatformPackSourceConfigResult {
@@ -31,23 +30,26 @@ class FileExternalPlatformPackSourceConfigStore : ExternalPlatformPackSourceConf
     if (!Files.exists(configPath)) {
       return ExternalPlatformPackSourceConfigResult()
     }
-    val payload = try {
-      readTelemetryConfigFile(configPath)?.payload
-    } catch (error: IllegalArgumentException) {
-      throw ExternalPlatformPackConfigError(error.message.orEmpty(), error)
-    } ?: return ExternalPlatformPackSourceConfigResult()
+    val payload =
+      try {
+        readTelemetryConfigFile(configPath)?.payload
+      } catch (error: IllegalArgumentException) {
+        throw ExternalPlatformPackConfigError(error.message.orEmpty(), error)
+      } ?: return ExternalPlatformPackSourceConfigResult()
 
-    val raw = payload[ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES]
-      ?: return ExternalPlatformPackSourceConfigResult()
+    val raw =
+      payload[ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES]
+        ?: return ExternalPlatformPackSourceConfigResult()
     if (raw !is List<*>) {
       throw ExternalPlatformPackConfigError(
         "External platform pack config at '$configPath': " +
           "'${ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES}' must be a list of {path} entries.",
       )
     }
-    val sources = raw.mapIndexedNotNull { index, entry ->
-      parseEntry(configPath, request.userHome, index, entry)
-    }
+    val sources =
+      raw.mapIndexedNotNull { index, entry ->
+        parseEntry(configPath, request.userHome, index, entry)
+      }
     return ExternalPlatformPackSourceConfigResult(sources)
   }
 
@@ -55,30 +57,36 @@ class FileExternalPlatformPackSourceConfigStore : ExternalPlatformPackSourceConf
     request: ExternalPlatformPackSourceRegistrationRequest,
   ): ExternalPlatformPackSourceConfigResult {
     val configPath = resolveTelemetryConfigPath(request.environment, request.userHome)
-    val existing = try {
-      readTelemetryConfigFile(configPath)
-    } catch (error: IllegalArgumentException) {
-      throw ExternalPlatformPackConfigError(error.message.orEmpty(), error)
-    }
+    val existing =
+      try {
+        readTelemetryConfigFile(configPath)
+      } catch (error: IllegalArgumentException) {
+        throw ExternalPlatformPackConfigError(error.message.orEmpty(), error)
+      }
     val payload = LinkedHashMap<String, Any?>(existing?.payload.orEmpty())
     val rawSources = rawExternalPlatformPackSources(configPath, payload)
-    val existingSources = rawSources.mapIndexedNotNull { index, entry ->
-      parseEntry(configPath, request.userHome, index, entry)
-    }
+    val existingSources =
+      rawSources.mapIndexedNotNull { index, entry ->
+        parseEntry(configPath, request.userHome, index, entry)
+      }
     val registeredSource = request.source.normalized()
-    val alreadyRegistered = existingSources.any { source ->
-      source.path == registeredSource.path
-    }
-    val sources = if (alreadyRegistered) {
-      existingSources
-    } else {
-      val updatedRawSources = rawSources + mapOf(
-        ExternalPlatformPackConfigKeys.PATH to registeredSource.path.toString(),
-      )
-      payload[ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES] = updatedRawSources
-      writeTelemetryConfigFile(configPath, TelemetryConfigDocument(TelemetryOpenDocument.from(payload)))
-      existingSources + registeredSource
-    }
+    val alreadyRegistered =
+      existingSources.any { source ->
+        source.path == registeredSource.path
+      }
+    val sources =
+      if (alreadyRegistered) {
+        existingSources
+      } else {
+        val updatedRawSources =
+          rawSources +
+            mapOf(
+              ExternalPlatformPackConfigKeys.PATH to registeredSource.path.toString(),
+            )
+        payload[ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES] = updatedRawSources
+        writeTelemetryConfigFile(configPath, TelemetryConfigDocument(TelemetryOpenDocument.from(payload)))
+        existingSources + registeredSource
+      }
     return ExternalPlatformPackSourceConfigResult(sources)
   }
 
@@ -86,32 +94,38 @@ class FileExternalPlatformPackSourceConfigStore : ExternalPlatformPackSourceConf
     request: ExternalPlatformPackSourceUnregisterRequest,
   ): ExternalPlatformPackSourceConfigResult {
     val configPath = resolveTelemetryConfigPath(request.environment, request.userHome)
-    val existing = try {
-      readTelemetryConfigFile(configPath)
-    } catch (error: IllegalArgumentException) {
-      throw ExternalPlatformPackConfigError(error.message.orEmpty(), error)
-    } ?: return ExternalPlatformPackSourceConfigResult()
+    val existing =
+      try {
+        readTelemetryConfigFile(configPath)
+      } catch (error: IllegalArgumentException) {
+        throw ExternalPlatformPackConfigError(error.message.orEmpty(), error)
+      } ?: return ExternalPlatformPackSourceConfigResult()
     val payload = LinkedHashMap<String, Any?>(existing.payload)
     val rawSources = rawExternalPlatformPackSources(configPath, payload)
     val target = request.source.normalized().path
-    val locations = rawSources.mapIndexed { index, entry ->
-      entryLocation(configPath, request.userHome, index, entry)
-    }
+    val locations =
+      rawSources.mapIndexed { index, entry ->
+        entryLocation(configPath, request.userHome, index, entry)
+      }
     val kept = rawSources.filterIndexed { index, _ -> locations[index].toFileLocation() != target }
     if (kept.size == rawSources.size) {
       return ExternalPlatformPackSourceConfigResult(
         rawSources.mapIndexed { index, entry -> parseEntry(configPath, request.userHome, index, entry) },
       )
     }
-    val remaining = kept.mapIndexed { index, entry ->
-      parseEntry(configPath, request.userHome, index, entry)
-    }
+    val remaining =
+      kept.mapIndexed { index, entry ->
+        parseEntry(configPath, request.userHome, index, entry)
+      }
     payload[ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES] = kept
     writeTelemetryConfigFile(configPath, TelemetryConfigDocument(TelemetryOpenDocument.from(payload)))
     return ExternalPlatformPackSourceConfigResult(remaining)
   }
 
-  private fun rawExternalPlatformPackSources(configPath: Path, payload: Map<String, Any?>): List<Any?> {
+  private fun rawExternalPlatformPackSources(
+    configPath: Path,
+    payload: Map<String, Any?>,
+  ): List<Any?> {
     val raw = payload[ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES] ?: return emptyList()
     if (raw !is List<*>) {
       throw ExternalPlatformPackConfigError(
@@ -122,7 +136,12 @@ class FileExternalPlatformPackSourceConfigStore : ExternalPlatformPackSourceConf
     return raw
   }
 
-  private fun entryLocation(configPath: Path, userHome: Path, index: Int, entry: Any?): Path {
+  private fun entryLocation(
+    configPath: Path,
+    userHome: Path,
+    index: Int,
+    entry: Any?,
+  ): Path {
     return try {
       val map = requireExternalPlatformPackEntryMap(configPath, index, entry)
       val rawPath = requireExternalPlatformPackEntryPath(configPath, index, map)
@@ -138,7 +157,12 @@ class FileExternalPlatformPackSourceConfigStore : ExternalPlatformPackSourceConf
     }
   }
 
-  private fun parseEntry(configPath: Path, userHome: Path, index: Int, entry: Any?): ExternalPlatformPackSource {
+  private fun parseEntry(
+    configPath: Path,
+    userHome: Path,
+    index: Int,
+    entry: Any?,
+  ): ExternalPlatformPackSource {
     val resolvedPath = entryLocation(configPath, userHome, index, entry)
     return ExternalPlatformPackSource(path = resolvedPath.toFileLocation())
   }
@@ -148,17 +172,22 @@ class FileExternalPlatformPackSourceConfigStore : ExternalPlatformPackSourceConf
 
   override fun resolveExternalPlatformPackPath(
     request: ExternalPlatformPackPathResolveRequest,
-  ): ExternalPlatformPackPathResolveResult = ExternalPlatformPackPathResolveResult(
-    path = resolveExternalPlatformPackSourcePath(request.userHome, request.rawPath),
-  )
+  ): ExternalPlatformPackPathResolveResult =
+    ExternalPlatformPackPathResolveResult(
+      path = resolveExternalPlatformPackSourcePath(request.userHome, request.rawPath),
+    )
 }
 
-internal fun resolveExternalPlatformPackSourcePath(userHome: Path, rawPath: String): Path {
-  val expanded = when {
-    rawPath == "~" -> userHome.toString()
-    rawPath.startsWith("~/") -> userHome.resolve(rawPath.removePrefix("~/")).toString()
-    else -> rawPath
-  }
+internal fun resolveExternalPlatformPackSourcePath(
+  userHome: Path,
+  rawPath: String,
+): Path {
+  val expanded =
+    when {
+      rawPath == "~" -> userHome.toString()
+      rawPath.startsWith("~/") -> userHome.resolve(rawPath.removePrefix("~/")).toString()
+      else -> rawPath
+    }
   val candidate = Path.of(expanded)
   return if (candidate.isAbsolute) {
     candidate.normalize()

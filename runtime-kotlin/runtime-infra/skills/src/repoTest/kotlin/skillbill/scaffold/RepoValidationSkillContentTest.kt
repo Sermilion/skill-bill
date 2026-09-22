@@ -8,6 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class RepoValidationSkillContentTest {
   @Test
   fun `repo validation preserves native agent source files`() {
@@ -15,13 +16,14 @@ class RepoValidationSkillContentTest {
     createRepoValidationSkillFixture(repoRoot)
     val nativeAgent = repoRoot.resolve("skills/bill-code-review/native-agents/bill-code-review-worker.md")
     Files.createDirectories(nativeAgent.parent)
-    val sourceText = renderNativeAgentSource(
-      NativeAgentSource(
-        name = "bill-code-review-worker",
-        description = "Review changed code.",
-        body = "Review the changed files.",
-      ),
-    )
+    val sourceText =
+      renderNativeAgentSource(
+        NativeAgentSource(
+          name = "bill-code-review-worker",
+          description = "Review changed code.",
+          body = "Review the changed files.",
+        ),
+      )
     Files.writeString(nativeAgent, sourceText)
 
     RepoValidationRuntime.validateRepo(repoRoot, testNativeAgentCompositionContext(repoRoot))

@@ -11,8 +11,10 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import java.nio.file.Path
 import kotlin.time.Duration
 
-fun persistenceReason(subtask: DecompositionSubtask, error: Throwable): String =
-  "Goal planning subtask '${subtask.id}' plan could not be checkpointed: ${error.message.orEmpty()}"
+fun persistenceReason(
+  subtask: DecompositionSubtask,
+  error: Throwable,
+): String = "Goal planning subtask '${subtask.id}' plan could not be checkpointed: ${error.message.orEmpty()}"
 
 fun resolvedGovernedPath(
   canonicalRepository: Path,
@@ -34,7 +36,10 @@ fun resolvedSubSpecPath(
   return resolved.takeIf { it.startsWith(canonicalRepository) }
 }
 
-fun lexicalPath(canonicalRepository: Path, governingPath: String): Path {
+fun lexicalPath(
+  canonicalRepository: Path,
+  governingPath: String,
+): Path {
   val path = Path.of(governingPath)
   return (if (path.isAbsolute) path else canonicalRepository.resolve(path)).toAbsolutePath().normalize()
 }
@@ -42,22 +47,26 @@ fun lexicalPath(canonicalRepository: Path, governingPath: String): Path {
 internal fun emptyOrStopped(args: EmptyOrStoppedArgs): GoalPlanningPhaseProduction {
   val outcome = args.outcome
   val shared = args.shared
-  val evidence = emptyTurnEvidence(outcome, args.durationMs)
-    ?: return GoalPlanningPhaseProduction.Stopped(
-      stopped(
-        shared,
-        args.currentSubtaskId,
-        exhaustedReason(outcome, args.request.planningBudget),
-        args.phaseId,
-      ),
-    )
+  val evidence =
+    emptyTurnEvidence(outcome, args.durationMs)
+      ?: return GoalPlanningPhaseProduction.Stopped(
+        stopped(
+          shared,
+          args.currentSubtaskId,
+          exhaustedReason(outcome, args.request.planningBudget),
+          args.phaseId,
+        ),
+      )
   return GoalPlanningPhaseProduction.EmptyProviderTurn(
     emptyTurnReason(args.phaseId, evidence),
     evidence,
   )
 }
 
-fun emptyTurnEvidence(outcome: AgentRunLaunchOutcome, durationMs: Long): GoalPlanningEmptyTurnEvidence? {
+fun emptyTurnEvidence(
+  outcome: AgentRunLaunchOutcome,
+  durationMs: Long,
+): GoalPlanningEmptyTurnEvidence? {
   if (outcome !is AgentRunLaunchFacts) return null
   val cleanExit = !outcome.spawnFailed && !outcome.timedOut && !outcome.interrupted && outcome.exitStatus == 0
   if (!cleanExit) return null
@@ -70,24 +79,31 @@ fun emptyTurnEvidence(outcome: AgentRunLaunchOutcome, durationMs: Long): GoalPla
   )
 }
 
-fun launchedAgentId(outcome: AgentRunLaunchOutcome): String = when (outcome) {
-  is AgentRunLaunchFacts -> outcome.agent.id
-  is UnsupportedAgentRunLaunch -> "unknown"
-}
-
-fun stdoutFor(outcome: AgentRunLaunchOutcome): String? = when (outcome) {
-  is AgentRunLaunchFacts -> outcome.stdout.takeIf { stdout ->
-    !outcome.spawnFailed &&
-      !outcome.timedOut &&
-      !outcome.interrupted &&
-      outcome.exitStatus == 0 &&
-      stdout.isNotBlank()
+fun launchedAgentId(outcome: AgentRunLaunchOutcome): String =
+  when (outcome) {
+    is AgentRunLaunchFacts -> outcome.agent.id
+    is UnsupportedAgentRunLaunch -> "unknown"
   }
-  is UnsupportedAgentRunLaunch -> null
-}
 
-fun exhaustedReason(outcome: AgentRunLaunchOutcome, planningBudget: Duration?): String = when (outcome) {
-  is UnsupportedAgentRunLaunch -> "Goal planning could not launch a planning agent: ${outcome.reason}"
-  is AgentRunLaunchFacts ->
-    "Goal planning produced no usable agent output: ${exhaustedCause(outcome, planningBudget)}."
-}
+fun stdoutFor(outcome: AgentRunLaunchOutcome): String? =
+  when (outcome) {
+    is AgentRunLaunchFacts ->
+      outcome.stdout.takeIf { stdout ->
+        !outcome.spawnFailed &&
+          !outcome.timedOut &&
+          !outcome.interrupted &&
+          outcome.exitStatus == 0 &&
+          stdout.isNotBlank()
+      }
+    is UnsupportedAgentRunLaunch -> null
+  }
+
+fun exhaustedReason(
+  outcome: AgentRunLaunchOutcome,
+  planningBudget: Duration?,
+): String =
+  when (outcome) {
+    is UnsupportedAgentRunLaunch -> "Goal planning could not launch a planning agent: ${outcome.reason}"
+    is AgentRunLaunchFacts ->
+      "Goal planning produced no usable agent output: ${exhaustedCause(outcome, planningBudget)}."
+  }

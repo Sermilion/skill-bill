@@ -43,18 +43,19 @@ data class ReviewLaneDecision(
   val normalizedOwnedPaths: List<String> get() = ownedPaths
 
   val canonical: String
-    get() = listOf(
-      lane,
-      included.toString(),
-      reason,
-      canonicalFieldList(signals.sorted()),
-      canonicalFieldList(normalizedOwnedPaths.sorted()),
-      orderIndex.toString(),
-      required.toString(),
-      canonicalFieldList(originLayerChains.map { canonicalFieldList(it) }),
-      owningPack.orEmpty(),
-      specialistSkillName.orEmpty(),
-      canonicalFieldList(addOns),
-    )
-      .let { canonicalFieldList(it) }
+    get() =
+      listOf(
+        lane,
+        included.toString(),
+        reason,
+        canonicalFieldList(signals.sorted()),
+        canonicalFieldList(normalizedOwnedPaths.sorted()),
+        orderIndex.toString(),
+        required.toString(),
+        canonicalFieldList(originLayerChains.map { canonicalFieldList(it) }),
+        owningPack.orEmpty(),
+        specialistSkillName.orEmpty(),
+        canonicalFieldList(addOns),
+      )
+        .let { canonicalFieldList(it) }
 }

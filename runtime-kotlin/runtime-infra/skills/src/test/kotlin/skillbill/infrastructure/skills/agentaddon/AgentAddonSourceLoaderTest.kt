@@ -11,13 +11,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-class AgentAddonSourceLoaderTest {
 
+class AgentAddonSourceLoaderTest {
   @Test
   fun `unknown agent id fails with typed parse error`() {
-    val error = assertFailsWith<InvalidAgentAddonAgentIdError> {
-      SupportedAgent.parseAgentAddonId("unsupported-agent")
-    }
+    val error =
+      assertFailsWith<InvalidAgentAddonAgentIdError> {
+        SupportedAgent.parseAgentAddonId("unsupported-agent")
+      }
 
     assertTrue(error.reason.contains("Unknown agent"), error.reason)
   }
@@ -66,9 +67,10 @@ class AgentAddonSourceLoaderTest {
     writeAddon(repo, "shared", listOf("codex"))
     writeAddon(external, "shared", listOf("codex"))
 
-    val error = assertFailsWith<InvalidAgentAddonSchemaError> {
-      discoverAgentAddons(repo, listOf(external.resolve("agent-addons")))
-    }
+    val error =
+      assertFailsWith<InvalidAgentAddonSchemaError> {
+        discoverAgentAddons(repo, listOf(external.resolve("agent-addons")))
+      }
 
     assertTrue(error.reason.contains("duplicate slug 'shared'"), error.reason)
   }
@@ -83,16 +85,18 @@ class AgentAddonSourceLoaderTest {
   fun `existing malformed roots fail with a typed error`() {
     val nonDirectoryRepo = Files.createTempDirectory("agent-addon-root-file")
     Files.writeString(nonDirectoryRepo.resolve("agent-addons"), "not a directory")
-    val nonDirectoryError = assertFailsWith<InvalidAgentAddonSchemaError> {
-      discoverAgentAddons(nonDirectoryRepo)
-    }
+    val nonDirectoryError =
+      assertFailsWith<InvalidAgentAddonSchemaError> {
+        discoverAgentAddons(nonDirectoryRepo)
+      }
     assertTrue(nonDirectoryError.reason.contains("root must be a directory"), nonDirectoryError.reason)
 
     val danglingLinkRepo = Files.createTempDirectory("agent-addon-root-link")
     Files.createSymbolicLink(danglingLinkRepo.resolve("agent-addons"), danglingLinkRepo.resolve("missing"))
-    val danglingLinkError = assertFailsWith<InvalidAgentAddonSchemaError> {
-      discoverAgentAddons(danglingLinkRepo)
-    }
+    val danglingLinkError =
+      assertFailsWith<InvalidAgentAddonSchemaError> {
+        discoverAgentAddons(danglingLinkRepo)
+      }
     assertTrue(danglingLinkError.reason.contains("root must be a directory"), danglingLinkError.reason)
   }
 
@@ -282,10 +286,11 @@ class AgentAddonSourceLoaderTest {
     overrides: AddonOverrides = AddonOverrides(),
   ): Path {
     val root = repo.resolve("agent-addons").resolve(slug)
-    val yamlDescription = overrides.description
-      .replace("\\", "\\\\")
-      .replace("\"", "\\\"")
-      .replace("\n", "\\n")
+    val yamlDescription =
+      overrides.description
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
     Files.createDirectories(root)
     Files.writeString(
       root.resolve("agent-addon.yaml"),

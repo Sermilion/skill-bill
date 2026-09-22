@@ -8,28 +8,30 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
+
 @Inject
 class ConfigResolveExternalAgentAddonsCommand(
   private val config: ExternalAgentAddonSourceConfigPort,
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "resolve-external-agent-addons",
-  "Resolve external agent add-on sources from the machine-global config.json.",
-) {
+    "resolve-external-agent-addons",
+    "Resolve external agent add-on sources from the machine-global config.json.",
+  ) {
   override fun run() {
-    val sources = try {
-      config.readExternalAgentAddonSources(
-        ExternalAgentAddonSourceConfigRequest(inputs.userHome, inputs.environment),
-      ).sources
-    } catch (error: ShellContentContractException) {
-      state.completeText(
-        "${error.message}\n",
-        mapOf(SharedPayloadKeys.STATUS to "failed", "error" to error.message.orEmpty()),
-        exitCode = 1,
-      )
-      return
-    }
+    val sources =
+      try {
+        config.readExternalAgentAddonSources(
+          ExternalAgentAddonSourceConfigRequest(inputs.userHome, inputs.environment),
+        ).sources
+      } catch (error: ShellContentContractException) {
+        state.completeText(
+          "${error.message}\n",
+          mapOf(SharedPayloadKeys.STATUS to "failed", "error" to error.message.orEmpty()),
+          exitCode = 1,
+        )
+        return
+      }
     val text = sources.joinToString("") { source -> "${source.path}\n" }
     state.completeText(
       text,

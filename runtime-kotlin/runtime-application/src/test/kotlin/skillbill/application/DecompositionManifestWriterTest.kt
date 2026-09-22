@@ -29,6 +29,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class DecompositionManifestWriterTest {
   private val engine: WorkflowEngine = WorkflowEngine(testWorkflowSnapshotValidator)
 
@@ -39,15 +40,16 @@ class DecompositionManifestWriterTest {
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
 
-    val result = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningPlan(Path.of(".feature-specs/SKILL-51-decomposition/spec.md")),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
+    val result =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult = decompositionPlanningPlan(Path.of(".feature-specs/SKILL-51-decomposition/spec.md")),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
+        ),
+      )
 
     assertNotNull(result)
     assertTrue(Files.isRegularFile(result.manifestPath.toPath()))
@@ -69,11 +71,12 @@ class DecompositionManifestWriterTest {
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
 
-    val result = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = "{}",
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to stackedDecompositionPlanningPlan().toPayload())),
-    )
+    val result =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = "{}",
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to stackedDecompositionPlanningPlan().toPayload())),
+      )
 
     assertNotNull(result)
     assertEquals("stacked_branches", result.manifest.executionModel.wireValue)
@@ -111,23 +114,27 @@ class DecompositionManifestWriterTest {
       ),
     )
 
-    val result = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = runtimeArtifactsJson(secondSubtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf("review_result" to mapOf("finding_count" to 0)),
-      ),
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-2",
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "audit",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
+    val result =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = runtimeArtifactsJson(secondSubtaskSpec),
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf("review_result" to mapOf("finding_count" to 0)),
           ),
-        ),
-      ),
-    )
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-subtask-2",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
+            currentStepId = "audit",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
+                ),
+              ),
+          ),
+      )
 
     assertNotNull(result)
     val runtimeSubtask = result.manifest.subtasks.single { it.id == 2 }
@@ -155,41 +162,47 @@ class DecompositionManifestWriterTest {
       # Foundation
       """.trimIndent(),
     )
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningPlan(parentSpecPath),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
-    assertNotNull(initial)
-    val completed = initial.manifest.copy(
-      subtasks = initial.manifest.subtasks.map { subtask ->
-        if (subtask.id == 1) {
-          subtask.copy(status = "complete", commitSha = "commit-subtask-1", workflowId = "wfl-subtask-1")
-        } else {
-          subtask
-        }
-      },
-    )
-
-    val result = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = durableRuntimeArtifactsJson(completed, subtaskSpec),
-      artifactsPatch = null,
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-1",
-        workflowStatus = WorkflowStatus.COMPLETED.wireValue,
-        currentStepId = "complete",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "complete", "status" to "completed", "attempt_count" to 1),
-          ),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult = decompositionPlanningPlan(parentSpecPath),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-      ),
-    )
+      )
+    assertNotNull(initial)
+    val completed =
+      initial.manifest.copy(
+        subtasks =
+          initial.manifest.subtasks.map { subtask ->
+            if (subtask.id == 1) {
+              subtask.copy(status = "complete", commitSha = "commit-subtask-1", workflowId = "wfl-subtask-1")
+            } else {
+              subtask
+            }
+          },
+      )
+
+    val result =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = durableRuntimeArtifactsJson(completed, subtaskSpec),
+        artifactsPatch = null,
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-subtask-1",
+            workflowStatus = WorkflowStatus.COMPLETED.wireValue,
+            currentStepId = "complete",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "complete", "status" to "completed", "attempt_count" to 1),
+                ),
+              ),
+          ),
+      )
 
     assertNotNull(result)
     val subtask = result.manifest.subtasks.single { it.id == 1 }
@@ -206,30 +219,33 @@ class DecompositionManifestWriterTest {
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "---\nstatus: Blocked\n---\n\n# Parent spec\n")
     Files.writeString(subtaskSpec, "---\nstatus: Blocked\n---\n\n# Foundation\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningPlan(parentSpecPath),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
-    assertNotNull(initial)
-    val reset = initial.manifest.copy(
-      status = "pending",
-      subtasks = initial.manifest.subtasks.map { subtask -> subtask.copy(status = "pending") },
-    )
-
-    val result = writeProjectionFromWorkflowState(
-      repoRoot,
-      JsonCodec.mapToJsonString(
-        mapOf(
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(reset),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult = decompositionPlanningPlan(parentSpecPath),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-      ),
-    )
+      )
+    assertNotNull(initial)
+    val reset =
+      initial.manifest.copy(
+        status = "pending",
+        subtasks = initial.manifest.subtasks.map { subtask -> subtask.copy(status = "pending") },
+      )
+
+    val result =
+      writeProjectionFromWorkflowState(
+        repoRoot,
+        JsonCodec.mapToJsonString(
+          mapOf(
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(reset),
+          ),
+        ),
+      )
 
     assertNotNull(result)
     assertContains(Files.readString(parentSpecPath), "status: Blocked")
@@ -252,21 +268,24 @@ class DecompositionManifestWriterTest {
       ),
     )
 
-    val result = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = runtimeArtifactsJson(parentSpecPath.parent.resolve("missing-subtask.md")),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf("review_result" to mapOf("finding_count" to 0))),
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-wrong-subtask",
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "audit",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
+    val result =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = runtimeArtifactsJson(parentSpecPath.parent.resolve("missing-subtask.md")),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf("review_result" to mapOf("finding_count" to 0))),
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-wrong-subtask",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
+            currentStepId = "audit",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
+                ),
+              ),
           ),
-        ),
-      ),
-    )
+      )
 
     assertNotNull(result)
     assertEquals(listOf("pending", "pending"), result.manifest.subtasks.map { it.status })
@@ -290,21 +309,24 @@ class DecompositionManifestWriterTest {
       ),
     )
 
-    val result = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = runtimeArtifactsJson(subtaskSpec),
-      artifactsPatch = null,
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-1",
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "audit",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "review", "status" to "skipped", "attempt_count" to 1),
+    val result =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = runtimeArtifactsJson(subtaskSpec),
+        artifactsPatch = null,
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-subtask-1",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
+            currentStepId = "audit",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "review", "status" to "skipped", "attempt_count" to 1),
+                ),
+              ),
           ),
-        ),
-      ),
-    )
+      )
 
     assertNotNull(result)
     assertEquals("in_progress", result.manifest.subtasks.first().status)
@@ -318,33 +340,37 @@ class DecompositionManifestWriterTest {
     val subtaskSpec = parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningPlan(parentSpecPath),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult = decompositionPlanningPlan(parentSpecPath),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
+        ),
+      )
     assertNotNull(initial)
     Files.delete(initial.manifestPath.toPath())
 
-    val result = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf("validation_result" to mapOf("passed" to true))),
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-1",
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "validate",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1),
+    val result =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf("validation_result" to mapOf("passed" to true))),
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-subtask-1",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
+            currentStepId = "validate",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1),
+                ),
+              ),
           ),
-        ),
-      ),
-    )
+      )
 
     assertNotNull(result)
     assertTrue(Files.isRegularFile(initial.manifestPath.toPath()))
@@ -359,41 +385,47 @@ class DecompositionManifestWriterTest {
     val subtaskSpec = parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningPlan(parentSpecPath),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
-    assertNotNull(initial)
-    val durable = initial.manifest.copy(
-      subtasks = initial.manifest.subtasks.map { subtask ->
-        if (subtask.id == 1) {
-          subtask.copy(status = "in_progress", commitSha = "abc123", workflowId = "wfl-subtask-1")
-        } else {
-          subtask
-        }
-      },
-    )
-
-    val result = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = durableRuntimeArtifactsJson(durable, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf("review_result" to mapOf("finding_count" to 0))),
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-1",
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "audit",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
-          ),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult = decompositionPlanningPlan(parentSpecPath),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-      ),
-    )
+      )
+    assertNotNull(initial)
+    val durable =
+      initial.manifest.copy(
+        subtasks =
+          initial.manifest.subtasks.map { subtask ->
+            if (subtask.id == 1) {
+              subtask.copy(status = "in_progress", commitSha = "abc123", workflowId = "wfl-subtask-1")
+            } else {
+              subtask
+            }
+          },
+      )
+
+    val result =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = durableRuntimeArtifactsJson(durable, subtaskSpec),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf("review_result" to mapOf("finding_count" to 0))),
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-subtask-1",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
+            currentStepId = "audit",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
+                ),
+              ),
+          ),
+      )
 
     assertNotNull(result)
     val subtask = result.manifest.subtasks.first()
@@ -417,17 +449,18 @@ class DecompositionManifestWriterTest {
       ),
     )
 
-    val changed = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = stackedDecompositionPlanningPlan(parentSpecPath),
-        baseBranch = "main",
-        featureBranch = null,
-        executionModel = DecompositionExecutionModel.STACKED_BRANCHES,
-        stackBranches = parseStackBranches(stackedDecompositionPlanningPlan(parentSpecPath)),
-      ),
-    )
+    val changed =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult = stackedDecompositionPlanningPlan(parentSpecPath),
+          baseBranch = "main",
+          featureBranch = null,
+          executionModel = DecompositionExecutionModel.STACKED_BRANCHES,
+          stackBranches = parseStackBranches(stackedDecompositionPlanningPlan(parentSpecPath)),
+        ),
+      )
 
     assertNotNull(changed)
     assertEquals("stacked_branches", changed.manifest.executionModel.wireValue)
@@ -452,31 +485,34 @@ class DecompositionManifestWriterTest {
       repoRoot = repoRoot,
       existingArtifactsJson = runtimeArtifactsJson(parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")),
       artifactsPatch = null,
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-1",
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-          ),
+      runtimeUpdate =
+        DecompositionManifestRuntimeUpdate(
+          workflowId = "wfl-subtask-1",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
+          currentStepId = "implement",
+          stepUpdates =
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+              ),
+            ),
         ),
-      ),
     )
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      writeIfDecomposed(
-        DecompositionManifestWriteRequest(
-          repoRoot = repoRoot,
-          parentSpecPath = parentSpecPath,
-          planningResult = stackedDecompositionPlanningPlan(parentSpecPath),
-          baseBranch = "main",
-          featureBranch = null,
-          executionModel = DecompositionExecutionModel.STACKED_BRANCHES,
-          stackBranches = parseStackBranches(stackedDecompositionPlanningPlan(parentSpecPath)),
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        writeIfDecomposed(
+          DecompositionManifestWriteRequest(
+            repoRoot = repoRoot,
+            parentSpecPath = parentSpecPath,
+            planningResult = stackedDecompositionPlanningPlan(parentSpecPath),
+            baseBranch = "main",
+            featureBranch = null,
+            executionModel = DecompositionExecutionModel.STACKED_BRANCHES,
+            stackBranches = parseStackBranches(stackedDecompositionPlanningPlan(parentSpecPath)),
+          ),
+        )
+      }
 
     assertContains(error.reason, "execution_model cannot change after decomposition execution has begun")
     assertContains(error.reason, "manually migrate")
@@ -489,41 +525,44 @@ class DecompositionManifestWriterTest {
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
 
-    val result = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = DecompositionPlanningResult(
-          mode = "implement",
-          subtasks = listOf(nonDecomposeSubtaskPlaceholder()),
+    val result =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult =
+            DecompositionPlanningResult(
+              mode = "implement",
+              subtasks = listOf(nonDecomposeSubtaskPlaceholder()),
+            ),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-single",
         ),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-single",
-      ),
-    )
+      )
 
     assertEquals(null, result)
     assertFalse(Files.exists(parentSpecPath.parent.resolve("decomposition-manifest.yaml")))
 
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
     val opened = engine.openRecord(definition, "ftr-compat-001", "session-compat", "plan")
-    val updated = engine.updateRecord(
-      definition,
-      opened,
-      WorkflowUpdateInput(
-        workflowStatus = WorkflowStatus.RUNNING,
-        currentStepId = "implement",
-        stepUpdates =
-        WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
-            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-          ),
+    val updated =
+      engine.updateRecord(
+        definition,
+        opened,
+        WorkflowUpdateInput(
+          workflowStatus = WorkflowStatus.RUNNING,
+          currentStepId = "implement",
+          stepUpdates =
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+                mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+              ),
+            ),
+          artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to mapOf("mode" to "implement", "task_count" to 1))),
+          sessionId = "session-compat",
         ),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to mapOf("mode" to "implement", "task_count" to 1))),
-        sessionId = "session-compat",
-      ),
-    )
+      )
 
     val snapshot = engine.snapshotView(definition, updated)
     assertEquals(mapOf("mode" to "implement", "task_count" to 1), snapshot.artifacts["plan"])
@@ -536,28 +575,30 @@ class DecompositionManifestWriterTest {
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
 
-    val fractional = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      writeIfDecomposed(
-        DecompositionManifestWriteRequest(
-          repoRoot = repoRoot,
-          parentSpecPath = parentSpecPath,
-          planningResult = decompositionPlanWithFirstSubtaskId(parentSpecPath, 1.5),
-          baseBranch = "main",
-          featureBranch = "feature/SKILL-51-decomposition",
-        ),
-      )
-    }
-    val oversized = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      writeIfDecomposed(
-        DecompositionManifestWriteRequest(
-          repoRoot = repoRoot,
-          parentSpecPath = parentSpecPath,
-          planningResult = decompositionPlanWithFirstSubtaskId(parentSpecPath, 4_294_967_297L),
-          baseBranch = "main",
-          featureBranch = "feature/SKILL-51-decomposition",
-        ),
-      )
-    }
+    val fractional =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        writeIfDecomposed(
+          DecompositionManifestWriteRequest(
+            repoRoot = repoRoot,
+            parentSpecPath = parentSpecPath,
+            planningResult = decompositionPlanWithFirstSubtaskId(parentSpecPath, 1.5),
+            baseBranch = "main",
+            featureBranch = "feature/SKILL-51-decomposition",
+          ),
+        )
+      }
+    val oversized =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        writeIfDecomposed(
+          DecompositionManifestWriteRequest(
+            repoRoot = repoRoot,
+            parentSpecPath = parentSpecPath,
+            planningResult = decompositionPlanWithFirstSubtaskId(parentSpecPath, 4_294_967_297L),
+            baseBranch = "main",
+            featureBranch = "feature/SKILL-51-decomposition",
+          ),
+        )
+      }
 
     assertContains(fractional.reason, "id must be an integer")
     assertContains(oversized.reason, "id must be an integer")
@@ -569,29 +610,35 @@ class DecompositionManifestWriterTest {
     val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")
     val plan = decompositionPlanningPlan(parentSpecPath).toPayload().toMutableMap().apply { put("base_branch", 17) }
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      writeFromWorkflowUpdate(
-        repoRoot = repoRoot,
-        existingArtifactsJson = "{}",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to plan)),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        writeFromWorkflowUpdate(
+          repoRoot = repoRoot,
+          existingArtifactsJson = "{}",
+          artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to plan)),
+        )
+      }
 
     assertContains(error.reason, "base_branch")
     assertContains(error.reason, "nonblank string")
   }
 
-  private fun decompositionPlanWithFirstSubtaskId(parentSpecPath: Path, subtaskId: Any): DecompositionPlanningResult {
+  private fun decompositionPlanWithFirstSubtaskId(
+    parentSpecPath: Path,
+    subtaskId: Any,
+  ): DecompositionPlanningResult {
     val plan = decompositionPlanningPlan(parentSpecPath).toPayload().toMutableMap()
-    val subtasks = (plan.getValue("subtasks") as List<*>).mapIndexed { index, raw ->
-      val item = (raw as Map<*, *>).entries.associateTo(LinkedHashMap<String, Any?>()) { (key, value) ->
-        key.toString() to value
+    val subtasks =
+      (plan.getValue("subtasks") as List<*>).mapIndexed { index, raw ->
+        val item =
+          (raw as Map<*, *>).entries.associateTo(LinkedHashMap<String, Any?>()) { (key, value) ->
+            key.toString() to value
+          }
+        if (index == 0) {
+          item["id"] = subtaskId
+        }
+        item
       }
-      if (index == 0) {
-        item["id"] = subtaskId
-      }
-      item
-    }
     plan["subtasks"] = subtasks
     return DecompositionPlanningResult.fromWireMap(plan, parentSpecPath.toString())
   }
@@ -603,7 +650,10 @@ class DecompositionManifestWriterTest {
     """{"assessment":{"spec_path":"${subtaskSpec.toString().replace("\\", "\\\\")}"},""" +
       """"branch":{"branch":"feature/SKILL-51-decomposition"}}"""
 
-  private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest, subtaskSpec: Path): String =
+  private fun durableRuntimeArtifactsJson(
+    manifest: DecompositionManifest,
+    subtaskSpec: Path,
+  ): String =
     JsonCodec.mapToJsonString(
       mapOf(
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),

@@ -20,6 +20,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class GoalTelemetryStoreTest {
   @Test
   fun `empty store reports zero runs and no most-recent run`() {
@@ -245,9 +246,10 @@ class GoalTelemetryStoreTest {
       store.goalSubtaskFinished(attributedSubtask(1, "codex", listOf("codex")), "full")
       store.goalSubtaskFinished(attributedSubtask(2, "claude", listOf("codex", "claude")), "full")
 
-      val payloads = pendingOutbox(connection)
-        .filter { it.eventName == "skillbill_goal_subtask_finished" }
-        .map { parsePayload(it.payloadJson) }
+      val payloads =
+        pendingOutbox(connection)
+          .filter { it.eventName == "skillbill_goal_subtask_finished" }
+          .map { parsePayload(it.payloadJson) }
 
       payloads.forEachIndexed { index, payload ->
         assertNotNull(payload["finalizing_agent_id"], "payload[$index] must contain finalizing_agent_id key")
@@ -256,13 +258,15 @@ class GoalTelemetryStoreTest {
         assertIs<List<*>>(payload["participating_agent_ids"], "payload[$index].participating_agent_ids must be a List")
       }
 
-      val finalizedByAgent = payloads.map { assertIs<String>(it["finalizing_agent_id"]) }
-        .groupingBy { it }.eachCount()
-      val handoffParticipantByAgent = payloads.flatMap { payload ->
-        val finalizer = assertIs<String>(payload["finalizing_agent_id"])
-        val participants = assertIs<List<String>>(payload["participating_agent_ids"])
-        participants.filter { it != finalizer }
-      }.groupingBy { it }.eachCount()
+      val finalizedByAgent =
+        payloads.map { assertIs<String>(it["finalizing_agent_id"]) }
+          .groupingBy { it }.eachCount()
+      val handoffParticipantByAgent =
+        payloads.flatMap { payload ->
+          val finalizer = assertIs<String>(payload["finalizing_agent_id"])
+          val participants = assertIs<List<String>>(payload["participating_agent_ids"])
+          participants.filter { it != finalizer }
+        }.groupingBy { it }.eachCount()
 
       assertEquals(mapOf("codex" to 1, "claude" to 1), finalizedByAgent)
 
@@ -276,9 +280,10 @@ class GoalTelemetryStoreTest {
       val store = LifecycleTelemetryStore(connection)
       store.goalSubtaskFinished(subtask(1, "complete", 60_000, 1), "full")
 
-      val payload = parsePayload(
-        pendingOutbox(connection).single { it.eventName == "skillbill_goal_subtask_finished" }.payloadJson,
-      )
+      val payload =
+        parsePayload(
+          pendingOutbox(connection).single { it.eventName == "skillbill_goal_subtask_finished" }.payloadJson,
+        )
 
       assertNull(payload["finalizing_agent_id"])
       assertEquals(emptyList<Any?>(), payload["participating_agent_ids"])
@@ -312,9 +317,10 @@ class GoalTelemetryStoreTest {
         "full",
       )
 
-      val payload = parsePayload(
-        pendingOutbox(connection).single { it.eventName == "skillbill_goal_subtask_finished" }.payloadJson,
-      )
+      val payload =
+        parsePayload(
+          pendingOutbox(connection).single { it.eventName == "skillbill_goal_subtask_finished" }.payloadJson,
+        )
       assertEquals("high", payload["boundary_history_value"])
       assertEquals(true, payload["boundary_history_written"])
     }
@@ -329,9 +335,10 @@ class GoalTelemetryStoreTest {
         "full",
       )
 
-      val payload = parsePayload(
-        pendingOutbox(connection).single { it.eventName == "skillbill_goal_subtask_finished" }.payloadJson,
-      )
+      val payload =
+        parsePayload(
+          pendingOutbox(connection).single { it.eventName == "skillbill_goal_subtask_finished" }.payloadJson,
+        )
       assertEquals("none", payload["boundary_history_value"])
       assertEquals(false, payload["boundary_history_written"])
     }
@@ -346,9 +353,10 @@ class GoalTelemetryStoreTest {
         "anonymous",
       )
 
-      val payload = parsePayload(
-        pendingOutbox(connection).single { it.eventName == "skillbill_goal_subtask_finished" }.payloadJson,
-      )
+      val payload =
+        parsePayload(
+          pendingOutbox(connection).single { it.eventName == "skillbill_goal_subtask_finished" }.payloadJson,
+        )
       assertEquals("validation: failed", payload["blocked_reason"])
     }
   }
@@ -384,16 +392,17 @@ class GoalTelemetryStoreTest {
         level = "full",
       )
 
-      val issueFinished = GoalIssueFinishedRecord(
-        issueKey = "SKILL-66",
-        parentWorkflowId = "wf-parent",
-        status = "completed",
-        subtasksComplete = 1,
-        subtasksBlocked = 0,
-        subtasksSkipped = 0,
-        finishedAt = "2026-06-04T10:30:00Z",
-        mode = "runtime",
-      )
+      val issueFinished =
+        GoalIssueFinishedRecord(
+          issueKey = "SKILL-66",
+          parentWorkflowId = "wf-parent",
+          status = "completed",
+          subtasksComplete = 1,
+          subtasksBlocked = 0,
+          subtasksSkipped = 0,
+          finishedAt = "2026-06-04T10:30:00Z",
+          mode = "runtime",
+        )
       store.goalIssueFinished(issueFinished, level = "full")
       store.goalIssueFinished(issueFinished, level = "full")
 
@@ -460,9 +469,10 @@ class GoalTelemetryStoreTest {
   }
 
   private fun assertGoalTerminalDurationPayloadsUseSeconds(connection: Connection) {
-    val payloads = pendingOutbox(connection)
-      .filter { it.eventName in setOf("skillbill_goal_subtask_finished", "skillbill_goal_finished") }
-      .map { parsePayload(it.payloadJson) }
+    val payloads =
+      pendingOutbox(connection)
+        .filter { it.eventName in setOf("skillbill_goal_subtask_finished", "skillbill_goal_finished") }
+        .map { parsePayload(it.payloadJson) }
 
     payloads.forEach { payload ->
       assertTrue("duration_seconds" in payload)
@@ -497,7 +507,11 @@ class GoalTelemetryStoreTest {
     )
   }
 
-  private fun finishedRecord(workflowId: String, status: String, startedAt: String): GoalFinishedRecord =
+  private fun finishedRecord(
+    workflowId: String,
+    status: String,
+    startedAt: String,
+  ): GoalFinishedRecord =
     GoalFinishedRecord(
       issueKey = "SKILL-66",
       workflowId = workflowId,
@@ -517,16 +531,17 @@ class GoalTelemetryStoreTest {
     resumed: Boolean,
     startedAt: String = "2026-06-04T10:00:00Z",
     mode: String = "runtime",
-  ): GoalStartedRecord = GoalStartedRecord(
-    issueKey = "SKILL-66",
-    featureName = "goal telemetry",
-    workflowId = workflowId,
-    subtaskTotal = subtaskTotal,
-    resumed = resumed,
-    startedAt = startedAt,
-    status = "running",
-    mode = mode,
-  )
+  ): GoalStartedRecord =
+    GoalStartedRecord(
+      issueKey = "SKILL-66",
+      featureName = "goal telemetry",
+      workflowId = workflowId,
+      subtaskTotal = subtaskTotal,
+      resumed = resumed,
+      startedAt = startedAt,
+      status = "running",
+      mode = mode,
+    )
 
   private fun subtask(
     id: Int,
@@ -534,27 +549,29 @@ class GoalTelemetryStoreTest {
     durationMs: Long,
     attempts: Int,
     blockedReason: String? = null,
-  ): GoalSubtaskFinishedRecord = GoalSubtaskFinishedRecord(
-    issueKey = "SKILL-66",
-    workflowId = "wf-1",
-    subtaskId = id,
-    subtaskName = "subtask-$id",
-    status = status,
-    startedAt = "2026-06-04T10:00:00Z",
-    finishedAt = "2026-06-04T10:05:00Z",
-    durationMs = durationMs,
-    attemptCount = attempts,
-    blockedReason = blockedReason,
-  )
+  ): GoalSubtaskFinishedRecord =
+    GoalSubtaskFinishedRecord(
+      issueKey = "SKILL-66",
+      workflowId = "wf-1",
+      subtaskId = id,
+      subtaskName = "subtask-$id",
+      status = status,
+      startedAt = "2026-06-04T10:00:00Z",
+      finishedAt = "2026-06-04T10:05:00Z",
+      durationMs = durationMs,
+      attemptCount = attempts,
+      blockedReason = blockedReason,
+    )
 
   private fun attributedSubtask(
     id: Int,
     finalizingAgentId: String,
     participatingAgentIds: List<String>,
-  ): GoalSubtaskFinishedRecord = subtask(id, "complete", 60_000, 1).copy(
-    finalizingAgentId = finalizingAgentId,
-    participatingAgentIds = participatingAgentIds,
-  )
+  ): GoalSubtaskFinishedRecord =
+    subtask(id, "complete", 60_000, 1).copy(
+      finalizingAgentId = finalizingAgentId,
+      participatingAgentIds = participatingAgentIds,
+    )
 
   private fun parsePayload(payloadJson: String): Map<String, Any?> {
     val element = requireNotNull(JsonCodec.parseObjectOrNull(payloadJson))

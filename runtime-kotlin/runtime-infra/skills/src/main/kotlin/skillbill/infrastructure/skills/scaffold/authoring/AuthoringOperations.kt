@@ -10,6 +10,7 @@ import skillbill.scaffold.model.CodeReviewComposition
 import skillbill.scaffold.model.GovernedAddonSelection
 import java.nio.file.Files
 import java.nio.file.Path
+
 internal const val AUTHORING_EXPLANATION =
   "Governed skills split author-owned behavior into content.md and generated runtime wiring into " +
     "render/install output. " +
@@ -22,7 +23,6 @@ data class AuthoringTarget(
   val displayName: String,
   val family: String,
   val area: String,
-
   val skillFile: Path,
   val contentFile: Path,
   val codeReviewComposition: CodeReviewComposition? = null,
@@ -61,37 +61,41 @@ object AuthoringOperations {
     skillName: String?,
     externalDiscovery: PlatformPackDiscoveryContext? = null,
   ): AuthoringExplain {
-    val skill = skillName?.let { name ->
-      val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-      val target = resolveTarget(resolvedRoot, name, externalDiscovery)
-      AuthoringExplainSkill(
-        skillName = target.skillName,
-        contentFile = target.contentFile.toString(),
-        renderCommand = "skill-bill render ${target.skillName} --repo-root $resolvedRoot",
-        recommendedCommands = recommendedCommands(
-          resolvedRoot,
-          target,
-          completionStatus = contentCompletionStatus(Files.readString(target.contentFile)),
-          issues = emptyList(),
-        ),
-      )
-    }
+    val skill =
+      skillName?.let { name ->
+        val resolvedRoot = repoRoot.toAbsolutePath().normalize()
+        val target = resolveTarget(resolvedRoot, name, externalDiscovery)
+        AuthoringExplainSkill(
+          skillName = target.skillName,
+          contentFile = target.contentFile.toString(),
+          renderCommand = "skill-bill render ${target.skillName} --repo-root $resolvedRoot",
+          recommendedCommands =
+            recommendedCommands(
+              resolvedRoot,
+              target,
+              completionStatus = contentCompletionStatus(Files.readString(target.contentFile)),
+              issues = emptyList(),
+            ),
+        )
+      }
     return AuthoringExplain(
       explanation = AUTHORING_EXPLANATION,
       editableSurface = listOf("content.md"),
       generatedSurface = listOf("SKILL.md", "platform.yaml pointer files"),
       governedSidecars = emptyList(),
-      normalWorkflow = listOf(
-        "skill-bill new --payload <file>",
-        "skill-bill fill <skill-name>",
-        "skill-bill validate --skill-name <skill-name>",
-        "skill-bill render <skill-name>",
-      ),
-      notes = listOf(
-        "Author behavior changes in content.md.",
-        "Preview generated wrappers with render instead of hand-editing SKILL.md.",
-        "Use show to inspect completion and next commands.",
-      ),
+      normalWorkflow =
+        listOf(
+          "skill-bill new --payload <file>",
+          "skill-bill fill <skill-name>",
+          "skill-bill validate --skill-name <skill-name>",
+          "skill-bill render <skill-name>",
+        ),
+      notes =
+        listOf(
+          "Author behavior changes in content.md.",
+          "Preview generated wrappers with render instead of hand-editing SKILL.md.",
+          "Use show to inspect completion and next commands.",
+        ),
       skill = skill,
     )
   }
@@ -116,9 +120,10 @@ object AuthoringOperations {
         suggestedCommands = null,
       )
     }
-    val issues = selectedTargets(resolvedRoot, skillNames, externalDiscovery).flatMap { target ->
-      validateTarget(target, resolvedRoot)
-    }
+    val issues =
+      selectedTargets(resolvedRoot, skillNames, externalDiscovery).flatMap { target ->
+        validateTarget(target, resolvedRoot)
+      }
     val suggestedCommands =
       skillNames.flatMap { skillName ->
         val target = resolveTarget(resolvedRoot, skillName, externalDiscovery)
@@ -155,15 +160,16 @@ object AuthoringOperations {
       targets.forEach { target ->
         renderAuthoringTarget(resolvedRoot, target)
       }
-      val nativeRegeneration = NativeAgentOperations.regenerate(
-        NativeAgentRegenerationRequest(
-          repoRoot = resolvedRoot,
-          compositionContext = nativeAgentCompositionContext,
-          skillNames = skillNames,
-          originalBytes = originalBytes,
-          createdPaths = createdPaths,
-        ),
-      )
+      val nativeRegeneration =
+        NativeAgentOperations.regenerate(
+          NativeAgentRegenerationRequest(
+            repoRoot = resolvedRoot,
+            compositionContext = nativeAgentCompositionContext,
+            skillNames = skillNames,
+            originalBytes = originalBytes,
+            createdPaths = createdPaths,
+          ),
+        )
       regenerated += nativeRegeneration.regeneratedFiles
       if (validate) {
         val issues = targets.flatMap { target -> validateTarget(target, resolvedRoot) }
@@ -245,9 +251,13 @@ object AuthoringOperations {
     )
   }
 
-  fun retiredInteractiveMessage(command: String, replacement: String): String =
-    "$command interactive mode was retired in SKILL-32; use `$replacement` instead."
+  fun retiredInteractiveMessage(
+    command: String,
+    replacement: String,
+  ): String = "$command interactive mode was retired in SKILL-32; use `$replacement` instead."
 
-  fun retiredEditorMessage(command: String, replacement: String): String =
-    "$command editor mode was retired in SKILL-32; use `$replacement` instead."
+  fun retiredEditorMessage(
+    command: String,
+    replacement: String,
+  ): String = "$command editor mode was retired in SKILL-32; use `$replacement` instead."
 }

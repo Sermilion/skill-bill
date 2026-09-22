@@ -29,11 +29,12 @@ class GitWorkflowGitOperationsBaselineTest {
     git(repoRoot, "commit", "-m", "unauthorized spec")
     val after = operations.runtimePhaseHeadCommit(repoRoot)
 
-    val result = operations.runtimePhaseChangedPathsBetweenCommits(
-      repoRoot,
-      requireNotNull(before.value),
-      requireNotNull(after.value),
-    )
+    val result =
+      operations.runtimePhaseChangedPathsBetweenCommits(
+        repoRoot,
+        requireNotNull(before.value),
+        requireNotNull(after.value),
+      )
 
     assertTrue(result is WorkflowGitOperationResult.Ok, result.error)
     assertContains(result.value.orEmpty(), ".feature-specs/SKILL-124-demo/spec.md")

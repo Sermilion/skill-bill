@@ -1,5 +1,6 @@
 package skillbill.config.model
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
+
 enum class SpecType(
   val id: String,
 ) {
@@ -31,12 +32,13 @@ data class RepoLocalConfig(
   val experimentsAvailability: ExperimentAvailabilityPolicy? = null,
 ) {
   companion object {
-    fun defaults(): RepoLocalConfig = RepoLocalConfig(
-      specType = SpecType.LOCAL,
-      reviewContextBudget = ReviewContextBudgetPolicy.DEFAULT,
-      validationGate = ValidationGateRepoConfig.defaults(),
-      experimentsAvailability = null,
-    )
+    fun defaults(): RepoLocalConfig =
+      RepoLocalConfig(
+        specType = SpecType.LOCAL,
+        reviewContextBudget = ReviewContextBudgetPolicy.DEFAULT,
+        validationGate = ValidationGateRepoConfig.defaults(),
+        experimentsAvailability = null,
+      )
   }
 }
 
@@ -46,5 +48,9 @@ fun parseSpecType(raw: String?): SpecType? {
 }
 
 object RepoLocalConfigResolution {
-  fun <T> resolve(explicit: T?, config: T?, builtinDefault: T): T = explicit ?: config ?: builtinDefault
+  fun <T> resolve(
+    explicit: T?,
+    config: T?,
+    builtinDefault: T,
+  ): T = explicit ?: config ?: builtinDefault
 }

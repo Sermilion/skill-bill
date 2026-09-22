@@ -21,6 +21,7 @@ import skillbill.ports.work.model.WorkItemKind
 import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
 import java.time.Clock
+
 @Inject
 class IdeStatusService(
   private val database: DatabaseSessionFactory,
@@ -30,7 +31,6 @@ class IdeStatusService(
   private val clock: Clock,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ) {
-
   fun status(request: IdeStatusRequest): IdeStatusResult {
     val observedAt = request.observedAt ?: clock.instant()
     val identityResult = resolveRepositoryIdentity(request.repoRoot, repositoryEnclosingRootPort)
@@ -51,17 +51,20 @@ class IdeStatusService(
     return try {
       database.read { unitOfWork ->
         val candidates = scopeToBranch(collectCandidates(unitOfWork, repositoryIdentity), currentBranch)
-        val selected = IdeStatusSelectionPolicy.select(candidates, observedAt)
-          ?: return@read emit(IdeStatusProblemSnapshots.noMatchingWork(repositoryIdentity, observedAt, currentBranch))
-        val snapshot = projector.project(
-          candidate = selected,
-          context = IdeStatusProjectionContext(
-            unitOfWork = unitOfWork,
-            repositoryIdentity = repositoryIdentity,
-            observedAt = observedAt,
-            repoRoot = repoRoot,
-          ),
-        )
+        val selected =
+          IdeStatusSelectionPolicy.select(candidates, observedAt)
+            ?: return@read emit(IdeStatusProblemSnapshots.noMatchingWork(repositoryIdentity, observedAt, currentBranch))
+        val snapshot =
+          projector.project(
+            candidate = selected,
+            context =
+              IdeStatusProjectionContext(
+                unitOfWork = unitOfWork,
+                repositoryIdentity = repositoryIdentity,
+                observedAt = observedAt,
+                repoRoot = repoRoot,
+              ),
+          )
         emit(snapshot)
       }
     } catch (error: InvalidWorkListRowError) {
@@ -85,7 +88,10 @@ class IdeStatusService(
 
   fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = ideStatusValidator.toWireMap(snapshot)
 
-  private fun scopeToBranch(candidates: List<IdeStatusCandidate>, branch: String?): List<IdeStatusCandidate> {
+  private fun scopeToBranch(
+    candidates: List<IdeStatusCandidate>,
+    branch: String?,
+  ): List<IdeStatusCandidate> {
     if (branch == null) return candidates
     if (FeatureTaskRuntimeBranchSetup.protectedBranchName(branch) != null) return candidates
     return candidates.filter { candidate ->
@@ -93,12 +99,16 @@ class IdeStatusService(
     }
   }
 
-  private fun collectCandidates(unitOfWork: UnitOfWork, repositoryIdentity: String): List<IdeStatusCandidate> {
+  private fun collectCandidates(
+    unitOfWork: UnitOfWork,
+    repositoryIdentity: String,
+  ): List<IdeStatusCandidate> {
     val work = unitOfWork.workList.list(limit = null)
-    val issueKeysWithGoals = work
-      .filter { it.workflowKind == WorkItemKind.FEATURE_GOAL }
-      .mapNotNull { it.issueKey?.uppercase() }
-      .toSet()
+    val issueKeysWithGoals =
+      work
+        .filter { it.workflowKind == WorkItemKind.FEATURE_GOAL }
+        .mapNotNull { it.issueKey?.uppercase() }
+        .toSet()
     val repositoryCorrelation = IdeStatusRepositoryCorrelation(unitOfWork, repositoryIdentity)
     val livenessAnchors = IdeStatusLivenessAnchors(unitOfWork, repositoryIdentity)
 
@@ -115,13 +125,14 @@ class IdeStatusService(
     unitOfWork: UnitOfWork,
   ): IdeStatusCandidate? {
     val family = item.workflowKind.toIdeFamily()
-    val lifecycle = family?.let { candidateFamily ->
-      if (repositoryCorrelation.matches(item, candidateFamily) != true) {
-        null
-      } else {
-        IdeStatusSelectionPolicy.lifecycleFromDurableStateWire(item.currentState)
+    val lifecycle =
+      family?.let { candidateFamily ->
+        if (repositoryCorrelation.matches(item, candidateFamily) != true) {
+          null
+        } else {
+          IdeStatusSelectionPolicy.lifecycleFromDurableStateWire(item.currentState)
+        }
       }
-    }
     if (family == null || lifecycle == null) return null
     val routeScope = routeScopeFor(item, unitOfWork)
     if (isExcludedGoalChild(routeScope, item.issueKey, issueKeysWithGoals)) return null
@@ -139,13 +150,17 @@ class IdeStatusService(
     )
   }
 
-  private fun routeScopeFor(item: WorkItem, unitOfWork: UnitOfWork): FeatureTaskRouteScope? = when (item.workflowKind) {
-    WorkItemKind.FEATURE_TASK_PROSE, WorkItemKind.FEATURE_TASK_RUNTIME ->
-      unitOfWork.workflowStates.getFeatureTaskExecutionIdentity(item.workflowId)?.routeScope
-    WorkItemKind.FEATURE_VERIFY,
-    WorkItemKind.FEATURE_GOAL,
-    -> null
-  }
+  private fun routeScopeFor(
+    item: WorkItem,
+    unitOfWork: UnitOfWork,
+  ): FeatureTaskRouteScope? =
+    when (item.workflowKind) {
+      WorkItemKind.FEATURE_TASK_PROSE, WorkItemKind.FEATURE_TASK_RUNTIME ->
+        unitOfWork.workflowStates.getFeatureTaskExecutionIdentity(item.workflowId)?.routeScope
+      WorkItemKind.FEATURE_VERIFY,
+      WorkItemKind.FEATURE_GOAL,
+      -> null
+    }
 
   private fun isExcludedGoalChild(
     routeScope: FeatureTaskRouteScope?,
@@ -163,12 +178,14 @@ internal fun resolveRepositoryIdentity(
   repoRootArg: String,
   repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ): IdeStatusRepositoryResolution {
-  val resolvedStart = runCatching {
-    repositoryEnclosingRootPort.canonicalPath(Path.of(repoRootArg))
-  }.getOrNull()
-    ?: return IdeStatusRepositoryResolution.Invalid("Repository root cannot be resolved: $repoRootArg")
-  val gitRoot = findGitRoot(resolvedStart, repositoryEnclosingRootPort)
-    ?: return IdeStatusRepositoryResolution.Invalid("Path is not inside a Git repository: $repoRootArg")
+  val resolvedStart =
+    runCatching {
+      repositoryEnclosingRootPort.canonicalPath(Path.of(repoRootArg))
+    }.getOrNull()
+      ?: return IdeStatusRepositoryResolution.Invalid("Repository root cannot be resolved: $repoRootArg")
+  val gitRoot =
+    findGitRoot(resolvedStart, repositoryEnclosingRootPort)
+      ?: return IdeStatusRepositoryResolution.Invalid("Path is not inside a Git repository: $repoRootArg")
   val canonicalGitRoot = repositoryEnclosingRootPort.canonicalPath(gitRoot)
   val identity = goalRepositoryIdentity(canonicalGitRoot, repositoryEnclosingRootPort)
   return if (identity.isBlank() || !identity.startsWith("repo-root-realpath-v1:")) {
@@ -180,7 +197,10 @@ internal fun resolveRepositoryIdentity(
   }
 }
 
-private fun findGitRoot(start: Path, repositoryEnclosingRootPort: RepositoryEnclosingRootPort): Path? {
+private fun findGitRoot(
+  start: Path,
+  repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
+): Path? {
   var candidate: Path? = start
   while (candidate != null) {
     if (repositoryEnclosingRootPort.optionalRealPath(candidate.resolve(".git")) != null) return candidate

@@ -3,7 +3,6 @@ package skillbill.contracts.install
 const val INSTALL_PLAN_CONTRACT_VERSION: String = "0.3"
 
 object InstallPlanSchemaPaths {
-
   const val REPO_RELATIVE_PATH: String =
     "orchestration/contracts/install-plan-schema.yaml"
 

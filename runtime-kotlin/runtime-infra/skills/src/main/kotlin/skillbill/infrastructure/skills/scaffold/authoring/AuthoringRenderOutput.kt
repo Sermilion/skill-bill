@@ -30,25 +30,27 @@ data class AuthoringRenderResult(
     mapOf(
       "repo_root" to repoRoot.toString(),
       "skill_name" to skillName,
-      "blocks" to blocks.map { block ->
-        mapOf(
-          "header" to block.header,
-          "content" to block.content,
-        )
-      },
+      "blocks" to
+        blocks.map { block ->
+          mapOf(
+            "header" to block.header,
+            "content" to block.content,
+          )
+        },
     )
 }
 
-private fun renderBlocks(blocks: List<AuthoringRenderBlock>): String = buildString {
-  blocks.forEachIndexed { index, block ->
-    if (index > 0) {
+private fun renderBlocks(blocks: List<AuthoringRenderBlock>): String =
+  buildString {
+    blocks.forEachIndexed { index, block ->
+      if (index > 0) {
+        appendLine()
+      }
+      appendLine(block.header)
+      append(block.content.trimEnd('\r', '\n'))
       appendLine()
     }
-    appendLine(block.header)
-    append(block.content.trimEnd('\r', '\n'))
-    appendLine()
   }
-}
 
 fun renderAuthoringTarget(
   repoRoot: Path,
@@ -60,7 +62,10 @@ fun renderAuthoringTarget(
   return renderAuthoringTarget(resolvedRoot, target)
 }
 
-internal fun renderAuthoringTarget(repoRoot: Path, target: AuthoringTarget): AuthoringRenderResult {
+internal fun renderAuthoringTarget(
+  repoRoot: Path,
+  target: AuthoringTarget,
+): AuthoringRenderResult {
   val resolvedRoot = repoRoot.toAbsolutePath().normalize()
   val relativeSkillFile = normalizedRelativePath(resolvedRoot, target.skillFile)
   val wrapperBlock =
@@ -76,11 +81,17 @@ internal fun renderAuthoringTarget(repoRoot: Path, target: AuthoringTarget): Aut
   )
 }
 
-private fun renderPointerBlocks(repoRoot: Path, target: AuthoringTarget): List<AuthoringRenderBlock> {
+private fun renderPointerBlocks(
+  repoRoot: Path,
+  target: AuthoringTarget,
+): List<AuthoringRenderBlock> {
   return renderPlatformPointerBlocks(repoRoot, target) + renderAgentAddonPointerBlocks(repoRoot, target)
 }
 
-private fun renderPlatformPointerBlocks(repoRoot: Path, target: AuthoringTarget): List<AuthoringRenderBlock> {
+private fun renderPlatformPointerBlocks(
+  repoRoot: Path,
+  target: AuthoringTarget,
+): List<AuthoringRenderBlock> {
   val packRoot = targetPlatformPackRoot(target) ?: return emptyList()
   val pack = loadPlatformManifest(packRoot)
   requireMatchingRenderContractVersion(pack)
@@ -90,9 +101,13 @@ private fun renderPlatformPointerBlocks(repoRoot: Path, target: AuthoringTarget)
     .map { spec -> renderPointerBlock(repoRoot, pack, spec) }
 }
 
-private fun renderAgentAddonPointerBlocks(repoRoot: Path, target: AuthoringTarget): List<AuthoringRenderBlock> {
-  val consumer = runCatching { AgentAddonConsumer.fromId(target.internalFor ?: target.skillName) }.getOrNull()
-    ?: return emptyList()
+private fun renderAgentAddonPointerBlocks(
+  repoRoot: Path,
+  target: AuthoringTarget,
+): List<AuthoringRenderBlock> {
+  val consumer =
+    runCatching { AgentAddonConsumer.fromId(target.internalFor ?: target.skillName) }.getOrNull()
+      ?: return emptyList()
   val consumerTarget = if (target.skillName == consumer.id) target else resolveTarget(repoRoot, consumer.id)
   val outputDir = consumerTarget.skillFile.parent
   return AgentAddonDeliveryResolver().resolve(repoRoot, consumer).map { pointer ->
@@ -104,7 +119,11 @@ private fun renderAgentAddonPointerBlocks(repoRoot: Path, target: AuthoringTarge
   }
 }
 
-private fun renderPointerBlock(repoRoot: Path, pack: PlatformManifest, spec: PointerSpec): AuthoringRenderBlock {
+private fun renderPointerBlock(
+  repoRoot: Path,
+  pack: PlatformManifest,
+  spec: PointerSpec,
+): AuthoringRenderBlock {
   val pointerFile = pack.packRoot.resolve(spec.skillRelativeDir).resolve(spec.name).toPath().normalize()
   val relativePointerFile = normalizedRelativePath(repoRoot, pointerFile)
   return AuthoringRenderBlock(
@@ -126,5 +145,7 @@ private fun requireMatchingRenderContractVersion(pack: PlatformManifest) {
   }
 }
 
-private fun normalizedRelativePath(root: Path, path: Path): String =
-  root.relativize(path.toAbsolutePath().normalize()).toString().replace('\\', '/')
+private fun normalizedRelativePath(
+  root: Path,
+  path: Path,
+): String = root.relativize(path.toAbsolutePath().normalize()).toString().replace('\\', '/')

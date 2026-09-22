@@ -24,13 +24,14 @@ data class ReviewLaneAssembledEntry(
 
   val hunkId: String get() = hunk.hunkId
 
-  val canonical: String get() = canonicalFields(
-    commitSha,
-    parentSha,
-    subject.replace("\r\n", "\n"),
-    orderIndex,
-    hunk.packetCanonical(),
-  )
+  val canonical: String get() =
+    canonicalFields(
+      commitSha,
+      parentSha,
+      subject.replace("\r\n", "\n"),
+      orderIndex,
+      hunk.packetCanonical(),
+    )
 }
 
 data class ReviewLaneAssembledBundle(val entries: List<ReviewLaneAssembledEntry>) {
@@ -50,34 +51,39 @@ data class ReviewLaneAssembledBundle(val entries: List<ReviewLaneAssembledEntry>
   val compositionDigest: String get() = sha256Hex(canonical)
 
   companion object {
-    val ENTRY_ORDER: Comparator<ReviewLaneAssembledEntry> = compareBy(
-      ReviewLaneAssembledEntry::orderIndex,
-      { it.hunk.path },
-      { it.hunk.newStart },
-      { it.hunk.oldStart },
-    )
+    val ENTRY_ORDER: Comparator<ReviewLaneAssembledEntry> =
+      compareBy(
+        ReviewLaneAssembledEntry::orderIndex,
+        { it.hunk.path },
+        { it.hunk.newStart },
+        { it.hunk.oldStart },
+      )
 
     val EMPTY: ReviewLaneAssembledBundle = ReviewLaneAssembledBundle(emptyList())
 
-    fun assemble(assignment: ReviewAssignment, packet: ReviewContextPacket): ReviewLaneAssembledBundle {
+    fun assemble(
+      assignment: ReviewAssignment,
+      packet: ReviewContextPacket,
+    ): ReviewLaneAssembledBundle {
       val hunksById = packet.changedHunks.associateBy { it.hunkId }
       val unitsBySha = packet.commitUnits.associateBy { it.commitSha }
-      val entries = assignment.assignedBundle.entries.flatMap { group ->
-        val unit = unitsBySha.getValue(group.commitSha)
-        require(group.orderIndex == unit.orderIndex) {
-          "Assignment bundle order for '${group.commitSha}' diverges from the packet."
-        }
-        group.hunkIds.map { hunkId ->
-          val hunk = hunksById.getValue(hunkId)
-          ReviewLaneAssembledEntry(
-            commitSha = unit.commitSha,
-            parentSha = unit.parentSha,
-            subject = unit.subject,
-            orderIndex = unit.orderIndex,
-            hunk = hunk,
-          )
-        }
-      }.sortedWith(ENTRY_ORDER)
+      val entries =
+        assignment.assignedBundle.entries.flatMap { group ->
+          val unit = unitsBySha.getValue(group.commitSha)
+          require(group.orderIndex == unit.orderIndex) {
+            "Assignment bundle order for '${group.commitSha}' diverges from the packet."
+          }
+          group.hunkIds.map { hunkId ->
+            val hunk = hunksById.getValue(hunkId)
+            ReviewLaneAssembledEntry(
+              commitSha = unit.commitSha,
+              parentSha = unit.parentSha,
+              subject = unit.subject,
+              orderIndex = unit.orderIndex,
+              hunk = hunk,
+            )
+          }
+        }.sortedWith(ENTRY_ORDER)
       require(entries.map { it.hunkId }.toSet() == assignment.assignedHunks.toSet()) {
         "Assembled bundle must cover exactly the assigned hunks."
       }
@@ -121,11 +127,12 @@ data class ReviewLaneBundleSegmentation(
   }
 
   val unreviewedSegmentIds: List<String>
-    get() = if (unreviewableEntries.isEmpty()) {
-      emptyList()
-    } else {
-      listOf(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID)
-    }
+    get() =
+      if (unreviewableEntries.isEmpty()) {
+        emptyList()
+      } else {
+        listOf(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID)
+      }
 
   val incomplete: Boolean get() = unreviewableEntries.isNotEmpty()
 
@@ -215,11 +222,12 @@ fun segmentAssembledBundle(
     require(measured <= maxLaneLaunchBytes) {
       "Flushed segment exceeds the configured lane launch budget."
     }
-    segments += ReviewLaneBundleSegment(
-      segmentId = "seg-${segmentIndex.toString().padStart(REVIEW_BUNDLE_SEGMENT_ID_PAD_WIDTH, '0')}",
-      entries = current.toList(),
-      measuredBytes = measured,
-    )
+    segments +=
+      ReviewLaneBundleSegment(
+        segmentId = "seg-${segmentIndex.toString().padStart(REVIEW_BUNDLE_SEGMENT_ID_PAD_WIDTH, '0')}",
+        entries = current.toList(),
+        measuredBytes = measured,
+      )
     segmentIndex += 1
     current = mutableListOf()
   }
@@ -252,13 +260,14 @@ fun ReviewLaneBundleSegmentation.toCompletionState(bundleCompositionDigest: Stri
     ReviewLaneCompletionState(
       disposition = ReviewLaneReviewDisposition.INCOMPLETE,
       bundleCompositionDigest = bundleCompositionDigest,
-      segments = segments.map { it.toAccounting() } +
-        ReviewLaneSegmentAccounting(
-          segmentId = ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID,
-          measuredBytes = 0,
-          entryCount = unreviewableEntries.size,
-          compositionDigest = sha256Hex(canonicalFieldList(unreviewableEntries.map { it.canonical })),
-        ),
+      segments =
+        segments.map { it.toAccounting() } +
+          ReviewLaneSegmentAccounting(
+            segmentId = ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID,
+            measuredBytes = 0,
+            entryCount = unreviewableEntries.size,
+            compositionDigest = sha256Hex(canonicalFieldList(unreviewableEntries.map { it.canonical })),
+          ),
       unreviewedSegmentIds = listOf(ReviewLaneBundleSegmentation.UNREVIEWABLE_SEGMENT_ID),
       budgetDimension = "lane_launch_bytes",
       unreviewedUnits = unreviewableEntries.map { "${it.commitSha}@${it.hunk.path}" }.distinct(),
@@ -271,12 +280,13 @@ fun ReviewLaneBundleSegmentation.toCompletionState(bundleCompositionDigest: Stri
     )
   }
 
-fun ReviewLaneBundleSegment.toAccounting(): ReviewLaneSegmentAccounting = ReviewLaneSegmentAccounting(
-  segmentId = segmentId,
-  measuredBytes = measuredBytes,
-  entryCount = entries.size,
-  compositionDigest = compositionDigest,
-)
+fun ReviewLaneBundleSegment.toAccounting(): ReviewLaneSegmentAccounting =
+  ReviewLaneSegmentAccounting(
+    segmentId = segmentId,
+    measuredBytes = measuredBytes,
+    entryCount = entries.size,
+    compositionDigest = compositionDigest,
+  )
 
 const val LANE_EVIDENCE_BYTES_DIMENSION: String = "lane_evidence_bytes"
 
@@ -317,6 +327,7 @@ fun ReviewLaneCompletionState.asFailedLaneRun(assignedUnits: List<String>): Revi
 private const val FAILED_RUN_SEGMENT_ID = "seg-lane-run-failed"
 private const val FAILED_RUN_UNIT = "entire assigned bundle"
 
-private fun sha256Hex(value: String): String = MessageDigest.getInstance("SHA-256")
-  .digest(value.toByteArray(Charsets.UTF_8))
-  .joinToString("") { byte -> "%02x".format(byte) }
+private fun sha256Hex(value: String): String =
+  MessageDigest.getInstance("SHA-256")
+    .digest(value.toByteArray(Charsets.UTF_8))
+    .joinToString("") { byte -> "%02x".format(byte) }

@@ -38,12 +38,13 @@ class ReviewAccountingDurableRedactionTest {
   private val guidanceBody = "GUIDANCE_SENTINEL ".repeat(64)
   private val rubricBody = "RUBRIC_SENTINEL ".repeat(64)
   private val toolOutputBody = "TOOL_OUTPUT_SENTINEL ".repeat(64)
-  private val sentinels = listOf(
-    "DIFF_SENTINEL",
-    "GUIDANCE_SENTINEL",
-    "RUBRIC_SENTINEL",
-    "TOOL_OUTPUT_SENTINEL",
-  )
+  private val sentinels =
+    listOf(
+      "DIFF_SENTINEL",
+      "GUIDANCE_SENTINEL",
+      "RUBRIC_SENTINEL",
+      "TOOL_OUTPUT_SENTINEL",
+    )
 
   @Test fun `the measured review really did carry every content sentinel`() {
     val (recorder, summary) = recordedReview()
@@ -96,39 +97,43 @@ class ReviewAccountingDurableRedactionTest {
 
   @Test fun `sqlite preserves the pre-change accounting JSON bytes`() {
     withConnection { connection ->
-      val summary = ReviewTreeAccounting.summarize(
-        "fixture-review",
-        "fixture-packet",
-        ReviewAccountingInput(
-          lane = "parent",
-          assignmentDigest = "fixture-assignment",
-          counters = ReviewAccountingCounters(1, 2, 3, 4, 5, 6),
-        ),
-      ).copy(
-        commitRouting = ReviewCommitRoutingAccounting(
-          commitSequenceDigest = "fixture-commits",
-          routingDigest = "fixture-routing",
-          commitCount = 1,
-          laneCount = 1,
-          focusedCommitCount = 1,
-          skippedCommitCount = 0,
-          focusedPairCount = 1,
-          skippedPairCount = 0,
-        ),
-        parentAnalysis = ReviewParentAnalysisConsumption(
-          analyzedPairs = 1,
-          analyzedBytes = 2,
-          maxAnalysisPairs = 3,
-          maxAnalysisBytes = 4,
-        ),
-        integration = ReviewIntegrationAccounting(
-          commitSequenceDigest = "fixture-integration",
-          terminalOutcome = ReviewIntegrationTerminalOutcome.COMPLETED,
-          summarizedLaneCount = 1,
-          findingCount = 0,
-          counters = ReviewAccountingCounters(7, 8, 9, 10, 11, 12),
-        ),
-      )
+      val summary =
+        ReviewTreeAccounting.summarize(
+          "fixture-review",
+          "fixture-packet",
+          ReviewAccountingInput(
+            lane = "parent",
+            assignmentDigest = "fixture-assignment",
+            counters = ReviewAccountingCounters(1, 2, 3, 4, 5, 6),
+          ),
+        ).copy(
+          commitRouting =
+            ReviewCommitRoutingAccounting(
+              commitSequenceDigest = "fixture-commits",
+              routingDigest = "fixture-routing",
+              commitCount = 1,
+              laneCount = 1,
+              focusedCommitCount = 1,
+              skippedCommitCount = 0,
+              focusedPairCount = 1,
+              skippedPairCount = 0,
+            ),
+          parentAnalysis =
+            ReviewParentAnalysisConsumption(
+              analyzedPairs = 1,
+              analyzedBytes = 2,
+              maxAnalysisPairs = 3,
+              maxAnalysisBytes = 4,
+            ),
+          integration =
+            ReviewIntegrationAccounting(
+              commitSequenceDigest = "fixture-integration",
+              terminalOutcome = ReviewIntegrationTerminalOutcome.COMPLETED,
+              summarizedLaneCount = 1,
+              findingCount = 0,
+              counters = ReviewAccountingCounters(7, 8, 9, 10, 11, 12),
+            ),
+        )
 
       reviewAccountingOnConnection(connection).upsert(
         ReviewAccountingRecord(summary.reviewId, summary.packetDigest, summary),
@@ -233,82 +238,93 @@ class ReviewAccountingDurableRedactionTest {
 
   private fun recordedReview(): Pair<ReviewRecorder, ReviewAccountingSummary> {
     val recorder = ReviewRecorder()
-    val runner = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(
-          reviewPack("kotlin", listOf("architecture", "security"), routingSignals = listOf("*.kt", "*.md")),
+    val runner =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests =
+            listOf(
+              reviewPack("kotlin", listOf("architecture", "security"), routingSignals = listOf("*.kt", "*.md")),
+            ),
+          diff =
+            diffForChanges(
+              "src/Repo.kt" to "val diffBody = \"$diffBody\"",
+              "docs/GUIDANCE.md" to guidanceBody,
+            ),
+          response = {
+            RecordedWorkerResponse(
+              stdout = toolOutputBody,
+            )
+          },
+          rubricBody = { rubricBody },
         ),
-        diff = diffForChanges(
-          "src/Repo.kt" to "val diffBody = \"$diffBody\"",
-          "docs/GUIDANCE.md" to guidanceBody,
-        ),
-        response = {
-          RecordedWorkerResponse(
-            stdout = toolOutputBody,
-          )
-        },
-        rubricBody = { rubricBody },
-      ),
-      recorder,
-    )
+        recorder,
+      )
 
-    val result = runner.run(
-      harnessRequest(
-        reviewRunId = REVIEW_RUN_ID,
-        prelaunchExpansions = listOf(
-          ReviewPrelaunchExpansion(
-            "parallel-code-review",
-            "src/Repo.kt",
-            "The durable redaction proof measures an explicitly authorized complete-file expansion.",
-          ),
+    val result =
+      runner.run(
+        harnessRequest(
+          reviewRunId = REVIEW_RUN_ID,
+          prelaunchExpansions =
+            listOf(
+              ReviewPrelaunchExpansion(
+                "parallel-code-review",
+                "src/Repo.kt",
+                "The durable redaction proof measures an explicitly authorized complete-file expansion.",
+              ),
+            ),
         ),
-      ),
-    )
+      )
 
     return recorder to assertNotNull(result.accountingSummary, "The recorded review produced no accounting.")
   }
+
   private fun legacyEvidenceUnreviewablePayload(current: Map<String, Any?>): Map<String, Any?> {
     val digest = "a".repeat(64)
-    val lanes = requireNotNull(JsonCodec.anyToStringAnyMapList((current["lanes"]))).map { lane ->
-      if (lane["lane"] == "parent") {
-        lane
-      } else {
-        LinkedHashMap(lane).apply {
-          put("bundle_composition_digest", digest)
-          put(
-            "segment_accounting",
-            listOf(
-              mapOf(
-                "segment_id" to "seg-000",
-                "measured_bytes" to 128L,
-                "entry_count" to 2,
-                "composition_digest" to digest,
+    val lanes =
+      requireNotNull(JsonCodec.anyToStringAnyMapList((current["lanes"]))).map { lane ->
+        if (lane["lane"] == "parent") {
+          lane
+        } else {
+          LinkedHashMap(lane).apply {
+            put("bundle_composition_digest", digest)
+            put(
+              "segment_accounting",
+              listOf(
+                mapOf(
+                  "segment_id" to "seg-000",
+                  "measured_bytes" to 128L,
+                  "entry_count" to 2,
+                  "composition_digest" to digest,
+                ),
               ),
-            ),
-          )
-          put("unreviewed_segment_ids", listOf("evidence-unreviewable"))
+            )
+            put("unreviewed_segment_ids", listOf("evidence-unreviewable"))
+          }
         }
       }
-    }
     return LinkedHashMap(current).apply { put("lanes", lanes) }
   }
+
   private fun legacyAccountingPayload(current: Map<String, Any?>): Map<String, Any?> {
     val usage = mapOf("input_tokens" to 1L, "ownership" to "direct")
-    val legacyNodes = requireNotNull(JsonCodec.anyToStringAnyMapList((current["lanes"]))).map { lane ->
-      LinkedHashMap(lane).apply {
+    val legacyNodes =
+      requireNotNull(JsonCodec.anyToStringAnyMapList((current["lanes"]))).map { lane ->
+        LinkedHashMap(lane).apply {
+          put("provider_usage", usage)
+          put("direct_usage", usage)
+          put("inclusive_usage", usage)
+        }
+      }
+    val parent =
+      LinkedHashMap(requireNotNull(JsonCodec.anyToStringAnyMap(current["parent"]))).apply {
         put("provider_usage", usage)
         put("direct_usage", usage)
         put("inclusive_usage", usage)
       }
-    }
-    val parent = LinkedHashMap(requireNotNull(JsonCodec.anyToStringAnyMap(current["parent"]))).apply {
-      put("provider_usage", usage)
-      put("direct_usage", usage)
-      put("inclusive_usage", usage)
-    }
-    val integration = JsonCodec.anyToStringAnyMap(current["integration"])?.let {
-      LinkedHashMap(it).apply { put("usage", emptyMap<String, Any?>()) }
-    }
+    val integration =
+      JsonCodec.anyToStringAnyMap(current["integration"])?.let {
+        LinkedHashMap(it).apply { put("usage", emptyMap<String, Any?>()) }
+      }
     return LinkedHashMap(current).apply {
       put("contract_version", "2.1")
       put("parent", parent)
@@ -323,9 +339,10 @@ class ReviewAccountingDurableRedactionTest {
   private fun aggregate(payload: Map<String, Any?>): Map<String, Any?>? =
     JsonCodec.anyToStringAnyMap(payload["aggregate_counters"])
 
-  private fun assertNoSentinels(serialized: String) = sentinels.forEach { sentinel ->
-    assertFalse(serialized.contains(sentinel), "Review accounting leaked '$sentinel'.")
-  }
+  private fun assertNoSentinels(serialized: String) =
+    sentinels.forEach { sentinel ->
+      assertFalse(serialized.contains(sentinel), "Review accounting leaked '$sentinel'.")
+    }
 
   private fun storedAccountingJson(connection: Connection): String =
     connection.prepareStatement("SELECT bounded_payload_json FROM review_accounting").use { statement ->
@@ -341,7 +358,8 @@ class ReviewAccountingDurableRedactionTest {
 
   private companion object {
     const val REVIEW_RUN_ID = "rvw-20260722-101500-ab12"
-    val PRE_CHANGE_ACCOUNTING_JSON = """
+    val PRE_CHANGE_ACCOUNTING_JSON =
+      """
       {"contract_version":"2.3","kind":"accounting_summary","review_id":"fixture-review",
       "packet_digest":"fixture-packet","parent":{"lane":"parent","assignment_digest":"fixture-assignment",
       "launch_bytes":1,"evidence_bytes":2,"result_bytes":3,"expansions":4,"tool_calls":5,"model_turns":6,
@@ -356,6 +374,6 @@ class ReviewAccountingDurableRedactionTest {
       "counters":{"launch_bytes":7,"evidence_bytes":8,"result_bytes":9,"expansions":10,
       "tool_calls":11,"model_turns":12}},"aggregate_counters":{"launch_bytes":1,"evidence_bytes":2,
       "result_bytes":3,"expansions":4,"tool_calls":5,"model_turns":6}}
-    """.trimIndent().replace("\n", "")
+      """.trimIndent().replace("\n", "")
   }
 }

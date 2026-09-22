@@ -18,10 +18,11 @@ internal fun WorkflowGitOperations.dirtyImplementationPaths(repoRoot: Path): Dir
   if (status !is WorkflowGitOperationResult.Ok) {
     return DirtyPathsError("the worktree status could not be read before staging (${status.error})")
   }
-  val paths = parseGitPorcelainPaths(status.value.orEmpty())
-    .map(::normalizeRepoPath)
-    .filter { it.isNotBlank() }
-    .distinct()
-    .sorted()
+  val paths =
+    parseGitPorcelainPaths(status.value.orEmpty())
+      .map(::normalizeRepoPath)
+      .filter { it.isNotBlank() }
+      .distinct()
+      .sorted()
   return DirtyPaths(paths)
 }

@@ -21,13 +21,17 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.SpecSource
 import java.nio.file.Path
+
 @Inject
 class FeatureSpecPreparationWriter(
   private val decompositionManifestValidator: DecompositionManifestValidator,
   private val fileStore: DecompositionManifestStore,
   private val decompositionManifestWriter: DecompositionManifestWriter,
 ) {
-  fun write(repoRoot: Path, request: FeatureSpecWriteRequest): FeatureSpecWriteResult {
+  fun write(
+    repoRoot: Path,
+    request: FeatureSpecWriteRequest,
+  ): FeatureSpecWriteResult {
     val issueKey = request.decision.issueKey.trim()
     val featureName = normalizeFeatureName(request.featureName)
     if (featureName.isBlank()) {
@@ -51,42 +55,47 @@ class FeatureSpecPreparationWriter(
     parentSpecRelativePath: String,
   ): FeatureSpecWriteResult {
     validateSubtasks(request.subtasks, request.specSource)
-    val parentSpecText = renderParentSpec(
-      ParentSpecRenderInput(
-        issueKey = request.decision.issueKey,
-        featureName = normalizeFeatureName(request.featureName),
-        mode = request.decision.mode,
-        intendedOutcome = request.decision.intendedOutcome,
-        acceptanceCriteria = request.decision.acceptanceCriteria,
-        constraints = request.decision.constraints,
-        nonGoals = request.decision.nonGoals,
-        overview = request.parentSpecOverview,
-        validationStrategy = request.validationStrategy,
-      ),
-    )
+    val parentSpecText =
+      renderParentSpec(
+        ParentSpecRenderInput(
+          issueKey = request.decision.issueKey,
+          featureName = normalizeFeatureName(request.featureName),
+          mode = request.decision.mode,
+          intendedOutcome = request.decision.intendedOutcome,
+          acceptanceCriteria = request.decision.acceptanceCriteria,
+          constraints = request.decision.constraints,
+          nonGoals = request.decision.nonGoals,
+          overview = request.parentSpecOverview,
+          validationStrategy = request.validationStrategy,
+        ),
+      )
     val subtaskRecords = prepareSubtasks(repoRoot, request, parentSpecPath, parentSpecRelativePath)
     val planningResult = planningResult(parentSpecPath, subtaskRecords)
-    val preparedManifest = decompositionManifestWriter.prepare(
-      request = DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = planningResult,
-        baseBranch = request.baseBranch.ifBlank { "main" },
-        featureBranch = request.featureBranch.takeIf(String::isNotBlank) ?: defaultFeatureBranch(parentSpecPath),
-        specSource = request.specSource,
-      ),
-      validator = decompositionManifestValidator,
-      fileStore = fileStore,
-    )
-    val loaded = fileStore.writeBundleAtomically(
-      writes = buildList {
-        add(parentSpecPath to parentSpecText)
-        subtaskRecords.forEach { add(it.path to it.text) }
-        add(preparedManifest.manifestPath to preparedManifest.yaml)
-      },
-    ) {
-      loadPreparedManifest(preparedManifest.manifestPath)
-    }
+    val preparedManifest =
+      decompositionManifestWriter.prepare(
+        request =
+          DecompositionManifestWriteRequest(
+            repoRoot = repoRoot,
+            parentSpecPath = parentSpecPath,
+            planningResult = planningResult,
+            baseBranch = request.baseBranch.ifBlank { "main" },
+            featureBranch = request.featureBranch.takeIf(String::isNotBlank) ?: defaultFeatureBranch(parentSpecPath),
+            specSource = request.specSource,
+          ),
+        validator = decompositionManifestValidator,
+        fileStore = fileStore,
+      )
+    val loaded =
+      fileStore.writeBundleAtomically(
+        writes =
+          buildList {
+            add(parentSpecPath to parentSpecText)
+            subtaskRecords.forEach { add(it.path to it.text) }
+            add(preparedManifest.manifestPath to preparedManifest.yaml)
+          },
+      ) {
+        loadPreparedManifest(preparedManifest.manifestPath)
+      }
     return FeatureSpecWriteResult(
       mode = request.decision.mode,
       parentSpecPath = parentSpecRelativePath,
@@ -100,24 +109,30 @@ class FeatureSpecPreparationWriter(
   private fun loadPreparedManifest(manifestPath: Path) =
     loadValidatedDecompositionManifestPersistingRepair(manifestPath, fileStore, decompositionManifestValidator)
 
-  private fun planningResult(parentSpecPath: Path, subtaskRecords: List<PreparedSubtask>): DecompositionPlanningResult =
+  private fun planningResult(
+    parentSpecPath: Path,
+    subtaskRecords: List<PreparedSubtask>,
+  ): DecompositionPlanningResult =
     decompositionPlanningResult(
       parentSpecPath = parentSpecPath.toString(),
-      subtasks = subtaskRecords.map { subtask ->
-        decompositionPlanningSubtask(
-          id = subtask.definition.id,
-          name = subtask.definition.name,
-          specPath = subtask.path.toString(),
-          options = DecompositionPlanningSubtaskOptions(
-            dependsOn = subtask.definition.dependsOn,
-            linearIssueId = subtask.definition.linearIssueId,
-            scope = subtask.definition.scope,
-          ),
-        )
-      },
-      options = DecompositionPlanningResultOptions(
-        recommendedFirstSubtaskId = subtaskRecords.first().definition.id,
-      ),
+      subtasks =
+        subtaskRecords.map { subtask ->
+          decompositionPlanningSubtask(
+            id = subtask.definition.id,
+            name = subtask.definition.name,
+            specPath = subtask.path.toString(),
+            options =
+              DecompositionPlanningSubtaskOptions(
+                dependsOn = subtask.definition.dependsOn,
+                linearIssueId = subtask.definition.linearIssueId,
+                scope = subtask.definition.scope,
+              ),
+          )
+        },
+      options =
+        DecompositionPlanningResultOptions(
+          recommendedFirstSubtaskId = subtaskRecords.first().definition.id,
+        ),
     )
 
   private fun prepareSubtasks(
@@ -125,23 +140,28 @@ class FeatureSpecPreparationWriter(
     request: FeatureSpecWriteRequest,
     parentSpecPath: Path,
     parentSpecRelativePath: String,
-  ): List<PreparedSubtask> = request.subtasks.map { subtask ->
-    val subtaskPath = parentSpecPath.parent.resolve(subtaskFileName(subtask))
-    val subtaskRelativePath = repoRelativePath(repoRoot, subtaskPath)
-    PreparedSubtask(
-      path = subtaskPath,
-      relativePath = subtaskRelativePath,
-      definition = subtask,
-      text = renderSubtaskSpec(
-        issueKey = request.decision.issueKey,
-        subtask = subtask,
-        parentSpecPath = parentSpecRelativePath,
-        subtaskPath = subtaskRelativePath,
-      ),
-    )
-  }
+  ): List<PreparedSubtask> =
+    request.subtasks.map { subtask ->
+      val subtaskPath = parentSpecPath.parent.resolve(subtaskFileName(subtask))
+      val subtaskRelativePath = repoRelativePath(repoRoot, subtaskPath)
+      PreparedSubtask(
+        path = subtaskPath,
+        relativePath = subtaskRelativePath,
+        definition = subtask,
+        text =
+          renderSubtaskSpec(
+            issueKey = request.decision.issueKey,
+            subtask = subtask,
+            parentSpecPath = parentSpecRelativePath,
+            subtaskPath = subtaskRelativePath,
+          ),
+      )
+    }
 
-  private fun validateSubtasks(subtasks: List<FeatureSpecSubtaskPreparation>, specSource: SpecSource) {
+  private fun validateSubtasks(
+    subtasks: List<FeatureSpecSubtaskPreparation>,
+    specSource: SpecSource,
+  ) {
     if (subtasks.isEmpty()) {
       invalidRequest(
         DecompositionPlanningPayloadKeys.SUBTASKS,
@@ -207,106 +227,111 @@ private data class ParentSpecRenderInput(
   val validationStrategy: String,
 )
 
-private fun renderParentSpec(input: ParentSpecRenderInput): String = buildString {
-  appendLine("# ${input.issueKey} - ${input.featureName}")
-  appendLine()
-  appendLine("## Mode")
-  appendLine()
-  appendLine(input.mode.wireValue)
-  appendLine()
-  appendLine("## Intended Outcome")
-  appendLine()
-  appendLine(input.intendedOutcome.ifBlank { "(none provided)" })
-  appendLine()
-  appendLine("## Overview")
-  appendLine()
-  appendLine(input.overview.ifBlank { "(none provided)" })
-  appendLine()
-  appendLine("## Acceptance Criteria")
-  appendLine()
-  input.acceptanceCriteria.forEachIndexed { index, criterion ->
-    appendLine("${index + 1}. $criterion")
+private fun renderParentSpec(input: ParentSpecRenderInput): String =
+  buildString {
+    appendLine("# ${input.issueKey} - ${input.featureName}")
+    appendLine()
+    appendLine("## Mode")
+    appendLine()
+    appendLine(input.mode.wireValue)
+    appendLine()
+    appendLine("## Intended Outcome")
+    appendLine()
+    appendLine(input.intendedOutcome.ifBlank { "(none provided)" })
+    appendLine()
+    appendLine("## Overview")
+    appendLine()
+    appendLine(input.overview.ifBlank { "(none provided)" })
+    appendLine()
+    appendLine("## Acceptance Criteria")
+    appendLine()
+    input.acceptanceCriteria.forEachIndexed { index, criterion ->
+      appendLine("${index + 1}. $criterion")
+    }
+    appendLine()
+    appendLine("## Constraints")
+    appendLine()
+    input.constraints.forEach { constraint ->
+      appendLine("- $constraint")
+    }
+    appendLine()
+    appendLine("## Non-Goals")
+    appendLine()
+    if (input.nonGoals.isEmpty()) {
+      appendLine("- None")
+    } else {
+      input.nonGoals.forEach { nonGoal -> appendLine("- $nonGoal") }
+    }
+    appendLine()
+    appendLine("## Validation Strategy")
+    appendLine()
+    appendLine(input.validationStrategy.ifBlank { "bill-code-check" })
   }
-  appendLine()
-  appendLine("## Constraints")
-  appendLine()
-  input.constraints.forEach { constraint ->
-    appendLine("- $constraint")
-  }
-  appendLine()
-  appendLine("## Non-Goals")
-  appendLine()
-  if (input.nonGoals.isEmpty()) {
-    appendLine("- None")
-  } else {
-    input.nonGoals.forEach { nonGoal -> appendLine("- $nonGoal") }
-  }
-  appendLine()
-  appendLine("## Validation Strategy")
-  appendLine()
-  appendLine(input.validationStrategy.ifBlank { "bill-code-check" })
-}
 
 private fun renderSubtaskSpec(
   issueKey: String,
   subtask: FeatureSpecSubtaskPreparation,
   parentSpecPath: String,
   subtaskPath: String,
-): String = buildString {
-  appendLine("# $issueKey Subtask ${subtask.id} - ${subtask.name}")
-  appendLine()
-  appendLine("Parent spec: [$parentSpecPath](./spec.md)")
-  appendLine("Issue key: $issueKey")
-  appendLine()
-  appendLine("## Scope")
-  appendLine()
-  appendLine(subtask.scope)
-  appendLine()
-  appendLine("## Acceptance Criteria")
-  appendLine()
-  subtask.acceptanceCriteria.forEachIndexed { index, criterion ->
-    appendLine("${index + 1}. $criterion")
+): String =
+  buildString {
+    appendLine("# $issueKey Subtask ${subtask.id} - ${subtask.name}")
+    appendLine()
+    appendLine("Parent spec: [$parentSpecPath](./spec.md)")
+    appendLine("Issue key: $issueKey")
+    appendLine()
+    appendLine("## Scope")
+    appendLine()
+    appendLine(subtask.scope)
+    appendLine()
+    appendLine("## Acceptance Criteria")
+    appendLine()
+    subtask.acceptanceCriteria.forEachIndexed { index, criterion ->
+      appendLine("${index + 1}. $criterion")
+    }
+    appendLine()
+    appendLine("## Non-Goals")
+    appendLine()
+    if (subtask.nonGoals.isEmpty()) {
+      appendLine("- None")
+    } else {
+      subtask.nonGoals.forEach { nonGoal -> appendLine("- $nonGoal") }
+    }
+    appendLine()
+    appendLine("## Dependency Notes")
+    appendLine()
+    if (subtask.dependsOn.isEmpty()) {
+      appendLine("Depends on: none")
+    } else {
+      appendLine("Depends on: ${subtask.dependsOn.joinToString(", ")}")
+    }
+    appendLine(subtask.dependencyNotes.ifBlank { "Dependency order is captured by depends_on in the manifest." })
+    appendLine()
+    appendLine("## Validation Strategy")
+    appendLine()
+    appendLine(subtask.validationStrategy)
+    appendLine()
+    appendLine("## Next Path")
+    appendLine()
+    appendLine(subtask.nextPath)
+    appendLine()
+    appendLine("## Spec Path")
+    appendLine()
+    appendLine(subtaskPath)
   }
-  appendLine()
-  appendLine("## Non-Goals")
-  appendLine()
-  if (subtask.nonGoals.isEmpty()) {
-    appendLine("- None")
-  } else {
-    subtask.nonGoals.forEach { nonGoal -> appendLine("- $nonGoal") }
-  }
-  appendLine()
-  appendLine("## Dependency Notes")
-  appendLine()
-  if (subtask.dependsOn.isEmpty()) {
-    appendLine("Depends on: none")
-  } else {
-    appendLine("Depends on: ${subtask.dependsOn.joinToString(", ")}")
-  }
-  appendLine(subtask.dependencyNotes.ifBlank { "Dependency order is captured by depends_on in the manifest." })
-  appendLine()
-  appendLine("## Validation Strategy")
-  appendLine()
-  appendLine(subtask.validationStrategy)
-  appendLine()
-  appendLine("## Next Path")
-  appendLine()
-  appendLine(subtask.nextPath)
-  appendLine()
-  appendLine("## Spec Path")
-  appendLine()
-  appendLine(subtaskPath)
-}
 
-private fun normalizeFeatureName(raw: String): String = raw
-  .trim()
-  .lowercase()
-  .replace(Regex("[^a-z0-9]+"), "-")
-  .trim('-')
-  .ifBlank { "feature" }
+private fun normalizeFeatureName(raw: String): String =
+  raw
+    .trim()
+    .lowercase()
+    .replace(Regex("[^a-z0-9]+"), "-")
+    .trim('-')
+    .ifBlank { "feature" }
 
 private fun subtaskFileName(subtask: FeatureSpecSubtaskPreparation): String =
   "spec_subtask_${subtask.id}_${normalizeFeatureName(subtask.name)}.md"
 
-private fun invalidRequest(fieldPath: String, reason: String): Nothing =
-  throw InvalidFeatureSpecPreparationRequestError(fieldPath = fieldPath, reason = reason)
+private fun invalidRequest(
+  fieldPath: String,
+  reason: String,
+): Nothing = throw InvalidFeatureSpecPreparationRequestError(fieldPath = fieldPath, reason = reason)

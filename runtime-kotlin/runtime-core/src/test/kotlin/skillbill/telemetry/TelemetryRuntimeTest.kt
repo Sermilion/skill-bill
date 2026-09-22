@@ -21,6 +21,7 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 private val SYNC_NOW: Instant = Instant.parse("2026-09-15T10:00:00Z")
 
 class TelemetryRuntimeTest {
@@ -40,9 +41,10 @@ class TelemetryRuntimeTest {
       outboxStore.enqueue("skillbill_feature_implement_finished", JsonCodec.mapToJsonString(mapOf("name" to "fail")))
 
       val successClient = RecordingTelemetryClient()
-      val successResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, successClient, {
-        SYNC_NOW
-      }, JvmInterruptSignalPort)
+      val successResult =
+        TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, successClient, {
+          SYNC_NOW
+        }, JvmInterruptSignalPort)
       assertEquals(TelemetrySyncStatus.SYNCED, successResult.status)
       assertEquals(2, successResult.syncedEvents)
       assertEquals(listOf(listOf(1L, 2L)), successClient.sentBatchIds)
@@ -52,9 +54,10 @@ class TelemetryRuntimeTest {
       outboxStore.enqueue("skillbill_feature_verify_started", JsonCodec.mapToJsonString(mapOf("name" to "retry")))
 
       val failingClient = RecordingTelemetryClient(failure = IOException("blocked by network isolation sentinel"))
-      val failedResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, failingClient, {
-        SYNC_NOW
-      }, JvmInterruptSignalPort)
+      val failedResult =
+        TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, failingClient, {
+          SYNC_NOW
+        }, JvmInterruptSignalPort)
       assertEquals(TelemetrySyncStatus.FAILED, failedResult.status)
       assertTrue(failedResult.message.orEmpty().contains("blocked by network isolation sentinel"))
       assertTrue(outboxStore.latestError().orEmpty().contains("blocked by network isolation sentinel"))
@@ -142,7 +145,10 @@ private class RecordingTelemetryClient(
 ) : TelemetryClient {
   val sentBatchIds = mutableListOf<List<Long>>()
 
-  override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport {
+  override fun sendBatch(
+    settings: TelemetrySettings,
+    rows: List<TelemetryOutboxRecord>,
+  ): TelemetryDeliveryReport {
     failure?.let { throw it }
     sentBatchIds += rows.map { it.id }
     return TelemetryDeliveryReport(TelemetryDeliveryOutcome.ACCEPTED)
@@ -151,20 +157,23 @@ private class RecordingTelemetryClient(
   override fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities =
     error("Unexpected fetchProxyCapabilities")
 
-  override fun fetchRemoteStats(settings: TelemetrySettings, request: RemoteStatsRequest): TelemetryRemoteStatsResult =
-    error("Unexpected fetchRemoteStats")
+  override fun fetchRemoteStats(
+    settings: TelemetrySettings,
+    request: RemoteStatsRequest,
+  ): TelemetryRemoteStatsResult = error("Unexpected fetchRemoteStats")
 }
 
 private fun telemetrySettings(
   configPath: Path,
   proxyUrl: String = "https://telemetry.example.dev/ingest",
   customProxyUrl: String? = proxyUrl,
-): TelemetrySettings = TelemetrySettings(
-  configPath = configPath.toFileLocation(),
-  level = "anonymous",
-  enabled = true,
-  installId = "test-install-id",
-  proxyUrl = proxyUrl,
-  customProxyUrl = customProxyUrl,
-  batchSize = 50,
-)
+): TelemetrySettings =
+  TelemetrySettings(
+    configPath = configPath.toFileLocation(),
+    level = "anonymous",
+    enabled = true,
+    installId = "test-install-id",
+    proxyUrl = proxyUrl,
+    customProxyUrl = customProxyUrl,
+    batchSize = 50,
+  )

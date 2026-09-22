@@ -13,32 +13,37 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
   @Test
   fun `gradle compile and test tasks with zero executed work units still record check identities`() {
-    val output = FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
-      repositoryCheckpoint = "checkpoint",
-      measurements = listOf(
-        FeatureTaskRuntimeValidationGateRunRecord(
-          durationMs = 10,
-          outcome = ValidationGateRunOutcome.PASSED,
-          cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-          executedWorkUnits = 0,
-          executedChecks = listOf(
-            "runtime-engine|compileKotlin",
-            "runtime-engine|compileTestKotlin",
-            "runtime-engine|test",
+    val output =
+      FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
+        repositoryCheckpoint = "checkpoint",
+        measurements =
+          listOf(
+            FeatureTaskRuntimeValidationGateRunRecord(
+              durationMs = 10,
+              outcome = ValidationGateRunOutcome.PASSED,
+              cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
+              executedWorkUnits = 0,
+              executedChecks =
+                listOf(
+                  "runtime-engine|compileKotlin",
+                  "runtime-engine|compileTestKotlin",
+                  "runtime-engine|test",
+                ),
+              command = "./gradlew check --continue",
+              exitCode = 0,
+            ),
           ),
-          command = "./gradlew check --continue",
-          exitCode = 0,
-        ),
-      ),
-      requiredCommand = "./gradlew check --continue",
-    )
+        requiredCommand = "./gradlew check --continue",
+      )
     val validationResult = validationResultFrom(output.payload)
-    val gateEvidence = requireNotNull(
-      decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate"),
-    )
+    val gateEvidence =
+      requireNotNull(
+        decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate"),
+      )
     FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(output.payload, "validate")
     assertEquals(0, gateEvidence.gateRuns.single().executedWorkUnits)
     assertFalse(gateEvidence.zeroWork)
@@ -55,40 +60,44 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
 
   @Test
   fun `settlement preserves cache-eligible failure and forced-full pass evidence independently`() {
-    val output = FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
-      repositoryCheckpoint = "checkpoint",
-      measurements = listOf(
-        gateRun(
-          GateRunFixture(
-            outcome = ValidationGateRunOutcome.FAILED,
-            cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-            execution = GateExecution(3, listOf("runtime-engine|compileKotlin")),
-            command = "./gradlew check --continue",
-            exitCode = 1,
-          ),
-        ),
-        gateRun(
-          GateRunFixture(
-            outcome = ValidationGateRunOutcome.PASSED,
-            cacheMode = ValidationGateCacheMode.FORCED_FULL,
-            execution = GateExecution(
-              3,
-              listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
+    val output =
+      FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
+        repositoryCheckpoint = "checkpoint",
+        measurements =
+          listOf(
+            gateRun(
+              GateRunFixture(
+                outcome = ValidationGateRunOutcome.FAILED,
+                cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
+                execution = GateExecution(3, listOf("runtime-engine|compileKotlin")),
+                command = "./gradlew check --continue",
+                exitCode = 1,
+              ),
             ),
-            command = "./gradlew check --continue --rerun-tasks",
-            exitCode = 0,
+            gateRun(
+              GateRunFixture(
+                outcome = ValidationGateRunOutcome.PASSED,
+                cacheMode = ValidationGateCacheMode.FORCED_FULL,
+                execution =
+                  GateExecution(
+                    3,
+                    listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
+                  ),
+                command = "./gradlew check --continue --rerun-tasks",
+                exitCode = 0,
+              ),
+            ),
           ),
-        ),
-      ),
-      requiredCommand = "./gradlew check --continue --rerun-tasks",
-    )
+        requiredCommand = "./gradlew check --continue --rerun-tasks",
+      )
     val validationResult = validationResultFrom(output.payload)
-    val gateEvidence = requireNotNull(
-      decodeValidationGateExecutionEvidenceFromArtifact(
-        validationResult,
-        "validate",
-      ),
-    )
+    val gateEvidence =
+      requireNotNull(
+        decodeValidationGateExecutionEvidenceFromArtifact(
+          validationResult,
+          "validate",
+        ),
+      )
     assertEquals(2, gateEvidence.gateRunCount)
     assertEquals(ValidationGateCacheMode.CACHE_ELIGIBLE, gateEvidence.gateRuns.first().cacheMode)
     assertEquals(ValidationGateRunOutcome.FAILED, gateEvidence.gateRuns.first().outcome)
@@ -137,12 +146,13 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
     val checks: List<String>,
   )
 
-  private fun validationResultFrom(payload: String): Map<String, Any?> = JsonCodec.anyToStringAnyMap(
+  private fun validationResultFrom(payload: String): Map<String, Any?> =
     JsonCodec.anyToStringAnyMap(
-      JsonCodec.parseObjectOrNull(payload)
-        ?.let(JsonCodec::jsonElementToValue)
-        ?.let(JsonCodec::anyToStringAnyMap)
-        ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS),
-    )?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
-  ) ?: error("validation_result missing")
+      JsonCodec.anyToStringAnyMap(
+        JsonCodec.parseObjectOrNull(payload)
+          ?.let(JsonCodec::jsonElementToValue)
+          ?.let(JsonCodec::anyToStringAnyMap)
+          ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS),
+      )?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
+    ) ?: error("validation_result missing")
 }

@@ -8,5 +8,8 @@ typealias ExperimentDescriptorRecord = ExperimentDescriptorRecordModel
 interface ExperimentDescriptorCatalog {
   fun listCompatible(mode: ExperimentExecutionMode): List<ExperimentDescriptorRecord>
 
-  fun resolve(name: String, mode: ExperimentExecutionMode): ExperimentDescriptorRecord?
+  fun resolve(
+    name: String,
+    mode: ExperimentExecutionMode,
+  ): ExperimentDescriptorRecord?
 }

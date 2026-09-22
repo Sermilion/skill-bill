@@ -23,12 +23,13 @@ fun reconcileGoalManifest(
   acceptances: Map<Int, GoalRunnerOutOfBandAcceptance>,
   outcomeStore: GoalRunnerWorkflowOutcomeStore,
 ): DecompositionManifest {
-  val context = GoalManifestReconciliationContext(
-    issueKey = manifest.issueKey,
-    authoritativeOutcomes = authoritativeOutcomes,
-    acceptances = acceptances,
-    outcomeStore = outcomeStore,
-  )
+  val context =
+    GoalManifestReconciliationContext(
+      issueKey = manifest.issueKey,
+      authoritativeOutcomes = authoritativeOutcomes,
+      acceptances = acceptances,
+      outcomeStore = outcomeStore,
+    )
   return manifest.copy(subtasks = manifest.subtasks.map { subtask -> context.reconcile(subtask) })
     .withParentStatus()
     .withDerivedCurrentIntent()
@@ -45,12 +46,13 @@ fun pruneEligibleCheckpointRefsForManifest(
       pruneCompletedSubtaskCheckpointRefs(
         gitOperations = gitOperations,
         repoRoot = repoRoot,
-        request = FeatureTaskRuntimeCheckpointRefPruneRequest(
-          issueKey = manifest.issueKey,
-          subtaskId = subtask.id.toString(),
-          manifestCommitSha = subtask.commitSha,
-          featureBranch = manifest.featureBranch,
-        ),
+        request =
+          FeatureTaskRuntimeCheckpointRefPruneRequest(
+            issueKey = manifest.issueKey,
+            subtaskId = subtask.id.toString(),
+            manifestCommitSha = subtask.commitSha,
+            featureBranch = manifest.featureBranch,
+          ),
         record = record,
       )
     }
@@ -78,10 +80,11 @@ private data class GoalManifestReconciliationContext(
         )
       }
 
-    val staleRetryOutcome = workflowId != null &&
-      outcome?.workflowId == workflowId &&
-      outcome.status != GoalRunnerTerminalStatus.COMPLETE &&
-      outcomeStore.progress(workflowId)?.workflowStatus == WorkflowStatus.RUNNING
+    val staleRetryOutcome =
+      workflowId != null &&
+        outcome?.workflowId == workflowId &&
+        outcome.status != GoalRunnerTerminalStatus.COMPLETE &&
+        outcomeStore.progress(workflowId)?.workflowStatus == WorkflowStatus.RUNNING
     return if (staleRetryOutcome) {
       subtask.copy(status = DecompositionStatus.IN_PROGRESS.wireValue, blockedReason = null)
     } else if (outcome == null || shouldPreserveCompletedSubtask(subtask, outcome)) {
@@ -92,15 +95,19 @@ private data class GoalManifestReconciliationContext(
         status = status,
         workflowId = outcome.workflowId.takeIf(String::isNotBlank) ?: subtask.workflowId,
         commitSha = outcome.commitSha ?: subtask.commitSha,
-        blockedReason = outcome.blockedReason
-          ?.takeIf { status.decompositionStatus() == DecompositionStatus.BLOCKED }
-          ?: subtask.blockedReason.takeIf { status.decompositionStatus() == DecompositionStatus.BLOCKED },
+        blockedReason =
+          outcome.blockedReason
+            ?.takeIf { status.decompositionStatus() == DecompositionStatus.BLOCKED }
+            ?: subtask.blockedReason.takeIf { status.decompositionStatus() == DecompositionStatus.BLOCKED },
         lastResumableStep = outcome.lastResumableStep ?: subtask.lastResumableStep,
       )
     }
   }
 
-  private fun preferredOutcome(subtask: DecompositionSubtask, workflowId: String): GoalRunnerStoredOutcome? =
+  private fun preferredOutcome(
+    subtask: DecompositionSubtask,
+    workflowId: String,
+  ): GoalRunnerStoredOutcome? =
     authoritativeOutcomes[subtask.id]
       ?.takeIf { outcome -> canApplyAuthoritativeOutcome(subtask, workflowId, outcome) }
       ?: outcomeStore.terminalOutcome(
@@ -115,8 +122,9 @@ private fun canApplyAuthoritativeOutcome(
   workflowId: String,
   outcome: GoalRunnerStoredOutcome,
 ): Boolean {
-  val resetPendingSubtask = subtask.status.decompositionStatus() == DecompositionStatus.PENDING &&
-    subtask.workflowId.isNullOrBlank()
+  val resetPendingSubtask =
+    subtask.status.decompositionStatus() == DecompositionStatus.PENDING &&
+      subtask.workflowId.isNullOrBlank()
   if (resetPendingSubtask && outcome.status != GoalRunnerTerminalStatus.COMPLETE) {
     return false
   }
@@ -125,48 +133,55 @@ private fun canApplyAuthoritativeOutcome(
   return subtask.status.decompositionStatus() != DecompositionStatus.IN_PROGRESS || !nonCompleteSibling
 }
 
-private fun shouldPreserveCompletedSubtask(subtask: DecompositionSubtask, outcome: GoalRunnerStoredOutcome): Boolean =
+private fun shouldPreserveCompletedSubtask(
+  subtask: DecompositionSubtask,
+  outcome: GoalRunnerStoredOutcome,
+): Boolean =
   subtask.status.decompositionStatus() == DecompositionStatus.COMPLETE &&
     !subtask.commitSha.isNullOrBlank() &&
     outcome.status != GoalRunnerTerminalStatus.COMPLETE
 
-private fun GoalRunnerStoredOutcome.toManifestStatus(): String = when (status) {
-  GoalRunnerTerminalStatus.COMPLETE -> DecompositionStatus.COMPLETE.wireValue
+private fun GoalRunnerStoredOutcome.toManifestStatus(): String =
+  when (status) {
+    GoalRunnerTerminalStatus.COMPLETE -> DecompositionStatus.COMPLETE.wireValue
 
-  GoalRunnerTerminalStatus.RECONCILABLE -> DecompositionStatus.IN_PROGRESS.wireValue
+    GoalRunnerTerminalStatus.RECONCILABLE -> DecompositionStatus.IN_PROGRESS.wireValue
 
-  GoalRunnerTerminalStatus.PAUSED -> DecompositionStatus.IN_PROGRESS.wireValue
-  GoalRunnerTerminalStatus.BLOCKED,
-  GoalRunnerTerminalStatus.FAILED,
-  GoalRunnerTerminalStatus.TIMEOUT,
-  GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME,
-  -> DecompositionStatus.BLOCKED.wireValue
-}
+    GoalRunnerTerminalStatus.PAUSED -> DecompositionStatus.IN_PROGRESS.wireValue
+    GoalRunnerTerminalStatus.BLOCKED,
+    GoalRunnerTerminalStatus.FAILED,
+    GoalRunnerTerminalStatus.TIMEOUT,
+    GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME,
+    -> DecompositionStatus.BLOCKED.wireValue
+  }
 
 private fun DecompositionManifest.withDerivedCurrentIntent(): DecompositionManifest {
-  val nextIntent = subtasks.firstOrNull {
-    it.status.decompositionStatus() == DecompositionStatus.BLOCKED
-  }?.let { blocked ->
-    CurrentSubtaskIntent(subtaskId = blocked.id, action = "blocked")
-  } ?: subtasks.firstOrNull {
-    it.status.decompositionStatus() == DecompositionStatus.IN_PROGRESS
-  }?.let { inProgress ->
-    CurrentSubtaskIntent(subtaskId = inProgress.id, action = "resume")
-  } ?: firstRunnablePendingSubtask()?.let { pending ->
-    CurrentSubtaskIntent(subtaskId = pending.id, action = "start")
-  } ?: CurrentSubtaskIntent(subtaskId = 0, action = "complete")
+  val nextIntent =
+    subtasks.firstOrNull {
+      it.status.decompositionStatus() == DecompositionStatus.BLOCKED
+    }?.let { blocked ->
+      CurrentSubtaskIntent(subtaskId = blocked.id, action = "blocked")
+    } ?: subtasks.firstOrNull {
+      it.status.decompositionStatus() == DecompositionStatus.IN_PROGRESS
+    }?.let { inProgress ->
+      CurrentSubtaskIntent(subtaskId = inProgress.id, action = "resume")
+    } ?: firstRunnablePendingSubtask()?.let { pending ->
+      CurrentSubtaskIntent(subtaskId = pending.id, action = "start")
+    } ?: CurrentSubtaskIntent(subtaskId = 0, action = "complete")
   return copy(currentSubtaskIntent = nextIntent)
 }
 
 private fun DecompositionManifest.firstRunnablePendingSubtask(): DecompositionSubtask? {
   val subtasksById = subtasks.associateBy(DecompositionSubtask::id)
   return subtasks.firstOrNull { subtask ->
-    subtask.status.decompositionStatus() == DecompositionStatus.PENDING && subtask.dependencies.all { dependency ->
-      val dependencySubtask = subtasksById[dependency.subtaskId]
-      dependencySubtask?.status.decompositionStatus() in setOf(
-        DecompositionStatus.COMPLETE,
-        DecompositionStatus.SKIPPED,
-      ) || (dependency.optional && dependency.skipped)
-    }
+    subtask.status.decompositionStatus() == DecompositionStatus.PENDING &&
+      subtask.dependencies.all { dependency ->
+        val dependencySubtask = subtasksById[dependency.subtaskId]
+        dependencySubtask?.status.decompositionStatus() in
+          setOf(
+            DecompositionStatus.COMPLETE,
+            DecompositionStatus.SKIPPED,
+          ) || (dependency.optional && dependency.skipped)
+      }
   } ?: subtasks.firstOrNull { it.status.decompositionStatus() == DecompositionStatus.PENDING }
 }

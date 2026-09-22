@@ -12,21 +12,25 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 
-internal fun readManifest(manifestPath: Path, slug: String): Any? = try {
-  Yaml().load<Any?>(Files.readString(manifestPath))
-} catch (error: CancellationException) {
-  throw error
-} catch (error: IOException) {
-  invalidManifestSchemaFromPath(
-    "Platform pack '$slug': manifest '$manifestPath' is not valid YAML: ${error.message}",
-    error,
-  )
-} catch (error: YAMLException) {
-  invalidManifestSchemaFromPath(
-    "Platform pack '$slug': manifest '$manifestPath' is not valid YAML: ${error.message}",
-    error,
-  )
-}
+internal fun readManifest(
+  manifestPath: Path,
+  slug: String,
+): Any? =
+  try {
+    Yaml().load<Any?>(Files.readString(manifestPath))
+  } catch (error: CancellationException) {
+    throw error
+  } catch (error: IOException) {
+    invalidManifestSchemaFromPath(
+      "Platform pack '$slug': manifest '$manifestPath' is not valid YAML: ${error.message}",
+      error,
+    )
+  } catch (error: YAMLException) {
+    invalidManifestSchemaFromPath(
+      "Platform pack '$slug': manifest '$manifestPath' is not valid YAML: ${error.message}",
+      error,
+    )
+  }
 
 internal fun buildPack(
   slug: String,
@@ -49,12 +53,13 @@ internal fun assemblePlatformManifest(
   typedManifest: Map<String, Any?>,
 ): PlatformManifest {
   val declaredAreas = parseDeclaredAreas(manifest, slug)
-  val routingSignals = parseRoutingSignals(
-    manifest,
-    slug,
-    requirePath = manifest["lane_conditions"] != null,
-    fallbackOnly = manifest["fallback_capabilities"] != null,
-  )
+  val routingSignals =
+    parseRoutingSignals(
+      manifest,
+      slug,
+      requirePath = manifest["lane_conditions"] != null,
+      fallbackOnly = manifest["fallback_capabilities"] != null,
+    )
   val declaredFiles = parseDeclaredFiles(manifest, slug, packRoot, declaredAreas)
   val areaMetadata = parseAreaMetadata(manifest, slug, declaredAreas)
   val laneConditions = parseLaneConditions(manifest, slug, declaredAreas)
@@ -77,24 +82,28 @@ internal fun assemblePlatformManifest(
     codeReviewComposition = parseCodeReviewComposition(manifest, slug),
     fallbackCapabilities = parseFallbackCapabilities(manifest, slug),
     pointers = pointers,
-    addonUsage = parseAddonUsage(
-      manifest,
-      AddonUsageManifestContext(
-        slug = slug,
-        packRoot = packRoot,
-        pointers = pointers,
-        declaredSkillDirs = declaredSkillRelativeDirs(packRoot, declaredFiles, declaredQualityCheckFile),
-        declaredAreas = declaredAreas.toSet(),
-        strictReviewRouting = laneConditions.isNotEmpty(),
+    addonUsage =
+      parseAddonUsage(
+        manifest,
+        AddonUsageManifestContext(
+          slug = slug,
+          packRoot = packRoot,
+          pointers = pointers,
+          declaredSkillDirs = declaredSkillRelativeDirs(packRoot, declaredFiles, declaredQualityCheckFile),
+          declaredAreas = declaredAreas.toSet(),
+          strictReviewRouting = laneConditions.isNotEmpty(),
+        ),
       ),
-    ),
     featureAddonUsage = parseFeatureAddonUsage(manifest, slug, packRoot, pointers),
     customFields = CustomFieldMap.from(validatedCustomFields(slug, manifestPath, typedManifest)),
     requiredRubricCompanions = requiredRubricCompanions,
   )
 }
 
-internal fun validatePlatformSlug(slug: String, declaredPlatform: String) {
+internal fun validatePlatformSlug(
+  slug: String,
+  declaredPlatform: String,
+) {
   if (declaredPlatform != slug) {
     invalidManifestSchema(
       "Platform pack '$slug': manifest 'platform' field is '$declaredPlatform', " +
@@ -103,11 +112,15 @@ internal fun validatePlatformSlug(slug: String, declaredPlatform: String) {
   }
 }
 
-internal fun parseFallbackCapabilities(manifest: Map<*, *>, slug: String): Set<String> {
+internal fun parseFallbackCapabilities(
+  manifest: Map<*, *>,
+  slug: String,
+): Set<String> {
   val raw = manifest["fallback_capabilities"] ?: return emptySet()
-  val values = raw as? List<*> ?: invalidManifestSchema(
-    "Platform pack '$slug': 'fallback_capabilities' must be a list.",
-  )
+  val values =
+    raw as? List<*> ?: invalidManifestSchema(
+      "Platform pack '$slug': 'fallback_capabilities' must be a list.",
+    )
   return values.mapIndexed { index, value ->
     (value as? String)?.trim()?.takeIf(String::isNotEmpty) ?: invalidManifestSchema(
       "Platform pack '$slug': 'fallback_capabilities[$index]' must be a non-blank string.",
@@ -120,32 +133,43 @@ internal const val CODE_REVIEW_FALLBACK_CAPABILITY = "code-review"
 internal fun extractCustomFields(manifest: Map<String, Any?>): Map<String, Any?> =
   manifest.filterKeys { it !in anchoredTopLevelFieldNames() }
 
-internal fun validatedCustomFields(slug: String, manifestPath: Path, manifest: Map<String, Any?>): Map<String, Any?> {
+internal fun validatedCustomFields(
+  slug: String,
+  manifestPath: Path,
+  manifest: Map<String, Any?>,
+): Map<String, Any?> {
   val customFields = extractCustomFields(manifest)
   guardAgainstAnchoredFieldTypos(slug, manifestPath, customFields.keys, anchoredTopLevelFieldNames())
   return customFields
 }
 
-internal fun requireManifestMap(slug: String, manifestPath: Path, raw: Any?): Map<*, *> = raw as? Map<*, *>
-  ?: invalidManifestSchema(
-    "Platform pack '$slug': manifest '$manifestPath' must be a YAML mapping at the top level.",
-  )
+internal fun requireManifestMap(
+  slug: String,
+  manifestPath: Path,
+  raw: Any?,
+): Map<*, *> =
+  raw as? Map<*, *>
+    ?: invalidManifestSchema(
+      "Platform pack '$slug': manifest '$manifestPath' must be a YAML mapping at the top level.",
+    )
 
 internal fun validateAgainstCanonicalSchema(
   slug: String,
   manifest: Map<*, *>,
   enforceContractVersion: Boolean,
 ): Map<String, Any?> {
-  val typedManifest: Map<String, Any?> = manifest.entries.associate { (key, value) ->
-    val stringKey = key as? String
-      ?: run {
-        val keyType = key?.let { it::class.simpleName } ?: "null"
-        invalidManifestSchema(
-          "Platform pack '$slug': manifest top-level keys must be strings, but found '$key' ($keyType).",
-        )
-      }
-    stringKey to value
-  }
+  val typedManifest: Map<String, Any?> =
+    manifest.entries.associate { (key, value) ->
+      val stringKey =
+        key as? String
+          ?: run {
+            val keyType = key?.let { it::class.simpleName } ?: "null"
+            invalidManifestSchema(
+              "Platform pack '$slug': manifest top-level keys must be strings, but found '$key' ($keyType).",
+            )
+          }
+      stringKey to value
+    }
   canonicalSchemaValidator.validate(typedManifest, slug, enforceContractVersion)
   return typedManifest
 }

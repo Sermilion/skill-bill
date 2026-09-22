@@ -52,16 +52,18 @@ class ReviewStageTelemetryTest {
       val review = importReviewedSample(it)
       setExecutionMode(it, review.reviewRunId, "inline")
       seedMixedVerdicts(it, review.reviewRunId)
-      val workerSelfReport = mapOf(
-        "confirmed" to 99,
-        "refuted" to 0,
-        "refutation_rate" to 0.01,
-      )
-      val payload = ReviewStatsRuntime.buildReviewFinishedPayload(
-        ReviewFinishedPayloadBuildRequest(connection = it, reviewRunId = review.reviewRunId),
-      )
-        .toReviewFinishedTelemetryPayload()
-        .toPayload()
+      val workerSelfReport =
+        mapOf(
+          "confirmed" to 99,
+          "refuted" to 0,
+          "refutation_rate" to 0.01,
+        )
+      val payload =
+        ReviewStatsRuntime.buildReviewFinishedPayload(
+          ReviewFinishedPayloadBuildRequest(connection = it, reviewRunId = review.reviewRunId),
+        )
+          .toReviewFinishedTelemetryPayload()
+          .toPayload()
       val snapshot = ReviewStatsRuntime.statsSnapshot(it, review.reviewRunId)
       assertEquals(1, payload.nestedInt("verification", "claim_verdict", "confirmed"))
       assertEquals(1, payload.nestedInt("verification", "claim_verdict", "refuted"))
@@ -186,15 +188,17 @@ class ReviewStageTelemetryTest {
         ),
       )
       emitDegradations(it, "rvw-unsettled")
-      val unsettledReasons = TelemetryOutboxStore(it).listPending(null)
-        .filter { record -> record.eventName == REVIEW_STAGE_DEGRADATION_EVENT_NAME }
-        .mapNotNull { record ->
-          val payload = JsonCodec.parseObjectOrNull(record.payloadJson)
-            ?.let { node -> JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(node)) }
-            ?: return@mapNotNull null
-          if (payload["review_run_id"] != "rvw-unsettled") return@mapNotNull null
-          payload["reason"] as? String
-        }
+      val unsettledReasons =
+        TelemetryOutboxStore(it).listPending(null)
+          .filter { record -> record.eventName == REVIEW_STAGE_DEGRADATION_EVENT_NAME }
+          .mapNotNull { record ->
+            val payload =
+              JsonCodec.parseObjectOrNull(record.payloadJson)
+                ?.let { node -> JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(node)) }
+                ?: return@mapNotNull null
+            if (payload["review_run_id"] != "rvw-unsettled") return@mapNotNull null
+            payload["reason"] as? String
+          }
       assertTrue(ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE.wireValue !in unsettledReasons)
     }
   }
@@ -221,12 +225,13 @@ class ReviewStageTelemetryTest {
       val review = importReviewedSample(it)
       setExecutionMode(it, review.reviewRunId, "delegated")
       seedMixedVerdicts(it, review.reviewRunId)
-      val legacyRestampId = TelemetryOutboxStore(it).enqueue(
-        REVIEW_STAGE_DEGRADATION_EVENT_NAME,
-        JsonCodec.mapToJsonString(
-          mapOf(SharedPayloadKeys.CONTRACT_VERSION to REVIEW_FINISHED_LEGACY_CONTRACT_VERSION),
-        ),
-      )
+      val legacyRestampId =
+        TelemetryOutboxStore(it).enqueue(
+          REVIEW_STAGE_DEGRADATION_EVENT_NAME,
+          JsonCodec.mapToJsonString(
+            mapOf(SharedPayloadKeys.CONTRACT_VERSION to REVIEW_FINISHED_LEGACY_CONTRACT_VERSION),
+          ),
+        )
       it.installLegacyRestampProbe(legacyRestampId)
       TelemetryOutboxStore(it).enqueue(
         "skillbill_review_finished",
@@ -246,9 +251,10 @@ class ReviewStageTelemetryTest {
       assertTrue(snapshot.health.malformedReviewPayloadRecords == 0)
       assertEquals(1, snapshot.stageMetrics?.verification?.confirmed)
       assertEquals("delegated", snapshot.stageMetrics?.resolvedTier)
-      val storedAfterRead = TelemetryOutboxStore(it).listPending(null).single {
-        it.eventName == "skillbill_review_finished"
-      }
+      val storedAfterRead =
+        TelemetryOutboxStore(it).listPending(null).single {
+          it.eventName == "skillbill_review_finished"
+        }
       val storedAfterReadPayload = telemetryOutboxPayload(storedAfterRead.payloadJson)
       assertEquals(REVIEW_FINISHED_LEGACY_CONTRACT_VERSION, storedAfterReadPayload["contract_version"])
       assertLegacyReviewFinishedMigration(it, review, legacyRestampId)
@@ -273,12 +279,14 @@ class ReviewStageTelemetryTest {
       val snapshot = ReviewStatsRuntime.statsSnapshot(it, reviewRunId = null)
       assertEquals(1, snapshot.health.malformedReviewPayloadRecords)
       applyLegacyTelemetryLedgerMigration(it)
-      val leftover = TelemetryOutboxStore(it).listPending(null).single { record ->
-        record.eventName == "skillbill_review_finished"
-      }
-      val leftoverPayload = JsonCodec.parseObjectOrNull(leftover.payloadJson)
-        ?.let { node -> JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(node)) }
-        ?: emptyMap()
+      val leftover =
+        TelemetryOutboxStore(it).listPending(null).single { record ->
+          record.eventName == "skillbill_review_finished"
+        }
+      val leftoverPayload =
+        JsonCodec.parseObjectOrNull(leftover.payloadJson)
+          ?.let { node -> JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(node)) }
+          ?: emptyMap()
       assertEquals(REVIEW_FINISHED_LEGACY_CONTRACT_VERSION, leftoverPayload["contract_version"])
       assertTrue(
         TelemetryOutboxStore(it).listPending(null).none { record ->
@@ -324,13 +332,14 @@ class ReviewStageTelemetryTest {
       emitDegradations(it, dbName)
       val reasons = degradationReasons(it)
       assertTrue(expected.wireValue in reasons, "'$rejectionReason' was not recorded as ${expected.wireValue}")
-      val otherWorkerCauses = listOf(
-        ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
-        ReviewStageDegradationReason.WORKER_TIMED_OUT,
-        ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
-        ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
-        ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
-      ).filterNot { cause -> cause == expected }.map(ReviewStageDegradationReason::wireValue)
+      val otherWorkerCauses =
+        listOf(
+          ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+          ReviewStageDegradationReason.WORKER_TIMED_OUT,
+          ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
+          ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+          ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
+        ).filterNot { cause -> cause == expected }.map(ReviewStageDegradationReason::wireValue)
       assertTrue(
         otherWorkerCauses.none { cause -> cause in reasons },
         "'$rejectionReason' must reach an operator as one cause, not several: $reasons",
@@ -338,7 +347,10 @@ class ReviewStageTelemetryTest {
     }
   }
 
-  private fun emitDegradations(connection: Connection, reviewRunId: String) {
+  private fun emitDegradations(
+    connection: Connection,
+    reviewRunId: String,
+  ) {
     val repository = SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC())
     val store = LifecycleTelemetryStore(connection)
     ReviewStageDegradationSelection.select(
@@ -352,7 +364,10 @@ class ReviewStageTelemetryTest {
     ).forEach(store::reviewStageDegradation)
   }
 
-  private fun applyLegacyTelemetryLedgerMigration(connection: Connection, forcePending: Boolean = true) {
+  private fun applyLegacyTelemetryLedgerMigration(
+    connection: Connection,
+    forcePending: Boolean = true,
+  ) {
     if (forcePending) {
       connection.createStatement().use { statement ->
         statement.executeUpdate("DELETE FROM schema_migrations WHERE name = 'migrate-legacy-telemetry-outbox'")
@@ -361,12 +376,13 @@ class ReviewStageTelemetryTest {
     DatabaseMigrations.apply(connection)
   }
 
-  private fun restampUpdateCount(connection: Connection): Int = connection.createStatement().use { statement ->
-    statement.executeQuery("SELECT update_count FROM legacy_restamp_probe").use { rows ->
-      check(rows.next())
-      rows.getInt(1)
+  private fun restampUpdateCount(connection: Connection): Int =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("SELECT update_count FROM legacy_restamp_probe").use { rows ->
+        check(rows.next())
+        rows.getInt(1)
+      }
     }
-  }
 
   private fun degradationReasons(connection: Connection): List<String> =
     TelemetryOutboxStore(connection).listPending(null)
@@ -375,84 +391,97 @@ class ReviewStageTelemetryTest {
         Regex(""""reason"\s*:\s*"([^"]+)"""").find(record.payloadJson)?.groupValues?.get(1).orEmpty()
       }
 
-  private fun seedMixedVerdicts(connection: Connection, reviewRunId: String) {
+  private fun seedMixedVerdicts(
+    connection: Connection,
+    reviewRunId: String,
+  ) {
     SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC()).recordFindingVerdicts(
       reviewRunId,
       mixedVerdicts(),
     )
   }
 
-  private fun mixedVerdicts(): List<ReviewFindingVerdict> = listOf(
-    ReviewFindingVerdict(
-      stage = ReviewStage.VERIFICATION,
-      findingRef = "F-001",
-      claimVerdict = ReviewClaimVerdict.CONFIRMED,
-      recordedAt = "2026-08-14T08:00:00Z",
-    ),
-    ReviewFindingVerdict(
-      stage = ReviewStage.VERIFICATION,
-      findingRef = "F-002",
-      claimVerdict = ReviewClaimVerdict.REFUTED,
-      citations = listOf(ReviewFindingCitation("src/Main.kt", 1)),
-      recordedAt = "2026-08-14T08:00:00Z",
-    ),
-    ReviewFindingVerdict(
-      stage = ReviewStage.VERIFICATION,
-      findingRef = "F-003",
-      claimVerdict = ReviewClaimVerdict.UNRESOLVED,
-      recordedAt = "2026-08-14T08:00:00Z",
-      rejectionReason = ReviewClaimVerdictAdmission.UNCITED_REFUTATION,
-    ),
-    ReviewFindingVerdict(
-      stage = ReviewStage.ADJUDICATION,
-      findingRef = "F-001",
-      claimVerdict = ReviewClaimVerdict.CONFIRMED,
-      scopeDisposition = ReviewScopeDisposition.IN_SCOPE,
-      recordedAt = "2026-08-14T08:01:00Z",
-      rejectionReason = ReviewSpecAdjudicationAdmission.UNCITED_DOWNGRADE,
-    ),
-    ReviewFindingVerdict(
-      stage = ReviewStage.ADJUDICATION,
-      findingRef = "F-004",
-      claimVerdict = ReviewClaimVerdict.UNRESOLVED,
-      recordedAt = "2026-08-14T08:01:00Z",
-      rejectionReason = ReviewClaimVerdictAdmission.ALTERED_CLAIM,
-    ),
-    ReviewFindingVerdict(
-      stage = ReviewStage.ADJUDICATION,
-      findingRef = "F-005",
-      claimVerdict = ReviewClaimVerdict.CONFIRMED,
-      scopeDisposition = ReviewScopeDisposition.IN_SCOPE,
-      severityAdjustment = ReviewSeverityAdjustment(
-        ReviewSeverityAdjustmentDirection.RAISE,
-        "constraint",
-      ),
-      recordedAt = "2026-08-14T08:01:00Z",
-    ),
-    ReviewFindingVerdict(
-      stage = ReviewStage.ADJUDICATION,
-      findingRef = "F-006",
-      claimVerdict = ReviewClaimVerdict.CONFIRMED,
-      scopeDisposition = ReviewScopeDisposition.IN_SCOPE,
-      severityAdjustment = ReviewSeverityAdjustment(
-        ReviewSeverityAdjustmentDirection.LOWER,
-        "non-goal",
-      ),
-      recordedAt = "2026-08-14T08:01:00Z",
-    ),
-  )
-
-  private fun seedTierRun(connection: Connection, runId: String, mode: String, refuted: Int, total: Int) {
-    val repository = SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC())
-    val verdicts = (1..total).map { index ->
+  private fun mixedVerdicts(): List<ReviewFindingVerdict> =
+    listOf(
       ReviewFindingVerdict(
         stage = ReviewStage.VERIFICATION,
-        findingRef = "F-00$index",
-        claimVerdict = if (index <= refuted) ReviewClaimVerdict.REFUTED else ReviewClaimVerdict.CONFIRMED,
-        citations = if (index <= refuted) listOf(ReviewFindingCitation("src/Main.kt", 1)) else emptyList(),
+        findingRef = "F-001",
+        claimVerdict = ReviewClaimVerdict.CONFIRMED,
         recordedAt = "2026-08-14T08:00:00Z",
-      )
-    }
+      ),
+      ReviewFindingVerdict(
+        stage = ReviewStage.VERIFICATION,
+        findingRef = "F-002",
+        claimVerdict = ReviewClaimVerdict.REFUTED,
+        citations = listOf(ReviewFindingCitation("src/Main.kt", 1)),
+        recordedAt = "2026-08-14T08:00:00Z",
+      ),
+      ReviewFindingVerdict(
+        stage = ReviewStage.VERIFICATION,
+        findingRef = "F-003",
+        claimVerdict = ReviewClaimVerdict.UNRESOLVED,
+        recordedAt = "2026-08-14T08:00:00Z",
+        rejectionReason = ReviewClaimVerdictAdmission.UNCITED_REFUTATION,
+      ),
+      ReviewFindingVerdict(
+        stage = ReviewStage.ADJUDICATION,
+        findingRef = "F-001",
+        claimVerdict = ReviewClaimVerdict.CONFIRMED,
+        scopeDisposition = ReviewScopeDisposition.IN_SCOPE,
+        recordedAt = "2026-08-14T08:01:00Z",
+        rejectionReason = ReviewSpecAdjudicationAdmission.UNCITED_DOWNGRADE,
+      ),
+      ReviewFindingVerdict(
+        stage = ReviewStage.ADJUDICATION,
+        findingRef = "F-004",
+        claimVerdict = ReviewClaimVerdict.UNRESOLVED,
+        recordedAt = "2026-08-14T08:01:00Z",
+        rejectionReason = ReviewClaimVerdictAdmission.ALTERED_CLAIM,
+      ),
+      ReviewFindingVerdict(
+        stage = ReviewStage.ADJUDICATION,
+        findingRef = "F-005",
+        claimVerdict = ReviewClaimVerdict.CONFIRMED,
+        scopeDisposition = ReviewScopeDisposition.IN_SCOPE,
+        severityAdjustment =
+          ReviewSeverityAdjustment(
+            ReviewSeverityAdjustmentDirection.RAISE,
+            "constraint",
+          ),
+        recordedAt = "2026-08-14T08:01:00Z",
+      ),
+      ReviewFindingVerdict(
+        stage = ReviewStage.ADJUDICATION,
+        findingRef = "F-006",
+        claimVerdict = ReviewClaimVerdict.CONFIRMED,
+        scopeDisposition = ReviewScopeDisposition.IN_SCOPE,
+        severityAdjustment =
+          ReviewSeverityAdjustment(
+            ReviewSeverityAdjustmentDirection.LOWER,
+            "non-goal",
+          ),
+        recordedAt = "2026-08-14T08:01:00Z",
+      ),
+    )
+
+  private fun seedTierRun(
+    connection: Connection,
+    runId: String,
+    mode: String,
+    refuted: Int,
+    total: Int,
+  ) {
+    val repository = SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC())
+    val verdicts =
+      (1..total).map { index ->
+        ReviewFindingVerdict(
+          stage = ReviewStage.VERIFICATION,
+          findingRef = "F-00$index",
+          claimVerdict = if (index <= refuted) ReviewClaimVerdict.REFUTED else ReviewClaimVerdict.CONFIRMED,
+          citations = if (index <= refuted) listOf(ReviewFindingCitation("src/Main.kt", 1)) else emptyList(),
+          recordedAt = "2026-08-14T08:00:00Z",
+        )
+      }
     repository.recordFindingVerdicts(runId, verdicts)
     repository.recordReviewPassClaims(runId, (1..total).map { claim("F-00$it") })
     setExecutionMode(connection, runId, mode)
@@ -463,28 +492,34 @@ class ReviewStageTelemetryTest {
     persistImportedReview(connection, review, sourcePath = null)
     TriageRuntime.recordFeedbackWithoutTransaction(
       connection = connection,
-      request = FeedbackRequest(
-        reviewRunId = review.reviewRunId,
-        findingIds = listOf("F-001"),
-        eventType = "finding_accepted",
-        note = "",
-      ),
+      request =
+        FeedbackRequest(
+          reviewRunId = review.reviewRunId,
+          findingIds = listOf("F-001"),
+          eventType = "finding_accepted",
+          note = "",
+        ),
       telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
     )
     TriageRuntime.recordFeedbackWithoutTransaction(
       connection = connection,
-      request = FeedbackRequest(
-        reviewRunId = review.reviewRunId,
-        findingIds = listOf("F-002"),
-        eventType = "fix_rejected",
-        note = "Intentional wording",
-      ),
+      request =
+        FeedbackRequest(
+          reviewRunId = review.reviewRunId,
+          findingIds = listOf("F-002"),
+          eventType = "fix_rejected",
+          note = "Intentional wording",
+        ),
       telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
     )
     return review
   }
 
-  private fun setExecutionMode(connection: Connection, reviewRunId: String, mode: String) {
+  private fun setExecutionMode(
+    connection: Connection,
+    reviewRunId: String,
+    mode: String,
+  ) {
     connection.prepareStatement(
       "UPDATE review_runs SET execution_mode = ? WHERE review_run_id = ?",
     ).use { statement ->
@@ -494,16 +529,17 @@ class ReviewStageTelemetryTest {
     }
   }
 
-  private fun claim(findingRef: String) = ParallelReviewMergedFinding(
-    fNumber = findingRef,
-    agentIds = listOf("codex"),
-    severity = ParallelReviewSeverity.MAJOR,
-    confidence = "High",
-    location = "src/Main.kt:1",
-    description = "finding",
-    repositoryPath = "src/Main.kt",
-    line = 1,
-  )
+  private fun claim(findingRef: String) =
+    ParallelReviewMergedFinding(
+      fNumber = findingRef,
+      agentIds = listOf("codex"),
+      severity = ParallelReviewSeverity.MAJOR,
+      confidence = "High",
+      location = "src/Main.kt:1",
+      description = "finding",
+      repositoryPath = "src/Main.kt",
+      line = 1,
+    )
 
   private fun assertLegacyReviewFinishedMigration(
     connection: Connection,
@@ -511,22 +547,25 @@ class ReviewStageTelemetryTest {
     legacyRestampId: Long,
   ) {
     applyLegacyTelemetryLedgerMigration(connection)
-    val restamped = TelemetryOutboxStore(connection).listPending(null).single { record ->
-      record.id == legacyRestampId
-    }
+    val restamped =
+      TelemetryOutboxStore(connection).listPending(null).single { record ->
+        record.id == legacyRestampId
+      }
     val restampedPayload = telemetryOutboxPayload(restamped.payloadJson)
     assertEquals(REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION, restampedPayload[SharedPayloadKeys.CONTRACT_VERSION])
     assertEquals(1, restampUpdateCount(connection))
-    val rewritten = TelemetryOutboxStore(connection).listPending(null).single {
-      it.eventName == "skillbill_review_finished"
-    }
+    val rewritten =
+      TelemetryOutboxStore(connection).listPending(null).single {
+        it.eventName == "skillbill_review_finished"
+      }
     val payload = telemetryOutboxPayload(rewritten.payloadJson)
     assertEquals(REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION, payload["contract_version"])
     assertEquals(1, payload.nestedInt("verification", "claim_verdict", "confirmed"))
     assertEquals("delegated", payload["resolved_tier"])
-    val companion = TelemetryOutboxStore(connection).listPending(null).single { record ->
-      record.eventName == REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME
-    }
+    val companion =
+      TelemetryOutboxStore(connection).listPending(null).single { record ->
+        record.eventName == REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME
+      }
     val companionPayload = telemetryOutboxPayload(companion.payloadJson)
     assertEquals(REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME, companionPayload["event_name"])
     assertEquals(REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION, companionPayload["contract_version"])
@@ -577,6 +616,7 @@ private fun java.sql.Connection.installLegacyRestampProbe(legacyRestampId: Long)
   }
 }
 
-private fun telemetryOutboxPayload(payloadJson: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(payloadJson)
-  ?.let { node -> JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(node)) }
-  ?: emptyMap()
+private fun telemetryOutboxPayload(payloadJson: String): Map<String, Any?> =
+  JsonCodec.parseObjectOrNull(payloadJson)
+    ?.let { node -> JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(node)) }
+    ?: emptyMap()

@@ -35,10 +35,11 @@ class FeatureTaskRuntimeProjectionCanonicalizationIdempotenceTest {
 
   @Test
   fun `an unknown key on a nested closed object reaches a fixed point in one pass`() {
-    val produced = mapOf(
-      "tests_executed" to listOf(mapOf("name" to "FooTest", "outcome" to "passed", "duration_ms" to 12)),
-      "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "  tree at target  ", "extra" to 1),
-    )
+    val produced =
+      mapOf(
+        "tests_executed" to listOf(mapOf("name" to "FooTest", "outcome" to "passed", "duration_ms" to 12)),
+        "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "  tree at target  ", "extra" to 1),
+      )
 
     val first = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
     val second = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(first.canonical)

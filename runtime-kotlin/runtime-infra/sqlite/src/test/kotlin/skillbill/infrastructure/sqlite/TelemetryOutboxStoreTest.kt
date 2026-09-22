@@ -13,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class TelemetryOutboxStoreTest {
   @Test
   fun `telemetry outbox tracks pending rows until they are marked synced`() {
@@ -266,20 +267,25 @@ class TelemetryOutboxStoreTest {
     limit: Int,
     reclaimBefore: Instant = Instant.parse("2026-09-15T09:55:00Z"),
     attemptBudget: Int = TELEMETRY_DELIVERY_ATTEMPT_BUDGET,
-  ): TelemetryOutboxClaimRequest = TelemetryOutboxClaimRequest(
-    claimToken = token,
-    limit = limit,
-    claimedAt = Instant.parse("2026-09-15T10:00:00Z"),
-    reclaimBefore = reclaimBefore,
-    attemptBudget = attemptBudget,
-  )
+  ): TelemetryOutboxClaimRequest =
+    TelemetryOutboxClaimRequest(
+      claimToken = token,
+      limit = limit,
+      claimedAt = Instant.parse("2026-09-15T10:00:00Z"),
+      reclaimBefore = reclaimBefore,
+      attemptBudget = attemptBudget,
+    )
 
-  private fun scalarString(connection: Connection, sql: String): String? = connection.createStatement().use { st ->
-    st.executeQuery(sql).use { rows ->
-      check(rows.next())
-      rows.getString(1)
+  private fun scalarString(
+    connection: Connection,
+    sql: String,
+  ): String? =
+    connection.createStatement().use { st ->
+      st.executeQuery(sql).use { rows ->
+        check(rows.next())
+        rows.getString(1)
+      }
     }
-  }
 
   private fun withOutbox(block: (Connection, TelemetryOutboxStore) -> Unit) {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-outbox").resolve("metrics.db")
@@ -288,10 +294,14 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  private fun countWhere(connection: Connection, predicate: String): Int = connection.createStatement().use { st ->
-    st.executeQuery("SELECT COUNT(*) FROM telemetry_outbox WHERE $predicate").use { rows ->
-      check(rows.next())
-      rows.getInt(1)
+  private fun countWhere(
+    connection: Connection,
+    predicate: String,
+  ): Int =
+    connection.createStatement().use { st ->
+      st.executeQuery("SELECT COUNT(*) FROM telemetry_outbox WHERE $predicate").use { rows ->
+        check(rows.next())
+        rows.getInt(1)
+      }
     }
-  }
 }

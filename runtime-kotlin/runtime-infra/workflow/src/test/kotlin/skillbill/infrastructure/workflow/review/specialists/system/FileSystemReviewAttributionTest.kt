@@ -54,9 +54,10 @@ class FileSystemReviewAttributionTest {
     assertEquals(emptyList(), plan.lanes)
   }
 
-  private fun installedCatalog(repoRoot: Path) = InstalledPlatformPackCatalogPort {
-    discoverPlatformPackManifests(repoRoot.resolve("platform-packs"))
-  }
+  private fun installedCatalog(repoRoot: Path) =
+    InstalledPlatformPackCatalogPort {
+      discoverPlatformPackManifests(repoRoot.resolve("platform-packs"))
+    }
 
   private fun composedPackFixture(): Path {
     val repoRoot = Files.createTempDirectory("skillbill-review-composition")
@@ -65,7 +66,12 @@ class FileSystemReviewAttributionTest {
     return repoRoot
   }
 
-  private fun writePack(repoRoot: Path, slug: String, area: String, composesKotlin: Boolean) {
+  private fun writePack(
+    repoRoot: Path,
+    slug: String,
+    area: String,
+    composesKotlin: Boolean,
+  ) {
     val packRoot = repoRoot.resolve("platform-packs/$slug")
     val baseline = packRoot.resolve("code-review/bill-$slug-code-review/content.md")
     val areaFile = packRoot.resolve("code-review/bill-$slug-code-review-$area/content.md")
@@ -76,9 +82,14 @@ class FileSystemReviewAttributionTest {
     Files.writeString(packRoot.resolve("platform.yaml"), composedManifest(slug, area, composesKotlin))
   }
 
-  private fun composedManifest(slug: String, area: String, composesKotlin: Boolean): String {
-    val composition = if (composesKotlin) {
-      """
+  private fun composedManifest(
+    slug: String,
+    area: String,
+    composesKotlin: Boolean,
+  ): String {
+    val composition =
+      if (composesKotlin) {
+        """
       |code_review_composition:
       |  baseline_layers:
       |    - platform: "kotlin"
@@ -86,10 +97,10 @@ class FileSystemReviewAttributionTest {
       |      scope: "same-review-scope"
       |      required: true
       |      mode: "kmp-baseline"
-      """.trimMargin()
-    } else {
-      ""
-    }
+        """.trimMargin()
+      } else {
+        ""
+      }
     return """
       |platform: $slug
       |contract_version: "1.8"
@@ -109,10 +120,11 @@ class FileSystemReviewAttributionTest {
       |    focus: $slug $area review.
       |$composition
       |
-    """.trimMargin()
+      """.trimMargin()
   }
 
-  private fun platformManifest(): String = """
+  private fun platformManifest(): String =
+    """
     |platform: ruby
     |contract_version: "1.8"
     |display_name: Ruby
@@ -130,9 +142,10 @@ class FileSystemReviewAttributionTest {
     |  security:
     |    focus: Ruby security review.
     |
-  """.trimMargin()
+    """.trimMargin()
 
-  private fun content(name: String): String = """
+  private fun content(name: String): String =
+    """
     |---
     |name: $name
     |description: Review Ruby code.
@@ -140,5 +153,5 @@ class FileSystemReviewAttributionTest {
     |
     |Review Ruby changes.
     |
-  """.trimMargin()
+    """.trimMargin()
 }

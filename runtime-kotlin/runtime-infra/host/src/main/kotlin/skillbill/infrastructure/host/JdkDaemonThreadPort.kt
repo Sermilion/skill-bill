@@ -5,7 +5,10 @@ import skillbill.ports.process.DaemonThreadPort
 
 @Inject
 class JdkDaemonThreadPort : DaemonThreadPort {
-  override fun runWithJoinBudget(action: () -> Unit, joinBudgetMillis: Long) {
+  override fun runWithJoinBudget(
+    action: () -> Unit,
+    joinBudgetMillis: Long,
+  ) {
     val worker = Thread(action)
     worker.isDaemon = true
     runCatching {

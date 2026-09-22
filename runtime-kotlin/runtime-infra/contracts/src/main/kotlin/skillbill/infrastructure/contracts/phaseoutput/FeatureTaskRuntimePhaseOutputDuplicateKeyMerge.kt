@@ -15,6 +15,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputF
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import kotlin.coroutines.cancellation.CancellationException
+
 internal data class DuplicateKeyMerge(
   val node: JsonNode,
   val repairedText: String,
@@ -54,40 +55,46 @@ internal object DuplicateKeyMergeParser {
       return null
     }
     val merged = merge(text, format)?.takeIf { it.node.isObject } ?: return null
-    val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
-      format = merged.format,
-      originalDigest = StructuralRepairSyntax.sha256Hex(text),
-      repairedDigest = StructuralRepairSyntax.sha256Hex(merged.repairedText),
-      operation = FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS,
-      sourceLocation = StructuralRepairSyntax.sourceLocation(
-        sourceLabel,
-        sourceText,
-        sourceOffset + merged.firstDuplicateOffset,
-      ),
-    )
+    val evidence =
+      FeatureTaskRuntimePhaseOutputRepairEvidence(
+        format = merged.format,
+        originalDigest = StructuralRepairSyntax.sha256Hex(text),
+        repairedDigest = StructuralRepairSyntax.sha256Hex(merged.repairedText),
+        operation = FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS,
+        sourceLocation =
+          StructuralRepairSyntax.sourceLocation(
+            sourceLabel,
+            sourceText,
+            sourceOffset + merged.firstDuplicateOffset,
+          ),
+      )
     return StructuralRepairDecisions.accepted(merged.repairedText, merged.node, evidence)
   }
 
-  fun merge(text: String, format: FeatureTaskRuntimePhaseOutputFormat): DuplicateKeyMerge? = try {
-    val factory = if (format == FeatureTaskRuntimePhaseOutputFormat.JSON) jsonFactory else yamlFactory
-    factory.createParser(text).use { parser ->
-      if (parser.nextToken() == null) return@use null
-      val tracker = MergeTracker(jsonMapper)
-      val node = tracker.parseValue(parser)
-      if (parser.nextToken() != null) return@use null
-      if (!tracker.changed || !node.isObject) return@use null
-      DuplicateKeyMerge(
-        node = node,
-        repairedText = jsonMapper.writeValueAsString(node),
-        format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-        firstDuplicateOffset = tracker.firstDuplicateOffset.coerceAtLeast(0),
-      )
+  fun merge(
+    text: String,
+    format: FeatureTaskRuntimePhaseOutputFormat,
+  ): DuplicateKeyMerge? =
+    try {
+      val factory = if (format == FeatureTaskRuntimePhaseOutputFormat.JSON) jsonFactory else yamlFactory
+      factory.createParser(text).use { parser ->
+        if (parser.nextToken() == null) return@use null
+        val tracker = MergeTracker(jsonMapper)
+        val node = tracker.parseValue(parser)
+        if (parser.nextToken() != null) return@use null
+        if (!tracker.changed || !node.isObject) return@use null
+        DuplicateKeyMerge(
+          node = node,
+          repairedText = jsonMapper.writeValueAsString(node),
+          format = FeatureTaskRuntimePhaseOutputFormat.JSON,
+          firstDuplicateOffset = tracker.firstDuplicateOffset.coerceAtLeast(0),
+        )
+      }
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (_: JsonProcessingException) {
+      null
     }
-  } catch (cancellation: CancellationException) {
-    throw cancellation
-  } catch (_: JsonProcessingException) {
-    null
-  }
 
   private class MergeTracker(private val mapper: ObjectMapper) {
     var changed: Boolean = false
@@ -140,7 +147,10 @@ internal object DuplicateKeyMergeParser {
       return arr
     }
 
-    private fun mergeNodes(first: JsonNode, later: JsonNode): JsonNode {
+    private fun mergeNodes(
+      first: JsonNode,
+      later: JsonNode,
+    ): JsonNode {
       if (first == later) return first
       if (first is ObjectNode && later is ObjectNode) {
         val merged = first.deepCopy()

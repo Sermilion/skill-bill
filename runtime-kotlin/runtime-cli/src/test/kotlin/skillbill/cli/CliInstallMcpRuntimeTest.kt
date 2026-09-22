@@ -36,10 +36,12 @@ class CliInstallMcpRuntimeTest {
     val codexTarget = fixture.home.resolve(".codex/agents/${fixture.codexToml.fileName}")
     val junieTarget = fixture.home.resolve(".junie/agents/${fixture.junieMd.fileName}")
     val legacyRoot = fixture.home.resolve("old-repo")
-    val legacyCodex = legacyRoot.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/codex-agents")
-      .resolve(fixture.codexToml.fileName)
-    val legacyJunie = legacyRoot.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/junie-agents")
-      .resolve(fixture.junieMd.fileName)
+    val legacyCodex =
+      legacyRoot.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/codex-agents")
+        .resolve(fixture.codexToml.fileName)
+    val legacyJunie =
+      legacyRoot.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/junie-agents")
+        .resolve(fixture.junieMd.fileName)
     listOf(legacyCodex, legacyJunie).forEach { legacy ->
       Files.createDirectories(legacy.parent)
       Files.writeString(legacy, "legacy generated artifact\n")
@@ -141,9 +143,10 @@ class CliInstallMcpRuntimeTest {
     assertEquals(1, result.exitCode, result.stdout)
     val claudeAgentsDir = fixture.home.resolve(".claude/agents")
     if (Files.exists(claudeAgentsDir)) {
-      val partialFiles = Files.list(claudeAgentsDir).use { stream ->
-        stream.filter { path -> path.fileName.toString().startsWith("bill-") }.toList()
-      }
+      val partialFiles =
+        Files.list(claudeAgentsDir).use { stream ->
+          stream.filter { path -> path.fileName.toString().startsWith("bill-") }.toList()
+        }
       assertTrue(partialFiles.isEmpty(), "Expected no partial Claude agent files but found $partialFiles")
     }
   }
@@ -168,10 +171,11 @@ class CliInstallMcpRuntimeTest {
       Files.createDirectories(configPath.parent)
       Files.writeString(configPath, case.seed)
 
-      val register = CliRuntime.run(
-        listOf("install", "register-mcp", case.agent, "--runtime-mcp-bin", "/tmp/runtime-mcp"),
-        context,
-      )
+      val register =
+        CliRuntime.run(
+          listOf("install", "register-mcp", case.agent, "--runtime-mcp-bin", "/tmp/runtime-mcp"),
+          context,
+        )
       assertEquals(0, register.exitCode, "${case.agent}: ${register.stdout}")
       case.assertRegistered(Files.readString(configPath))
 
@@ -192,10 +196,11 @@ class CliInstallMcpRuntimeTest {
     val workConfig = work.resolve(".claude.json")
     val context = installCliContext(home)
 
-    val register = CliRuntime.run(
-      listOf("--home", home.toString(), "install", "register-mcp", "claude", "--runtime-mcp-bin", "/tmp/runtime-mcp"),
-      context,
-    )
+    val register =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "install", "register-mcp", "claude", "--runtime-mcp-bin", "/tmp/runtime-mcp"),
+        context,
+      )
 
     assertEquals(0, register.exitCode, register.stdout)
     assertContains(register.stdout, defaultConfig.toString())
@@ -213,10 +218,11 @@ class CliInstallMcpRuntimeTest {
     }
     assertEquals("work", decodeJsonObject(Files.readString(workConfig))["theme"])
 
-    val unregister = CliRuntime.run(
-      listOf("--home", home.toString(), "install", "unregister-mcp", "claude"),
-      context,
-    )
+    val unregister =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "install", "unregister-mcp", "claude"),
+        context,
+      )
 
     assertEquals(0, unregister.exitCode, unregister.stdout)
     assertContains(unregister.stdout, defaultConfig.toString())

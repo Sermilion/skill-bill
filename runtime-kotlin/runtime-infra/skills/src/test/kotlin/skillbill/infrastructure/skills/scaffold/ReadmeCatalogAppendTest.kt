@@ -8,9 +8,10 @@ import org.junit.jupiter.api.io.TempDir
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.infrastructure.skills.scaffold.manifest.appendReadmeCatalogRow
 import java.nio.file.Path
-class ReadmeCatalogAppendTest {
 
-  private val readmeWithCatalog = """
+class ReadmeCatalogAppendTest {
+  private val readmeWithCatalog =
+    """
     # Skill Bill
 
     ## Slash commands
@@ -23,10 +24,12 @@ class ReadmeCatalogAppendTest {
     | `/bill-pr-description` | Generate a PR title and description |
 
     Trailing content.
-  """.trimIndent() + "\n"
+    """.trimIndent() + "\n"
 
   @Test
-  fun `appendReadmeCatalogRow inserts row in alphabetical position`(@TempDir tempDir: Path) {
+  fun `appendReadmeCatalogRow inserts row in alphabetical position`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText(readmeWithCatalog)
 
@@ -49,7 +52,9 @@ class ReadmeCatalogAppendTest {
   }
 
   @Test
-  fun `appendReadmeCatalogRow is idempotent when the skill already exists`(@TempDir tempDir: Path) {
+  fun `appendReadmeCatalogRow is idempotent when the skill already exists`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText(readmeWithCatalog)
 
@@ -64,7 +69,9 @@ class ReadmeCatalogAppendTest {
   }
 
   @Test
-  fun `appendReadmeCatalogRow appends after the last row when the new name sorts after all`(@TempDir tempDir: Path) {
+  fun `appendReadmeCatalogRow appends after the last row when the new name sorts after all`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText(readmeWithCatalog)
 
@@ -76,18 +83,23 @@ class ReadmeCatalogAppendTest {
   }
 
   @Test
-  fun `appendReadmeCatalogRow throws when no catalog rows exist in the file`(@TempDir tempDir: Path) {
+  fun `appendReadmeCatalogRow throws when no catalog rows exist in the file`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText("# Skill Bill\n\nNo table here.\n")
 
-    val error = assertThrows(InvalidScaffoldPayloadError::class.java) {
-      appendReadmeCatalogRow(readme, "bill-foo", "desc")
-    }
+    val error =
+      assertThrows(InvalidScaffoldPayloadError::class.java) {
+        appendReadmeCatalogRow(readme, "bill-foo", "desc")
+      }
     assertTrue(error.message!!.contains("README.md does not contain a `/bill-*` catalog table"))
   }
 
   @Test
-  fun `appendReadmeCatalogRow sanitizes pipe and whitespace in description`(@TempDir tempDir: Path) {
+  fun `appendReadmeCatalogRow sanitizes pipe and whitespace in description`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText(readmeWithCatalog)
 
@@ -106,7 +118,9 @@ class ReadmeCatalogAppendTest {
   }
 
   @Test
-  fun `appendReadmeCatalogRow falls back to a TODO description when input is blank`(@TempDir tempDir: Path) {
+  fun `appendReadmeCatalogRow falls back to a TODO description when input is blank`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText(readmeWithCatalog)
 

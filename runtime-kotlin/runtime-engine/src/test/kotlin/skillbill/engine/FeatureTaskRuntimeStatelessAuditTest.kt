@@ -22,6 +22,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeStatelessAuditTest {
   private fun seedPlanningUpstreamPhases(harness: RunnerHarness) {
     harness.seedPhase("preplan", "completed", 1, "claude", PREPLAN_OUTPUT)
@@ -61,18 +62,20 @@ class FeatureTaskRuntimeStatelessAuditTest {
   @Test
   fun `gaps_found audit output is rejected and does not re-enter implement`() {
     var auditLaunches = 0
-    val launcher = RuntimeRecordingLauncher { request ->
-      val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-      if (phaseId == "audit") {
-        auditLaunches += 1
-        facts(auditGapsFoundOutput())
-      } else {
-        facts(defaultPhaseOutput(request))
+    val launcher =
+      RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        if (phaseId == "audit") {
+          auditLaunches += 1
+          facts(auditGapsFoundOutput())
+        } else {
+          facts(defaultPhaseOutput(request))
+        }
       }
-    }
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(launcher = launcher, validator = realFeatureTaskRuntimePhaseOutputValidator),
-    )
+    val harness =
+      runnerHarness(
+        RuntimeHarnessConfig(launcher = launcher, validator = realFeatureTaskRuntimePhaseOutputValidator),
+      )
     val report = harness.runner.run(harness.request())
     assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
     assertEquals(1, auditLaunches)
@@ -221,18 +224,20 @@ class FeatureTaskRuntimeStatelessAuditTest {
         edgeIteration = 1,
       ),
     )
-    val legacyArtifacts = mapOf(
-      "feature_task_runtime_audit_gap_pause" to "unreadable pause",
-      "feature_task_runtime_audit_gap_progress" to "unreadable progress",
-      "feature_task_runtime_audit_generations" to "dangling generation",
-    )
+    val legacyArtifacts =
+      mapOf(
+        "feature_task_runtime_audit_gap_pause" to "unreadable pause",
+        "feature_task_runtime_audit_gap_progress" to "unreadable progress",
+        "feature_task_runtime_audit_generations" to "dangling generation",
+      )
     harness.repository.replaceTaskRuntimeArtifacts(
       WORKFLOW_ID,
-      harness.repository.taskRuntimeArtifacts(WORKFLOW_ID) + legacyArtifacts + mapOf(
-        FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY to mapOf("audit" to "retired unreadable briefing"),
-        FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY to
-          mapOf("$WORKFLOW_ID|audit|1|plan#1|legacy" to "retired unreadable projection"),
-      ),
+      harness.repository.taskRuntimeArtifacts(WORKFLOW_ID) + legacyArtifacts +
+        mapOf(
+          FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY to mapOf("audit" to "retired unreadable briefing"),
+          FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY to
+            mapOf("$WORKFLOW_ID|audit|1|plan#1|legacy" to "retired unreadable projection"),
+        ),
     )
     val result = harness.runner.run(harness.request())
     assertIs<FeatureTaskRuntimeRunReport.Completed>(result)
@@ -249,20 +254,22 @@ class FeatureTaskRuntimeStatelessAuditTest {
     val root = Files.createTempDirectory("goal-review-carry-forward")
     try {
       val git = RecordingWorkflowGitOperations(currentBranchValue = "feat/existing-runtime-branch")
-      val harness = goalContinuationHarness(
-        repoRoot = root,
-        git = git,
-        launcher = RuntimeRecordingLauncher { request ->
-          val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-          facts(
-            when {
-              phaseId == "audit" -> auditSatisfiedOutput()
-              phaseId == "commit_push" -> validJsonOutput("commit_push")
-              else -> validJsonOutput(phaseId)
+      val harness =
+        goalContinuationHarness(
+          repoRoot = root,
+          git = git,
+          launcher =
+            RuntimeRecordingLauncher { request ->
+              val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+              facts(
+                when {
+                  phaseId == "audit" -> auditSatisfiedOutput()
+                  phaseId == "commit_push" -> validJsonOutput("commit_push")
+                  else -> validJsonOutput(phaseId)
+                },
+              )
             },
-          )
-        },
-      )
+        )
       harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
       recordReviewCap(harness)
       seedPlanningUpstreamPhases(harness)
@@ -280,34 +287,37 @@ class FeatureTaskRuntimeStatelessAuditTest {
       harness.goalContinuationRecorder.recordGoalContinuationState(
         GoalContinuationStateRecordRequest(
           workflowId = WORKFLOW_ID,
-          continuation = FeatureTaskRuntimeGoalContinuationArtifact(
-            issueKey = RUNNER_TEST_ISSUE_KEY,
-            subtaskId = 5,
-            suppressPr = true,
-            goalBranch = "feat/existing-runtime-branch",
-            parentWorkflowId = "wfl-parent",
-            codeReviewMode = CodeReviewExecutionMode.DEFAULT,
-          ),
+          continuation =
+            FeatureTaskRuntimeGoalContinuationArtifact(
+              issueKey = RUNNER_TEST_ISSUE_KEY,
+              subtaskId = 5,
+              suppressPr = true,
+              goalBranch = "feat/existing-runtime-branch",
+              parentWorkflowId = "wfl-parent",
+              codeReviewMode = CodeReviewExecutionMode.DEFAULT,
+            ),
           reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
         ),
       ),
     )
-    val capped = requireNotNull(
-      harness.goalContinuationRecorder.updateReviewState(WORKFLOW_ID) { state ->
-        state.reserveNextPass().completeReservedPass(
-          verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
-          unresolvedFindingCount = 1,
-          findings = listOf(
-            GoalSubtaskReviewCompactFinding(
-              severity = "blocker",
-              label = "Missing behavior",
-              text = "The required behavior is still absent.",
-              findingId = "F-001",
-            ),
-          ),
-        ).copy(disposition = GoalSubtaskReviewDisposition.REVIEW_CAP_REACHED)
-      },
-    )
+    val capped =
+      requireNotNull(
+        harness.goalContinuationRecorder.updateReviewState(WORKFLOW_ID) { state ->
+          state.reserveNextPass().completeReservedPass(
+            verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+            unresolvedFindingCount = 1,
+            findings =
+              listOf(
+                GoalSubtaskReviewCompactFinding(
+                  severity = "blocker",
+                  label = "Missing behavior",
+                  text = "The required behavior is still absent.",
+                  findingId = "F-001",
+                ),
+              ),
+          ).copy(disposition = GoalSubtaskReviewDisposition.REVIEW_CAP_REACHED)
+        },
+      )
     val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID).toMutableMap()
     artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY] =
       capped.passResults.associate { it.passNumber.toString() to VALID_REVIEW_OUTPUT }
@@ -329,18 +339,20 @@ class FeatureTaskRuntimeStatelessAuditTest {
   @Test
   fun `malformed audit output blocks after one agent session`() {
     var auditLaunches = 0
-    val launcher = RuntimeRecordingLauncher { request ->
-      val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-      if (phaseId == "audit") {
-        auditLaunches += 1
-        facts("{not valid json")
-      } else {
-        facts(defaultPhaseOutput(request))
+    val launcher =
+      RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        if (phaseId == "audit") {
+          auditLaunches += 1
+          facts("{not valid json")
+        } else {
+          facts(defaultPhaseOutput(request))
+        }
       }
-    }
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(launcher = launcher, validator = realFeatureTaskRuntimePhaseOutputValidator),
-    )
+    val harness =
+      runnerHarness(
+        RuntimeHarnessConfig(launcher = launcher, validator = realFeatureTaskRuntimePhaseOutputValidator),
+      )
     val report = harness.runner.run(harness.request())
     assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
     assertEquals(1, auditLaunches)

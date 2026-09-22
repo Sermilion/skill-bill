@@ -23,6 +23,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+
 class CliWorkListRuntimeTest {
   @Test
   fun `work list renders empty tables and stable empty json through the global database override`() {
@@ -45,18 +46,19 @@ class CliWorkListRuntimeTest {
   @Test
   fun `work list table and json expose ordering unknown estimated values limits and utc instants`() {
     val dbPath = Files.createTempDirectory("skillbill-cli-work-list").resolve("metrics.db")
-    val component = RuntimeComponent::class.create(
-      RuntimeContext(
-        EnvironmentContext(
-          dbPathOverride = dbPath.toString(),
-          environment = emptyMap(),
-          userHome = Files.createTempDirectory("skillbill-cli-work-list-home"),
+    val component =
+      RuntimeComponent::class.create(
+        RuntimeContext(
+          EnvironmentContext(
+            dbPathOverride = dbPath.toString(),
+            environment = emptyMap(),
+            userHome = Files.createTempDirectory("skillbill-cli-work-list-home"),
+          ),
+          TransportContext(),
+          WorkflowOpsContext(),
+          OptionalCallbacks(),
         ),
-        TransportContext(),
-        WorkflowOpsContext(),
-        OptionalCallbacks(),
-      ),
-    )
+      )
     val runtime = component.openWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-117")
     val verify = component.openWorkflow(WorkflowFamilyKind.VERIFY, "SKILL-118")
     ensureTestDatabase(dbPath).use { connection ->
@@ -148,14 +150,22 @@ class CliWorkListRuntimeTest {
     assertEquals(workflowId, row["workflow_id"])
   }
 
-  private fun RuntimeComponent.openWorkflow(kind: WorkflowFamilyKind, issueKey: String): String =
+  private fun RuntimeComponent.openWorkflow(
+    kind: WorkflowFamilyKind,
+    issueKey: String,
+  ): String =
     assertIs<WorkflowOpenResult.Ok>(
       workflowService.open(
         WorkflowServiceOpenArgs(kind = kind, issueKey = issueKey),
       ),
     ).workflowId
 
-  private fun updateStartedAt(connection: Connection, table: String, workflowId: String, startedAt: String) {
+  private fun updateStartedAt(
+    connection: Connection,
+    table: String,
+    workflowId: String,
+    startedAt: String,
+  ) {
     connection.prepareStatement(
       "UPDATE $table SET started_at = ?, state_entered_at = ? WHERE workflow_id = ?",
     ).use { statement ->
@@ -187,7 +197,10 @@ class CliWorkListRuntimeTest {
     )
   }
 
-  private fun insertGoal(connection: Connection, row: GoalProgressRow) {
+  private fun insertGoal(
+    connection: Connection,
+    row: GoalProgressRow,
+  ) {
     connection.prepareStatement(
       """
       INSERT INTO goal_issue_progress (

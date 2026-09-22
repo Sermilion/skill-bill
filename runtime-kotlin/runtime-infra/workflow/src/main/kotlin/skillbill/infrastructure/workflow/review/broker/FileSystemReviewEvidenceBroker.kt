@@ -20,6 +20,7 @@ import skillbill.review.context.model.packet.LANE_EVIDENCE_BYTES_DIMENSION
 import skillbill.review.context.model.packet.ReviewExpansionRecord
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
+
 class FileSystemReviewEvidenceBroker(binding: ReviewEvidenceBrokerBinding) : ReviewEvidenceBroker {
   private val root: Path = binding.repoRoot.toRealPath()
   private val assignment = binding.assignment
@@ -28,27 +29,30 @@ class FileSystemReviewEvidenceBroker(binding: ReviewEvidenceBrokerBinding) : Rev
   private val policy = ReviewOperationPolicy(assignment, binding.laneRubricId, binding.namedDependencies)
   private val authorizedExpansionLedger = binding.trustedExpansionLedger.toMutableList()
   private val projectedHunks = binding.projectedHunks
-  private val completeFileCheckpoint = (
-    assignment.assignedPaths + assignment.dependencyAllowlist.normalized
+  private val completeFileCheckpoint =
+    (
+      assignment.assignedPaths + assignment.dependencyAllowlist.normalized
     ).distinct().associateWith { checkpointDigest(root, it) }
-  private val hunkCommitById = assignment.assignedBundle.entries
-    .flatMap { entry -> entry.hunkIds.map { it to entry.commitSha } }
-    .toMap()
-  private val readState = FileSystemReviewEvidenceBrokerReadState(
-    FileSystemReviewEvidenceBrokerReadStateInit(
-      root = root,
-      assignment = assignment,
-      budget = budget,
-      identity = identity,
-      policy = policy,
-      authorizedExpansionLedger = authorizedExpansionLedger,
-      projectedHunks = projectedHunks,
-      locatorReader = binding.locatorReader,
-      bodyExtractor = binding.bodyExtractor,
-      completeFileCheckpoint = completeFileCheckpoint,
-      hunkCommitById = hunkCommitById,
-    ),
-  )
+  private val hunkCommitById =
+    assignment.assignedBundle.entries
+      .flatMap { entry -> entry.hunkIds.map { it to entry.commitSha } }
+      .toMap()
+  private val readState =
+    FileSystemReviewEvidenceBrokerReadState(
+      FileSystemReviewEvidenceBrokerReadStateInit(
+        root = root,
+        assignment = assignment,
+        budget = budget,
+        identity = identity,
+        policy = policy,
+        authorizedExpansionLedger = authorizedExpansionLedger,
+        projectedHunks = projectedHunks,
+        locatorReader = binding.locatorReader,
+        bodyExtractor = binding.bodyExtractor,
+        completeFileCheckpoint = completeFileCheckpoint,
+        hunkCommitById = hunkCommitById,
+      ),
+    )
   private val reads = FileSystemReviewEvidenceBrokerReads(readState)
   private var refusedOperationCount = 0
   private var resultBytes = 0L
@@ -56,9 +60,11 @@ class FileSystemReviewEvidenceBroker(binding: ReviewEvidenceBrokerBinding) : Rev
   private var toolCalls = 0
   private var modelTurns = 0
   private val refusalLedger = mutableListOf<ReviewRefusedOperationRecord>()
+
   init {
-    val admitted = assignment.assignedPaths + assignment.dependencyAllowlist.normalized +
-      assignment.evidenceTargets.map { it.path } + assignment.expansions.map { it.requestedPath }
+    val admitted =
+      assignment.assignedPaths + assignment.dependencyAllowlist.normalized +
+        assignment.evidenceTargets.map { it.path } + assignment.expansions.map { it.requestedPath }
     admitted.distinct().forEach { validateRepositoryMapping(root, it) }
   }
 
@@ -68,19 +74,21 @@ class FileSystemReviewEvidenceBroker(binding: ReviewEvidenceBrokerBinding) : Rev
     require(request.reachabilityReason.isNotBlank()) { "Expansion reachability reason must not be blank." }
     requireRepositoryRelativePath(request.path)
     require(policy.isReachable(request.path)) { "Expansion path is outside the assignment evidence surface." }
-    val existing = authorizedExpansionLedger.singleOrNull {
-      it.requestedPath == request.path && it.reachabilityReason == request.reachabilityReason
-    }
+    val existing =
+      authorizedExpansionLedger.singleOrNull {
+        it.requestedPath == request.path && it.reachabilityReason == request.reachabilityReason
+      }
     if (existing != null) return existing
     val sequence = (authorizedExpansionLedger.maxOfOrNull { it.sequence } ?: -1) + 1
-    val expansion = ReviewExpansionRecord(
-      expansionId = stableReviewExpansionId(assignment.digest, request.path, request.reachabilityReason),
-      assignmentDigest = assignment.digest,
-      requestedPath = request.path,
-      reachabilityReason = request.reachabilityReason,
-      authorized = true,
-      sequence = sequence,
-    )
+    val expansion =
+      ReviewExpansionRecord(
+        expansionId = stableReviewExpansionId(assignment.digest, request.path, request.reachabilityReason),
+        assignmentDigest = assignment.digest,
+        requestedPath = request.path,
+        reachabilityReason = request.reachabilityReason,
+        authorized = true,
+        sequence = sequence,
+      )
     authorizedExpansionLedger += expansion
     return expansion
   }
@@ -89,9 +97,10 @@ class FileSystemReviewEvidenceBroker(binding: ReviewEvidenceBrokerBinding) : Rev
   override fun readBatch(request: ReviewEvidenceBatchRequest): ReviewEvidenceBatchResult {
     require(request.lane == assignment.lane) { "Evidence lane does not own this assignment." }
     readState.terminalOutcome?.let { outcome ->
-      val terminated = request.requests.map {
-        terminalResult(outcome, readState.cumulativeBytes, readState.expansionLedger.size)
-      }
+      val terminated =
+        request.requests.map {
+          terminalResult(outcome, readState.cumulativeBytes, readState.expansionLedger.size)
+        }
       return buildBatchResult(terminated, outcome)
     }
     val results = mutableListOf<ReviewEvidenceResult>()
@@ -118,12 +127,13 @@ class FileSystemReviewEvidenceBroker(binding: ReviewEvidenceBrokerBinding) : Rev
       return ReviewToolCallResult(forbidden = it)
     }
     toolCalls += 1
-    val outcome = ReviewBudgetEvaluator.exceededOrNull(
-      identity,
-      ReviewBudgetKind.SPECIALIST_TOOL_CALLS,
-      budget.maxSpecialistToolCalls.toLong(),
-      toolCalls.toLong(),
-    )
+    val outcome =
+      ReviewBudgetEvaluator.exceededOrNull(
+        identity,
+        ReviewBudgetKind.SPECIALIST_TOOL_CALLS,
+        budget.maxSpecialistToolCalls.toLong(),
+        toolCalls.toLong(),
+      )
     return ReviewToolCallResult(budgetExceeded = outcome?.also { readState.terminalOutcome = it })
   }
 

@@ -4,6 +4,7 @@ import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 import skillbill.workflow.model.WorkflowStatus
+
 data class WorkflowSnapshotView(
   val workflowId: String,
   val sessionId: String,
@@ -100,7 +101,6 @@ data class WorkflowContinueView(
   val stepArtifactKeys: List<String>,
   val stepArtifacts: WorkflowStepArtifactMap,
   val extraFields: WorkflowContinuationFieldMap,
-
   val sessionSummary: WorkflowContinueSessionSummary,
   val continuationBrief: String,
   val continuationEntryPrompt: String,

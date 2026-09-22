@@ -19,6 +19,7 @@ import skillbill.cli.kernel.cli.toCliNumberedFindingsPresentation
 import skillbill.cli.kernel.cli.toCliTriagePresentation
 import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRunInputs
+
 @Inject
 class FeatureStatsCommands(
   val featureVerifyStatsCommand: FeatureVerifyStatsCommand,
@@ -91,9 +92,9 @@ class TriageCommand(
   private val service: ReviewService,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
-  "triage",
-  "Show numbered findings for a review run and record triage decisions by number.",
-) {
+    "triage",
+    "Show numbered findings for a review run and record triage decisions by number.",
+  ) {
   private val runId by option("--run-id", help = "Imported review run id.").required()
   private val decisions by option(
     "--decision",
@@ -108,10 +109,11 @@ class TriageCommand(
     val payload = result.toCliMap()
     when {
       format == CliFormat.JSON -> state.complete(payload, format)
-      result.findings.isNotEmpty() -> state.completeText(
-        CliOutput.numberedFindings(result.toCliNumberedFindingsPresentation(runId)),
-        payload,
-      )
+      result.findings.isNotEmpty() ->
+        state.completeText(
+          CliOutput.numberedFindings(result.toCliNumberedFindingsPresentation(runId)),
+          payload,
+        )
       else -> state.completeText(CliOutput.triageResult(result.toCliTriagePresentation(runId)), payload)
     }
   }
@@ -122,9 +124,10 @@ class ReviewStatsCommand(
   private val service: ReviewService,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
-  "stats",
-  "Show aggregate or per-run review acceptance metrics, including per-stage verdict distribution and refutation rate.",
-) {
+    "stats",
+    "Show aggregate or per-run review acceptance metrics, including per-stage verdict " +
+      "distribution and refutation rate.",
+  ) {
   private val runId by option("--run-id", help = "Optional review run id to scope stats to one review.")
   private val format by formatOption()
 
@@ -138,14 +141,14 @@ class PruneReviewSnapshotsCommand(
   private val service: ReviewSnapshotPruneService,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
-  "prune-snapshots",
-  "List and optionally delete ~/.skill-bill/review-metrics.<label>.db snapshots. " +
-    "Retention policy: snapshots are operator artifacts with no expiry. Nothing creates, rotates, " +
-    "or deletes them automatically, so they accumulate until you prune them here. This command is " +
-    "the only code path that removes one. It defaults to a dry run that lists candidates and " +
-    "deletes nothing; pass --confirm to actually delete. The live review-metrics.db is never a " +
-    "candidate.",
-) {
+    "prune-snapshots",
+    "List and optionally delete ~/.skill-bill/review-metrics.<label>.db snapshots. " +
+      "Retention policy: snapshots are operator artifacts with no expiry. Nothing creates, rotates, " +
+      "or deletes them automatically, so they accumulate until you prune them here. This command is " +
+      "the only code path that removes one. It defaults to a dry run that lists candidates and " +
+      "deletes nothing; pass --confirm to actually delete. The live review-metrics.db is never a " +
+      "candidate.",
+  ) {
   private val confirm by option(
     "--confirm",
     help = "Actually delete the listed snapshots. Without this flag nothing is deleted.",
@@ -193,9 +196,9 @@ class FeatureTaskRuntimeStatsCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "runtime-stats",
-  "Deprecated alias for feature-task-stats. Use feature-task-stats; behavior is unchanged.",
-) {
+    "runtime-stats",
+    "Deprecated alias for feature-task-stats. Use feature-task-stats; behavior is unchanged.",
+  ) {
   override val hiddenFromHelp: Boolean = true
 
   private val format by formatOption()
@@ -221,20 +224,22 @@ class GoalStatsCommand(
   }
 }
 
-internal fun ReviewSnapshotPruneResult.toCliMap(): Map<String, Any?> = linkedMapOf(
-  "live_db_path" to liveDbPath,
-  "confirmed" to confirmed,
-  "candidate_count" to candidates.size,
-  "candidate_bytes" to candidateBytes,
-  "deleted_count" to deleted.size,
-  "reclaimed_bytes" to reclaimedBytes,
-  "candidates" to candidates.map { snapshot ->
-    linkedMapOf<String, Any?>(
-      "path" to snapshot.path.toString(),
-      "label" to snapshot.label,
-      "size_bytes" to snapshot.sizeBytes,
-      "last_modified" to snapshot.lastModified,
-      "deleted" to (snapshot in deleted),
-    )
-  },
-)
+internal fun ReviewSnapshotPruneResult.toCliMap(): Map<String, Any?> =
+  linkedMapOf(
+    "live_db_path" to liveDbPath,
+    "confirmed" to confirmed,
+    "candidate_count" to candidates.size,
+    "candidate_bytes" to candidateBytes,
+    "deleted_count" to deleted.size,
+    "reclaimed_bytes" to reclaimedBytes,
+    "candidates" to
+      candidates.map { snapshot ->
+        linkedMapOf<String, Any?>(
+          "path" to snapshot.path.toString(),
+          "label" to snapshot.label,
+          "size_bytes" to snapshot.sizeBytes,
+          "last_modified" to snapshot.lastModified,
+          "deleted" to (snapshot in deleted),
+        )
+      },
+  )

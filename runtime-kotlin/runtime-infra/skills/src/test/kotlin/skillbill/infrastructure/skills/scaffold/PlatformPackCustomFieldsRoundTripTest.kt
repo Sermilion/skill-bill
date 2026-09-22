@@ -10,12 +10,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-class PlatformPackCustomFieldsRoundTripTest {
 
+class PlatformPackCustomFieldsRoundTripTest {
   @Test
   fun `non-anchored top-level fields surface verbatim through customFields`() {
     val slug = "scenarioslug"
-    val manifest = """
+    val manifest =
+      """
       platform: $slug
       contract_version: "1.8"
       routing_signals:
@@ -27,7 +28,7 @@ class PlatformPackCustomFieldsRoundTripTest {
           - "x"
           - "y"
       another_custom: "hello"
-    """.trimIndent()
+      """.trimIndent()
 
     val packRoot = newTempPackRoot(slug, manifest)
     val pack = loadPlatformManifest(packRoot)
@@ -43,9 +44,10 @@ class PlatformPackCustomFieldsRoundTripTest {
         "Keys present: ${pack.customFields.keys}",
     )
     assertEquals("hello", pack.customFields["another_custom"])
-    val nested = requireNotNull(JsonCodec.anyToStringAnyMap(pack.customFields["custom_thing"])) {
-      "Expected 'custom_thing' to deserialize to a Map but got ${pack.customFields["custom_thing"]}"
-    }
+    val nested =
+      requireNotNull(JsonCodec.anyToStringAnyMap(pack.customFields["custom_thing"])) {
+        "Expected 'custom_thing' to deserialize to a Map but got ${pack.customFields["custom_thing"]}"
+      }
     assertEquals(1, nested["a"])
     assertEquals(listOf("x", "y"), nested["b"])
 
@@ -61,13 +63,14 @@ class PlatformPackCustomFieldsRoundTripTest {
   @Test
   fun `pack with no custom fields produces empty customFields map`() {
     val slug = "scenarioslug"
-    val manifest = """
+    val manifest =
+      """
       platform: $slug
       contract_version: "1.8"
       routing_signals:
         strong: [".kt"]
       declared_code_review_areas: []
-    """.trimIndent()
+      """.trimIndent()
 
     val packRoot = newTempPackRoot(slug, manifest)
     val pack = loadPlatformManifest(packRoot)
@@ -84,7 +87,8 @@ class PlatformPackCustomFieldsRoundTripTest {
   @Test
   fun `composition is typed and excluded from customFields`() {
     val slug = "kmp"
-    val manifest = """
+    val manifest =
+      """
       platform: $slug
       contract_version: "1.8"
       routing_signals:
@@ -100,7 +104,7 @@ class PlatformPackCustomFieldsRoundTripTest {
             required: true
             mode: kmp-baseline
       custom_thing: "hello"
-    """.trimIndent()
+      """.trimIndent()
 
     val packRoot = newTempPackRoot(slug, manifest)
     val pack = loadPlatformManifest(packRoot)
@@ -114,7 +118,10 @@ class PlatformPackCustomFieldsRoundTripTest {
     )
   }
 
-  private fun newTempPackRoot(slug: String, manifest: String): Path {
+  private fun newTempPackRoot(
+    slug: String,
+    manifest: String,
+  ): Path {
     val tempDir = Files.createTempDirectory("skillbill-platform-pack-customfields-test-")
     val packRoot = tempDir.resolve(slug)
     Files.createDirectories(packRoot)

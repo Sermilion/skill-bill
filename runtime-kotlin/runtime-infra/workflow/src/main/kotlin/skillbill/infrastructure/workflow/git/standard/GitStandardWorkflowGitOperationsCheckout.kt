@@ -5,7 +5,11 @@ import skillbill.infrastructure.workflow.process.withValue
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
-internal fun gitCheckoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult {
+internal fun gitCheckoutBranch(
+  repoRoot: Path,
+  branch: String,
+  baseBranch: String?,
+): WorkflowGitOperationResult {
   val normalizedBranch = branch.trim()
   if (normalizedBranch.isBlank()) {
     return WorkflowGitOperationResult.Failed(error = "Branch name is required.")
@@ -26,7 +30,10 @@ internal fun gitCheckoutBranch(repoRoot: Path, branch: String, baseBranch: Strin
   }
 }
 
-internal fun gitCheckoutPreservingLocalChanges(repoRoot: Path, args: List<String>): WorkflowGitOperationResult {
+internal fun gitCheckoutPreservingLocalChanges(
+  repoRoot: Path,
+  args: List<String>,
+): WorkflowGitOperationResult {
   val existingConflictMarkers = gitConflictMarkerPaths(repoRoot)
   val previouslyStaged = gitStagedPaths(repoRoot)
   if (previouslyStaged.isNotEmpty()) {

@@ -11,7 +11,10 @@ import java.time.format.DateTimeParseException
 internal class AgentActivityStampStore(
   private val connection: Connection,
 ) : AgentActivityStampRepository {
-  override fun record(workflowId: String, stamp: AgentActivityStamp) {
+  override fun record(
+    workflowId: String,
+    stamp: AgentActivityStamp,
+  ) {
     require(workflowId.isNotBlank()) { "workflowId is required." }
     val existing = read(workflowId)
     if (existing != null && !stamp.recordedAt.isAfter(existing.recordedAt)) return

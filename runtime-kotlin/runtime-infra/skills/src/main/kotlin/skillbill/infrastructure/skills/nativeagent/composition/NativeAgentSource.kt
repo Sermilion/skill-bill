@@ -18,7 +18,6 @@ data class NativeAgentSource(
   val composition: NativeAgentCompositionDirective? = null,
   val path: Path? = null,
   val bundleEntryName: String? = null,
-
   val tools: List<String> = emptyList(),
   val composedAddonSlugs: List<String> = emptyList(),
 )
@@ -53,7 +52,10 @@ fun parseNativeAgentSourceFile(path: Path): List<NativeAgentSource> =
     listOf(parseNativeAgentSource(path))
   }
 
-fun parseNativeAgentSourceText(text: String, label: String = "native agent source"): NativeAgentSource {
+fun parseNativeAgentSourceText(
+  text: String,
+  label: String = "native agent source",
+): NativeAgentSource {
   val normalized = text.replace("\r\n", "\n")
   require(normalized.startsWith("---\n")) {
     "$label: native agent source must start with YAML frontmatter"
@@ -100,7 +102,10 @@ fun parseNativeAgentSourceText(text: String, label: String = "native agent sourc
   )
 }
 
-private fun decodeFlowSequence(value: String, label: String): List<String> {
+private fun decodeFlowSequence(
+  value: String,
+  label: String,
+): List<String> {
   val trimmed = value.trim()
   require(trimmed.startsWith("[") && trimmed.endsWith("]")) {
     "$label: native agent frontmatter 'tools' must use the inline form [A, B]"
@@ -111,26 +116,30 @@ private fun decodeFlowSequence(value: String, label: String): List<String> {
     .filter { it.isNotEmpty() }
 }
 
-fun renderNativeAgentSource(agent: NativeAgentSource): String = buildString {
-  append("---").append('\n')
-  append("contract_version: \"").append(NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION).append('"').append('\n')
-  append("name: ${agent.name}").append('\n')
-  append("description: ${agent.description}").append('\n')
-  agent.composition?.let { directive ->
-    append("compose: ${directive.kind.wireValue}").append('\n')
+fun renderNativeAgentSource(agent: NativeAgentSource): String =
+  buildString {
+    append("---").append('\n')
+    append("contract_version: \"").append(NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION).append('"').append('\n')
+    append("name: ${agent.name}").append('\n')
+    append("description: ${agent.description}").append('\n')
+    agent.composition?.let { directive ->
+      append("compose: ${directive.kind.wireValue}").append('\n')
+    }
+    if (agent.tools.isNotEmpty()) {
+      append("tools: [").append(agent.tools.joinToString(", ")).append(']').append('\n')
+    }
+    append("---").append('\n')
+    append('\n')
+    val body = agent.body.trimEnd()
+    if (body.isNotEmpty()) {
+      append(body).append('\n')
+    }
   }
-  if (agent.tools.isNotEmpty()) {
-    append("tools: [").append(agent.tools.joinToString(", ")).append(']').append('\n')
-  }
-  append("---").append('\n')
-  append('\n')
-  val body = agent.body.trimEnd()
-  if (body.isNotEmpty()) {
-    append(body).append('\n')
-  }
-}
 
-private fun parseSimpleFrontmatter(raw: String, label: String): Map<String, String> {
+private fun parseSimpleFrontmatter(
+  raw: String,
+  label: String,
+): Map<String, String> {
   val parsed = linkedMapOf<String, String>()
   raw.lineSequence().filter { it.isNotBlank() }.forEach { line ->
     val separator = line.indexOf(':')
@@ -151,7 +160,10 @@ private fun parseSimpleFrontmatter(raw: String, label: String): Map<String, Stri
 private val DOUBLE_QUOTE_DECODE_MAP: Map<String, String> =
   YAML_DOUBLE_QUOTE_ESCAPES.entries.associate { (decoded, escape) -> escape to decoded.toString() }
 
-private fun decodeYamlScalar(value: String, label: String): String {
+private fun decodeYamlScalar(
+  value: String,
+  label: String,
+): String {
   if (value.isEmpty()) {
     return value
   }
@@ -183,44 +195,52 @@ private fun decodeYamlScalar(value: String, label: String): String {
   }
 }
 
-private fun decodeYamlDoubleQuoted(inner: String, label: String): String = buildString {
-  var index = 0
-  while (index < inner.length) {
-    val char = inner[index]
-    if (char == '\\') {
-      require(index + 1 < inner.length) {
-        "$label: native agent frontmatter has unterminated double-quoted scalar"
+private fun decodeYamlDoubleQuoted(
+  inner: String,
+  label: String,
+): String =
+  buildString {
+    var index = 0
+    while (index < inner.length) {
+      val char = inner[index]
+      if (char == '\\') {
+        require(index + 1 < inner.length) {
+          "$label: native agent frontmatter has unterminated double-quoted scalar"
+        }
+        val next = inner[index + 1]
+        val decoded = DOUBLE_QUOTE_DECODE_MAP["\\$next"]
+        require(decoded != null) {
+          "$label: native agent frontmatter has unknown escape sequence \\$next"
+        }
+        append(decoded)
+        index += 2
+      } else {
+        require(char != '"') {
+          "$label: native agent frontmatter has unescaped double quote inside double-quoted scalar"
+        }
+        append(char)
+        index += 1
       }
-      val next = inner[index + 1]
-      val decoded = DOUBLE_QUOTE_DECODE_MAP["\\$next"]
-      require(decoded != null) {
-        "$label: native agent frontmatter has unknown escape sequence \\$next"
-      }
-      append(decoded)
-      index += 2
-    } else {
-      require(char != '"') {
-        "$label: native agent frontmatter has unescaped double quote inside double-quoted scalar"
-      }
-      append(char)
-      index += 1
     }
   }
-}
 
-private fun decodeYamlSingleQuoted(inner: String, label: String): String = buildString {
-  var index = 0
-  while (index < inner.length) {
-    val char = inner[index]
-    if (char == '\'') {
-      require(index + 1 < inner.length && inner[index + 1] == '\'') {
-        "$label: native agent frontmatter has unescaped single quote inside single-quoted scalar"
+private fun decodeYamlSingleQuoted(
+  inner: String,
+  label: String,
+): String =
+  buildString {
+    var index = 0
+    while (index < inner.length) {
+      val char = inner[index]
+      if (char == '\'') {
+        require(index + 1 < inner.length && inner[index + 1] == '\'') {
+          "$label: native agent frontmatter has unescaped single quote inside single-quoted scalar"
+        }
+        append('\'')
+        index += 2
+      } else {
+        append(char)
+        index += 1
       }
-      append('\'')
-      index += 2
-    } else {
-      append(char)
-      index += 1
     }
   }
-}

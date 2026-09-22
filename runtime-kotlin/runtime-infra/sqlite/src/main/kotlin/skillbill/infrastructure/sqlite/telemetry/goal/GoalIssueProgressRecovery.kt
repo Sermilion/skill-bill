@@ -23,31 +23,32 @@ internal fun recoverGoalIssueProgress(
 private fun loadRecoveredGoalSegments(
   connection: Connection,
   record: GoalIssueFinishedRecord,
-): List<RecoveredGoalSegment> = connection.prepareStatement(
-  """
-  SELECT workflow_id, started_at, resumed, status
-  FROM goal_run_sessions
-  WHERE issue_key = ?
-    AND substr(workflow_id, 1, length(?) + 5) = ? || ':seg:'
-  ORDER BY datetime(started_at), workflow_id
-  """.trimIndent(),
-).use { statement ->
-  statement.bindAll(record.issueKey, record.parentWorkflowId, record.parentWorkflowId)
-  statement.executeQuery().use { resultSet ->
-    buildList {
-      while (resultSet.next()) {
-        add(
-          RecoveredGoalSegment(
-            workflowId = resultSet.getString(SharedPayloadKeys.WORKFLOW_ID),
-            startedAt = resultSet.getString(GoalTelemetryPayloadKeys.STARTED_AT),
-            resumed = resultSet.getInt("resumed") != 0,
-            status = resultSet.getString(SharedPayloadKeys.STATUS),
-          ),
-        )
+): List<RecoveredGoalSegment> =
+  connection.prepareStatement(
+    """
+    SELECT workflow_id, started_at, resumed, status
+    FROM goal_run_sessions
+    WHERE issue_key = ?
+      AND substr(workflow_id, 1, length(?) + 5) = ? || ':seg:'
+    ORDER BY datetime(started_at), workflow_id
+    """.trimIndent(),
+  ).use { statement ->
+    statement.bindAll(record.issueKey, record.parentWorkflowId, record.parentWorkflowId)
+    statement.executeQuery().use { resultSet ->
+      buildList {
+        while (resultSet.next()) {
+          add(
+            RecoveredGoalSegment(
+              workflowId = resultSet.getString(SharedPayloadKeys.WORKFLOW_ID),
+              startedAt = resultSet.getString(GoalTelemetryPayloadKeys.STARTED_AT),
+              resumed = resultSet.getInt("resumed") != 0,
+              status = resultSet.getString(SharedPayloadKeys.STATUS),
+            ),
+          )
+        }
       }
     }
   }
-}
 
 private fun persistRecoveredGoalProgress(
   connection: Connection,
@@ -66,8 +67,9 @@ private fun persistRecoveredGoalProgress(
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, 0)
     """.trimIndent(),
   ).use { statement ->
-    val latestBlocked = history.filter { it.status == "blocked" }
-      .maxWithOrNull(compareBy<RecoveredGoalSegment> { it.startedAt }.thenBy { it.workflowId })
+    val latestBlocked =
+      history.filter { it.status == "blocked" }
+        .maxWithOrNull(compareBy<RecoveredGoalSegment> { it.startedAt }.thenBy { it.workflowId })
     statement.bindAll(
       record.parentWorkflowId,
       record.issueKey,
@@ -86,7 +88,11 @@ private fun persistRecoveredGoalProgress(
   }
 }
 
-internal fun goalIssueProgressExists(connection: Connection, parentWorkflowId: String, issueKey: String): Boolean =
+internal fun goalIssueProgressExists(
+  connection: Connection,
+  parentWorkflowId: String,
+  issueKey: String,
+): Boolean =
   connection.prepareStatement(
     "SELECT 1 FROM goal_issue_progress WHERE parent_workflow_id = ? AND issue_key = ?",
   ).use { statement ->

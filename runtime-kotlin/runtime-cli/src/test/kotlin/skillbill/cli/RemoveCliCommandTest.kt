@@ -13,10 +13,11 @@ class RemoveCliCommandTest {
   @Test
   fun `remove without target returns examples instead of generic missing argument error`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-remove-missing-target")
-    val result = CliRuntime.run(
-      listOf("remove", "--format", "json"),
-      CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir)),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("remove", "--format", "json"),
+        CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir)),
+      )
     val payload = decodeJsonObject(result.stdout)
     val error = payload["error"].toString()
 
@@ -40,20 +41,20 @@ class RemoveCliCommandTest {
     Files.write(manifestFile, manifestBytes)
 
     val context = CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir))
-    val result = CliRuntime.run(
-
-      listOf(
-        "remove",
-        "skill:bill-foo",
-        "--repo-root",
-        tempDir.toString(),
-        "--allow-shipped",
-        "--dry-run",
-        "--format",
-        "json",
-      ),
-      context,
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "remove",
+          "skill:bill-foo",
+          "--repo-root",
+          tempDir.toString(),
+          "--allow-shipped",
+          "--dry-run",
+          "--format",
+          "json",
+        ),
+        context,
+      )
     assertEquals(0, result.exitCode, result.stdout)
     val payload = decodeJsonObject(result.stdout)
     assertEquals("preview", payload["status"].toString().trim('"'))
@@ -75,27 +76,29 @@ class RemoveCliCommandTest {
     Files.writeString(skillDir.resolve("content.md"), "# bill-foo\n")
     val context = CliRuntimeContext(userHome = contextHome, environment = isolatedCliEnvironment(selectedHome))
 
-    val result = CliRuntime.run(
-      listOf(
-        "--home",
-        selectedHome.toString(),
-        "remove",
-        "skill:bill-foo",
-        "--repo-root",
-        repoRoot.toString(),
-        "--allow-shipped",
-        "--dry-run",
-        "--format",
-        "json",
-      ),
-      context,
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--home",
+          selectedHome.toString(),
+          "remove",
+          "skill:bill-foo",
+          "--repo-root",
+          repoRoot.toString(),
+          "--allow-shipped",
+          "--dry-run",
+          "--format",
+          "json",
+        ),
+        context,
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val payload = decodeJsonObject(result.stdout)
-    val symlinkPaths = (payload["agent_symlink_unlinks"] as? List<*>)
-      .orEmpty()
-      .mapNotNull { entry -> (entry as? Map<*, *>)?.get("path")?.toString() }
+    val symlinkPaths =
+      (payload["agent_symlink_unlinks"] as? List<*>)
+        .orEmpty()
+        .mapNotNull { entry -> (entry as? Map<*, *>)?.get("path")?.toString() }
 
     assertTrue(symlinkPaths.isNotEmpty(), "dry-run should preview native-agent symlink paths")
     assertTrue(
@@ -112,18 +115,19 @@ class RemoveCliCommandTest {
   fun `remove refuses dot-bill-shared with status error`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-remove-shared")
     val context = CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir))
-    val result = CliRuntime.run(
-      listOf(
-        "remove",
-        "skill:.bill-shared",
-        "--repo-root",
-        tempDir.toString(),
-        "--dry-run",
-        "--format",
-        "json",
-      ),
-      context,
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "remove",
+          "skill:.bill-shared",
+          "--repo-root",
+          tempDir.toString(),
+          "--dry-run",
+          "--format",
+          "json",
+        ),
+        context,
+      )
     assertEquals(1, result.exitCode)
     val payload = decodeJsonObject(result.stdout)
     assertEquals("error", payload["status"].toString().trim('"'))
@@ -133,18 +137,19 @@ class RemoveCliCommandTest {
   fun `remove refuses bill-prefixed horizontal product skill without --allow-shipped`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-remove-bill")
     val context = CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir))
-    val result = CliRuntime.run(
-      listOf(
-        "remove",
-        "skill:bill-code-review",
-        "--repo-root",
-        tempDir.toString(),
-        "--dry-run",
-        "--format",
-        "json",
-      ),
-      context,
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "remove",
+          "skill:bill-code-review",
+          "--repo-root",
+          tempDir.toString(),
+          "--dry-run",
+          "--format",
+          "json",
+        ),
+        context,
+      )
     assertEquals(1, result.exitCode)
     val payload = decodeJsonObject(result.stdout)
     assertEquals("error", payload["status"].toString().trim('"'))
@@ -161,10 +166,11 @@ class RemoveCliCommandTest {
   fun `remove treats kotlin as a normal horizontal skill name after pre-shell pruning`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-remove-kotlin")
     val context = CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir))
-    val result = CliRuntime.run(
-      listOf("remove", "skill:kotlin", "--repo-root", tempDir.toString(), "--dry-run", "--format", "json"),
-      context,
-    )
+    val result =
+      CliRuntime.run(
+        listOf("remove", "skill:kotlin", "--repo-root", tempDir.toString(), "--dry-run", "--format", "json"),
+        context,
+      )
     assertEquals(0, result.exitCode, result.stdout)
   }
 
@@ -173,18 +179,19 @@ class RemoveCliCommandTest {
     val tempDir = Files.createTempDirectory("skillbill-cli-remove-platform-kotlin")
     Files.createDirectories(tempDir.resolve("platform-packs/kotlin"))
     val context = CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir))
-    val result = CliRuntime.run(
-      listOf(
-        "remove",
-        "platform:kotlin",
-        "--repo-root",
-        tempDir.toString(),
-        "--dry-run",
-        "--format",
-        "json",
-      ),
-      context,
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "remove",
+          "platform:kotlin",
+          "--repo-root",
+          tempDir.toString(),
+          "--dry-run",
+          "--format",
+          "json",
+        ),
+        context,
+      )
     assertEquals(0, result.exitCode, result.stdout)
     val payload = decodeJsonObject(result.stdout)
     assertEquals("preview", payload["status"].toString().trim('"'))
@@ -198,17 +205,18 @@ class RemoveCliCommandTest {
     Files.writeString(platformPackRoot.resolve("code-review/bill-example-code-review/content.md"), "# example\n")
     val context = CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir))
 
-    val result = CliRuntime.run(
-      listOf(
-        "remove",
-        "platform:example",
-        "--repo-root",
-        tempDir.toString(),
-        "--format",
-        "json",
-      ),
-      context,
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "remove",
+          "platform:example",
+          "--repo-root",
+          tempDir.toString(),
+          "--format",
+          "json",
+        ),
+        context,
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val payload = decodeJsonObject(result.stdout)
@@ -220,19 +228,20 @@ class RemoveCliCommandTest {
   fun `remove kotlin succeeds when --allow-shipped is passed in dry-run`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-remove-kotlin-allow")
     val context = CliRuntimeContext(userHome = tempDir, environment = isolatedCliEnvironment(tempDir))
-    val result = CliRuntime.run(
-      listOf(
-        "remove",
-        "skill:kotlin",
-        "--repo-root",
-        tempDir.toString(),
-        "--dry-run",
-        "--allow-shipped",
-        "--format",
-        "json",
-      ),
-      context,
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "remove",
+          "skill:kotlin",
+          "--repo-root",
+          tempDir.toString(),
+          "--dry-run",
+          "--allow-shipped",
+          "--format",
+          "json",
+        ),
+        context,
+      )
     assertEquals(0, result.exitCode, result.stdout)
   }
 

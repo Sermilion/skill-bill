@@ -49,7 +49,6 @@ internal object GitRepositoryOwnedPathsOperations : RepositoryOwnedPathsGitOpera
 
     val trackedValue = tracked.value.takeIf { tracked is WorkflowGitOperationResult.Ok }.orEmpty()
     return WorkflowGitOperationResult.Ok(
-
       value = untracked.value.orEmpty() + trackedValue,
     )
   }

@@ -45,7 +45,10 @@ internal class LifecycleTelemetryStoreAdapters(connection: Connection) {
 internal class LifecycleTelemetryPrDescriptionSessionAdapter(
   private val connection: Connection,
 ) : PrDescriptionLifecycleTelemetryRepository {
-  override fun prDescriptionGenerated(record: PrDescriptionGeneratedRecord, level: String) {
+  override fun prDescriptionGenerated(
+    record: PrDescriptionGeneratedRecord,
+    level: String,
+  ) {
     enqueueTelemetry(connection, "skillbill_pr_description_generated", prDescriptionPayload(record, level))
   }
 }

@@ -10,6 +10,7 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.util.Comparator
 import kotlin.test.AfterTest
+
 open class InternalSkillStagingTestSupport {
   protected val tempDirs = mutableListOf<Path>()
 
@@ -64,13 +65,14 @@ open class InternalSkillStagingTestSupport {
     val (repoRoot, home) = setupRepoBase()
     val parentName = "bill-feature"
     val childName = "bill-feature-helper"
-    val parentDir = seedSkill(
-      repoRoot,
-      parentName,
-      parentName,
-      "Routes feature work and dispatches to internal sidecars.",
-      body = parentBody,
-    )
+    val parentDir =
+      seedSkill(
+        repoRoot,
+        parentName,
+        parentName,
+        "Routes feature work and dispatches to internal sidecars.",
+        body = parentBody,
+      )
     val childDir = seedInternalChild(repoRoot, childName, parentName)
     return ParentChildFixture(
       repoRoot = repoRoot,
@@ -82,7 +84,11 @@ open class InternalSkillStagingTestSupport {
     )
   }
 
-  protected fun planSkill(name: String, internalFor: String?, platformSlug: String? = null): InstallPlanSkill =
+  protected fun planSkill(
+    name: String,
+    internalFor: String?,
+    platformSlug: String? = null,
+  ): InstallPlanSkill =
     InstallPlanSkill(
       name = name,
       sourceDir = Path.of("/repo/skills/$name").toAbsolutePath().normalize().toFileLocation(),
@@ -123,7 +129,11 @@ open class InternalSkillStagingTestSupport {
     return skillDir.toAbsolutePath().normalize()
   }
 
-  protected fun seedInternalChild(repoRoot: Path, skillName: String, parentName: String): Path {
+  protected fun seedInternalChild(
+    repoRoot: Path,
+    skillName: String,
+    parentName: String,
+  ): Path {
     val skillDir = repoRoot.resolve("skills/$skillName")
     Files.createDirectories(skillDir)
     Files.writeString(
@@ -144,12 +154,13 @@ open class InternalSkillStagingTestSupport {
   protected fun setupParentWithInternalPackChild(): ParentWithInternalPackChildFixture {
     val (repoRoot, home) = setupRepoBase()
     val parentName = "bill-code-review"
-    val parentDir = seedSkill(
-      repoRoot,
-      parentName,
-      parentName,
-      "Routes code review and dispatches to pack sidecars.",
-    )
+    val parentDir =
+      seedSkill(
+        repoRoot,
+        parentName,
+        parentName,
+        "Routes code review and dispatches to pack sidecars.",
+      )
 
     val slug = "kotlin"
     val packChildName = "bill-$slug-code-review"
@@ -171,13 +182,14 @@ open class InternalSkillStagingTestSupport {
     )
     seedKotlinPlatformPackWithBaseline(repoRoot, slug, packChildName)
 
-    val packChildPlanSkill = InstallPlanSkill(
-      name = packChildName,
-      sourceDir = packChildDir.toAbsolutePath().normalize().toFileLocation(),
-      kind = InstallPlanSkillKind.PLATFORM_PACK,
-      platformSlug = slug,
-      internalFor = parentName,
-    )
+    val packChildPlanSkill =
+      InstallPlanSkill(
+        name = packChildName,
+        sourceDir = packChildDir.toAbsolutePath().normalize().toFileLocation(),
+        kind = InstallPlanSkillKind.PLATFORM_PACK,
+        platformSlug = slug,
+        internalFor = parentName,
+      )
     return ParentWithInternalPackChildFixture(
       repoRoot = repoRoot,
       home = home,
@@ -190,7 +202,11 @@ open class InternalSkillStagingTestSupport {
     )
   }
 
-  protected fun seedKotlinPlatformPackWithBaseline(repoRoot: Path, slug: String, codeReviewName: String) {
+  protected fun seedKotlinPlatformPackWithBaseline(
+    repoRoot: Path,
+    slug: String,
+    codeReviewName: String,
+  ) {
     val packRoot = repoRoot.resolve("platform-packs").resolve(slug)
     Files.createDirectories(packRoot)
     val qualityCheckName = "bill-$slug-code-check"

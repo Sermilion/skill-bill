@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite.core.schema
 
 internal object DatabaseReviewLedgerSchema {
-
   val reviewRunLaneStatements: List<String> =
     listOf(
       """
@@ -30,7 +29,6 @@ internal object DatabaseReviewLedgerSchema {
       CREATE INDEX IF NOT EXISTS idx_review_run_lanes_pack_area
         ON review_run_lanes(pack_slug, area, review_run_id)
       """.trimIndent(),
-
       """
       CREATE TABLE IF NOT EXISTS review_run_finding_lanes (
         review_run_id TEXT NOT NULL,

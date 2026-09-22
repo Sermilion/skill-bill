@@ -1,3 +1,25 @@
+## [2026-09-22] SKILL-368 subtask 2 — Governed resources typed task and Java guard ownership
+Areas: runtime-kotlin/build-logic/convention, runtime-kotlin/runtime-infra/{contracts,workflow,host}, install.sh, uninstall.sh, docs/code-principles.md
+- `GovernedResourceCopy` is a typed task with one `@OutputFile` per entry (36 contracts entries share one destination directory, so `@OutputDirectory` would overlap); the extension and plugin wire only main `processResources`, with no `afterEvaluate` and no `processTestResources`. reusable
+- A missing governed source fails loudly, naming the owning module and absolute path, and writes nothing.
+- `StartScriptJavaGuard` is a pure transformation: it inserts the guard once before the anchor, is idempotent on regenerated scripts, and fails when the anchor is missing. reusable
+- `skill-bill-java-guard.sh` has one authored owner under `runtime-infra/host/src/main/resources/skillbill/infrastructure/host/jvm/`; `copyJavaGuard` is gone, and install/uninstall read the host path.
+- Deleted `GovernedResourceCopyParityTest`, its golden manifest, and `GateJvmGuardPackagingTest`; build-logic tests against a synthetic project own that coverage.
+- Pattern: Gradle TestKit is a narrow exception for build-logic convention tests (UP-TO-DATE and task-graph proof); `ProjectBuilder` stays the default. Recorded in `agent/decisions.md` and `docs/code-principles.md`.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-09-22] SKILL-368 subtask 1 — Plugin wiring, classpath, and quality conventions
+Areas: runtime-kotlin/build-logic/convention, runtime-kotlin/{build.gradle.kts,.editorconfig,runtime-application,runtime-cli,runtime-contracts,runtime-mcp,runtime-infra,runtime-core tests}, .github/workflows, docs
+- `build-logic:convention` declares Kotlin, Spotless, Detekt, and Badass Runtime as `implementation`; the root build drops every `apply false`, and the three modules that need `ksp` keep it in their own `plugins` blocks. One classpath, one version-catalog read.
+- Every build-logic source moved into `dev.skillbill.runtime.buildlogic`; `afterEvaluate` is gone from the runtime-image path, and `verifyRuntimeImageLicense` plus the sha256 sidecar are typed `DefaultTask` subclasses with annotated inputs and outputs. reusable
+- Pattern: assert convention-plugin behavior in `build-logic/convention/src/test` with `ProjectBuilder` against the real task graph, never by reading plugin source text from an architecture test. `RuntimeGradleModuleLayeringTest` now only asserts what the repository layout shows. reusable
+- Extracted `skillbill.repo-test`, applied by exactly the six modules with a `src/repoTest` tree and failing loudly when the tree is missing, replacing the silent `isDirectory` probe in `Jvm.kt`. reusable
+- Spotless lost `ratchetFrom("origin/main")` and both ktlint `editorConfigOverride` maps; `runtime-kotlin/.editorconfig` (`root = true`) is the single formatter source for ktlint, Detekt `MaxLineLength`, and the IDE. Formatting now covers the whole tree, so expect one wide formatting-only reformat.
+- Known limitations: `GovernedResourcesConventionPlugin` still calls `afterEvaluate` (subtask 2 owns it), and `RuntimeImageLicense.stage` has no production caller but stays for subtask 2.
+Feature flag: N/A
+Acceptance criteria: 9/10 implemented
+
 ## [2026-09-22] SKILL-369 — External platform packs
 Areas: runtime-kotlin/{runtime-domain,runtime-ports,runtime-contracts,runtime-infra/skills,runtime-application,runtime-cli,runtime-mcp}, docs
 - Machine-global `external_platform_pack_sources` and an effective catalog route whole-pack overrides before discovery, install, review composition, native-agent inventory, and quality gates.

@@ -19,13 +19,14 @@ class AgentRunServiceTest {
     val launcher = RecordingAgentRunLauncher()
     val service = AgentRunService(launcher)
 
-    val result = service.launch(
-      AgentRunStartRequest(
-        invokedAgentId = "claude",
-        configuredAgentOverrideId = "codex",
-        skillRunRequest = skillRunRequest(),
-      ),
-    )
+    val result =
+      service.launch(
+        AgentRunStartRequest(
+          invokedAgentId = "claude",
+          configuredAgentOverrideId = "codex",
+          skillRunRequest = skillRunRequest(),
+        ),
+      )
 
     assertEquals(InstallAgent.CLAUDE, result.resolution.invokedAgent)
     assertEquals(InstallAgent.CODEX, result.resolution.configuredOverrideAgent)
@@ -38,13 +39,14 @@ class AgentRunServiceTest {
     val launcher = RecordingAgentRunLauncher()
     val service = AgentRunService(launcher)
 
-    val result = service.launch(
-      AgentRunStartRequest(
-        invokedAgentId = "junie",
-        configuredAgentOverrideId = null,
-        skillRunRequest = skillRunRequest(),
-      ),
-    )
+    val result =
+      service.launch(
+        AgentRunStartRequest(
+          invokedAgentId = "junie",
+          configuredAgentOverrideId = null,
+          skillRunRequest = skillRunRequest(),
+        ),
+      )
 
     assertEquals(InstallAgent.JUNIE, result.resolution.effectiveAgent)
     assertEquals("junie", launcher.requests.single().agentId)
@@ -68,11 +70,12 @@ class AgentRunServiceTest {
     assertEquals(emptyList(), launcher.requests)
   }
 
-  private fun skillRunRequest(): SkillRunRequest = SkillRunRequest(
-    issueKey = "SKILL-56",
-    repoRoot = Path.of("/tmp/skillbill-agent-run-service"),
-    subtaskId = 2,
-  )
+  private fun skillRunRequest(): SkillRunRequest =
+    SkillRunRequest(
+      issueKey = "SKILL-56",
+      repoRoot = Path.of("/tmp/skillbill-agent-run-service"),
+      subtaskId = 2,
+    )
 }
 
 private class RecordingAgentRunLauncher : AgentRunLauncher {

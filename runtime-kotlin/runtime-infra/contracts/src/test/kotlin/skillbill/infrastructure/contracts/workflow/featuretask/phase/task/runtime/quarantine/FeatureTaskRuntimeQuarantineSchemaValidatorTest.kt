@@ -82,26 +82,29 @@ class FeatureTaskRuntimeQuarantineSchemaValidatorTest {
     }
   }
 
-  private fun validRecord(): Map<String, Any?> = mapOf(
-    "contract_version" to "0.3",
-    "entries" to listOf(validEntry()),
-  )
+  private fun validRecord(): Map<String, Any?> =
+    mapOf(
+      "contract_version" to "0.3",
+      "entries" to listOf(validEntry()),
+    )
 
-  private fun recordWithEntry(entry: Map<String, Any?>): Map<String, Any?> = mapOf(
-    "contract_version" to "0.3",
-    "entries" to listOf(entry),
-  )
+  private fun recordWithEntry(entry: Map<String, Any?>): Map<String, Any?> =
+    mapOf(
+      "contract_version" to "0.3",
+      "entries" to listOf(entry),
+    )
 
-  private fun validEntry(): Map<String, Any?> = mapOf(
-    "producing_phase_id" to "plan",
-    "consuming_phase_id" to "implement",
-    "producing_iteration" to 1,
-    "rejection_class" to "planning_projection_schema",
-    "rejection_detail" to "plan#produced_outputs: projection_kind is missing",
-    "regeneration_attempt" to 1,
-    "quarantined_at_iteration" to 1,
-    "diagnostic_identity" to "rod_example",
-    "rejected_record_byte_size" to 22,
-    "rejected_record_sha256" to "a".repeat(64),
-  )
+  private fun validEntry(): Map<String, Any?> =
+    mapOf(
+      "producing_phase_id" to "plan",
+      "consuming_phase_id" to "implement",
+      "producing_iteration" to 1,
+      "rejection_class" to "planning_projection_schema",
+      "rejection_detail" to "plan#produced_outputs: projection_kind is missing",
+      "regeneration_attempt" to 1,
+      "quarantined_at_iteration" to 1,
+      "diagnostic_identity" to "rod_example",
+      "rejected_record_byte_size" to 22,
+      "rejected_record_sha256" to "a".repeat(64),
+    )
 }

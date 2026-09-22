@@ -37,7 +37,10 @@ internal fun parseContentSections(text: String): Pair<String, List<Pair<String, 
   return prefixLines.joinToString("") to sections
 }
 
-internal fun renderContentSections(prefix: String, sections: List<Pair<String, String>>): String {
+internal fun renderContentSections(
+  prefix: String,
+  sections: List<Pair<String, String>>,
+): String {
   val blocks = mutableListOf<String>()
   val prefixText = prefix.trimEnd()
   if (prefixText.isNotBlank()) {
@@ -66,7 +69,8 @@ internal fun contentCompletionStatus(text: String): ScaffoldCompletionStatus {
     return ScaffoldCompletionStatus.DRAFT
   }
   val sections = parseContentSections(text).second
-  return if (sections.isNotEmpty() && sections.any { (_, body) ->
+  return if (sections.isNotEmpty() &&
+    sections.any { (_, body) ->
       sectionCompletionStatus(body) != ScaffoldSectionCompletionStatus.COMPLETE
     }
   ) {
@@ -79,13 +83,17 @@ internal fun contentCompletionStatus(text: String): ScaffoldCompletionStatus {
 internal fun hasUnresolvedPlaceholder(text: String): Boolean =
   Regex("""(?m)^\s*(?:[-*]\s*)?(?:TODO|FIXME)\b""").containsMatchIn(text)
 
-internal fun previewText(text: String, limit: Int): String {
+internal fun previewText(
+  text: String,
+  limit: Int,
+): String {
   val collapsed = text.lines().map { line -> line.trim() }.filter { line -> line.isNotEmpty() }.joinToString(" ")
   return if (collapsed.length <= limit) collapsed else collapsed.take(limit - 1).trimEnd() + "..."
 }
 
-private fun sectionCompletionStatus(body: String): ScaffoldSectionCompletionStatus = when {
-  body.isBlank() -> ScaffoldSectionCompletionStatus.EMPTY
-  hasUnresolvedPlaceholder(body) -> ScaffoldSectionCompletionStatus.DRAFT
-  else -> ScaffoldSectionCompletionStatus.COMPLETE
-}
+private fun sectionCompletionStatus(body: String): ScaffoldSectionCompletionStatus =
+  when {
+    body.isBlank() -> ScaffoldSectionCompletionStatus.EMPTY
+    hasUnresolvedPlaceholder(body) -> ScaffoldSectionCompletionStatus.DRAFT
+    else -> ScaffoldSectionCompletionStatus.COMPLETE
+  }

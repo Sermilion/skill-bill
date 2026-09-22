@@ -14,10 +14,11 @@ class AgentActivityStampStoreTest {
     val tempDir = Files.createTempDirectory("agent-activity-store")
     val factory = sqliteDatabaseSessionFactory(userHome = tempDir, environment = emptyMap())
     val workflowId = "wfl-activity-1"
-    val stamp = AgentActivityStamp(
-      recordedAt = Instant.parse("2026-08-30T10:00:00Z"),
-      label = AgentActivityLabel.STDOUT,
-    )
+    val stamp =
+      AgentActivityStamp(
+        recordedAt = Instant.parse("2026-08-30T10:00:00Z"),
+        label = AgentActivityLabel.STDOUT,
+      )
     factory.selfManagedWrite { unitOfWork ->
       unitOfWork.agentActivityStamps.record(workflowId, stamp)
     }

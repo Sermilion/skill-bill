@@ -36,26 +36,31 @@ data class CliRuntimeContext(
   val liveStdout: (String) -> Unit = {},
   val liveStderr: (String) -> Unit = {},
 ) {
-  fun toRuntimeContext(dbPathOverride: String? = this.dbPathOverride, userHome: Path = this.userHome): RuntimeContext =
+  fun toRuntimeContext(
+    dbPathOverride: String? = this.dbPathOverride,
+    userHome: Path = this.userHome,
+  ): RuntimeContext =
     RuntimeContext(
-      environment = EnvironmentContext(
-        dbPathOverride = dbPathOverride,
-        stdinText = stdinText,
-        environment = environment,
-        userHome = userHome,
-        repositoryRoot = repositoryRoot ?: EnvironmentContext.UnspecifiedRepositoryRoot,
-      ),
+      environment =
+        EnvironmentContext(
+          dbPathOverride = dbPathOverride,
+          stdinText = stdinText,
+          environment = environment,
+          userHome = userHome,
+          repositoryRoot = repositoryRoot ?: EnvironmentContext.UnspecifiedRepositoryRoot,
+        ),
       transport = TransportContext(requester),
       workflowOps = WorkflowOpsContext(workflowGitOperations),
-      callbacks = OptionalCallbacks(
-        agentRunLauncher = agentRunLauncher,
-        goalPullRequestPort = goalPullRequestPort,
-        executableLookup = executableLookup,
-        reviewNativeAgentPreflight = reviewNativeAgentPreflight,
-        runtimeTimingPort = runtimeTimingPort,
-        hostPlatformPort = hostPlatformPort,
-        installerProcessPort = installerProcessPort,
-        installerScriptFetchPort = installerScriptFetchPort,
-      ),
+      callbacks =
+        OptionalCallbacks(
+          agentRunLauncher = agentRunLauncher,
+          goalPullRequestPort = goalPullRequestPort,
+          executableLookup = executableLookup,
+          reviewNativeAgentPreflight = reviewNativeAgentPreflight,
+          runtimeTimingPort = runtimeTimingPort,
+          hostPlatformPort = hostPlatformPort,
+          installerProcessPort = installerProcessPort,
+          installerScriptFetchPort = installerScriptFetchPort,
+        ),
     )
 }

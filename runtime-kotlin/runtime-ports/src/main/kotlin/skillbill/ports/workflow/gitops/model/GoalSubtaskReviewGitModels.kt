@@ -55,17 +55,19 @@ data class GoalSubtaskReviewInput(
     }
   }
 
-  val deltaDigest: String get() = MessageDigest.getInstance("SHA-256")
-    .digest("$trackedDelta$ownedUntrackedPatches".toByteArray())
-    .joinToString("") { byte -> "%02x".format(byte) }
+  val deltaDigest: String get() =
+    MessageDigest.getInstance("SHA-256")
+      .digest("$trackedDelta$ownedUntrackedPatches".toByteArray())
+      .joinToString("") { byte -> "%02x".format(byte) }
 
-  val reviewText: String get() = buildString {
-    append(trackedDelta)
-    if (ownedUntrackedPatches.isNotBlank()) {
-      if (isNotEmpty() && !endsWith("\n")) append('\n')
-      append(ownedUntrackedPatches)
+  val reviewText: String get() =
+    buildString {
+      append(trackedDelta)
+      if (ownedUntrackedPatches.isNotBlank()) {
+        if (isNotEmpty() && !endsWith("\n")) append('\n')
+        append(ownedUntrackedPatches)
+      }
     }
-  }
 }
 
 data class GoalSubtaskReviewInputResult(

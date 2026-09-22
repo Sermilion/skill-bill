@@ -7,22 +7,25 @@ import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class DecompositionPlanningContractsTest {
   @Test
   fun `present wrong type stack branches fails before manifest write`() {
     assertFailsWith<InvalidDecompositionManifestSchemaError> {
       DecompositionPlanningResult.fromWireMap(
-        wireMap = mapOf(
-          MODE to "decompose",
-          SUBTASKS to listOf(
-            mapOf(
-              "id" to 1,
-              "name" to "one",
-              "spec_path" to "spec.md",
-            ),
+        wireMap =
+          mapOf(
+            MODE to "decompose",
+            SUBTASKS to
+              listOf(
+                mapOf(
+                  "id" to 1,
+                  "name" to "one",
+                  "spec_path" to "spec.md",
+                ),
+              ),
+            STACK_BRANCHES to "invalid",
           ),
-          STACK_BRANCHES to "invalid",
-        ),
         sourceLabel = "planning-result",
       )
     }
@@ -30,19 +33,22 @@ class DecompositionPlanningContractsTest {
 
   @Test
   fun `null stack branches retains the optional empty-list meaning`() {
-    val result = DecompositionPlanningResult.fromWireMap(
-      wireMap = mapOf(
-        MODE to "decompose",
-        SUBTASKS to listOf(
+    val result =
+      DecompositionPlanningResult.fromWireMap(
+        wireMap =
           mapOf(
-            "id" to 1,
-            "name" to "one",
-            "spec_path" to "spec.md",
+            MODE to "decompose",
+            SUBTASKS to
+              listOf(
+                mapOf(
+                  "id" to 1,
+                  "name" to "one",
+                  "spec_path" to "spec.md",
+                ),
+              ),
+            STACK_BRANCHES to null,
           ),
-        ),
-        STACK_BRANCHES to null,
-      ),
-    )
+      )
 
     assertEquals(emptyList(), result.stackBranches)
   }

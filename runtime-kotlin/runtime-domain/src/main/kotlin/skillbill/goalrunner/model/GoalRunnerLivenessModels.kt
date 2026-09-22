@@ -77,14 +77,15 @@ enum class GoalRunnerContinuationMode(val wireValue: String) {
 
 object GoalRunnerLivenessClassifier {
   fun classify(inputs: GoalRunnerLivenessInputs): GoalRunnerLivenessDecision {
-    val state = when {
-      !inputs.processAlive -> GoalRunnerLivenessState.UNRESPONSIVE
-      inputs.operationActive && inputs.operationDeadlineOverrun -> GoalRunnerLivenessState.UNRESPONSIVE
-      inputs.wallClockCapExceeded -> GoalRunnerLivenessState.UNRESPONSIVE
-      inputs.operationActive && inputs.operationExpectedLong -> GoalRunnerLivenessState.WORKING
-      inputs.durableAdvanceWithinInterval -> GoalRunnerLivenessState.PROGRESSING
-      else -> GoalRunnerLivenessState.IDLE
-    }
+    val state =
+      when {
+        !inputs.processAlive -> GoalRunnerLivenessState.UNRESPONSIVE
+        inputs.operationActive && inputs.operationDeadlineOverrun -> GoalRunnerLivenessState.UNRESPONSIVE
+        inputs.wallClockCapExceeded -> GoalRunnerLivenessState.UNRESPONSIVE
+        inputs.operationActive && inputs.operationExpectedLong -> GoalRunnerLivenessState.WORKING
+        inputs.durableAdvanceWithinInterval -> GoalRunnerLivenessState.PROGRESSING
+        else -> GoalRunnerLivenessState.IDLE
+      }
     return GoalRunnerLivenessDecision(state = state, armIdleTimeout = state.armsIdleTimeout)
   }
 }
@@ -102,7 +103,6 @@ data class GoalRunnerLivenessSnapshot(
   val lastFileActivityLabel: String? = null,
   val lastOutputAt: String? = null,
   val livenessState: GoalRunnerLivenessState? = null,
-
   val aliveAtKill: Boolean = false,
 )
 

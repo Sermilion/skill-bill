@@ -21,7 +21,11 @@ internal fun durationSeconds(
   }
 }
 
-internal fun parseDurationSeconds(startedAt: String, finishedAt: String, diagnostics: RuntimeDiagnostics): Int =
+internal fun parseDurationSeconds(
+  startedAt: String,
+  finishedAt: String,
+  diagnostics: RuntimeDiagnostics,
+): Int =
   runCatching {
     val start = LocalDateTime.parse(startedAt.replace(' ', 'T'))
     val end = LocalDateTime.parse(finishedAt.replace(' ', 'T'))

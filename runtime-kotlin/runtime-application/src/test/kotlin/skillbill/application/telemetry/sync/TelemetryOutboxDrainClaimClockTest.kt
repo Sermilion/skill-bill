@@ -18,6 +18,7 @@ import java.nio.file.Files
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertTrue
+
 class TelemetryOutboxDrainClaimClockTest {
   @Test
   fun `each batch claim uses the current clock reading from the drain`() {
@@ -73,7 +74,10 @@ private class RecordingClaimClockRepository : TelemetryOutboxRepository {
       )
   }
 
-  override fun enqueue(eventName: String, payloadJson: String): Long = error("unexpected")
+  override fun enqueue(
+    eventName: String,
+    payloadJson: String,
+  ): Long = error("unexpected")
 
   override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> {
     claimedAtTimestamps += request.claimedAt
@@ -92,7 +96,10 @@ private class RecordingClaimClockRepository : TelemetryOutboxRepository {
 
   override fun lastSyncedAt(): String? = null
 
-  override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult {
+  override fun markSynced(
+    eventIds: List<Long>,
+    claimToken: String,
+  ): TelemetryOutboxSettlementResult {
     var updated = 0
     eventIds.forEach { id ->
       val row = rows[id] ?: return@forEach
@@ -125,11 +132,15 @@ private object NoopInterruptSignalPort : InterruptSignalPort {
 }
 
 private class AcceptingTelemetryClient : TelemetryClient {
-  override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport =
-    TelemetryDeliveryReport(TelemetryDeliveryOutcome.ACCEPTED, "")
+  override fun sendBatch(
+    settings: TelemetrySettings,
+    rows: List<TelemetryOutboxRecord>,
+  ): TelemetryDeliveryReport = TelemetryDeliveryReport(TelemetryDeliveryOutcome.ACCEPTED, "")
 
   override fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities = error("unexpected")
 
-  override fun fetchRemoteStats(settings: TelemetrySettings, request: RemoteStatsRequest): TelemetryRemoteStatsResult =
-    error("unexpected")
+  override fun fetchRemoteStats(
+    settings: TelemetrySettings,
+    request: RemoteStatsRequest,
+  ): TelemetryRemoteStatsResult = error("unexpected")
 }

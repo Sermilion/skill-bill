@@ -41,7 +41,10 @@ private data class FeatureTaskRuntimeSchemaValidationRequest(
 )
 
 object FeatureTaskRuntimePhaseHandoffSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     FeatureTaskRuntimeSchemaValidationRequest(
       payload = payload,
       classpathResource = FeatureTaskRuntimePhaseHandoffSchemaPaths.CLASSPATH_RESOURCE,
@@ -53,7 +56,10 @@ object FeatureTaskRuntimePhaseHandoffSchemaValidator {
 }
 
 object FeatureTaskRuntimePersistenceSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     FeatureTaskRuntimeSchemaValidationRequest(
       payload = payload,
       classpathResource = FeatureTaskRuntimePersistenceSchemaPaths.CLASSPATH_RESOURCE,
@@ -66,7 +72,10 @@ object FeatureTaskRuntimePersistenceSchemaValidator {
 }
 
 internal object FeatureTaskRuntimeProjectionMeasurementSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     FeatureTaskRuntimeSchemaValidationRequest(
       payload = payload,
       classpathResource = FeatureTaskRuntimeProjectionMeasurementSchemaPaths.CLASSPATH_RESOURCE,
@@ -78,7 +87,10 @@ internal object FeatureTaskRuntimeProjectionMeasurementSchemaValidator {
 }
 
 object FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     FeatureTaskRuntimeSchemaValidationRequest(
       payload = payload,
       classpathResource = FeatureTaskRuntimeSharedEvidenceProjectionSchemaPaths.CLASSPATH_RESOURCE,
@@ -90,7 +102,10 @@ object FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator {
 }
 
 object FeatureTaskRuntimeValidationEvidenceSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     FeatureTaskRuntimeSchemaValidationRequest(
       payload = payload,
       classpathResource = FeatureTaskRuntimeValidationEvidenceSchemaPaths.CLASSPATH_RESOURCE,
@@ -102,7 +117,10 @@ object FeatureTaskRuntimeValidationEvidenceSchemaValidator {
 }
 
 object FeatureTaskRuntimeReadinessEvidenceSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     FeatureTaskRuntimeSchemaValidationRequest(
       payload = payload,
       classpathResource = FeatureTaskRuntimeReadinessEvidenceSchemaPaths.CLASSPATH_RESOURCE,
@@ -114,7 +132,10 @@ object FeatureTaskRuntimeReadinessEvidenceSchemaValidator {
 }
 
 object FeatureTaskRuntimeBuildReceiptSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) {
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) {
     val instance = ClasspathContractSchemaLoader.valueToTree(payload)
     val failures = ClasspathContractSchemaLoader.validate(buildReceiptSchema(), instance)
     if (failures.isNotEmpty()) {
@@ -129,36 +150,38 @@ object FeatureTaskRuntimeBuildReceiptSchemaValidator {
   }
 }
 
-private fun buildReceiptSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  CompiledSchemaRequest(
-    cacheKey = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-    classLoader = FeatureTaskRuntimeBuildReceiptSchemaValidator::class.java.classLoader,
-    classpathResource = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
-        sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-        reason = "Canonical feature-task-runtime build receipt schema is missing. Expected it on the JVM " +
-          "classpath at '${FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE}'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
-        sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = {},
-    expectedSchemaId = FeatureTaskRuntimeBuildReceiptSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
-        sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
-        reason = reason,
-      )
-    },
-  ),
-)
+private fun buildReceiptSchema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    CompiledSchemaRequest(
+      cacheKey = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+      classLoader = FeatureTaskRuntimeBuildReceiptSchemaValidator::class.java.classLoader,
+      classpathResource = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+      missingResource = {
+        InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
+          sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+          reason =
+            "Canonical feature-task-runtime build receipt schema is missing. Expected it on the JVM " +
+              "classpath at '${FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE}'.",
+        )
+      },
+      processingFailure = { cause ->
+        InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
+          sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+          cause = cause,
+        )
+      },
+      loadFailureLogger = {},
+      expectedSchemaId = FeatureTaskRuntimeBuildReceiptSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION,
+      identityFailure = { reason ->
+        InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
+          sourceLabel = FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE,
+          reason = reason,
+        )
+      },
+    ),
+  )
 
 private data class BuildReceiptViolationReasons(val valueBearing: String, val payloadFree: String)
 
@@ -166,12 +189,14 @@ private fun formatBuildReceiptViolationReasons(
   sorted: List<ValidationMessage>,
   instance: JsonNode,
 ): BuildReceiptViolationReasons {
-  val violations = sorted.map { error ->
-    val location = error.instanceLocation?.toString().orEmpty()
-    val fieldPath = featureTaskRuntimePhaseOutputDottedFieldPath(location).ifBlank { "<root>" }
-    val head = "$fieldPath: ${error.message}"
-    head to extractFeatureTaskRuntimePhaseOutputOffendingValue(instance, location)
-  }
+  val violations =
+    sorted.map { error ->
+      val location = error.instanceLocation?.toString().orEmpty()
+      val fieldPath = featureTaskRuntimePhaseOutputDottedFieldPath(location).ifBlank { "<root>" }
+      val head = "$fieldPath: ${error.message}"
+      head to extractFeatureTaskRuntimePhaseOutputOffendingValue(instance, location)
+    }
+
   fun render(includeOffendingValues: Boolean): String =
     violations.joinToString(separator = " | ") { (head, offendingValue) ->
       if (includeOffendingValues && offendingValue.isNotBlank()) {
@@ -184,34 +209,40 @@ private fun formatBuildReceiptViolationReasons(
 }
 
 private fun validateAgainst(request: FeatureTaskRuntimeSchemaValidationRequest) {
-  val schema = ClasspathContractSchemaLoader.compiledSchema(
-    CompiledSchemaRequest(
-      cacheKey = request.classpathResource,
-      classLoader = FeatureTaskRuntimePhaseHandoffSchemaValidator::class.java.classLoader,
-      classpathResource = request.classpathResource,
-      missingResource = { request.error("Canonical runtime contract is missing at '${request.classpathResource}'.") },
-      processingFailure = { cause -> request.error(cause.message ?: cause::class.simpleName.orEmpty()) },
-      loadFailureLogger = {},
-      expectedSchemaId = request.expectedId,
-      expectedContractVersion = request.expectedContractVersion,
-      contractVersionMatches = request.contractVersionMatches,
-      identityFailure = request.error,
-    ),
-  )
-  val failures = ClasspathContractSchemaLoader.validate(
-    schema,
-    ClasspathContractSchemaLoader.valueToTree(request.payload),
-  )
+  val schema =
+    ClasspathContractSchemaLoader.compiledSchema(
+      CompiledSchemaRequest(
+        cacheKey = request.classpathResource,
+        classLoader = FeatureTaskRuntimePhaseHandoffSchemaValidator::class.java.classLoader,
+        classpathResource = request.classpathResource,
+        missingResource = { request.error("Canonical runtime contract is missing at '${request.classpathResource}'.") },
+        processingFailure = { cause -> request.error(cause.message ?: cause::class.simpleName.orEmpty()) },
+        loadFailureLogger = {},
+        expectedSchemaId = request.expectedId,
+        expectedContractVersion = request.expectedContractVersion,
+        contractVersionMatches = request.contractVersionMatches,
+        identityFailure = request.error,
+      ),
+    )
+  val failures =
+    ClasspathContractSchemaLoader.validate(
+      schema,
+      ClasspathContractSchemaLoader.valueToTree(request.payload),
+    )
   if (failures.isNotEmpty()) {
-    val reason = failures
-      .sortedBy { it.instanceLocation.toString() }
-      .take(MAX_REPORTED_SCHEMA_FAILURES)
-      .joinToString(" | ") { it.message }
+    val reason =
+      failures
+        .sortedBy { it.instanceLocation.toString() }
+        .take(MAX_REPORTED_SCHEMA_FAILURES)
+        .joinToString(" | ") { it.message }
     throw request.error(reason)
   }
 }
 
-private fun persistenceContractVersionMatches(node: JsonNode, expected: String): Boolean =
+private fun persistenceContractVersionMatches(
+  node: JsonNode,
+  expected: String,
+): Boolean =
   listOf("private_phase_record", "delivered_projection").all { definitionName ->
     node.path("\$defs")
       .path(definitionName)

@@ -13,6 +13,7 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeValidationGateStatusProjectionTest {
   @Test
   fun `workflow status and settled validate artifact expose the same gate execution evidence`() {
@@ -37,9 +38,10 @@ class FeatureTaskRuntimeValidationGateStatusProjectionTest {
     val settled = settledValidationResult(output)
     assertEquals(settled?.get(ValidationEvidencePayloadKeys.CHECKS), projected.checks)
     assertEquals(settled?.get(ValidationEvidencePayloadKeys.GATE_RUN_COUNT), projected.gateRunCount)
-    val settledRun = (settled?.get(ValidationEvidencePayloadKeys.GATE_RUNS) as? List<*>)
-      ?.single()
-      ?.let(JsonCodec::anyToStringAnyMap)
+    val settledRun =
+      (settled?.get(ValidationEvidencePayloadKeys.GATE_RUNS) as? List<*>)
+        ?.single()
+        ?.let(JsonCodec::anyToStringAnyMap)
     assertEquals(
       settledRun?.get(ValidationEvidencePayloadKeys.CACHE_MODE),
       projected.gateRuns.single().cacheMode.wireValue,
@@ -61,28 +63,31 @@ class FeatureTaskRuntimeValidationGateStatusProjectionTest {
     assertEquals(2, projected.gateRuns.single().executedWorkUnits)
   }
 
-  private fun gateEvidenceOutput(): String = FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
-    repositoryCheckpoint = "checkpoint",
-    measurements = listOf(
-      FeatureTaskRuntimeValidationGateRunRecord(
-        durationMs = 1,
-        outcome = ValidationGateRunOutcome.PASSED,
-        cacheMode = ValidationGateCacheMode.FORCED_FULL,
-        executedWorkUnits = 2,
-        executedChecks = listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
-        command = "./gradlew check --continue",
-        exitCode = 0,
-      ),
-    ),
-    requiredCommand = "./gradlew check --continue",
-  ).payload
+  private fun gateEvidenceOutput(): String =
+    FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
+      repositoryCheckpoint = "checkpoint",
+      measurements =
+        listOf(
+          FeatureTaskRuntimeValidationGateRunRecord(
+            durationMs = 1,
+            outcome = ValidationGateRunOutcome.PASSED,
+            cacheMode = ValidationGateCacheMode.FORCED_FULL,
+            executedWorkUnits = 2,
+            executedChecks = listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
+            command = "./gradlew check --continue",
+            exitCode = 0,
+          ),
+        ),
+      requiredCommand = "./gradlew check --continue",
+    ).payload
 
   private fun settledValidationResult(payload: String): Map<String, Any?>? {
-    val envelope = requireNotNull(
-      JsonCodec.parseObjectOrNull(payload)
-        ?.let(JsonCodec::jsonElementToValue)
-        ?.let(JsonCodec::anyToStringAnyMap),
-    ) { "settled output envelope missing" }
+    val envelope =
+      requireNotNull(
+        JsonCodec.parseObjectOrNull(payload)
+          ?.let(JsonCodec::jsonElementToValue)
+          ?.let(JsonCodec::anyToStringAnyMap),
+      ) { "settled output envelope missing" }
     return JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
       ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT)
       ?.let(JsonCodec::anyToStringAnyMap)
@@ -94,21 +99,23 @@ class FeatureTaskRuntimeValidationGateStatusProjectionTest {
     val harness = statusHarness()
     val recorder = harness.recorder
     recorder.ensureWorkflowOpen(workflowId, "goal-gate-evidence-zero-work")
-    val output = FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
-      repositoryCheckpoint = "checkpoint",
-      measurements = listOf(
-        FeatureTaskRuntimeValidationGateRunRecord(
-          durationMs = 1,
-          outcome = ValidationGateRunOutcome.PASSED,
-          cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-          executedWorkUnits = 0,
-          executedChecks = emptyList(),
-          command = "./gradlew check",
-          exitCode = 0,
-        ),
-      ),
-      requiredCommand = "./gradlew check",
-    )
+    val output =
+      FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
+        repositoryCheckpoint = "checkpoint",
+        measurements =
+          listOf(
+            FeatureTaskRuntimeValidationGateRunRecord(
+              durationMs = 1,
+              outcome = ValidationGateRunOutcome.PASSED,
+              cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
+              executedWorkUnits = 0,
+              executedChecks = emptyList(),
+              command = "./gradlew check",
+              exitCode = 0,
+            ),
+          ),
+        requiredCommand = "./gradlew check",
+      )
     recorder.recordPhaseState(
       FeatureTaskRuntimePhaseStateRequest(
         workflowId = workflowId,
@@ -121,10 +128,11 @@ class FeatureTaskRuntimeValidationGateStatusProjectionTest {
       ),
     )
 
-    val evidence = requireNotNull(
-      requireNotNull(harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId)))
-        .validationGateExecutionEvidence,
-    )
+    val evidence =
+      requireNotNull(
+        requireNotNull(harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId)))
+          .validationGateExecutionEvidence,
+      )
     assertTrue(evidence.zeroWork)
     assertTrue(evidence.evidenceRecorded)
     assertEquals(emptyList(), evidence.checks)

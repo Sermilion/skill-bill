@@ -74,13 +74,14 @@ internal fun WorkflowEngine.continueExistingWorkflow(
         projectionArtifactsJson = record.artifactsJson
       }
     }
-    decision = continueDecision(
-      family.definition,
-      record,
-      sessionSummary,
-      continueStatusOverride = originalContinueStatus,
-      workflowStatusBeforeContinueOverride = originalWorkflowStatus,
-    )
+    decision =
+      continueDecision(
+        family.definition,
+        record,
+        sessionSummary,
+        continueStatusOverride = originalContinueStatus,
+        workflowStatusBeforeContinueOverride = originalWorkflowStatus,
+      )
   }
   return ContinuationStepResult(
     WorkflowContinueResult.Standard(
@@ -92,8 +93,10 @@ internal fun WorkflowEngine.continueExistingWorkflow(
   )
 }
 
-private fun canRefreshDecompositionRuntime(family: WorkflowFamily, args: ContinueExistingWorkflowArgs): Boolean =
-  family == WorkflowFamily.TASK_RUNTIME && args.hasWriteTargets()
+private fun canRefreshDecompositionRuntime(
+  family: WorkflowFamily,
+  args: ContinueExistingWorkflowArgs,
+): Boolean = family == WorkflowFamily.TASK_RUNTIME && args.hasWriteTargets()
 
 private fun ContinueExistingWorkflowArgs.hasWriteTargets(): Boolean =
   validator != null && repoRoot != null && manifestWriter != null && fileStore != null
@@ -110,44 +113,51 @@ fun WorkflowEngine.alignSubtaskResumeStep(
   ) {
     return record
   }
-  val updated = updateRecord(
-    WorkflowFamily.TASK_RUNTIME.definition,
-    record,
-    WorkflowUpdateInput(
-      workflowStatus = record.workflowStatus,
-      currentStepId = alignment.targetStepId,
-      stepUpdates = alignment.staleBlockedStep?.let { step ->
-        WorkflowStepUpdates.from(
-          listOf(
-            mapOf(
-              SharedPayloadKeys.STEP_ID to step.stepId,
-              SharedPayloadKeys.STATUS to "completed",
-              "attempt_count" to step.attemptCount,
-            ),
-          ),
-        )
-      },
-      artifactsPatch = null,
-      sessionId = record.sessionId.orEmpty(),
-    ),
-  )
+  val updated =
+    updateRecord(
+      WorkflowFamily.TASK_RUNTIME.definition,
+      record,
+      WorkflowUpdateInput(
+        workflowStatus = record.workflowStatus,
+        currentStepId = alignment.targetStepId,
+        stepUpdates =
+          alignment.staleBlockedStep?.let { step ->
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf(
+                  SharedPayloadKeys.STEP_ID to step.stepId,
+                  SharedPayloadKeys.STATUS to "completed",
+                  "attempt_count" to step.attemptCount,
+                ),
+              ),
+            )
+          },
+        artifactsPatch = null,
+        sessionId = record.sessionId.orEmpty(),
+      ),
+    )
   WorkflowFamily.TASK_RUNTIME.save(unitOfWork.workflowStates, updated)
   return WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, record.workflowId) ?: updated
 }
 
-private fun WorkflowEngine.resumeAlignment(record: WorkflowStateSnapshot, requestedStepId: String): ResumeAlignment {
+private fun WorkflowEngine.resumeAlignment(
+  record: WorkflowStateSnapshot,
+  requestedStepId: String,
+): ResumeAlignment {
   val steps = snapshotView(WorkflowFamily.TASK_RUNTIME.definition, record).steps
   val requestedStep = steps.firstOrNull { step -> step.stepId == requestedStepId }
-  val targetStepId = requestedStepId.takeIf { stepId ->
-    stepId.isNotBlank() && steps.firstOrNull { step ->
-      step.stepId == stepId && step.status.workflowStepStatus() == WorkflowStepStatus.RUNNING
-    } != null
-  }
-    ?: steps.firstOrNull { step -> step.status.workflowStepStatus() == WorkflowStepStatus.RUNNING }?.stepId
-    ?: requestedStepId
-  val staleBlockedStep = requestedStep?.takeIf {
-    it.stepId != targetStepId && it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
-  }
+  val targetStepId =
+    requestedStepId.takeIf { stepId ->
+      stepId.isNotBlank() && steps.firstOrNull { step ->
+        step.stepId == stepId && step.status.workflowStepStatus() == WorkflowStepStatus.RUNNING
+      } != null
+    }
+      ?: steps.firstOrNull { step -> step.status.workflowStepStatus() == WorkflowStepStatus.RUNNING }?.stepId
+      ?: requestedStepId
+  val staleBlockedStep =
+    requestedStep?.takeIf {
+      it.stepId != targetStepId && it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
+    }
   return ResumeAlignment(targetStepId = targetStepId, staleBlockedStep = staleBlockedStep)
 }
 
@@ -163,27 +173,29 @@ fun WorkflowEngine.persistParentDecompositionRuntime(
   validator: DecompositionManifestValidator,
 ) {
   migrateLegacyGoalRunnerControls(unitOfWork, parentRecord)
-  val updatedParent = updateRecord(
-    WorkflowFamily.TASK_RUNTIME.definition,
-    parentRecord,
-    WorkflowUpdateInput(
-      workflowStatus = parentRecord.workflowStatus,
-      currentStepId = parentRecord.currentStepId,
-      stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(
-        LinkedHashMap(decodeWorkflowArtifacts(parentRecord.artifactsJson)).apply {
-          remove("goal_review_policy")
-          remove("goal_out_of_band_acceptances")
-          put(
-            DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-            validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
-          )
-        },
+  val updatedParent =
+    updateRecord(
+      WorkflowFamily.TASK_RUNTIME.definition,
+      parentRecord,
+      WorkflowUpdateInput(
+        workflowStatus = parentRecord.workflowStatus,
+        currentStepId = parentRecord.currentStepId,
+        stepUpdates = null,
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            LinkedHashMap(decodeWorkflowArtifacts(parentRecord.artifactsJson)).apply {
+              remove("goal_review_policy")
+              remove("goal_out_of_band_acceptances")
+              put(
+                DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+                validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+              )
+            },
+          ),
+        sessionId = parentRecord.sessionId.orEmpty(),
+        replaceArtifacts = true,
       ),
-      sessionId = parentRecord.sessionId.orEmpty(),
-      replaceArtifacts = true,
-    ),
-  )
+    )
   WorkflowFamily.TASK_RUNTIME.saveRecord(
     unitOfWork.workflowStates,
     updatedParent.toRecord().copy(issueKey = manifest.issueKey),
@@ -194,34 +206,41 @@ fun DecompositionManifest.withStartedSubtask(
   subtaskId: Int,
   workflowId: String,
   branch: String,
-): DecompositionManifest = copy(
-  status = "in_progress",
-  currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = subtaskId, action = "resume"),
-  subtasks = subtasks.map { subtask ->
-    if (subtask.id == subtaskId) {
-      subtask.copy(
-        status = "in_progress",
-        workflowId = workflowId,
-        branch = branch.takeIf(String::isNotBlank) ?: subtask.branch,
-        lastResumableStep = "preplan",
-      )
-    } else {
-      subtask
-    }
-  },
-)
+): DecompositionManifest =
+  copy(
+    status = "in_progress",
+    currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = subtaskId, action = "resume"),
+    subtasks =
+      subtasks.map { subtask ->
+        if (subtask.id == subtaskId) {
+          subtask.copy(
+            status = "in_progress",
+            workflowId = workflowId,
+            branch = branch.takeIf(String::isNotBlank) ?: subtask.branch,
+            lastResumableStep = "preplan",
+          )
+        } else {
+          subtask
+        }
+      },
+  )
 
-fun DecompositionManifest.withCommittedSubtask(subtaskId: Int, commitSha: String): DecompositionManifest =
+fun DecompositionManifest.withCommittedSubtask(
+  subtaskId: Int,
+  commitSha: String,
+): DecompositionManifest =
   copy(subtasks = subtasks.map { if (it.id == subtaskId) it.copy(commitSha = commitSha) else it })
 
-fun DecompositionManifest.branchForSubtask(subtaskId: Int): String = when (executionModel) {
-  DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK -> featureBranch.orEmpty()
-  DecompositionExecutionModel.STACKED_BRANCHES ->
-    stackBranches.firstOrNull { it.subtaskId == subtaskId }?.branch.orEmpty()
-}
+fun DecompositionManifest.branchForSubtask(subtaskId: Int): String =
+  when (executionModel) {
+    DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK -> featureBranch.orEmpty()
+    DecompositionExecutionModel.STACKED_BRANCHES ->
+      stackBranches.firstOrNull { it.subtaskId == subtaskId }?.branch.orEmpty()
+  }
 
-fun DecompositionManifest.baseForSubtask(subtaskId: Int): String? = when (executionModel) {
-  DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK -> baseBranch
-  DecompositionExecutionModel.STACKED_BRANCHES ->
-    stackBranches.firstOrNull { it.subtaskId == subtaskId }?.baseBranch ?: baseBranch
-}
+fun DecompositionManifest.baseForSubtask(subtaskId: Int): String? =
+  when (executionModel) {
+    DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK -> baseBranch
+    DecompositionExecutionModel.STACKED_BRANCHES ->
+      stackBranches.firstOrNull { it.subtaskId == subtaskId }?.baseBranch ?: baseBranch
+  }

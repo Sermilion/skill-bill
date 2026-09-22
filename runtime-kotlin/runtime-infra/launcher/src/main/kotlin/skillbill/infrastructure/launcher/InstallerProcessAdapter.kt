@@ -11,14 +11,15 @@ import skillbill.ports.process.model.InstallerProcessResult
 class InstallerProcessAdapter : InstallerProcessPort {
   override fun run(request: InstallerProcessRequest): InstallerProcessResult {
     val deadlineSeconds = request.deadlineSeconds.coerceAtLeast(1L)
-    val result = BoundedExternalProcessRunner.run(
-      BoundedExternalProcessRequest(
-        argv = listOf(request.executable) + request.arguments,
-        environment = request.environment,
-        clearEnvironment = true,
-        deadlineSeconds = deadlineSeconds,
-      ),
-    )
+    val result =
+      BoundedExternalProcessRunner.run(
+        BoundedExternalProcessRequest(
+          argv = listOf(request.executable) + request.arguments,
+          environment = request.environment,
+          clearEnvironment = true,
+          deadlineSeconds = deadlineSeconds,
+        ),
+      )
     if (result.launchFailure) {
       return InstallerProcessResult(
         exitCode = 1,

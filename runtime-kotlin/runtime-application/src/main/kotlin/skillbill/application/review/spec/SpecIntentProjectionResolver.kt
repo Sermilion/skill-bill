@@ -58,20 +58,23 @@ class SpecIntentProjectionResolver(
     val loaded = mutableListOf<Pair<Path, DecompositionManifest>>()
     candidates.forEach { path ->
       when (val manifest = readManifest(path)) {
-        null -> degradations += SpecIntentDegradationRecord(
-          seam = MANIFEST_UNREADABLE_SEAM,
-          reason = MANIFEST_UNREADABLE_REASON,
-          rung = SpecIntentResolutionRung.GLOB.wireValue,
-          resolvedPath = repoRelativePath(request.repoRoot.toPath(), path),
-        )
+        null ->
+          degradations +=
+            SpecIntentDegradationRecord(
+              seam = MANIFEST_UNREADABLE_SEAM,
+              reason = MANIFEST_UNREADABLE_REASON,
+              rung = SpecIntentResolutionRung.GLOB.wireValue,
+              resolvedPath = repoRelativePath(request.repoRoot.toPath(), path),
+            )
         else -> loaded += path to manifest
       }
     }
-    val matching = loaded.map { it.second }.let { manifests ->
-      issueKey?.let { key -> manifests.filter { it.issueKey == key } }.orEmpty().ifEmpty {
-        manifests.filter { it.featureBranch == request.branchName }
+    val matching =
+      loaded.map { it.second }.let { manifests ->
+        issueKey?.let { key -> manifests.filter { it.issueKey == key } }.orEmpty().ifEmpty {
+          manifests.filter { it.featureBranch == request.branchName }
+        }
       }
-    }
     if (matching.size != 1) return null
     val manifest = matching.single()
     val owner = owningSubtask(manifest, request)
@@ -82,12 +85,13 @@ class SpecIntentProjectionResolver(
         extractor.extract(request.repoRoot.toPath(), primary, request.budget, surrounding, explicit = false),
       )
     } catch (error: SpecIntentSourceUnavailable) {
-      degradations += SpecIntentDegradationRecord(
-        seam = RESOLVE_SEAM,
-        reason = SpecIntentAbsenceReason.NO_SPEC_FOUND.wireValue,
-        rung = SpecIntentResolutionRung.MANIFEST.wireValue,
-        resolvedPath = error.specPath,
-      )
+      degradations +=
+        SpecIntentDegradationRecord(
+          seam = RESOLVE_SEAM,
+          reason = SpecIntentAbsenceReason.NO_SPEC_FOUND.wireValue,
+          rung = SpecIntentResolutionRung.MANIFEST.wireValue,
+          resolvedPath = error.specPath,
+        )
       null
     }
   }
@@ -97,26 +101,28 @@ class SpecIntentProjectionResolver(
     issueKey: String,
     degradations: MutableList<SpecIntentDegradationRecord>,
   ): SpecIntentResolution {
-    val matches = fileStore.listDirectChildDirectories(request.repoRoot.resolve(".feature-specs").toPath())
-      .filter { it.fileName.toString().startsWith("$issueKey-") }
-      .map { it.resolve("spec.md") }
-      .filter { fileStore.isRegularFile(it) }
-      .sorted()
+    val matches =
+      fileStore.listDirectChildDirectories(request.repoRoot.resolve(".feature-specs").toPath())
+        .filter { it.fileName.toString().startsWith("$issueKey-") }
+        .map { it.resolve("spec.md") }
+        .filter { fileStore.isRegularFile(it) }
+        .sorted()
     return when (matches.size) {
       0 -> none(SpecIntentAbsenceReason.NO_SPEC_FOUND, SpecIntentResolutionRung.GLOB, degradations)
-      1 -> try {
-        SpecIntentResolution.Resolved(
-          extractor.extract(
-            request.repoRoot.toPath(),
-            matches.single(),
-            request.budget,
-            surrounding = null,
-            explicit = false,
-          ),
-        )
-      } catch (_: SpecIntentSourceUnavailable) {
-        none(SpecIntentAbsenceReason.NO_SPEC_FOUND, SpecIntentResolutionRung.GLOB, degradations)
-      }
+      1 ->
+        try {
+          SpecIntentResolution.Resolved(
+            extractor.extract(
+              request.repoRoot.toPath(),
+              matches.single(),
+              request.budget,
+              surrounding = null,
+              explicit = false,
+            ),
+          )
+        } catch (_: SpecIntentSourceUnavailable) {
+          none(SpecIntentAbsenceReason.NO_SPEC_FOUND, SpecIntentResolutionRung.GLOB, degradations)
+        }
       else -> none(SpecIntentAbsenceReason.AMBIGUOUS_MATCH, SpecIntentResolutionRung.GLOB, degradations)
     }
   }
@@ -145,12 +151,13 @@ class SpecIntentProjectionResolver(
     return try {
       extractor.surroundingContext(request.repoRoot.toPath(), Path.of(parentSpecPath), explicit = false)
     } catch (error: SpecIntentSourceUnavailable) {
-      degradations += SpecIntentDegradationRecord(
-        seam = PARENT_SPEC_UNAVAILABLE_SEAM,
-        reason = PARENT_SPEC_UNAVAILABLE_REASON,
-        rung = SpecIntentResolutionRung.MANIFEST.wireValue,
-        resolvedPath = error.specPath,
-      )
+      degradations +=
+        SpecIntentDegradationRecord(
+          seam = PARENT_SPEC_UNAVAILABLE_SEAM,
+          reason = PARENT_SPEC_UNAVAILABLE_REASON,
+          rung = SpecIntentResolutionRung.MANIFEST.wireValue,
+          resolvedPath = error.specPath,
+        )
       null
     }
   }
@@ -163,11 +170,12 @@ class SpecIntentProjectionResolver(
     if (byIntent != null) return byIntent
     val byBranch = manifest.subtasks.filter { it.branch == request.branchName }
     if (byBranch.size == 1) return byBranch.single()
-    val byPath = manifest.subtasks.filter { subtask ->
-      request.changedPaths.any { changed ->
-        changed == subtask.specPath || changed.startsWith(prefix(subtask.specPath))
+    val byPath =
+      manifest.subtasks.filter { subtask ->
+        request.changedPaths.any { changed ->
+          changed == subtask.specPath || changed.startsWith(prefix(subtask.specPath))
+        }
       }
-    }
     return byPath.singleOrNull()
   }
 
@@ -176,21 +184,23 @@ class SpecIntentProjectionResolver(
     rung: SpecIntentResolutionRung,
     degradations: MutableList<SpecIntentDegradationRecord>,
   ): SpecIntentResolution {
-    degradations += SpecIntentDegradationRecord(
-      seam = RESOLVE_SEAM,
-      reason = reason.wireValue,
-      rung = rung.wireValue,
-    )
+    degradations +=
+      SpecIntentDegradationRecord(
+        seam = RESOLVE_SEAM,
+        reason = reason.wireValue,
+        rung = rung.wireValue,
+      )
     return SpecIntentResolution.None(reason, degradations.toList())
   }
 
   private fun withDegradations(
     resolution: SpecIntentResolution,
     degradations: List<SpecIntentDegradationRecord>,
-  ): SpecIntentResolution = when (resolution) {
-    is SpecIntentResolution.Resolved -> resolution.copy(degradations = degradations.toList())
-    is SpecIntentResolution.None -> resolution.copy(degradations = degradations.toList())
-  }
+  ): SpecIntentResolution =
+    when (resolution) {
+      is SpecIntentResolution.Resolved -> resolution.copy(degradations = degradations.toList())
+      is SpecIntentResolution.None -> resolution.copy(degradations = degradations.toList())
+    }
 
   private companion object {
     const val RESOLVE_SEAM = "SpecIntentProjectionResolver.resolve"

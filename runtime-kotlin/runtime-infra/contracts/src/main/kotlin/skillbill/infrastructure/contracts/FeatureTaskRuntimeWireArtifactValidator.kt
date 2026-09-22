@@ -15,9 +15,14 @@ import skillbill.infrastructure.contracts.workflow.goal.planning.GoalPlanningPre
 import skillbill.infrastructure.contracts.workflow.goal.progress.GoalProgressEventSchemaValidator
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+
 @Inject
 class FeatureTaskRuntimeWireArtifactValidator : FeatureTaskRuntimeWireArtifactValidator {
-  override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
+  override fun validate(
+    kind: FeatureTaskRuntimeWireArtifactKind,
+    payload: Any,
+    sourceLabel: String,
+  ) {
     val wireMap = requireFeatureTaskRuntimeArtifactMap(kind, payload, sourceLabel)
     when (kind) {
       FeatureTaskRuntimeWireArtifactKind.QUARANTINE_RECORD ->

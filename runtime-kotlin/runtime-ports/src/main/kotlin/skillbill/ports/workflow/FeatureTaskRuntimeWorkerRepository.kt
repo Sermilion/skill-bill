@@ -5,7 +5,6 @@ import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.featuretask.model.parseFeatureTaskRuntimeWorkerLeaseInstant
 
 interface FeatureTaskRuntimeWorkerRepository {
-
   fun getFeatureTaskRuntimeWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership?
 
   fun acquireFeatureTaskRuntimeWorker(
@@ -27,7 +26,11 @@ interface FeatureTaskRuntimeWorkerRepository {
 
   fun heartbeatFeatureTaskRuntimeWorker(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean
 
-  fun releaseFeatureTaskRuntimeWorker(workflowId: String, ownerToken: String, generation: Long): Boolean
+  fun releaseFeatureTaskRuntimeWorker(
+    workflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean
 
   fun releaseFeatureTaskRuntimeWorkerIfExpired(
     workflowId: String,

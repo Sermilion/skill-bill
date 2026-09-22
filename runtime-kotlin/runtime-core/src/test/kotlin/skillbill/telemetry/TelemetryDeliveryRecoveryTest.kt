@@ -28,10 +28,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
 private val NOW: Instant = Instant.parse("2026-09-15T10:00:00Z")
 
 class TelemetryDeliveryRecoveryTest {
-
   @Test
   fun `an unconfirmed delivery keeps one recoverable entry with its original identity`() {
     withOutbox { store ->
@@ -64,7 +64,10 @@ class TelemetryDeliveryRecoveryTest {
       val client = StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED)
       val brokenAcknowledgement =
         object : TelemetryOutboxRepository by store {
-          override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult {
+          override fun markSynced(
+            eventIds: List<Long>,
+            claimToken: String,
+          ): TelemetryOutboxSettlementResult {
             throw IOException("disk full")
           }
         }
@@ -190,7 +193,10 @@ class TelemetryDeliveryRecoveryTest {
   fun `auto sync propagates cancellation instead of returning null`() {
     val cancellingRepository =
       object : TelemetryOutboxRepository {
-        override fun enqueue(eventName: String, payloadJson: String): Long = error("unexpected")
+        override fun enqueue(
+          eventName: String,
+          payloadJson: String,
+        ): Long = error("unexpected")
 
         override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
           throw CancellationException("probe-cancelled")
@@ -203,8 +209,10 @@ class TelemetryDeliveryRecoveryTest {
 
         override fun lastSyncedAt(): String? = null
 
-        override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
-          error("unexpected")
+        override fun markSynced(
+          eventIds: List<Long>,
+          claimToken: String,
+        ): TelemetryOutboxSettlementResult = error("unexpected")
 
         override fun markFailed(
           eventIds: List<Long>,
@@ -273,8 +281,10 @@ class TelemetryDeliveryRecoveryTest {
       val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
       val cancellingAcknowledgement =
         object : TelemetryOutboxRepository by store {
-          override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
-            throw CancellationException("ack-cancelled")
+          override fun markSynced(
+            eventIds: List<Long>,
+            claimToken: String,
+          ): TelemetryOutboxSettlementResult = throw CancellationException("ack-cancelled")
         }
 
       assertFailsWith<CancellationException> {
@@ -324,15 +334,16 @@ class TelemetryDeliveryRecoveryTest {
     withTelemetryOutboxStore(tempDir, dbPath, block = block)
   }
 
-  private fun settings(batchSize: Int = 50): TelemetrySettings = TelemetrySettings(
-    configPath = Files.createTempFile("telemetry-recovery", ".json").toFileLocation(),
-    level = "anonymous",
-    enabled = true,
-    installId = "test-install-id",
-    proxyUrl = "https://telemetry.example.dev/ingest",
-    customProxyUrl = "https://telemetry.example.dev/ingest",
-    batchSize = batchSize,
-  )
+  private fun settings(batchSize: Int = 50): TelemetrySettings =
+    TelemetrySettings(
+      configPath = Files.createTempFile("telemetry-recovery", ".json").toFileLocation(),
+      level = "anonymous",
+      enabled = true,
+      installId = "test-install-id",
+      proxyUrl = "https://telemetry.example.dev/ingest",
+      customProxyUrl = "https://telemetry.example.dev/ingest",
+      batchSize = batchSize,
+    )
 }
 
 private class RecordingInterruptSignalPort : InterruptSignalPort {
@@ -350,7 +361,10 @@ private class StubTelemetryClient(
 ) : TelemetryClient {
   val sentBatches = mutableListOf<List<String>>()
 
-  override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport {
+  override fun sendBatch(
+    settings: TelemetrySettings,
+    rows: List<TelemetryOutboxRecord>,
+  ): TelemetryDeliveryReport {
     sentBatches += rows.map { it.eventUuid }
     return TelemetryDeliveryReport(outcome, detail)
   }
@@ -358,6 +372,8 @@ private class StubTelemetryClient(
   override fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities =
     error("Unexpected fetchProxyCapabilities")
 
-  override fun fetchRemoteStats(settings: TelemetrySettings, request: RemoteStatsRequest): TelemetryRemoteStatsResult =
-    error("Unexpected fetchRemoteStats")
+  override fun fetchRemoteStats(
+    settings: TelemetrySettings,
+    request: RemoteStatsRequest,
+  ): TelemetryRemoteStatsResult = error("Unexpected fetchRemoteStats")
 }

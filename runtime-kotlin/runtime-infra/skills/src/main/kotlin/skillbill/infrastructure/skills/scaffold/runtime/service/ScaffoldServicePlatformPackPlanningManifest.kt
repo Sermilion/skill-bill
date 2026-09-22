@@ -28,20 +28,23 @@ internal fun platformPackSpecialistPlan(
   selectedAreas: List<String>,
 ): PlatformPackSpecialistPlan {
   val specialistNames = selectedAreas.associateWith { area -> "bill-${args.platform}-code-review-$area" }
-  val specialistPaths = selectedAreas.associateWith { area ->
-    args.packRoot.resolve("code-review").resolve(specialistNames.getValue(area))
-  }
-  val specialistMetadata = selectedAreas.associateWith { area ->
-    specialistFocus(args.defaults.displayName, area, args.defaults.strongSignals)
-  }
+  val specialistPaths =
+    selectedAreas.associateWith { area ->
+      args.packRoot.resolve("code-review").resolve(specialistNames.getValue(area))
+    }
+  val specialistMetadata =
+    selectedAreas.associateWith { area ->
+      specialistFocus(args.defaults.displayName, area, args.defaults.strongSignals)
+    }
   val platformPackSubagents = selectedAreas.map { area -> specialistNames.getValue(area) }
-  val platformPackSubagentDescriptions = selectedAreas.associate { area ->
-    val specialistName = specialistNames.getValue(area)
-    val description =
-      "${args.defaults.displayName} ${area.replace('-', ' ')} specialist — " +
-        "${specialistMetadata.getValue(area)}."
-    specialistName to description
-  }
+  val platformPackSubagentDescriptions =
+    selectedAreas.associate { area ->
+      val specialistName = specialistNames.getValue(area)
+      val description =
+        "${args.defaults.displayName} ${area.replace('-', ' ')} specialist — " +
+          "${specialistMetadata.getValue(area)}."
+      specialistName to description
+    }
   return PlatformPackSpecialistPlan(
     names = specialistNames,
     paths = specialistPaths,
@@ -51,37 +54,39 @@ internal fun platformPackSpecialistPlan(
   )
 }
 
-internal fun platformPackScaffoldPlanBody(args: PlatformPackScaffoldPlanBodyArgs): ScaffoldPlan = ScaffoldPlan(
-  kind = SKILL_KIND_PLATFORM_PACK,
-  skillName = args.baselineName,
-  skillPath = args.scaffold.packRoot,
-  skillFile = args.scaffold.packRoot.resolve("code-review").resolve(args.baselineName).resolve("SKILL.md"),
-  contentFile = args.scaffold.packRoot.resolve("code-review").resolve(args.baselineName).resolve("content.md"),
-  family = "code-review",
-  platform = args.scaffold.platform,
-  area = "",
-  isShelled = true,
-  notes = args.notes,
-  displayName = args.scaffold.defaults.displayName,
-  description = requireStringOrDefault(args.scaffold.payload, "description", ""),
-  manifestPath = args.scaffold.packRoot.resolve("platform.yaml"),
-  routingSignals = args.scaffold.defaults.strongSignals,
-  tieBreakers = args.scaffold.defaults.tieBreakers,
-  specialistAreas = args.specialistPlan.names.keys.toList(),
-  specialistAreaMetadata = args.specialistPlan.metadata,
-  specialistSkillNames = args.specialistPlan.names,
-  specialistSkillPaths = args.specialistPlan.paths,
-  baselineSkillName = args.baselineName,
-  baselineSkillPath = args.scaffold.packRoot.resolve("code-review").resolve(args.baselineName),
-  installPaths = policyBuildPlatformPackInstallPaths(
-    packRoot = args.scaffold.packRoot.toFileLocation(),
-    baselineName = args.baselineName,
-    specialistPaths = args.specialistPlan.paths.mapValues { (_, entry) -> entry.toFileLocation() },
-    selectedAreas = args.specialistPlan.names.keys.toList(),
-  ).map { entry -> entry.toPath() },
-  contentBody = args.scaffold.payload["content_body"] as? String,
-  baselineLayers = args.baselineLayers,
-  subagentSpecialists = args.specialistPlan.subagents,
-  subagentDescriptions = args.specialistPlan.subagentDescriptions,
-  subagentsSuppressed = false,
-)
+internal fun platformPackScaffoldPlanBody(args: PlatformPackScaffoldPlanBodyArgs): ScaffoldPlan =
+  ScaffoldPlan(
+    kind = SKILL_KIND_PLATFORM_PACK,
+    skillName = args.baselineName,
+    skillPath = args.scaffold.packRoot,
+    skillFile = args.scaffold.packRoot.resolve("code-review").resolve(args.baselineName).resolve("SKILL.md"),
+    contentFile = args.scaffold.packRoot.resolve("code-review").resolve(args.baselineName).resolve("content.md"),
+    family = "code-review",
+    platform = args.scaffold.platform,
+    area = "",
+    isShelled = true,
+    notes = args.notes,
+    displayName = args.scaffold.defaults.displayName,
+    description = requireStringOrDefault(args.scaffold.payload, "description", ""),
+    manifestPath = args.scaffold.packRoot.resolve("platform.yaml"),
+    routingSignals = args.scaffold.defaults.strongSignals,
+    tieBreakers = args.scaffold.defaults.tieBreakers,
+    specialistAreas = args.specialistPlan.names.keys.toList(),
+    specialistAreaMetadata = args.specialistPlan.metadata,
+    specialistSkillNames = args.specialistPlan.names,
+    specialistSkillPaths = args.specialistPlan.paths,
+    baselineSkillName = args.baselineName,
+    baselineSkillPath = args.scaffold.packRoot.resolve("code-review").resolve(args.baselineName),
+    installPaths =
+      policyBuildPlatformPackInstallPaths(
+        packRoot = args.scaffold.packRoot.toFileLocation(),
+        baselineName = args.baselineName,
+        specialistPaths = args.specialistPlan.paths.mapValues { (_, entry) -> entry.toFileLocation() },
+        selectedAreas = args.specialistPlan.names.keys.toList(),
+      ).map { entry -> entry.toPath() },
+    contentBody = args.scaffold.payload["content_body"] as? String,
+    baselineLayers = args.baselineLayers,
+    subagentSpecialists = args.specialistPlan.subagents,
+    subagentDescriptions = args.specialistPlan.subagentDescriptions,
+    subagentsSuppressed = false,
+  )

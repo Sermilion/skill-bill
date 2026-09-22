@@ -31,6 +31,7 @@ import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.thread
 import kotlin.coroutines.cancellation.CancellationException
+
 private const val TOKEN_BYTES = 24
 private const val UNIX_SOCKET_PATH_LIMIT = 103
 private const val TEMP_SUFFIX_DIGITS = 20
@@ -45,20 +46,27 @@ class UnixSocketGovernedReviewEvidenceEndpointBinder(
     lane: String,
     broker: ReviewEvidenceBroker,
     onEvidenceRead: (() -> Unit)?,
-  ): GovernedReviewEvidenceEndpointHandle = GovernedReviewEvidenceEndpoint.bind(
-    lane,
-    broker,
-    bridgeCommand(environment.environment, environment.userHome),
-    onEvidenceRead,
-  )
+  ): GovernedReviewEvidenceEndpointHandle =
+    GovernedReviewEvidenceEndpoint.bind(
+      lane,
+      broker,
+      bridgeCommand(environment.environment, environment.userHome),
+      onEvidenceRead,
+    )
 }
-internal fun bridgeCommand(environment: Map<String, String>, userHome: Path): List<String> {
+
+internal fun bridgeCommand(
+  environment: Map<String, String>,
+  userHome: Path,
+): List<String> {
   val configured = environment["SKILL_BILL_RUNTIME_MCP_BIN"]?.takeIf(String::isNotBlank)
-  val home = userHome.takeUnless { it.toString().isBlank() }
-    ?: environment["HOME"]?.takeIf(String::isNotBlank)?.let(Path::of)
-    ?: resolveUserHome(null)
-  val bin = configured?.let(Path::of)
-    ?: home.resolve(".skill-bill").resolve("runtime").resolve("runtime-mcp").resolve("bin").resolve("runtime-mcp")
+  val home =
+    userHome.takeUnless { it.toString().isBlank() }
+      ?: environment["HOME"]?.takeIf(String::isNotBlank)?.let(Path::of)
+      ?: resolveUserHome(null)
+  val bin =
+    configured?.let(Path::of)
+      ?: home.resolve(".skill-bill").resolve("runtime").resolve("runtime-mcp").resolve("bin").resolve("runtime-mcp")
   if (!Files.isExecutable(bin)) {
     throw GovernedReviewEvidenceTransportError(
       "Governed review evidence bridge binary '$bin' is missing or not executable.",
@@ -78,9 +86,11 @@ class GovernedReviewEvidenceEndpoint private constructor(
 
   @Volatile
   private var closed = false
-  private val acceptor = thread(name = "skill-bill-review-evidence-${descriptor.lane}", isDaemon = true) {
-    acceptLoop()
-  }
+  private val acceptor =
+    thread(name = "skill-bill-review-evidence-${descriptor.lane}", isDaemon = true) {
+      acceptLoop()
+    }
+
   override fun close() {
     if (closed) return
     closed = true
@@ -88,6 +98,7 @@ class GovernedReviewEvidenceEndpoint private constructor(
     acceptor.interrupt()
     deleteDirectory()
   }
+
   private fun deleteDirectory() {
     runCatching { rollbackDeleteIfExists(descriptor.socketPath) }
     runCatching { rollbackDeleteIfExists(descriptor.mcpConfigPath) }
@@ -97,16 +108,19 @@ class GovernedReviewEvidenceEndpoint private constructor(
     runCatching { rollbackDeleteIfExists(cursorConfig.parent) }
     runCatching { rollbackDeleteIfExists(directory) }
   }
+
   private fun acceptLoop() {
     while (!closed) {
-      val connection = try {
-        channel.accept()
-      } catch (_: IOException) {
-        return
-      } ?: return
+      val connection =
+        try {
+          channel.accept()
+        } catch (_: IOException) {
+          return
+        } ?: return
       runCatching { connection.use { serve(it) } }
     }
   }
+
   private fun serve(connection: SocketChannel) {
     val reader = Channels.newInputStream(connection).bufferedReader()
     val writer = Channels.newOutputStream(connection).bufferedWriter()
@@ -119,6 +133,7 @@ class GovernedReviewEvidenceEndpoint private constructor(
       writer.flush()
     }
   }
+
   private fun authenticated(handshake: String?): Boolean {
     val frame = handshake?.let(JsonCodec::parseObjectOrNull) ?: return false
     val params = JsonCodec.anyToStringAnyMap(frame["params"]?.let(JsonCodec::jsonElementToValue)).orEmpty()
@@ -128,13 +143,15 @@ class GovernedReviewEvidenceEndpoint private constructor(
       descriptor.token.toByteArray(Charsets.UTF_8),
     )
   }
+
   internal fun handleFrame(line: String): String {
-    val frame = JsonCodec.parseObjectOrNull(line)
-      ?: return governedReviewEvidenceErrorResponse(
-        null,
-        GOVERNED_REVIEW_EVIDENCE_JSON_RPC_INVALID_PARAMS,
-        "Malformed governed evidence frame.",
-      )
+    val frame =
+      JsonCodec.parseObjectOrNull(line)
+        ?: return governedReviewEvidenceErrorResponse(
+          null,
+          GOVERNED_REVIEW_EVIDENCE_JSON_RPC_INVALID_PARAMS,
+          "Malformed governed evidence frame.",
+        )
     val id = frame["id"]?.let(JsonCodec::jsonElementToValue)
     val method = frame["method"]?.let(JsonCodec::jsonElementToValue)?.toString().orEmpty()
     return when (method) {
@@ -145,57 +162,70 @@ class GovernedReviewEvidenceEndpoint private constructor(
         val arguments = JsonCodec.anyToStringAnyMap(params["arguments"]).orEmpty()
         dispatch(id, name, arguments)
       }
-      else -> governedReviewEvidenceErrorResponse(
-        id,
-        GOVERNED_REVIEW_EVIDENCE_JSON_RPC_METHOD_NOT_FOUND,
-        "Method not found: $method",
-      )
+      else ->
+        governedReviewEvidenceErrorResponse(
+          id,
+          GOVERNED_REVIEW_EVIDENCE_JSON_RPC_METHOD_NOT_FOUND,
+          "Method not found: $method",
+        )
     }
   }
-  private fun dispatch(id: Any?, name: String, arguments: Map<String, Any?>): String = try {
-    when (name) {
-      GovernedReviewEvidenceContracts.READ_EVIDENCE ->
-        governedReviewEvidenceToolResponse(id, read(arguments))
-      GovernedReviewEvidenceContracts.REQUEST_EXPANSION ->
-        governedReviewEvidenceToolResponse(id, expand(arguments))
-      else -> governedReviewEvidenceErrorResponse(
+
+  private fun dispatch(
+    id: Any?,
+    name: String,
+    arguments: Map<String, Any?>,
+  ): String =
+    try {
+      when (name) {
+        GovernedReviewEvidenceContracts.READ_EVIDENCE ->
+          governedReviewEvidenceToolResponse(id, read(arguments))
+        GovernedReviewEvidenceContracts.REQUEST_EXPANSION ->
+          governedReviewEvidenceToolResponse(id, expand(arguments))
+        else ->
+          governedReviewEvidenceErrorResponse(
+            id,
+            GOVERNED_REVIEW_EVIDENCE_JSON_RPC_METHOD_NOT_FOUND,
+            "Unknown governed operation: $name",
+          )
+      }
+    } catch (error: CancellationException) {
+      throw error
+    } catch (error: ShellContentContractException) {
+      governedReviewEvidenceErrorResponse(
         id,
-        GOVERNED_REVIEW_EVIDENCE_JSON_RPC_METHOD_NOT_FOUND,
-        "Unknown governed operation: $name",
+        GOVERNED_REVIEW_EVIDENCE_JSON_RPC_INVALID_PARAMS,
+        error.message.orEmpty(),
+      )
+    } catch (error: IOException) {
+      governedReviewEvidenceErrorResponse(
+        id,
+        GOVERNED_REVIEW_EVIDENCE_JSON_RPC_INVALID_PARAMS,
+        error.message.orEmpty(),
       )
     }
-  } catch (error: CancellationException) {
-    throw error
-  } catch (error: ShellContentContractException) {
-    governedReviewEvidenceErrorResponse(
-      id,
-      GOVERNED_REVIEW_EVIDENCE_JSON_RPC_INVALID_PARAMS,
-      error.message.orEmpty(),
-    )
-  } catch (error: IOException) {
-    governedReviewEvidenceErrorResponse(
-      id,
-      GOVERNED_REVIEW_EVIDENCE_JSON_RPC_INVALID_PARAMS,
-      error.message.orEmpty(),
-    )
-  }
+
   private fun read(arguments: Map<String, Any?>): Map<String, Any?> {
-    val request = GovernedReviewEvidenceCodec.readRequest(
-      descriptor.lane,
-      GovernedReviewJsonRpcArguments.from(arguments),
-      issuedExpansions::get,
-    )
+    val request =
+      GovernedReviewEvidenceCodec.readRequest(
+        descriptor.lane,
+        GovernedReviewJsonRpcArguments.from(arguments),
+        issuedExpansions::get,
+      )
     val payload = GovernedReviewEvidenceCodec.batchResultPayload(broker.readBatch(request)).toPayload()
     onEvidenceRead?.invoke()
     return payload
   }
+
   private fun expand(arguments: Map<String, Any?>): Map<String, Any?> {
-    val record = broker.authorizeExpansion(
-      GovernedReviewEvidenceCodec.expansionRequest(descriptor.lane, GovernedReviewJsonRpcArguments.from(arguments)),
-    )
+    val record =
+      broker.authorizeExpansion(
+        GovernedReviewEvidenceCodec.expansionRequest(descriptor.lane, GovernedReviewJsonRpcArguments.from(arguments)),
+      )
     if (record.authorized) issuedExpansions[record.expansionId] = record
     return GovernedReviewEvidenceCodec.expansionRecordPayload(record).toPayload()
   }
+
   companion object {
     fun bind(
       lane: String,
@@ -210,20 +240,22 @@ class GovernedReviewEvidenceEndpoint private constructor(
       var failure: Throwable? = null
       var endpoint: GovernedReviewEvidenceEndpoint? = null
       try {
-        val configPath = GovernedReviewMcpConfigWriter.write(
-          configPath = directory.resolve("mcp.json"),
-          bridgeCommand = bridgeCommand,
-          socketPath = socketPath,
-          token = token,
-          lane = lane,
-        )
-        endpoint = GovernedReviewEvidenceEndpoint(
-          GovernedReviewEvidenceEndpointDescriptor(lane, socketPath, configPath, token),
-          broker,
-          channel,
-          directory,
-          onEvidenceRead,
-        )
+        val configPath =
+          GovernedReviewMcpConfigWriter.write(
+            configPath = directory.resolve("mcp.json"),
+            bridgeCommand = bridgeCommand,
+            socketPath = socketPath,
+            token = token,
+            lane = lane,
+          )
+        endpoint =
+          GovernedReviewEvidenceEndpoint(
+            GovernedReviewEvidenceEndpointDescriptor(lane, socketPath, configPath, token),
+            broker,
+            channel,
+            directory,
+            onEvidenceRead,
+          )
       } catch (error: CancellationException) {
         rollbackGovernedReviewBindArtifacts(channel, socketPath, directory)
         failure = error
@@ -238,32 +270,43 @@ class GovernedReviewEvidenceEndpoint private constructor(
       return endpoint!!
     }
 
-    private fun openGovernedReviewChannel(lane: String, socketPath: Path, directory: Path): ServerSocketChannel {
+    private fun openGovernedReviewChannel(
+      lane: String,
+      socketPath: Path,
+      directory: Path,
+    ): ServerSocketChannel {
       var failure: Throwable? = null
       var channel: ServerSocketChannel? = null
       try {
-        channel = ServerSocketChannel.open(StandardProtocolFamily.UNIX)
-          .bind(UnixDomainSocketAddress.of(socketPath))
+        channel =
+          ServerSocketChannel.open(StandardProtocolFamily.UNIX)
+            .bind(UnixDomainSocketAddress.of(socketPath))
       } catch (error: CancellationException) {
         failure = error
       } catch (error: IOException) {
         runCatching { rollbackDeleteIfExists(directory) }
-        failure = GovernedReviewEvidenceTransportError(
-          "Failed to bind the governed review evidence endpoint for lane '$lane'.",
-          error,
-        )
+        failure =
+          GovernedReviewEvidenceTransportError(
+            "Failed to bind the governed review evidence endpoint for lane '$lane'.",
+            error,
+          )
       } catch (error: ShellContentContractException) {
         runCatching { rollbackDeleteIfExists(directory) }
-        failure = GovernedReviewEvidenceTransportError(
-          "Failed to bind the governed review evidence endpoint for lane '$lane'.",
-          error,
-        )
+        failure =
+          GovernedReviewEvidenceTransportError(
+            "Failed to bind the governed review evidence endpoint for lane '$lane'.",
+            error,
+          )
       }
       failure?.let { throw it }
       return channel!!
     }
 
-    private fun rollbackGovernedReviewBindArtifacts(channel: ServerSocketChannel, socketPath: Path, directory: Path) {
+    private fun rollbackGovernedReviewBindArtifacts(
+      channel: ServerSocketChannel,
+      socketPath: Path,
+      directory: Path,
+    ) {
       runCatching { channel.close() }
       runCatching { rollbackDeleteIfExists(socketPath) }
       runCatching { rollbackDeleteIfExists(directory.resolve("mcp.json")) }
@@ -278,29 +321,36 @@ class GovernedReviewEvidenceEndpoint private constructor(
       runCatching { rollbackDeleteIfExists(cursorConfig.parent) }
       runCatching { rollbackDeleteIfExists(directory) }
     }
-    private fun privateDirectory(): Path = try {
-      Files.createTempDirectory(
-        perLaunchRoot(),
-        PER_LAUNCH_PREFIX,
-        PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")),
-      )
-    } catch (error: IOException) {
-      throw GovernedReviewEvidenceTransportError("Failed to create the per-launch governed review directory.", error)
-    }
+
+    private fun privateDirectory(): Path =
+      try {
+        Files.createTempDirectory(
+          perLaunchRoot(),
+          PER_LAUNCH_PREFIX,
+          PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")),
+        )
+      } catch (error: IOException) {
+        throw GovernedReviewEvidenceTransportError("Failed to create the per-launch governed review directory.", error)
+      }
+
     internal fun perLaunchRoot(hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path {
       val configured = hostPlatform.resolveTemporaryDirectory()
       if (socketPathFits(configured)) return configured
       val shortest = Path.of("/tmp")
       return if (Files.isDirectory(shortest) && socketPathFits(shortest)) shortest else configured
     }
-    private fun socketPathFits(root: Path): Boolean = root
-      .resolve(PER_LAUNCH_PREFIX + "0".repeat(TEMP_SUFFIX_DIGITS))
-      .resolve(SOCKET_FILE_NAME)
-      .toString()
-      .toByteArray(Charsets.UTF_8)
-      .size <= UNIX_SOCKET_PATH_LIMIT
-    private fun newToken(): String = ByteArray(TOKEN_BYTES)
-      .also(SecureRandom()::nextBytes)
-      .joinToString("") { "%02x".format(it) }
+
+    private fun socketPathFits(root: Path): Boolean =
+      root
+        .resolve(PER_LAUNCH_PREFIX + "0".repeat(TEMP_SUFFIX_DIGITS))
+        .resolve(SOCKET_FILE_NAME)
+        .toString()
+        .toByteArray(Charsets.UTF_8)
+        .size <= UNIX_SOCKET_PATH_LIMIT
+
+    private fun newToken(): String =
+      ByteArray(TOKEN_BYTES)
+        .also(SecureRandom()::nextBytes)
+        .joinToString("") { "%02x".format(it) }
   }
 }

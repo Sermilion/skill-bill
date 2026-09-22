@@ -11,7 +11,10 @@ import java.time.format.DateTimeParseException
 internal class WorktreeEditJournalStore(
   private val connection: Connection,
 ) : WorktreeEditJournalRepository {
-  override fun append(workflowId: String, tick: WorktreeEditTick) {
+  override fun append(
+    workflowId: String,
+    tick: WorktreeEditTick,
+  ) {
     require(workflowId.isNotBlank()) { "workflowId is required." }
     if (tick.entries.isEmpty()) return
     val latest = latestTick(workflowId)
@@ -67,18 +70,20 @@ internal class WorktreeEditJournalStore(
           val source = recordedAt?.let { WorktreeEditSource.fromWire(resultSet.getString("source")) }
           if (recordedAt != null && source != null) {
             if (tick == null) {
-              tick = WorktreeEditTick(
-                recordedAt = recordedAt,
-                phaseId = resultSet.getString("phase_id"),
-                source = source,
-                entries = entries,
-              )
+              tick =
+                WorktreeEditTick(
+                  recordedAt = recordedAt,
+                  phaseId = resultSet.getString("phase_id"),
+                  source = source,
+                  entries = entries,
+                )
             }
-            entries += GoalObservabilityFileDiffStat(
-              path = resultSet.getString("path"),
-              insertions = resultSet.getInt("lines_added"),
-              deletions = resultSet.getInt("lines_removed"),
-            )
+            entries +=
+              GoalObservabilityFileDiffStat(
+                path = resultSet.getString("path"),
+                insertions = resultSet.getInt("lines_added"),
+                deletions = resultSet.getInt("lines_removed"),
+              )
           }
         }
         tick?.copy(entries = entries.toList())
@@ -86,48 +91,58 @@ internal class WorktreeEditJournalStore(
     }
   }
 
-  override fun trimToCap(workflowId: String, maxRows: Int): Int {
+  override fun trimToCap(
+    workflowId: String,
+    maxRows: Int,
+  ): Int {
     if (workflowId.isBlank() || maxRows < 0) return 0
     var deleted = 0
     while (true) {
       val oldest = nextTrimTarget(workflowId, maxRows) ?: break
-      deleted += connection.prepareStatement(
-        "DELETE FROM worktree_edit_journal WHERE workflow_id = ? AND recorded_at = ?",
-      ).use { statement ->
-        statement.bindAll(workflowId, oldest)
-        statement.executeUpdate()
-      }
+      deleted +=
+        connection.prepareStatement(
+          "DELETE FROM worktree_edit_journal WHERE workflow_id = ? AND recorded_at = ?",
+        ).use { statement ->
+          statement.bindAll(workflowId, oldest)
+          statement.executeUpdate()
+        }
     }
     return deleted
   }
 
-  private fun nextTrimTarget(workflowId: String, maxRows: Int): String? {
+  private fun nextTrimTarget(
+    workflowId: String,
+    maxRows: Int,
+  ): String? {
     if (rowCount(workflowId) <= maxRows) return null
     val oldest = oldestRecordedAt(workflowId) ?: return null
     val newest = newestRecordedAt(workflowId) ?: return null
     return oldest.takeUnless { it == newest }
   }
 
-  private fun rowCount(workflowId: String): Int = connection.prepareStatement(
-    "SELECT COUNT(*) FROM worktree_edit_journal WHERE workflow_id = ?",
-  ).use { statement ->
-    statement.bindAll(workflowId)
-    statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.getInt(1) else 0 }
-  }
+  private fun rowCount(workflowId: String): Int =
+    connection.prepareStatement(
+      "SELECT COUNT(*) FROM worktree_edit_journal WHERE workflow_id = ?",
+    ).use { statement ->
+      statement.bindAll(workflowId)
+      statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.getInt(1) else 0 }
+    }
 
-  private fun oldestRecordedAt(workflowId: String): String? = connection.prepareStatement(
-    "SELECT MIN(recorded_at) FROM worktree_edit_journal WHERE workflow_id = ?",
-  ).use { statement ->
-    statement.bindAll(workflowId)
-    statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.getString(1) else null }
-  }
+  private fun oldestRecordedAt(workflowId: String): String? =
+    connection.prepareStatement(
+      "SELECT MIN(recorded_at) FROM worktree_edit_journal WHERE workflow_id = ?",
+    ).use { statement ->
+      statement.bindAll(workflowId)
+      statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.getString(1) else null }
+    }
 
-  private fun newestRecordedAt(workflowId: String): String? = connection.prepareStatement(
-    "SELECT MAX(recorded_at) FROM worktree_edit_journal WHERE workflow_id = ?",
-  ).use { statement ->
-    statement.bindAll(workflowId)
-    statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.getString(1) else null }
-  }
+  private fun newestRecordedAt(workflowId: String): String? =
+    connection.prepareStatement(
+      "SELECT MAX(recorded_at) FROM worktree_edit_journal WHERE workflow_id = ?",
+    ).use { statement ->
+      statement.bindAll(workflowId)
+      statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.getString(1) else null }
+    }
 
   private fun parseInstant(raw: String?): Instant? {
     if (raw.isNullOrBlank()) return null

@@ -13,17 +13,21 @@ internal class YamlFlowScalarValidator(private val text: String) {
     return !inDouble && !inSingle && flushPlain()
   }
 
-  private fun consume(index: Int, ch: Char): Boolean = when {
-    inDouble -> {
-      consumeDoubleQuoted(ch)
-      true
+  private fun consume(
+    index: Int,
+    ch: Char,
+  ): Boolean =
+    when {
+      inDouble -> {
+        consumeDoubleQuoted(ch)
+        true
+      }
+      inSingle -> {
+        if (ch == '\'' && text.getOrNull(index + 1) != '\'') inSingle = false
+        true
+      }
+      else -> consumeUnquoted(ch)
     }
-    inSingle -> {
-      if (ch == '\'' && text.getOrNull(index + 1) != '\'') inSingle = false
-      true
-    }
-    else -> consumeUnquoted(ch)
-  }
 
   private fun consumeDoubleQuoted(ch: Char) {
     if (escaped) {
@@ -36,13 +40,14 @@ internal class YamlFlowScalarValidator(private val text: String) {
     }
   }
 
-  private fun consumeUnquoted(ch: Char): Boolean = when (ch) {
-    '"' -> flushPlain().also { valid -> if (valid) inDouble = true }
-    '\'' -> flushPlain().also { valid -> if (valid) inSingle = true }
-    ':' -> flushPlain(beforeColon = true)
-    ',', '{', '}', '[', ']' -> flushPlain()
-    else -> true.also { if (!ch.isWhitespace()) plain.append(ch) }
-  }
+  private fun consumeUnquoted(ch: Char): Boolean =
+    when (ch) {
+      '"' -> flushPlain().also { valid -> if (valid) inDouble = true }
+      '\'' -> flushPlain().also { valid -> if (valid) inSingle = true }
+      ':' -> flushPlain(beforeColon = true)
+      ',', '{', '}', '[', ']' -> flushPlain()
+      else -> true.also { if (!ch.isWhitespace()) plain.append(ch) }
+    }
 
   private fun flushPlain(beforeColon: Boolean = false): Boolean {
     val token = plain.toString().trim()
@@ -50,8 +55,9 @@ internal class YamlFlowScalarValidator(private val text: String) {
     return when {
       token.isEmpty() -> true
       beforeColon -> token.matches(Regex("[A-Za-z_][A-Za-z0-9_-]*"))
-      else -> token.matches(Regex("[-+]?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?")) ||
-        token in setOf("true", "false", "null", "~")
+      else ->
+        token.matches(Regex("[-+]?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?")) ||
+          token in setOf("true", "false", "null", "~")
     }
   }
 }
@@ -69,7 +75,10 @@ internal class DelimiterScanner(private val text: String) {
     return DelimiterScan(stack.toList(), unmatched, firstMismatch)
   }
 
-  private fun consume(index: Int, ch: Char) {
+  private fun consume(
+    index: Int,
+    ch: Char,
+  ) {
     when {
       inDouble -> consumeDoubleQuoted(ch)
       inSingle -> if (ch == '\'' && text.getOrNull(index + 1) != '\'') inSingle = false
@@ -88,7 +97,10 @@ internal class DelimiterScanner(private val text: String) {
     }
   }
 
-  private fun consumeStructural(index: Int, ch: Char) {
+  private fun consumeStructural(
+    index: Int,
+    ch: Char,
+  ) {
     when (ch) {
       '"' -> inDouble = true
       '\'' -> inSingle = true
@@ -98,7 +110,10 @@ internal class DelimiterScanner(private val text: String) {
     }
   }
 
-  private fun consumeClosing(index: Int, ch: Char) {
+  private fun consumeClosing(
+    index: Int,
+    ch: Char,
+  ) {
     if (stack.lastOrNull() == ch) {
       stack.removeLast()
     } else {
@@ -106,10 +121,11 @@ internal class DelimiterScanner(private val text: String) {
       if (firstMismatch == null) {
         val missingCloser = stack.lastOrNull()
         val enclosingCloser = stack.elementAtOrNull(stack.size - 2)
-        firstMismatch = MismatchedClosing(
-          offset = index,
-          missingCloser = missingCloser.takeIf { it != null && enclosingCloser == ch },
-        )
+        firstMismatch =
+          MismatchedClosing(
+            offset = index,
+            missingCloser = missingCloser.takeIf { it != null && enclosingCloser == ch },
+          )
       }
     }
   }

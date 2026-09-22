@@ -20,11 +20,15 @@ class GoalRunnerRunPreparation(
   private val manifestStore: GoalRunnerManifestStore,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ) {
-  fun prepareRun(state: GoalRunnerManifestState, request: GoalRunnerRunRequest): GoalRunPreparation {
-    val persistedControl = manifestStore.bindRepositoryIdentity(
-      state.parentWorkflowId,
-      goalRepositoryIdentity(request.repoRoot, repositoryEnclosingRootPort),
-    )
+  fun prepareRun(
+    state: GoalRunnerManifestState,
+    request: GoalRunnerRunRequest,
+  ): GoalRunPreparation {
+    val persistedControl =
+      manifestStore.bindRepositoryIdentity(
+        state.parentWorkflowId,
+        goalRepositoryIdentity(request.repoRoot, repositoryEnclosingRootPort),
+      )
     stopAfterPolicyMismatch(state, request, persistedControl)?.let { return it }
     val persistedReviewPolicy = manifestStore.reviewPolicy(state.parentWorkflowId)
     persistedReviewPolicy?.let { policy ->
@@ -57,8 +61,9 @@ class GoalRunnerRunPreparation(
           attempted = emptyList(),
           subtaskId = state.manifest.currentSubtaskIntent.subtaskId,
           reason = GoalRunnerStopReason.BLOCKED,
-          blockedReason = "Cannot change stop-after subtask policy on goal resume: parent workflow " +
-            "'${state.parentWorkflowId}' is pinned to subtask $persisted.",
+          blockedReason =
+            "Cannot change stop-after subtask policy on goal resume: parent workflow " +
+              "'${state.parentWorkflowId}' is pinned to subtask $persisted.",
           workflowId = state.parentWorkflowId,
           lastResumableStep = "preplan",
         ),
@@ -72,18 +77,21 @@ class GoalRunnerRunPreparation(
     persistedReviewPolicy: GoalRunnerReviewPolicy?,
   ): GoalRunnerReviewPolicy {
     val requestedAgentAddonSelection = request.agentAddonSelection.persisted
-    val effectiveAgentAddonSelection = requestedAgentAddonSelection
-      .takeUnless { it.entries.isEmpty() }
-      ?: persistedReviewPolicy?.agentAddonSelection
-      ?: AgentAddonSelection()
-    val effectiveReviewPolicy = effectiveGoalRunnerReviewPolicy(
-      request.codeReviewMode,
-      persistedReviewPolicy,
-    )
-    val requestedReviewPolicy = GoalRunnerReviewPolicy(
-      codeReviewMode = effectiveReviewPolicy.codeReviewMode,
-      agentAddonSelection = effectiveAgentAddonSelection,
-    )
+    val effectiveAgentAddonSelection =
+      requestedAgentAddonSelection
+        .takeUnless { it.entries.isEmpty() }
+        ?: persistedReviewPolicy?.agentAddonSelection
+        ?: AgentAddonSelection()
+    val effectiveReviewPolicy =
+      effectiveGoalRunnerReviewPolicy(
+        request.codeReviewMode,
+        persistedReviewPolicy,
+      )
+    val requestedReviewPolicy =
+      GoalRunnerReviewPolicy(
+        codeReviewMode = effectiveReviewPolicy.codeReviewMode,
+        agentAddonSelection = effectiveAgentAddonSelection,
+      )
     return manifestStore.persistReviewPolicy(
       parentWorkflowId = state.parentWorkflowId,
       policy = requestedReviewPolicy,
@@ -94,31 +102,34 @@ class GoalRunnerRunPreparation(
     state: GoalRunnerManifestState,
     request: GoalRunnerRunRequest,
     persistedControl: GoalRunnerControlState,
-  ): GoalRunnerControlState = if (request.stopAfterSubtaskId != null && persistedControl.stopAfterSubtaskId == null) {
-    manifestStore.persistStopAfterSubtask(
-      state.parentWorkflowId,
-      request.stopAfterSubtaskId,
-    )
-  } else {
-    persistedControl
-  }
+  ): GoalRunnerControlState =
+    if (request.stopAfterSubtaskId != null && persistedControl.stopAfterSubtaskId == null) {
+      manifestStore.persistStopAfterSubtask(
+        state.parentWorkflowId,
+        request.stopAfterSubtaskId,
+      )
+    } else {
+      persistedControl
+    }
 
   private fun resumeForRun(
     state: GoalRunnerManifestState,
     effectiveControl: GoalRunnerControlState,
   ): GoalRunnerManifestState {
     val clearsPause = effectiveControl.paused || effectiveControl.pauseRequested
-    val resumedState = if (clearsPause) {
-      manifestStore.resume(state.parentWorkflowId) ?: state
-    } else {
-      state
-    }
-    return resumedState.copy(
-      controlState = if (clearsPause) {
-        manifestStore.controlState(state.parentWorkflowId)
+    val resumedState =
+      if (clearsPause) {
+        manifestStore.resume(state.parentWorkflowId) ?: state
       } else {
-        effectiveControl
-      },
+        state
+      }
+    return resumedState.copy(
+      controlState =
+        if (clearsPause) {
+          manifestStore.controlState(state.parentWorkflowId)
+        } else {
+          effectiveControl
+        },
     )
   }
 
@@ -128,19 +139,20 @@ class GoalRunnerRunPreparation(
     policy: GoalRunnerReviewPolicy,
   ): GoalRunPreparation.PreparationBlocked? {
     val requestedAgentAddonSelection = request.agentAddonSelection.persisted
-    val reason = goalRunnerReviewPolicyMismatch(
-      state.parentWorkflowId,
-      request.codeReviewMode,
-      policy,
-    ) ?: if (
-      requestedAgentAddonSelection.entries.isNotEmpty() &&
-      policy.agentAddonSelection != requestedAgentAddonSelection
-    ) {
-      "Cannot change agent add-on selection on goal resume: parent workflow '${state.parentWorkflowId}' " +
-        "has a different durable selection."
-    } else {
-      return null
-    }
+    val reason =
+      goalRunnerReviewPolicyMismatch(
+        state.parentWorkflowId,
+        request.codeReviewMode,
+        policy,
+      ) ?: if (
+        requestedAgentAddonSelection.entries.isNotEmpty() &&
+        policy.agentAddonSelection != requestedAgentAddonSelection
+      ) {
+        "Cannot change agent add-on selection on goal resume: parent workflow '${state.parentWorkflowId}' " +
+          "has a different durable selection."
+      } else {
+        return null
+      }
     return GoalRunPreparation.PreparationBlocked(
       stopped(
         StoppedReportArgs(

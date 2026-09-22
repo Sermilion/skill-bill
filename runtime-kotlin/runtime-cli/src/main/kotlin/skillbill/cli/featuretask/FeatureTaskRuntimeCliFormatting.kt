@@ -12,29 +12,32 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEventSink
 import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
+
 internal fun WorkflowService.openRuntimeWorkflowId(
   issueKey: String?,
   specPath: String,
   repoRoot: Path,
   routeScope: FeatureTaskRouteScope,
-): String = when (
-  val opened = openFeatureTask(
-    WorkflowServiceOpenFeatureTaskArgs(
-      kind = WorkflowFamilyKind.TASK_RUNTIME,
-      sessionId = "",
-      currentStepId = null,
-      issueKey = requireNotNull(issueKey),
-      repositoryIdentity = repositoryIdentity(repoRoot),
-      governedSpecPath = governedSpecPath(repoRoot, Path.of(specPath)),
-      routeScope = routeScope,
-    ),
-  )
-) {
-  is WorkflowOpenResult.Ok -> opened.workflowId
-  is WorkflowOpenResult.Error -> throw UsageError(
-    "Could not open a feature-task workflow: ${opened.error}",
-  )
-}
+): String =
+  when (
+    val opened =
+      openFeatureTask(
+        WorkflowServiceOpenFeatureTaskArgs(
+          kind = WorkflowFamilyKind.TASK_RUNTIME,
+          sessionId = "",
+          currentStepId = null,
+          issueKey = requireNotNull(issueKey),
+          repositoryIdentity = repositoryIdentity(repoRoot),
+          governedSpecPath = governedSpecPath(repoRoot, Path.of(specPath)),
+          routeScope = routeScope,
+        ),
+      )
+  ) {
+    is WorkflowOpenResult.Ok -> opened.workflowId
+    is WorkflowOpenResult.Error -> throw UsageError(
+      "Could not open a feature-task workflow: ${opened.error}",
+    )
+  }
 
 internal fun repositoryIdentity(start: Path): String {
   return "repo-root-realpath-v1:${canonicalGitRoot(start)}"
@@ -49,7 +52,10 @@ internal fun canonicalGitRoot(start: Path): Path {
   return candidate.toRealPath()
 }
 
-internal fun governedSpecPath(repositoryRoot: Path, specPath: Path): String {
+internal fun governedSpecPath(
+  repositoryRoot: Path,
+  specPath: Path,
+): String {
   val root = canonicalGitRoot(repositoryRoot)
   val resolved = (if (specPath.isAbsolute) specPath else root.resolve(specPath)).normalize().toRealPath()
   if (!resolved.startsWith(root)) {
@@ -71,7 +77,10 @@ internal data class VerifyRuntimeResumeArgs(
   val goalChild: Boolean,
 )
 
-internal fun runtimeRunEventSink(inputs: CliRunInputs, monitor: Boolean): FeatureTaskRuntimeRunEventSink =
+internal fun runtimeRunEventSink(
+  inputs: CliRunInputs,
+  monitor: Boolean,
+): FeatureTaskRuntimeRunEventSink =
   if (!monitor) {
     FeatureTaskRuntimeRunEventSink.NONE
   } else {
@@ -80,32 +89,33 @@ internal fun runtimeRunEventSink(inputs: CliRunInputs, monitor: Boolean): Featur
     }
   }
 
-internal fun FeatureTaskRuntimeRunEvent.runtimeProgressLine(): String = when (this) {
-  is FeatureTaskRuntimeRunEvent.RunStarted ->
-    "feature-task-runtime $workflowId: run started feature_size=$featureSize\n"
-  is FeatureTaskRuntimeRunEvent.BranchResolved ->
-    "feature-task-runtime $workflowId: branch ${if (reused) "reused" else "created"} $branch\n"
-  is FeatureTaskRuntimeRunEvent.BranchSetupBlocked ->
-    "feature-task-runtime $workflowId: branch setup blocked at phase $phaseId: $blockedReason\n"
-  is FeatureTaskRuntimeRunEvent.PhaseStarted -> progressLine()
-  is FeatureTaskRuntimeRunEvent.PhaseLoopEdge ->
-    "feature-task-runtime $workflowId: phase $phaseId $continuationKind loop=$loopId " +
-      "edge_iteration=$edgeIteration driving_verdict=$drivingVerdict\n"
-  is FeatureTaskRuntimeRunEvent.PhaseFixLoopIteration ->
-    "feature-task-runtime $workflowId: phase $phaseId " +
-      "${continuationKind ?: "fix_loop"} attempt=$attemptCount iteration=$fixLoopIteration\n"
-  is FeatureTaskRuntimeRunEvent.ValidationGateProgress ->
-    "feature-task-runtime $workflowId: phase $phaseId gate_run_count=$gateRunCount\n"
-  is FeatureTaskRuntimeRunEvent.PhaseCompleted ->
-    "feature-task-runtime $workflowId: phase $phaseId completed agent=$resolvedAgentId attempt=$attemptCount\n"
-  is FeatureTaskRuntimeRunEvent.PhaseBlocked ->
-    "feature-task-runtime $workflowId: phase $phaseId blocked attempt=$attemptCount: $blockedReason\n"
-  is FeatureTaskRuntimeRunEvent.PhasePaused ->
-    "feature-task-runtime $workflowId: phase $phaseId paused attempt=$attemptCount: $pauseReason\n"
-  is FeatureTaskRuntimeRunEvent.DecomposedAtPlanning ->
-    "feature-task-runtime $workflowId: decomposed at planning into $subtaskCount subtasks: $reason. " +
-      "Work the first subtask first.\n"
-}
+internal fun FeatureTaskRuntimeRunEvent.runtimeProgressLine(): String =
+  when (this) {
+    is FeatureTaskRuntimeRunEvent.RunStarted ->
+      "feature-task-runtime $workflowId: run started feature_size=$featureSize\n"
+    is FeatureTaskRuntimeRunEvent.BranchResolved ->
+      "feature-task-runtime $workflowId: branch ${if (reused) "reused" else "created"} $branch\n"
+    is FeatureTaskRuntimeRunEvent.BranchSetupBlocked ->
+      "feature-task-runtime $workflowId: branch setup blocked at phase $phaseId: $blockedReason\n"
+    is FeatureTaskRuntimeRunEvent.PhaseStarted -> progressLine()
+    is FeatureTaskRuntimeRunEvent.PhaseLoopEdge ->
+      "feature-task-runtime $workflowId: phase $phaseId $continuationKind loop=$loopId " +
+        "edge_iteration=$edgeIteration driving_verdict=$drivingVerdict\n"
+    is FeatureTaskRuntimeRunEvent.PhaseFixLoopIteration ->
+      "feature-task-runtime $workflowId: phase $phaseId " +
+        "${continuationKind ?: "fix_loop"} attempt=$attemptCount iteration=$fixLoopIteration\n"
+    is FeatureTaskRuntimeRunEvent.ValidationGateProgress ->
+      "feature-task-runtime $workflowId: phase $phaseId gate_run_count=$gateRunCount\n"
+    is FeatureTaskRuntimeRunEvent.PhaseCompleted ->
+      "feature-task-runtime $workflowId: phase $phaseId completed agent=$resolvedAgentId attempt=$attemptCount\n"
+    is FeatureTaskRuntimeRunEvent.PhaseBlocked ->
+      "feature-task-runtime $workflowId: phase $phaseId blocked attempt=$attemptCount: $blockedReason\n"
+    is FeatureTaskRuntimeRunEvent.PhasePaused ->
+      "feature-task-runtime $workflowId: phase $phaseId paused attempt=$attemptCount: $pauseReason\n"
+    is FeatureTaskRuntimeRunEvent.DecomposedAtPlanning ->
+      "feature-task-runtime $workflowId: decomposed at planning into $subtaskCount subtasks: $reason. " +
+        "Work the first subtask first.\n"
+  }
 
 internal fun FeatureTaskRuntimeRunEvent.PhaseStarted.progressLine(): String =
   "feature-task-runtime $workflowId: phase $phaseId ${if (resumed) "resumed" else "started"} " +

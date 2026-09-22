@@ -37,15 +37,16 @@ class ExternalPlatformPackOverlayPrecedenceTest {
     register(home, author)
     val source = addonSource("kotlin", "code-review/bill-kotlin-code-review")
 
-    val result = overlayPort().applyOverlay(
-      ExternalAddonOverlayRequest(
-        platformPacksRoot = installedRoot,
-        sources = listOf(source),
-        userHome = home,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to home.resolve("config.json").toString()),
-        repoRoot = repo,
-      ),
-    )
+    val result =
+      overlayPort().applyOverlay(
+        ExternalAddonOverlayRequest(
+          platformPacksRoot = installedRoot,
+          sources = listOf(source),
+          userHome = home,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to home.resolve("config.json").toString()),
+          repoRoot = repo,
+        ),
+      )
 
     assertTrue(result.touched)
     assertTrue(Files.isRegularFile(installedRoot.resolve("kotlin/addons/acme-review.md")))
@@ -87,7 +88,10 @@ class ExternalPlatformPackOverlayPrecedenceTest {
     assertFalse(Files.exists(author.resolve("addons/acme-review.md")))
   }
 
-  private fun addonSource(platform: String, consumer: String): ExternalAddonSource {
+  private fun addonSource(
+    platform: String,
+    consumer: String,
+  ): ExternalAddonSource {
     val sourceDir = Files.createDirectories(root.resolve("addon-$consumer".replace("/", "-")))
     Files.writeString(sourceDir.resolve("acme-review.md"), "# acme body\n")
     Files.writeString(
@@ -106,21 +110,28 @@ class ExternalPlatformPackOverlayPrecedenceTest {
     return ExternalAddonSource(sourceDir.toFileLocation(), platform)
   }
 
-  private fun register(home: Path, pack: Path) {
+  private fun register(
+    home: Path,
+    pack: Path,
+  ) {
     val config = home.resolve("config.json")
     Files.writeString(
       config,
       JsonCodec.mapToJsonString(
         mapOf(
-          ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to listOf(
-            mapOf("path" to pack.toAbsolutePath().normalize().toString()),
-          ),
+          ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to
+            listOf(
+              mapOf("path" to pack.toAbsolutePath().normalize().toString()),
+            ),
         ),
       ) + "\n",
     )
   }
 
-  private fun copyPack(source: Path, destination: Path) {
+  private fun copyPack(
+    source: Path,
+    destination: Path,
+  ) {
     Files.walk(source).use { paths ->
       paths.forEach { path ->
         val target = destination.resolve(source.relativize(path))
@@ -134,23 +145,29 @@ class ExternalPlatformPackOverlayPrecedenceTest {
     }
   }
 
-  private fun writePack(packRoot: Path, marker: String, includeArchitecture: Boolean) {
+  private fun writePack(
+    packRoot: Path,
+    marker: String,
+    includeArchitecture: Boolean,
+  ) {
     val baseline = packRoot.resolve("code-review/bill-kotlin-code-review/content.md")
     Files.createDirectories(baseline.parent)
     Files.writeString(baseline, reviewBody("bill-kotlin-code-review", marker))
-    val areas = if (!includeArchitecture) {
-      "declared_code_review_areas: []\n"
-    } else {
-      val area = packRoot.resolve("code-review/bill-kotlin-code-review-architecture/content.md")
-      Files.createDirectories(area.parent)
-      Files.writeString(area, reviewBody("bill-kotlin-code-review-architecture", "BUNDLED_AREA_MARKER"))
-      "declared_code_review_areas:\n  - architecture\n"
-    }
-    val areaFile = if (includeArchitecture) {
-      "  areas:\n    architecture: \"code-review/bill-kotlin-code-review-architecture/content.md\"\n"
-    } else {
-      ""
-    }
+    val areas =
+      if (!includeArchitecture) {
+        "declared_code_review_areas: []\n"
+      } else {
+        val area = packRoot.resolve("code-review/bill-kotlin-code-review-architecture/content.md")
+        Files.createDirectories(area.parent)
+        Files.writeString(area, reviewBody("bill-kotlin-code-review-architecture", "BUNDLED_AREA_MARKER"))
+        "declared_code_review_areas:\n  - architecture\n"
+      }
+    val areaFile =
+      if (includeArchitecture) {
+        "  areas:\n    architecture: \"code-review/bill-kotlin-code-review-architecture/content.md\"\n"
+      } else {
+        ""
+      }
     Files.writeString(
       packRoot.resolve("platform.yaml"),
       buildString {
@@ -181,6 +198,8 @@ class ExternalPlatformPackOverlayPrecedenceTest {
     )
   }
 
-  private fun reviewBody(skillName: String, marker: String): String =
-    renderContentBody(TemplateContext(skillName, "code-review", "kotlin", "", "Kotlin"), marker)
+  private fun reviewBody(
+    skillName: String,
+    marker: String,
+  ): String = renderContentBody(TemplateContext(skillName, "code-review", "kotlin", "", "Kotlin"), marker)
 }

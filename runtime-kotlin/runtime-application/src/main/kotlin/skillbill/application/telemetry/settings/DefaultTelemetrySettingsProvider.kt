@@ -6,14 +6,16 @@ import skillbill.model.EnvironmentContext
 import skillbill.ports.telemetry.transport.TelemetryConfigStore
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.telemetry.model.TelemetrySettings
+
 @Inject
 class DefaultTelemetrySettingsProvider(
   private val context: EnvironmentContext,
   private val configStore: TelemetryConfigStore,
 ) : TelemetrySettingsProvider {
-  override fun load(materialize: Boolean): TelemetrySettings = loadTelemetrySettingsFromStore(
-    materialize = materialize,
-    environment = context.environment,
-    configStore = configStore,
-  )
+  override fun load(materialize: Boolean): TelemetrySettings =
+    loadTelemetrySettingsFromStore(
+      materialize = materialize,
+      environment = context.environment,
+      configStore = configStore,
+    )
 }

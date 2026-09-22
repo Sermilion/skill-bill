@@ -77,12 +77,13 @@ class FileSystemInstallPlanningFacts(
 ) : InstallPlanningFactsPort {
   override fun collectPlanningFacts(request: InstallPlanningFactsRequest): InstallPlanningFactsResult =
     InstallPlanningFactsResult(
-      facts = collectInstallPlanningFacts(
-        request.installRequest.copy(
-          environment = resolveInstallEnvironment(request.installRequest.environment, hostPlatform),
+      facts =
+        collectInstallPlanningFacts(
+          request.installRequest.copy(
+            environment = resolveInstallEnvironment(request.installRequest.environment, hostPlatform),
+          ),
+          catalogLoader,
         ),
-        catalogLoader,
-      ),
     )
 }
 
@@ -90,12 +91,14 @@ class FileSystemInstallPlanningFacts(
 class FileSystemInstallPlatformSkillMaterialization : InstallPlatformSkillMaterializationPort {
   override fun materializePlatformSkills(
     request: InstallPlatformSkillMaterializationPortRequest,
-  ): InstallPlatformSkillMaterializationPortResult = InstallPlatformSkillMaterializationPortResult(
-    platformPacks = materializeSelectedPlatformSkills(
-      platformManifests = request.platformManifests,
-      selectedPlatformSlugs = request.selectedPlatformSlugs,
-    ),
-  )
+  ): InstallPlatformSkillMaterializationPortResult =
+    InstallPlatformSkillMaterializationPortResult(
+      platformPacks =
+        materializeSelectedPlatformSkills(
+          platformManifests = request.platformManifests,
+          selectedPlatformSlugs = request.selectedPlatformSlugs,
+        ),
+    )
 }
 
 @Inject
@@ -104,12 +107,13 @@ class FileSystemInstallStagingIntent(
 ) : InstallStagingIntentPort {
   override fun buildStagingIntent(request: InstallStagingIntentRequest): InstallStagingIntentResult =
     InstallStagingIntentResult(
-      staging = buildInstallStagingIntent(
-        request = request.installRequest,
-        draftSkills = request.draft.skills,
-        platformManifests = request.platformManifests,
-        catalogLoader = catalogLoader,
-      ),
+      staging =
+        buildInstallStagingIntent(
+          request = request.installRequest,
+          draftSkills = request.draft.skills,
+          platformManifests = request.platformManifests,
+          catalogLoader = catalogLoader,
+        ),
     )
 }
 
@@ -119,27 +123,31 @@ class FileSystemInstallReconcile(
   private val catalogLoader: PlatformPackCatalogLoader,
 ) : InstallReconcilePort {
   override fun reconcile(request: InstallReconcileRequest): InstallReconcileResult {
-    val baseline = baselineManifestPersistence
-      .readBaseline(ReadBaselineManifestRequest(installHome = request.home))
-      .manifest
+    val baseline =
+      baselineManifestPersistence
+        .readBaseline(ReadBaselineManifestRequest(installHome = request.home))
+        .manifest
     return InstallReconcileResult(
-      plan = computeReconciliationPlan(
-        upstream = ReconcileSourceRoots(
-          repoRoot = request.upstreamRepoRoot,
-          skillsRoot = request.upstreamSkillsRoot,
-          platformPacksRoot = request.upstreamPlatformPacksRoot,
-          catalogLoader = catalogLoader,
+      plan =
+        computeReconciliationPlan(
+          upstream =
+            ReconcileSourceRoots(
+              repoRoot = request.upstreamRepoRoot,
+              skillsRoot = request.upstreamSkillsRoot,
+              platformPacksRoot = request.upstreamPlatformPacksRoot,
+              catalogLoader = catalogLoader,
+            ),
+          local =
+            ReconcileSourceRoots(
+              repoRoot = request.localRepoRoot,
+              skillsRoot = request.localSkillsRoot,
+              platformPacksRoot = request.localPlatformPacksRoot,
+              catalogLoader = catalogLoader,
+            ),
+          home = request.home,
+          baseline = baseline,
+          environment = request.environment,
         ),
-        local = ReconcileSourceRoots(
-          repoRoot = request.localRepoRoot,
-          skillsRoot = request.localSkillsRoot,
-          platformPacksRoot = request.localPlatformPacksRoot,
-          catalogLoader = catalogLoader,
-        ),
-        home = request.home,
-        baseline = baseline,
-        environment = request.environment,
-      ),
     )
   }
 }
@@ -150,27 +158,31 @@ class FileSystemInstallReconcileApply(
   private val catalogLoader: PlatformPackCatalogLoader,
 ) : InstallReconcileApplyPort {
   override fun apply(request: InstallReconcileApplyRequest): InstallReconcileApplyResult {
-    val baseline = baselineManifestPersistence
-      .readBaseline(ReadBaselineManifestRequest(installHome = request.home))
-      .manifest
+    val baseline =
+      baselineManifestPersistence
+        .readBaseline(ReadBaselineManifestRequest(installHome = request.home))
+        .manifest
 
-    val output = applyReconciliation(
-      upstream = ReconcileSourceRoots(
-        repoRoot = request.upstreamRepoRoot,
-        skillsRoot = request.upstreamSkillsRoot,
-        platformPacksRoot = request.upstreamPlatformPacksRoot,
-        catalogLoader = catalogLoader,
-      ),
-      local = ReconcileSourceRoots(
-        repoRoot = request.localRepoRoot,
-        skillsRoot = request.localSkillsRoot,
-        platformPacksRoot = request.localPlatformPacksRoot,
-        catalogLoader = catalogLoader,
-      ),
-      home = request.home,
-      baseline = baseline,
-      environment = request.environment,
-    )
+    val output =
+      applyReconciliation(
+        upstream =
+          ReconcileSourceRoots(
+            repoRoot = request.upstreamRepoRoot,
+            skillsRoot = request.upstreamSkillsRoot,
+            platformPacksRoot = request.upstreamPlatformPacksRoot,
+            catalogLoader = catalogLoader,
+          ),
+        local =
+          ReconcileSourceRoots(
+            repoRoot = request.localRepoRoot,
+            skillsRoot = request.localSkillsRoot,
+            platformPacksRoot = request.localPlatformPacksRoot,
+            catalogLoader = catalogLoader,
+          ),
+        home = request.home,
+        baseline = baseline,
+        environment = request.environment,
+      )
     return InstallReconcileApplyResult(
       plan = output.plan,
       installedPaths = output.installedPaths,
@@ -187,13 +199,14 @@ class FileSystemInstallApplyExecution(
 ) : InstallApplyExecutionPort {
   override fun applyInstall(request: InstallApplyExecutionRequest): InstallApplyExecutionResult =
     InstallApplyExecutionResult(
-      result = InstallOperations.applyInstall(
-        request.plan,
-        request.telemetryLevelMutator,
-        telemetryConfigStore,
-        installMcpRegistrationPort,
-        catalogLoader,
-      ),
+      result =
+        InstallOperations.applyInstall(
+          request.plan,
+          request.telemetryLevelMutator,
+          telemetryConfigStore,
+          installMcpRegistrationPort,
+          catalogLoader,
+        ),
     )
 }
 
@@ -201,12 +214,14 @@ class FileSystemInstallApplyExecution(
 class FileSystemInstallSkillLink(
   private val hostPlatform: HostPlatformPort,
 ) : InstallSkillLinkPort {
-  override fun linkSkill(request: InstallSkillLinkRequest): InstallSkillLinkResult = InstallSkillLinkResult(
-    linkedPaths = linkInstalledSkill(
-      request,
-      hostPlatform,
-    ),
-  )
+  override fun linkSkill(request: InstallSkillLinkRequest): InstallSkillLinkResult =
+    InstallSkillLinkResult(
+      linkedPaths =
+        linkInstalledSkill(
+          request,
+          hostPlatform,
+        ),
+    )
 }
 
 @Inject
@@ -227,21 +242,23 @@ class FileSystemInstallAgentTargets(
     )
   }
 
-  override fun claudeConfigRoots(request: ClaudeConfigRootsRequest): ClaudeConfigRootsResult = ClaudeConfigRootsResult(
-    InstallOperations.claudeRoots(
-      request.home,
-      resolveInstallEnvironment(request.environment, hostPlatform),
-      hostPlatform,
-    ),
-  )
+  override fun claudeConfigRoots(request: ClaudeConfigRootsRequest): ClaudeConfigRootsResult =
+    ClaudeConfigRootsResult(
+      InstallOperations.claudeRoots(
+        request.home,
+        resolveInstallEnvironment(request.environment, hostPlatform),
+        hostPlatform,
+      ),
+    )
 
-  override fun codexConfigRoots(request: CodexConfigRootsRequest): CodexConfigRootsResult = CodexConfigRootsResult(
-    InstallOperations.codexRoots(
-      request.home,
-      resolveInstallEnvironment(request.environment, hostPlatform),
-      hostPlatform,
-    ),
-  )
+  override fun codexConfigRoots(request: CodexConfigRootsRequest): CodexConfigRootsResult =
+    CodexConfigRootsResult(
+      InstallOperations.codexRoots(
+        request.home,
+        resolveInstallEnvironment(request.environment, hostPlatform),
+        hostPlatform,
+      ),
+    )
 
   override fun agentDirectory(request: InstallAgentDirectoryRequest): InstallAgentDirectoryResult {
     val environment = resolveInstallEnvironment(request.environment, hostPlatform)
@@ -257,13 +274,14 @@ class FileSystemInstallAgentTargets(
   }
 
   override fun cleanupAgentTarget(request: InstallAgentTargetCleanupRequest): InstallAgentTargetCleanupResult {
-    val (removed, skipped) = InstallCleanupOperations.cleanupAgentTarget(
-      targetDir = request.targetDir,
-      skillNames = request.skillNames,
-      legacyNames = request.legacyNames,
-      managedInstallMarker = request.managedInstallMarker,
-      installedSkillsRoot = request.home?.let { installedSkillsCacheRoot(it) },
-    )
+    val (removed, skipped) =
+      InstallCleanupOperations.cleanupAgentTarget(
+        targetDir = request.targetDir,
+        skillNames = request.skillNames,
+        legacyNames = request.legacyNames,
+        managedInstallMarker = request.managedInstallMarker,
+        installedSkillsRoot = request.home?.let { installedSkillsCacheRoot(it) },
+      )
     return InstallAgentTargetCleanupResult(
       cleanup = InstallCleanupResult(removed = removed, skipped = skipped),
     )
@@ -278,17 +296,19 @@ class FileSystemInstallNativeAgentLinks(
     request: InstallNativeAgentLinkOperationRequest,
   ): InstallNativeAgentLinkOperationResult {
     val fsRequest = request.linkRequest.toFsRequest(catalogLoader)
-    val outcome = when (request.provider) {
-      NativeAgentLinkProvider.CLAUDE -> InstallNativeAgentOperations.linkClaudeAgents(fsRequest)
-      NativeAgentLinkProvider.CODEX -> InstallNativeAgentOperations.linkCodexAgents(fsRequest)
-      NativeAgentLinkProvider.JUNIE -> InstallNativeAgentOperations.linkJunieAgents(fsRequest)
-      NativeAgentLinkProvider.CURSOR -> InstallNativeAgentOperations.linkCursorAgents(fsRequest)
-    }
+    val outcome =
+      when (request.provider) {
+        NativeAgentLinkProvider.CLAUDE -> InstallNativeAgentOperations.linkClaudeAgents(fsRequest)
+        NativeAgentLinkProvider.CODEX -> InstallNativeAgentOperations.linkCodexAgents(fsRequest)
+        NativeAgentLinkProvider.JUNIE -> InstallNativeAgentOperations.linkJunieAgents(fsRequest)
+        NativeAgentLinkProvider.CURSOR -> InstallNativeAgentOperations.linkCursorAgents(fsRequest)
+      }
     return InstallNativeAgentLinkOperationResult(
-      outcome = NativeAgentLinkOutcome(
-        linked = outcome.linked,
-        skipped = outcome.skipped.map { skip -> NativeAgentSkippedLink(skip.path, skip.reason) },
-      ),
+      outcome =
+        NativeAgentLinkOutcome(
+          linked = outcome.linked,
+          skipped = outcome.skipped.map { skip -> NativeAgentSkippedLink(skip.path, skip.reason) },
+        ),
     )
   }
 
@@ -297,12 +317,13 @@ class FileSystemInstallNativeAgentLinks(
   ): InstallNativeAgentUnlinkOperationResult {
     val fsRequest = request.linkRequest.toFsRequest(catalogLoader)
     return InstallNativeAgentUnlinkOperationResult(
-      unlinked = when (request.provider) {
-        NativeAgentLinkProvider.CLAUDE -> InstallNativeAgentOperations.unlinkClaudeAgents(fsRequest)
-        NativeAgentLinkProvider.CODEX -> InstallNativeAgentOperations.unlinkCodexAgents(fsRequest)
-        NativeAgentLinkProvider.JUNIE -> InstallNativeAgentOperations.unlinkJunieAgents(fsRequest)
-        NativeAgentLinkProvider.CURSOR -> InstallNativeAgentOperations.unlinkCursorAgents(fsRequest)
-      },
+      unlinked =
+        when (request.provider) {
+          NativeAgentLinkProvider.CLAUDE -> InstallNativeAgentOperations.unlinkClaudeAgents(fsRequest)
+          NativeAgentLinkProvider.CODEX -> InstallNativeAgentOperations.unlinkCodexAgents(fsRequest)
+          NativeAgentLinkProvider.JUNIE -> InstallNativeAgentOperations.unlinkJunieAgents(fsRequest)
+          NativeAgentLinkProvider.CURSOR -> InstallNativeAgentOperations.unlinkCursorAgents(fsRequest)
+        },
     )
   }
 }
@@ -313,21 +334,23 @@ class FileSystemInstallMcpRegistration(
 ) : InstallMcpRegistrationPort {
   override fun registerMcp(request: InstallMcpRegistrationRequest): InstallMcpRegistrationResult =
     InstallMcpRegistrationResult(
-      mutation = McpRegistrationOperations.register(
-        request.agent,
-        request.runtimeMcpBin,
-        request.home,
-        environment = resolveInstallEnvironment(emptyMap(), hostPlatform),
-      ),
+      mutation =
+        McpRegistrationOperations.register(
+          request.agent,
+          request.runtimeMcpBin,
+          request.home,
+          environment = resolveInstallEnvironment(emptyMap(), hostPlatform),
+        ),
     )
 
   override fun unregisterMcp(request: InstallMcpUnregistrationRequest): InstallMcpRegistrationResult =
     InstallMcpRegistrationResult(
-      mutation = McpRegistrationOperations.unregister(
-        request.agent,
-        request.home,
-        environment = resolveInstallEnvironment(emptyMap(), hostPlatform),
-      ),
+      mutation =
+        McpRegistrationOperations.unregister(
+          request.agent,
+          request.home,
+          environment = resolveInstallEnvironment(emptyMap(), hostPlatform),
+        ),
     )
 }
 
@@ -339,9 +362,10 @@ private fun NativeAgentLinkRequest.toFsRequest(catalogLoader: PlatformPackCatalo
     selectedPlatforms = selectedPlatforms,
     environment = environment,
     catalogLoader = catalogLoader,
-    overrides = FsNativeAgentLinkOverrides(
-      installCacheRoot = overrides.installCacheRoot,
-      sourceRoots = overrides.sourceRoots,
-      legacyManagedRoot = overrides.legacyManagedRoot,
-    ),
+    overrides =
+      FsNativeAgentLinkOverrides(
+        installCacheRoot = overrides.installCacheRoot,
+        sourceRoots = overrides.sourceRoots,
+        legacyManagedRoot = overrides.legacyManagedRoot,
+      ),
   )

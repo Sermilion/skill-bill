@@ -9,12 +9,13 @@ internal object MigrationLedger {
     val versionKeyed: Boolean,
     val appliedNames: Set<String>,
   ) {
-    fun hasPendingWork(migrationNames: List<String>): Boolean = when {
-      !tableExists -> true
+    fun hasPendingWork(migrationNames: List<String>): Boolean =
+      when {
+        !tableExists -> true
 
-      versionKeyed -> true
-      else -> migrationNames.any { name -> name !in appliedNames }
-    }
+        versionKeyed -> true
+        else -> migrationNames.any { name -> name !in appliedNames }
+      }
   }
 
   fun readState(connection: Connection): State {
@@ -51,23 +52,27 @@ internal object MigrationLedger {
     }
   }
 
-  fun appliedNames(connection: Connection): Set<String> = connection.prepareStatement(
-    """
+  fun appliedNames(connection: Connection): Set<String> =
+    connection.prepareStatement(
+      """
       SELECT name
       FROM schema_migrations
       ORDER BY version
-    """.trimIndent(),
-  ).use { statement ->
-    statement.executeQuery().use { resultSet ->
-      buildSet {
-        while (resultSet.next()) {
-          add(resultSet.getString("name"))
+      """.trimIndent(),
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        buildSet {
+          while (resultSet.next()) {
+            add(resultSet.getString("name"))
+          }
         }
       }
     }
-  }
 
-  fun record(connection: Connection, migration: DatabaseMigration) {
+  fun record(
+    connection: Connection,
+    migration: DatabaseMigration,
+  ) {
     connection.prepareStatement(
       """
       INSERT INTO schema_migrations (version, name)
@@ -79,18 +84,21 @@ internal object MigrationLedger {
     }
   }
 
-  private fun tableExists(connection: Connection): Boolean = connection.prepareStatement(
-    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
-  ).use { statement ->
-    statement.executeQuery().use { resultSet -> resultSet.next() }
-  }
-
-  private fun versionIsPrimaryKey(connection: Connection): Boolean = connection.prepareStatement(
-    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
-  ).use { statement ->
-    statement.executeQuery().use { resultSet ->
-      resultSet.next() && Regex("""\bversion\s+INTEGER\s+PRIMARY\s+KEY\b""", RegexOption.IGNORE_CASE)
-        .containsMatchIn(resultSet.getString("sql").orEmpty())
+  private fun tableExists(connection: Connection): Boolean =
+    connection.prepareStatement(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+    ).use { statement ->
+      statement.executeQuery().use { resultSet -> resultSet.next() }
     }
-  }
+
+  private fun versionIsPrimaryKey(connection: Connection): Boolean =
+    connection.prepareStatement(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        resultSet.next() &&
+          Regex("""\bversion\s+INTEGER\s+PRIMARY\s+KEY\b""", RegexOption.IGNORE_CASE)
+            .containsMatchIn(resultSet.getString("sql").orEmpty())
+      }
+    }
 }

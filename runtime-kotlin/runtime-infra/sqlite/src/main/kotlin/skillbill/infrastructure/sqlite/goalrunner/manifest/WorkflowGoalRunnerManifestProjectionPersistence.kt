@@ -37,40 +37,44 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
     clearOutOfBandAcceptances: Boolean = false,
     mergeConcurrentProgress: Boolean = true,
   ): SavedManifestProjection {
-    val existingRecord = unitOfWork.workflowStates.getFeatureTaskWorkflow(state.parentWorkflowId)
-      ?: unitOfWork.workflowStates.findDecomposedParentWorkflow(
-        state.manifest.issueKey,
-        decompositionManifestValidator,
-      )
-      ?: error("Unknown decomposed parent workflow '${state.parentWorkflowId}'.")
+    val existingRecord =
+      unitOfWork.workflowStates.getFeatureTaskWorkflow(state.parentWorkflowId)
+        ?: unitOfWork.workflowStates.findDecomposedParentWorkflow(
+          state.manifest.issueKey,
+          decompositionManifestValidator,
+        )
+        ?: error("Unknown decomposed parent workflow '${state.parentWorkflowId}'.")
     existingRecord.requireRuntimeModeForEngineWrite()
     val existingSnapshot = existingRecord.toSnapshot()
     if (clearOutOfBandAcceptances) {
       unitOfWork.goalRunnerControls.clearOutOfBandAcceptances(existingSnapshot.workflowId)
       unitOfWork.goalRunnerControls.clearControlState(existingSnapshot.workflowId)
     }
-    val manifest = if (mergeConcurrentProgress) {
-      mergeConcurrentGoalProgress(
-        existingSnapshot.decompositionRuntime(decompositionManifestValidator) ?: state.manifest,
-        state.manifest,
-      )
-    } else {
-      state.manifest
-    }
-    val updated = engine.updateRecord(
-      WorkflowFamily.TASK_RUNTIME.definition,
-      existingSnapshot,
-      WorkflowUpdateInput(
-        workflowStatus = existingSnapshot.workflowStatus,
-        currentStepId = existingSnapshot.currentStepId,
-        stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(
-          parentProjection.artifacts(manifest, existingSnapshot.artifactsJson),
+    val manifest =
+      if (mergeConcurrentProgress) {
+        mergeConcurrentGoalProgress(
+          existingSnapshot.decompositionRuntime(decompositionManifestValidator) ?: state.manifest,
+          state.manifest,
+        )
+      } else {
+        state.manifest
+      }
+    val updated =
+      engine.updateRecord(
+        WorkflowFamily.TASK_RUNTIME.definition,
+        existingSnapshot,
+        WorkflowUpdateInput(
+          workflowStatus = existingSnapshot.workflowStatus,
+          currentStepId = existingSnapshot.currentStepId,
+          stepUpdates = null,
+          artifactsPatch =
+            WorkflowArtifactPatch.from(
+              parentProjection.artifacts(manifest, existingSnapshot.artifactsJson),
+            ),
+          sessionId = existingSnapshot.sessionId.orEmpty(),
+          replaceArtifacts = true,
         ),
-        sessionId = existingSnapshot.sessionId.orEmpty(),
-        replaceArtifacts = true,
-      ),
-    )
+      )
     WorkflowFamily.TASK_RUNTIME.saveRecord(
       unitOfWork.workflowStates,
       updated.toRecord().copy(issueKey = normalizeRequiredIssueKey(manifest.issueKey)),
@@ -78,13 +82,14 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
     val refreshed = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, updated.workflowId) ?: updated
     reconcileControlStateForManifest(unitOfWork, refreshed.workflowId, decompositionManifestValidator)
     return SavedManifestProjection(
-      state = GoalRunnerManifestState(
-        parentWorkflowId = refreshed.workflowId,
-        dbPath = unitOfWork.dbPath.toString(),
-        manifest = refreshed.decompositionRuntime(decompositionManifestValidator) ?: manifest,
-        controlState = unitOfWork.goalRunnerControls.controlState(refreshed.workflowId),
-        repoRoot = state.repoRoot,
-      ),
+      state =
+        GoalRunnerManifestState(
+          parentWorkflowId = refreshed.workflowId,
+          dbPath = unitOfWork.dbPath.toString(),
+          manifest = refreshed.decompositionRuntime(decompositionManifestValidator) ?: manifest,
+          controlState = unitOfWork.goalRunnerControls.controlState(refreshed.workflowId),
+          repoRoot = state.repoRoot,
+        ),
       projectionArtifactsJson = refreshed.artifactsJson,
     )
   }

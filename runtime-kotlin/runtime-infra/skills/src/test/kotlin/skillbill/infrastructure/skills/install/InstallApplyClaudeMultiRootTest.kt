@@ -25,23 +25,28 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class InstallApplyClaudeMultiRootTest : InstallApplyTestSupport() {
-  private fun markClaudeProfile(home: Path, name: String): Path {
+  private fun markClaudeProfile(
+    home: Path,
+    name: String,
+  ): Path {
     val root = home.resolve(name)
     Files.createDirectories(root)
     Files.createFile(root.resolve(".claude.json"))
     return root
   }
 
-  private fun claudeMultiRootRequest(fixture: ApplyFixture) = fixture.request(agents = setOf(InstallAgent.CLAUDE))
-    .let { base ->
-      base.copy(
-        agentSelection = InstallAgentSelection(
-          mode = InstallAgentSelectionMode.MANUAL,
-          manualAgents = setOf(InstallAgent.CLAUDE),
-        ),
-        targetPaths = base.targetPaths.copy(agentTargets = emptyList()),
-      )
-    }
+  private fun claudeMultiRootRequest(fixture: ApplyFixture) =
+    fixture.request(agents = setOf(InstallAgent.CLAUDE))
+      .let { base ->
+        base.copy(
+          agentSelection =
+            InstallAgentSelection(
+              mode = InstallAgentSelectionMode.MANUAL,
+              manualAgents = setOf(InstallAgent.CLAUDE),
+            ),
+          targetPaths = base.targetPaths.copy(agentTargets = emptyList()),
+        )
+      }
 
   private fun copiedSourceFixture(seed: ApplyFixture): ApplyFixture {
     val copyRoot = seed.home.resolve(".skill-bill/source")
@@ -78,22 +83,25 @@ class InstallApplyClaudeMultiRootTest : InstallApplyTestSupport() {
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
     assertTrue(result.failures.isEmpty(), "unexpected failures: ${result.failures}")
 
-    val expectedSkillDirs = setOf(defaultRoot.resolve("skills"), workRoot.resolve("skills"))
-      .map { it.toAbsolutePath().normalize() }
-      .toSet()
-    result.skills.forEach { skill ->
-      val linkedParents = skill.links
-        .filter { link -> link.status == InstallAgentLinkStatus.CREATED }
-        .map { link -> link.linkPath.toPath().parent.toAbsolutePath().normalize() }
+    val expectedSkillDirs =
+      setOf(defaultRoot.resolve("skills"), workRoot.resolve("skills"))
+        .map { it.toAbsolutePath().normalize() }
         .toSet()
+    result.skills.forEach { skill ->
+      val linkedParents =
+        skill.links
+          .filter { link -> link.status == InstallAgentLinkStatus.CREATED }
+          .map { link -> link.linkPath.toPath().parent.toAbsolutePath().normalize() }
+          .toSet()
       assertEquals(expectedSkillDirs, linkedParents, "skill ${skill.skillName} did not fan out to every root")
     }
 
-    val stagedTargets = result.skills.flatMap { skill ->
-      skill.links
-        .filter { link -> link.status == InstallAgentLinkStatus.CREATED }
-        .map { link -> readSymlinkTarget(link.linkPath.toPath()) }
-    }
+    val stagedTargets =
+      result.skills.flatMap { skill ->
+        skill.links
+          .filter { link -> link.status == InstallAgentLinkStatus.CREATED }
+          .map { link -> readSymlinkTarget(link.linkPath.toPath()) }
+      }
     stagedTargets.forEach { target ->
       assertTrue(
         target.startsWith(fixture.home.resolve(".skill-bill/installed-skills")),
@@ -143,22 +151,25 @@ class InstallApplyClaudeMultiRootTest : InstallApplyTestSupport() {
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
     assertTrue(result.failures.isEmpty(), "unexpected failures: ${result.failures}")
 
-    val expectedSkillDirs = setOf(defaultRoot.resolve("skills"), workRoot.resolve("skills"))
-      .map { it.toAbsolutePath().normalize() }
-      .toSet()
-    result.skills.forEach { skill ->
-      val linkedParents = skill.links
-        .filter { link -> link.status == InstallAgentLinkStatus.CREATED }
-        .map { link -> link.linkPath.toPath().parent.toAbsolutePath().normalize() }
+    val expectedSkillDirs =
+      setOf(defaultRoot.resolve("skills"), workRoot.resolve("skills"))
+        .map { it.toAbsolutePath().normalize() }
         .toSet()
+    result.skills.forEach { skill ->
+      val linkedParents =
+        skill.links
+          .filter { link -> link.status == InstallAgentLinkStatus.CREATED }
+          .map { link -> link.linkPath.toPath().parent.toAbsolutePath().normalize() }
+          .toSet()
       assertEquals(expectedSkillDirs, linkedParents, "skill ${skill.skillName} did not fan out to every root")
     }
 
-    val stagedTargets = result.skills.flatMap { skill ->
-      skill.links
-        .filter { link -> link.status == InstallAgentLinkStatus.CREATED }
-        .map { link -> readSymlinkTarget(link.linkPath.toPath()) }
-    }
+    val stagedTargets =
+      result.skills.flatMap { skill ->
+        skill.links
+          .filter { link -> link.status == InstallAgentLinkStatus.CREATED }
+          .map { link -> readSymlinkTarget(link.linkPath.toPath()) }
+      }
     stagedTargets.forEach { target ->
       assertTrue(
         target.startsWith(fixture.home.resolve(".skill-bill/installed-skills")),
@@ -199,9 +210,10 @@ class InstallApplyClaudeMultiRootTest : InstallApplyTestSupport() {
 
   private fun symlinkTargetsIn(dir: Path): Map<Path, Path> {
     if (!Files.isDirectory(dir)) return emptyMap()
-    val symlinks = Files.list(dir).use { stream ->
-      stream.filter { entry -> Files.isSymbolicLink(entry) }.toList()
-    }
+    val symlinks =
+      Files.list(dir).use { stream ->
+        stream.filter { entry -> Files.isSymbolicLink(entry) }.toList()
+      }
     return symlinks.associate { link -> link.fileName to readSymlinkTarget(link) }
   }
 
@@ -211,22 +223,25 @@ class InstallApplyClaudeMultiRootTest : InstallApplyTestSupport() {
     Files.createDirectories(fixture.home.resolve(".claude"))
     val workRoot = markClaudeProfile(fixture.home, ".claude-work")
 
-    val plan = planInstallForTest(
-      claudeMultiRootRequest(fixture).copy(
-        platformPackSelection = PlatformPackSelection(
-          mode = SELECTED,
-          selectedSlugs = setOf("kotlin"),
+    val plan =
+      planInstallForTest(
+        claudeMultiRootRequest(fixture).copy(
+          platformPackSelection =
+            PlatformPackSelection(
+              mode = SELECTED,
+              selectedSlugs = setOf("kotlin"),
+            ),
         ),
-      ),
-    )
+      )
     val result = applyInstallForTest(plan)
 
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
-    val linkedClaudeAgentDirs = result.nativeAgents
-      .filter { native -> native.provider == NativeAgentProviderId.CLAUDE }
-      .filter { native -> native.status == NativeAgentApplyStatus.LINKED }
-      .mapNotNull { native -> native.path?.toPath()?.parent?.toAbsolutePath()?.normalize() }
-      .toSet()
+    val linkedClaudeAgentDirs =
+      result.nativeAgents
+        .filter { native -> native.provider == NativeAgentProviderId.CLAUDE }
+        .filter { native -> native.status == NativeAgentApplyStatus.LINKED }
+        .mapNotNull { native -> native.path?.toPath()?.parent?.toAbsolutePath()?.normalize() }
+        .toSet()
 
     assertTrue(linkedClaudeAgentDirs.contains(fixture.home.resolve(".claude/agents").toAbsolutePath().normalize()))
     assertTrue(linkedClaudeAgentDirs.contains(workRoot.resolve("agents").toAbsolutePath().normalize()))
@@ -239,12 +254,13 @@ class InstallApplyClaudeMultiRootTest : InstallApplyTestSupport() {
     val workRoot = markClaudeProfile(fixture.home, ".claude-work")
     Files.createDirectories(fixture.home.resolve(".claude"))
 
-    val request = NativeAgentLinkRequest(
-      platformPacksRoot = fixture.repoRoot.resolve("platform-packs"),
-      skillsRoot = fixture.repoRoot.resolve("skills"),
-      home = fixture.home,
-      selectedPlatforms = listOf("kotlin"),
-    )
+    val request =
+      NativeAgentLinkRequest(
+        platformPacksRoot = fixture.repoRoot.resolve("platform-packs"),
+        skillsRoot = fixture.repoRoot.resolve("skills"),
+        home = fixture.home,
+        selectedPlatforms = listOf("kotlin"),
+      )
 
     val linked = InstallNativeAgentOperations.linkClaudeAgents(request).linked
     val linkedDirs = linked.map { it.parent.toAbsolutePath().normalize() }.toSet()

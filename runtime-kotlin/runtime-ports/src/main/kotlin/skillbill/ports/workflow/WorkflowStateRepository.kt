@@ -12,6 +12,7 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskWorkflowMode
+
 /**
  * Durable workflow-state persistence, split into one capability interface per
  * family so no single interface crosses the detekt `TooManyFunctions`
@@ -42,19 +43,31 @@ interface FeatureTaskExecutionLookupRepository {
 
   fun countGoalChildIdentities(normalizedIssueKey: String): Int
 
-  fun claimFeatureTaskContinuation(workflowId: String, expectedUpdatedAt: String?): Boolean
+  fun claimFeatureTaskContinuation(
+    workflowId: String,
+    expectedUpdatedAt: String?,
+  ): Boolean
 }
 
 interface FeatureTaskWorkflowStateRepository : FeatureTaskExecutionLookupRepository {
   fun terminalizeLegacyProseFeatureTaskWorkflow(row: WorkflowStateRecord)
 
-  fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode)
+  fun saveFeatureTaskWorkflow(
+    row: WorkflowStateRecord,
+    mode: FeatureTaskWorkflowMode,
+  )
 
   fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord?
 
-  fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord?
+  fun getFeatureTaskWorkflowAsMode(
+    workflowId: String,
+    mode: FeatureTaskWorkflowMode,
+  ): WorkflowStateRecord?
 
-  fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int = 20): List<WorkflowStateRecord>
+  fun listFeatureTaskWorkflows(
+    mode: FeatureTaskWorkflowMode,
+    limit: Int = 20,
+  ): List<WorkflowStateRecord>
 
   fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord?
 }
@@ -128,60 +141,78 @@ interface FeatureTaskRuntimeWorkflowStateRepository {
   fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord?
 }
 
-fun WorkflowStateSnapshot.toRecord(): WorkflowStateRecord = WorkflowStateRecord(
-  workflowId = workflowId,
-  sessionId = sessionId,
-  workflowName = workflowName,
-  contractVersion = contractVersion,
-  workflowStatus = workflowStatus.wireValue,
-  currentStepId = currentStepId,
-  stepsJson = stepsJson,
-  artifactsJson = artifactsJson,
-  startedAt = startedAt,
-  updatedAt = updatedAt,
-  finishedAt = finishedAt,
-  mode = mode?.let(FeatureTaskWorkflowMode::fromWireValue),
-)
+fun WorkflowStateSnapshot.toRecord(): WorkflowStateRecord =
+  WorkflowStateRecord(
+    workflowId = workflowId,
+    sessionId = sessionId,
+    workflowName = workflowName,
+    contractVersion = contractVersion,
+    workflowStatus = workflowStatus.wireValue,
+    currentStepId = currentStepId,
+    stepsJson = stepsJson,
+    artifactsJson = artifactsJson,
+    startedAt = startedAt,
+    updatedAt = updatedAt,
+    finishedAt = finishedAt,
+    mode = mode?.let(FeatureTaskWorkflowMode::fromWireValue),
+  )
 
-fun WorkflowFamily.save(repository: WorkflowStateRepository, record: WorkflowStateSnapshot) {
+fun WorkflowFamily.save(
+  repository: WorkflowStateRepository,
+  record: WorkflowStateSnapshot,
+) {
   saveRecord(repository, record.toRecord())
 }
 
-fun WorkflowFamily.saveRecord(repository: WorkflowStateRepository, record: WorkflowStateRecord) {
+fun WorkflowFamily.saveRecord(
+  repository: WorkflowStateRepository,
+  record: WorkflowStateRecord,
+) {
   when (this) {
     WorkflowFamily.VERIFY -> repository.saveFeatureVerifyWorkflow(record)
     WorkflowFamily.TASK_RUNTIME -> repository.saveFeatureTaskWorkflow(record, FeatureTaskWorkflowMode.RUNTIME)
   }
 }
 
-fun WorkflowFamily.get(repository: WorkflowStateRepository, workflowId: String): WorkflowStateSnapshot? = when (this) {
-  WorkflowFamily.VERIFY -> repository.getFeatureVerifyWorkflow(workflowId)
-  WorkflowFamily.TASK_RUNTIME ->
-    repository.getFeatureTaskWorkflowAsMode(workflowId, FeatureTaskWorkflowMode.RUNTIME)
-}?.toSnapshot()
+fun WorkflowFamily.get(
+  repository: WorkflowStateRepository,
+  workflowId: String,
+): WorkflowStateSnapshot? =
+  when (this) {
+    WorkflowFamily.VERIFY -> repository.getFeatureVerifyWorkflow(workflowId)
+    WorkflowFamily.TASK_RUNTIME ->
+      repository.getFeatureTaskWorkflowAsMode(workflowId, FeatureTaskWorkflowMode.RUNTIME)
+  }?.toSnapshot()
 
 fun WorkflowFamily.getAll(
   repository: WorkflowStateRepository,
   workflowIds: Set<String>,
-): Map<String, WorkflowStateSnapshot> = buildMap {
-  workflowIds.chunked(WORKFLOW_SNAPSHOT_BATCH_SIZE).forEach { batch ->
-    val records = when (this@getAll) {
-      WorkflowFamily.VERIFY -> repository.getFeatureVerifyWorkflows(batch.toSet())
-      WorkflowFamily.TASK_RUNTIME -> repository.getFeatureTaskRuntimeWorkflows(batch.toSet())
+): Map<String, WorkflowStateSnapshot> =
+  buildMap {
+    workflowIds.chunked(WORKFLOW_SNAPSHOT_BATCH_SIZE).forEach { batch ->
+      val records =
+        when (this@getAll) {
+          WorkflowFamily.VERIFY -> repository.getFeatureVerifyWorkflows(batch.toSet())
+          WorkflowFamily.TASK_RUNTIME -> repository.getFeatureTaskRuntimeWorkflows(batch.toSet())
+        }
+      records.forEach { (workflowId, record) -> put(workflowId, record.toSnapshot()) }
     }
-    records.forEach { (workflowId, record) -> put(workflowId, record.toSnapshot()) }
   }
-}
 
-fun WorkflowFamily.list(repository: WorkflowStateRepository, limit: Int): List<WorkflowStateSnapshot> = when (this) {
-  WorkflowFamily.VERIFY -> repository.listFeatureVerifyWorkflows(limit)
-  WorkflowFamily.TASK_RUNTIME -> repository.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, limit)
-}.map(WorkflowStateRecord::toSnapshot)
+fun WorkflowFamily.list(
+  repository: WorkflowStateRepository,
+  limit: Int,
+): List<WorkflowStateSnapshot> =
+  when (this) {
+    WorkflowFamily.VERIFY -> repository.listFeatureVerifyWorkflows(limit)
+    WorkflowFamily.TASK_RUNTIME -> repository.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, limit)
+  }.map(WorkflowStateRecord::toSnapshot)
 
-fun WorkflowFamily.latest(repository: WorkflowStateRepository): WorkflowStateSnapshot? = when (this) {
-  WorkflowFamily.VERIFY -> repository.latestFeatureVerifyWorkflow()
-  WorkflowFamily.TASK_RUNTIME -> repository.latestFeatureTaskWorkflow(FeatureTaskWorkflowMode.RUNTIME)
-}?.toSnapshot()
+fun WorkflowFamily.latest(repository: WorkflowStateRepository): WorkflowStateSnapshot? =
+  when (this) {
+    WorkflowFamily.VERIFY -> repository.latestFeatureVerifyWorkflow()
+    WorkflowFamily.TASK_RUNTIME -> repository.latestFeatureTaskWorkflow(FeatureTaskWorkflowMode.RUNTIME)
+  }?.toSnapshot()
 
 fun WorkflowFamily.sessionSummary(
   repository: WorkflowStateRepository,
@@ -191,8 +222,9 @@ fun WorkflowFamily.sessionSummary(
     return WorkflowContinueSessionSummary.EMPTY
   }
   return when (this) {
-    WorkflowFamily.VERIFY -> repository.getFeatureVerifySessionSummary(sessionId)?.toContinueSessionSummary()
-      ?: WorkflowContinueSessionSummary.EMPTY
+    WorkflowFamily.VERIFY ->
+      repository.getFeatureVerifySessionSummary(sessionId)?.toContinueSessionSummary()
+        ?: WorkflowContinueSessionSummary.EMPTY
     WorkflowFamily.TASK_RUNTIME -> WorkflowContinueSessionSummary.EMPTY
   }
 }

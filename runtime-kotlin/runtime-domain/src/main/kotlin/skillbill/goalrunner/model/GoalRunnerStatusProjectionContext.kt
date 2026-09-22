@@ -43,22 +43,25 @@ internal fun assembleGoalRunnerStatusProjection(
   val statusOf = context.statusOf
   return GoalRunnerStatusProjection(
     issueKey = manifest.issueKey,
-    completeCount = manifest.subtasks.count {
-      statusOf(it) in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
-    },
-    pendingCount = manifest.subtasks.count {
-      statusOf(it) !in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED, DecompositionStatus.BLOCKED)
-    },
+    completeCount =
+      manifest.subtasks.count {
+        statusOf(it) in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
+      },
+    pendingCount =
+      manifest.subtasks.count {
+        statusOf(it) !in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED, DecompositionStatus.BLOCKED)
+      },
     blockedCount = manifest.subtasks.count { statusOf(it) == DecompositionStatus.BLOCKED },
     currentSubtaskId = currentSubtask?.id,
     currentChildWorkflowId = currentSubtask?.workflowId?.takeIf(String::isNotBlank),
     currentSubtaskStatus = currentSubtask?.let(statusOf),
     currentSubtaskBlockedReason = currentSubtask?.blockedReason?.takeIf(String::isNotBlank),
-    currentStep = extras.currentStepOverride?.takeIf(String::isNotBlank)
-      ?: currentSubtask?.lastResumableStep
-      ?: currentSubtask?.let { subtask ->
-        if (subtask.workflowId.isNullOrBlank()) "pending_launch" else "initializing"
-      },
+    currentStep =
+      extras.currentStepOverride?.takeIf(String::isNotBlank)
+        ?: currentSubtask?.lastResumableStep
+        ?: currentSubtask?.let { subtask ->
+          if (subtask.workflowId.isNullOrBlank()) "pending_launch" else "initializing"
+        },
     activeAgent = activeAgent?.takeIf(String::isNotBlank),
     executionLiveness = extras.executionLiveness,
     planning = extras.planning,

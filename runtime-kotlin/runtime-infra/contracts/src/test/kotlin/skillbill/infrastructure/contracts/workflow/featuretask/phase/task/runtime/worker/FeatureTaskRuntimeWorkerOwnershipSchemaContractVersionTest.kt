@@ -9,9 +9,10 @@ import kotlin.test.assertNotNull
 class FeatureTaskRuntimeWorkerOwnershipSchemaContractVersionTest {
   @Test
   fun `worker ownership schema version and id match runtime constants`() {
-    val stream = assertNotNull(
-      javaClass.classLoader.getResourceAsStream(FeatureTaskRuntimeWorkerOwnershipSchemaPaths.CLASSPATH_RESOURCE),
-    )
+    val stream =
+      assertNotNull(
+        javaClass.classLoader.getResourceAsStream(FeatureTaskRuntimeWorkerOwnershipSchemaPaths.CLASSPATH_RESOURCE),
+      )
     val schema = stream.use { YAMLMapper().readTree(it) }
     assertEquals(
       FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION,
