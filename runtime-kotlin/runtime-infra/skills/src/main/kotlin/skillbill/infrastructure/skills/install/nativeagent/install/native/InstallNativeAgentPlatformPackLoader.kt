@@ -6,6 +6,7 @@ import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentGover
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPlatformPack
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPointerSpec
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
 import skillbill.scaffold.model.GovernedAddonActivation
 import skillbill.scaffold.model.GovernedAddonSelection
@@ -14,7 +15,6 @@ import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.nio.file.Path
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests as scaffoldDiscoverPlatformPackManifests
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack as scaffoldLoadPlatformPack
 
 internal object InstallNativeAgentPlatformPackLoader : NativeAgentPlatformPackLoader {

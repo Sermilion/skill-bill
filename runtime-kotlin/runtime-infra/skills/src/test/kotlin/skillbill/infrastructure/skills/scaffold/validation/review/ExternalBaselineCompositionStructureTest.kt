@@ -53,8 +53,7 @@ class ExternalBaselineCompositionStructureTest {
     return baseline
   }
 
-  private fun baselineContent(slug: String, discipline: String): String =
-    """
+  private fun baselineContent(slug: String, discipline: String): String = """
     ---
     name: bill-$slug-code-review
     description: $slug review
@@ -81,7 +80,7 @@ class ExternalBaselineCompositionStructureTest {
     ## Finding Discipline
 
     $discipline
-    """.trimIndent() + "\n"
+  """.trimIndent() + "\n"
 
   private fun platformManifest(slug: String, composeOnKotlin: Boolean): String {
     val composition = if (composeOnKotlin) {
@@ -108,6 +107,6 @@ class ExternalBaselineCompositionStructureTest {
       declared_code_review_areas: []
       declared_files:
         baseline: "code-review/bill-$slug-code-review/content.md"
-      """.trimIndent() + "\n" + composition
+    """.trimIndent() + "\n" + composition
   }
 }

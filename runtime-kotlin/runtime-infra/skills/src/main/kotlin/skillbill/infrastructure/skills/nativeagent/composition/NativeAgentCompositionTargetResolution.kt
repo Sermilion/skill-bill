@@ -34,9 +34,7 @@ internal fun resolvePlatformManifestContentTarget(
     }
 }
 
-internal fun NativeAgentPlatformPackLoader.withAdditionalPackRoots(
-  roots: List<Path>,
-): NativeAgentPlatformPackLoader =
+internal fun NativeAgentPlatformPackLoader.withAdditionalPackRoots(roots: List<Path>): NativeAgentPlatformPackLoader =
   if (roots.isEmpty()) {
     this
   } else {

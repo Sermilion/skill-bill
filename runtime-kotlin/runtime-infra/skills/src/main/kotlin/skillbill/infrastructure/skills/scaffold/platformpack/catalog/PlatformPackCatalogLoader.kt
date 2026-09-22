@@ -12,13 +12,13 @@ import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_C
 import skillbill.install.model.ExternalPlatformPackSource
 import skillbill.model.toPath
 import skillbill.ports.install.platformpack.ExternalPlatformPackSourceConfigPort
-import skillbill.ports.repository.toFileLocation
 import skillbill.ports.install.platformpack.PlatformPackCatalogPort
 import skillbill.ports.install.platformpack.model.ExternalPlatformPackRootRequest
 import skillbill.ports.install.platformpack.model.ExternalPlatformPackRootResult
 import skillbill.ports.install.platformpack.model.ExternalPlatformPackSourceConfigRequest
 import skillbill.ports.install.platformpack.model.PlatformPackCatalogRequest
 import skillbill.ports.install.platformpack.model.PlatformPackCatalogResult
+import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.policy.platformpack.buildEffectivePlatformPackCatalog
 import skillbill.scaffold.policy.platformpack.model.EffectivePlatformPackCatalog
