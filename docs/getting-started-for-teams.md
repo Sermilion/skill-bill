@@ -15,7 +15,7 @@ The useful adoption unit is:
 
 - stable slash commands for review, quality checks, feature work, verification, PR descriptions, and skill authoring
 - a packaged Kotlin CLI and MCP runtime
-- manifest-driven platform packs
+- manifest-driven platform packs (team-owned packs can live outside the repo; see [External platform packs](external-platform-packs.md))
 - strict validation around generated wrappers, manifests, and MCP schemas
 - model-mediated reasoning for code review, planning, audits, and prose
 

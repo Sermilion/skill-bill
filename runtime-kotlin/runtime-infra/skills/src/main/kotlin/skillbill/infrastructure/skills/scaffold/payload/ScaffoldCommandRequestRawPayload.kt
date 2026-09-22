@@ -68,6 +68,8 @@ private fun ScaffoldCommandRequest.PlatformPack.appendPlatformPackFields(base: M
   subagentSpecialists?.let { base["subagent_specialists"] = it }
   if (suppressSubagents) base["no_subagents"] = true
   contentBody?.let { base["content_body"] = it }
+  packLocationPath?.let { base["pack_location_path"] = it }
+  packRegistration?.let { base["pack_registration"] = it }
 }
 
 private fun ScaffoldCommandRequest.PlatformOverride.appendPlatformOverrideFields(base: MutableMap<String, Any?>) {

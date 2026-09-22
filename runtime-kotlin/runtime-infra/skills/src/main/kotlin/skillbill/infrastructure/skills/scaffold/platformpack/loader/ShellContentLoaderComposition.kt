@@ -7,8 +7,10 @@ import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 
-internal fun validatePlatformPackCompositions(packs: List<PlatformManifest>) {
-  val packsBySlug = packs.associateBy { it.slug }
+internal fun validatePlatformPackCompositions(
+  packs: List<PlatformManifest>,
+  packsBySlug: Map<String, PlatformManifest> = packs.associateBy { it.slug },
+) {
   packs
     .filter { it.codeReviewComposition != null }
     .forEach { pack -> validateCompositionReferences(pack, packsBySlug) }
@@ -27,30 +29,41 @@ internal fun validatePlatformPackCompositions(packs: List<PlatformManifest>) {
     }
 }
 
-internal fun loadCompositionClosure(rootPack: PlatformManifest): List<PlatformManifest> {
+internal fun loadCompositionClosure(
+  rootPack: PlatformManifest,
+  packsBySlug: Map<String, PlatformManifest> = emptyMap(),
+): List<PlatformManifest> {
+  val loaded = linkedMapOf(rootPack.slug to rootPack)
+  val catalog = if (packsBySlug.isNotEmpty()) packsBySlug else siblingCatalog(rootPack)
+
+  fun collect(pack: PlatformManifest) {
+    pack.codeReviewComposition?.baselineLayers.orEmpty().forEach { layer ->
+      if (layer.platform in loaded) {
+        return@forEach
+      }
+      val targetPack = catalog[layer.platform] ?: return@forEach
+      loaded[targetPack.slug] = targetPack
+      collect(targetPack)
+    }
+  }
+
+  collect(rootPack)
+  return loaded.values.toList()
+}
+
+private fun siblingCatalog(rootPack: PlatformManifest): Map<String, PlatformManifest> {
   val packParent = rootPack.packRoot.toPath().parent
   return if (packParent == null || !Files.isDirectory(packParent)) {
-    listOf(rootPack)
+    emptyMap()
   } else {
-    val loaded = linkedMapOf(rootPack.slug to rootPack)
-
-    fun collect(pack: PlatformManifest) {
-      pack.codeReviewComposition?.baselineLayers.orEmpty().forEach { layer ->
-        if (layer.platform in loaded) {
-          return@forEach
-        }
-        val targetRoot = packParent.resolve(layer.platform)
-        if (!Files.isDirectory(targetRoot)) {
-          return@forEach
-        }
+    childDirectories(packParent).mapNotNull { targetRoot ->
+      if (!Files.isRegularFile(targetRoot.resolve("platform.yaml"))) {
+        null
+      } else {
         val targetPack = loadPlatformManifest(targetRoot)
-        loaded[targetPack.slug] = targetPack
-        collect(targetPack)
+        targetPack.slug to targetPack
       }
-    }
-
-    collect(rootPack)
-    loaded.values.toList()
+    }.toMap()
   }
 }
 

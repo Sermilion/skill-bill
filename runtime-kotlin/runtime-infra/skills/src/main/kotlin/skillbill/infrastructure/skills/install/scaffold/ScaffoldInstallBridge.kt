@@ -28,6 +28,11 @@ internal fun performScaffoldInstall(
   plan: ScaffoldPlan,
   repoRoot: Path,
 ): Pair<List<Path>, List<String>> {
+  if (plan.externalPackRegistrationMode == "register") {
+    return emptyList<Path>() to listOf(
+      "Registered existing external platform pack without rewriting pack files.",
+    )
+  }
   val hostPlatform = JdkHostPlatformPort
   val home = resolveInstallHome(null, hostPlatform)
   val environment = resolveInstallEnvironment(emptyMap(), hostPlatform)

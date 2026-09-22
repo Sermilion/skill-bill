@@ -4,10 +4,13 @@ import skillbill.infrastructure.skills.install.identity.suppliedSkillContentIden
 import skillbill.infrastructure.skills.scaffold.authoring.InternalSkillDeclaration
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.infrastructure.skills.scaffold.authoring.requireValidInternalSkillClassification
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.validatePlatformPack
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator
+import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.model.toPath
@@ -18,12 +21,23 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 internal fun discoverPlatformManifests(
-  platformPacksRoot: Path,
+  request: InstallPlanRequest,
   enforceContractVersion: Boolean = true,
-): List<PlatformManifest> = if (Files.isDirectory(platformPacksRoot)) {
-  discoverPlatformPackManifests(platformPacksRoot, enforceContractVersion)
-} else {
-  emptyList()
+  catalogLoader: PlatformPackCatalogLoader? = null,
+): List<PlatformManifest> {
+  val loader = catalogLoader ?: return discoverPlatformPackManifests(
+    request.repoRoot.toPath().resolve("platform-packs"),
+    enforceContractVersion,
+  )
+  return loader.loadEffectiveManifests(
+    PlatformPackDiscoveryContext(
+      repoRoot = request.repoRoot.toPath(),
+      userHome = request.home.toPath(),
+      environment = request.environment,
+      enforceContractVersion = enforceContractVersion,
+      catalogLoader = loader,
+    ),
+  )
 }
 
 internal fun discoverBaseSkills(skillsRoot: Path): List<InstallPlanSkill> {

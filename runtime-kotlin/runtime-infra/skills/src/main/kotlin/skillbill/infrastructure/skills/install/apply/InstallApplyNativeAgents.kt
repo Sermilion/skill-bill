@@ -7,6 +7,7 @@ import skillbill.infrastructure.skills.install.nativeagent.install.native.Native
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
@@ -21,6 +22,7 @@ import java.nio.file.Path
 internal fun applyNativeAgents(
   plan: InstallPlan,
   failures: MutableList<InstallApplyIssue>,
+  catalogLoader: PlatformPackCatalogLoader? = null,
 ): List<NativeAgentApplyOutcome> {
   val selectedAgents = plan.agents.map { target -> target.agent }.toSet()
   val context = NativeAgentApplyContext(
@@ -29,6 +31,7 @@ internal fun applyNativeAgents(
     installCacheRoot = nativeAgentApplyCacheRoot(plan),
     legacyManagedRoot = nativeAgentLegacyCacheRoot(plan),
     sourceRoots = nativeAgentSourceRoots(plan.skills, plan.selectedPlatformSlugs.toSet()),
+    catalogLoader = catalogLoader,
   )
   return nativeAgentInstallers
     .filter { installer -> installer.agent in selectedAgents }
@@ -62,6 +65,7 @@ private data class NativeAgentApplyContext(
   val installCacheRoot: Path,
   val legacyManagedRoot: Path,
   val sourceRoots: List<Path>,
+  val catalogLoader: PlatformPackCatalogLoader? = null,
 )
 
 private fun nativeAgentLinkRequest(context: NativeAgentApplyContext): NativeAgentLinkRequest {
@@ -71,6 +75,8 @@ private fun nativeAgentLinkRequest(context: NativeAgentApplyContext): NativeAgen
     skillsRoot = plan.installationTargetPaths.skillsRoot.toPath(),
     home = plan.request.home.toPath(),
     selectedPlatforms = plan.selectedPlatformSlugs,
+    environment = plan.request.environment,
+    catalogLoader = context.catalogLoader,
     overrides = NativeAgentLinkOverrides(
       installCacheRoot = context.installCacheRoot,
       sourceRoots = context.sourceRoots,

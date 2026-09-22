@@ -1,5 +1,7 @@
 package skillbill.infrastructure.skills.install.apply
 
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.assertExternalPlatformPackDeclaredReads
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.assertExternalPlatformPackTreeReads
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
@@ -37,8 +39,14 @@ internal fun materializeAgentPlatformPackViews(
     .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK && skill.internalFor != null }
     .map { skill -> skill.sourceDir.toPath().toAbsolutePath().normalize() }
     .toSet()
+  val billSharedRoot = plan.request.repoRoot.toPath().toAbsolutePath().normalize().resolve(".bill-shared")
   plan.agents.forEach { agentTarget ->
     runCatching {
+      selectedManifests.forEach { manifest ->
+        val packRoot = manifest.packRoot.toPath().toAbsolutePath().normalize()
+        assertExternalPlatformPackTreeReads(packRoot, billSharedRoot)
+        assertExternalPlatformPackDeclaredReads(manifest, billSharedRoot)
+      }
       val root = agentTarget.path.toPath().toAbsolutePath().normalize().resolve(PLATFORM_PACKS_DIR)
       replaceManagedPlatformPackView(root)
       selectedManifests.forEach { manifest ->

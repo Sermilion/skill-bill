@@ -22,10 +22,15 @@ internal fun loadPlatformManifest(packRoot: Path, enforceContractVersion: Boolea
   return buildPack(slug, resolvedPackRoot, manifestPath, raw, enforceContractVersion)
 }
 
-internal fun loadPlatformPack(packRoot: Path, enforceGovernedReviewStructure: Boolean = false): PlatformManifest {
+internal fun loadPlatformPack(
+  packRoot: Path,
+  packsBySlug: Map<String, PlatformManifest> = emptyMap(),
+  enforceGovernedReviewStructure: Boolean = false,
+): PlatformManifest {
   val pack = loadPlatformManifest(packRoot)
-  val closure = loadCompositionClosure(pack)
-  validatePlatformPackCompositions(closure)
+  val closure = loadCompositionClosure(pack, packsBySlug)
+  val compositionCatalog = if (packsBySlug.isNotEmpty()) packsBySlug else closure.associateBy { it.slug }
+  validatePlatformPackCompositions(closure, compositionCatalog)
   validatePlatformPackFallbacks(closure)
   validatePlatformPack(pack, SHELL_CONTRACT_VERSION)
   if (enforceGovernedReviewStructure) {

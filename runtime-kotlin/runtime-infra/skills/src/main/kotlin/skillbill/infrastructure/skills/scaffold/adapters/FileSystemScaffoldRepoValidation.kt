@@ -96,7 +96,9 @@ class FileSystemScaffoldRepoValidation : ScaffoldRepoValidationPort {
       }
       return
     }
-    loadPlatformPack(repoRoot.resolve("platform-packs").resolve(plan.platform))
+    val packRoot = plan.manifestPath?.parent
+      ?: repoRoot.resolve("platform-packs").resolve(plan.platform)
+    loadPlatformPack(packRoot)
   }
 
   internal fun plannedAuthoringTarget(plan: ScaffoldPlan): AuthoringTarget = AuthoringTarget(

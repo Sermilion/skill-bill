@@ -2,6 +2,7 @@ package skillbill.infrastructure.skills.install.apply
 
 import skillbill.error.shellcontent.SkillContentIdentityMismatchError
 import skillbill.infrastructure.skills.install.plan.discoverPlatformManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
@@ -30,6 +31,7 @@ internal fun applyInstallPlan(
   telemetryLevelMutator: TelemetryLevelMutator? = null,
   telemetryConfigStore: TelemetryConfigStore? = null,
   mcpRegistrationPort: InstallMcpRegistrationPort,
+  catalogLoader: PlatformPackCatalogLoader? = null,
 ): InstallApplyResult {
   val warnings = mutableListOf<InstallApplyIssue>()
   val failures = mutableListOf<InstallApplyIssue>()
@@ -49,15 +51,15 @@ internal fun applyInstallPlan(
       mcpRegistrationIntent = plan.mcpRegistrationIntent,
     )
   }
-  val platformManifests = discoverPlatformManifests(plan.installationTargetPaths.platformPacksRoot.toPath())
+  val platformManifests = discoverPlatformManifests(plan.request, catalogLoader = catalogLoader)
   cleanupExistingSkillBillLinks(plan, platformManifests, failures)
-  val appliedSkills = applyPlannedSkills(plan, platformManifests, failures)
+  val appliedSkills = applyPlannedSkills(plan, platformManifests, failures, catalogLoader)
   if (failures.isEmpty()) {
     materializeAgentPlatformPackViews(plan, platformManifests, appliedSkills, failures)
   }
   val nativeAgents = if (failures.isEmpty()) {
     applyRepoLocalConfigScaffold(plan, warnings)
-    applyNativeAgents(plan, failures)
+    applyNativeAgents(plan, failures, catalogLoader)
   } else {
     emptyList()
   }
@@ -119,6 +121,7 @@ private fun applyPlannedSkills(
   plan: InstallPlan,
   platformManifests: List<PlatformManifest>,
   failures: MutableList<InstallApplyIssue>,
+  catalogLoader: PlatformPackCatalogLoader? = null,
 ): List<InstallAppliedSkill> = standaloneInstallableSkills(
   plan.skills,
   plan.selectedPlatformSlugs.toSet(),
@@ -128,6 +131,7 @@ private fun applyPlannedSkills(
     skill = skill,
     platformManifests = platformManifests,
     failures = failures,
+    catalogLoader = catalogLoader,
   )
   val links = staging.stagingDir?.takeIf { staging.status == InstallSkillStagingStatus.STAGED }
     ?.let { stagingDir ->
@@ -163,6 +167,7 @@ private fun stagePlannedSkill(
   skill: InstallPlanSkill,
   platformManifests: List<PlatformManifest>,
   failures: MutableList<InstallApplyIssue>,
+  catalogLoader: PlatformPackCatalogLoader? = null,
 ): InstallSkillStagingOutcome = runCatching {
   val intent = plannedStagingIntent(plan, skill)
   val staging = validatedPlannedStaging(
@@ -170,6 +175,7 @@ private fun stagePlannedSkill(
     skill = skill,
     intent = intent,
     platformManifests = platformManifests,
+    catalogLoader = catalogLoader,
   )
   staging.toStagingOutcome(skill.sourceDir.toPath())
 }.getOrElse { error ->

@@ -1,9 +1,12 @@
 
 package skillbill.infrastructure.skills.scaffold.runtime.service
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
+import skillbill.infrastructure.host.jvm.resolveUserHome
 import skillbill.infrastructure.skills.scaffold.payload.detectKind
 import skillbill.infrastructure.skills.scaffold.payload.validatePayloadVersion
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
+import skillbill.ports.install.platformpack.ExternalPlatformPackSourceConfigPort
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.system.HostPlatformPort
 import skillbill.scaffold.model.CodeReviewBaselineLayer
@@ -22,6 +25,10 @@ internal data class ScaffoldTransaction(
   val createdSymlinks: MutableList<Path> = mutableListOf(),
   val manifestSnapshots: MutableList<ManifestSnapshot> = mutableListOf(),
   val installTargets: MutableList<Path> = mutableListOf(),
+  var registeredExternalPackRoot: Path? = null,
+  var externalPackConfigHome: Path? = null,
+  var externalPackConfigEnvironment: Map<String, String> = emptyMap(),
+  var packSourceConfig: ExternalPlatformPackSourceConfigPort? = null,
 )
 
 internal data class ScaffoldPlan(
@@ -59,6 +66,8 @@ internal data class ScaffoldPlan(
   val subagentDescriptions: Map<String, String> = emptyMap(),
   val bodyBasedSubagents: Set<String> = emptySet(),
   val subagentsSuppressed: Boolean = false,
+  val externalPackRoot: Path? = null,
+  val externalPackRegistrationMode: String? = null,
 )
 
 internal data class ScaffoldExecutionResult(
@@ -69,11 +78,19 @@ internal data class ScaffoldExecutionResult(
   val notes: List<String>,
 )
 
+internal data class ScaffoldRuntimeContext(
+  val userHome: Path,
+  val environment: Map<String, String> = emptyMap(),
+  val catalogLoader: PlatformPackCatalogLoader? = null,
+  val packSourceConfig: ExternalPlatformPackSourceConfigPort? = null,
+)
+
 internal fun scaffoldWithAdapters(
   payload: Map<String, Any?>,
   dryRun: Boolean,
   adapters: ScaffoldAdapterSeams,
   hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  runtime: ScaffoldRuntimeContext = ScaffoldRuntimeContext(resolveUserHome(null, hostPlatform)),
 ): ScaffoldResult {
   require(payload.isNotEmpty()) {
     "Scaffold payload must be a JSON object mapping string keys to values."
@@ -82,11 +99,11 @@ internal fun scaffoldWithAdapters(
   validatePayloadVersion(payload)
   val kind = detectKind(payload)
   val repoRoot = resolveRepoRoot(payload, hostPlatform)
-  val plan = planScaffold(payload, repoRoot, kind, adapters)
+  val plan = planScaffold(payload, repoRoot, kind, adapters, runtime.userHome)
   return if (dryRun) {
     renderDryRunResult(plan, repoRoot)
   } else {
-    runScaffold(plan, repoRoot, adapters)
+    runScaffold(plan, repoRoot, adapters, runtime)
   }
 }
 
@@ -113,11 +130,22 @@ internal fun renderDryRunResult(plan: ScaffoldPlan, repoRoot: Path): ScaffoldRes
   notes = plan.notes + listOf("Dry run - no filesystem changes applied."),
 )
 
-internal fun runScaffold(plan: ScaffoldPlan, repoRoot: Path, adapters: ScaffoldAdapterSeams): ScaffoldResult {
+internal fun runScaffold(
+  plan: ScaffoldPlan,
+  repoRoot: Path,
+  adapters: ScaffoldAdapterSeams,
+  runtime: ScaffoldRuntimeContext = ScaffoldRuntimeContext(resolveUserHome(null)),
+): ScaffoldResult {
   val txn = ScaffoldTransaction()
   var committed = false
   try {
-    val execution = executeScaffold(txn, plan, repoRoot, adapters)
+    val execution = executeScaffold(
+      txn,
+      plan,
+      repoRoot,
+      adapters,
+      runtime,
+    )
     committed = true
     return ScaffoldResult(
       kind = plan.kind,

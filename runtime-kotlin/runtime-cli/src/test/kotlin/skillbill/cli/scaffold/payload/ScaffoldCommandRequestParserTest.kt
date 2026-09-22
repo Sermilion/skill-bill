@@ -73,6 +73,23 @@ class ScaffoldCommandRequestParserTest {
   }
 
   @Test
+  fun `platform pack payload maps pack location and registration and ignores addon location`() {
+    val request = parseScaffoldCommandRequest(
+      mapOf(
+        "scaffold_payload_version" to "1.0",
+        "kind" to "platform-pack",
+        "platform" to "acme",
+        "pack_location_path" to "~/dev/company-packs/acme",
+        "pack_registration" to "register",
+        "addon_location_path" to "/tmp/not-a-pack",
+      ),
+    ) as ScaffoldCommandRequest.PlatformPack
+
+    assertEquals("~/dev/company-packs/acme", request.packLocationPath)
+    assertEquals("register", request.packRegistration)
+  }
+
+  @Test
   fun `platform pack request rejects retired skeleton_mode with migration message`() {
     val error = assertFailsWith<InvalidScaffoldPayloadError> {
       parseScaffoldCommandRequest(

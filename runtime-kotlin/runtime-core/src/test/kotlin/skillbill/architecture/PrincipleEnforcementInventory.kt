@@ -436,6 +436,7 @@ object PrincipleEnforcementInventory {
     "configResolutionService",
     "externalAddonOverlayService",
     "externalAgentAddonSourceConfigPort",
+    "externalPlatformPackResolutionService",
     "featureSpecPathResolverPort",
     "featureTaskContinuationLookupService",
     "featureTaskPhaseSettlementService",

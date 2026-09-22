@@ -23,6 +23,7 @@ import skillbill.infrastructure.skills.install.staging.staging.support.Generated
 import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringTarget
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.install.model.RenderedSkill
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
@@ -64,6 +65,7 @@ private fun resolveStageInstalledSkillArtifacts(
       generatedSupportPointers = request.internal.supportPointers,
       internalChildren = request.internal.children,
       agentAddonPointers = request.agentAddonPointers,
+      checkoutRepoRoot = request.input.repoRoot,
     ),
   )
   val contentIdentity = resolveStageContentIdentity(request.resolvedSource, request.suppliedCompactIdentity)
@@ -91,7 +93,13 @@ private fun resolveStageInstallContext(input: StageInstalledSkillInput): StageIn
   val resolvedRepoRoot = input.repoRoot.toAbsolutePath().normalize()
   val skillName = resolvedSource.fileName.toString()
   val agentAddonPointers = agentAddonPointersForSkill(resolvedRepoRoot, skillName)
-  val target = resolveTarget(resolvedRepoRoot, skillName)
+  val discovery = PlatformPackDiscoveryContext(
+    repoRoot = resolvedRepoRoot,
+    userHome = input.home,
+    environment = input.environment,
+    catalogLoader = input.catalogLoader,
+  )
+  val target = resolveTarget(resolvedRepoRoot, skillName, discovery)
   val selectedManifests = input.manifests.orEmpty().filter { manifest -> manifest.slug in input.selectedPlatformSlugs }
   val pointers = applicablePointers(resolvedRepoRoot, resolvedSource, input.manifests)
   val generatedSupportPointers = generatedSupportPointersFor(
@@ -112,6 +120,9 @@ private fun resolveStageInstallContext(input: StageInstalledSkillInput): StageIn
       selectedPlatformManifests = selectedManifests,
       parentSupportPointers = generatedSupportPointers,
       parentPointerNames = pointers.map { (_, pointer) -> pointer.name }.toSet(),
+      userHome = input.home,
+      environment = input.environment,
+      catalogLoader = input.catalogLoader,
     ),
   )
   val authored = authoredFilesFor(

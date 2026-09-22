@@ -84,6 +84,8 @@ private fun parsePlatformPack(
     suppressSubagents = parseBooleanOrFalse(args, "no_subagents"),
     contentBody = optionalString(args, "content_body"),
     nameOverride = requireOptionalNonBlank(args, "name"),
+    packLocationPath = requireOptionalNonBlank(args, "pack_location_path"),
+    packRegistration = requireOptionalNonBlank(args, "pack_registration"),
     scaffoldPayloadVersion = version,
     repoRoot = repoRoot,
   )

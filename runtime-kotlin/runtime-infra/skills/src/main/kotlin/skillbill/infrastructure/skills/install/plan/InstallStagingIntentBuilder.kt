@@ -14,6 +14,7 @@ import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalS
 import skillbill.infrastructure.skills.install.staging.staging.sidecar.prepareInternalStaging
 import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
 import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
@@ -31,12 +32,14 @@ private data class StagingIntentContext(
   val platformManifests: List<PlatformManifest>,
   val selectedPackSkills: List<InstallPlanSkill>,
   val selectedPlatformManifests: List<PlatformManifest>,
+  val catalogLoader: PlatformPackCatalogLoader?,
 )
 
 internal fun buildInstallStagingIntent(
   request: InstallPlanRequest,
   draftSkills: List<InstallPlanSkill>,
   platformManifests: List<PlatformManifest>,
+  catalogLoader: PlatformPackCatalogLoader? = null,
 ): InstallStagingIntent {
   val stagingRoot = installedSkillsCacheRoot(request.home.toPath())
   val selectedPackSkills = draftSkills.filter { skill ->
@@ -44,7 +47,13 @@ internal fun buildInstallStagingIntent(
   }
   val selectedSlugs = selectedPlatformSlugs(draftSkills, platformManifests)
   val selectedManifests = platformManifests.filter { manifest -> manifest.slug in selectedSlugs }
-  val context = StagingIntentContext(request, platformManifests, selectedPackSkills, selectedManifests)
+  val context = StagingIntentContext(
+    request,
+    platformManifests,
+    selectedPackSkills,
+    selectedManifests,
+    catalogLoader,
+  )
   return InstallStagingIntent(
     root = stagingRoot.toFileLocation(),
     skillPaths = draftSkills.filter { skill -> skill.internalFor == null }
@@ -77,6 +86,9 @@ private fun buildSkillStagingPathIntent(
       selectedPlatformManifests = context.selectedPlatformManifests,
       parentSupportPointers = supportPointers,
       parentPointerNames = pointers.map { (_, pointer) -> pointer.name }.toSet(),
+      userHome = request.home.toPath(),
+      environment = request.environment,
+      catalogLoader = context.catalogLoader,
     ),
   )
   validatePointerInputs(request.repoRoot.toPath(), skill.sourceDir.toPath(), pointers, internal.supportPointers)
@@ -97,6 +109,7 @@ private fun buildSkillStagingPathIntent(
       generatedSupportPointers = internal.supportPointers,
       internalChildren = internal.children,
       agentAddonPointers = addonPointers,
+      checkoutRepoRoot = request.repoRoot.toPath(),
     ),
   )
   return InstallStagingPathIntent(
@@ -122,10 +135,10 @@ private fun validatePointerInputs(
   val realRepoRoot = repoRoot.toRealPath()
   val resolvedSource = sourceSkillDir.toAbsolutePath().normalize()
   pointers.forEach { (manifest, spec) ->
-    val pointerFile = manifest.packRoot.toPath().toAbsolutePath().normalize()
-      .resolve(spec.skillRelativeDir).normalize().resolve(spec.name).normalize()
+    val packRoot = manifest.packRoot.toPath().toAbsolutePath().normalize()
+    val pointerFile = packRoot.resolve(spec.skillRelativeDir).normalize().resolve(spec.name).normalize()
     val targetFile = resolvedRepoRoot.resolve(spec.target).normalize()
-    validatePointerTarget(spec.name, targetFile, pointerFile, resolvedRepoRoot, realRepoRoot)
+    validatePointerTarget(spec.name, targetFile, pointerFile, resolvedRepoRoot, realRepoRoot, packRoot)
   }
   supportPointers.forEach { pointer ->
     val targetFile = pointer.target.toAbsolutePath().normalize()
@@ -155,9 +168,10 @@ private fun validatePointerTarget(
   pointerFile: Path,
   repoRoot: Path,
   realRepoRoot: Path,
+  packRoot: Path,
 ) {
   require(targetFile.startsWith(repoRoot)) { "Pointer '$name' target '$targetFile' escapes repoRoot '$repoRoot'." }
-  require(pointerFile.startsWith(repoRoot)) { "Pointer '$name' path '$pointerFile' escapes repoRoot '$repoRoot'." }
+  require(pointerFile.startsWith(packRoot)) { "Pointer '$name' path '$pointerFile' escapes pack root '$packRoot'." }
   require(Files.isRegularFile(targetFile, LinkOption.NOFOLLOW_LINKS)) {
     "Pointer '$name' target '$targetFile' does not exist as a regular file."
   }

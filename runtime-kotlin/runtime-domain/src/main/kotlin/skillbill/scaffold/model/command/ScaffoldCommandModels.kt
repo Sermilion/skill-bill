@@ -30,6 +30,8 @@ sealed class ScaffoldCommandRequest {
     val contentBody: String? = null,
 
     val nameOverride: String? = null,
+    val packLocationPath: String? = null,
+    val packRegistration: String? = null,
     override val scaffoldPayloadVersion: String,
     override val repoRoot: String? = null,
   ) : ScaffoldCommandRequest()

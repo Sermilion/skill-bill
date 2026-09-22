@@ -2073,3 +2073,10 @@ Context: Shipped platform packs carried a second `quality-check/` skill and `dec
 Decision: Quality-check collect-all and confirmation are the dominant pack `validation_gate` argv only. `routeQualityCheck` selects the pack slug and fixes `routed_skill` to `bill-code-check`; missing `validation_gate` on the winning pack raises `MissingValidationGateError`. Scaffold, install, and review-structure validation no longer emit or require pack checker skills. Optional `declared_quality_check_file` remains schema-parseable for leftover custom packs. Install still treats that path as a declared skill directory when present, and skips undeclared `quality-check/` `addon_usage` keys so a leftover checker registration cannot block reconcile.
 Reason: One shell (`bill-code-check`), one gate surface per pack, no duplicate command-discovery sidecars. Reconcile enumerates the existing local pack copy with the new runtime before upstream can replace it.
 Alternatives considered: Keep pack checker skills as documentation-only (rejected: install and routing still duplicated argv). Generic command-discovery fallback when gate is absent (rejected: silent wrong-suite risk). Loud-fail leftover `quality-check/` `addon_usage` (rejected: `install reconcile` cannot apply the cleaned upstream pack).
+
+## [2026-09-22] External platform pack copy allowlist (SKILL-369)
+
+Context: Install and review-catalog staging copy declared pack files from registered external roots into managed output.
+Decision: A resolved path may be read only inside the registered pack root for that slug or under the checkout `.bill-shared` directory referenced by governed pointers. Symlink or join escapes outside those roots fail before promotion.
+Reason: Prevents external pack registration from becoming an arbitrary file read during install or catalog staging.
+Alternatives considered: Trusting symlink targets under the author tree (rejected: escapes user home or VCS boundaries). Merging shadowed bundled files into external packs (rejected: whole-pack replacement only).

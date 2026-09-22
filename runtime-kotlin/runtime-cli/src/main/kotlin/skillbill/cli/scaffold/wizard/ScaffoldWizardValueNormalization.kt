@@ -14,6 +14,20 @@ internal fun normalizeWizardKind(value: String): String = when (value.trim().low
   }
 }
 
+internal fun normalizePlatformPackSourceMode(value: String): String = when (value.trim().lowercase()) {
+  "1", "native", "in-repo" -> "native"
+  "2", "external" -> "external"
+  else -> throw IllegalArgumentException("Unsupported pack source '$value'. Use native or external.")
+}
+
+internal fun normalizePlatformPackRegistration(value: String): String = when (value.trim().lowercase()) {
+  "", "create", "1" -> "create"
+  "register", "2" -> "register"
+  else -> throw IllegalArgumentException(
+    "Unsupported pack registration '$value'. Use create or register.",
+  )
+}
+
 internal fun normalizeAddOnLocationMode(value: String): String = when (value.trim().lowercase()) {
   "1", "native", "pack", "pack-owned" -> "native"
   "2", "external" -> "external"

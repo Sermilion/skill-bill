@@ -4,10 +4,13 @@ import skillbill.error.shellcontent.MissingPlatformPackError
 import skillbill.error.shellcontent.SkillAlreadyExistsError
 import skillbill.error.shellcontent.UnknownSkillKindError
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
+import skillbill.infrastructure.host.jvm.resolveUserHome
+import skillbill.infrastructure.skills.externalplatformpack.resolveExternalPlatformPackSourcePath
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.APPROVED_CODE_REVIEW_AREAS
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELLED_FAMILIES
+import skillbill.infrastructure.skills.scaffold.runtime.service.externalpack.registerPlannedExternalPlatformPack
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.ports.system.HostPlatformPort
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
@@ -18,6 +21,7 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
 import skillbill.scaffold.policy.scaffold.sharedContractNote
 import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.nio.file.Path
 import skillbill.infrastructure.skills.scaffold.payload.optionalSpecialistSubagents as policyOptionalSpecialistSubagents
 import skillbill.infrastructure.skills.scaffold.payload.rejectBaselineLayersForNonPlatformPack as policyRejectBaselineLayersForNonPlatformPack
@@ -31,12 +35,22 @@ internal fun executeScaffold(
   plan: ScaffoldPlan,
   repoRoot: Path,
   adapters: ScaffoldAdapterSeams,
+  runtime: ScaffoldRuntimeContext = ScaffoldRuntimeContext(resolveUserHome(null)),
 ): ScaffoldExecutionResult {
   val execution =
-    when (plan.kind) {
-      SKILL_KIND_PLATFORM_PACK -> createPlatformPack(txn, plan, repoRoot)
+    when {
+      plan.kind == SKILL_KIND_PLATFORM_PACK && plan.externalPackRegistrationMode == PACK_REGISTRATION_REGISTER ->
+        ScaffoldExecutionResult(
+          createdFiles = emptyList(),
+          manifestEdits = emptyList(),
+          symlinks = emptyList(),
+          installTargets = emptyList(),
+          notes = listOf("Registered existing external platform pack without rewriting pack files."),
+        )
+      plan.kind == SKILL_KIND_PLATFORM_PACK -> createPlatformPack(txn, plan, repoRoot)
       else -> stageSingleScaffold(txn, plan, repoRoot)
     }
+  registerPlannedExternalPlatformPack(plan, txn, repoRoot, runtime)
   adapters.validateScaffold(plan, repoRoot)
   val (installTargets, installNotes) = performInstall(txn, plan, repoRoot, adapters)
   return execution.copy(
@@ -60,6 +74,7 @@ internal fun planScaffold(
   repoRoot: Path,
   kind: String,
   adapters: ScaffoldAdapterSeams,
+  userHome: Path = resolveUserHome(null),
 ): ScaffoldPlan = when (kind) {
   SKILL_KIND_HORIZONTAL -> {
     policyRejectBaselineLayersForNonPlatformPack(payload, kind)
@@ -69,7 +84,7 @@ internal fun planScaffold(
     policyRejectBaselineLayersForNonPlatformPack(payload, kind)
     planPlatformOverridePiloted(payload, repoRoot)
   }
-  SKILL_KIND_PLATFORM_PACK -> planPlatformPack(payload, repoRoot, adapters)
+  SKILL_KIND_PLATFORM_PACK -> planPlatformPack(payload, repoRoot, adapters, userHome)
   SKILL_KIND_CODE_REVIEW_AREA -> {
     policyRejectBaselineLayersForNonPlatformPack(payload, kind)
     planCodeReviewArea(payload, repoRoot)
@@ -127,20 +142,67 @@ internal fun planPlatformPack(
   payload: Map<String, Any?>,
   repoRoot: Path,
   adapters: ScaffoldAdapterSeams,
+  userHome: Path = resolveUserHome(null),
 ): ScaffoldPlan {
   val platform = requireString(payload, "platform")
   rejectPlatformPackSubagentOverrides(payload)
   val defaults = policyResolvePlatformPackDefaults(payload, platform)
-  val packRoot = repoRoot.resolve("platform-packs").resolve(platform)
-  if (Files.exists(packRoot)) {
+  val registration = normalizeExternalPackRegistration(payload["pack_registration"])
+  val externalRoot = (payload["pack_location_path"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+  val packRoot = if (externalRoot != null) {
+    resolveExternalPlatformPackSourcePath(userHome, externalRoot)
+  } else {
+    repoRoot.resolve("platform-packs").resolve(platform)
+  }
+  if (externalRoot != null && registration == PACK_REGISTRATION_REGISTER) {
+    requireExistingExternalPack(packRoot, platform)
+  } else if (Files.exists(packRoot, LinkOption.NOFOLLOW_LINKS)) {
     throw SkillAlreadyExistsError(
       "Platform pack target '$packRoot' already exists. " +
         "Remove it or pick a new platform slug before retrying.",
     )
   }
-  return buildPlatformPackScaffoldPlan(
+  val plan = buildPlatformPackScaffoldPlan(
     PlatformPackScaffoldPlanArgs(payload, repoRoot, adapters, platform, defaults, packRoot),
   )
+  if (externalRoot == null) {
+    return plan
+  }
+  return plan.copy(
+    externalPackRoot = packRoot,
+    externalPackRegistrationMode = registration,
+    notes = plan.notes + "Planned external platform pack registration at '$packRoot'.",
+  )
+}
+
+internal const val PACK_REGISTRATION_CREATE: String = "create"
+internal const val PACK_REGISTRATION_REGISTER: String = "register"
+
+internal fun normalizeExternalPackRegistration(raw: Any?): String {
+  val value = (raw as? String)?.trim()?.takeIf { it.isNotEmpty() } ?: PACK_REGISTRATION_CREATE
+  if (value != PACK_REGISTRATION_CREATE && value != PACK_REGISTRATION_REGISTER) {
+    throw InvalidScaffoldPayloadError(
+      "Scaffold payload field 'pack_registration' must be 'create' or 'register'.",
+    )
+  }
+  return value
+}
+
+private fun requireExistingExternalPack(packRoot: Path, platform: String) {
+  val manifestPath = packRoot.resolve("platform.yaml")
+  if (!Files.isDirectory(packRoot, LinkOption.NOFOLLOW_LINKS) ||
+    !Files.isRegularFile(manifestPath, LinkOption.NOFOLLOW_LINKS)
+  ) {
+    throw InvalidScaffoldPayloadError(
+      "pack_registration register requires an existing platform pack directory at '$packRoot'.",
+    )
+  }
+  val declared = loadPlatformPack(packRoot).slug
+  if (declared != platform) {
+    throw InvalidScaffoldPayloadError(
+      "pack_registration register found platform '$declared' at '$packRoot', expected '$platform'.",
+    )
+  }
 }
 
 internal fun rejectPlatformPackSubagentOverrides(payload: Map<String, Any?>) {

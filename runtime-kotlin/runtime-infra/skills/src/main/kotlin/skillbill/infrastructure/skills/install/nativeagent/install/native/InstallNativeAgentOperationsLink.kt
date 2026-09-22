@@ -20,6 +20,7 @@ import java.nio.file.Path
 import java.nio.file.attribute.DosFileAttributeView
 import java.nio.file.attribute.PosixFileAttributeView
 import java.nio.file.attribute.PosixFilePermission
+import kotlin.coroutines.cancellation.CancellationException
 
 internal fun linkProviderAgents(
   provider: NativeAgentProvider,
@@ -63,6 +64,7 @@ internal fun publishInstalledReviewCatalog(
   selectedPlatforms: List<String>?,
   cacheRoot: Path,
   journal: ProviderMutationJournal,
+  effectivePackRoots: List<Path> = emptyList(),
 ) {
   val catalogParent = cacheRoot.resolve("review-catalog")
   val catalogRoot = catalogParent.resolve("platform-packs")
@@ -76,7 +78,14 @@ internal fun publishInstalledReviewCatalog(
   journal.afterTemporaryCreation(staging)
   Files.createDirectories(staging)
 
-  stageReviewCatalogPacks(platformPacksRoot, selectedPlatforms, staging)
+  val failure = runCatching {
+    stageReviewCatalogPacks(platformPacksRoot, selectedPlatforms, staging, effectivePackRoots)
+  }.exceptionOrNull()
+  if (failure != null) {
+    if (failure is CancellationException) throw failure
+    deleteRecursively(staging)
+    throw retainedCatalogFailure(failure)
+  }
   journalReviewCatalogSwap(catalogRoot, staging, journal)
   swapReviewCatalogIntoPlace(catalogRoot, staging, superseded)
 }

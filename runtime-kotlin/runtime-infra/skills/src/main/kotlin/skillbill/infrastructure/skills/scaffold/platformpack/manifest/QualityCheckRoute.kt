@@ -1,6 +1,7 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.manifest
 import skillbill.error.shellcontent.MissingValidationGateError
-import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPacks
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
 
@@ -12,8 +13,29 @@ internal data class QualityCheckRoute(
   val fallbackReason: String? = null,
 )
 
-internal fun routeQualityCheck(repoRoot: Path, routingEvidence: Collection<String>): QualityCheckRoute? {
-  val packs = discoverPlatformPacks(repoRoot.toAbsolutePath().normalize().resolve("platform-packs"))
+internal fun routeQualityCheck(
+  repoRoot: Path,
+  routingEvidence: Collection<String>,
+  userHome: Path,
+  catalogLoader: PlatformPackCatalogLoader,
+  environment: Map<String, String> = emptyMap(),
+): QualityCheckRoute? {
+  val normalizedRepo = repoRoot.toAbsolutePath().normalize()
+  val packs = catalogLoader.loadEffectiveManifests(
+    PlatformPackDiscoveryContext(
+      repoRoot = normalizedRepo,
+      userHome = userHome,
+      environment = environment,
+      catalogLoader = catalogLoader,
+    ),
+  )
+  return routeQualityCheckForManifests(packs, routingEvidence)
+}
+
+internal fun routeQualityCheckForManifests(
+  packs: List<PlatformManifest>,
+  routingEvidence: Collection<String>,
+): QualityCheckRoute? {
   val candidates = packs.map { pack ->
     val matched = pack.routingSignals.strong.filter { signal ->
       routingEvidence.any { evidence -> routingSignalMatches(evidence, signal) }
