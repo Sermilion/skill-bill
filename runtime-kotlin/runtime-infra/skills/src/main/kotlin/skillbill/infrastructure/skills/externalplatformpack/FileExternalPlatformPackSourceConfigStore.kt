@@ -123,9 +123,19 @@ class FileExternalPlatformPackSourceConfigStore : ExternalPlatformPackSourceConf
   }
 
   private fun entryLocation(configPath: Path, userHome: Path, index: Int, entry: Any?): Path {
-    val map = requireExternalPlatformPackEntryMap(configPath, index, entry)
-    val rawPath = requireExternalPlatformPackEntryPath(configPath, index, map)
-    return resolveExternalPlatformPackSourcePath(userHome, rawPath)
+    return try {
+      val map = requireExternalPlatformPackEntryMap(configPath, index, entry)
+      val rawPath = requireExternalPlatformPackEntryPath(configPath, index, map)
+      resolveExternalPlatformPackSourcePath(userHome, rawPath)
+    } catch (error: ExternalPlatformPackConfigError) {
+      throw error
+    } catch (error: IllegalArgumentException) {
+      throw ExternalPlatformPackConfigError(
+        "External platform pack config at '$configPath': " +
+          "external_platform_pack_sources[$index].path is not a valid path.",
+        error,
+      )
+    }
   }
 
   private fun parseEntry(configPath: Path, userHome: Path, index: Int, entry: Any?): ExternalPlatformPackSource {

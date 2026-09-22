@@ -6,12 +6,15 @@ import skillbill.error.shellcontent.MissingRequiredSectionError
 import skillbill.infrastructure.skills.agentaddon.discoverAgentAddons
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringTarget
 import skillbill.infrastructure.skills.scaffold.authoring.validateTarget
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.declaredCodeReviewSkillNames
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.unsupportedCompositionModeReason
 import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldPlan
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.CONTENT_BODY_FILENAME
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.displayNameFromSlug
+import skillbill.model.EnvironmentContext
 import skillbill.ports.scaffold.repo.ScaffoldRepoValidationPort
 import skillbill.ports.scaffold.repo.model.ScaffoldAuthoringValidationRequest
 import skillbill.ports.scaffold.repo.model.ScaffoldAuthoringValidationResult
@@ -23,7 +26,10 @@ import java.nio.file.Path
 import skillbill.scaffold.policy.scaffold.parseBaselineLayerPayload as policyParseBaselineLayerPayload
 
 @Inject
-class FileSystemScaffoldRepoValidation : ScaffoldRepoValidationPort {
+class FileSystemScaffoldRepoValidation(
+  private val environmentContext: EnvironmentContext? = null,
+  private val catalogLoader: PlatformPackCatalogLoader? = null,
+) : ScaffoldRepoValidationPort {
   override fun validateAuthoringTarget(
     request: ScaffoldAuthoringValidationRequest,
   ): ScaffoldAuthoringValidationResult {
@@ -98,7 +104,19 @@ class FileSystemScaffoldRepoValidation : ScaffoldRepoValidationPort {
     }
     val packRoot = plan.manifestPath?.parent
       ?: repoRoot.resolve("platform-packs").resolve(plan.platform)
-    loadPlatformPack(packRoot)
+    val catalog = if (plan.externalPackRoot != null && environmentContext != null && catalogLoader != null) {
+      catalogLoader.loadEffectiveCatalog(
+        PlatformPackDiscoveryContext(
+          repoRoot = repoRoot,
+          userHome = environmentContext.userHome,
+          environment = environmentContext.environment,
+          catalogLoader = catalogLoader,
+        ),
+      ).manifestsBySlug
+    } else {
+      emptyMap()
+    }
+    loadPlatformPack(packRoot, catalog)
   }
 
   internal fun plannedAuthoringTarget(plan: ScaffoldPlan): AuthoringTarget = AuthoringTarget(

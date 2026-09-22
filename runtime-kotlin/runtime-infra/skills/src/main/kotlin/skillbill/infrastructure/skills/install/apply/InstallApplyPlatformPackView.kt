@@ -2,6 +2,7 @@ package skillbill.infrastructure.skills.install.apply
 
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.assertExternalPlatformPackDeclaredReads
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.assertExternalPlatformPackTreeReads
+import skillbill.infrastructure.host.jvm.atomicMoveReplacing
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
@@ -48,10 +49,12 @@ internal fun materializeAgentPlatformPackViews(
         assertExternalPlatformPackDeclaredReads(manifest, billSharedRoot)
       }
       val root = agentTarget.path.toPath().toAbsolutePath().normalize().resolve(PLATFORM_PACKS_DIR)
-      replaceManagedPlatformPackView(root)
-      selectedManifests.forEach { manifest ->
-        materializeOnePack(root, manifest, stagedPlatformSkills, internalPlatformSkillDirs)
-      }
+      materializeAgentPlatformPackView(
+        root,
+        selectedManifests,
+        stagedPlatformSkills,
+        internalPlatformSkillDirs,
+      )
     }.getOrElse { error ->
       failures.add(
         InstallApplyIssue(
@@ -87,7 +90,12 @@ internal fun cleanupManagedPlatformPackViews(plan: InstallPlan, failures: Mutabl
   }
 }
 
-private fun replaceManagedPlatformPackView(root: Path) {
+private fun materializeAgentPlatformPackView(
+  root: Path,
+  manifests: List<PlatformManifest>,
+  stagedPlatformSkills: Map<Path, InstallAppliedSkill>,
+  internalPlatformSkillDirs: Set<Path>,
+) {
   if (Files.isSymbolicLink(root)) {
     error("Existing symlink at $root was preserved.")
   }
@@ -95,10 +103,36 @@ private fun replaceManagedPlatformPackView(root: Path) {
     require(Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS) && Files.exists(root.resolve(MANAGED_INSTALL_MARKER))) {
       "Existing non-managed platform-packs path at $root was preserved."
     }
-    deleteTree(root)
   }
-  Files.createDirectories(root)
-  Files.writeString(root.resolve(MANAGED_INSTALL_MARKER), "")
+  val parent = requireNotNull(root.parent) { "Managed platform-packs path '$root' has no parent." }
+  Files.createDirectories(parent)
+  val staging = parent.resolve(".${root.fileName}.platform-packs-staging")
+  val superseded = parent.resolve(".${root.fileName}.platform-packs-superseded")
+  deleteTree(staging)
+  deleteTree(superseded)
+  Files.createDirectories(staging)
+  Files.writeString(staging.resolve(MANAGED_INSTALL_MARKER), "")
+  try {
+    manifests.forEach { manifest ->
+      materializeOnePack(staging, manifest, stagedPlatformSkills, internalPlatformSkillDirs)
+    }
+    if (Files.exists(root, LinkOption.NOFOLLOW_LINKS)) {
+      atomicMoveReplacing(root, superseded)
+    }
+    try {
+      atomicMoveReplacing(staging, root)
+    } catch (error: Throwable) {
+      if (Files.exists(superseded, LinkOption.NOFOLLOW_LINKS) &&
+        !Files.exists(root, LinkOption.NOFOLLOW_LINKS)
+      ) {
+        atomicMoveReplacing(superseded, root)
+      }
+      throw error
+    }
+  } finally {
+    deleteTree(staging)
+    deleteTree(superseded)
+  }
 }
 
 private fun materializeOnePack(

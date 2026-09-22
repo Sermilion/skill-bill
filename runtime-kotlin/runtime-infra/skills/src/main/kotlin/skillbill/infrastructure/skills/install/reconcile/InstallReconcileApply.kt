@@ -2,9 +2,11 @@ package skillbill.infrastructure.skills.install.reconcile
 
 import skillbill.error.shellcontent.ReconciliationConflictError
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing
+import skillbill.infrastructure.skills.install.plan.discoverPlatformManifests
 import skillbill.install.model.BaselineManifest
 import skillbill.install.model.ReconciliationPlan
 import skillbill.install.model.SkillReconciliationOutcome
+import skillbill.model.toPath
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -44,7 +46,7 @@ internal fun applyReconciliation(
       deleteTreeRecursively(liveSkillDir(local, outcome.skillRelativePath))
       outcome.skillRelativePath
     }
-  adoptPlatformPackNonSkillFiles(upstream, local, upstreamSkills)
+  adoptPlatformPackNonSkillFiles(upstream, local, upstreamSkills, home, environment)
   return ReconcileApplyOutput(plan = plan, installedPaths = installedPaths, prunedPaths = prunedPaths)
 }
 
@@ -69,42 +71,52 @@ private fun adoptPlatformPackNonSkillFiles(
   upstream: ReconcileSourceRoots,
   local: ReconcileSourceRoots,
   upstreamSkills: Map<String, ReconcileSkillEntry>,
+  home: Path,
+  environment: Map<String, String>,
 ) {
-  val upstreamPacks = upstream.platformPacksRoot.toAbsolutePath().normalize()
-  if (!Files.isDirectory(upstreamPacks)) {
+  val sources = upstreamPlatformPackSources(upstream, home, environment)
+  if (sources.isEmpty()) {
     return
   }
   val packSkillDirs = upstreamSkills.values
     .map { it.sourceDir }
-    .filter { it.startsWith(upstreamPacks) }
+    .toSet()
   val livePacks = local.platformPacksRoot.toAbsolutePath().normalize()
-  Files.walk(upstreamPacks).use { stream ->
-    stream.forEach { path ->
-      if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
-        return@forEach
+  val desiredFiles = mutableSetOf<String>()
+  sources.forEach { source ->
+    Files.walk(source.root).use { stream ->
+      stream.forEach { path ->
+        if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+          return@forEach
+        }
+        if (packSkillDirs.any { skillDir -> path.startsWith(skillDir) }) {
+          return@forEach
+        }
+        val relative = source.root.relativize(path).toString()
+        desiredFiles += "${source.slug}/$relative"
+        val dest = livePacks.resolve(source.slug).resolve(relative).normalize()
+        require(dest.startsWith(livePacks)) {
+          "Platform pack file '$path' escapes managed platform-packs root '$livePacks'."
+        }
+        dest.parent?.let(Files::createDirectories)
+        Files.copy(
+          path,
+          dest,
+          StandardCopyOption.REPLACE_EXISTING,
+          StandardCopyOption.COPY_ATTRIBUTES,
+          LinkOption.NOFOLLOW_LINKS,
+        )
       }
-      if (packSkillDirs.any { skillDir -> path.startsWith(skillDir) }) {
-        return@forEach
-      }
-      val dest = livePacks.resolve(upstreamPacks.relativize(path).toString())
-      dest.parent?.let(Files::createDirectories)
-      Files.copy(
-        path,
-        dest,
-        StandardCopyOption.REPLACE_EXISTING,
-        StandardCopyOption.COPY_ATTRIBUTES,
-        LinkOption.NOFOLLOW_LINKS,
-      )
     }
   }
-  deleteLivePackFilesAbsentUpstream(upstreamPacks, livePacks, local, upstreamSkills)
+  deleteLivePackFilesAbsentUpstream(livePacks, local, upstreamSkills, desiredFiles)
 }
 
 private fun deleteLivePackFilesAbsentUpstream(
-  upstreamPacks: Path,
   livePacks: Path,
   local: ReconcileSourceRoots,
   upstreamSkills: Map<String, ReconcileSkillEntry>,
+  desiredFiles: Set<String>,
 ) {
   if (!Files.isDirectory(livePacks)) {
     return
@@ -117,7 +129,8 @@ private fun deleteLivePackFilesAbsentUpstream(
       if (liveSkillDirs.any { skillDir -> path.startsWith(skillDir) }) {
         return@forEach
       }
-      if (!Files.exists(upstreamPacks.resolve(livePacks.relativize(path).toString()), LinkOption.NOFOLLOW_LINKS)) {
+      val relative = livePacks.relativize(path).toString()
+      if (relative !in desiredFiles) {
         Files.deleteIfExists(path)
       }
     }
@@ -126,6 +139,43 @@ private fun deleteLivePackFilesAbsentUpstream(
     stream.sorted(Comparator.reverseOrder()).forEach { path ->
       if (path != livePacks && Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
         runCatching { Files.delete(path) }
+      }
+    }
+  }
+}
+
+private data class UpstreamPlatformPackSource(
+  val slug: String,
+  val root: Path,
+)
+
+private fun upstreamPlatformPackSources(
+  upstream: ReconcileSourceRoots,
+  home: Path,
+  environment: Map<String, String>,
+): List<UpstreamPlatformPackSource> {
+  val manifests = upstream.catalogLoader?.let { loader ->
+    discoverPlatformManifests(
+      reconcileEnumerationRequest(upstream, home, environment),
+      catalogLoader = loader,
+    )
+  }
+  return manifests?.map { manifest ->
+    UpstreamPlatformPackSource(
+      slug = manifest.slug,
+      root = manifest.packRoot.toPath().toAbsolutePath().normalize(),
+    )
+  } ?: run {
+    val root = upstream.platformPacksRoot.toAbsolutePath().normalize()
+    if (!Files.isDirectory(root)) {
+      emptyList()
+    } else {
+      Files.list(root).use { stream ->
+        stream.filter { path -> Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) }
+          .map { path ->
+            UpstreamPlatformPackSource(path.fileName.toString(), path.toAbsolutePath().normalize())
+          }
+          .toList()
       }
     }
   }

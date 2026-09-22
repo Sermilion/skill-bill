@@ -46,7 +46,19 @@ class FileSystemScaffoldOrchestrator(
     resolveAddonConsumerSkillDirs = { payload, packRoot, pack ->
       sourceLoader.resolveAddonConsumerSkillDirs(payload, packRoot, pack)
     },
-    performInstall = { txn, plan, repoRoot -> performScaffoldInstall(txn, plan, repoRoot) },
+    performInstall = { txn, plan, repoRoot ->
+      performScaffoldInstall(
+        txn,
+        plan,
+        repoRoot,
+        ScaffoldRuntimeContext(
+          userHome = environmentContext.userHome,
+          environment = environmentContext.environment,
+          catalogLoader = catalogLoader,
+          packSourceConfig = packSourceConfig,
+        ),
+      )
+    },
     rollbackInstallTargets = { txn, errors -> rollbackScaffoldInstallTargets(txn, errors) },
   )
 }

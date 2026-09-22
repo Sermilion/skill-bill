@@ -14,8 +14,8 @@ fun renderPointer(repoRoot: Path, packRoot: Path, spec: PointerSpec): String {
   require(targetFile.startsWith(resolvedRepoRoot)) {
     "Pointer '${spec.name}' target '${spec.target}' escapes repoRoot '$resolvedRepoRoot'."
   }
-  require(pointerFile.startsWith(resolvedRepoRoot)) {
-    "Pointer '${spec.name}' under '${spec.skillRelativeDir}' escapes repoRoot '$resolvedRepoRoot'."
+  require(pointerFile.startsWith(resolvedPackRoot)) {
+    "Pointer '${spec.name}' under '${spec.skillRelativeDir}' escapes pack root '$resolvedPackRoot'."
   }
   require(Files.isRegularFile(targetFile, LinkOption.NOFOLLOW_LINKS)) {
     "Pointer '${spec.name}' under '${spec.skillRelativeDir}' targets '${spec.target}' " +

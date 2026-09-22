@@ -28,17 +28,25 @@ internal fun linkProviderAgents(
   detectTargets: (Path) -> List<AgentTarget>,
 ): NativeAgentLinkOutcome {
   val validationRoot = nativeAgentCompositionRepoRoot(request.platformPacksRoot, request.skillsRoot)
+  val resolvedHome = request.home ?: resolveUserHome(null)
+  val effectivePackRoots = effectivePackRootsForInstall(
+    platformPacksRoot = request.platformPacksRoot,
+    userHome = resolvedHome,
+    environment = request.environment,
+    selectedPlatforms = request.selectedPlatforms,
+    catalogLoader = request.catalogLoader,
+  )
+  val compositionContext = installNativeAgentCompositionContext(effectivePackRoots)
   request.overrides.sourceRoots
     ?.let { roots ->
-      validateNativeAgentArtifactsForInstall(roots, validationRoot, installNativeAgentCompositionContext())
+      validateNativeAgentArtifactsForInstall(roots, validationRoot, compositionContext)
     }
     ?: validateNativeAgentArtifactsForInstall(
       request.platformPacksRoot,
       request.skillsRoot,
       request.selectedPlatforms,
-      installNativeAgentCompositionContext(),
+      compositionContext,
     )
-  val resolvedHome = request.home ?: resolveUserHome(null)
   val targets = detectTargets(resolvedHome)
   if (targets.isEmpty()) return NativeAgentLinkOutcome(emptyList(), emptyList())
   val cacheRoot = request.overrides.installCacheRoot?.toAbsolutePath()?.normalize()
@@ -53,6 +61,8 @@ internal fun linkProviderAgents(
         resolvedHome = resolvedHome,
         cacheRoot = cacheRoot,
         validationRoot = validationRoot,
+        compositionContext = compositionContext,
+        effectivePackRoots = effectivePackRoots,
         journal = journal,
       ),
     )
@@ -86,8 +96,13 @@ internal fun publishInstalledReviewCatalog(
     deleteRecursively(staging)
     throw retainedCatalogFailure(failure)
   }
-  journalReviewCatalogSwap(catalogRoot, staging, journal)
-  swapReviewCatalogIntoPlace(catalogRoot, staging, superseded)
+  val publishFailure = runCatching {
+    journalReviewCatalogSwap(catalogRoot, staging, journal)
+    swapReviewCatalogIntoPlace(catalogRoot, staging, superseded)
+  }.exceptionOrNull()
+  if (publishFailure != null) {
+    throw retainedCatalogFailure(publishFailure, platformPacksRoot, effectivePackRoots)
+  }
 }
 
 internal fun deleteRecursively(root: Path) {

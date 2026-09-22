@@ -24,7 +24,7 @@ internal fun linkProviderAgentsBody(args: NativeAgentLinkProviderBodyArgs): Nati
       selectedPlatforms = args.request.selectedPlatforms,
       provider = args.provider,
       home = args.resolvedHome,
-      compositionContext = installNativeAgentCompositionContext(),
+      compositionContext = args.compositionContext,
       overrides = NativeAgentInstallRenderOverrides(
         cacheRoot = args.request.overrides.installCacheRoot,
         sourceRoots = args.request.overrides.sourceRoots,
@@ -34,19 +34,12 @@ internal fun linkProviderAgentsBody(args: NativeAgentLinkProviderBodyArgs): Nati
     ),
   )
   val managedRoots = listOfNotNull(generated.cacheRoot, args.request.overrides.legacyManagedRoot)
-  val effectivePackRoots = effectivePackRootsForInstall(
-    platformPacksRoot = args.request.platformPacksRoot,
-    userHome = args.resolvedHome,
-    environment = args.request.environment,
-    selectedPlatforms = args.request.selectedPlatforms,
-    catalogLoader = args.request.catalogLoader,
-  )
   publishInstalledReviewCatalog(
     args.request.platformPacksRoot,
     args.request.selectedPlatforms,
     generated.cacheRoot,
     args.journal,
-    effectivePackRoots,
+    args.effectivePackRoots,
   )
   val linkResults = linkGeneratedNativeAgentFiles(args, generated, managedRoots)
   val desired = desiredNativeAgentInventory(

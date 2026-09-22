@@ -4,6 +4,7 @@ import skillbill.infrastructure.skills.install.nativeagent.install.native.Instal
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOutcome
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOverrides
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
+import skillbill.infrastructure.skills.install.nativeagent.install.native.effectivePackRootsForInstall
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
@@ -30,7 +31,14 @@ internal fun applyNativeAgents(
     failures = failures,
     installCacheRoot = nativeAgentApplyCacheRoot(plan),
     legacyManagedRoot = nativeAgentLegacyCacheRoot(plan),
-    sourceRoots = nativeAgentSourceRoots(plan.skills, plan.selectedPlatformSlugs.toSet()),
+    sourceRoots = nativeAgentSourceRoots(
+      skills = plan.skills,
+      selectedPlatformSlugs = plan.selectedPlatformSlugs.toSet(),
+      platformPacksRoot = plan.request.repoRoot.toPath().resolve("platform-packs"),
+      home = plan.request.home.toPath(),
+      environment = plan.request.environment,
+      catalogLoader = catalogLoader,
+    ),
     catalogLoader = catalogLoader,
   )
   return nativeAgentInstallers
@@ -163,10 +171,30 @@ private fun nativeAgentLegacyCacheRoot(plan: InstallPlan): Path = NativeAgentOpe
   skillsRoot = plan.installationTargetPaths.skillsRoot.toPath(),
 )
 
-internal fun nativeAgentSourceRoots(skills: List<InstallPlanSkill>, selectedPlatformSlugs: Set<String>): List<Path> =
-  skills
+internal fun nativeAgentSourceRoots(
+  skills: List<InstallPlanSkill>,
+  selectedPlatformSlugs: Set<String>,
+  platformPacksRoot: Path? = null,
+  home: Path? = null,
+  environment: Map<String, String> = emptyMap(),
+  catalogLoader: PlatformPackCatalogLoader? = null,
+): List<Path> {
+  val skillRoots = skills
     .filter { skill -> skill.platformSlug == null || skill.platformSlug in selectedPlatformSlugs }
     .map { skill -> skill.sourceDir.toPath() }
+  val packRoots = if (platformPacksRoot != null && home != null && catalogLoader != null) {
+    effectivePackRootsForInstall(
+      platformPacksRoot = platformPacksRoot,
+      userHome = home,
+      environment = environment,
+      selectedPlatforms = selectedPlatformSlugs.toList(),
+      catalogLoader = catalogLoader,
+    )
+  } else {
+    emptyList()
+  }
+  return (skillRoots + packRoots).distinct()
+}
 
 private val nativeAgentInstallers: List<NativeAgentInstaller> = NativeAgentProvider.entries.map { provider ->
   when (provider) {

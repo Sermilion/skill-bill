@@ -11,10 +11,18 @@ import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.error.shellcontent.MissingContentFileError
 import skillbill.error.shellcontent.MissingValidationGateError
+import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentOperations
+import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOverrides
+import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
 import skillbill.infrastructure.skills.install.nativeagent.install.native.ProviderMutationJournal
 import skillbill.infrastructure.skills.install.nativeagent.install.native.effectivePackRootsForInstall
+import skillbill.infrastructure.skills.install.nativeagent.install.native.installNativeAgentCompositionContext
 import skillbill.infrastructure.skills.install.nativeagent.install.native.publishInstalledReviewCatalog
 import skillbill.infrastructure.skills.install.nativeagent.install.native.uninstallNativeAgentFiles
+import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderOverrides
+import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderRequest
+import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
+import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.install.plan.buildInstallStagingIntent
 import skillbill.infrastructure.skills.install.plan.discoverPlatformManifests
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
@@ -124,6 +132,144 @@ class ExternalPlatformPackCatalogIntegrationTest {
       Files.readString(restored.entryForSlug("kotlin")!!.loaded.manifest.declaredFiles.baseline!!.toPath())
         .contains("EDITED_EXTERNAL_MARKER"),
     )
+  }
+
+  @Test
+  fun `native agent generation reads the effective external pack source`(@TempDir root: Path) {
+    val home = Files.createDirectories(root.resolve("home"))
+    val repo = Files.createDirectories(root.resolve("repo"))
+    val config = home.resolve("config.json")
+    seedExternalKotlinReplacement(root, repo, config)
+    Files.createDirectories(repo.resolve("skills"))
+    val external = root.resolve("external/kotlin")
+    val bundledAgents = repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/native-agents")
+    val externalAgents = external.resolve("code-review/bill-kotlin-code-review/native-agents")
+    Files.createDirectories(bundledAgents)
+    Files.createDirectories(externalAgents)
+    Files.writeString(
+      bundledAgents.resolve("agents.yaml"),
+      nativeAgentBundle("BUNDLED_AGENT_MARKER"),
+    )
+    Files.writeString(
+      externalAgents.resolve("agents.yaml"),
+      nativeAgentBundle("EXTERNAL_AGENT_MARKER"),
+    )
+
+    val environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString())
+    Files.createDirectories(home.resolve(".claude"))
+    fun link(roots: List<Path>): Path {
+      val outcome = InstallNativeAgentOperations.linkClaudeAgents(
+        NativeAgentLinkRequest(
+          platformPacksRoot = repo.resolve("platform-packs"),
+          skillsRoot = repo.resolve("skills"),
+          home = home,
+          selectedPlatforms = listOf("kotlin"),
+          overrides = NativeAgentLinkOverrides(
+            installCacheRoot = root.resolve("native-agent-link-cache"),
+            sourceRoots = roots,
+          ),
+          environment = environment,
+          catalogLoader = loader(),
+        ),
+      )
+      return (outcome.linked + outcome.skipped.map { skipped -> skipped.path })
+        .single { path -> path.fileName.toString() == "bill-kotlin-code-review.md" }
+    }
+
+    val effectiveRoots = effectivePackRootsForInstall(
+      platformPacksRoot = repo.resolve("platform-packs"),
+      userHome = home,
+      environment = environment,
+      selectedPlatforms = listOf("kotlin"),
+      catalogLoader = loader(),
+    )
+    val rendered = NativeAgentOperations.renderInstallArtifacts(
+      NativeAgentInstallRenderRequest(
+        platformPacksRoot = repo.resolve("platform-packs"),
+        skillsRoot = repo.resolve("skills"),
+        selectedPlatforms = listOf("kotlin"),
+        provider = NativeAgentProvider.Claude,
+        home = home,
+        compositionContext = installNativeAgentCompositionContext(effectiveRoots),
+        overrides = NativeAgentInstallRenderOverrides(
+          cacheRoot = root.resolve("native-agent-cache"),
+          sourceRoots = effectiveRoots,
+        ),
+      ),
+    )
+
+    val artifact = rendered.generatedFiles.single { path ->
+      path.fileName.toString() == "bill-kotlin-code-review.md"
+    }
+    assertTrue(Files.readString(artifact).contains("EXTERNAL_AGENT_MARKER"))
+    assertFalse(Files.readString(artifact).contains("BUNDLED_AGENT_MARKER"))
+    val linkedArtifact = link(effectiveRoots)
+    assertTrue(Files.readString(linkedArtifact).contains("EXTERNAL_AGENT_MARKER"))
+
+    Files.writeString(
+      externalAgents.resolve("agents.yaml"),
+      nativeAgentBundle("EDITED_AGENT_MARKER"),
+    )
+    val editedRoots = effectivePackRootsForInstall(
+      platformPacksRoot = repo.resolve("platform-packs"),
+      userHome = home,
+      environment = environment,
+      selectedPlatforms = listOf("kotlin"),
+      catalogLoader = loader(),
+    )
+    val edited = NativeAgentOperations.renderInstallArtifacts(
+      NativeAgentInstallRenderRequest(
+        platformPacksRoot = repo.resolve("platform-packs"),
+        skillsRoot = repo.resolve("skills"),
+        selectedPlatforms = listOf("kotlin"),
+        provider = NativeAgentProvider.Claude,
+        home = home,
+        compositionContext = installNativeAgentCompositionContext(editedRoots),
+        overrides = NativeAgentInstallRenderOverrides(
+          cacheRoot = root.resolve("native-agent-cache"),
+          sourceRoots = editedRoots,
+        ),
+      ),
+    )
+    val editedArtifact = edited.generatedFiles.single { path ->
+      path.fileName.toString() == "bill-kotlin-code-review.md"
+    }
+    assertTrue(Files.readString(editedArtifact).contains("EDITED_AGENT_MARKER"))
+    assertFalse(Files.readString(editedArtifact).contains("EXTERNAL_AGENT_MARKER"))
+    val editedLinkedArtifact = link(editedRoots)
+    assertTrue(Files.readString(editedLinkedArtifact).contains("EDITED_AGENT_MARKER"))
+    assertFalse(Files.readString(editedLinkedArtifact).contains("EXTERNAL_AGENT_MARKER"))
+
+    writeSources(config)
+    val restoredRoots = effectivePackRootsForInstall(
+      platformPacksRoot = repo.resolve("platform-packs"),
+      userHome = home,
+      environment = environment,
+      selectedPlatforms = listOf("kotlin"),
+      catalogLoader = loader(),
+    )
+    val restored = NativeAgentOperations.renderInstallArtifacts(
+      NativeAgentInstallRenderRequest(
+        platformPacksRoot = repo.resolve("platform-packs"),
+        skillsRoot = repo.resolve("skills"),
+        selectedPlatforms = listOf("kotlin"),
+        provider = NativeAgentProvider.Claude,
+        home = home,
+        compositionContext = installNativeAgentCompositionContext(restoredRoots),
+        overrides = NativeAgentInstallRenderOverrides(
+          cacheRoot = root.resolve("native-agent-cache"),
+          sourceRoots = restoredRoots,
+        ),
+      ),
+    )
+    val restoredArtifact = restored.generatedFiles.single { path ->
+      path.fileName.toString() == "bill-kotlin-code-review.md"
+    }
+    assertTrue(Files.readString(restoredArtifact).contains("BUNDLED_AGENT_MARKER"))
+    assertFalse(Files.readString(restoredArtifact).contains("EDITED_AGENT_MARKER"))
+    val restoredLinkedArtifact = link(restoredRoots)
+    assertTrue(Files.readString(restoredLinkedArtifact).contains("BUNDLED_AGENT_MARKER"))
+    assertFalse(Files.readString(restoredLinkedArtifact).contains("EDITED_AGENT_MARKER"))
   }
 
   @Test
@@ -280,8 +426,11 @@ class ExternalPlatformPackCatalogIntegrationTest {
     writePack(pack, "kotlin", "OLD_CATALOG_MARKER", listOf(".kt"), "external-gate")
     val cache = root.resolve("cache")
     val outside = root.resolve("secret-user-file.txt")
+    val authorFile = pack.resolve("author-notes.md")
     Files.writeString(outside, "SECRET_USER_BYTES")
-    publishInstalledReviewCatalog(pack.parent, null, cache, ProviderMutationJournal(), listOf(pack))
+    Files.writeString(authorFile, "KEEP_AUTHOR_BYTES")
+    val bundledRoot = root.resolve("repo/platform-packs")
+    publishInstalledReviewCatalog(bundledRoot, null, cache, ProviderMutationJournal(), listOf(pack))
     val published = cache.resolve("review-catalog/platform-packs/kotlin/code-review/bill-kotlin-code-review/content.md")
     assertTrue(Files.readString(published).contains("OLD_CATALOG_MARKER"))
 
@@ -289,11 +438,14 @@ class ExternalPlatformPackCatalogIntegrationTest {
     Files.delete(content)
     Files.createSymbolicLink(content, outside)
     val error = assertFailsWith<ExternalPlatformPackPublishError> {
-      publishInstalledReviewCatalog(pack.parent, null, cache, ProviderMutationJournal(), listOf(pack))
+      publishInstalledReviewCatalog(bundledRoot, null, cache, ProviderMutationJournal(), listOf(pack))
     }
     assertEquals("previous_catalog_retained", error.remotePayload[ExternalPlatformPackTelemetryPayloadKeys.RECOVERY])
+    assertEquals("kotlin", error.remotePayload[ExternalPlatformPackTelemetryPayloadKeys.PLATFORM_SLUG])
+    assertEquals("external", error.remotePayload[ExternalPlatformPackTelemetryPayloadKeys.SOURCE_KIND])
     assertFalse(error.remotePayload.values.joinToString(" ").contains(outside.toString()))
     assertEquals("SECRET_USER_BYTES", Files.readString(outside))
+    assertEquals("KEEP_AUTHOR_BYTES", Files.readString(authorFile))
     assertTrue(Files.readString(published).contains("OLD_CATALOG_MARKER"))
   }
 
@@ -749,6 +901,14 @@ class ExternalPlatformPackCatalogIntegrationTest {
 
   private fun reviewBody(skillName: String, platform: String, marker: String): String =
     renderContentBody(TemplateContext(skillName, "code-review", platform, "", platform), marker)
+
+  private fun nativeAgentBundle(marker: String): String = """
+    contract_version: "0.1"
+    agents:
+      - name: bill-kotlin-code-review
+        description: "$marker"
+        compose: governed-content
+  """.trimIndent() + "\n"
 }
 
 private data class PackFixtureOptions(

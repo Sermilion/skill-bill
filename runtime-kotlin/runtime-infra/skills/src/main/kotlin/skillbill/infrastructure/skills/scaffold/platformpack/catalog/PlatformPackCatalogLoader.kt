@@ -54,9 +54,14 @@ class PlatformPackCatalogLoader(
     loadEffectiveCatalogInternal(context)
 
   private fun loadEffectiveCatalogInternal(context: PlatformPackDiscoveryContext): EffectivePlatformPackCatalog {
-    val bundled = loadBundledPacks(context)
     val external = loadExternalPacks(context)
-    val catalog = buildEffectivePlatformPackCatalog(bundled, external)
+    val shadowedSlugs = external.map { pack -> pack.manifest.slug }.toSet()
+    val bundled = loadBundledPacks(context, shadowedSlugs)
+    val catalog = buildEffectivePlatformPackCatalog(
+      bundled = bundled,
+      external = external,
+      bundledSlugs = bundledPackSlugs(context),
+    )
     val manifests = catalog.manifests
     validatePlatformPackCompositions(manifests, catalog.manifestsBySlug)
     validatePlatformPackFallbacks(manifests)
@@ -102,19 +107,33 @@ class PlatformPackCatalogLoader(
     return ExternalPlatformPackRootResult(incoming.slug)
   }
 
-  private fun loadBundledPacks(context: PlatformPackDiscoveryContext): List<LoadedPlatformPack> {
+  private fun loadBundledPacks(
+    context: PlatformPackDiscoveryContext,
+    shadowedSlugs: Set<String>,
+  ): List<LoadedPlatformPack> {
     val packsRoot = context.repoRoot.toAbsolutePath().normalize().resolve("platform-packs")
     if (!Files.isDirectory(packsRoot)) {
       return emptyList()
     }
     return childDirectories(packsRoot).map { packRoot ->
+      if (packRoot.fileName.toString() in shadowedSlugs) {
+        return@map null
+      }
       val manifest = loadPlatformManifest(packRoot, context.enforceContractVersion)
       LoadedPlatformPack(
         manifest = manifest,
         sourceKind = PlatformPackSourceKind.BUNDLED,
         canonicalRoot = packRoot.toAbsolutePath().normalize().toString(),
       )
+    }.filterNotNull()
+  }
+
+  private fun bundledPackSlugs(context: PlatformPackDiscoveryContext): Set<String> {
+    val packsRoot = context.repoRoot.toAbsolutePath().normalize().resolve("platform-packs")
+    if (!Files.isDirectory(packsRoot)) {
+      return emptySet()
     }
+    return childDirectories(packsRoot).map { packRoot -> packRoot.fileName.toString() }.toSet()
   }
 
   private fun loadExternalPacks(context: PlatformPackDiscoveryContext): List<LoadedPlatformPack> {
@@ -136,6 +155,7 @@ class PlatformPackCatalogLoader(
     val billSharedRoot = context.repoRoot.toAbsolutePath().normalize().resolve(".bill-shared")
     assertExternalPackContentPresent(manifest)
     assertExternalPlatformPackDeclaredReads(manifest, billSharedRoot)
+    assertExternalPlatformPackTreeReads(canonicalRoot, billSharedRoot)
     return LoadedPlatformPack(
       manifest = manifest,
       sourceKind = PlatformPackSourceKind.EXTERNAL,

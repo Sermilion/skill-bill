@@ -67,7 +67,13 @@ class FileExternalPlatformPackSourceConfigStoreTest {
     ).sources
 
     assertEquals(1, sources.size)
+    val beforeSecondRegister = Files.readString(configPath(home))
+    val second = store.registerExternalPlatformPackSource(
+      registrationRequest(home, configPath(home), ExternalPlatformPackSource(packDir.toFileLocation())),
+    ).sources
+    assertEquals(1, second.size)
     val config = Files.readString(configPath(home))
+    assertEquals(beforeSecondRegister, config)
     assertTrue("\"install_id\":\"stable-id\"" in config)
     assertTrue("\"external_addon_sources\"" in config)
   }
@@ -202,6 +208,20 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   @Test
   fun `malformed list loud-fails`(@TempDir home: Path) {
     writeConfig(home, mapOf(ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to "nope"))
+    assertFailsWith<ExternalPlatformPackConfigError> {
+      store.readExternalPlatformPackSources(request(home, configPath(home)))
+    }
+  }
+
+  @Test
+  fun `malformed entries loud-fail before a source is returned`(@TempDir home: Path) {
+    writeConfig(
+      home,
+      mapOf(
+        ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to
+          listOf(mapOf("path" to "   ")),
+      ),
+    )
     assertFailsWith<ExternalPlatformPackConfigError> {
       store.readExternalPlatformPackSources(request(home, configPath(home)))
     }

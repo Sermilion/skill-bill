@@ -5,6 +5,7 @@ import skillbill.infrastructure.host.jvm.atomicMoveReplacing
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
 import skillbill.scaffold.policy.platformpack.externalPlatformPackTelemetryPayload
+import skillbill.scaffold.policy.platformpack.model.PlatformPackSourceKind
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -31,13 +32,25 @@ internal fun stageReviewCatalogPacks(
   }
   desiredPacks.forEach { source ->
     val failure = runCatching { stageReviewCatalogPack(source, staging) }.exceptionOrNull() ?: return@forEach
-    throw reviewCatalogStageFailure(source, failure)
+    throw reviewCatalogStageFailure(platformPacksRoot, source, failure)
   }
 }
 
-internal fun retainedCatalogFailure(error: Throwable): ExternalPlatformPackPublishError {
+internal fun retainedCatalogFailure(
+  error: Throwable,
+  platformPacksRoot: Path? = null,
+  effectivePackRoots: List<Path> = emptyList(),
+): ExternalPlatformPackPublishError {
   if (error is ExternalPlatformPackPublishError) return error
-  val payload = externalPlatformPackTelemetryPayload(error).toMutableMap()
+  val source = effectivePackRoots.singleOrNull()
+  val sourceKind = source?.let { packRoot ->
+    platformPacksRoot?.let { bundledRoot -> sourceKind(bundledRoot, packRoot) }
+  }
+  val payload = externalPlatformPackTelemetryPayload(
+    error,
+    slug = source?.fileName?.toString(),
+    sourceKind = sourceKind,
+  ).toMutableMap()
   payload[ExternalPlatformPackTelemetryPayloadKeys.RECOVERY] = "previous_catalog_retained"
   return ExternalPlatformPackPublishError(
     "Installed review catalog was not promoted; the previous catalog remains.",
@@ -46,9 +59,13 @@ internal fun retainedCatalogFailure(error: Throwable): ExternalPlatformPackPubli
   )
 }
 
-private fun reviewCatalogStageFailure(source: Path, error: Throwable): Throwable {
+private fun reviewCatalogStageFailure(platformPacksRoot: Path, source: Path, error: Throwable): Throwable {
   if (error is CancellationException || error is ExternalPlatformPackPublishError) return error
-  val payload = externalPlatformPackTelemetryPayload(error, slug = source.fileName.toString()).toMutableMap()
+  val payload = externalPlatformPackTelemetryPayload(
+    error,
+    slug = source.fileName.toString(),
+    sourceKind = sourceKind(platformPacksRoot, source),
+  ).toMutableMap()
   payload[ExternalPlatformPackTelemetryPayloadKeys.RECOVERY] = "previous_catalog_retained"
   return ExternalPlatformPackPublishError(
     "Installed review catalog for platform pack '${source.fileName}' was not promoted; " +
@@ -56,6 +73,14 @@ private fun reviewCatalogStageFailure(source: Path, error: Throwable): Throwable
     payload,
     error,
   )
+}
+
+private fun sourceKind(platformPacksRoot: Path, source: Path): PlatformPackSourceKind = if (
+  source.toAbsolutePath().normalize().startsWith(platformPacksRoot.toAbsolutePath().normalize())
+) {
+    PlatformPackSourceKind.BUNDLED
+  } else {
+    PlatformPackSourceKind.EXTERNAL
 }
 
 private fun stageReviewCatalogPack(source: Path, staging: Path) {
@@ -104,9 +129,24 @@ internal fun journalReviewCatalogSwap(catalogRoot: Path, staging: Path, journal:
 }
 
 internal fun swapReviewCatalogIntoPlace(catalogRoot: Path, staging: Path, superseded: Path) {
-  if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
-    atomicMoveReplacing(catalogRoot, superseded)
+  var supersededMoved = false
+  try {
+    if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
+      atomicMoveReplacing(catalogRoot, superseded)
+      supersededMoved = true
+    }
+    atomicMoveReplacing(staging, catalogRoot)
+    deleteRecursively(superseded)
+  } catch (error: Throwable) {
+    if (
+      supersededMoved &&
+      Files.exists(superseded, LinkOption.NOFOLLOW_LINKS) &&
+      !Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)
+    ) {
+      runCatching { atomicMoveReplacing(superseded, catalogRoot) }
+        .exceptionOrNull()
+        ?.let(error::addSuppressed)
+    }
+    throw error
   }
-  atomicMoveReplacing(staging, catalogRoot)
-  deleteRecursively(superseded)
 }
