@@ -53,8 +53,7 @@ internal fun resolveNativeAgentCompositionTarget(
       packRoot,
       sourcePath,
       source,
-      packLoader,
-      additionalPackRoots,
+      packLoader.withAdditionalPackRoots(additionalPackRoots),
     )
   } else {
     resolveSiblingContentTarget(sourcePath, source)

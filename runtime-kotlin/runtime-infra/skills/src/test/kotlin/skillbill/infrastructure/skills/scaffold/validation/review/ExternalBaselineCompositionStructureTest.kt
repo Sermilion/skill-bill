@@ -48,37 +48,42 @@ class ExternalBaselineCompositionStructureTest {
   private fun writeBaseline(packRoot: Path, slug: String, discipline: String, composeOnKotlin: Boolean): Path {
     val baseline = packRoot.resolve("code-review/bill-$slug-code-review/content.md")
     Files.createDirectories(baseline.parent)
-    Files.writeString(
-      baseline,
-      """
-      ---
-      name: bill-$slug-code-review
-      description: $slug review
-      internal-for: bill-code-review
-      ---
+    Files.writeString(baseline, baselineContent(slug, discipline))
+    Files.writeString(packRoot.resolve("platform.yaml"), platformManifest(slug, composeOnKotlin))
+    return baseline
+  }
 
-      # $slug
+  private fun baselineContent(slug: String, discipline: String): String =
+    """
+    ---
+    name: bill-$slug-code-review
+    description: $slug review
+    internal-for: bill-code-review
+    ---
 
-      ## Classification Rules
+    # $slug
 
-      If markers dominate, select this pack.
-      Otherwise classify the remainder here.
+    ## Classification Rules
 
-      ## Diff-Signal Routing Table
+    If markers dominate, select this pack.
+    Otherwise classify the remainder here.
 
-      - Module boundaries -> `architecture` specialist.
+    ## Diff-Signal Routing Table
 
-      ## Mixed Diffs
+    - Module boundaries -> `architecture` specialist.
 
-      Keep the baseline specialists for the whole review and use lightweight file-level classification.
-      Exclude generated and vendored non-stack files from specialist scope.
-      Launch specialists in deterministic subagent order through the harness and retain every selected result.
+    ## Mixed Diffs
 
-      ## Finding Discipline
+    Keep the baseline specialists for the whole review and use lightweight file-level classification.
+    Exclude generated and vendored non-stack files from specialist scope.
+    Launch specialists in deterministic subagent order through the harness and retain every selected result.
 
-      $discipline
-      """.trimIndent() + "\n",
-    )
+    ## Finding Discipline
+
+    $discipline
+    """.trimIndent() + "\n"
+
+  private fun platformManifest(slug: String, composeOnKotlin: Boolean): String {
     val composition = if (composeOnKotlin) {
       """
       code_review_composition:
@@ -92,9 +97,7 @@ class ExternalBaselineCompositionStructureTest {
     } else {
       ""
     }
-    Files.writeString(
-      packRoot.resolve("platform.yaml"),
-      """
+    return """
       platform: $slug
       contract_version: "1.8"
       display_name: "$slug"
@@ -105,8 +108,6 @@ class ExternalBaselineCompositionStructureTest {
       declared_code_review_areas: []
       declared_files:
         baseline: "code-review/bill-$slug-code-review/content.md"
-      """.trimIndent() + "\n" + composition,
-    )
-    return baseline
+      """.trimIndent() + "\n" + composition
   }
 }

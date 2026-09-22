@@ -15,9 +15,8 @@ internal fun resolvePlatformManifestContentTarget(
   sourcePath: Path,
   source: NativeAgentSource,
   packLoader: NativeAgentPlatformPackLoader,
-  additionalPackRoots: List<Path> = emptyList(),
 ): NativeAgentCompositionTarget? {
-  val pack = packLoader.loadPlatformPack(packRoot, additionalPackRoots)
+  val pack = packLoader.loadPlatformPack(packRoot)
   return declaredContentPaths(pack)
     .firstOrNull { path -> path.parent?.name == source.name }
     ?.also { contentPath ->
@@ -34,6 +33,18 @@ internal fun resolvePlatformManifestContentTarget(
       )
     }
 }
+
+internal fun NativeAgentPlatformPackLoader.withAdditionalPackRoots(
+  roots: List<Path>,
+): NativeAgentPlatformPackLoader =
+  if (roots.isEmpty()) {
+    this
+  } else {
+    object : NativeAgentPlatformPackLoader by this {
+      override fun loadPlatformPack(packRoot: Path, additionalPackRoots: List<Path>): NativeAgentPlatformPack =
+        this@withAdditionalPackRoots.loadPlatformPack(packRoot, additionalPackRoots.ifEmpty { roots })
+    }
+  }
 
 internal fun resolveSiblingContentTarget(sourcePath: Path, source: NativeAgentSource): NativeAgentCompositionTarget? =
   sourcePath.parent
